@@ -1,0 +1,92 @@
+<%inherit file="base.html" />
+
+<%def name="body()">
+	<div class="table_wrapper">
+	<div id="paddingheader">
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>Search Result</h1>
+	</div>
+	<table class="display" id="searchresults_table">
+		<thead>
+			<tr>
+				<th id="blank"></th>
+				<th id="name">Comic Name</th>
+                                <th id="comicyear">Year</th>
+				<th id="issues">Issues</th>
+				<th id="add"></th>
+			</tr>
+		</thead>
+		<tbody>
+			%if searchresults:
+				%for result in searchresults:
+				<%
+					if result['comicyear'] == '2012':
+						grade = 'A'
+					else:
+						grade = 'Z'
+				%>
+				<tr class="grade${grade}">
+					<td id="blank"></td>
+					<td id="name"><a href="${result['url']}" title="${result['name']}">${result['name']}</a></td>
+                                        <td id="comicyear"><a href="${result['url']}" title="${result['comicyear']}">${result['comicyear']}</a></td>
+					<td id="issues">${result['issues']}</td>
+				%if type == 'album':	
+					<td id="add"><a href="addReleaseById?rid=${result['albumid']}"><span class="ui-icon ui-icon-plus"></span> Add this album</a></td>
+				%else:
+					<td id="add"><a href="addComic?comicid=${result['comicid']}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
+				%endif
+				</tr>
+				%endfor
+			%endif
+		</tbody>
+	</table>
+	</div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+	
+	<script>
+	function getArt() {
+		$("table#searchresults_table tr td#comicimage img").each(function(){	
+			var id = $(this).attr('title');
+			var image = $(this);
+			if ( !image.hasClass('done') ) {
+				image.addClass('done');
+				getImageLinks(image,id,"${type}");
+			}
+		});
+	}
+	function initThisPage() {
+		getArt();
+		$('#searchresults_table').dataTable(
+			{
+				"bDestroy": true,
+				"aoColumnDefs": [
+			          { 'bSortable': false, 'aTargets': [ 0,3 ] }
+				],	
+				"oLanguage": {
+					"sLengthMenu":"Show _MENU_ results per page",
+					"sEmptyTable": "No results",
+					"sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+					"sInfoEmpty":"Showing 0 to 0 of 0 results",
+					"sInfoFiltered":"(filtered from _MAX_ total results)",
+					"sSearch" : ""},
+				"iDisplayLength": 25,
+				"sPaginationType": "full_numbers",
+				"aaSorting": []
+			});
+			resetFilters("result");
+	}
+	$(document).ready(function(){
+			initThisPage();		
+	});
+	$(window).load(function(){
+		initFancybox();
+	});
+	</script>
+</%def>
