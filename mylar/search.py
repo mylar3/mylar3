@@ -23,7 +23,7 @@ dognzb_APIkey = mylar.DOGNZB_APIKEY
 
 LOG = mylar.LOG_DIR
 
-import feedparser
+import lib.feedparser
 import urllib
 import os, errno
 import string

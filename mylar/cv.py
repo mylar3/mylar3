@@ -19,7 +19,7 @@ import os
 import logger
 import string
 import urllib
-import feedparser
+import lib.feedparser
 from bs4 import BeautifulSoup as Soup
 
 def getComic(comicid,type):
