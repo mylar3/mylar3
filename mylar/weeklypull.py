@@ -16,8 +16,6 @@
 
 from __future__ import print_function
 
-#from collections import Counter
-
 import sys
 import fileinput
 import csv
@@ -25,7 +23,6 @@ import getopt
 import sqlite3
 import urllib
 import os
-import codecs
 import time
 import re
 
