@@ -14,7 +14,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from lib.bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 import urllib2
 import re
 import helpers
