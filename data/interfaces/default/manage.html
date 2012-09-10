@@ -13,7 +13,7 @@
 
 <%def name="body()">
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_manage.png" alt="manage"/>Manage</h1>
+		<h1 class="clearfix">Manage</h1>
 	</div>
 	<div id="tabs">
 		<ul>
@@ -32,17 +32,12 @@
 					as soon as you click 'Save changes'
 					</p>	
 					<br/>
+                                        <p><strong>THIS IS CURRENTLY DISABLED UNTIL WORKING..</strong></p>
 					<div class="row">
-								<label for="">Path to directory</label>
 					%if mylar.DESTINATION_DIR:
-						<input type="text" value="${mylar.DESTINATION_DIR}" name="path" size="70" />
-					%else:
-						<input type="text" value="Enter a Comic Directory to scan" onfocus="if
-						(this.value==this.defaultValue) this.value='';" name="path" size="70" />
 					%endif
 					</div>
 					<div class="row checkbox"> 
-					<input type="checkbox" name="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Automatically add new Comics</label>
 					</div>
 								
 				</fieldset>

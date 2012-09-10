@@ -218,8 +218,11 @@ def pullit():
                                 comicend = n - 1
                                 break
                         n+=1
-                    if issue == '': issue = 'NA'
-                    if issue is None: issue = 'NA'
+                    #if the comic doesn't have an issue # or a keyword, adjust.
+                    #set it to 'NA' and it'll be filtered out anyways.
+                    if issue == "" or issue is None:
+                        issue = 'NA'
+                        comicend = comicend - 1
                     #find comicname
                     comicnm = issname[1]
                     n = 2
