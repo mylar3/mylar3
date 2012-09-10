@@ -22,7 +22,7 @@ from xml.dom.minidom import parseString, Element
 
 import mylar
 from mylar import logger, db, cv
-from mylar.helpers import multikeysort, replace_all
+from mylar.helpers import multikeysort, replace_all, cleanName
 
 mb_lock = threading.Lock()
 
@@ -78,15 +78,17 @@ def findComic(name, mode, issue):
                 #print ("n: " + str(n) + "--xmcnt" + str(xmlcnt))
                 if issue is not None: limiter = int(issue)
                 else: limiter = 0
-                if int(xmlcnt) > 0 and int(xmlcnt) >= limiter:
+                if int(xmlcnt) >= limiter:
                     xmlTag = searched.getElementsByTagName('name')[n].firstChild.wholeText
                     if (searched.getElementsByTagName('start_year')[n].firstChild) is not None:
                         xmlYr = searched.getElementsByTagName('start_year')[n].firstChild.wholeText
                     else: xmlYr = "0000"
                     xmlurl = searched.getElementsByTagName('site_detail_url')[n].firstChild.wholeText
                     xmlid = searched.getElementsByTagName('id')[n].firstChild.wholeText
-                    xmlimage = searched.getElementsByTagName('super_url')[n].firstChild.wholeText
-                
+                    if (searched.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
+                        xmlimage = searched.getElementsByTagName('super_url')[n].firstChild.wholeText
+                    else:
+                        xmlimage = "cache/blankcover.jpg"            
                     comiclist.append({
                             'name':             xmlTag,
                             'comicyear':             xmlYr,
