@@ -15,6 +15,7 @@
 
 import time
 import os
+import sys
 import shlex
 import datetime
 
@@ -93,6 +94,9 @@ def addComictoDB(comicid):
     #comic book location on machine
     # setup default location here
     comlocation = mylar.DESTINATION_DIR + "/" + comic['ComicName'] + " (" + comic['ComicYear'] + ")"
+    if mylar.DESTINATION_DIR == "":
+        logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
+        return
     #if mylar.REPLACE_SPACES == "yes":
         #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
     mylarREPLACE_CHAR = '_'
