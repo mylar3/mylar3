@@ -222,9 +222,17 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         #if 'isslen' exists, it means that it's an alternative cover.
         #however, if ONLY alternate covers exist of an issue it won't work.
         #let's use the FIRST record, and ignore all other covers for the given issue.
+        isschk = ParseIssue[:isslen]
+        if '.' in isschk:
+            isschk_find = isschk.find('.')
+            isschk_b4dec = isschk[:isschk_find]
+            isschk_decval = isschk[isschk_find+1:]
+        else:
+            isschk_decval = ".00"
+
         if isslen > 0:
             isschk = ParseIssue[:isslen]
-            isschk2 = str(isschk) + ".00"
+            isschk2 = str(isschk) + isschk_decval
             ParseIssue = str(isschk2)
             #print ("Alt.cover found = " + str(isschk2))
             if str(PI) == str(isschk2):
@@ -239,9 +247,9 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                     altcount+=1
             else:
                 altcount = 1
-                ParseIssue = str(isschk) + ".00"
+                ParseIssue = str(isschk) + isschk_decval
         else:
-            ParseIssue = ParseIssue + ".00"          
+            ParseIssue = ParseIssue + isschk_decval
             #print ("no alt.cover detected for - " + str(ParseIssue))
             altcount = 1
         if (altcount == 1):

@@ -85,7 +85,7 @@ class WebInterface(object):
         #else:
             #searchresults = mb.findRelease(name)
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)            
-        print ("Results: " + str(searchresults))
+        #print ("Results: " + str(searchresults))
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type)
     searchit.exposed = True
 
@@ -142,7 +142,7 @@ class WebInterface(object):
             newaction = action
         for IssueID in args:
             if IssueID is None: break
-            print("IssueID:" + IssueID)
+            #print("IssueID:" + IssueID)
             mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
             miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
             logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
@@ -161,9 +161,9 @@ class WebInterface(object):
                 # file check to see if issue exists and update 'have' count
                 if IssueID is not None:
                     ComicID = mi['ComicID']
-                    print ("ComicID: " + str(ComicID))
+                    #print ("ComicID: " + str(ComicID))
                     comic =  myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-                    print ("comic location: " + comic['ComicLocation'])
+                    #print ("comic location: " + comic['ComicLocation'])
                     #fc = filechecker.listFiles(comic['ComicLocation'], mi['ComicName'])
                     #HaveDict = {'ComicID': ComicID}
                     #newHave = { 'Have':     fc['comiccount'] }
@@ -196,17 +196,25 @@ class WebInterface(object):
     def queueissue(self, ComicName, mode, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
         if ComicID is None and mode == 'series':
-            print (ComicName)
+            #print (ComicName)
             issue = None
             raise cherrypy.HTTPRedirect("searchit?name=%s&issue=%s&mode=%s" % (ComicName, 'None', 'series'))
         elif ComicID is None and mode == 'pullseries':
             # we can limit the search by including the issue # and searching for
             # comics that have X many issues
             raise cherrypy.HTTPRedirect("searchit?name=%s&issue=%s&mode=%s" % (ComicName, 'None', 'pullseries'))
-        #elif ComicID is None and mode == 'pullwant':          
+        elif ComicID is None and mode == 'pullwant':          
             #this is for marking individual comics from the pullist to be downloaded.
             #because ComicID and IssueID will both be None due to pullist, it's probably
             #better to set both to some generic #, and then filter out later...
+            cyear = myDB.action("SELECT SHIPDATE FROM weekly").fetchone()
+            ComicYear = str(cyear['SHIPDATE'])[:4]
+            if ComicYear == '': ComicYear = "2012"
+            logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
+            foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear=None)
+            if foundcom  == "yes":
+                logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
+            return
         elif mode == 'want':
             logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
         #---
@@ -216,7 +224,6 @@ class WebInterface(object):
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             myDB.upsert("issues", newStatus, controlValueDict)
-        print ("ComicYear:" + str(ComicYear))
         #for future reference, the year should default to current year (.datetime)
         if ComicYear == None:
             issues = myDB.action("SELECT IssueDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
@@ -224,12 +231,12 @@ class WebInterface(object):
         miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         SeriesYear = miyr['ComicYear']
         foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear)
-        print ("foundcom:" + str(foundcom))
+        #print ("foundcom:" + str(foundcom))
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
-                print ("ComicID:" + str(ComicID))
-                print ("IssueID:" + str(IssueID))
+                #print ("ComicID:" + str(ComicID))
+                #print ("IssueID:" + str(IssueID))
                 return updater.foundsearch(ComicID, IssueID) 
         if ComicID:
             raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
@@ -511,8 +518,8 @@ class WebInterface(object):
     
     def update(self):
         mylar.SIGNAL = 'update'
-        message = 'Updating...'
-        return serve_template(templatename="shutdown.html", title="Updating", message=message, timer=120)
+        message = 'Updating...Home screen will appear in 60s'
+        return serve_template(templatename="shutdown.html", title="Updating", message=message, timer=30)
         return page
     update.exposed = True
         

@@ -116,7 +116,8 @@ def addComictoDB(comicid):
     #print ("root dir for series: " + comlocation)
     #try to account for CV not updating new issues as fast as GCD
     if gcdinfo['gcdvariation'] == "yes":
-        comicIssues = str(int(comic['ComicIssues']) + 1)
+    #    comicIssues = str(int(comic['ComicIssues']) + 1)
+        comicIssues = comic['ComicIssues'] 
     else:
         comicIssues = comic['ComicIssues']
     controlValueDict = {"ComicID":      comicid}
@@ -146,33 +147,9 @@ def addComictoDB(comicid):
     #let's start issue #'s at 0 -- thanks to DC for the new 52 reboot! :)
     latestiss = "0"
     latestdate = "0000-00-00"
-    while (n < iscnt):       
-        firstval = issued['issuechoice'][n]
-        cleanname = helpers.cleanName(firstval['Issue_Name'])
-        issid.append( str(firstval['Issue_ID']) )
-        issnum.append( str(firstval['Issue_Number']) )
-        issname.append(cleanname)
-        bb = 0
-        while (bb < iscnt):
-            gcdval = gcdinfo['gcdchoice'][bb]      
-            #print ("issuecompare: " + str(issnum[n]))
-            #print ("issuecheck: " + str(gcdval['GCDIssue']) )
-            if str(gcdval['GCDIssue']) == str(issnum[n]):
-                issdate.append( str(gcdval['GCDDate']) )
-                issnumchg = issnum[n].replace(".00", "")
-                #print ("issnumchg" + str(issnumchg) + "...latestiss:" + str(latestiss))
-                int_issnum.append(int(issnumchg))
-                #get the latest issue / date using the date.
-                if gcdval['GCDDate'] > latestdate:
-                    latestiss = str(issnumchg)
-                    latestdate = str(gcdval['GCDDate'])
-                bb = iscnt
-            bb+=1
-        #logger.info(u"IssueID: " + str(issid[n]) + " IssueNo: " + str(issnum[n]) + " Date" + str(issdate[n]) )
-        n+=1
-    latestiss = latestiss + ".00"
+    #print ("total issues:" + str(iscnt))
+    #---removed NEW code here---
     #once again - thanks to the new 52 reboot...start n at 0.
-    n = 0
     logger.info(u"Now adding/updating issues for" + comic['ComicName'])
 
     # file check to see if issue exists
@@ -181,15 +158,65 @@ def addComictoDB(comicid):
     havefiles = 0
 
     fccnt = int(fc['comiccount'])
-    logger.info(u"Found " + str(fccnt) + " issues of " + comic['ComicName'])
+    logger.info(u"Found " + str(fccnt) + "/" + str(iscnt) + " issues of " + comic['ComicName'])
     fcnew = []
+
     while (n < iscnt):
+        #---NEW.code
+        firstval = issued['issuechoice'][n]
+        cleanname = helpers.cleanName(firstval['Issue_Name'])
+        issid = str(firstval['Issue_ID'])
+        issnum = str(firstval['Issue_Number'])
+        issname = cleanname
+
+        if '.' in str(issnum):
+            issn_st = str(issnum).find('.')
+            issn_b4dec = str(issnum)[:issn_st]
+            #if the length of decimal is only 1 digit, assume it's a tenth
+            dec_is = str(issnum)[issn_st + 1:]
+            if len(dec_is) == 1:
+                dec_nisval = int(dec_is) * 10
+                iss_naftdec = str(dec_nisval)
+            if len(dec_is) == 2:
+                dec_nisval = int(dec_is)
+                iss_naftdec = str(dec_nisval)
+            iss_issue = issn_b4dec + "." + iss_naftdec
+            issis = (int(issn_b4dec) * 1000) + dec_nisval
+
+        bb = 0
+        while (bb <= iscnt):
+            gcdval = gcdinfo['gcdchoice'][bb]
+            if '.' in str(gcdval['GCDIssue']):
+                issst = str(gcdval['GCDIssue']).find('.')
+                issb4dec = str(gcdval['GCDIssue'])[:issst]
+                #if the length of decimal is only 1 digit, assume it's a tenth
+                decis = str(gcdval['GCDIssue'])[issst+1:]
+                if len(decis) == 1:
+                    decisval = int(decis) * 10
+                    issaftdec = str(decisval)
+                if len(decis) == 2:
+                    decisval = int(decis)
+                    issaftdec = str(decisval)
+            gcd_issue = issb4dec + "." + issaftdec
+            gcdis = (int(issb4dec) * 1000) + decisval
+            if gcdis == issis:
+                issdate = str(gcdval['GCDDate'])
+                int_issnum = int( gcdis / 1000 )
+                #get the latest issue / date using the date.
+                if gcdval['GCDDate'] > latestdate:
+                    latestiss = str(gcd_issue)
+                    latestdate = str(gcdval['GCDDate'])
+                    break
+                #bb = iscnt
+            bb+=1
+        #print("(" + str(n) + ") IssueID: " + str(issid) + " IssueNo: " + str(issnum) + " Date" + str(issdate))
+        #---END.NEW.
+
         fn = 0
         haveissue = "no"
-
         #print ("on issue " + str(int(n+1)) + " of " + str(iscnt) + " issues")
         # check if the issue already exists
-        iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid[n]])
+        iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid])
 
         #print ("checking issue: " + str(int_issnum[n]))
         # stupid way to do this, but check each issue against file-list in fc.
@@ -215,7 +242,8 @@ def addComictoDB(comicid):
                         fcdigit = fcnew[som].lstrip('0')
                     else: fcdigit = "0"
                     #print ( "filename:" + str(int(fcnew[som])) + " - issue: " + str(int_issnum[n]) )
-                    if int(fcdigit) == int_issnum[n]:
+                    if int(fcdigit) == int_issnum:
+#                    if int(fcdigit) == int_issnum[n]:
                         #print ("matched")
                         #print ("We have this issue - " + str(issnum[n]) + " at " + tmpfc['ComicFilename'] )
                         havefiles+=1
@@ -228,19 +256,19 @@ def addComictoDB(comicid):
             fn+=1
 
         if haveissue == "no": isslocation = "None"
-        controlValueDict = {"IssueID":  issid[n]}
+        controlValueDict = {"IssueID":  issid}
         newValueDict = {"ComicID":            comicid,
                         "ComicName":          comic['ComicName'],
-                        "IssueName":          issname[n],
-                        "Issue_Number":       issnum[n],
-                        "IssueDate":          issdate[n],
+                        "IssueName":          issname,
+                        "Issue_Number":       issnum,
+                        "IssueDate":          issdate,
                         "Location":           isslocation,
-                        "Int_IssueNumber":    int_issnum[n]
+                        "Int_IssueNumber":    int_issnum
                         }        
 
         # Only change the status & add DateAdded if the issue is not already in the database
         if not len(iss_exists):
-            controlValueDict = {"IssueID":  issid[n]}
+            controlValueDict = {"IssueID":  issid}
             newValueDict['DateAdded'] = helpers.today()
 
         if haveissue == "no":
@@ -265,6 +293,8 @@ def addComictoDB(comicid):
     
 #    logger.debug(u"Updating cache for: " + comic['ComicName'])
 #    cache.getThumb(ComicIDcomicid)
+
+    latestiss = latestiss + ".00"
 
     controlValueStat = {"ComicID":     comicid}
     newValueStat = {"Status":          "Active",
