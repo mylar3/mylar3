@@ -20,14 +20,14 @@ import pprint
 import subprocess
 
 def file2comicmatch(watchmatch):
-    print ("match: " + str(watchmatch))
-
+    #print ("match: " + str(watchmatch))
+    pass
 
 def listFiles(dir,watchcomic):
-    print("dir:" + dir)
-    print("comic: " + watchcomic)
+    #print("dir:" + dir)
+    #print("comic: " + watchcomic)
     basedir = dir
-    print "Files in ", dir, ": "
+    #print "Files in ", dir, ": "
     watchmatch = {}
     comiclist = []
     comiccnt = 0
@@ -39,9 +39,9 @@ def listFiles(dir,watchcomic):
             subname = subname.replace('_', ' ')
         if watchcomic.lower() in subname.lower():
             comicpath = os.path.join(basedir, item)
-            print ( watchcomic + " - watchlist match on : " + comicpath)
+            #print ( watchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)
-            print ("Comicsize:" + str(comicsize))
+            #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
             comiclist.append({
                  'ComicFilename':           item,
@@ -53,7 +53,7 @@ def listFiles(dir,watchcomic):
             pass
             #print ("directory found - ignoring")
     
-    print ("you have a total of " + str(comiccnt) + " comics")
+    #print ("you have a total of " + str(comiccnt) + " comics")
     #print ("watchdata: " + str(watchmatch))
     watchmatch['comiccount'] = comiccnt
     return watchmatch
