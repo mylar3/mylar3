@@ -15,9 +15,6 @@
                         %else:
                                 <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} paused">Pause Comic</a>
                         %endif
-                        <a id="menu_link_shutdown" href="shutdown">Shut Down</a>
-                        <a id="menu_link_shutdown" href="restart">Restart</a>
-
 
 		</div>
 	</div>
@@ -65,8 +62,10 @@
                         <img src="interfaces/default/images/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Image':
                        <img src="interfaces/default/images/logo-imagecomics.gif" align="right" alt="Image" height="100" width="50" />
-                      %elif comic['ComicPublisher'] == 'Darkhorse':
+                       %elif comic['ComicPublisher'] == 'Darkhorse':
                        <img src="interfaces/default/images/logo-darkhorse.jpg" align="right" alt="Darkhorse" height="75" width="50" />
+                       %elif comic['ComicPublisher'] == 'IDW Publishing':
+                       <img src="interfaces/default/images/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
                        %endif     
         		 <fieldset>
                                 <div>
@@ -104,6 +103,12 @@
                         <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50">
                        %elif comic['ComicPublisher'] == 'Marvel':
                         <img src="interfaces/default/images/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100">
+                       %elif comic['ComicPublisher'] == 'Image':
+                       <img src="interfaces/default/images/logo-imagecomics.gif" align="right" alt="Image" height="100" width="50"/>
+                       %elif comic['ComicPublisher'] == 'Darkhorse':
+                       <img src="interfaces/default/images/logo-darkhorse.jpg" align="right" alt="Darkhorse" height="75" width="50"/>
+                       %elif comic['ComicPublisher'] == 'IDW Publishing':
+                       <img src="interfaces/default/images/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
                        %endif
                 	<fieldset>
 	                	<div>
