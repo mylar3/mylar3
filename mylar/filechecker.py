@@ -38,6 +38,9 @@ def listFiles(dir,watchcomic):
         if '_' in subname:
             subname = subname.replace('_', ' ')
         if watchcomic.lower() in subname.lower():
+            if 'annual' in subname.lower():
+                print ("it's an annual - unsure how to proceed")
+                break
             comicpath = os.path.join(basedir, item)
             #print ( watchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)

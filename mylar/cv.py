@@ -81,12 +81,12 @@ def GetComicInfo(comicid,dom):
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[n].firstChild.wholeText
         comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[n].firstChild.wholeText
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[n].firstChild.wholeText
-        comic['ComicDesc'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
+        #comic['ComicDesc'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
         comic['ComicImage'] = dom.getElementsByTagName('super_url')[n].firstChild.wholeText
         comic['ComicPublisher'] = dom.getElementsByTagName('name')[cntit+1].firstChild.wholeText
-        comic['description'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
-        comdescst = comic['description'].find('</p>')
-        comdesc = comic['description'][:comdescst]
+        #comic['description'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
+        #comdescst = comic['description'].find('</p>')
+        #comdesc = comic['description'][:comdescst]
         #print ("Description: " + str(comdesc))
 
         comicchoice.append({
@@ -95,7 +95,7 @@ def GetComicInfo(comicid,dom):
             'Comicid':                comicid,
             'ComicURL':               comic['ComicURL'],
             'ComicIssues':            comic['ComicIssues'],
-            'ComicDesc':              comic['ComicDesc'],
+        #   'ComicDesc':              comic['ComicDesc'],
             'ComicImage':             comic['ComicImage'],
             'ComicPublisher':         comic['ComicPublisher']
             })

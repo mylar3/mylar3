@@ -70,11 +70,11 @@ def weekly_update(ComicName):
 
 def foundsearch(ComicID, IssueID):
     myDB = db.DBConnection()
-    print ("Updater-ComicID: " + str(ComicID))
-    print ("Updater-IssueID: " + str(IssueID))
+    #print ("Updater-ComicID: " + str(ComicID))
+    #print ("Updater-IssueID: " + str(IssueID))
     comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
     issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
-    print ("comic location: " + comic['ComicLocation'])
+    #print ("comic location: " + comic['ComicLocation'])
     #this is too soon - file hasn't downloaded even yet.
     #fixed and addressed in search.py and follow-thru here!
     #check sab history for completion here :)
@@ -93,10 +93,10 @@ def foundsearch(ComicID, IssueID):
     myDB.upsert("comics", newHave, HaveDict)
     #---
     issue = myDB.action('SELECT * FROM issues WHERE IssueID=? AND ComicID=?', [IssueID, ComicID]).fetchone()
-    print ("updating status to snatched")
+    #print ("updating status to snatched")
     controlValueDict = {"IssueID":  IssueID}
     newValueDict = {"Status": "Snatched"}
-    print ("updating snatched db.")
+    #print ("updating snatched db.")
     myDB.upsert("issues", newValueDict, controlValueDict)
     snatchedupdate = {"IssueID":     IssueID}
     newsnatchValues = {"ComicName":       comic['ComicName'],
@@ -110,7 +110,7 @@ def foundsearch(ComicID, IssueID):
     #this becomes an issue with files downloaded x2 or same name...
 
 
-    print ("finished updating snatched db.")
+    #print ("finished updating snatched db.")
     logger.info(u"Updating now complete for " + str(comic['ComicName']) + " issue: " + str(issue['Issue_Number']))
     return
 
@@ -118,53 +118,69 @@ def forceRescan(ComicID):
     myDB = db.DBConnection()
     # file check to see if issue exists
     rescan = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-   
+    logger.info(u"Now rechecking files for " + str(rescan['ComicName']) + " (" + str(rescan['ComicYear']) + ") in " + str(rescan['ComicLocation']) )
     fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'])
     iscnt = rescan['Total']
     havefiles = 0
-    mylar.AUTOWANT_ALL = 0
     fccnt = int(fc['comiccount'])
     issnum = 1
     fcnew = []
     n = 0
+    reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
     while (n < iscnt):
+        reiss = reissues[n]
+        int_iss = reiss['Int_IssueNumber']
         fn = 0
         haveissue = "no"
-        
-        print ("on issue " + str(int(n+1)) + " of " + str(iscnt) + " issues")
-        print ("checking issue: " + str(issnum))
-        # stupid way to do this, but check each issue against file-list in fc.
-        while (fn < fccnt):
+        while (fn < fccnt):            
             tmpfc = fc['comiclist'][fn]
-            print (str(issnum) + "against ... " + str(tmpfc['ComicFilename']))
             temploc = tmpfc['ComicFilename'].replace('_', ' ')
-            fcnew = shlex.split(str(temploc))
-            fcn = len(fcnew)
-            som = 0
-            #   this loop searches each word in the filename for a match.
-            while (som < fcn):
-                print (fcnew[som])
-                #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                if ".cbr" in fcnew[som]:
-                    fcnew[som] = fcnew[som].replace(".cbr", "")
-                elif ".cbz" in fcnew[som]:
-                    fcnew[som] = fcnew[som].replace(".cbz", "")
-                if fcnew[som].isdigit():
-                    print ("digit detected")
-                    fcdigit = fcnew[som].lstrip('0')
-                    print ( "filename:" + str(int(fcnew[som])) + " - issue: " + str(issnum) )
-                    #fcdigit = fcnew[som].lstrip('0') + ".00"
-                    if int(fcdigit) == int(issnum):
-                        print ("matched")
-                        print ("We have this issue - " + str(issnum) + " at " + tmpfc['ComicFilename'] )
-                        havefiles+=1
-                        haveissue = "yes"
-                        isslocation = str(tmpfc['ComicFilename'])
-                        break
-                print ("failed word match on:" + str(fcnew[som]) + "..continuing next word")
-                som+=1
-            print (str(temploc) + " doesn't match anything...moving to next file.")
+            if 'annual' not in temploc:               
+                fcnew = shlex.split(str(temploc))
+                fcn = len(fcnew)
+                som = 0
+                #   this loop searches each word in the filename for a match.
+                while (som < fcn):
+                    #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
+                    if ".cbr" in fcnew[som]:
+                        fcnew[som] = fcnew[som].replace(".cbr", "")
+                    elif ".cbz" in fcnew[som]:
+                        fcnew[som] = fcnew[som].replace(".cbz", "")
+                    if fcnew[som].isdigit():
+                        if int(fcnew[som]) > 0:
+                            fcdigit = fcnew[som].lstrip('0')
+                        else: fcdigit = "0"
+                        if int(fcdigit) == int_iss:
+                            havefiles+=1
+                            haveissue = "yes"
+                            isslocation = str(tmpfc['ComicFilename'])
+                            break
+                    som+=1
+            else: pass
             fn+=1
-            issnum+=1
-    print ("you have " + str(havefiles) + " comics!")
+            if haveissue == "yes": break
+        #we have the # of comics, now let's update the db.
+        if haveissue == "no":
+            isslocation = "None"
+            if mylar.AUTOWANT_ALL:
+                issStatus = "Wanted"
+            else:
+                issStatus = "Skipped"
+        elif haveissue == "yes":
+            issStatus = "Downloaded"
+        controlValueDict = {"IssueID":  reiss['IssueID']}
+        newValueDict = {"Location":           isslocation,
+                        "Status":             issStatus
+                        }
+        myDB.upsert("issues", newValueDict, controlValueDict)
+        n+=1
+
+    #let's update the total count of comics that was found.
+    controlValueStat = {"ComicID":     rescan['ComicID']}
+    newValueStat = {"Have":            havefiles
+                   }
+
+    myDB.upsert("comics", newValueStat, controlValueStat)
+    logger.info(u"I've found " + str(havefiles) + " / " + str(rescan['Total']) + " issues." )
+
     return

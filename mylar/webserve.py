@@ -134,7 +134,7 @@ class WebInterface(object):
         #raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" & ComicID)   
     editIssue.exposed=True
  
-    def markissues(self, action=None, **args):
+    def markissues(self, ComicID=None, action=None, **args):
         myDB = db.DBConnection()
         if action == 'WantedNew':
             newaction = 'Wanted'
@@ -146,7 +146,7 @@ class WebInterface(object):
             mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
             miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
             logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
-            controlValueDict = {"IssueID": mbid}
+            controlValueDict = {"IssueID": IssueID}
             newValueDict = {"Status": newaction}
             myDB.upsert("issues", newValueDict, controlValueDict)
             if action == 'Skipped': pass
@@ -355,8 +355,6 @@ class WebInterface(object):
     forceSearch.exposed = True
 
     def forceRescan(self, ComicID):
-        myDB = db.DBConnection()
-        comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     forceRescan.exposed = True

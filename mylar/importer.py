@@ -115,8 +115,10 @@ def addComictoDB(comicid):
 
     #print ("root dir for series: " + comlocation)
     #try to account for CV not updating new issues as fast as GCD
+    #seems CV doesn't update total counts
+    #comicIssues = gcdinfo['totalissues']
     if gcdinfo['gcdvariation'] == "yes":
-    #    comicIssues = str(int(comic['ComicIssues']) + 1)
+        #comicIssues = str(int(comic['ComicIssues']) + 1)
         comicIssues = comic['ComicIssues'] 
     else:
         comicIssues = comic['ComicIssues']
@@ -126,7 +128,6 @@ def addComictoDB(comicid):
                     "ComicYear":        comic['ComicYear'],
                     "ComicImage":       comic['ComicImage'],
                     "Total":            comicIssues,
-                    "Description":      comic['ComicDesc'],
                     "ComicLocation":    comlocation,
                     "ComicPublisher":   comic['ComicPublisher'],
                     "ComicPublished":   parseit.resultPublished,
@@ -204,7 +205,7 @@ def addComictoDB(comicid):
                 int_issnum = int( gcdis / 1000 )
                 #get the latest issue / date using the date.
                 if gcdval['GCDDate'] > latestdate:
-                    latestiss = str(gcd_issue)
+                    latestiss = str(issnum)
                     latestdate = str(gcdval['GCDDate'])
                     break
                 #bb = iscnt
@@ -293,8 +294,6 @@ def addComictoDB(comicid):
     
 #    logger.debug(u"Updating cache for: " + comic['ComicName'])
 #    cache.getThumb(ComicIDcomicid)
-
-    latestiss = latestiss + ".00"
 
     controlValueStat = {"ComicID":     comicid}
     newValueStat = {"Status":          "Active",
