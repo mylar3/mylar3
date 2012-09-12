@@ -9,6 +9,7 @@
 		<div id="subhead_menu">
                         <a id="menu_link_refresh" onclick="doAjaxCall('refreshArtist?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Refresh Comic</a>
                         <a id="menu_link_delete" href="deleteArtist?ComicID=${comic['ComicID']}">Delete Comic</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Recheck Files</a>
                         %if comic['Status'] == 'Paused':
                                 <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
                         %else:
@@ -31,7 +32,7 @@
                         <div class="row">
                         <a href="http://comicvine.com/volume/${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a>
                         %if comic['Status'] == 'Loading':
-                                <h3><i>(Comic information for this comic is currently being loaded)</i></h3>
+                                <h3><i>(Comic information is currently being loaded)</i></h3>
                         %endif
                         </div>
                  </h1>
@@ -172,6 +173,7 @@
  </div>
 
         <form action="markissues" method="get" id="markissues">
+        <input type="hidden" name="ComicID" value=${comic['ComicID']}>
         <div id="markissue">Mark selected issues as
                 <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
                         <option disabled="disabled" selected="selected">Choose...</option>
