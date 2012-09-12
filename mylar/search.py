@@ -380,21 +380,25 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 # this should work for every other provider
                                 linkstart = linkstart.replace("&", "%26")
                                 linkapi = str(linkstart)
-                           #here we distinguish between rename and not.
-                            #print (str(mylar.RENAME_FILES))
-                            #pause sab first because it downloads too quick (cbr's are small!)
-                            pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
-                            urllib.urlopen(pauseapi);
+                            #here we distinguish between rename and not.
+                            #blackhole functinality---
+                            #let's download the file to a temporary cache.
 
-                            if mylar.RENAME_FILES == 1:
-                                #let's download the file to a temporary cache.
+                            if mylar.BLACKHOLE:
+                                if os.path.exists(mylar.BLACKHOLE_DIR):
+                                    filenamenzb = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
+                                    urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
+                            #end blackhole
+
+                            else:
                                 tmppath = "cache/"
                                 if os.path.exists(tmppath):
-                                    #print ("before the path..")
+                                    print ("before the path..")
                                     filenamenzb = os.path.split(linkapi)[1]
-                                    #print ("filenamenzb:" + str(filenamenzb))
+                                    print ("filenamenzb:" + str(filenamenzb))
                                     filenzb = os.path.join(tmppath,filenamenzb)
-                                    #print ("filenzb:" + str(filenzb))
+                                    print ("filenzb:" + str(filenzb))
                                     if nzbprov == 'nzb.su':
                                         filenzb = linkstart[21:]
                                     if nzbprov == 'experimental':
@@ -402,85 +406,91 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                         savefile = str(mylar.PROG_DIR) + "/" + str(tmppath) + str(filenzb) + ".nzb"
                                     if nzbprov == 'dognzb':
                                         filenzb == str(filenamenzb)
-                                        savefile = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb" 
-                                    #print ("filenzb:" + str(filenzb))
-                                    urllib.urlretrieve(linkapi, str(savefile))
-                                    #print ("Retrieved file to: " + str(savefile))
-                                tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-                            else:
-                                tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-                            #print (str(tmpapi))
-                            time.sleep(5)
-                            urllib.urlopen(tmpapi);
-                            if mylar.RENAME_FILES == 1:
-                                #let's give it 5 extra seconds to retrieve the nzb data...
+                                savefile = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
 
+                                urllib.urlretrieve(linkapi, str(savefile))
+                                #print (str(mylar.RENAME_FILES))
+                                #pause sab first because it downloads too quick (cbr's are small!)
+                                pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
+                                urllib.urlopen(pauseapi);
+
+                                if mylar.RENAME_FILES == 1:
+                                    #print ("Saved file to: " + str(savefile))
+                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
+                                else:
+                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
+                                #print (str(tmpapi))
                                 time.sleep(5)
+                                urllib.urlopen(tmpapi);
+                                if mylar.RENAME_FILES == 1:
+                                    #let's give it 5 extra seconds to retrieve the nzb data...
+
+                                    time.sleep(5)
                               
-                                outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-                                #print ("outqueue line generated")
-                                urllib.urlopen(outqueue);
-                                time.sleep(5)
-                                #print ("passed api request to SAB")
+                                    outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+                                    #print ("outqueue line generated")
+                                    urllib.urlopen(outqueue);
+                                    time.sleep(5)
+                                    #print ("passed api request to SAB")
                                 #<slots><slot><filename>.nzb filename
                                 #chang nzbfilename to include series(SAB will auto rename based on this)
                                 #api?mode=queue&name=rename&value=<filename_nzi22ks>&value2=NEWNAME
-                                from xml.dom.minidom import parseString
-                                import urllib2
-                                file = urllib2.urlopen(outqueue);
-                                data = file.read()
-                                file.close()
-                                dom = parseString(data)
-                                queue_slots = dom.getElementsByTagName('filename')
-                                queue_cnt = len(queue_slots)
-                                #print ("there are " + str(queue_cnt) + " things in SABnzbd's queue")
-                                que = 0
-                                slotmatch = "no"
-                                for queue in queue_slots:
-                                #retrieve the first xml tag (<tag>data</tag>)
-                                #that the parser finds with name tagName:
-                                    queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
-                                    while ('Trying to fetch NZB' in queue_file):
-                                        #let's keep waiting until nzbname is resolved by SABnzbd
-                                        time.sleep(5)
-                                        file = urllib2.urlopen(outqueue);
-                                        data = file.read()
-                                        file.close()
-                                        dom = parseString(data)
+                                    from xml.dom.minidom import parseString
+                                    import urllib2
+                                    file = urllib2.urlopen(outqueue);
+                                    data = file.read()
+                                    file.close()
+                                    dom = parseString(data)
+                                    queue_slots = dom.getElementsByTagName('filename')
+                                    queue_cnt = len(queue_slots)
+                                    #print ("there are " + str(queue_cnt) + " things in SABnzbd's queue")
+                                    que = 0
+                                    slotmatch = "no"
+                                    for queue in queue_slots:
+                                    #retrieve the first xml tag (<tag>data</tag>)
+                                    #that the parser finds with name tagName:
                                         queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
+                                        while ('Trying to fetch NZB' in queue_file):
+                                            #let's keep waiting until nzbname is resolved by SABnzbd
+                                            time.sleep(5)
+                                            file = urllib2.urlopen(outqueue);
+                                            data = file.read()
+                                            file.close()
+                                            dom = parseString(data)
+                                            queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
                                     #print (str(queue_file))
                                     #print (str(filenzb))                              
-                                    queue_file = queue_file.replace("_", " ")
-                                    if str(queue_file) in str(filenzb):
-                                        #print ("matched")
-                                        slotmatch = "yes"
-                                        slot_nzoid = dom.getElementsByTagName('nzo_id')[que].firstChild.wholeText
-                                        #print ("slot_nzoid: " + str(slot_nzoid))
-                                        break
-                                    que=+1
-                                if slotmatch == "yes":
-                                    renameit = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(SeriesYear) + ")" + "_" + "(" + str(comyear) + ")"
-                                    nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renameit)
-                                    print ("attempting to rename queue to " + str(nzo_ren))
-                                    urllib2.urlopen(nzo_ren);
-                                    print ("renamed!")
-                                    #delete the .nzb now.
-                                    #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
-                                    #if mylar.PROG_DIR is not "/":
-                                       #os.remove(delnzb)
-                                       #we need to track nzo_id to make sure finished downloaded with SABnzbd.
-                                       #controlValueDict = {"nzo_id":      str(slot_nzoid)}
-                                       #newValueDict = {"ComicName":       str(ComicName),
-                                       #                "ComicYEAR":       str(comyear),
-                                       #                "ComicIssue":      str(IssueNumber),
-                                       #                "name":            str(filenamenzb)}
-                                       #print ("updating SABLOG")
-                                       #myDB = db.DBConnection()
-                                       #myDB.upsert("sablog", newValueDict, controlValueDict)
-                                else: logger.info(u"Couldn't locate file in SAB - are you sure it's being downloaded?")
-                            #let's unpause queue now that we did our jobs.
-                            resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
-                            urllib.urlopen(resumeapi);
+                                        queue_file = queue_file.replace("_", " ")
+                                        if str(queue_file) in str(filenzb):
+                                            #print ("matched")
+                                            slotmatch = "yes"
+                                            slot_nzoid = dom.getElementsByTagName('nzo_id')[que].firstChild.wholeText
+                                            #print ("slot_nzoid: " + str(slot_nzoid))
+                                            break
+                                        que=+1
+                                    if slotmatch == "yes":
+                                        renameit = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(SeriesYear) + ")" + "_" + "(" + str(comyear) + ")"
+                                        nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renameit)
+                                        print ("attempting to rename queue to " + str(nzo_ren))
+                                        urllib2.urlopen(nzo_ren);
+                                        print ("renamed!")
+                                        #delete the .nzb now.
+                                        #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
+                                        #if mylar.PROG_DIR is not "/":
+                                            #os.remove(delnzb)
+                                            #we need to track nzo_id to make sure finished downloaded with SABnzbd.
+                                            #controlValueDict = {"nzo_id":      str(slot_nzoid)}
+                                            #newValueDict = {"ComicName":       str(ComicName),
+                                            #                "ComicYEAR":       str(comyear),
+                                            #                "ComicIssue":      str(IssueNumber),
+                                            #                "name":            str(filenamenzb)}
+                                            #print ("updating SABLOG")
+                                            #myDB = db.DBConnection()
+                                            #myDB.upsert("sablog", newValueDict, controlValueDict)
+                                    else: logger.info(u"Couldn't locate file in SAB - are you sure it's being downloaded?")
+                                #let's unpause queue now that we did our jobs.
+                                resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
+                                urllib.urlopen(resumeapi);
                             #raise an exception to break out of loop
                             foundc = "yes"
                             done = True

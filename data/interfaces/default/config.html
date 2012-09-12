@@ -77,6 +77,18 @@
 	                   	 	<label>Library Scan Interval</label>
 	                    	<input type="text" name="libraryscan_interval" value="${config['libraryscan_interval']}" size="4">mins
 	                    </div>
+                               <legend>Comic Location</legend>
+                                <div>
+                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Automatic folder creation happens BENEATH this path</small>
+                                </div>
+                                <div class="row">
+                                        <label>Comic Location Path</label>
+                                        <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
+                                        <small>Where do you store your comics?<br/> (or where do you want me to store them)</small>
+                                        <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
+
+                                </div>
+
 	                </fieldset>
                 </td>
             </tr>
@@ -121,8 +133,20 @@
                 </td>
            
                 <td>
+                      <legend>Usenet</legend>
+                       <fieldset>
+                            <div class="row checkbox">
+                                <input id="useblackhole" type="checkbox" name="blackhole" value=1 ${config['use_blackhole']} /><label>Use Black Hole</label>
+                            </div>
+                            <div class="config">
+                                    <div class="row">
+                                        <label>Black Hole Directory</label>
+                                            <input type="text" name="blackhole_dir" value="${config['blackhole_dir']}" size="30">
+                                        <small>Folder your Download program watches for NZBs</small>
+                                    </div>
+                            </div>
+                       </fieldset>
                         <fieldset>
-                                <legend>Usenet</legend>
                             <div class="checkbox row">
                                 <label>Usenet Retention (in days)</label>
                                 <input type="text" name="usenet_retention" value="${config['usenet_retention']}" size$
@@ -166,7 +190,7 @@
                         <fieldset>
                                 <legend>EXPERIMENTAL</legend>
                                 <div>
-                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Note: this is an experimental search - results may be better/worse.</small>
+                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Note: this is an experimental search - results may be better/worse.</small>
                                 </div>
                                 <div class="row checkbox">
                                     <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['use_experimental']} /><label>Use Experimental Search</label>
@@ -202,12 +226,6 @@
                                      <input type="checkbox" name="rename_files" value="1" ${config['rename_files']} /><label>Rename files <small>(edit sabnzbd/ComicRN.py)</small></label>
                                 </div>
                                 <div class="row"</div>
-                                <div class="row">
-                                        <label>Path to Destination Folder</label>
-                                           <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
-                                        <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
-                                        <small>Note that automatic folder creation will happen beneath this root.</small>
-
                                 </div>
                 	</fieldset>
                </td>
