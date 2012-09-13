@@ -23,7 +23,7 @@ dognzb_APIkey = mylar.DOGNZB_APIKEY
 
 LOG = mylar.LOG_DIR
 
-import lib.feedparser
+import lib.feedparser as feedparser
 import urllib
 import os, errno
 import string
@@ -409,11 +409,27 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 savefile = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
 
                                 urllib.urlretrieve(linkapi, str(savefile))
-                                #print (str(mylar.RENAME_FILES))
-                                #pause sab first because it downloads too quick (cbr's are small!)
-                                pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
-                                urllib.urlopen(pauseapi);
-
+								#print (str(mylar.RENAME_FILES))
+								
+								#check sab for current pause status
+                                sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+                                from xml.dom.minidom import parseString
+                                import urllib2
+                                file = urllib2.urlopen(sabqstatusapi);
+                                data = file.read()
+                                file.close()
+                                dom = parseString(data)
+                                for node in dom.getElementsByTagName('paused'):
+									pausestatus = node.firstChild.wholeText
+									#print pausestatus
+                                if pausestatus != 'True':
+									#pause sab first because it downloads too quick (cbr's are small!)
+                                    pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
+                                    urllib.urlopen(pauseapi);
+                                    #print "Queue paused"
+                                #else:
+									#print "Queue already paused"
+                                
                                 if mylar.RENAME_FILES == 1:
                                     #print ("Saved file to: " + str(savefile))
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
@@ -488,9 +504,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                             #myDB = db.DBConnection()
                                             #myDB.upsert("sablog", newValueDict, controlValueDict)
                                     else: logger.info(u"Couldn't locate file in SAB - are you sure it's being downloaded?")
-                                #let's unpause queue now that we did our jobs.
-                                resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
-                                urllib.urlopen(resumeapi);
+                                #resume sab if it was running before we started
+                                if pausestatus != 'True':
+                                    #let's unpause queue now that we did our jobs.
+                                    resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
+                                    urllib.urlopen(resumeapi);
+                                    #print "Queue resumed"
+                                #else:
+									#print "Queue already paused"
+
                             #raise an exception to break out of loop
                             foundc = "yes"
                             done = True
@@ -570,4 +592,3 @@ def searchforissue(issueid=None, new=False):
             else:
                 pass 
                 #print ("not found!")
-
