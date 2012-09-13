@@ -106,7 +106,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
 
     cnt = int(cnt1 + cnt2)
 
-    print (str(cnt) + " results")
+    #print (str(cnt) + " results")
 
     global resultPublished
 
@@ -127,10 +127,14 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
             resultp = soup.findAll("tr", {"class" : "listing_odd"})[n_odd]
         rtp = resultp('a')[1]
         resultName.append(helpers.cleanName(rtp.findNext(text=True)))
-        print ( "Comic Name: " + str(resultName[n]) )
+        #print ( "Comic Name: " + str(resultName[n]) )
         fip = resultp('a',href=True)[1]
         resultID.append(fip['href'])
-        print ( "ID: " + str(resultID[n]) )
+        #print ( "ID: " + str(resultID[n]) )
+        #print ( "Comic Name: " + str(resultName[n]) )
+        fip = resultp('a',href=True)[1]
+        resultID.append(fip['href'])
+        #print ( "ID: " + str(resultID[n]) )
 
         subtxt3 = resultp('td')[3]
         resultYear.append(subtxt3.findNext(text=True))
@@ -141,17 +145,18 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         resiss = int(resiss)
         resultIssues[n] = resultIssues[n].replace('','')[:resiss]
         resultIssues[n] = resultIssues[n].replace(' ','')
-        print ( "Year: " + str(resultYear[n]) )
-        print ( "Issues: " + str(resultIssues[n]) )
+        #print ( "Year: " + str(resultYear[n]) )
+        #print ( "Issues: " + str(resultIssues[n]) )
         if resultName[n].lower() == str(ComicName).lower(): 
-            print ("n:" + str(n) + "...matched by name to Mylar!")
+            #print ("n:" + str(n) + "...matched by name to Mylar!")
             #this has been seen in a few instances already, so trying to adjust.
             #when the series year is 2011, in gcd it might be 2012 due to publication
             #dates overlapping between Dec/11 and Jan/12. Let's accept a match with a 
             #1 year grace space, and then pull in the first issue to see the actual pub
             # date and if coincides with the other date..match it.
             if resultYear[n] == ComicYear or resultYear[n] == str(int(ComicYear)+1): 
-                print ("n:" + str(n) + "...matched by year to Mylar!")
+                #print ("n:" + str(n) + "...matched by year to Mylar!")
+                #print ( "Year: " + str(resultYear[n]) )
                 #Occasionally there are discrepancies in comic count between
                 #GCD and CV. 99% it's CV not updating to the newest issue as fast
                 #as GCD does. Therefore, let's increase the CV count by 1 to get it
@@ -162,8 +167,8 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                         issvariation = "yes"
                     else:
                         issvariation = "no"
-                    print ("n:" + str(n) + "...matched by issues to Mylar! - GCDVariation: " + str(issvariation))
-                    print ("complete match!...proceeding")
+                    #print ("n:" + str(n) + "...matched by issues to Mylar!")
+                    #print ("complete match!...proceeding")
                     resultURL = str(resultID[n])
                     rptxt = resultp('td')[6]
                     resultPublished = rptxt.findNext(text=True)
@@ -176,16 +181,13 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     # has the wrong title and won't match 100%...
     # (ie. The Flash-2011 on comicvine is Flash-2011 on gcd)
     if resultURL is None:
-        #print ("comicnm:" + str(ComicName))
         if ComicName.startswith('The '):
-            #print ("No match found - detected The in title...performing deeper analysis")
             ComicName = ComicName[4:]
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
         if 'and' in ComicName.lower():
             ComicName = ComicName.replace('and', '&')
             return GCDScraper(ComicName, ComicYear, Total, ComicID)
         else:
-            #print ("no match found...cannot proceed.")
             return 'No Match'
     gcdinfo = {}
     gcdchoice = []
