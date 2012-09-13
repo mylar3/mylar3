@@ -1,0 +1,84 @@
+13-Sep-2012 10:48:37 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 10:48:38 - DEBUG   :: MainThread : Trying to execute: "git rev-parse HEAD" with shell in /home/hero/downloads/mylar2
+13-Sep-2012 10:48:38 - DEBUG   :: MainThread : Git output: c1dd44c8218005fbd7fa895a9daf12e77ca9e4d0
+
+13-Sep-2012 10:48:38 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 10:48:39 - INFO    :: MainThread : Comparing currently installed version with latest github version
+13-Sep-2012 10:48:39 - WARNING :: MainThread : Could not get commits behind from github
+13-Sep-2012 10:48:40 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 10:49:08 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 10:49:08 - DEBUG   :: MainThread : Trying to execute: "git rev-parse HEAD" with shell in /home/hero/downloads/mylar2
+13-Sep-2012 10:49:08 - DEBUG   :: MainThread : Git output: c1dd44c8218005fbd7fa895a9daf12e77ca9e4d0
+
+13-Sep-2012 10:49:08 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 10:49:09 - INFO    :: MainThread : Comparing currently installed version with latest github version
+13-Sep-2012 10:49:09 - WARNING :: MainThread : Could not get commits behind from github
+13-Sep-2012 10:49:09 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 10:49:29 - INFO    :: CP Server Thread-10 : Retrieving latest version information from github
+13-Sep-2012 10:49:29 - INFO    :: CP Server Thread-10 : Comparing currently installed version with latest github version
+13-Sep-2012 10:49:30 - WARNING :: CP Server Thread-10 : Could not get commits behind from github
+13-Sep-2012 10:49:52 - INFO    :: CP Server Thread-11 : Retrieving latest version information from github
+13-Sep-2012 10:49:52 - INFO    :: CP Server Thread-11 : Comparing currently installed version with latest github version
+13-Sep-2012 10:49:53 - WARNING :: CP Server Thread-11 : Could not get commits behind from github
+13-Sep-2012 10:49:57 - INFO    :: MainThread : Received signal: update
+13-Sep-2012 10:50:02 - INFO    :: MainThread : Mylar is updating...
+13-Sep-2012 10:50:02 - DEBUG   :: MainThread : Trying to execute: "git pull origin master" with shell in /home/hero/downloads/mylar2
+13-Sep-2012 10:50:05 - DEBUG   :: MainThread : Git output: From https://github.com/evilhero/mylar
+ * branch            master     -> FETCH_HEAD
+Merge made by the 'recursive' strategy.
+ mylar/search.py | 1167 ++++++++++++++++++++++++++++---------------------------
+ 1 file changed, 594 insertions(+), 573 deletions(-)
+
+13-Sep-2012 10:50:05 - INFO    :: MainThread : Mylar is restarting...
+13-Sep-2012 10:50:05 - INFO    :: MainThread : Restarting Mylar with ['/usr/bin/python', '/home/hero/downloads/mylar2/Mylar.py', '--nolaunch']
+13-Sep-2012 10:50:05 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 10:50:05 - DEBUG   :: MainThread : Trying to execute: "git rev-parse HEAD" with shell in /home/hero/downloads/mylar2
+13-Sep-2012 10:50:05 - DEBUG   :: MainThread : Git output: 5728c186a06d23d9076e7f1a0586006896c73006
+
+13-Sep-2012 10:50:05 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 10:50:06 - INFO    :: MainThread : Comparing currently installed version with latest github version
+13-Sep-2012 10:50:06 - WARNING :: MainThread : Could not get commits behind from github
+13-Sep-2012 10:50:07 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 10:50:46 - INFO    :: CP Server Thread-11 : Retrieving latest version information from github
+13-Sep-2012 10:50:47 - INFO    :: CP Server Thread-11 : Comparing currently installed version with latest github version
+13-Sep-2012 10:50:47 - WARNING :: CP Server Thread-11 : Could not get commits behind from github
+13-Sep-2012 10:51:08 - INFO    :: MainThread : Received signal: shutdown
+13-Sep-2012 10:51:13 - INFO    :: MainThread : Mylar is shutting down...
+13-Sep-2012 11:01:02 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 11:01:03 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 11:01:04 - INFO    :: MainThread : You are running an unknown version of Mylar. Run the updater to identify your version
+13-Sep-2012 11:01:04 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 11:01:49 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 11:01:49 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 11:01:50 - INFO    :: MainThread : You are running an unknown version of Mylar. Run the updater to identify your version
+13-Sep-2012 11:01:50 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 11:02:24 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 11:02:24 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 11:02:25 - INFO    :: MainThread : You are running an unknown version of Mylar. Run the updater to identify your version
+13-Sep-2012 11:02:25 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 11:02:50 - INFO    :: MainThread : Received signal: update
+13-Sep-2012 11:02:55 - INFO    :: MainThread : Mylar is updating...
+13-Sep-2012 11:02:55 - INFO    :: MainThread : Downloading update from: https://github.com/evilhero/mylar/tarball/master
+13-Sep-2012 11:02:57 - INFO    :: MainThread : Extracing file/home/hero/downloads/mylar2/master
+13-Sep-2012 11:02:58 - INFO    :: MainThread : Deleting file/home/hero/downloads/mylar2/master
+13-Sep-2012 11:02:58 - INFO    :: MainThread : Mylar is restarting...
+13-Sep-2012 11:02:58 - INFO    :: MainThread : Restarting Mylar with ['/usr/bin/python', '/home/hero/downloads/mylar2/Mylar.py', '--nolaunch']
+13-Sep-2012 11:03:00 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 11:03:00 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 11:03:01 - INFO    :: MainThread : Comparing currently installed version with latest github version
+13-Sep-2012 11:03:01 - INFO    :: MainThread : Mylar is up to date
+13-Sep-2012 11:03:01 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 11:03:07 - INFO    :: MainThread : Received signal: update
+13-Sep-2012 11:03:12 - INFO    :: MainThread : Mylar is updating...
+13-Sep-2012 11:03:12 - INFO    :: MainThread : Downloading update from: https://github.com/evilhero/mylar/tarball/master
+13-Sep-2012 11:03:14 - INFO    :: MainThread : Extracing file/home/hero/downloads/mylar2/master
+13-Sep-2012 11:03:15 - INFO    :: MainThread : Deleting file/home/hero/downloads/mylar2/master
+13-Sep-2012 11:03:15 - INFO    :: MainThread : Mylar is restarting...
+13-Sep-2012 11:03:15 - INFO    :: MainThread : Restarting Mylar with ['/usr/bin/python', '/home/hero/downloads/mylar2/Mylar.py', '--nolaunch']
+13-Sep-2012 11:03:16 - INFO    :: MainThread : Checking to see if the database has all tables....
+13-Sep-2012 11:03:16 - INFO    :: MainThread : Retrieving latest version information from github
+13-Sep-2012 11:03:17 - INFO    :: MainThread : Comparing currently installed version with latest github version
+13-Sep-2012 11:03:18 - INFO    :: MainThread : Mylar is up to date
+13-Sep-2012 11:03:18 - INFO    :: MainThread : Starting Mylar on port: 8090
+13-Sep-2012 11:03:30 - INFO    :: MainThread : Received signal: shutdown
+13-Sep-2012 11:03:35 - INFO    :: MainThread : Mylar is shutting down...

@@ -1,0 +1,101 @@
+<%inherit file="base.html" />
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a href="#" id="menu_link_scan" onclick="doAjaxCall('forceSearch',$(this))" data-success="Checking for wanted issues successful" data-error="Error checking wanted issues">Force Check</a>
+		</div>
+	</div>	
+</%def>
+
+
+<%def name="body()">
+	
+	<div class="title">
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_wanted.png" alt="Wanted Issues"/>Wanted Issues</h1>
+	</div>
+	<form action="markissues" method="get" id="markissues">
+	<div id="markissue" style="top:0;">
+		Mark selected issues as 
+		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues" data-success="selected issues marked">
+				<option disabled="disabled" selected="selected">Choose...</option>
+				<option value="Skipped">Skipped</option>
+				<option value="Downloaded">Downloaded</option>
+		</select>
+		<input type="hidden" value="Go">
+	</div>
+	<div class="table_wrapper" id="wanted_table_wrapper" >
+		<table class="display" id="wanted_table">
+		<thead>
+			<tr>
+				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+				<th id="comicname">Comic</th>
+				<th id="issuenumber">Issue</th>
+				<th id="reldate">Release Date</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for issue in issues:
+			<tr class="gradeZ">
+				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></th>
+				<td id="comicname">${issue['ComicName']}</td>
+				<td id="issuenumber"><a href="albumPage?IssueID=${issue['IssueID']}">${issue['Issue_Number']}</a></td>
+				<td id="reldate">${issue['IssueDate']}</td>
+			</tr>
+		%endfor
+		</tbody>
+	</table>
+	
+	</form>
+	</div>
+	<div class="title">
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_upcoming.png" alt="Upcoming Issues"/>Upcoming Issues</h1>
+	</div>
+	<div class="table_wrapper">
+		<table class="display_no_select" id="upcoming_table">
+		<thead>
+			<tr>
+				<th id="comicname">Comic</th>
+				<th id="issuenumber">Issue</th>
+				<th id="reldate">Release Date</th>
+				<th id="type">Type</th>
+				<th id="status">Status</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for upcome in upcoming:
+			<tr class="gradeZ">
+				<td id="comicname">${upcome['ComicName']}</td>
+				<td id="issuenumber"><a href="albumPage?IssueID=${upcome['ComicID']}">${upcome['IssueNumber']}</a></td>
+				<td id="reldate">${upcome['IssueDate']}</td>
+				<td id="status">${upcome['Status']}</td>
+			</tr>
+		%endfor
+		</tbody>
+	</table>
+	</div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+	<script>
+	
+	function initThisPage() {
+		$('#wanted_table').dataTable({
+			"bDestroy":true,
+			"bFilter": false,
+			"bInfo": false,
+			"bPaginate": false
+		});
+		resetFilters("issues");
+		initActions();
+	}
+	$(document).ready(function() {
+		initThisPage();		
+	});
+	</script>
+</%def>

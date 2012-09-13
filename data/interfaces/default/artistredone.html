@@ -1,0 +1,313 @@
+<%inherit file="base.html"/>
+<%!
+        from mylar import db
+	import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+                        <a id="menu_link_refresh" onclick="doAjaxCall('refreshArtist?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Refresh Comic</a>
+                        <a id="menu_link_delete" href="deleteArtist?ComicID=${comic['ComicID']}">Delete Comic</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Recheck Files</a>
+                        %if comic['Status'] == 'Paused':
+                                <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
+                        %else:
+                                <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} paused">Pause Comic</a>
+                        %endif
+
+		</div>
+	</div>
+</%def>
+<%def name="body()">
+
+	<div id="paddingheader">
+		<h1>
+                        %if comic['Status'] == 'Loading':
+                                <img src="interfaces/default/images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>
+                        %endif
+                        <div class="row">
+                        <a href="http://comicvine.com/volume/${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a>
+                        %if comic['Status'] == 'Loading':
+                                <h3><i>(Comic information is currently being loaded)</i></h3>
+                        %endif
+                        </div>
+                 </h1>
+
+	</div>
+        <form action="configUpdate" method="post" class="form" id="configUpdate">
+	
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Comic Details</a></li>
+			<li><a href="#tabs-2">Download settings</a></li>
+                        <li><a href="#tabs-3">Edit Settings</a></li>
+		</ul>
+		<div id="tabs-1">
+		
+		
+        <table class="comictable" summary="Comic Details">
+            <tr>
+                <td id="mainimg">
+                   <fieldset>
+                       <div id="artistImg">
+                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                       </div>
+                   </fieldset>
+                     </td>
+                 <td id="maindetails">
+                       %if comic['ComicPublisher'] == 'DC Comics':
+                        <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50" />
+                       %elif comic['ComicPublisher'] == 'Marvel':
+                        <img src="interfaces/default/images/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100"/>
+                       %elif comic['ComicPublisher'] == 'Image':
+                       <img src="interfaces/default/images/logo-imagecomics.gif" align="right" alt="Image" height="100" width="50" />
+                       %elif comic['ComicPublisher'] == 'Darkhorse':
+                       <img src="interfaces/default/images/logo-darkhorse.jpg" align="right" alt="Darkhorse" height="75" width="50" />
+                       %elif comic['ComicPublisher'] == 'IDW Publishing':
+                       <img src="interfaces/default/images/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
+                       %endif     
+        		 <fieldset>
+                                <div>
+                                   <label><big>Publication Date: </big><norm>${comic['ComicPublished']}</norm></label>
+                                </div>
+                                <div>
+                                   <label><big>Publisher: </big><norm>${comic['ComicPublisher']}</norm></label>
+	            		</div> 
+                                <div>
+                                    <label><big>Status: </big><norm>${comic['Status']}</norm></label>
+                                </div>
+                                <div>
+                                   <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
+                                </div>
+                                <div>
+                                   <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
+                                </div>                         </fieldset>
+            	</td>
+            </tr>
+        </table>
+	</div>
+       </form>	
+	<div id="tabs-2">
+        <table class="comictable" summary="Download Settings">
+	    <tr>
+                <td>
+                   <fieldset>
+                       <div id="artistImg">
+                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                       </div>
+                   </fieldset>
+                  </td>
+                  <td id="maindetails">
+                      %if comic['ComicPublisher'] == 'DC Comics':
+                        <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50">
+                       %elif comic['ComicPublisher'] == 'Marvel':
+                        <img src="interfaces/default/images/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100">
+                       %elif comic['ComicPublisher'] == 'Image':
+                       <img src="interfaces/default/images/logo-imagecomics.gif" align="right" alt="Image" height="100" width="50"/>
+                       %elif comic['ComicPublisher'] == 'Darkhorse':
+                       <img src="interfaces/default/images/logo-darkhorse.jpg" align="right" alt="Darkhorse" height="75" width="50"/>
+                       %elif comic['ComicPublisher'] == 'IDW Publishing':
+                       <img src="interfaces/default/images/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
+                       %endif
+                	<fieldset>
+	                	<div>
+		                    <label><big>Alternate versions :</big><norm>${comic['QUALalt_vers']}</norm></label>
+	                        </div>
+	                   	<div>
+		                    <label><big>Scanner :</big><norm>${comic['QUALscanner']}</norm></label>
+	                        </div>	               
+	                	<div>
+		                    <label><big>Type :</big><norm>${comic['QUALtype']}</norm></label>
+	                        </div>
+	                    	<div>
+		                    <label><big>Quality :</big><norm>${comic['QUALquality']}</norm></label>
+                                </div>
+                    </fieldset>
+                </td>
+            </tr>            
+	    </table>
+	</div>
+
+           <div id="tabs-3">
+        <table class="comictable" summary="Edit Settings">
+            <tr>
+                <td>
+                   <fieldset>
+                       <div class="row" id="artistImg">
+                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                       </div>
+                   </fieldset>
+                 </td>
+                 <td>
+                        <fieldset>
+                                <form action="comic_configUpdate" method="post" class="form" id="comic_configUpdate">
+                                <div class="row">
+                                        <label>Directory Location</label>
+                                   <input type="text" name="comiclocation" value="1" size="45">
+                                   <small>the directory where all the comics are for this comic</small>
+                                </div>
+                                <div class="row">
+                                    <label>Alternate versions</label>
+                                    <input type="text" name="qualaltvers" value="1" size="30">
+                                    <small>if the comic is v5 or whatever, enter 'v5' here</small>
+                                </div>
+                                <div class="row">
+                                    <label>Scanner</label>
+                                    <input type="text" name="qualscanner" value="1" size="20">
+                                    <small>list preference of scanner</small>
+                                </div>
+                                <div class="row">
+                                   <label>type</label>
+                                    <input type="text" name="qualtype" value="1" size="36">
+                                    <small>c2c / noads</small>
+                                </div>
+                                <div class="row">
+                                    <label>Quality</label>
+                                    <input type="text" name="qualquality" value="1" size="20">
+                                    <small>resolution of scan (ie.1440px)</small>
+                                </div>
+                           </fieldset>
+                      <input type="button" value="Save Changes" onclick="doAjaxCall('comic_configUpdate',$(this),'tabs',true);return false;" data-success="Changes saved successfully">
+                     </form>
+                </td>
+                 
+            </tr>
+            </table>
+           </div>
+ </div>
+
+        <form action="markissues" method="get" id="markissues">
+        <input type="hidden" name="ComicID" value=${comic['ComicID']}>
+        <div id="markissue">Mark selected issues as
+                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
+                        <option disabled="disabled" selected="selected">Choose...</option>
+                        <option value="Wanted">Wanted</option>
+                        <option value="Skipped">Skipped</option>
+                        <option value="Downloaded">Downloaded</option>
+                </select>
+                <input type="hidden" value="Go">
+        </div>
+        <table class="display" id="issue_table">
+                <thead>
+                        <tr>
+                                <th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+                                <th id="issuenumber">Number</th>
+                                <th id="issuename">Name</th>
+                                <th id="reldate">Date</th>
+                                <th id="type">Type</th>
+                                <th id="status">Status</th>
+                        </tr>
+                </thead>
+                <tbody>
+                %for issue in issues:
+                        <%
+                                if issue['Status'] == 'Skipped':
+                                        grade = 'Z'
+                                elif issue['Status'] == 'Wanted':
+                                        grade = 'X'
+                                elif issue['Status'] == 'Snatched':
+                                        grade = 'C'
+                                else:
+                                        grade = 'A'
+                        %>
+                        <tr class="grade${grade}">
+                                <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
+                                <td id="issuenumber">${issue['Issue_Number']}</td>
+                                <td id="issuename"><a href="issuePage?IssueID=${issue['IssueID']}">${issue['IssueName']}</a></td>
+                                <td id="reldate">${issue['IssueDate']}</td>
+                                <td id="type">${issue['Type']}</td>
+                                <td id="status">${issue['Status']}
+                                %if issue['Status'] == 'Skipped':
+                                        [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${issue['ComicName']}&ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')">want</a>]
+                                %elif (issue['Status'] == 'Wanted'):
+                                        [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped">skip</a>]
+                                %else:
+                                        [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${issue['ComicName']}&ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again">retry</a>][<a href="#" onclick="doAjaxCall('queueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&ComicName=${issue['ComicName']}&ComicIssue=${issue['Issue_Number']}&new=True', $(this),'table')" title="Try a new download, skipping all previously tried nzbs"  data-success="Downloading new version for '${issue['ComicName']}' '${issue['Issue_Number']}'" data-success="Looking for a new version of '${issue['ComicName']}' '${issue['Issue_Number']}'">new</a>]
+                                %endif
+                                </td>
+                        </tr>
+                %endfor
+                </tbody>
+        </table>
+        </form>
+
+</%def>
+
+<%def name="headIncludes()">
+        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        %if comic['Status'] == 'Loading':
+        <meta http-equiv="refresh" content="60">
+        %endif
+</%def>
+
+
+<%def name="javascriptIncludes()">
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+
+	<script>
+	
+	hideServerDivs = function () {
+		$("#customoptions").slideUp();
+		$("#hpserveroptions").slideUp();
+	};
+	
+	handleNewSelection = function () {
+	
+		hideServerDivs();
+		
+		switch ($(this).val()) {
+			case 'custom':
+				$("#customoptions").slideDown();
+			break;
+			case 'mylar':
+				$("#hpserveroptions").slideDown();
+			break;
+		}
+	};
+
+        function initThisPage()
+        {
+
+                $(function() {
+                        $( "#tabs" ).tabs();
+                });
+                initActions();
+
+                $('#issue_table').dataTable({
+                        "bDestroy": true,
+                        "aoColumns": [
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+
+                        ],
+                        "aoColumnDefs": [
+                                  { 'bSortable': false, 'aTargets': [ 0,1 ] }
+                        ],
+                        "oLanguage": {
+                               "sLengthMenu":"Show _MENU_ issues per page",
+                                "sEmptyTable": "No issue information available",
+                                "sInfo":"Showing _TOTAL_ issues",
+                                "sInfoEmpty":"Showing 0 to 0 of 0 issues",
+                                "sInfoFiltered":"(filtered from _MAX_ total issues)",
+                                "sSearch": ""},
+                        "bPaginate": false,
+                        "aaSorting": [[1, 'desc'],[3,'desc']]
+
+                });
+                resetFilters("issues");
+                setTimeout(function(){
+                        initFancybox();
+                },1500)
+        }
+
+
+        $(document).ready(function() {
+                initThisPage();
+        });
+      </script>
+</%def>

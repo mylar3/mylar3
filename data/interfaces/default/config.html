@@ -1,0 +1,340 @@
+<%inherit file="base.html"/>
+<%!
+	import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a id="menu_link_shutdown" href="shutdown">Shut Down</a>
+			<a id="menu_link_shutdown" href="restart">Restart</a>
+		</div>
+	</div>
+</%def>
+<%def name="body()">
+
+
+
+	<div id="paddingheader">
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_gear.png" alt="settings"/>Settings</h1>
+	</div>
+	<form action="configUpdate" method="post" class="form" id="configUpdate">
+	
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Web Interface</a></li>
+			<li><a href="#tabs-2">Download settings</a></li>
+			<li><a href="#tabs-3">Search providers</a></li>
+			<li><a href="#tabs-4">Quality &amp; Post Processing</a></li>
+			<li><a href="#tabs-5">Advanced Settings</a></li>
+		</ul>
+		<div id="tabs-1">
+		
+		
+        <table class="configtable" summary="Web Interface">
+            <tr>
+            	<td>
+            		<fieldset>
+            			<legend>Basic</legend>
+	            		<div class="row">
+	            		 	<label>HTTP Host</label>
+	            		   <input type="text" name="http_host" value="${config['http_host']}" size="30">
+	            		   <small>e.g. localhost or 0.0.0.0</small>
+	            		</div> 
+	            		<div class="row">
+	            		      <label>HTTP Port</label>
+	            		      <input type="text" name="http_port" value="${config['http_port']}" size="10">
+	            		 </div>
+	            		 <div class="row">
+	            		     <label>HTTP Username</label>
+	            		     <input type="text" name="http_username" value="${config['http_user']}" size="30">
+	            		 </div>
+	            		 
+	            		 <div class="row">
+	            		   <label>HTTP Password</label>
+	            		   <input type="password" name="http_password" value="${config['http_pass']}" size="30">
+	            		 </div>
+                                 <div class="row checkbox">
+                                    <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
+                                 </div>
+
+            		 </fieldset>
+            	</td>
+                <td>          
+                    <fieldset>
+                    	<legend>Interval</legend>
+	                   	<div class="row">
+	                    	<label>NZB Search Interval</label>
+	                    	<input type="text" name="nzb_search_interval" value="${config['nzb_search_interval']}" size="4">mins
+	                    </div>
+	            
+	                	<div class="row">
+	                    	<label>Download Scan Interval</label>
+	                    	<input type="text" name="download_scan_interval" value="${config['download_scan_interval']}" size="4">mins
+	                    </div>
+	                
+	                    <div class="row">
+	                   	 	<label>Library Scan Interval</label>
+	                    	<input type="text" name="libraryscan_interval" value="${config['libraryscan_interval']}" size="4">mins
+	                    </div>
+                               <legend>Comic Location</legend>
+                                <div>
+                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Automatic folder creation happens BENEATH this path</small>
+                                </div>
+                                <div class="row">
+                                        <label>Comic Location Path</label>
+                                        <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
+                                        <small>Where do you store your comics?<br/> (or where do you want me to store them)</small>
+                                        <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
+
+                                </div>
+
+	                </fieldset>
+                </td>
+            </tr>
+        </table>
+	</div>
+	
+	<div id="tabs-2">
+        <table class="configtable" summary="Download Settings">
+	    <tr>
+                <td>
+                	<fieldset>
+                		<legend>SABnzbd</legend>
+	                	<div class="row">
+		                    <label>SABnzbd Host:</label>
+		                    <input type="text" name="sab_host" value="${config['sab_host']}" size="30">
+		                    <small>usually http://localhost:8080</small>
+	                    </div>
+	                   	<div class="row">
+		                    <label>SABnzbd Username</label>
+		                    <input type="text" name="sab_username" value="${config['sab_user']}" size="20">
+	                    </div>	               
+	                	<div class="row">
+		                    <label>SABnzbd API:</label>
+		                    <input type="text" name="sab_apikey" value="${config['sab_api']}" size="36">
+	                    </div>
+	                   	<div class="row">
+		                    <label>SABnzbd Password:</label>
+		                    <input type="password" name="sab_password" value="${config['sab_pass']}" size="20">
+	                    </div>
+	                    <div class="row">
+	                        <label>SABnzbd Category:</label>
+	                        <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
+	                    </div>
+                    </fieldset>
+                    <fieldset>
+                    		<legend>Downloads</legend>
+                       	<div class="row">
+                            <label>Comic Download Directory:</label>
+                            <small>Full path where SAB downloads your comics. e.g. /Users/name/Downloads/comics</small>
+                        </div>
+                    </fieldset>                    
+                </td>
+           
+                <td>
+                      <legend>Usenet</legend>
+                       <fieldset>
+                            <div class="row checkbox">
+                                <input id="useblackhole" type="checkbox" name="blackhole" value=1 ${config['use_blackhole']} /><label>Use Black Hole</label>
+                            </div>
+                            <div class="config">
+                                    <div class="row">
+                                        <label>Black Hole Directory</label>
+                                            <input type="text" name="blackhole_dir" value="${config['blackhole_dir']}" size="30">
+                                        <small>Folder your Download program watches for NZBs</small>
+                                    </div>
+                            </div>
+                       </fieldset>
+                        <fieldset>
+                            <div class="checkbox row">
+                                <label>Usenet Retention (in days)</label>
+                                <input type="text" name="usenet_retention" value="${config['usenet_retention']}" size$
+                            </div>
+                         </fieldset>
+
+                </td>
+            </tr>            
+    
+	    </table>
+	</div>
+	<div id="tabs-3">
+        <table class="configtable" summary="Search Providers">
+	    <tr>
+                <td>
+                	<fieldset>
+                		<legend>NZB.SU</legend>
+                		<div class="row checkbox">                    	
+                                    <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['use_nzbsu']} /><label>Use NZB.su</label>
+                		</div>
+                		<div class="config">
+	                		<div class="row">
+	                		 	<label>NZB.SU API</label>
+                                                <input type="text" name="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
+                  		        </div>
+                		</div>
+                	</fieldset>
+
+                        <fieldset>
+                                <legend>DOGNZB</legend>
+                                <div class="row checkbox">
+                                    <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><label>Use DOGnzb</label>
+                                </div>
+                                <div class="config">
+                                        <div class="row">
+                                                <label>DOGNZB API</label>
+                                                <input type="text" name="dognzb_apikey" value="${config['dognzb_api']}" size="36">
+                                         </div>
+                                </div>
+                        </fieldset>
+                        <fieldset>
+                                <legend>EXPERIMENTAL</legend>
+                                <div>
+                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Note: this is an experimental search - results may be better/worse.</small>
+                                </div>
+                                <div class="row checkbox">
+                                    <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['use_experimental']} /><label>Use Experimental Search</label>
+                                </div>
+                        </fieldset>
+
+                </td>
+        
+                <td>
+                </td>
+
+            </tr>
+        </table>
+	</div>
+	<div id="tabs-4">
+        <table class="configtable" summary="Post Processing">
+            <tr>
+                <td>
+                        <fieldset>
+                                <legend>Quality</legend>
+                                <div class="row radio clearfix">
+<input type="radio" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
+<input type="radio" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
+<input type="radio" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
+                                </div>
+
+                        </fieldset>
+               	</td>
+                <td>
+                        <fieldset>
+                                <legend>Post-Processing</legend>
+                                <div class="row checkbox left clearfix">
+                                     <input type="checkbox" name="rename_files" value="1" ${config['rename_files']} /><label>Rename files <small>(edit sabnzbd/ComicRN.py)</small></label>
+                                </div>
+                                <div class="row"</div>
+                                </div>
+                	</fieldset>
+               </td>
+            </tr>
+		</table>
+	</div>
+	<div id="tabs-5">
+        <table class="configtable" summary="Advanced Settings">
+            <tr>
+                <td>                
+                	<fieldset>
+                		<legend>Renaming options</legend>
+                		<div>
+                                     <label>Edit the ComicRN.py script and follow the instructions in file</label>
+                                 </div>
+                      </fieldset>
+                	
+    				<fieldset>
+    					<legend>Advanced Options</legend>
+    				</fieldset>
+    				
+				</td>
+				<td>
+					
+		        	<fieldset>
+		        		<legend>Miscellaneous</legend>
+                                        <div class="row left checkbox">
+                                                    <input type="checkbox" name="autowant_upcoming" value="1" ${config['autowant_upcoming']} /><label>Automatically Mark Upcoming Issues as Wanted</label>
+                                                <div class="row leftcheckbox">
+                                                    <input type="checkbox" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
+                                                </div>
+                                        </div>
+		        	</fieldset>
+					<fieldset>
+						<legend>Interface</legend>
+						<div class="row">
+							<label>Interface</label> 
+							<select name="interface"><h3>
+							%for interface in config['interface_list']:
+								<%
+									if interface == mylar.INTERFACE:
+										selected = 'selected="selected"'
+									else:
+										selected = ''
+								%>
+								<option value="${interface}" ${selected}>${interface}</option>
+							%endfor
+							</select>
+							
+						</div>
+						<div class="row">
+							<label>Log Directory:</label>
+							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
+						</div>
+					</fieldset>
+						            	
+                                        
+            
+				</td>
+			</tr>
+        </table>
+    </div>	
+        <input type="button" value="Save Changes" onclick="doAjaxCall('configUpdate',$(this),'tabs',true);return false;" data-success="Changes saved successfully">
+        <div class="message">
+        	<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>Web Interface changes require a restart to take effect</p>
+		</div>
+
+      </form>
+ </div>
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script>
+	
+	hideServerDivs = function () {
+		$("#customoptions").slideUp();
+		$("#hpserveroptions").slideUp();
+	};
+	
+	handleNewSelection = function () {
+	
+		hideServerDivs();
+		
+		switch ($(this).val()) {
+			case 'custom':
+				$("#customoptions").slideDown();
+			break;
+			case 'mylar':
+				$("#hpserveroptions").slideDown();
+			break;
+		}
+	};
+	
+	function initThisPage() 
+	
+	{
+    
+		$(function() {
+			$( "#tabs" ).tabs();
+		});
+		initActions();
+		initConfigCheckbox("#usenzbsu");
+                initConfigCheckbox("#usedognzb");
+		initConfigCheckbox("#useexperimental");
+		initConfigCheckbox("#useraw");
+	}
+	$(document).ready(function() {
+		initThisPage();
+	});
+	
+	</script>
+</%def>
