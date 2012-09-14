@@ -118,8 +118,8 @@ def addComictoDB(comicid):
     #seems CV doesn't update total counts
     #comicIssues = gcdinfo['totalissues']
     if gcdinfo['gcdvariation'] == "yes":
+        comicIssues = str(gcdinfo['totalissues'])
         #comicIssues = str(int(comic['ComicIssues']) + 1)
-        comicIssues = comic['ComicIssues'] 
     else:
         comicIssues = comic['ComicIssues']
     controlValueDict = {"ComicID":      comicid}
@@ -162,14 +162,16 @@ def addComictoDB(comicid):
     logger.info(u"Found " + str(fccnt) + "/" + str(iscnt) + " issues of " + comic['ComicName'])
     fcnew = []
 
-    while (n < iscnt):
+    while (n <= iscnt):
         #---NEW.code
-        firstval = issued['issuechoice'][n]
+        try:
+            firstval = issued['issuechoice'][n]
+        except IndexError:
+            break
         cleanname = helpers.cleanName(firstval['Issue_Name'])
         issid = str(firstval['Issue_ID'])
         issnum = str(firstval['Issue_Number'])
         issname = cleanname
-
         if '.' in str(issnum):
             issn_st = str(issnum).find('.')
             issn_b4dec = str(issnum)[:issn_st]
@@ -183,12 +185,17 @@ def addComictoDB(comicid):
                 iss_naftdec = str(dec_nisval)
             iss_issue = issn_b4dec + "." + iss_naftdec
             issis = (int(issn_b4dec) * 1000) + dec_nisval
+        else: issis = int(issnum) * 1000
 
         bb = 0
         while (bb <= iscnt):
-            gcdval = gcdinfo['gcdchoice'][bb]
+            try: 
+                gcdval = gcdinfo['gcdchoice'][bb]
+            except IndexError:
+                break
             if '.' in str(gcdval['GCDIssue']):
                 issst = str(gcdval['GCDIssue']).find('.')
+                
                 issb4dec = str(gcdval['GCDIssue'])[:issst]
                 #if the length of decimal is only 1 digit, assume it's a tenth
                 decis = str(gcdval['GCDIssue'])[issst+1:]
@@ -198,8 +205,10 @@ def addComictoDB(comicid):
                 if len(decis) == 2:
                     decisval = int(decis)
                     issaftdec = str(decisval)
-            gcd_issue = issb4dec + "." + issaftdec
-            gcdis = (int(issb4dec) * 1000) + decisval
+                gcd_issue = issb4dec + "." + issaftdec
+                gcdis = (int(issb4dec) * 1000) + decisval
+            else:
+                gcdis = int(str(gcdval['GCDIssue'])) * 1000
             if gcdis == issis:
                 issdate = str(gcdval['GCDDate'])
                 int_issnum = int( gcdis / 1000 )
@@ -266,7 +275,6 @@ def addComictoDB(comicid):
                         "Location":           isslocation,
                         "Int_IssueNumber":    int_issnum
                         }        
-
         # Only change the status & add DateAdded if the issue is not already in the database
         if not len(iss_exists):
             controlValueDict = {"IssueID":  issid}

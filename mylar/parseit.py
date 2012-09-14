@@ -131,10 +131,6 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         fip = resultp('a',href=True)[1]
         resultID.append(fip['href'])
         #print ( "ID: " + str(resultID[n]) )
-        #print ( "Comic Name: " + str(resultName[n]) )
-        fip = resultp('a',href=True)[1]
-        resultID.append(fip['href'])
-        #print ( "ID: " + str(resultID[n]) )
 
         subtxt3 = resultp('td')[3]
         resultYear.append(subtxt3.findNext(text=True))
@@ -167,12 +163,12 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                         issvariation = "yes"
                     else:
                         issvariation = "no"
-                    #print ("n:" + str(n) + "...matched by issues to Mylar!")
-                    #print ("complete match!...proceeding")
+                        #print ("n:" + str(n) + "...matched by issues to Mylar!")
+                        #print ("complete match!...proceeding")
+                    TotalIssues = resultIssues[n]
                     resultURL = str(resultID[n])
                     rptxt = resultp('td')[6]
                     resultPublished = rptxt.findNext(text=True)
-                    TotalIssues = resultIssues[n]
                     #print ("Series Published: " + str(resultPublished))
                     break
                 
