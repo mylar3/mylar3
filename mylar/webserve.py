@@ -1,17 +1,17 @@
-#  This file is part of Headphones.
+#  This file is part of Mylar.
 #
-#  Headphones is free software: you can redistribute it and/or modify
+#  Mylar is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Headphones is distributed in the hope that it will be useful,
+#  Mylar is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with Headphones.  If not, see <http://www.gnu.org/licenses/>.
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import cherrypy
@@ -64,7 +64,10 @@ class WebInterface(object):
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
-        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues)
+        comicConfig = {
+                    "comiclocation" : mylar.COMIC_LOCATION
+               }
+        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig)
     artistPage.exposed = True
     
     def searchit(self, name, issue=None, mode=None):
@@ -415,6 +418,8 @@ class WebInterface(object):
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
                     "destination_dir" : mylar.DESTINATION_DIR,
+                    "replace_spaces" : helpers.checked(mylar.REPLACE_SPACES),
+                    "replace_char" : mylar.REPLACE_CHAR,
                     "interface_list" : interface_list,
                     "autowant_all" : helpers.checked(mylar.AUTOWANT_ALL),
                     "autowant_upcoming" : helpers.checked(mylar.AUTOWANT_UPCOMING),
@@ -431,33 +436,35 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
     
-    def comic_configUpdate(self, comic_location, qual_altvers, qual_scanner, qual_type, qual_quality):
+    def comicConfigUpdate(self, comiclocation=None):
         print ("YO")
-        mylar.COMIC_LOCATION = comic_location
-        mylar.QUAL_ALTVERS = qual_altvers
-        mylar.QUAL_SCANNER = qual_scanner
-        mylar.QUAL_TYPE = qual_type
-        mylar.QUAL_QUALITY = qual_quality
-        print ("ComicID:" + ComicID)
-        print ("LOC:" + str(comic_location))
-        print ("ALT:" + str(qual_altvers))
-        myDB = db.DBConnection()
-        controlValueDict = {'ComicID': ComicID}
-        newValues = {"ComicLocation":        comic_location,
-                     "QUALalt_vers":         qual_altvers,
-                     "QUALScanner":          qual_scanner,
-                     "QUALtype":             qual_type,
-                     "QUALquality":          qual_quality
-                     }
-        myDB.upsert("comics", newValues, controlValueDict)
-    comic_configUpdate.exposed = True
+        #mylar.COMIC_LOCATION = comiclocation
+        #mylar.QUAL_ALTVERS = qualaltvers
+        #mylar.QUAL_SCANNER = qualscanner
+        #mylar.QUAL_TYPE = qualtype
+        #mylar.QUAL_QUALITY = qualquality
+        #print ("ComicID:" + ComicID)
+        print ("LOC:" + str(comiclocation))
+        #print ("ALT:" + str(qualaltvers))
+        #myDB = db.DBConnection()
+        #controlValueDict = {'ComicID': ComicID}
+        #newValues = {"ComicLocation":        comic_location,
+        #             "QUALalt_vers":         qual_altvers,
+        #             "QUALScanner":          qual_scanner,
+        #             "QUALtype":             qual_type,
+        #             "QUALquality":          qual_quality
+        #             }
+        #myDB.upsert("comics", newValues, controlValueDict)
+        raise cherrypy.HTTPRedirect("home")
+
+    comicConfigUpdate.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8181, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None,
-        destination_dir=None, autowant_all=0, autowant_upcoming=0, interface=None):
+        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, interface=None):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -487,6 +494,8 @@ class WebInterface(object):
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files
         mylar.RENAME_FILES = rename_files
+        mylar.REPLACE_SPACES = replace_spaces
+        mylar.REPLACE_CHAR = replace_char
         mylar.FOLDER_FORMAT = folder_format
         mylar.FILE_FORMAT = file_format
         mylar.DESTINATION_DIR = destination_dir

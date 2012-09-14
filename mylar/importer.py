@@ -93,14 +93,16 @@ def addComictoDB(comicid):
 
     #comic book location on machine
     # setup default location here
-    comlocation = mylar.DESTINATION_DIR + "/" + comic['ComicName'] + " (" + comic['ComicYear'] + ")"
+    if ':' in comic['ComicName']: 
+        comicdir = comic['ComicName'].replace(':','')
+    else: comicdir = comic['ComicName']
+    comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
     if mylar.DESTINATION_DIR == "":
         logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
         return
-    #if mylar.REPLACE_SPACES == "yes":
+    if mylar.REPLACE_SPACES:
         #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-    mylarREPLACE_CHAR = '_'
-    comlocation = comlocation.replace(' ', mylarREPLACE_CHAR)
+        comlocation = comlocation.replace(' ', mylar.REPLACE_CHAR)
     #if it doesn't exist - create it (otherwise will bugger up later on)
     if os.path.isdir(str(comlocation)):
         logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
@@ -234,6 +236,8 @@ def addComictoDB(comicid):
             tmpfc = fc['comiclist'][fn]
             #print (str(int_issnum[n]) + " against ... " + str(tmpfc['ComicFilename']))
             temploc = tmpfc['ComicFilename'].replace('_', ' ')
+            temploc = re.sub('\#', '', temploc)
+
             fcnew = shlex.split(str(temploc))
             fcn = len(fcnew)
             som = 0

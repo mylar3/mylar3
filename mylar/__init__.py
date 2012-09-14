@@ -98,6 +98,8 @@ BLACKHOLE = False
 BLACKHOLE_DIR = None
 FOLDER_FORMAT = None
 FILE_FORMAT = None
+REPLACE_SPACES = False
+REPLACE_CHAR = None
 
 AUTOWANT_UPCOMING = False
 AUTOWANT_ALL = False
@@ -185,8 +187,8 @@ def initialize():
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, BLACKHOLE, BLACKHOLE_DIR, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
-                RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL,\
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, \
+                RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY
                 
         if __INITIALIZED__:
@@ -237,7 +239,9 @@ def initialize():
         FILE_FORMAT = check_setting_str(CFG, 'General', 'file_format', 'Track Artist - Album [Year]- Title')
         BLACKHOLE = bool(check_setting_int(CFG, 'General', 'blackhole', 0))
         BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
-        
+        REPLACE_SPACES = bool(check_setting_int(CFG, 'General', 'replace_spaces', 0))
+        REPLACE_CHAR = check_setting_str(CFG, 'General', 'replace_char', '')
+
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
         SAB_PASSWORD = check_setting_str(CFG, 'SABnzbd', 'sab_password', '')
@@ -438,6 +442,9 @@ def config_write():
     new_config['General']['file_format'] = FILE_FORMAT
     new_config['General']['blackhole'] = int(BLACKHOLE)
     new_config['General']['blackhole_dir'] = BLACKHOLE_DIR
+    new_config['General']['replace_spaces'] = int(REPLACE_SPACES)
+    new_config['General']['replace_char'] = REPLACE_CHAR
+
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_host'] = SAB_HOST

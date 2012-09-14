@@ -245,6 +245,25 @@
                 	
     				<fieldset>
     					<legend>Advanced Options</legend>
+                                <div class="row checkbox">
+                                      <input id="replace_spaces" type="checkbox" onclick="initConfigCheckbox($(this));" name="replace_spaces" value="1" ${config['use_dognzb']} /><label>Replace Spaces</label>
+                                </div>
+                                                <div class="row">
+                                                <label>Format</label>
+                                                <select name="replace_char">
+                                                %for x in ['.', '_']:
+                                                        <%
+                                                                if config['replace_char'] == x:
+                                                                        outputselect = 'selected'
+                                                                else:
+                                                                        outputselect = ''
+                                                        %>
+                                                        <option value=${x} ${outputselect}>${x}</option>
+                                                %endfor
+                                                </select>
+                                                </div>
+
+
     				</fieldset>
     				
 				</td>

@@ -17,6 +17,7 @@ import time
 from xml.dom.minidom import parseString
 import urllib2
 import shlex
+import re 
 
 import mylar
 from mylar import db, logger, helpers, filechecker
@@ -135,6 +136,7 @@ def forceRescan(ComicID):
         while (fn < fccnt):            
             tmpfc = fc['comiclist'][fn]
             temploc = tmpfc['ComicFilename'].replace('_', ' ')
+            temploc = re.sub('\#', '', temploc)
             if 'annual' not in temploc:               
                 fcnew = shlex.split(str(temploc))
                 fcn = len(fcnew)
