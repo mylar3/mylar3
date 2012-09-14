@@ -246,7 +246,7 @@
     				<fieldset>
     					<legend>Advanced Options</legend>
                                 <div class="row checkbox">
-                                      <input id="replace_spaces" type="checkbox" onclick="initConfigCheckbox($(this));" name="replace_spaces" value="1" ${config['use_dognzb']} /><label>Replace Spaces</label>
+                                      <input id="replace_spaces" type="checkbox" onclick="initConfigCheckbox($(this));" name="replace_spaces" value="1" ${config['replace_spaces']} /><label>Replace Spaces</label>
                                 </div>
                                                 <div class="row">
                                                 <label>Format</label>
@@ -350,6 +350,7 @@
                 initConfigCheckbox("#usedognzb");
 		initConfigCheckbox("#useexperimental");
 		initConfigCheckbox("#useraw");
+                initConfigCheckbox("#replace_spaces");
 	}
 	$(document).ready(function() {
 		initThisPage();
