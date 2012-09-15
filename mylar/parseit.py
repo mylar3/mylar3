@@ -87,7 +87,6 @@ def MysterBinScrape(comsearch):
         return mres    
 
 def GCDScraper(ComicName, ComicYear, Total, ComicID):
-    if ':' in ComicName: ComicName = re.sub(':', '', ComicName)
     comicnm = ComicName
     comicyr = ComicYear
     comicis = Total
@@ -180,11 +179,13 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         if ComicName.startswith('The '):
             ComicName = ComicName[4:]
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
+        if ':' in ComicName: 
+            ComicName = re.sub(':', '', ComicName)
+            return GCDScraper(ComicName, ComicYear, Total, ComicID)
         if 'and' in ComicName.lower():
             ComicName = ComicName.replace('and', '&')
             return GCDScraper(ComicName, ComicYear, Total, ComicID)
-        else:
-            return 'No Match'
+        return 'No Match'
     gcdinfo = {}
     gcdchoice = []
 
