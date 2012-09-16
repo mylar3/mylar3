@@ -157,9 +157,11 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                 #as GCD does. Therefore, let's increase the CV count by 1 to get it
                 #to match, any more variation could cause incorrect matching.
                 #ie. witchblade on GCD says 159 issues, CV states 161.
-                if resultIssues[n] == Total or resultIssues[n] == str(int(Total)+1): 
+                if resultIssues[n] == Total or resultIssues[n] == str(int(Total)+1) or str(int(resultIssues[n])+1) == Total:
                     if resultIssues[n] == str(int(Total)+1):
-                        issvariation = "yes"
+                        issvariation = "cv"
+                    elif str(int(resultIssues[n])+1) == Total:
+                        issvariation = "gcd"
                     else:
                         issvariation = "no"
                         #print ("n:" + str(n) + "...matched by issues to Mylar!")
@@ -227,11 +229,13 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
             parsed = soup.findAll("tr", {"class" : "row_even_True"})[n_even]
         subtxt3 = parsed.find("a")
         ParseIssue = subtxt3.findNext(text=True)
+        if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
         isslen = ParseIssue.find(' ')
         #if 'isslen' exists, it means that it's an alternative cover.
         #however, if ONLY alternate covers exist of an issue it won't work.
         #let's use the FIRST record, and ignore all other covers for the given issue.
         isschk = ParseIssue[:isslen]
+        #check if decimal exists or not, and store decimal results
         if '.' in isschk:
             isschk_find = isschk.find('.')
             isschk_b4dec = isschk[:isschk_find]

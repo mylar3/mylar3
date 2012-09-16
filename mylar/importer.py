@@ -119,9 +119,8 @@ def addComictoDB(comicid):
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
     #comicIssues = gcdinfo['totalissues']
-    if gcdinfo['gcdvariation'] == "yes":
-        comicIssues = str(gcdinfo['totalissues'])
-        #comicIssues = str(int(comic['ComicIssues']) + 1)
+    if gcdinfo['gcdvariation'] == "cv":
+        comicIssues = str(int(comic['ComicIssues']) + 1)
     else:
         comicIssues = comic['ComicIssues']
     controlValueDict = {"ComicID":      comicid}
@@ -152,7 +151,6 @@ def addComictoDB(comicid):
     latestdate = "0000-00-00"
     #print ("total issues:" + str(iscnt))
     #---removed NEW code here---
-    #once again - thanks to the new 52 reboot...start n at 0.
     logger.info(u"Now adding/updating issues for" + comic['ComicName'])
 
     # file check to see if issue exists
@@ -194,10 +192,14 @@ def addComictoDB(comicid):
             try: 
                 gcdval = gcdinfo['gcdchoice'][bb]
             except IndexError:
+                #account for gcd variation here
+                if gcdinfo['gcdvariation'] == 'gcd':
+                    print ("gcd-variation accounted for.")
+                    issdate = '0000-00-00'
+                    int_issnum =  int ( issis / 1000 )
                 break
             if '.' in str(gcdval['GCDIssue']):
                 issst = str(gcdval['GCDIssue']).find('.')
-                
                 issb4dec = str(gcdval['GCDIssue'])[:issst]
                 #if the length of decimal is only 1 digit, assume it's a tenth
                 decis = str(gcdval['GCDIssue'])[issst+1:]
@@ -230,20 +232,19 @@ def addComictoDB(comicid):
         # check if the issue already exists
         iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid])
 
-        #print ("checking issue: " + str(int_issnum[n]))
+        #print ("checking issue: " + str(int_issnum))
         # stupid way to do this, but check each issue against file-list in fc.
         while (fn < fccnt):
             tmpfc = fc['comiclist'][fn]
-            #print (str(int_issnum[n]) + " against ... " + str(tmpfc['ComicFilename']))
+            #print (str(int_issnum) + " against ... " + str(tmpfc['ComicFilename']))
             temploc = tmpfc['ComicFilename'].replace('_', ' ')
-            temploc = re.sub('\#', '', temploc)
-
+            if '#' in temploc:
+                temploc = re.sub('\#', '', temploc)
             fcnew = shlex.split(str(temploc))
             fcn = len(fcnew)
             som = 0
             #   this loop searches each word in the filename for a match.
             while (som < fcn): 
-                #print (fcnew[som])
                 #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
                 if ".cbr" in fcnew[som]:
                     fcnew[som] = fcnew[som].replace(".cbr", "")
@@ -255,11 +256,9 @@ def addComictoDB(comicid):
                     if int(fcnew[som]) > 0:
                         fcdigit = fcnew[som].lstrip('0')
                     else: fcdigit = "0"
-                    #print ( "filename:" + str(int(fcnew[som])) + " - issue: " + str(int_issnum[n]) )
+                    #print ( "filename:" + str(int(fcnew[som])) + " - issue: " + str(int_issnum) )
                     if int(fcdigit) == int_issnum:
-#                    if int(fcdigit) == int_issnum[n]:
-                        #print ("matched")
-                        #print ("We have this issue - " + str(issnum[n]) + " at " + tmpfc['ComicFilename'] )
+                        #print ("We have this issue - " + str(issnum) + " at " + tmpfc['ComicFilename'] )
                         havefiles+=1
                         haveissue = "yes"
                         isslocation = str(tmpfc['ComicFilename'])
