@@ -69,6 +69,14 @@ def weekly_update(ComicName):
         newValue = {"STATUS":             "Skipped"}
     myDB.upsert("weekly", newValue, controlValue)
 
+def no_searchresults(ComicID):
+    # when there's a mismatch between CV & GCD - let's change the status to
+    # something other than 'Loaded'
+    myDB = db.DBConnection()
+    controlValue = { "ComicID":        ComicID}
+    newValue = {"Status":       "Error"}    
+    myDB.upsert("comics", newValue, controlValue)
+
 def foundsearch(ComicID, IssueID):
     myDB = db.DBConnection()
     #print ("Updater-ComicID: " + str(ComicID))

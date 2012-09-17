@@ -26,6 +26,8 @@ def file2comicmatch(watchmatch):
 def listFiles(dir,watchcomic):
     #print("dir:" + dir)
     #print("comic: " + watchcomic)
+    if ':' in watchcomic:
+        watchcomic = watchcomic.replace(':','')
     basedir = dir
     #print "Files in ", dir, ": "
     watchmatch = {}

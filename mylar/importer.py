@@ -86,6 +86,7 @@ def addComictoDB(comicid):
     gcdinfo=parseit.GCDScraper(comic['ComicName'], comic['ComicYear'], comic['ComicIssues'], comicid) 
     if gcdinfo == "No Match":
         logger.warn("No matching result found for " + comic['ComicName'] + " (" + comic['ComicYear'] + ")" )
+        updater.no_searchresults(comicid)
         return
     logger.info(u"Sucessfully retrieved details for " + comic['ComicName'] )
     # print ("Series Published" + parseit.resultPublished)

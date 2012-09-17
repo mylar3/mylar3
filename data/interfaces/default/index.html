@@ -30,10 +30,13 @@
 					percent = 0
 					totaltracks = '?'
 				
+
 				if comic['Status'] == 'Paused':
 					grade = 'X'
-				if comic['Status'] == 'Loading':
+				elif comic['Status'] == 'Loading':
 					grade = 'L'
+                                elif comic['Status'] == 'Error':
+                                        grade = 'Z'
                                 else:
                                         grade = 'A'
 				

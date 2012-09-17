@@ -525,7 +525,7 @@ class WebInterface(object):
     
     def update(self):
         mylar.SIGNAL = 'update'
-        message = 'Updating...Home screen will appear in 60s'
+        message = 'Updating...<br/><small>Main screen will appear in 60s</small>'
         return serve_template(templatename="shutdown.html", title="Updating", message=message, timer=30)
         return page
     update.exposed = True

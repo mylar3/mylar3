@@ -184,6 +184,9 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         if ':' in ComicName: 
             ComicName = re.sub(':', '', ComicName)
             return GCDScraper(ComicName, ComicYear, Total, ComicID)
+        if '-' in ComicName:
+            ComicName = re.sub('-', ' ', ComicName)
+            return GCDScraper(ComicName, ComicYear, Total, ComicID)
         if 'and' in ComicName.lower():
             ComicName = ComicName.replace('and', '&')
             return GCDScraper(ComicName, ComicYear, Total, ComicID)
