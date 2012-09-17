@@ -391,21 +391,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
 
                             else:
                                 tmppath = "cache/"
+                                filenamenzb = os.path.splitext(linkapi)[1]
+                                filenzb = os.path.join(tmppath,filenamenzb)
                                 if os.path.exists(tmppath):
-                                    print ("before the path..")
-                                    print ("filenamenzb:" + str(filenamenzb))
-                                    print ("filenzb:" + str(filenzb))
                                     if nzbprov == 'nzb.su':
                                         filenzb = linkstart[21:]
                                     if nzbprov == 'experimental':
                                         filenzb = filenamenzb[6:]
                                     if nzbprov == 'dognzb':
-                                        filenzb == str(filenamenzb)
+                                        filenamenzb = os.path.splitext(linkapi)[0][23:]
+                                        lenfilenzb = filenamenzb.find('/', 23)
+                                        filenzb = str(filenamenzb)[:lenfilenzb]
                                     savefile = str(mylar.PROG_DIR) + "/" + str(tmppath) + str(filenzb) + ".nzb"
-  
                                 else:
                                     savefile = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
-
                                 urllib.urlretrieve(linkapi, str(savefile))
                                 #check sab for current pause status
                                 sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
