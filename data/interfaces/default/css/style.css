@@ -880,7 +880,7 @@ div#artistheader h2 a {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
 }
 #manage_comic th#name {
-  min-width: 300px;
+  min-width: 275px;
   text-align: left;
 }
 #manage_comic th#latest {
@@ -898,7 +898,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #manage_comic td#name {
-  min-width: 300px;
+  min-width: 275px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
@@ -915,8 +915,11 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-
-
+#manage_comic td#have {
+  min-width: 50px;
+  text-align: left;
+  vertical-align: middle;
+}
 
 #artist_table {
   background-color: #FFF;
