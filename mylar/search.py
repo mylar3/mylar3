@@ -74,10 +74,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
         if nzbprovider[nzbpr] == 'nzb.su':
         # ----
         # this is for nzb.su
-            d = feedparser.parse("http://nzb.su/rss?t=7030&dl=1&i=" + str(nzbsu_APIID) + "&r=" + str(nzbsu_APIkey))
-            #print ("before NZBSU rss search.")
+            #d = feedparser.parse("http://nzb.su/rss?t=7030&dl=1&i=" + str(nzbsu_APIID) + "&r=" + str(nzbsu_APIkey))
             #--LATER ?search.rss_find = RSS_SEARCH(ComicName, IssueNumber)
-            #print ("after..")
             #if rss_find == 0:
             nzbprov = 'nzb.su'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr)
@@ -89,10 +87,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
        
         elif nzbprovider[nzbpr] == 'dognzb':
         # this is for dognzb.com
-            d = feedparser.parse("http://dognzb.cr/rss.cfm?r=" + str(dognzb_APIkey) + "&t=7030&num=100")
-            #print ("Before DOGNZB  RSS search")
+            #d = feedparser.parse("http://dognzb.cr/rss.cfm?r=" + str(dognzb_APIkey) + "&t=7030&num=100")
             #RSS_SEARCH(ComicName, IssueNumber)
-            #print (ComicName + " : " + str(IssueNumber))
             nzbprov = 'dognzb'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr)
             if findit == 'yes':
