@@ -19,6 +19,7 @@ import urllib2
 import re
 import helpers
 import logger
+import datetime
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 
@@ -87,6 +88,7 @@ def MysterBinScrape(comsearch):
         return mres    
 
 def GCDScraper(ComicName, ComicYear, Total, ComicID):
+    NOWyr = datetime.date.today().year
     comicnm = ComicName
     comicyr = ComicYear
     comicis = Total
@@ -96,7 +98,8 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     #print ( "comichave: " + str(comicis) )
     #print ( "comicid: " + str(comicid) )
     comicnm = re.sub(' ', '%20', comicnm)
-    input = 'http://www.comics.org/series/name/' + str(comicnm) + '/sort/alpha/'
+    #input = 'http://www.comics.org/series/name/' + str(comicnm) + '/sort/alpha/'
+    input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib2.urlopen ( input )
     soup = BeautifulSoup ( response)
 
