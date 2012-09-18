@@ -308,7 +308,7 @@ class WebInterface(object):
         return serve_template(templatename="manageartists.html", title="Manage Comics", comics=comics)
     manageArtists.exposed = True
     
-    def manageAlbums(self):
+    def manageIssues(self):
         myDB = db.DBConnection()
         issues = myDB.select('SELECT * from issues')
         return serve_template(templatename="managealbums.html", title="Manage Issues", issues=issues)
@@ -320,30 +320,28 @@ class WebInterface(object):
         return serve_template(templatename="managenew.html", title="Manage New Artists", newcomics=newcomics)
     manageNew.exposed = True    
     
-    def markArtists(self, action=None, **args):
+    def markComics(self, action=None, **args):
         myDB = db.DBConnection()
-        artistsToAdd = []
-        for ArtistID in args:
+        comicsToAdd = []
+        for ComicID in args:
             if action == 'delete':
-                myDB.action('DELETE from artists WHERE ArtistID=?', [ArtistID])
-                myDB.action('DELETE from albums WHERE ArtistID=?', [ArtistID])
-                myDB.action('DELETE from tracks WHERE ArtistID=?', [ArtistID])
-                myDB.action('INSERT OR REPLACE into blacklist VALUES (?)', [ArtistID])
+                myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+                myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
             elif action == 'pause':
-                controlValueDict = {'ArtistID': ArtistID}
+                controlValueDict = {'ComicID': ComicID}
                 newValueDict = {'Status': 'Paused'}
-                myDB.upsert("artists", newValueDict, controlValueDict)
+                myDB.upsert("comics", newValueDict, controlValueDict)
             elif action == 'resume':
-                controlValueDict = {'ArtistID': ArtistID}
+                controlValueDict = {'ComicID': ComicID}
                 newValueDict = {'Status': 'Active'}
-                myDB.upsert("artists", newValueDict, controlValueDict)              
+                myDB.upsert("comics", newValueDict, controlValueDict)              
             else:
-                artistsToAdd.append(ArtistID)
-        if len(artistsToAdd) > 0:
-            logger.debug("Refreshing artists: %s" % artistsToAdd)
-            threading.Thread(target=importer.addArtistIDListToDB, args=[artistsToAdd]).start()
+                comicsToAdd.append(ComicID)
+        if len(comicsToAdd) > 0:
+            logger.debug("Refreshing comics: %s" % comicsToAdd)
+            threading.Thread(target=importer.addComicIDListToDB, args=[comicsToAdd]).start()
         raise cherrypy.HTTPRedirect("home")
-    markArtists.exposed = True
+    markComics.exposed = True
     
     def forceUpdate(self):
         from mylar import updater

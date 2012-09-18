@@ -17,9 +17,9 @@
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage comics</h1>
 	</div>
-	<form action="markArtists" method="get" id="markArtists">
+	<form action="markComics" method="get" id="markComics">
 	<div id="markalbum">
-		<select name="action" onChange="doAjaxCall('markArtists',$(this),'table',true);" data-error="You didn't select any comics">
+		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
   			<option disabled="disabled" selected="selected">Choose...</option>
   			<option value="pause">Pause</option>
   			<option value="resume">Resume</option>
@@ -71,7 +71,7 @@
 				<td id="status">${comic['Status']}</td>	
 				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
                                 <td id="publisher">${comic['ComicPublisher']}</td>
-                                <td id="have"><span title="${percent}"></span><div class="progress-container"><div style="width:${percent}%"><div style="width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
+                                <td id="have" valign="center"><span title="${percent}"></span><div class="progress-container"><div style="width:${percent}%"><div style="width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
 				<td id="lastupdated">${comic['DateAdded']}</td>
 			</tr>
 		%endfor
