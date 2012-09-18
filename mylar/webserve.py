@@ -302,17 +302,17 @@ class WebInterface(object):
         return serve_template(templatename="manage.html", title="Manage")
     manage.exposed = True
     
-    def manageArtists(self):
+    def manageComics(self):
         myDB = db.DBConnection()
         comics = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
-        return serve_template(templatename="manageartists.html", title="Manage Comics", comics=comics)
-    manageArtists.exposed = True
+        return serve_template(templatename="managecomics.html", title="Manage Comics", comics=comics)
+    manageComics.exposed = True
     
     def manageIssues(self):
         myDB = db.DBConnection()
         issues = myDB.select('SELECT * from issues')
-        return serve_template(templatename="managealbums.html", title="Manage Issues", issues=issues)
-    manageAlbums.exposed = True
+        return serve_template(templatename="manageissus.html", title="Manage Issues", issues=issues)
+    manageIssues.exposed = True
     
     def manageNew(self):
         myDB = db.DBConnection()
