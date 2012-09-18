@@ -18,6 +18,7 @@ import os
 import sys
 import shlex
 import datetime
+import re
 
 import mylar
 from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater
@@ -156,12 +157,12 @@ def addComictoDB(comicid):
 
     # file check to see if issue exists
     logger.info(u"Checking directory for existing issues.")
-    fc = filechecker.listFiles(dir=comlocation, watchcomic=comic['ComicName'])
-    havefiles = 0
+    #fc = filechecker.listFiles(dir=comlocation, watchcomic=comic['ComicName'])
+    #havefiles = 0
 
-    fccnt = int(fc['comiccount'])
-    logger.info(u"Found " + str(fccnt) + "/" + str(iscnt) + " issues of " + comic['ComicName'])
-    fcnew = []
+    #fccnt = int(fc['comiccount'])
+    #logger.info(u"Found " + str(fccnt) + "/" + str(iscnt) + " issues of " + comic['ComicName'] + "...verifying")
+    #fcnew = []
 
     while (n <= iscnt):
         #---NEW.code
@@ -227,72 +228,27 @@ def addComictoDB(comicid):
         #print("(" + str(n) + ") IssueID: " + str(issid) + " IssueNo: " + str(issnum) + " Date" + str(issdate))
         #---END.NEW.
 
-        fn = 0
-        haveissue = "no"
-        #print ("on issue " + str(int(n+1)) + " of " + str(iscnt) + " issues")
         # check if the issue already exists
         iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid])
 
-        #print ("checking issue: " + str(int_issnum))
-        # stupid way to do this, but check each issue against file-list in fc.
-        while (fn < fccnt):
-            tmpfc = fc['comiclist'][fn]
-            #print (str(int_issnum) + " against ... " + str(tmpfc['ComicFilename']))
-            temploc = tmpfc['ComicFilename'].replace('_', ' ')
-            if '#' in temploc:
-                temploc = re.sub('\#', '', temploc)
-            fcnew = shlex.split(str(temploc))
-            fcn = len(fcnew)
-            som = 0
-            #   this loop searches each word in the filename for a match.
-            while (som < fcn): 
-                #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                if ".cbr" in fcnew[som]:
-                    fcnew[som] = fcnew[som].replace(".cbr", "")
-                elif ".cbz" in fcnew[som]:
-                    fcnew[som] = fcnew[som].replace(".cbz", "")                   
-                if fcnew[som].isdigit():
-                    #print ("digit detected")
-                    #good ol' 52 again....
-                    if int(fcnew[som]) > 0:
-                        fcdigit = fcnew[som].lstrip('0')
-                    else: fcdigit = "0"
-                    #print ( "filename:" + str(int(fcnew[som])) + " - issue: " + str(int_issnum) )
-                    if int(fcdigit) == int_issnum:
-                        #print ("We have this issue - " + str(issnum) + " at " + tmpfc['ComicFilename'] )
-                        havefiles+=1
-                        haveissue = "yes"
-                        isslocation = str(tmpfc['ComicFilename'])
-                        break
-                #print ("failed word match on:" + str(fcnew[som]) + "..continuing next word")
-                som+=1
-            #print (str(temploc) + " doesn't match anything...moving to next file.")
-            fn+=1
+        # Only change the status & add DateAdded if the issue is not already in the database
+        if not len(iss_exists):
+            newValueDict['DateAdded'] = helpers.today()
 
-        if haveissue == "no": isslocation = "None"
         controlValueDict = {"IssueID":  issid}
         newValueDict = {"ComicID":            comicid,
                         "ComicName":          comic['ComicName'],
                         "IssueName":          issname,
                         "Issue_Number":       issnum,
                         "IssueDate":          issdate,
-                        "Location":           isslocation,
                         "Int_IssueNumber":    int_issnum
                         }        
-        # Only change the status & add DateAdded if the issue is not already in the database
-        if not len(iss_exists):
-            controlValueDict = {"IssueID":  issid}
-            newValueDict['DateAdded'] = helpers.today()
-
-        if haveissue == "no":
-            if mylar.AUTOWANT_ALL:
-                newValueDict['Status'] = "Wanted"
+        if mylar.AUTOWANT_ALL:
+            newValueDict['Status'] = "Wanted"
             #elif release_dict['releasedate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
             #    newValueDict['Status'] = "Wanted"
-            else:
-                newValueDict['Status'] = "Skipped"
-        elif haveissue == "yes":
-            newValueDict['Status'] = "Downloaded"
+        else:
+            newValueDict['Status'] = "Skipped"
 
         myDB.upsert("issues", newValueDict, controlValueDict)
         n+=1
@@ -300,16 +256,14 @@ def addComictoDB(comicid):
 #        logger.debug(u"Updating comic cache for " + comic['ComicName'])
 #        cache.getThumb(ComicID=issue['issueid'])
             
-#    newValueDict['LastUpdated'] = helpers.now()
-    
-#    myDB.upsert("comics", newValueDict, controlValueDict)
-    
-#    logger.debug(u"Updating cache for: " + comic['ComicName'])
-#    cache.getThumb(ComicIDcomicid)
+#        logger.debug(u"Updating cache for: " + comic['ComicName'])
+#        cache.getThumb(ComicIDcomicid)
+
+    #check for existing files...
+    updater.forceRescan(comicid)
 
     controlValueStat = {"ComicID":     comicid}
     newValueStat = {"Status":          "Active",
-                    "Have":            havefiles,
                     "LatestIssue":     latestiss,
                     "LatestDate":      latestdate
                    }
