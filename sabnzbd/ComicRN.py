@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#   ComicBook Renamer v.1.0a (the 'a' means 'alpha')
+#   ComicBook Renamer v.1.01a (the 'a' means 'alpha')
 
 # This is an add-on script for SABnzbd
 # Used in conjunction with several other scripts
@@ -24,14 +24,14 @@
 # Set category to same thing set in SABnzbd
 #
 # Quality & Post Processing tab (in the Configuration):
-# Check off both the 'Move downloads to Destination Directory' & 'Rename Files' 
+# Check off the option to  'Rename Files' 
 # 
 
 #--------END BLURB
 #----CONFIG SECTION
 
 # Path to root of Comics directory (include trailing /)
-comdir = '/mount/mediavg/Comics/Comics/'
+comdir = '/mount/mediavg/Comics/'
 
 #----SETTINGS SECTION
 
@@ -87,6 +87,7 @@ else:
 filen = filen.replace('_',' ')
 lengthfile = len(filen) - 4
 #if filen[:-4] == ".cbr" or filen[:-4] == ".cbz": filen[:lengthfile]
+print ("Mylar - ComicRenamer Script - v1.0a")
 print ("passed name from SAB: " + str(filen) )
     #print ("extension of file: " + str(fullp) )
     #let's narrow search down - take out year (2010), (2011), etc
@@ -201,15 +202,8 @@ countit=0
 
 matches = []
 for root, dirnames, filenames in os.walk(maindir):
-    #for t in extensions:
-    #    for filename in fnmatch.filter(filenames, '*.' + lowert ):
-          #matches.append(os.path.join(root, filename))
     for filename in filenames:
         if filename.lower().endswith(extensions):
-            #matches.extend(os.path.join(root,filename) for filename in filenames if filename.lower().endswith(extensions))
-            #matdir = os.path.join(root, dirname)
-            #print ("matched dir:" + maindir)
-            #print (filename)
             confile = filename.replace(' ','_')
             if str(comyx).lower() in str(confile).lower():
                 #print ("Found: " + str(filename))
@@ -226,9 +220,3 @@ for root, dirnames, filenames in os.walk(maindir):
                     print ("incorrect directory passed to Removal: " + maindir)
             countit+=1
 
-#Mylar
-#----
-# here we mark it 'Snatched'
-
-
-# here we update the 'have' count
