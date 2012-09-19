@@ -197,6 +197,7 @@ class WebInterface(object):
     addArtists.exposed = True
     
     def queueissue(self, ComicName, mode, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
+        myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
         if ComicID is None and mode == 'series':
             #print (ComicName)
@@ -223,7 +224,6 @@ class WebInterface(object):
         #---
         #this should be on it's own somewhere
         if IssueID is not None:
-            myDB = db.DBConnection()
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             myDB.upsert("issues", newStatus, controlValueDict)
