@@ -200,7 +200,12 @@ def addComictoDB(comicid):
                     issdate = '0000-00-00'
                     int_issnum =  int ( issis / 1000 )
                 break
-            if '.' in str(gcdval['GCDIssue']):
+            if 'nn' in str(gcdval['GCDIssue']):
+                #no number detected - GN, TP or the like
+                logger.warn(u"Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
+                updater.no_searchresults(comicid)
+                return
+            elif '.' in str(gcdval['GCDIssue']):
                 issst = str(gcdval['GCDIssue']).find('.')
                 issb4dec = str(gcdval['GCDIssue'])[:issst]
                 #if the length of decimal is only 1 digit, assume it's a tenth
