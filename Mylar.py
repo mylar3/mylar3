@@ -38,7 +38,6 @@ def main():
         mylar.FULL_PATH = os.path.abspath(__file__)
     
     mylar.PROG_DIR = os.path.dirname(mylar.FULL_PATH)
-    print ("the full path is : " + str(mylar.PROG_DIR))
     mylar.ARGS = sys.argv[1:]
     
     # From sickbeard

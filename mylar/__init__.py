@@ -302,7 +302,11 @@ def initialize():
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
             
             CONFIG_VERSION = '2'
-        
+
+        if 'http://' not in SAB_HOST[:7]: 
+            SAB_HOST = 'http://' + SAB_HOST
+            #print ("SAB_HOST:" + SAB_HOST)        
+
         if not LOG_DIR:
             LOG_DIR = os.path.join(DATA_DIR, 'logs')
         
