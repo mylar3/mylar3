@@ -159,15 +159,16 @@ else:
 
 # replace section
 if remcrap == "no": compath = str(comdir) + sys.argv[3]
-if remcrap == "yes":
+else:
     compath = str(comdir) + str(comyx)
+
 if comicyearopt == "yes":
     if comyear == "":
         comyear = "2012"
     comyear = "(" + str(comyear) + ")"
     compath = str(compath) + " " + str(comyear)
     comicname = str(comyx) + " " + str(prettycomiss) + " " + str(issyear)
-if comicyearopt == "no":
+else:
     comicname = str(comyx) + " " + str(prettycomiss)
 
 if repblank == "yes":
@@ -177,6 +178,10 @@ if repblank == "yes":
     compath = str(comdir) + str(comyx)
     if comicyearopt == "yes":
         compath = str(compath) + '_' + str(comyear)
+else:
+    compath = str(comdir) + str(comyx)
+    if comicyearopt == "yes":
+        compath = str(compath) + ' ' + str(comyear)
 
 print ("The directory should be: " + str(compath))
 print ("filename should be: " + str(comicname) )
