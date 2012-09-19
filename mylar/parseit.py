@@ -23,8 +23,9 @@ import datetime
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 
-def MysterBinScrape(comsearch):
-        searchterms = str(comsearch)
+def MysterBinScrape(comsearch, comyear):
+        #comyear is publication year of comic - should result in fewer results, which means better (hopefully)
+        searchterms = str(comsearch) + "+" + str(comyear)
         # subsetting the results by cbr/cbz will allow for better control.
         # min/max size should be set or else *.part01's and group collections will be parsed
         #  and will result in errors all over & no hits.
