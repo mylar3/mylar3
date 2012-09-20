@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#   ComicBook Renamer v.1.01a (the 'a' means 'alpha')
+#   ComicBook Renamer v1.02.a (the 'a' means 'alpha')
 
 # This is an add-on script for SABnzbd
 # Used in conjunction with several other scripts
@@ -41,13 +41,13 @@ comdir = '/mount/mediavg/Comics/'
 mylaron = "yes"
 
 # Replace spaces?
-repblank = "yes"
+repblank = "no"
 # If 'yes', what character do you want me to replace with.
 # - Be careful, weird characters will bugger things up and there's no 
 # also be sure to put the character inbetween single quotations.
 # NB. this doesn't work...currently only is set for to replace spaces
 #   with _
-repwith = '_'
+repwith = " "
 
 # Remove crap from filename (ie. c2c, noads, rlsgroup, pxcount, etc)
 # If this is set to "no", filename will not be renamed at all.
@@ -87,7 +87,19 @@ else:
 filen = filen.replace('_',' ')
 lengthfile = len(filen) - 4
 #if filen[:-4] == ".cbr" or filen[:-4] == ".cbz": filen[:lengthfile]
-print ("Mylar - ComicRenamer Script - v1.0a")
+print ("Mylar - ComicRenamer Script - v1.02.a")
+print ("settings confirmation")
+print ("---------------------")
+print ("Mylar enabled: " + str(mylaron))
+if str(mylaron) == "yes":
+    print ("Append SeriesYear/ComicYear to folder/filename : " + str(comicyearopt))
+print ("Comic Directory : " + str(comdir))
+print ("Zero supression set to : " + str(zerosup) + " digits")
+print ("Replace Spaces enabled : " + str(repblank))
+if repblank == "yes":
+    print ("Character to replace spaces with : " + str(repwith))
+print ("Remove extra stuff : " + str(remcrap))
+print ("-------------------------")
 print ("passed name from SAB: " + str(filen) )
     #print ("extension of file: " + str(fullp) )
     #let's narrow search down - take out year (2010), (2011), etc
@@ -96,7 +108,7 @@ print ("passed name from SAB: " + str(filen) )
 comlen = filen.find(' (')
 comsub = filen[:comlen]
 #print("first bracket occurs at position: " + str(comlen))
-print("actual name with iss: " + str(comsub))
+print("actual name with issue: " + str(comsub))
 yrstart = int(comlen + 2)
 #print ("series year starts at position: " + str(yrstart))
 lenyear = len(filen)
@@ -159,29 +171,24 @@ else:
 
 # replace section
 if remcrap == "no": compath = str(comdir) + sys.argv[3]
-else:
+if remcrap == "yes":
     compath = str(comdir) + str(comyx)
-
 if comicyearopt == "yes":
     if comyear == "":
         comyear = "2012"
     comyear = "(" + str(comyear) + ")"
     compath = str(compath) + " " + str(comyear)
     comicname = str(comyx) + " " + str(prettycomiss) + " " + str(issyear)
-else:
+if comicyearopt == "no":
     comicname = str(comyx) + " " + str(prettycomiss)
 
 if repblank == "yes":
-    comyx = comyx.replace(' ', '_' )
-    filen = filen.replace(' ', '_' )
-    comicname = comicname.replace(' ', '_' )
+    comyx = comyx.replace(' ', str(repwith) )
+    filen = filen.replace(' ', str(repwith) )
+    comicname = comicname.replace(' ', str(repwith) )
     compath = str(comdir) + str(comyx)
     if comicyearopt == "yes":
-        compath = str(compath) + '_' + str(comyear)
-else:
-    compath = str(comdir) + str(comyx)
-    if comicyearopt == "yes":
-        compath = str(compath) + ' ' + str(comyear)
+        compath = str(compath) + str(repwith) + str(comyear)
 
 print ("The directory should be: " + str(compath))
 print ("filename should be: " + str(comicname) )
@@ -209,12 +216,14 @@ matches = []
 for root, dirnames, filenames in os.walk(maindir):
     for filename in filenames:
         if filename.lower().endswith(extensions):
-            confile = filename.replace(' ','_')
+            if repblank == "yes":
+                confile = filename.replace(' ','_')
+            else: confile = filename.replace('_', ' ')
             if str(comyx).lower() in str(confile).lower():
-                #print ("Found: " + str(filename))
+                print ("Found: " + str(filename))
                 ext = os.path.splitext(filename)[1]
                 newf = str(comicname) + str(ext).lower()
-                print ("New filename: " + str(newf) )
+                print ("--New filename: " + str(newf) )
                 src_file = os.path.join(maindir, filename)
                 dst_file = os.path.join(compath, newf)
                 shutil.move(src_file, dst_file)
