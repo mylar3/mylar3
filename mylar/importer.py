@@ -45,8 +45,6 @@ def addComictoDB(comicid):
     
     myDB = db.DBConnection()
     
-    # myDB.action('DELETE from blacklist WHERE ComicID=?', [comicid])
-
     # We need the current minimal info in the database instantly
     # so we don't throw a 500 error when we redirect to the artistPage
 
@@ -88,7 +86,8 @@ def addComictoDB(comicid):
     if gcdinfo == "No Match":
         logger.warn("No matching result found for " + comic['ComicName'] + " (" + comic['ComicYear'] + ")" )
         updater.no_searchresults(comicid)
-        return
+        nomatch = "true"
+        return nomatch
     logger.info(u"Sucessfully retrieved details for " + comic['ComicName'] )
     # print ("Series Published" + parseit.resultPublished)
     #--End
@@ -117,7 +116,6 @@ def addComictoDB(comicid):
             if e.errno != errno.EEXIST:
                 raise
 
-    #print ("root dir for series: " + comlocation)
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
     #comicIssues = gcdinfo['totalissues']
@@ -125,6 +123,7 @@ def addComictoDB(comicid):
         comicIssues = str(int(comic['ComicIssues']) + 1)
     else:
         comicIssues = comic['ComicIssues']
+
     controlValueDict = {"ComicID":      comicid}
     newValueDict = {"ComicName":        comic['ComicName'],
                     "ComicSortName":    sortname,
@@ -196,7 +195,7 @@ def addComictoDB(comicid):
             except IndexError:
                 #account for gcd variation here
                 if gcdinfo['gcdvariation'] == 'gcd':
-                    print ("gcd-variation accounted for.")
+                    #print ("gcd-variation accounted for.")
                     issdate = '0000-00-00'
                     int_issnum =  int ( issis / 1000 )
                 break
@@ -277,6 +276,11 @@ def addComictoDB(comicid):
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
     
+    # lets' check the pullist for anyting at this time as well since we're here.
+    #if mylar.AUTOWANT_UPCOMING:
+    #    logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
+    #    updater.newpullcheck()
+
     #here we grab issues that have been marked as wanted above...
   
     results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])    

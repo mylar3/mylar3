@@ -118,7 +118,9 @@ class WebInterface(object):
     def deleteArtist(self, ComicID):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
-        logger.info(u"Deleting all traces of Comic: " + comic['ComicName'])
+        if comic['ComicName'] is None: ComicName = "None"
+        else: ComicName = comic['ComicName']
+        logger.info(u"Deleting all traces of Comic: " + str(ComicName))
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
         raise cherrypy.HTTPRedirect("home")
@@ -297,6 +299,10 @@ class WebInterface(object):
         #mvcontroldict = {"ComicID":    mvupcome['ComicID']}
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
     upcoming.exposed = True
+
+    def searchScan(self, name):
+        return serve_template(templatename="searchfix.html", title="Manage", name=name)
+    searchScan.exposed = True
     
     def manage(self):
         return serve_template(templatename="manage.html", title="Manage")
@@ -311,7 +317,7 @@ class WebInterface(object):
     def manageIssues(self):
         myDB = db.DBConnection()
         issues = myDB.select('SELECT * from issues')
-        return serve_template(templatename="manageissus.html", title="Manage Issues", issues=issues)
+        return serve_template(templatename="manageissues.html", title="Manage Issues", issues=issues)
     manageIssues.exposed = True
     
     def manageNew(self):

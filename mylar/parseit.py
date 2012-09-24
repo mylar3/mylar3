@@ -98,12 +98,11 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     #print ( "comicyear: " + str(comicyr) )
     #print ( "comichave: " + str(comicis) )
     #print ( "comicid: " + str(comicid) )
-    comicnm = re.sub(' ', '%20', comicnm)
+    comicnm = re.sub(' ', '+', comicnm)
     #input = 'http://www.comics.org/series/name/' + str(comicnm) + '/sort/alpha/'
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib2.urlopen ( input )
     soup = BeautifulSoup ( response)
-
     cnt1 = len(soup.findAll("tr", {"class" : "listing_even"}))
     cnt2 = len(soup.findAll("tr", {"class" : "listing_odd"}))
 
@@ -161,10 +160,11 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                 #as GCD does. Therefore, let's increase the CV count by 1 to get it
                 #to match, any more variation could cause incorrect matching.
                 #ie. witchblade on GCD says 159 issues, CV states 161.
-                if resultIssues[n] == Total or resultIssues[n] == str(int(Total)+1) or str(int(resultIssues[n])+1) == Total:
-                    if resultIssues[n] == str(int(Total)+1):
+                if int(resultIssues[n]) == int(Total) or int(resultIssues[n]) == int(Total)+1 or (int(resultIssues[n])+1) == int(Total):
+                    #print ("initial issue match..continuing.")
+                    if int(resultIssues[n]) == int(Total)+1:
                         issvariation = "cv"
-                    elif str(int(resultIssues[n])+1) == Total:
+                    elif int(resultIssues[n])+1 == int(Total):
                         issvariation = "gcd"
                     else:
                         issvariation = "no"
@@ -181,7 +181,19 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     # it's possible that comicvine would return a comic name incorrectly, or gcd
     # has the wrong title and won't match 100%...
     # (ie. The Flash-2011 on comicvine is Flash-2011 on gcd)
+    # this section is to account for variations in spelling, punctuation, etc/
+    basnumbs = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10}
     if resultURL is None:
+        #search for number as text, and change to numeric
+        for numbs in basnumbs:
+            #print ("numbs:" + str(numbs))
+            if numbs in ComicName.lower():
+                numconv = basnumbs[numbs]
+                #print ("numconv: " + str(numconv))
+                ComicNm = re.sub(str(numbs), str(numconv), ComicName.lower())
+                #print ("comicname-reVISED:" + str(ComicNm))
+                return GCDScraper(ComicNm, ComicYear, Total, ComicID)
+                break
         if ComicName.startswith('The '):
             ComicName = ComicName[4:]
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
@@ -193,7 +205,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
             return GCDScraper(ComicName, ComicYear, Total, ComicID)
         if 'and' in ComicName.lower():
             ComicName = ComicName.replace('and', '&')
-            return GCDScraper(ComicName, ComicYear, Total, ComicID)
+            return GCDScraper(ComicName, ComicYear, Total, ComicID)        
         return 'No Match'
     gcdinfo = {}
     gcdchoice = []

@@ -123,6 +123,7 @@ def pullit():
                     #print ("today: " + str(pulldate))
                     if pulldate == shipdaterep:
                         logger.info(u"No new pull-list available - will re-check again in 24 hours.")
+                        pullitcheck()
                         return
                 break    
         else:

@@ -69,6 +69,11 @@ def weekly_update(ComicName):
         newValue = {"STATUS":             "Skipped"}
     myDB.upsert("weekly", newValue, controlValue)
 
+def newpullcheck():
+    # When adding a new comic, let's check for new issues on this week's pullist and update.
+    weeklypull.pullitcheck()
+    return
+
 def no_searchresults(ComicID):
     # when there's a mismatch between CV & GCD - let's change the status to
     # something other than 'Loaded'
@@ -88,7 +93,7 @@ def foundsearch(ComicID, IssueID):
     #fixed and addressed in search.py and follow-thru here!
     #check sab history for completion here :)
     CYear = issue['IssueDate'][:4]
-    print ("year:" + str(CYear))
+    #print ("year:" + str(CYear))
     #slog = myDB.action('SELECT * FROM sablog WHERE ComicName=? AND ComicYEAR=?', [issue['ComicName'], str(CYear)]).fetchone()
     #this checks the active queue for downloading/non-existant jobs
     #--end queue check
@@ -136,13 +141,19 @@ def forceRescan(ComicID):
     fcnew = []
     n = 0
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
-    while (n < iscnt):
-        reiss = reissues[n]
+    while (n <= iscnt):
+        try:
+            reiss = reissues[n]
+        except IndexError:
+            break
         int_iss = reiss['Int_IssueNumber']
         fn = 0
         haveissue = "no"
-        while (fn < fccnt):            
-            tmpfc = fc['comiclist'][fn]
+        while (fn < fccnt):
+            try:
+                tmpfc = fc['comiclist'][fn]
+            except IndexError:            
+                break
             temploc = tmpfc['ComicFilename'].replace('_', ' ')
             temploc = re.sub('[\#\']', '', temploc)
             if 'annual' not in temploc:               

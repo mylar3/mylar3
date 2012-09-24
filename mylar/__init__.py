@@ -101,7 +101,7 @@ FILE_FORMAT = None
 REPLACE_SPACES = False
 REPLACE_CHAR = None
 
-AUTOWANT_UPCOMING = False
+AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 
 SAB_HOST = None
@@ -230,7 +230,7 @@ def initialize():
         DOWNLOAD_SCAN_INTERVAL = check_setting_int(CFG, 'General', 'download_scan_interval', 5)
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
-        AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 0))
+        AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
         PREFERRED_QUALITY = check_setting_int(CFG, 'General', 'preferred_quality', 0)
         CORRECT_METADATA = bool(check_setting_int(CFG, 'General', 'correct_metadata', 0))
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
@@ -303,7 +303,7 @@ def initialize():
             
             CONFIG_VERSION = '2'
 
-        if 'http://' not in SAB_HOST[:7]: 
+        if 'http://' not in SAB_HOST[:7] and 'https://' not in SAB_HOST[:8]: 
             SAB_HOST = 'http://' + SAB_HOST
             #print ("SAB_HOST:" + SAB_HOST)        
 

@@ -25,8 +25,7 @@ from bs4 import BeautifulSoup as Soup
 def getComic(comicid,type):
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     #api
-    #http://api.comicvine.com/search/?api_key=583939a3df0a25fc4e8b7a29934a13078002dc27&resources=volume
-    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,description,count_of_issues,start_year,last_issue,site_detail_url,image,publisher'
+    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,start_year,last_issue,site_detail_url,image,publisher'
 
     #import library to do http requests:
     import urllib2
@@ -63,45 +62,46 @@ def getComic(comicid,type):
     if type == 'issue': return GetIssuesInfo(comicid,dom)
 
 def GetComicInfo(comicid,dom):
+
     #comicvine isn't as up-to-date with issue counts..
     #so this can get really buggered, really fast.
-    tracks = dom.getElementsByTagName('name')
+    tracks = dom.getElementsByTagName('issue')
     cntit = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
     trackcnt = len(tracks)
-    if str(trackcnt) != str(int(cntit)+2):
-        cntit = int(cntit) + 1
-    n = 0   
+    # if the two don't match, use trackcnt as count_of_issues might be not upto-date for some reason
+    if int(trackcnt) != int(cntit):
+        cntit = trackcnt
+        vari = "yes"
+    else: vari = "no"
+    #if str(trackcnt) != str(int(cntit)+2):
+    #    cntit = int(cntit) + 1
     comic = {}
     comicchoice = []
     cntit = int(cntit)
-    for track in tracks:
-        #retrieve the first xml tag (<tag>data</tag>)
-        #that the parser finds with name tagName:
-        comic['ComicName'] = dom.getElementsByTagName('name')[cntit].firstChild.wholeText
-        comic['ComicYear'] = dom.getElementsByTagName('start_year')[n].firstChild.wholeText
-        comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[n].firstChild.wholeText
-        comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[n].firstChild.wholeText
-        #comic['ComicDesc'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
-        comic['ComicImage'] = dom.getElementsByTagName('super_url')[n].firstChild.wholeText
-        comic['ComicPublisher'] = dom.getElementsByTagName('name')[cntit+1].firstChild.wholeText
-        #comic['description'] = dom.getElementsByTagName('description')[n].firstChild.wholeText
-        #comdescst = comic['description'].find('</p>')
-        #comdesc = comic['description'][:comdescst]
-        #print ("Description: " + str(comdesc))
+    #retrieve the first xml tag (<tag>data</tag>)
+    #that the parser finds with name tagName:
+    comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt].firstChild.wholeText
+    comic['ComicName'] = comic['ComicName'].rstrip() 
+    comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
+    comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
+    if vari == "yes": 
+        comic['ComicIssues'] = str(cntit)
+    else:
+        comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+    comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
+    comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
 
-        comicchoice.append({
-            'ComicName':              comic['ComicName'],
-            'ComicYear':              comic['ComicYear'],
-            'Comicid':                comicid,
-            'ComicURL':               comic['ComicURL'],
-            'ComicIssues':            comic['ComicIssues'],
-        #   'ComicDesc':              comic['ComicDesc'],
-            'ComicImage':             comic['ComicImage'],
-            'ComicPublisher':         comic['ComicPublisher']
-            })
+    comicchoice.append({
+        'ComicName':              comic['ComicName'],
+        'ComicYear':              comic['ComicYear'],
+        'Comicid':                comicid,
+        'ComicURL':               comic['ComicURL'],
+        'ComicIssues':            comic['ComicIssues'],
+        'ComicImage':             comic['ComicImage'],
+        'ComicPublisher':         comic['ComicPublisher']
+        })
 
-        comic['comicchoice'] = comicchoice
-
+    comic['comicchoice'] = comicchoice
     return comic
 
 def GetIssuesInfo(comicid,dom):
