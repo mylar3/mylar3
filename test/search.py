@@ -470,9 +470,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                             file.close()
                                             dom = parseString(data)
                                             queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
-                                    print (str(queue_file))
-                                    print (str(filenzb))                              
-                                            queue_file = queue_file.replace("_", " ")
+                                        print (str(queue_file))
+                                        print (str(filenzb))                              
+                                        queue_file = queue_file.replace("_", " ")
                                         if str(queue_file) in str(filenzb):
                                             print ("matched")
                                             slotmatch = "yes"
