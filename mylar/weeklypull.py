@@ -223,7 +223,7 @@ def pullit():
                     #set it to 'NA' and it'll be filtered out anyways.
                     if issue == "" or issue is None:
                         issue = 'NA'
-                        comicend = comicend - 1
+                        comicend = n - 1  #comicend = comicend - 1  (adjustment for nil)
                     #find comicname
                     comicnm = issname[1]
                     n = 2
