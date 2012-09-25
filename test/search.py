@@ -405,9 +405,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 print ("savefile set to: " + str(savefile))
                                 urllib.urlretrieve(linkapi, str(savefile))
 								#print (str(mylar.RENAME_FILES))
-				print ("sucessfully retrieve nzb to : " + str(savefile))				
+				print ("sucessfully retrieve nzb to : " + str(savefile))			
 								#check sab for current pause status
-                                print ("sab host set to :" + mylar.SAB_HOST)
+                                print ("sab host set to :" + str(mylar.SAB_HOST))
                                 sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
                                 from xml.dom.minidom import parseString
                                 import urllib2
