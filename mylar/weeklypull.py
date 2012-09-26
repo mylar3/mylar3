@@ -267,7 +267,9 @@ def pullit():
                 previssue = str(issue)
     newtxtfile.close()
 
-    connection = sqlite3.connect("mylar.db")
+    mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
+
+    connection = sqlite3.connect(str(mylardb))
     cursor = connection.cursor()
 
     cursor.executescript('drop table if exists weekly;')
@@ -295,7 +297,7 @@ def pullit():
     connection.commit()
     connection.close()
     #let's delete the files
-    pullpath = str(mylar.PROG_DIR) + "/cache/"
+    pullpath = str(mylar.CACHE_DIR) + "/"
     os.remove( str(pullpath) + "Clean-newreleases.txt" )
     os.remove( str(pullpath) + "newreleases.txt" )
     pullitcheck()
@@ -326,7 +328,9 @@ def pullitcheck():
     b_list = []
     comicid = []
 
-    con = sqlite3.connect("mylar.db")
+    mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
+
+    con = sqlite3.connect(str(mylardb))
 
     with con:
 
