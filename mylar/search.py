@@ -31,6 +31,9 @@ import sys
 import getopt
 import re
 import time
+from xml.dom.minidom import parseString
+import urllib2
+
 from datetime import datetime
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
@@ -142,7 +145,7 @@ def RSS_Search(ComicName, IssueNumber):
                     print tmp
                     ssab.append(str(watchfnd[incloop]))
                     ssabcount+=1
-                    urllib.urlopen(tmp);
+                    urlopen(tmp);
                     # time.sleep(5)
             incloop-=1
                 # - End of Experimental Process
@@ -207,48 +210,34 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
 
     while (findloop < (findcount) ):
         comsrc = comsearch[findloop]
-        #print (str(comsearch[findloop]))
         while (cmloopit >= 1 ):
                 # here we account for issue pattern variations
             if cmloopit == 3:
                 comsearch[findloop] = comsrc + "%2000" + isssearch[findloop] + "%20" + str(filetype)
-                #print (comsearch[findloop])
             elif cmloopit == 2:
                 comsearch[findloop] = comsrc + "%200" + isssearch[findloop] + "%20" + str(filetype)
-                #print (comsearch[findloop])
             elif cmloopit == 1:
                 comsearch[findloop] = comsrc + "%20" + isssearch[findloop] + "%20" + str(filetype)
-                #print (comsearch[findloop])
-            #print ("NZB Provider set to: " + nzbprov)
             if nzbprov != 'experimental':
                 if nzbprov == 'dognzb':
-                    #print ("dog-search.")
                     findurl = "http://dognzb.cr/api?t=search&apikey=" + str(apikey) + "&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzb.su':
-                    #print ("nzb.su search")
                     findurl = "http://nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                 bb = feedparser.parse(findurl)
-                #print (findurl)
             elif nzbprov == 'experimental':
-                #print ("experimental raw search")
                 bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
             done = False
             foundc = "no"
             if bb == "no results":               
-                #print ("no results found...attempting alternate search")
                 pass
-            elif (len(bb['entries']) == 0):
-                #print ("Nothing found for : " + str(findcomic[findloop]) + " Issue: #" + str(findcomiciss[findloop]))
                 foundc = "no"
             else:
-                #print ("Found for: " + str(findcomic[findloop]))
                 for entry in bb['entries']:
-                    #print str(entry['title'])
-                    cleantitle = helpers.cleanName(str(entry['title']))
+                    cleantitle = re.sub('_', ' ', str(entry['title']))
+                    cleantitle = helpers.cleanName(str(cleantitle))
+                    if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"                      
                     if done:
                         break
-                    #print ("title: " + str(cleantitle))
-                    #print ("link: " + entry['link'])
                 #let's narrow search down - take out year (2010), (2011), etc
                 #let's check for first occurance of '(' as generally indicates
                 #that the 'title' has ended
@@ -257,14 +246,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 'empire',
                                 'dcp']
                     #this takes care of the brackets :)                    
-#                    m = re.findall(r"\((\w+)\)", cleantitle)                 
                     m = re.findall('[^()]+', cleantitle)
                     lenm = len(m)
+
                     #print ("there are " + str(lenm) + " words.")
                     cnt = 0
                     while (cnt < lenm):
                         if m[cnt] is None: break
-                        if m[cnt] == ' ': print ("space detected")
                         #print (str(cnt) + ". Bracket Word: " + m[cnt] )                        
                         if cnt == 0:
                             comic_andiss = m[cnt]
@@ -293,7 +281,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 result_comscanner = m[cnt]
                         cnt+=1
 
-                    if yearmatch == "false": break
+                    if yearmatch == "false": continue
                     
                     splitit = []   
                     watchcomic_split = []
@@ -353,7 +341,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                         #issue comparison now as well
                         if int(findcomiciss[findloop]) == int(comiss):
                             #print ("issues match!")
-
+                            logger.info(u"Found " + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) " using " + str(nzbprov) )
                         ## -- inherit issue. Comic year is non-standard. nzb year is the year
                         ## -- comic was printed, not the start year of the comic series and
                         ## -- thus the deciding component if matches are correct or not
@@ -375,7 +363,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                             if mylar.BLACKHOLE:
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     filenamenzb = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
-                                    urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    urllib2.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
                             #end blackhole
 
@@ -401,14 +389,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     except OSError.e:
                                         if e.errno != errno.EEXIST:
                                             raise
-
-                                urllib.urlretrieve(linkapi, str(savefile))
+                                try:
+                                    urllib.urlretrieve(linkapi, str(savefile))                                
+                                except urllib.URLError:
+                                    logger.error(u"Unable to retrieve nzb file.")
+                                    return
+                                logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
 								#print (str(mylar.RENAME_FILES))
 								
 								#check sab for current pause status
                                 sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-                                from xml.dom.minidom import parseString
-                                import urllib2
                                 file = urllib2.urlopen(sabqstatusapi);
                                 data = file.read()
                                 file.close()
@@ -419,7 +409,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 if pausestatus != 'True':
 									#pause sab first because it downloads too quick (cbr's are small!)
                                     pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
-                                    urllib.urlopen(pauseapi);
+                                    urllib2.urlopen(pauseapi);
                                     #print "Queue paused"
                                 #else:
 									#print "Queue already paused"
@@ -431,7 +421,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
                                 #print (str(tmpapi))
                                 time.sleep(5)
-                                urllib.urlopen(tmpapi);
+                                try:
+                                    urllib2.urlopen(tmpapi)
+                                except urllib2.URLError:
+                                    logger.error(u"Unable to send nzb file to SABnzbd")
+                                    return
+
+                                logger.info(u"Successfully sent nzb file to SABnzbd")
                                 if mylar.RENAME_FILES == 1:
                                     #let's give it 5 extra seconds to retrieve the nzb data...
 
@@ -439,14 +435,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                               
                                     outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
                                     #print ("outqueue line generated")
-                                    urllib.urlopen(outqueue);
+                                    urllib2.urlopen(outqueue);
                                     time.sleep(5)
                                     #print ("passed api request to SAB")
                                 #<slots><slot><filename>.nzb filename
                                 #chang nzbfilename to include series(SAB will auto rename based on this)
                                 #api?mode=queue&name=rename&value=<filename_nzi22ks>&value2=NEWNAME
-                                    from xml.dom.minidom import parseString
-                                    import urllib2
                                     file = urllib2.urlopen(outqueue);
                                     data = file.read()
                                     file.close()
@@ -491,6 +485,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                         #print ("attempting to rename queue to " + str(nzo_ren))
                                         urllib2.urlopen(nzo_ren);
                                         #print ("renamed!")
+                                        logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renameit))
                                         #delete the .nzb now.
                                         #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
                                         #if mylar.PROG_DIR is not "/":
@@ -509,7 +504,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 if pausestatus != 'True':
                                     #let's unpause queue now that we did our jobs.
                                     resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
-                                    urllib.urlopen(resumeapi);
+                                    urllib2.urlopen(resumeapi);
                                     #print "Queue resumed"
                                 #else:
 									#print "Queue already paused"
@@ -526,7 +521,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
         findloop+=1
         if foundc == "yes":
             foundcomic.append("yes")
-            logger.info(u"Found :" + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(nzbprov))
             break
         elif foundc == "no" and nzbpr <> 0:
             logger.info(u"More than one search provider given - trying next one.")
