@@ -341,7 +341,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                         #issue comparison now as well
                         if int(findcomiciss[findloop]) == int(comiss):
                             #print ("issues match!")
-                            logger.info(u"Found " + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) " using " + str(nzbprov) )
+                            logger.info(u"Found " + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(nzbprov) )
                         ## -- inherit issue. Comic year is non-standard. nzb year is the year
                         ## -- comic was printed, not the start year of the comic series and
                         ## -- thus the deciding component if matches are correct or not
