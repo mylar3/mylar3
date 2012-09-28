@@ -349,7 +349,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                         #following is JUST for nzb.su
                             if nzbprov == 'nzb.su':
                                 linkit = os.path.splitext(entry['link'])[1]
-                                #print ("linkit: " + str(linkit))
                                 linkit = linkit.replace("&", "%26")
                                 linkapi = str(linkstart) + str(linkit)
                             else:
@@ -412,14 +411,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     urllib2.urlopen(pauseapi);
                                     #print "Queue paused"
                                 #else:
-									#print "Queue already paused"
+                                    #print "Queue already paused"
                                 
                                 if mylar.RENAME_FILES == 1:
                                     #print ("Saved file to: " + str(savefile))
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
                                 else:
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-                                #print (str(tmpapi))
                                 time.sleep(5)
                                 try:
                                     urllib2.urlopen(tmpapi)
@@ -434,10 +432,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     time.sleep(5)
                               
                                     outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-                                    #print ("outqueue line generated")
                                     urllib2.urlopen(outqueue);
                                     time.sleep(5)
-                                    #print ("passed api request to SAB")
                                 #<slots><slot><filename>.nzb filename
                                 #chang nzbfilename to include series(SAB will auto rename based on this)
                                 #api?mode=queue&name=rename&value=<filename_nzi22ks>&value2=NEWNAME
@@ -462,9 +458,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                             file.close()
                                             dom = parseString(data)
                                             queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
-                                    #print (str(queue_file))
-                                    #print (str(filenzb))                              
-                                            queue_file = queue_file.replace("_", " ")
+                                        #print ("queuefile:" + str(queue_file))
+                                        #print ("filenzb:" + str(filenzb))                              
+                                        queue_file = queue_file.replace("_", " ")
                                         if str(queue_file) in str(filenzb):
                                             #print ("matched")
                                             slotmatch = "yes"
@@ -477,14 +473,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                             repchar = mylar.REPLACE_CHAR
                                         else:
                                             repchar = ' '
+                                            repurlchar = "%20"
                                         #let's make sure there's no crap in the ComicName since it's O.G.
                                         ComicNM = re.sub('[\:\,]', '', str(ComicName))
                                         renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
                                         renameit = renameit.replace(' ', repchar)
-                                        nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renameit)
-                                        #print ("attempting to rename queue to " + str(nzo_ren))
+                                        renamer = renameit.replace(' ', repurlchar)
+                                        nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
                                         urllib2.urlopen(nzo_ren);
-                                        #print ("renamed!")
                                         logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renameit))
                                         #delete the .nzb now.
                                         #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
@@ -505,7 +501,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     #let's unpause queue now that we did our jobs.
                                     resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
                                     urllib2.urlopen(resumeapi);
-                                    #print "Queue resumed"
                                 #else:
 									#print "Queue already paused"
 
