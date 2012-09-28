@@ -413,6 +413,11 @@ class WebInterface(object):
                     "sab_api" : mylar.SAB_APIKEY,
                     "sab_pass" : mylar.SAB_PASSWORD,
                     "sab_cat" : mylar.SAB_CATEGORY,
+                    "sab_priority_1" : helpers.radio(mylar.SAB_PRIORITY, 1),
+                    "sab_priority_2" : helpers.radio(mylar.SAB_PRIORITY, 2),
+                    "sab_priority_3" : helpers.radio(mylar.SAB_PRIORITY, 3),
+                    "sab_priority_4" : helpers.radio(mylar.SAB_PRIORITY, 4),
+                    "sab_priority_5" : helpers.radio(mylar.SAB_PRIORITY, 5),
                     "use_blackhole" : helpers.checked(mylar.BLACKHOLE),
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,
@@ -440,31 +445,22 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
     
-    def comicConfigUpdate(self, comiclocation=None):
-        print ("YO")
-        #mylar.COMIC_LOCATION = comiclocation
-        #mylar.QUAL_ALTVERS = qualaltvers
-        #mylar.QUAL_SCANNER = qualscanner
-        #mylar.QUAL_TYPE = qualtype
-        #mylar.QUAL_QUALITY = qualquality
-        #print ("ComicID:" + ComicID)
-        print ("LOC:" + str(comiclocation))
-        #print ("ALT:" + str(qualaltvers))
-        #myDB = db.DBConnection()
-        #controlValueDict = {'ComicID': ComicID}
-        #newValues = {"ComicLocation":        comic_location,
-        #             "QUALalt_vers":         qual_altvers,
-        #             "QUALScanner":          qual_scanner,
-        #             "QUALtype":             qual_type,
-        #             "QUALquality":          qual_quality
-        #             }
-        #myDB.upsert("comics", newValues, controlValueDict)
-        raise cherrypy.HTTPRedirect("home")
-
-    comicConfigUpdate.exposed = True
+    def comic_config(self, com_location, ComicID):
+        myDB = db.DBConnection()
+        controlValueDict = {'ComicID': ComicID}
+        newValues = {"ComicLocation":        com_location }
+                     #"QUALalt_vers":         qual_altvers,
+                     #"QUALScanner":          qual_scanner,
+                     #"QUALtype":             qual_type,
+                     #"QUALquality":          qual_quality
+                     #}
+        myDB.upsert("comics", newValues, controlValueDict)
+        #raise cherrypy.HTTPRedirect("home")
+        return page
+    comic_config.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8181, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
-        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, log_dir=None, blackhole=0, blackhole_dir=None,
+        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None,
@@ -482,6 +478,7 @@ class WebInterface(object):
         mylar.SAB_PASSWORD = sab_password      
         mylar.SAB_APIKEY = sab_apikey
         mylar.SAB_CATEGORY = sab_category
+        mylar.SAB_PRIORITY = sab_priority
         mylar.BLACKHOLE = blackhole
         mylar.BLACKHOLE_DIR = blackhole_dir
         mylar.USENET_RETENTION = usenet_retention

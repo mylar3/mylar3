@@ -139,14 +139,33 @@
                    </fieldset>
                  </td>
                  <td id="maindetails">
+                  %if comic['ComicPublisher'] == 'DC Comics':
+                   <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50"/>
+                   %elif comic['ComicPublisher'] == 'Marvel':
+                   <img src="interfaces/default/images/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100"/>
+                   %elif comic['ComicPublisher'] == 'Image':
+                   <img src="interfaces/default/images/logo-imagecomics.gif" align="right" alt="Image" height="100" width="50"/>
+                   %elif comic['ComicPublisher'] == 'Dark Horse Comics':
+                   <img src="interfaces/default/images/logo-darkhorse.jpg" align="right" alt="Darkhorse" height="75" width="50"/>
+                   %elif comic['ComicPublisher'] == 'IDW Publishing':
+                   <img src="interfaces/default/images/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
+                   %endif
+
+                <form action="comic_config" method="GET">
+                <input type="hidden" name="ComicID" value=${comic['ComicID']}>
                         <fieldset>
-                               <div>
-                               <label>Soon to come - Editable details!!! </label>
-                              </div>
-                        </fieldset>
-                </td>
-                 
-            </tr>
+                                <div class="row">
+                                   <label>Directory Location</label>
+                                   <input type="text" name="com_location" value="${comic['ComicLocation']}" size="50">
+                                   <small>the directory where all the comics are for this comic</small>
+                                </div>
+                                <div class="row">
+                                   <input type="submit" value="Update"/>
+                                </div>
+                         </fieldset>
+                </form>
+               </td>
+             </tr>
             </table>
            </div>
  </div>
