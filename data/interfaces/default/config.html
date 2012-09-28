@@ -122,14 +122,15 @@
 	                        <label>SABnzbd Category:</label>
 	                        <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
 	                    </div>
+                                <div class="row radio clearfix">
+                                <label>SABNzbd Priority:</label>
+<input type="radio" name="sab_priority" value="1" ${config['sab_priority_1']} /><label>default Priority</label>
+<input type="radio" name="sab_priority" value="2" ${config['sab_priority_2']} /><label>Low Priority</label>
+<input type="radio" name="sab_priority" value="3" ${config['sab_priority_3']} /><label>Normal Priority</label>
+<input type="radio" name="sab_priority" value="4" ${config['sab_priority_4']} /><label>High Priority</label>
+<input type="radio" name="sab_priority" value="5" ${config['sab_priority_5']} /><label>Paused</label>
+                                </div>
                     </fieldset>
-                    <fieldset>
-                    		<legend>Downloads</legend>
-                       	<div class="row">
-                            <label>Comic Download Directory:</label>
-                            <small>Full path where SAB downloads your comics. e.g. /Users/name/Downloads/comics</small>
-                        </div>
-                    </fieldset>                    
                 </td>
            
                 <td>

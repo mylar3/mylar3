@@ -168,6 +168,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
     elif mylar.PREFERRED_QUALITY == 2: filetype = ".cbz"
 
+    if mylar.SAB_PRIORITY == 1: sabpriority = "-100"
+    elif mylar.SAB_PRIORITY == 2: sabpriority = "-1"
+    elif mylar.SAB_PRIORITY == 3: sabpriority = "0"
+    elif mylar.SAB_PRIORITY == 4: sabpriority = "1"
+    elif mylar.SAB_PRIORITY == 5: sabpriority = "-2"
     # figure out what was missed via rss feeds and do a manual search via api
     #tsc = int(tot-1)
     findcomic = []
@@ -479,6 +484,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                         renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
                                         renameit = renameit.replace(' ', repchar)
                                         renamer = renameit.replace(' ', repurlchar)
+                                        nzo_prio = str(mylar.SAB_HOST) + "/api?mode=queue&name=priority&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(sabpriority)
+                                        urllib2.urlopen(nzo_prio);
                                         nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
                                         urllib2.urlopen(nzo_ren);
                                         logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renameit))
