@@ -31,7 +31,9 @@
 #----CONFIG SECTION
 
 # Path to root of Comics directory (include trailing /)
-comdir = '/mount/mediavg/Comics/'
+# For Windows - if you're getting errors about the path, reverse the slashes:
+#               ie.instead of 'C:\Comics\' make it 'C://Comics//'
+comdir = '/fill/this/in/'
 
 #----SETTINGS SECTION
 
@@ -45,8 +47,6 @@ repblank = "no"
 # If 'yes', what character do you want me to replace with.
 # - Be careful, weird characters will bugger things up and there's no 
 # also be sure to put the character inbetween single quotations.
-# NB. this doesn't work...currently only is set for to replace spaces
-#   with _
 repwith = " "
 
 # Remove crap from filename (ie. c2c, noads, rlsgroup, pxcount, etc)
@@ -87,7 +87,7 @@ else:
 filen = filen.replace('_',' ')
 lengthfile = len(filen) - 4
 #if filen[:-4] == ".cbr" or filen[:-4] == ".cbz": filen[:lengthfile]
-print ("Mylar - ComicRenamer Script - v1.02.a")
+print ("Mylar - ComicRenamer Script - v1.02.b")
 print ("settings confirmation")
 print ("---------------------")
 print ("Mylar enabled: " + str(mylaron))
@@ -216,9 +216,13 @@ matches = []
 for root, dirnames, filenames in os.walk(maindir):
     for filename in filenames:
         if filename.lower().endswith(extensions):
-            if repblank == "yes":
-                confile = filename.replace(' ','_')
-            else: confile = filename.replace('_', ' ')
+            confile = filename
+            #if repblank == "yes":
+            #    confile = filename.replace(' ','_')
+            #else: confile = filename.replace('_', ' ')
+            #errors are cause when the confile doesn't have special characters..let's account.
+            confile = re.sub(r'[\s\-\:\!\@\%\&\$\_\']', '', confile)
+            comyx = re.sub(r'[\s\-\:\!\@\%\&\$\_\']', '', comyx)
             if str(comyx).lower() in str(confile).lower():
                 print ("Found: " + str(filename))
                 ext = os.path.splitext(filename)[1]
