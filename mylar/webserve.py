@@ -455,8 +455,7 @@ class WebInterface(object):
                      #"QUALquality":          qual_quality
                      #}
         myDB.upsert("comics", newValues, controlValueDict)
-        #raise cherrypy.HTTPRedirect("home")
-        return page
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     comic_config.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8181, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
