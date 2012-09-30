@@ -367,7 +367,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                             if mylar.BLACKHOLE:
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     filenamenzb = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
-                                    urllib2.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
                             #end blackhole
 
