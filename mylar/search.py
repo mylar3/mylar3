@@ -56,6 +56,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
         nzbp+=1
     # --------
     nzbpr = nzbp-1
+    findit = 'no'
     while (nzbpr >= 0 ):
         if nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
@@ -168,11 +169,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
     elif mylar.PREFERRED_QUALITY == 2: filetype = ".cbz"
 
-    if mylar.SAB_PRIORITY == 1: sabpriority = "-100"
-    elif mylar.SAB_PRIORITY == 2: sabpriority = "-1"
-    elif mylar.SAB_PRIORITY == 3: sabpriority = "0"
-    elif mylar.SAB_PRIORITY == 4: sabpriority = "1"
-    elif mylar.SAB_PRIORITY == 5: sabpriority = "-2"
+    if mylar.SAB_PRIORITY:
+        if mylar.SAB_PRIORITY == 1: sabpriority = "-100"
+        elif mylar.SAB_PRIORITY == 2: sabpriority = "-1"
+        elif mylar.SAB_PRIORITY == 3: sabpriority = "0"
+        elif mylar.SAB_PRIORITY == 4: sabpriority = "1"
+        elif mylar.SAB_PRIORITY == 5: sabpriority = "-2"
+    else:
+        #if sab priority isn't selected, default to Normal (0)
+        sabpriority = "0"
+
     # figure out what was missed via rss feeds and do a manual search via api
     #tsc = int(tot-1)
     findcomic = []
