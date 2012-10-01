@@ -168,11 +168,6 @@ class WebInterface(object):
                     ComicID = mi['ComicID']
                     #print ("ComicID: " + str(ComicID))
                     comic =  myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-                    #print ("comic location: " + comic['ComicLocation'])
-                    #fc = filechecker.listFiles(comic['ComicLocation'], mi['ComicName'])
-                    #HaveDict = {'ComicID': ComicID}
-                    #newHave = { 'Have':     fc['comiccount'] }
-                    #myDB.upsert("comics", newHave, HaveDict)
                     controlValueDict = {'IssueID':  IssueID}
                     newValueDict = {'Status': 'Snatched'}
                     myDB.upsert("issues", newValueDict, controlValueDict)
@@ -198,7 +193,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     addArtists.exposed = True
     
-    def queueissue(self, ComicName, mode, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
         if ComicID is None and mode == 'series':
@@ -222,6 +217,8 @@ class WebInterface(object):
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
             return
         elif mode == 'want':
+            cdname = myDB.action("SELECT ComicName from comics where ComicID=?", [ComicID]).fetchone()
+            ComicName = cdname['ComicName']
             logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
         #---
         #this should be on it's own somewhere
