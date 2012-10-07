@@ -28,12 +28,12 @@ def dbUpdate():
 
     activecomics = myDB.select('SELECT ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LastUpdated ASC')
 
-    logger.info('Starting update for %i active comics' % len(activecomicss))
+    logger.info('Starting update for %i active comics' % len(activecomics))
     
     for comic in activecomics:
     
         comicid = comic[0]
-        importer.addComictoDB(comicid)
+        mylar.importer.addComictoDB(comicid)
         
     logger.info('Update complete')
 

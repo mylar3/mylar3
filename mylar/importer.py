@@ -269,7 +269,8 @@ def addComictoDB(comicid):
     controlValueStat = {"ComicID":     comicid}
     newValueStat = {"Status":          "Active",
                     "LatestIssue":     latestiss,
-                    "LatestDate":      latestdate
+                    "LatestDate":      latestdate,
+                    "LastUpdated":     helpers.now()
                    }
 
     myDB.upsert("comics", newValueStat, controlValueStat)

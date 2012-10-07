@@ -78,6 +78,15 @@
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
                                 <div>
+                                    <label><big>Last Updated: </big>
+                                %if comic['LastUpdated'] is None:
+                                    <norm>Never</norm>
+                                %else:
+                                    <norm>${comic['LastUpdated']}</norm>
+                                %endif
+                                </label>
+                                </div>
+                                <div>
                                    <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
                                 </div>
                                 <div>
