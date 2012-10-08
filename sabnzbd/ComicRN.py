@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#   ComicBook Renamer v1.02.a (the 'a' means 'alpha')
+#   ComicBook Renamer v1.02.b (the 'b' means 'beta-alpha')
 
 # This is an add-on script for SABnzbd
 # Used in conjunction with several other scripts
@@ -221,8 +221,8 @@ for root, dirnames, filenames in os.walk(maindir):
             #    confile = filename.replace(' ','_')
             #else: confile = filename.replace('_', ' ')
             #errors are cause when the confile doesn't have special characters..let's account.
-            confile = re.sub(r'[\s\-\:\!\@\%\&\$\_\']', '', confile)
-            comyx = re.sub(r'[\s\-\:\!\@\%\&\$\_\']', '', comyx)
+            confile = re.sub(r'[\s\-\:\!\@\%\&\$\_\.\']', '', confile)
+            comyx = re.sub(r'[\s\-\:\!\@\%\&\$\_\.\']', '', comyx)
             if str(comyx).lower() in str(confile).lower():
                 print ("Found: " + str(filename))
                 ext = os.path.splitext(filename)[1]
@@ -236,5 +236,8 @@ for root, dirnames, filenames in os.walk(maindir):
                     print ("Removed useless directory: " + maindir)
                 else:
                     print ("incorrect directory passed to Removal: " + maindir)
+            else:
+                print ("Could not find a match for : " + str(comyx) )
+                print ("I compared it to : " + str(confile) )
             countit+=1
 
