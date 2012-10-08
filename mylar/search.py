@@ -404,6 +404,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 except urllib.URLError:
                                     logger.error(u"Unable to retrieve nzb file.")
                                     return
+
+                                if os.path.getsize(str(savefile)) == 0:
+                                    logger.error(u"nzb size detected as zero bytes.")
+                                    continue
+
                                 logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
 								#print (str(mylar.RENAME_FILES))
 								
@@ -425,7 +430,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     #print "Queue already paused"
                                 
                                 if mylar.RENAME_FILES == 1:
-                                    #print ("Saved file to: " + str(savefile))
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
                                 else:
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
@@ -482,19 +486,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                     if slotmatch == "yes":
                                         if mylar.REPLACE_SPACES:
                                             repchar = mylar.REPLACE_CHAR
+                                            repurlchar = mylar.REPLACE_CHAR
                                         else:
                                             repchar = ' '
                                             repurlchar = "%20"
                                         #let's make sure there's no crap in the ComicName since it's O.G.
                                         ComicNM = re.sub('[\:\,]', '', str(ComicName))
                                         renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
-                                        renameit = renameit.replace(' ', repchar)
+                                        renamethis = renameit.replace(' ', repchar)
                                         renamer = renameit.replace(' ', repurlchar)
                                         nzo_prio = str(mylar.SAB_HOST) + "/api?mode=queue&name=priority&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(sabpriority)
                                         urllib2.urlopen(nzo_prio);
                                         nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
                                         urllib2.urlopen(nzo_ren);
-                                        logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renameit))
+                                        logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renamethis))
                                         #delete the .nzb now.
                                         #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
                                         #if mylar.PROG_DIR is not "/":
