@@ -36,7 +36,7 @@ import urllib2
 
 from datetime import datetime
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
     if ComicYear == None: ComicYear = '2012'
     else: ComicYear = str(ComicYear)[:4]
     ##nzb provider selection##
@@ -57,15 +57,29 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
     # --------
     nzbpr = nzbp-1
     findit = 'no'
+
+    #fix for issue dates between Dec/Jan
+    IssDt = str(IssueDate)[5:7]
+    if IssDt == "12":
+         ComicYearFix = str(int(ComicYear) + 1)
+         IssDateFix = "yes"
+    else:
+         IssDateFix = "no"
+   
     while (nzbpr >= 0 ):
         if nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
             if findit == 'yes':
                 break
             else:
-                nzbpr-=1
+                if IssDateFix == "yes":
+                    logger.info(u"Hang on - this issue was published between Dec/Jan of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    if findit == 'yes':
+                        break
+            nzbpr-=1
 
         if nzbprovider[nzbpr] == 'nzb.su':
         # ----
@@ -74,11 +88,17 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
             #--LATER ?search.rss_find = RSS_SEARCH(ComicName, IssueNumber)
             #if rss_find == 0:
             nzbprov = 'nzb.su'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
             if findit == 'yes':
                 break
             else:
-                nzbpr-=1
+                if IssDateFix == "yes":
+                    logger.info(u"Hang on - this issue was published between Dec/Jan of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    if findit == 'yes':
+                        break
+
+            nzbpr-=1
         # ----
        
         elif nzbprovider[nzbpr] == 'dognzb':
@@ -86,11 +106,17 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear):
             #d = feedparser.parse("http://dognzb.cr/rss.cfm?r=" + str(dognzb_APIkey) + "&t=7030&num=100")
             #RSS_SEARCH(ComicName, IssueNumber)
             nzbprov = 'dognzb'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
             if findit == 'yes':
                 break
             else:
-                nzbpr-=1
+                if IssDateFix == "yes":
+                    logger.info(u"Hang on - this issue was published between Dec/Jan of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    if findit == 'yes':
+                        break
+
+            nzbpr-=1
         # ----
     return findit
 
@@ -155,7 +181,7 @@ def RSS_Search(ComicName, IssueNumber):
     print ("snatched " + str(ssabcount) + " out of " + str(tot) + " comics via rss...")
     return ssabcount
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix):
     logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " using " + str(nzbprov))
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
@@ -392,7 +418,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
                                 else:
                                 #let's make the dir.
                                     try:
-                                        os.makedirs(str(mylar.CACHE_DIR))
+                                        os.makedirs(str(mylar.CACHE_DIR))                                        
                                         logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
                                         savefile = str(mylar.CACHE_DIR) + "/" + str(filenzb) + ".nzb"
 
@@ -539,8 +565,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr):
             logger.info(u"More than one search provider given - trying next one.")
         elif foundc == "no" and nzbpr == 0:
             foundcomic.append("no")
-            logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + str(ComicName) + "(" + str(comyear) + "). Status kept as wanted." )
-            break
+            if IssDateFix == "no":
+                logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + str(ComicName) + "(" + str(comyear) + "). Status kept as wanted." )
+                break
     return foundc
 
 def searchforissue(issueid=None, new=False):
@@ -558,13 +585,14 @@ def searchforissue(issueid=None, new=False):
             comic = myDB.action('SELECT * from comics WHERE ComicID=?', [result['ComicID']]).fetchone()
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
+            IssueDate = result['IssueDate']
             if result['IssueDate'] == None: 
                 ComicYear = comic['ComicYear']
             else: 
                 ComicYear = str(result['IssueDate'])[:4]
 
             if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'])
+                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate)
                     if foundNZB == "yes": 
                         #print ("found!")
                         updater.foundsearch(result['ComicID'], result['IssueID'])
@@ -576,6 +604,7 @@ def searchforissue(issueid=None, new=False):
         ComicID = result['ComicID']
         comic = myDB.action('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
         SeriesYear = comic['ComicYear']
+        IssueDate = result['IssueDate']
         if result['IssueDate'] == None:
             IssueYear = comic['ComicYear']
         else:
@@ -583,7 +612,7 @@ def searchforissue(issueid=None, new=False):
 
         foundNZB = "none"
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'])
+            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate)
             if foundNZB == "yes":
                 #print ("found!")
                 updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'])

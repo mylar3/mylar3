@@ -15,9 +15,11 @@
 # directory of your SABnzbd install.
 
 # In SABnzbd:
-# create a category - call it whatever you want (ie.Comics).
-# point the default dir to wherever you want - but make sure it is identical
-# to the "Path to root of Comics directory" indicated in CONFIG below.
+# Create a category - call it whatever you want (ie.Comics).
+# Point the default dir to wherever you want - but make sure it is identical
+# to the Mylar - "Comic Location" as indicated in the comdir CONFIG option 
+# below. Not doing this will mean that downloads that this script processed
+# probably won't get marked as being present in Mylar.
 
 # In Mylar: 
 # Sabnzbd tab (in the Configuration):
@@ -234,10 +236,13 @@ for root, dirnames, filenames in os.walk(maindir):
                 if maindir is not "/" or maindir is not comdir:
                     shutil.rmtree(maindir)
                     print ("Removed useless directory: " + maindir)
+                    print ("Result: Completed")
                 else:
                     print ("incorrect directory passed to Removal: " + maindir)
+                    print ("Result: FAIL - incorrect directory.")
             else:
                 print ("Could not find a match for : " + str(comyx) )
                 print ("I compared it to : " + str(confile) )
+                print ("Result: FAIL - could not locate comic")
             countit+=1
 

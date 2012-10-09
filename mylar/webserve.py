@@ -156,10 +156,10 @@ class WebInterface(object):
             myDB.upsert("issues", newValueDict, controlValueDict)
             if action == 'Skipped': pass
             elif action == 'Wanted':
-                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'])
+                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'], mi['IssueDate'])
                 #searcher.searchforissue(mbid, new=False)
             elif action == 'WantedNew':
-                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'])
+                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'], mi['IssueDate'])
                 #searcher.searchforissue(mbid, new=True)
             if foundcoms  == "yes":
                 logger.info(u"Found " + mi['ComicName'] + " issue: " + mi['Issue_Number'] + " ! Marking as Snatched...")
@@ -212,7 +212,7 @@ class WebInterface(object):
             ComicYear = str(cyear['SHIPDATE'])[:4]
             if ComicYear == '': ComicYear = "2012"
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear=None)
+            foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear=None, cyear['SHIPDATE'])
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
             return
@@ -227,12 +227,12 @@ class WebInterface(object):
             newStatus = {"Status": "Wanted"}
             myDB.upsert("issues", newStatus, controlValueDict)
         #for future reference, the year should default to current year (.datetime)
+        issues = myDB.action("SELECT IssueDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
         if ComicYear == None:
-            issues = myDB.action("SELECT IssueDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
             ComicYear = str(issues['IssueDate'])[:4]
         miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         SeriesYear = miyr['ComicYear']
-        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear)
+        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'])
         #print ("foundcom:" + str(foundcom))
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
