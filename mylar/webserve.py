@@ -218,7 +218,7 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            if IssueID is None: break
+            if IssueID is None: continue
             else:
                 mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
                 miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
@@ -231,10 +231,10 @@ class WebInterface(object):
         if len(issuesToAdd) > 0:
             logger.debug("Marking issues: %s" % issuesToAdd)
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
-        if ComicID:
-            raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
-        else:
-            raise cherrypy.HTTPRedirect("upcoming")
+        #if IssueID:
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % mi['ComicID'])
+        #else:
+        #    raise cherrypy.HTTPRedirect("upcoming")
     markissues.exposed = True
     
     def addArtists(self, **args):

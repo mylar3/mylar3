@@ -490,7 +490,7 @@ def GCDimport(gcomicid):
         #---NEW.code
         try:
             gcdval = gcdinfo['gcdchoice'][bb]
-            print ("gcdval: " + str(gcdval))
+            #print ("gcdval: " + str(gcdval))
         except IndexError:
             #account for gcd variation here
             if gcdinfo['gcdvariation'] == 'gcd':

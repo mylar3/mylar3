@@ -182,7 +182,7 @@
 
         <form action="markissues" method="get" id="markissues">
         <div id="markissue">Mark selected issues as
-                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);">
+                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
