@@ -290,6 +290,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     #print ("there are " + str(lenm) + " words.")
                     cnt = 0
+                    yearmatch = "false"
+
                     while (cnt < lenm):
                         if m[cnt] is None: break
                         #print (str(cnt) + ". Bracket Word: " + m[cnt] )                        
