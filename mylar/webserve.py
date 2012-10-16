@@ -157,7 +157,7 @@ class WebInterface(object):
                         'Total' : comicissues }
         myDB.upsert("comics", newValueDict, controlValueDict)
         threading.Thread(target=importer.GCDimport, args=[gcomicid]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % gcomicid)
     GCDaddComic.exposed = True
 
     def pauseArtist(self, ComicID):
@@ -340,15 +340,15 @@ class WebInterface(object):
         mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
         #get the issue ID's
         for mvup in mvupcome:
-            myissue = myDB.select("SELECT * FROM issues WHERE Issue_Number=?", [mvup['IssueNumber']])
+            myissue = myDB.action("SELECT * FROM issues WHERE Issue_Number=?", [mvup['IssueNumber']]).fetchone()
             if myissue is None: pass
             else:
-                print ("ComicName: " + str(myissue['ComicName']))
-                print ("Issue number : " + str(myissue['Issue_Number']) )
+                #print ("ComicName: " + str(myissue['ComicName']))
+                #print ("Issue number : " + str(myissue['Issue_Number']) )
  
 
                 mvcontroldict = {"IssueID":    myissue['IssueID']}
-                mvvalues = {"ComicID":         mvupcome['ComicID'],
+                mvvalues = {"ComicID":         myissue['ComicID'],
                             "Status":          "Wanted"}
 
                 myDB.upsert("wanted", mvvalues, mvcontroldict)
