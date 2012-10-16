@@ -33,17 +33,15 @@ def MysterBinScrape(comsearch, comyear):
         # max is set high enough to inlude everything but collections/groups of cbr/cbz which confuse us.
         # minsize = 9mb  maxsize = 75mb  (for now)
 	input = 'http://www.mysterbin.com/advsearch?q=' + str(searchterms) + '&match=normal&minSize=9&maxSize=75&group=alt.binaries.comics.dcp&maxAge=1269&complete=2'
-	#print (input)
 	response = urllib2.urlopen ( input )
 	try:
             soup = BeautifulSoup ( response )
         except HTMLParseError:
             logger.info(u"Unable to decipher using Experimental Search. Parser problem.")            
             return "no results"
-	    #print (soup)
 	cnt = len(soup.findAll("input", {"class" : "check4nzb"}))
         logger.info(u"I found " + str(cnt) + " results doing my search...now I'm going to analyze the results.")
-	#print (str(cnt) + " results")
+
         if cnt == 0: return "no results"
 	resultName = []
 	resultComic = []
@@ -99,7 +97,6 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     #print ( "comichave: " + str(comicis) )
     #print ( "comicid: " + str(comicid) )
     comicnm = re.sub(' ', '+', comicnm)
-    #input = 'http://www.comics.org/series/name/' + str(comicnm) + '/sort/alpha/'
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib2.urlopen ( input )
     soup = BeautifulSoup ( response)
@@ -109,8 +106,6 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     cnt = int(cnt1 + cnt2)
 
     #print (str(cnt) + " results")
-
-    global resultPublished
 
     resultName = []
     resultID = []
@@ -145,7 +140,14 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         resultIssues[n] = resultIssues[n].replace(' ','')
         #print ( "Year: " + str(resultYear[n]) )
         #print ( "Issues: " + str(resultIssues[n]) )
-        if resultName[n].lower() == str(ComicName).lower(): 
+        CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
+        CleanComicName = re.sub(' ', '', CleanComicName).lower()
+        CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])        
+        CleanResultName = re.sub(' ', '', CleanResultName).lower()
+        #print ("CleanComicName: " + str(CleanComicName))
+        #print ("CleanResultName: " + str(CleanResultName))
+        if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName:
+        #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower(): 
             #print ("n:" + str(n) + "...matched by name to Mylar!")
             #this has been seen in a few instances already, so trying to adjust.
             #when the series year is 2011, in gcd it might be 2012 due to publication
@@ -182,7 +184,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     # has the wrong title and won't match 100%...
     # (ie. The Flash-2011 on comicvine is Flash-2011 on gcd)
     # this section is to account for variations in spelling, punctuation, etc/
-    basnumbs = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10}
+    basnumbs = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':11,'twelve':12}
     if resultURL is None:
         #search for number as text, and change to numeric
         for numbs in basnumbs:
@@ -194,7 +196,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
                 #print ("comicname-reVISED:" + str(ComicNm))
                 return GCDScraper(ComicNm, ComicYear, Total, ComicID)
                 break
-        if ComicName.startswith('The '):
+        if ComicName.lower().startswith('the '):
             ComicName = ComicName[4:]
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
         if ':' in ComicName: 
@@ -207,112 +209,168 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
             ComicName = ComicName.replace('and', '&')
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
         return 'No Match'
+    #vari_loop = 0
+    return GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=ComicID, TotalIssues=TotalIssues, issvariation=issvariation, resultPublished=resultPublished)
+
+
+def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariation, resultPublished):
+
     gcdinfo = {}
     gcdchoice = []
+    gcount = 0
+    i = 0
+    if vari_loop > 1:
+        resultPublished = "Unknown"
 
-    input2 = 'http://www.comics.org' + str(resultURL) + 'details/'
-    resp = urllib2.urlopen ( input2 )
-    soup = BeautifulSoup ( resp )
+    if vari_loop == 99: vari_loop = 1
 
-    #for newer comics, on-sale date has complete date...
-    #for older comics, pub.date is to be used
+    while (i <= vari_loop):
+        if vari_loop > 0:
+            try:
+                boong = comseries['comseries'][i]
+            except IndexError:
+                break
+            resultURL = boong['comseriesID']
+            ComicID = boong['comicid']
+            TotalIssues+= int(boong['comseriesIssues'])
+        else: 
+            resultURL = resultURL
+            # if we're here - it means it's a mismatched name.
+            # let's pull down the publication date as it'll be blank otherwise
+            inputMIS = 'http://www.comics.org' + str(resultURL)
+            resp = urllib2.urlopen ( inputMIS )
+            soup = BeautifulSoup ( resp )
 
-    type = soup.find(text=' On-sale date ')
-    if type:
-        #print ("on-sale date detected....adjusting")
-        datetype = "on-sale"
-    else:
-        #print ("pub date defaulting")
-        datetype = "pub"
-
-    cnt1 = len(soup.findAll("tr", {"class" : "row_even_False"}))
-    cnt2 = len(soup.findAll("tr", {"class" : "row_even_True"}))
-
-    cnt = int(cnt1 + cnt2)
-
-    #print (str(cnt) + " Issues in Total (this may be wrong due to alternate prints, etc")
-
-    n_odd = -1
-    n_even = -1
-    n = 0
-    PI = "1.00"
-    altcount = 0
-    while ( n < cnt ):       
-        if n%2==0:
-            n_odd+=1
-            parsed = soup.findAll("tr", {"class" : "row_even_False"})[n_odd]
-            ntype = "odd"
-        else:
-            n_even+=1
-            ntype = "even"
-            parsed = soup.findAll("tr", {"class" : "row_even_True"})[n_even]
-        subtxt3 = parsed.find("a")
-        ParseIssue = subtxt3.findNext(text=True)
-        if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
-        isslen = ParseIssue.find(' ')
-        #if 'isslen' exists, it means that it's an alternative cover.
-        #however, if ONLY alternate covers exist of an issue it won't work.
-        #let's use the FIRST record, and ignore all other covers for the given issue.
-        isschk = ParseIssue[:isslen]
-        #check if decimal exists or not, and store decimal results
-        if '.' in isschk:
-            isschk_find = isschk.find('.')
-            isschk_b4dec = isschk[:isschk_find]
-            isschk_decval = isschk[isschk_find+1:]
-        else:
-            isschk_decval = ".00"
-
-        if isslen > 0:
-            isschk = ParseIssue[:isslen]
-            isschk2 = str(isschk) + isschk_decval
-            ParseIssue = str(isschk2)
-            #print ("Alt.cover found = " + str(isschk2))
-            if str(PI) == str(isschk2):
-                if altcount == 0:
-                    #this handles the first occurance..                    print ("Fist occurance detected - " + str(isschk))
-                    ParseIssue = str(isschk2)
-                    PI = str(isschk2)
-                    altcount = 1
-                else:
-                    #print ("Using only first record for issue - ignoring further alternate matches")
-                    ParseIssue = "this is wrong"
-                    altcount+=1
+            parsed = soup.find("div", {"id" : "series_data"})
+            subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
+            resultPublished = subtxt3.findNext(text=True).rstrip()
+            #print ("pubdate:" + str(resultPublished))
+            coverst = soup.find("div", {"id" : "series_cover"})
+            if coverst < 0: 
+                gcdcover = "None"
             else:
-                altcount = 1
-                ParseIssue = str(isschk) + isschk_decval
+                subcoverst = coverst('img',src=True)[0]
+                gcdcover = subcoverst['src']
+
+        #print ("resultURL:" + str(resultURL))
+        #print ("comicID:" + str(ComicID))
+        input2 = 'http://www.comics.org' + str(resultURL) + 'details/'
+        resp = urllib2.urlopen ( input2 )
+        soup = BeautifulSoup ( resp )
+
+        #for newer comics, on-sale date has complete date...
+        #for older comics, pub.date is to be used
+
+        type = soup.find(text=' On-sale date ')
+        if type:
+            #print ("on-sale date detected....adjusting")
+            datetype = "on-sale"
         else:
-            ParseIssue = ParseIssue + isschk_decval
-            #print ("no alt.cover detected for - " + str(ParseIssue))
-            altcount = 1
-        if (altcount == 1):
-            # in order to get the compare right, let's decimialize the string to '.00'.
-            gcdinfo['ComicIssue'] = ParseIssue
-            #print ( "Issue : " + str(ParseIssue) )
-            #^^ will retrieve issue
-            #if datetype == "on-sale":
-            subtxt1 = parsed('td')[2]
-            ParseDate = subtxt1.findNext(text=True)
-            pdlen = len(ParseDate)
-            #print ("Parsed Date length: " + str(pdlen))
-            if len(ParseDate) < 7:
-                subtxt1 = parsed.find("td")
-                ParseDate = subtxt1.findNext(text=True)               
-                if ParseDate == ' ':
-                    ParseDate = "0000-00-00"
-            ParseDate = ParseDate.replace(' ','')
-            gcdinfo['ComicDate'] = ParseDate
-            #print ( "Date : " + str(ParseDate) )
-            #^^ will retrieve date #
+            #print ("pub date defaulting")
+            datetype = "pub"
 
+        cnt1 = len(soup.findAll("tr", {"class" : "row_even_False"}))
+        cnt2 = len(soup.findAll("tr", {"class" : "row_even_True"}))
 
-            gcdchoice.append({
-                'GCDid':                ComicID,
-                'GCDIssue':             gcdinfo['ComicIssue'],
-                'GCDDate':              gcdinfo['ComicDate']
-                })
+        cnt = int(cnt1 + cnt2)
 
-            gcdinfo['gcdchoice'] = gcdchoice
-            PI = ParseIssue
+        #print (str(cnt) + " Issues in Total (this may be wrong due to alternate prints, etc")
+
+        n_odd = -1
+        n_even = -1
+        n = 0
+        PI = "1.00"
+        altcount = 0
+        while ( n < cnt ):       
+            if n%2==0:
+                n_odd+=1
+                parsed = soup.findAll("tr", {"class" : "row_even_False"})[n_odd]
+                ntype = "odd"
+            else:
+                n_even+=1
+                ntype = "even"
+                parsed = soup.findAll("tr", {"class" : "row_even_True"})[n_even]
+            subtxt3 = parsed.find("a")
+            ParseIssue = subtxt3.findNext(text=True)
+
+            fid = parsed('a',href=True)[0]
+            resultGID = fid['href']
+            resultID = resultGID[7:-1]
+            #print ( "ID: " + str(resultID) )
+
+            if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
+            isslen = ParseIssue.find(' ')
+            #if 'isslen' exists, it means that it's an alternative cover.
+            #however, if ONLY alternate covers exist of an issue it won't work.
+            #let's use the FIRST record, and ignore all other covers for the given issue.
+            isschk = ParseIssue[:isslen]
+            #check if decimal exists or not, and store decimal results
+            if '.' in isschk:
+                isschk_find = isschk.find('.')
+                isschk_b4dec = isschk[:isschk_find]
+                isschk_decval = isschk[isschk_find+1:]
+            else:
+                isschk_decval = ".00"
+
+            if isslen > 0:
+                isschk = ParseIssue[:isslen]
+                isschk2 = str(isschk) + isschk_decval
+                if 'a' in isschk or 'b' in isschk or 'c' in isschk:
+                    isschk2 = ParseIssue[:isslen-1] + isschk_decval
+                    #altcount == 2
+                ParseIssue = str(isschk2)
+                #print ("Alt.cover found = " + str(isschk2))
+                if str(PI) == str(isschk2):
+                    if altcount == 0:
+                        #this handles the first occurance..                    print ("Fist occurance detected - " + str(isschk))
+                        ParseIssue = str(isschk2)
+                        PI = str(isschk2)
+                        altcount = 1
+                    else:
+                        #print ("Using only first record for issue - ignoring further alternate matches")
+                        ParseIssue = "this is wrong"
+                        altcount+=1
+                else:
+                    altcount = 1
+                    ParseIssue = str(isschk) + isschk_decval
+            else:
+                ParseIssue = ParseIssue + isschk_decval
+                #print ("no alt.cover detected for - " + str(ParseIssue))
+                altcount = 1
+            if (altcount == 1):
+                # in order to get the compare right, let's decimialize the string to '.00'.
+                gcdinfo['ComicIssue'] = ParseIssue
+                #^^ will retrieve issue
+                #if datetype == "on-sale":
+                subtxt1 = parsed('td')[2]
+                ParseDate = subtxt1.findNext(text=True)
+                pdlen = len(ParseDate)
+                #print ("Parsed Date length: " + str(pdlen))
+                if len(ParseDate) < 7:
+                    subtxt1 = parsed.find("td")
+                    ParseDate = subtxt1.findNext(text=True)               
+                    if ParseDate == ' ':
+                        ParseDate = "0000-00-00"
+                #ParseDate = ParseDate.replace('?','')
+                ParseDate = ParseDate.replace(' ','')
+                gcdinfo['ComicDate'] = ParseDate
+                #^^ will retrieve date #
+                if ComicID[:1] == "G":
+                    gcdchoice.append({
+                        'GCDid':                ComicID,
+                        'IssueID':              resultID,
+                        'GCDIssue':             gcdinfo['ComicIssue'],
+                        'GCDDate':              gcdinfo['ComicDate']
+                        })
+                    gcount+=1
+                else:
+                    gcdchoice.append({
+                        'GCDid':                ComicID,
+                        'GCDIssue':             gcdinfo['ComicIssue'],
+                        'GCDDate':              gcdinfo['ComicDate']
+                        })
+                gcdinfo['gcdchoice'] = gcdchoice
+                PI = ParseIssue
         #else:
             # -- this needs a rework --
             # if issue only has alternative covers on comics.org, it won't match
@@ -322,8 +380,71 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
          #   altcount+=1
          #   print ("alternate issue - ignoring")
         #altcount = 0
-        n+=1
+            n+=1
+        i+=1
     gcdinfo['gcdvariation'] = issvariation
-    gcdinfo['totalissues'] = TotalIssues
+    if ComicID[:1] == "G":
+        gcdinfo['totalissues'] = gcount
+    else:
+        gcdinfo['totalissues'] = TotalIssues
+    gcdinfo['ComicImage'] = gcdcover
+    gcdinfo['resultPublished'] = resultPublished
+    #print ("gcdvariation: " + str(gcdinfo['gcdvariation']))
     return gcdinfo
         ## -- end (GCD) -- ##
+
+def GCDAdd(gcdcomicid):
+    serieschoice = []
+    series = {}
+
+    for gcdid in gcdcomicid:
+        #print ("gcdid:" + str(gcdid))
+        input2 = 'http://www.comics.org/series/' + str(gcdid)
+        resp = urllib2.urlopen ( input2 )
+        soup = BeautifulSoup ( resp )
+
+        parsen = soup.find("span", {"id" : "series_name"})
+        subpar = parsen('a')[0]
+        resultName = subpar.findNext(text=True)
+        #print ("ComicName: " + resultName)
+        #covers-start
+        coverst = soup.find("div", {"id" : "series_cover"})
+        if coverst < 0:
+            gcdcover = "None"
+        else:
+            subcoverst = coverst('img',src=True)[0]
+            gcdcover = subcoverst['src']
+        #print ("Cover: " + str(gcdcover))
+        #covers end
+        #publisher start
+        pubst = soup.find("div", {"class" : "item_data"})
+        subpubst = pubst('a')[0]
+        publisher = subpubst.findNext(text=True)
+        #print ("Publisher: " + str(publisher))
+        #publisher end
+        parsed = soup.find("div", {"id" : "series_data"})
+        #print ("parse:" + str(parsed))
+        subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
+        pubdate = subtxt3.findNext(text=True).rstrip()
+        #print ("pubdate:" + str(pubdate))
+        subtxt4 = parsed.find("dd", {"id" : "issues_published"})
+        noiss = subtxt4.findNext(text=True)
+        lenwho = len(noiss)
+        lent = noiss.find(' ',2)
+        lenf = noiss.find('(')
+        stringit = noiss[lenf:lenwho]
+        stringout = noiss[:lent]
+        noissues = stringout.rstrip('  \t\r\n\0')
+        numbering = stringit.rstrip('  \t\r\n\0')
+        #print ("noissues:" + str(noissues))
+        #print ("numbering:" + str(numbering))
+        serieschoice.append({
+               "ComicID":         gcdid,
+               "ComicName":       resultName,
+               "ComicYear" :        pubdate,
+               "ComicIssues" :    noissues,
+               "ComicPublisher" : publisher,
+               "ComicCover" :     gcdcover
+              })   
+    series['serieschoice'] = serieschoice 
+    return series

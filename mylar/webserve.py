@@ -62,6 +62,19 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
+        # make sure comic dir exists..
+        comlocation = comic['ComicLocation']
+        if os.path.isdir(str(comlocation)): pass
+            #logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
+        else:
+            print ("Directory doesn't exist!")
+            try:
+                os.makedirs(str(comlocation))
+                logger.info(u"No directory found - So I created one at: " + str(comlocation))
+            except OSError.e:
+                if e.errno != errno.EEXIST:
+                    raise
+
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         comicConfig = {
@@ -85,18 +98,68 @@ class WebInterface(object):
             searchresults = mb.findComic(name, mode, issue=None)
         elif type == 'comic' and mode == 'want':
             searchresults = mb.findComic(name, mode, issue)
-        #else:
-            #searchresults = mb.findRelease(name)
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)            
         #print ("Results: " + str(searchresults))
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type)
     searchit.exposed = True
 
-    def addComic(self, comicid):
-        threading.Thread(target=importer.addComictoDB, args=[comicid]).start()
+    def addComic(self, comicid, comicname=None, comicyear=None, comicissues=None):
+        myDB = db.DBConnection()
+        sresults = []
+        mismatch = "no"
+        #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
+        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
+        if CV_EXcomicid is None: pass
+        else:
+            if CV_EXcomicid['variloop'] == '99':
+                logger.info(u"mismatched name...autocorrecting to correct GID and auto-adding.")
+                mismatch = "yes"
+            if CV_EXcomicid['NewComicID'] == 'none':
+                logger.info(u"multi-volume series detected")         
+                testspx = CV_EXcomicid['GComicID'].split('/')
+                for exc in testspx:
+                    fakeit = parseit.GCDAdd(testspx)
+                    howmany = int(CV_EXcomicid['variloop'])
+                    t = 0
+                    while (t <= howmany):
+                        try:
+                            sres = fakeit['serieschoice'][t]
+                        except IndexError:
+                            break
+                        sresults.append({
+                               'ComicID'   :   sres['ComicID'],
+                               'ComicName' :   sres['ComicName'],
+                               'ComicYear' :   sres['ComicYear'],
+                               'ComicIssues' : sres['ComicIssues'],
+                               'ComicPublisher' : sres['ComicPublisher'],
+                               'ComicCover' :    sres['ComicCover']
+                               })
+                        t+=1
+                    #searchfix(-1).html is for misnamed comics and wrong years.
+                    #searchfix-2.html is for comics that span multiple volumes.
+                    return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
+        threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
     addComic.exposed = True
-    
+
+    def GCDaddComic(self, comicid, comicname=None, comicyear=None, comicissues=None, comiccover=None, comicpublisher=None):
+        #since we already know most of the info, let's add it to the db so we can reference it later.
+        myDB = db.DBConnection()
+        gcomicid = "G" + str(comicid)
+        comicyear_len = comicyear.find(' ', 2)
+        comyear = comicyear[comicyear_len+1:comicyear_len+5]
+        controlValueDict = { 'ComicID': gcomicid }
+        newValueDict = {'ComicName': comicname,
+                        'ComicYear': comyear,
+                        'ComicPublished': comicyear,
+                        'ComicPublisher': comicpublisher,
+                        'ComicImage': comiccover,
+                        'Total' : comicissues }
+        myDB.upsert("comics", newValueDict, controlValueDict)
+        threading.Thread(target=importer.GCDimport, args=[gcomicid]).start()
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+    GCDaddComic.exposed = True
+
     def pauseArtist(self, ComicID):
         logger.info(u"Pausing comic: " + ComicID)
         myDB = db.DBConnection()
@@ -127,7 +190,15 @@ class WebInterface(object):
     deleteArtist.exposed = True
     
     def refreshArtist(self, ComicID):
-        importer.addComictoDB(ComicID)    
+        myDB = db.DBConnection()
+        mismatch = "no"
+        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
+        if CV_EXcomicid is None: pass
+        else:
+            if CV_EXcomicid['variloop'] == '99':
+                mismatch = "yes"
+        if ComicID[:1] == "G": threading.Thread(target=importer.GCDimport, args=[ComicID]).start()
+        else: threading.Thread(target=importer.addComictoDB, args=[ComicID,mismatch]).start()    
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     refreshArtist.exposed=True  
 
@@ -139,49 +210,27 @@ class WebInterface(object):
         #raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" & ComicID)   
     editIssue.exposed=True
  
-    def markissues(self, ComicID=None, action=None, **args):
+    def markissues(self, action=None, **args):
         myDB = db.DBConnection()
+        issuesToAdd = []
         if action == 'WantedNew':
             newaction = 'Wanted'
         else:
             newaction = action
         for IssueID in args:
             if IssueID is None: break
-            #print("IssueID:" + IssueID)
-            mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
-            miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
-            logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
-            controlValueDict = {"IssueID": IssueID}
-            newValueDict = {"Status": newaction}
-            myDB.upsert("issues", newValueDict, controlValueDict)
-            if action == 'Skipped': pass
-            elif action == 'Wanted':
-                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'], mi['IssueDate'])
-                #searcher.searchforissue(mbid, new=False)
-            elif action == 'WantedNew':
-                foundcoms = search.search_init(mi['ComicName'], mi['Issue_Number'], mi['IssueDate'][:4], miyr['ComicYear'], mi['IssueDate'])
-                #searcher.searchforissue(mbid, new=True)
-            if foundcoms  == "yes":
-                logger.info(u"Found " + mi['ComicName'] + " issue: " + mi['Issue_Number'] + " ! Marking as Snatched...")
-                # file check to see if issue exists and update 'have' count
-                if IssueID is not None:
-                    ComicID = mi['ComicID']
-                    #print ("ComicID: " + str(ComicID))
-                    comic =  myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-                    controlValueDict = {'IssueID':  IssueID}
-                    newValueDict = {'Status': 'Snatched'}
-                    myDB.upsert("issues", newValueDict, controlValueDict)
-                    snatchedupdate = {"IssueID":     IssueID}
-                    newsnatchValues = {"ComicName":       mi['ComicName'],
-                                       "ComicID":         ComicID,
-                                       "Issue_Number":    mi['Issue_Number'],
-                                       "DateAdded":       helpers.today(),
-                                       "Status":          "Snatched"
-                                       }
-                    myDB.upsert("snatched", newsnatchValues, snatchedupdate)
             else:
-                logger.info(u"Couldn't find " + mi['ComicName'] + " issue: " + mi['Issue_Number'] + " ! Status still wanted...")
-
+                mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
+                miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
+                logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
+                controlValueDict = {"IssueID": IssueID}
+                newValueDict = {"Status": newaction}
+                myDB.upsert("issues", newValueDict, controlValueDict)
+                if action == 'Wanted':
+                    issuesToAdd.append(IssueID)
+        if len(issuesToAdd) > 0:
+            logger.debug("Marking issues: %s" % issuesToAdd)
+            threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
         if ComicID:
             raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
         else:
@@ -197,7 +246,6 @@ class WebInterface(object):
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
         if ComicID is None and mode == 'series':
-            #print (ComicName)
             issue = None
             raise cherrypy.HTTPRedirect("searchit?name=%s&issue=%s&mode=%s" % (ComicName, 'None', 'series'))
         elif ComicID is None and mode == 'pullseries':
@@ -233,12 +281,9 @@ class WebInterface(object):
         miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         SeriesYear = miyr['ComicYear']
         foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'])
-        #print ("foundcom:" + str(foundcom))
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
-                #print ("ComicID:" + str(ComicID))
-                #print ("IssueID:" + str(IssueID))
                 return updater.foundsearch(ComicID, IssueID) 
         if ComicID:
             raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
@@ -262,7 +307,6 @@ class WebInterface(object):
         if popit:
             weeklyresults = myDB.select("SELECT * from weekly")        
             pulldate = myDB.action("SELECT * from weekly").fetchone()
-            #imgstuff = parseit.PW()
             if pulldate is None:
                 raise cherrypy.HTTPRedirect("home")
         else:
@@ -292,8 +336,23 @@ class WebInterface(object):
         upcoming = myDB.select("SELECT * from upcoming WHERE IssueDate > date('now') order by IssueDate DESC")
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
-        #mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
-        #mvcontroldict = {"ComicID":    mvupcome['ComicID']}
+        #gather the list...
+        mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
+        #get the issue ID's
+        for mvup in mvupcome:
+            myissue = myDB.select("SELECT * FROM issues WHERE Issue_Number=?", [mvup['IssueNumber']])
+            if myissue is None: pass
+            else:
+                print ("ComicName: " + str(myissue['ComicName']))
+                print ("Issue number : " + str(myissue['Issue_Number']) )
+ 
+
+                mvcontroldict = {"IssueID":    myissue['IssueID']}
+                mvvalues = {"ComicID":         mvupcome['ComicID'],
+                            "Status":          "Wanted"}
+
+                myDB.upsert("wanted", mvvalues, mvcontroldict)
+
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
     upcoming.exposed = True
 

@@ -41,28 +41,38 @@ def dbUpdate():
 def latest_update(ComicID, LatestIssue, LatestDate):
     # here we add to comics.latest
     myDB = db.DBConnection()
-    controlValueDict = {"ComicID":      ComicID}
-    newValueDict = {"LatestIssue":      LatestIssue,
-                    "LatestDate":       LatestDate}
-    myDB.upsert("comics", newValueDict, controlValueDict)
+    latestCTRLValueDict = {"ComicID":      ComicID}
+    newlatestDict = {"LatestIssue":      str(LatestIssue),
+                    "LatestDate":       str(LatestDate)}
+    myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
 def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     # here we add to upcoming table...
     myDB = db.DBConnection()
     controlValue = {"ComicID":      ComicID}
-    newValue = {"ComicName":        ComicName,
-                "IssueNumber":      IssueNumber,
-                "IssueDate":        IssueDate}
+    newValue = {"ComicName":        str(ComicName),
+                "IssueNumber":      str(IssueNumber),
+                "IssueDate":        str(IssueDate)}
     if mylar.AUTOWANT_UPCOMING:
-        newValue = {"STATUS":             "Wanted"}
+        newValue['Status'] = "Wanted"
     else:
-        newValue = {"STATUS":             "Skipped"}
+        newValue['Status'] = "Skipped"
     myDB.upsert("upcoming", newValue, controlValue)
+    issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
+    if issuechk is None: 
+        pass
+        #print ("not released yet...")
+    else:
+        control = {"IssueID":   issuechk['IssueID']}
+        if mylar.AUTOWANT_UPCOMING: values = {"Status":   "Wanted"}
+        else: values = {"Status":    "Skipped"}
+        myDB.upsert("issues", values, control)
+
 
 def weekly_update(ComicName):
     # here we update status of weekly table...
     myDB = db.DBConnection()
-    controlValue = { "COMIC":         ComicName}
+    controlValue = { "COMIC":         str(ComicName)}
     if mylar.AUTOWANT_UPCOMING:
         newValue = {"STATUS":             "Wanted"}
     else:
@@ -71,7 +81,7 @@ def weekly_update(ComicName):
 
 def newpullcheck():
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    weeklypull.pullitcheck()
+    mylar.weeklypull.pullitcheck()
     return
 
 def no_searchresults(ComicID):

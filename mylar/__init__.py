@@ -20,6 +20,7 @@ import os, sys, subprocess
 import threading
 import webbrowser
 import sqlite3
+import csv
 
 from lib.apscheduler.scheduler import Scheduler
 from lib.configobj import ConfigObj
@@ -518,6 +519,24 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+
+    #new
+    logger.info(u"Populating Exception listings into Mylar....")
+    c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
+
+    csvfile = open('exceptions.csv', "rb")
+    creader = csv.reader(csvfile, delimiter=',')
+
+    for row in creader:
+        #print (row)
+        try:
+            c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
+        except Exception, e:
+            #print ("Error - invald arguments...-skipping")
+            pass
+    csvfile.close()
+
+    #c.executemany("INSERT INTO exceptions VALUES (?, ?);", to_db)
 
     #add in the late players to the game....
     try:

@@ -1220,6 +1220,42 @@ div#artistheader h2 a {
   filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
   -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
 }
+#searchmanage_table th#comicname {
+  min-width: 325px;
+  text-align: left;
+}
+#searchmanage_table th#comicpub {
+  min-width: 100px;
+  text-align: left;
+}
+#searchmanage_table th#comicissues {
+  min-width: 75px;
+  text-align: left;
+}
+#searchmanage_table th#addcomic {
+  min-width: 95px;
+  text-align: left;
+}
+#searchmanage_table td#comicname {
+  min-width: 325px;
+  text-align: left;
+  vertical-align: middle;
+}
+#searchmanage_table td#comicpub {
+  min-width: 100px;
+  text-align: left;
+  vertical-align: middle;
+}
+#searchmanage_table td#comicissues {
+  min-width: 75px;
+  text-align: left;
+  vertical-align: middle;
+}
+#searchmanage_table td#addcomic {
+  min-width: 95px;
+  vertical-align: middle;
+}
+
 .progress-container {
   background: #FFF;
   border: 1px solid #ccc;

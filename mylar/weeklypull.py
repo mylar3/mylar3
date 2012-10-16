@@ -303,6 +303,8 @@ def pullit():
     pullitcheck()
 
 def pullitcheck():
+    myDB = db.DBConnection()
+
     not_t = ['TP',
              'NA',
              'HC',
@@ -360,6 +362,7 @@ def pullitcheck():
         ki = []
         kc = []
         otot = 0
+
         #print ("You are watching for: " + str(w) + " comics")
         #print ("----------THIS WEEK'S PUBLISHED COMICS------------")
         if w > 0:
@@ -367,57 +370,55 @@ def pullitcheck():
                 lines[cnt] = str(lines[cnt]).upper()
                 llen[cnt] = str(llen[cnt])
                 #print ("looking for : " + str(lines[cnt]))
-                cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
-                while True:
-                    row = cur.fetchone()
-                    #print (row)
-                    if row == None:
+                weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
+                #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
+                for week in weekly:
+                    if week == None:
                         break
                     for nono in not_t:
-                        if nono in row[1]:
+                        if nono in week['PUBLISHER']:
                             #print ("nono present")
                             break
                         for nothere in not_c:
-                            if nothere in row[3]:
+                            if nothere in week['EXTRA']:
                                 #print ("nothere present")
                                 break
                             else:
-                                comicnm = row[2]
+                                comicnm = week['COMIC']
                                 #here's the tricky part, ie. BATMAN will match on
                                 #every batman comic, not exact
                                 #print ("comparing" + str(comicnm) + "..to.." + str(unlines[cnt]).upper())
                                 if str(comicnm) == str(unlines[cnt]).upper():
                                     #print ("matched on:")
                                     pass
-                                elif ("ANNUAL" in row[3]):
+                                elif ("ANNUAL" in week['EXTRA']):
                                     pass
                                     #print ( row[3] + " matched on ANNUAL")
                                 else:
                                     #print ( row[2] + " not an EXACT match...")
                                     break
-                                    break
                                 if "WOLVERINE AND X-MEN" in str(comicnm):
                                     comicnm = "WOLVERINE AND THE X-MEN"
                                     #print ("changed wolvy")
-                                if ("NA" not in row[1]) and ("HC" not in row[1]):
-                                    if ("COMBO PACK" not in row[3]) and ("2ND PTG" not in row[3]) and ("3RD PTG" not in row[3]):
+                                if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
+                                    if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
                                         otot+=1
                                         dontadd = "no"
                                         if dontadd == "no":
                                             #print (row[0], row[1], row[2])
                                             tot+=1
-                                            kp.append(row[0])
-                                            ki.append(row[1])
-                                            kc.append(comicnm)
-                                            if ("ANNUAL" in row[3]):
+                                            #kp.append(row[0])
+                                            #ki.append(row[1])
+                                            #kc.append(comicnm)
+                                            if ("ANNUAL" in week['EXTRA']):
                                                 watchfndextra.append("annual")
                                             else:
                                                 watchfndextra.append("none")
                                             watchfnd.append(comicnm)
-                                            watchfndiss.append(row[1])
+                                            watchfndiss.append(week['ISSUE'])
                                             ComicID = comicid[cnt]
                                             ComicIssue = str(watchfndiss[tot -1] + ".00")
-                                            ComicDate = str(row[4])
+                                            ComicDate = str(week['SHIPDATE'])
                                             ComicName = str(unlines[cnt])
                                             #print ("added: " + str(watchfnd[tot -1]) + " ISSUE: " + str(watchfndiss[tot -1]))
                                             # here we add to comics.latest
@@ -435,5 +436,5 @@ def pullitcheck():
         #print ("However I've already grabbed " + str(btotal) )
         #print ("I need to get " + str(tot) + " comic(s)!" )
 
-    con.close()
+    #con.close()
     return

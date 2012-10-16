@@ -58,14 +58,13 @@
 				<th id="comicname">Comic</th>
 				<th id="issuenumber">Issue</th>
 				<th id="reldate">Release Date</th>
-				<th id="type">Type</th>
 				<th id="status">Status</th>
 			</tr>
 		</thead>
 		<tbody>
 		%for upcome in upcoming:
 			<tr class="gradeZ">
-				<td id="comicname">${upcome['ComicName']}</td>
+				<td id="comicname"><a href="artistPage?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
 				<td id="issuenumber"><a href="albumPage?IssueID=${upcome['ComicID']}">${upcome['IssueNumber']}</a></td>
 				<td id="reldate">${upcome['IssueDate']}</td>
 				<td id="status">${upcome['Status']}</td>
