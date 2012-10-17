@@ -133,9 +133,8 @@ def addComictoDB(comicid,mismatch=None):
             try:
                 os.makedirs(str(comlocation))
                 logger.info(u"Directory successfully created at: " + str(comlocation))
-            except OSError.e:
-                if e.errno != errno.EEXIST:
-                    raise
+            except OSError:
+                logger.error(u"Could not create comicdir : " + str(comlocation))
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -153,9 +152,8 @@ def addComictoDB(comicid,mismatch=None):
             os.makedirs(str(mylar.CACHE_DIR))
             logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
 
-        except OSError.e:
-            if e.errno != errno.EEXIST:
-                raise
+        except OSError:
+            logger.error('Could not create cache dir. Check permissions of cache dir: ' + str(mylar.CACHE_DIR))
 
     coverfile = mylar.CACHE_DIR + "/" + str(comicid) + ".jpg"
 
@@ -430,9 +428,9 @@ def GCDimport(gcomicid):
             try:
                 os.makedirs(str(comlocation))
                 logger.info(u"Directory successfully created at: " + str(comlocation))
-            except OSError.e:
-                if e.errno != errno.EEXIST:
-                    raise
+            except OSError:
+                logger.error(u"Could not create comicdir : " + str(comlocation))
+
 
     comicIssues = gcdinfo['totalissues']
 
@@ -444,9 +442,8 @@ def GCDimport(gcomicid):
             os.makedirs(str(mylar.CACHE_DIR))
             logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
 
-        except OSError.e:
-            if e.errno != errno.EEXIST:
-                raise
+        except OSError:
+            logger.error(u"Could not create cache dir : " + str(mylar.CACHE_DIR))
 
     coverfile = mylar.CACHE_DIR + "/" + str(gcomicid) + ".jpg"
 
