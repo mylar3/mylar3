@@ -522,13 +522,23 @@ def dbcheck():
 
     #new
     logger.info(u"Populating Exception listings into Mylar....")
+    c.execute('DROP TABLE IF EXISTS exceptions')
+
     c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
 
-    csvfile = open('exceptions.csv', "rb")
+    EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
+
+    if not os.path.exists(EXCEPTIONS_FILE):
+        try:
+            csvfile = open(str(EXCEPTIONS_FILE), "rb")
+        except OSError:
+            logger.error('Could not locate exceptions.csv file. Check in datadir: ' + DATA_DIR)
+    else:
+        csvfile = open(str(EXCEPTIONS_FILE), "rb")
+
     creader = csv.reader(csvfile, delimiter=',')
 
     for row in creader:
-        #print (row)
         try:
             c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
         except Exception, e:
