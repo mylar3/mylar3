@@ -71,10 +71,8 @@ class WebInterface(object):
             try:
                 os.makedirs(str(comlocation))
                 logger.info(u"No directory found - So I created one at: " + str(comlocation))
-            except OSError.e:
-                if e.errno != errno.EEXIST:
-                    raise
-
+            except OSError:
+                logger.error(u"Could not create directory for comic : " + str(comlocation))
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         comicConfig = {
@@ -351,7 +349,7 @@ class WebInterface(object):
                 mvvalues = {"ComicID":         myissue['ComicID'],
                             "Status":          "Wanted"}
 
-                myDB.upsert("wanted", mvvalues, mvcontroldict)
+                myDB.upsert("issues", mvvalues, mvcontroldict)
 
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
     upcoming.exposed = True
