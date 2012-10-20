@@ -115,9 +115,14 @@ def addComictoDB(comicid,mismatch=None):
     # setup default location here
 
     if comlocation is None:
-        if ':' in comic['ComicName']: 
-            comicdir = comic['ComicName'].replace(':','')
+        if ':' in comic['ComicName'] or '/' in comic['ComicName']:
+            comicdir = comic['ComicName']
+            if ':' in comicdir:
+                comicdir = comicdir.replace(':','')
+            if '/' in comicdir:
+                comicdir = comicdir.replace('/','-')
         else: comicdir = comic['ComicName']
+
         comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
         if mylar.DESTINATION_DIR == "":
             logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
@@ -410,8 +415,13 @@ def GCDimport(gcomicid):
     #comic book location on machine
     # setup default location here
     if comlocation is None:
-        if ':' in ComicName:
-            comicdir = ComicName.replace(':','')
+        if ':' in ComicName or '/' in ComicName:
+            comicdir = ComicName
+            if ':' in comicdir:
+                comicdir = comicdir.replace(':','')
+            if '/' in comicdir:
+                comicdir = comicdir.replace('/','-')
+            
         else: comicdir = ComicName
         comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
         if mylar.DESTINATION_DIR == "":
