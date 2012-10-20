@@ -521,30 +521,46 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 
     #new
-    logger.info(u"Populating Exception listings into Mylar....")
     c.execute('DROP TABLE IF EXISTS exceptions')
 
     c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
 
-    EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
+    # for Mylar-based Exception Updates....
+    i = 0
+    EXCEPTIONS = []
+    EXCEPTIONS.append('exceptions.csv')
+    EXCEPTIONS.append('custom_exceptions.csv')
 
-    if not os.path.exists(EXCEPTIONS_FILE):
-        try:
+    while (i <= 1):
+    #EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
+        EXCEPTIONS_FILE = os.path.join(DATA_DIR, EXCEPTIONS[i])
+
+        if not os.path.exists(EXCEPTIONS_FILE):
+            try:
+                csvfile = open(str(EXCEPTIONS_FILE), "rb")
+            except (OSError,IOError):
+                if i == 1:
+                    logger.error("No Custom Exceptions found. Using base exceptions only.")
+                else:
+                    logger.error("Could not locate " + str(EXCEPTIONS[i]) + " file. Make sure it's in datadir: " + DATA_DIR)
+                break                
+        else:
             csvfile = open(str(EXCEPTIONS_FILE), "rb")
-        except OSError:
-            logger.error('Could not locate exceptions.csv file. Check in datadir: ' + DATA_DIR)
-    else:
-        csvfile = open(str(EXCEPTIONS_FILE), "rb")
+        if i == 0:
+            logger.info(u"Populating Base Exception listings into Mylar....")
+        elif i == 1:
+            logger.info(u"Populating Custom Exception listings into Mylar....")
 
-    creader = csv.reader(csvfile, delimiter=',')
+        creader = csv.reader(csvfile, delimiter=',')
 
-    for row in creader:
-        try:
-            c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
-        except Exception, e:
-            #print ("Error - invald arguments...-skipping")
-            pass
-    csvfile.close()
+        for row in creader:
+            try:
+                c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
+            except Exception, e:
+                #print ("Error - invald arguments...-skipping")
+                pass
+        csvfile.close()
+        i+=1
 
     #c.executemany("INSERT INTO exceptions VALUES (?, ?);", to_db)
 

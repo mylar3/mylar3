@@ -1,0 +1,21 @@
+# Mylar Custom Exception listings
+# In an effort to map ComicVine to GCD correctly, use this.
+#
+#
+#      Make changes/additions, and rename this file to 'custom_exceptions.csv'.
+#
+#
+# Required Format, : code, ComicVineID, GCDComicID, GCDComicIDs (for volume spanning series)
+# ----Format Breakdown
+# code = # of volumes in series to be checked minus 1 (if there are 4 volumes in a series, put 3)
+#      = 99 is mismatched names. If a series won't match on GCD, this is what you would put.
+# ComicVineID = the ComicVineID (taken from the searchresults, or the ..Loading.. detail screen)
+# GCDComicID = the correct GCD Comic ID that Mylar is to match with.
+# GCDComicIDs = put the GCD Comic ID's here for the given multiple volume spanning series seperated by a '/' 
+# use 'none' if you are not using an option (yes, it's necessary)
+#
+#-----Volume Spanning Series-----
+
+#-----Mismatched Names------
+#test
+99,1111,22222,none
