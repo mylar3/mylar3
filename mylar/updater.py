@@ -157,6 +157,7 @@ def forceRescan(ComicID):
         except IndexError:
             break
         int_iss = reiss['Int_IssueNumber']
+        old_status = reiss['Status']
         fn = 0
         haveissue = "no"
         while (fn < fccnt):
@@ -196,7 +197,10 @@ def forceRescan(ComicID):
             if mylar.AUTOWANT_ALL:
                 issStatus = "Wanted"
             else:
-                issStatus = "Skipped"
+                if old_status == "Wanted": 
+                    issStatus = "Wanted"
+                else: 
+                    issStatus = "Skipped"
         elif haveissue == "yes":
             issStatus = "Downloaded"
         controlValueDict = {"IssueID":  reiss['IssueID']}
