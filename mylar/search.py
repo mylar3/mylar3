@@ -272,8 +272,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 foundc = "no"
             else:
                 for entry in bb['entries']:
+                    #print ("Entry:" + str(entry['title']))
                     cleantitle = re.sub('_', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
+                    #print ("cleantitle:" + str(cleantitle))
                     if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"                      
                     if done:
                         break
@@ -343,9 +345,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         #print ("length match..proceeding")
                         n = 0
                         scount = 0
-                        #print ("length:" + str(len(splitit)))
+                        #print ("search-length:" + str(len(splitit)))
+                        #print ("watchlist-length:" + str(len(watchcomic_split)))
                         while ( n <= len(splitit)-1 ):
-                            if n < len(splitit)-1:
+                            #print ("splitit:" + str(splitit[n]))
+                            if n < len(splitit)-1 and n < len(watchcomic_split)-1:
                                 #print ( str(n) + ". Comparing: " + watchcomic_split[n] + " .to. " + splitit[n] )
                                 if str(watchcomic_split[n].lower()) in str(splitit[n].lower()):
                                     #print ("word matched on : " + splitit[n])
@@ -353,13 +357,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #elif ':' in splitit[n] or '-' in splitit[n]:
                                 #    splitrep = splitit[n].replace('-', '')
                                 #    print ("non-character keyword...skipped on " + splitit[n])
-                                elif len(splitit[n]) < 3 or (splitit[n][1:]) == "v":
-                                    #print ("possible verisoning..checking")
-                                    #we hit a versioning # - account for it
-                                    if splitit[n][2:].isdigit():
-                                        comicversion = str(splitit[n])
-                                        #print ("version found:" + str(comicversion))
+                            elif str(splitit[n].lower()).startswith('v'):
+                                #print ("possible verisoning..checking")
+                                #we hit a versioning # - account for it
+                                if splitit[n][1:].isdigit():
+                                    comicversion = str(splitit[n])
+                                    #print ("version found:" + str(comicversion))
+
                             else:
+                                #print ("issue section")
                                 if splitit[n].isdigit():
                                     #print ("issue detected")
                                     comiss = splitit[n]
