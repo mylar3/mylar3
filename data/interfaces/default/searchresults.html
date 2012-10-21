@@ -26,8 +26,8 @@
 				%>
 				<tr class="grade${grade}">
 					<td id="blank"></td>
-					<td id="name"><a href="${result['url']}" title="${result['name']}">${result['name']}</a></td>
-                                        <td id="comicyear"><a href="${result['url']}" title="${result['comicyear']}">${result['comicyear']}</a></td>
+					<td id="name"><a href="${result['url']}" title="${result['name']}" target="_blank">${result['name']}</a></td>
+                                        <td id="comicyear">${result['comicyear']}</a></td>
 					<td id="issues">${result['issues']}</td>
 				%if type == 'album':	
 					<td id="add"><a href="addReleaseById?rid=${result['albumid']}"><span class="ui-icon ui-icon-plus"></span> Add this album</a></td>
