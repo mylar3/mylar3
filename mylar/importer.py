@@ -282,10 +282,10 @@ def addComictoDB(comicid,mismatch=None):
         #---END.NEW.
 
         # check if the issue already exists
-        iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid])
+        iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
 
-        # Only change the status & add DateAdded if the issue is not already in the database
-        if not len(iss_exists):
+        # Only change the status & add DateAdded if the issue is already in the database
+        if iss_exists is None:
             newValueDict['DateAdded'] = helpers.today()
 
         controlValueDict = {"IssueID":  issid}
@@ -302,6 +302,10 @@ def addComictoDB(comicid,mismatch=None):
             #    newValueDict['Status'] = "Wanted"
         else:
             newValueDict['Status'] = "Skipped"
+
+        if iss_exists:
+            #print ("Existing status : " + str(iss_exists['Status']))
+            newValueDict['Status'] = iss_exists['Status']     
 
         myDB.upsert("issues", newValueDict, controlValueDict)
         n+=1
@@ -566,6 +570,11 @@ def GCDimport(gcomicid):
             #    newValueDict['Status'] = "Wanted"
         else:
             newValueDict['Status'] = "Skipped"
+
+        if iss_exists:
+            #print ("Existing status : " + str(iss_exists['Status']))
+            newValueDict['Status'] = iss_exists['Status']
+
 
         myDB.upsert("issues", newValueDict, controlValueDict)
         bb+=1

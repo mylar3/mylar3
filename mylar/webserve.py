@@ -348,8 +348,11 @@ class WebInterface(object):
                 mvcontroldict = {"IssueID":    myissue['IssueID']}
                 mvvalues = {"ComicID":         myissue['ComicID'],
                             "Status":          "Wanted"}
-
                 myDB.upsert("issues", mvvalues, mvcontroldict)
+
+                #remove old entry from upcoming so it won't try to continually download again.
+                deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'],mvup['IssueNumber']])                                
+
 
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
     upcoming.exposed = True

@@ -49,23 +49,33 @@ def latest_update(ComicID, LatestIssue, LatestDate):
 def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     # here we add to upcoming table...
     myDB = db.DBConnection()
+
     controlValue = {"ComicID":      ComicID}
     newValue = {"ComicName":        str(ComicName),
                 "IssueNumber":      str(IssueNumber),
                 "IssueDate":        str(IssueDate)}
-    if mylar.AUTOWANT_UPCOMING:
-        newValue['Status'] = "Wanted"
-    else:
-        newValue['Status'] = "Skipped"
-    myDB.upsert("upcoming", newValue, controlValue)
+
+
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
-    if issuechk is None: 
-        pass
-        #print ("not released yet...")
+    if issuechk is None: pass
     else:
+        #print ("checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
+        #print ("existing status: " + str(issuechk['Status']))
         control = {"IssueID":   issuechk['IssueID']}
-        if mylar.AUTOWANT_UPCOMING: values = {"Status":   "Wanted"}
-        else: values = {"Status":    "Skipped"}
+        if mylar.AUTOWANT_UPCOMING:
+            newValue['Status'] = "Wanted"
+            values = { "Status":  "Wanted"}
+        if issuechk['Status'] == "Snatched":
+            values = { "Status":   "Snatched"}
+            newValue['Status'] = "Snatched"
+        elif issuechk['Status'] == "Downloaded":
+            values = { "Status":    "Downloaded"}
+            newValue['Status'] = "Downloaded"
+        else:
+            values = { "Status":    "Skipped"}
+            newValue['Status'] = "Skipped"
+
+        myDB.upsert("upcoming", newValue, controlValue)
         myDB.upsert("issues", values, control)
 
 
@@ -199,6 +209,8 @@ def forceRescan(ComicID):
             else:
                 if old_status == "Wanted": 
                     issStatus = "Wanted"
+                elif old_status == "Downloaded":
+                    issStatus = "Downloaded"
                 else: 
                     issStatus = "Skipped"
         elif haveissue == "yes":
