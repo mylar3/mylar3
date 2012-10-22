@@ -122,67 +122,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
         # ----
     return findit
 
-def RSS_Search(ComicName, IssueNumber):
-    #this all needs to be REDONE...#    
-    loopd = int(w-1)
-    ssab = []
-    ssabcount = 0
-    print ("--------RSS MATCHING-----------------")
-    for entry in d['entries']:
-        # test for comic name here
-        print loopd, entry['title']
-        #print kc[loopd]
-        #while (loopd > -1):
-        #    if str(kc[loopd]).lower() in str(entry['title'].lower()):
-        #print entry['title']
-            # more precision - let's see if it's a hit on issue as well
-            # Experimental process
-            # since we're comparing the watchlist titles to the rss feed (for more robust matching)
-
-            # the results will be 2nd/3rd variants, MR's, and comics on the watchlist but not necessarily 'NEW' rele$
-            # let's first compare watchlist to release list
-        incloop = int (tot -1)
-        while (incloop > -1):
-            #print ("Comparing " + str(entry['title']) + " - for - " + str(watchfnd[incloop]))
-            cleantitle = helpers.cleanName(entry['title'])
-            if str(watchfnd[incloop]).lower() in str(cleantitle).lower():
-                #print ("MATCHED - " + str(watchfnd[incloop]).lower())
-                if str(watchfndextra[incloop]).lower() is not None:
-                    if str(watchfndextra[incloop]).lower() not in str(cleantitle).lower():
-                        #print ("no extra matching - not a match")
-                        #print (watchfndextra[incloop].lower())
-                        break
-                # now we have a match on watchlist and on release list, let's check if the issue is the same
-                # on the feed and the releaselist
-                # we have to remove the # sign from the ki[array] field first
-                ki[incloop] = re.sub("\D", "", str(ki[incloop]))
-                if str(ki[incloop]) in str(cleantitle):
-                    print ("MATCH FOR DOWNLOAD!!\n    WATCHLIST: " + str(watchfnd[incloop]) + "\n    RLSLIST: " + str(kc[incloop]) + " ISSUE# " + str(ki[incloop]) + "\n    RSS: " + str(cleantitle))
-                        #let's do the DOWNLOAD and send to SABnzbd
-                        #this is for nzb.su - API LIMIT :(
-                    linkstart = os.path.splitext(entry['link'])[0]
-                        #following is JUST for nzb.su
-                    if nzbprov == 'nzb.su':
-                        linkit = os.path.splitext(entry['link'])[1]
-                        linkit = linkit.replace("&", "%26")
-                        thislink = str(linkstart) + str(linkit)
-                    else:
-                        # this should work for every other provider
-                        linkstart = linkstart.replace("&", "%26")
-                        thislink = str(linkstart)
-                    tmp = "http://192.168.2.2:8085/api?mode=addurl&name=" + str(thislink) + "&pp=3&cat=comics&apikey=" + str(SABAPI)
-                    print tmp
-                    ssab.append(str(watchfnd[incloop]))
-                    ssabcount+=1
-                    urlopen(tmp);
-                    # time.sleep(5)
-            incloop-=1
-                # - End of Experimental Process
-                #break
-            #loopd-=1
-    print ("snatched " + str(ssabcount) + " out of " + str(tot) + " comics via rss...")
-    return ssabcount
-
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix):
     logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " using " + str(nzbprov))
     if nzbprov == 'nzb.su':
@@ -225,7 +164,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     
     #print ("we need : " + str(findcomic[findcount]) + " issue: #" + str(findcomiciss[findcount]))
     # replace whitespace in comic name with %20 for api search
-    cm = re.sub(" ", "%20", str(findcomic[findcount]))
+    cm1 = re.sub(" ", "%20", str(findcomic[findcount]))
+    cm = re.sub("\&", "%26", str(cm1))
     #print (cmi)
     if len(str(findcomiciss[findcount])) == 1:
         cmloopit = 3
@@ -530,7 +470,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                         ComicNM = re.sub('[\:\,]', '', str(ComicName))
                                         renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
                                         renamethis = renameit.replace(' ', repchar)
-                                        renamer = renameit.replace(' ', repurlchar)
+                                        renamer1 = renameit.replace(' ', repurlchar)
+                                        renamer = re.sub("\&", "%26", str(renamer1))
                                         nzo_prio = str(mylar.SAB_HOST) + "/api?mode=queue&name=priority&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(sabpriority)
                                         urllib2.urlopen(nzo_prio);
                                         nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
