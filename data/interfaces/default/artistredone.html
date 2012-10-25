@@ -35,7 +35,6 @@
                  </h1>
 
 	</div>
-        <form action="configUpdate" method="post" class="form" id="configUpdate">
 	
 	<div id="tabs">
 		<ul>
@@ -55,7 +54,7 @@
                        </div>
                    </fieldset>
                      </td>
-                 <td id="maindetails">
+                 <td width="100%" padding="10">
                        %if comic['ComicPublisher'] == 'DC Comics':
                         <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50" />
                        %elif comic['ComicPublisher'] == 'Marvel':
@@ -96,7 +95,6 @@
             </tr>
         </table>
 	</div>
-       </form>	
 	<div id="tabs-2">
         <table class="comictable" summary="Download Settings">
 	    <tr>
@@ -107,7 +105,7 @@
                        </div>
                    </fieldset>
                   </td>
-                  <td id="maindetails">
+                  <td width="100%" padding="10">
                       %if comic['ComicPublisher'] == 'DC Comics':
                         <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50">
                        %elif comic['ComicPublisher'] == 'Marvel':
@@ -143,11 +141,11 @@
                 <td id="mainimg">
                    <fieldset>
                        <div class="row" id="artistImg">
-                          <img src="${comic['ComicImage']}" class="editArt" alt="" height="300" width="194"/>
+                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
                        </div>
                    </fieldset>
                  </td>
-                 <td id="maindetails">
+                 <td width="100%" padding="10">
                   %if comic['ComicPublisher'] == 'DC Comics':
                    <img src="interfaces/default/images/logo-dccomics.png" align="right" alt="DC" height="50" width="50"/>
                    %elif comic['ComicPublisher'] == 'Marvel':
@@ -163,12 +161,12 @@
                 <form action="comic_config" method="GET">
                 <input type="hidden" name="ComicID" value=${comic['ComicID']}>
                         <fieldset>
-                                <div class="row">
+                                <div>
                                    <label>Directory Location</label>
-                                   <input type="text" name="com_location" value="${comic['ComicLocation']}" size="50">
-                                   <small>the directory where all the comics are for this comic</small>
+                                   <input type="text" name="com_location" value="${comic['ComicLocation']}" size="75"><br/>
+                                <div class="row"><small>the directory where all the comics are located for this particular comic</small></div>
                                 </div>
-                                <div class="row">
+                                <div>
                                    <input type="submit" value="Update"/>
                                 </div>
                          </fieldset>
