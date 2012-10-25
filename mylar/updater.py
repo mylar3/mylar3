@@ -159,48 +159,57 @@ def forceRescan(ComicID):
     fccnt = int(fc['comiccount'])
     issnum = 1
     fcnew = []
-    n = 0
+    fn = 0
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
-    while (n <= iscnt):
+    while (fn < fccnt):  
+        haveissue = "no"
         try:
-            reiss = reissues[n]
+            tmpfc = fc['comiclist'][fn]
         except IndexError:
             break
-        int_iss = reiss['Int_IssueNumber']
-        old_status = reiss['Status']
-        fn = 0
-        haveissue = "no"
-        while (fn < fccnt):
-            try:
-                tmpfc = fc['comiclist'][fn]
-            except IndexError:            
-                break
-            temploc = tmpfc['ComicFilename'].replace('_', ' ')
-            temploc = re.sub('[\#\']', '', temploc)
-            if 'annual' not in temploc:               
-                fcnew = shlex.split(str(temploc))
-                fcn = len(fcnew)
+        temploc = tmpfc['ComicFilename'].replace('_', ' ')
+        temploc = re.sub('[\#\']', '', temploc)
+        if 'annual' not in temploc:
+            fcnew = shlex.split(str(temploc))
+            fcn = len(fcnew)
+            n = 0
+            while (n <= iscnt):
                 som = 0
-                #   this loop searches each word in the filename for a match.
+                try:
+                    reiss = reissues[n]
+                except IndexError:
+                    break
+                int_iss = reiss['Int_IssueNumber']
+                issyear = reiss['IssueDate'][:4]
+                old_status = reiss['Status']
+                
+                #print "integer_issue:" + str(int_iss) + " ... status: " + str(old_status)
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
+                    #print ("checking word - " + str(fcnew[som]))
                     if ".cbr" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbz", "")
                     if fcnew[som].isdigit():
+                        #print ("digit detected")
                         if int(fcnew[som]) > 0:
                             fcdigit = fcnew[som].lstrip('0')
                         else: fcdigit = "0"
                         if int(fcdigit) == int_iss:
+                            #if issyear in fcnew[som+1]: 
+                            #    print "matched on year:" + str(issyear)
+                            #print ("matched...")
                             havefiles+=1
                             haveissue = "yes"
                             isslocation = str(tmpfc['ComicFilename'])
                             break
+                            #else:
+                            # if the issue # matches, but there is no year present - still match.
+                            # determine a way to match on year if present, or no year (currently).
                     som+=1
-            else: pass
-            fn+=1
-            if haveissue == "yes": break
+                if haveissue == "yes": break
+                n+=1
         #we have the # of comics, now let's update the db.
         if haveissue == "no":
             isslocation = "None"
@@ -220,7 +229,7 @@ def forceRescan(ComicID):
                         "Status":             issStatus
                         }
         myDB.upsert("issues", newValueDict, controlValueDict)
-        n+=1
+        fn+=1
 
     #let's update the total count of comics that was found.
     controlValueStat = {"ComicID":     rescan['ComicID']}
