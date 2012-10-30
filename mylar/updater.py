@@ -275,6 +275,7 @@ def forceRescan(ComicID):
             #print "downlocation:" + str(down['Location'])
             comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
             if os.path.exists(comicpath):
+                pass
                 #print "Issue exists - no need to change status."
             else:
                 #print "Changing status from Downloaded to Archived - cannot locate file"
