@@ -84,7 +84,7 @@ def addComictoDB(comicid,mismatch=None):
     #--Now that we know ComicName, let's try some scraping
     #--Start
     # gcd will return issue details (most importantly publishing date)
-    if mismatch == "no":
+    if mismatch == "no" or mismatch is None:
         gcdinfo=parseit.GCDScraper(comic['ComicName'], comic['ComicYear'], comic['ComicIssues'], comicid) 
         mismatch_com = "no"
         if gcdinfo == "No Match":
@@ -123,7 +123,28 @@ def addComictoDB(comicid,mismatch=None):
                 comicdir = comicdir.replace('/','-')
         else: comicdir = comic['ComicName']
 
-        comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
+        series = comicdir
+        publisher = comic['ComicPublisher']
+        year = comic['ComicYear']
+
+        #do work to generate folder path
+
+        values = {'$Series':        series,
+                  '$Publisher': publisher,
+                  '$Year':      year
+                  }
+
+        #print mylar.FOLDER_FORMAT
+        #print 'working dir:'
+        #print helpers.replace_all(mylar.FOLDER_FORMAT, values)
+
+        if mylar.FOLDER_FORMAT == '':
+            comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
+        else:
+            comlocation = mylar.DESTINATION_DIR + "/" + helpers.replace_all(mylar.FOLDER_FORMAT, values)
+
+
+        #comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
         if mylar.DESTINATION_DIR == "":
             logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
             return
@@ -254,10 +275,14 @@ def addComictoDB(comicid,mismatch=None):
                 updater.no_searchresults(comicid)
                 return
             elif '.' in str(gcdval['GCDIssue']):
+                #print ("g-issue:" + str(gcdval['GCDIssue']))
                 issst = str(gcdval['GCDIssue']).find('.')
+                #print ("issst:" + str(issst))
                 issb4dec = str(gcdval['GCDIssue'])[:issst]
+                #print ("issb4dec:" + str(issb4dec))
                 #if the length of decimal is only 1 digit, assume it's a tenth
                 decis = str(gcdval['GCDIssue'])[issst+1:]
+                #print ("decis:" + str(decis))
                 if len(decis) == 1:
                     decisval = int(decis) * 10
                     issaftdec = str(decisval)
@@ -265,6 +290,7 @@ def addComictoDB(comicid,mismatch=None):
                     decisval = int(decis)
                     issaftdec = str(decisval)
                 gcd_issue = issb4dec + "." + issaftdec
+                #print ("gcd_issue:" + str(gcd_issue))
                 gcdis = (int(issb4dec) * 1000) + decisval
             else:
                 gcdis = int(str(gcdval['GCDIssue'])) * 1000

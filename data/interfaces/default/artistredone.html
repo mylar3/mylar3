@@ -50,7 +50,7 @@
                 <td id="mainimg">
                    <fieldset>
                        <div id="artistImg">
-                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                          <img src="${comic['ComicImage']}" alt="" height="400" width="263" />
                        </div>
                    </fieldset>
                      </td>
@@ -101,7 +101,7 @@
                 <td id="mainimg">
                    <fieldset>
                        <div id="artistImg">
-                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                          <img src="${comic['ComicImage']}" alt="" height="400" width="263" />
                        </div>
                    </fieldset>
                   </td>
@@ -141,7 +141,7 @@
                 <td id="mainimg">
                    <fieldset>
                        <div class="row" id="artistImg">
-                          <img src="${comic['ComicImage']}" class="editArt" alt="" />
+                          <img src="${comic['ComicImage']}" alt="" height="400" width="263" />
                        </div>
                    </fieldset>
                  </td>
@@ -163,7 +163,7 @@
                         <fieldset>
                                 <div>
                                    <label>Directory Location</label>
-                                   <input type="text" name="com_location" value="${comic['ComicLocation']}" size="75"><br/>
+                                   <input type="text" name="com_location" value="${comic['ComicLocation']}" size="60"><br/>
                                 <div class="row"><small>the directory where all the comics are located for this particular comic</small></div>
                                 </div>
                                 <div>
@@ -185,6 +185,7 @@
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
                         <option value="Downloaded">Downloaded</option>
+                        <option value="Archived">Archived</option>
                 </select>
                 selected issues
                 <input type="hidden" value="Go">

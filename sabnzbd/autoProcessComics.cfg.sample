@@ -1,0 +1,7 @@
+[Mylar]
+host=localhost
+port=8090
+username=
+password=
+web_root=
+ssl=0

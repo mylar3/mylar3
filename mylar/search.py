@@ -36,7 +36,7 @@ import urllib2
 
 from datetime import datetime
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID):
     if ComicYear == None: ComicYear = '2012'
     else: ComicYear = str(ComicYear)[:4]
     ##nzb provider selection##
@@ -70,13 +70,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
         if nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 break
             else:
                 if IssDateFix == "yes":
                     logger.info(u"Hang on - this issue was published between /NovDec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
             nzbpr-=1
@@ -88,13 +88,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
             #--LATER ?search.rss_find = RSS_SEARCH(ComicName, IssueNumber)
             #if rss_find == 0:
             nzbprov = 'nzb.su'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 break
             else:
                 if IssDateFix == "yes":
                     logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
 
@@ -107,13 +107,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
             #d = feedparser.parse("http://dognzb.cr/rss.cfm?r=" + str(dognzb_APIkey) + "&t=7030&num=100")
             #RSS_SEARCH(ComicName, IssueNumber)
             nzbprov = 'dognzb'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 break
             else:
                 if IssDateFix == "yes":
                     logger.info(u"Hang on - this issue was published between Dec/Jan of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
 
@@ -122,7 +122,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate):
         # ----
     return findit
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix):
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID):
     logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " using " + str(nzbprov))
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
@@ -215,6 +215,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     #print ("Entry:" + str(entry['title']))
                     cleantitle = re.sub('_', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
+                    nzbname = cleantitle
+
                     #print ("cleantitle:" + str(cleantitle))
                     if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"                      
                     if done:
@@ -356,25 +358,44 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             else:
                                 tmppath = mylar.CACHE_DIR
                                 if os.path.exists(tmppath):
-                                    filenamenzb = os.path.split(linkapi)[1]
-                                    #filenzb = os.path.join(tmppath,filenamenzb)
-                                    if nzbprov == 'nzb.su':
-                                        filenzb = linkstart[21:]
-                                    if nzbprov == 'experimental':
-                                        filenzb = filenamenzb[6:]
-                                    if nzbprov == 'dognzb':
-                                        filenzb = str(filenamenzb)
-                                    savefile = str(tmppath) + "/" + str(filenzb) + ".nzb"
+                                    pass
                                 else:
                                 #let's make the dir.
                                     try:
                                         os.makedirs(str(mylar.CACHE_DIR))
                                         logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
-                                        savefile = str(mylar.CACHE_DIR) + "/" + str(filenzb) + ".nzb"
 
                                     except OSError.e:
                                         if e.errno != errno.EEXIST:
                                             raise
+
+                                filenamenzb = os.path.split(linkapi)[1]
+                                #filenzb = os.path.join(tmppath,filenamenzb)
+                                if nzbprov == 'nzb.su':
+                                    filenzb = linkstart[21:]
+                                elif nzbprov == 'experimental':
+                                    filenzb = filenamenzb[6:]
+                                elif nzbprov == 'dognzb':
+                                    filenzb = str(filenamenzb)
+
+                                if mylar.RENAME_FILES == 1:
+                                    filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
+                                    if mylar.REPLACE_SPACES:
+                                        repchar = mylar.REPLACE_CHAR
+                                        repurlchar = mylar.REPLACE_CHAR
+                                    else:
+                                        repchar = ' '
+                                        repurlchar = "%20"
+                                    #let's make sure there's no crap in the ComicName since it's O.G.
+                                    ComicNM = re.sub('[\:\,]', '', str(ComicName))
+                                    renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
+                                    renamethis = renameit.replace(' ', repchar)
+                                    renamer1 = renameit.replace(' ', repurlchar)
+                                    renamer = re.sub("\&", "%26", str(renamer1))
+
+                                savefile = str(tmppath) + "/" + str(filenzb) + ".nzb"
+                                print "savefile:" + str(savefile)
+
                                 try:
                                     urllib.urlretrieve(linkapi, str(savefile))                                
                                 except urllib.URLError:
@@ -386,30 +407,34 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     continue
 
                                 logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
+                                nzbname = str(filenzb)
+                                print "nzbname:" + str(nzbname)
+# NOT NEEDED ANYMORE.
 								#print (str(mylar.RENAME_FILES))
 								
 								#check sab for current pause status
-                                sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-                                file = urllib2.urlopen(sabqstatusapi);
-                                data = file.read()
-                                file.close()
-                                dom = parseString(data)
-                                for node in dom.getElementsByTagName('paused'):
-									pausestatus = node.firstChild.wholeText
+#                                sabqstatusapi = str(mylar.SAB_HOST) + "/api?mode=qstatus&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+#                                file = urllib2.urlopen(sabqstatusapi);
+#                                data = file.read()
+#                                file.close()
+#                                dom = parseString(data)
+#                                for node in dom.getElementsByTagName('paused'):
+#									pausestatus = node.firstChild.wholeText
 									#print pausestatus
-                                if pausestatus != 'True':
+#                                if pausestatus != 'True':
 									#pause sab first because it downloads too quick (cbr's are small!)
-                                    pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
-                                    urllib2.urlopen(pauseapi);
+#                                    pauseapi = str(mylar.SAB_HOST) + "/api?mode=pause&apikey=" + str(mylar.SAB_APIKEY)
+#                                    urllib2.urlopen(pauseapi);
                                     #print "Queue paused"
                                 #else:
                                     #print "Queue already paused"
-                                
+# END OF NOT NEEDED.                                
                                 if mylar.RENAME_FILES == 1:
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
                                 else:
                                     tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-                                time.sleep(5)
+#                               time.sleep(5)
+                                print "send-to-SAB:" + str(tmpapi)
                                 try:
                                     urllib2.urlopen(tmpapi)
                                 except urllib2.URLError:
@@ -417,70 +442,65 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     return
 
                                 logger.info(u"Successfully sent nzb file to SABnzbd")
-                                if mylar.RENAME_FILES == 1:
+#---NOT NEEDED ANYMORE.
+#                                if mylar.RENAME_FILES == 1:
                                     #let's give it 5 extra seconds to retrieve the nzb data...
 
-                                    time.sleep(5)
+#                                    time.sleep(5)
                               
-                                    outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-                                    urllib2.urlopen(outqueue);
-                                    time.sleep(5)
+#                                    outqueue = str(mylar.SAB_HOST) + "/api?mode=queue&start=START&limit=LIMIT&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+#                                    urllib2.urlopen(outqueue);
+#                                    time.sleep(5)
                                 #<slots><slot><filename>.nzb filename
                                 #chang nzbfilename to include series(SAB will auto rename based on this)
                                 #api?mode=queue&name=rename&value=<filename_nzi22ks>&value2=NEWNAME
-                                    file = urllib2.urlopen(outqueue);
-                                    data = file.read()
-                                    file.close()
-                                    dom = parseString(data)
-                                    queue_slots = dom.getElementsByTagName('filename')
-                                    queue_cnt = len(queue_slots)
+#                                    file = urllib2.urlopen(outqueue);
+#                                    data = file.read()
+#                                    file.close()
+#                                    dom = parseString(data)
+#                                    queue_slots = dom.getElementsByTagName('filename')
+#                                    queue_cnt = len(queue_slots)
                                     #print ("there are " + str(queue_cnt) + " things in SABnzbd's queue")
-                                    que = 0
-                                    slotmatch = "no"
-                                    for queue in queue_slots:
+#                                    que = 0
+#                                    slotmatch = "no"
+#                                    for queue in queue_slots:
                                     #retrieve the first xml tag (<tag>data</tag>)
                                     #that the parser finds with name tagName:
-                                        queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
-                                        while ('Trying to fetch NZB' in queue_file):
+#                                        queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
+#                                        while ('Trying to fetch NZB' in queue_file):
                                             #let's keep waiting until nzbname is resolved by SABnzbd
-                                            time.sleep(5)
-                                            file = urllib2.urlopen(outqueue);
-                                            data = file.read()
-                                            file.close()
-                                            dom = parseString(data)
-                                            queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
+#                                            time.sleep(5)
+#                                            file = urllib2.urlopen(outqueue);
+#                                            data = file.read()
+#                                            file.close()
+#                                            dom = parseString(data)
+#                                            queue_file = dom.getElementsByTagName('filename')[que].firstChild.wholeText
                                         #print ("queuefile:" + str(queue_file))
                                         #print ("filenzb:" + str(filenzb))                              
-                                        queue_file = queue_file.replace("_", " ")
-                                        if str(queue_file) in str(filenzb):
+#                                        queue_file = queue_file.replace("_", " ")
+#                                        if str(queue_file) in str(filenzb):
                                             #print ("matched")
-                                            slotmatch = "yes"
-                                            slot_nzoid = dom.getElementsByTagName('nzo_id')[que].firstChild.wholeText
+#                                            slotmatch = "yes"
+#                                            slot_nzoid = dom.getElementsByTagName('nzo_id')[que].firstChild.wholeText
                                             #print ("slot_nzoid: " + str(slot_nzoid))
-                                            break
-                                        que+=1
-                                    if slotmatch == "yes":
-                                        if mylar.REPLACE_SPACES:
-                                            repchar = mylar.REPLACE_CHAR
-                                            repurlchar = mylar.REPLACE_CHAR
-                                        else:
-                                            repchar = ' '
-                                            repurlchar = "%20"
-                                        #let's make sure there's no crap in the ComicName since it's O.G.
-                                        ComicNM = re.sub('[\:\,]', '', str(ComicName))
-                                        renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
-                                        renamethis = renameit.replace(' ', repchar)
-                                        renamer1 = renameit.replace(' ', repurlchar)
-                                        renamer = re.sub("\&", "%26", str(renamer1))
-                                        nzo_prio = str(mylar.SAB_HOST) + "/api?mode=queue&name=priority&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(sabpriority)
-                                        urllib2.urlopen(nzo_prio);
-                                        nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
-                                        urllib2.urlopen(nzo_ren);
-                                        logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renamethis))
+#                                            break
+#                                        que+=1
+#                                    if slotmatch == "yes":
+#--start - this is now broken - SAB Priority.
+#
+#                                        nzo_prio = str(mylar.SAB_HOST) + "/api?mode=queue&name=priority&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(sabpriority)
+#                                        urllib2.urlopen(nzo_prio);
+#
+#--end
+#                                        nzo_ren = str(mylar.SAB_HOST) + "/api?mode=queue&name=rename&apikey=" + str(mylar.SAB_APIKEY) + "&value=" + str(slot_nzoid) + "&value2=" + str(renamer)
+#                                        urllib2.urlopen(nzo_ren);
+#                                        logger.info(u"Renamed nzb file in SABnzbd queue to : " + str(renamethis))
+#---END OF NOT NEEDED.
                                         #delete the .nzb now.
-                                        #delnzb = str(mylar.PROG_DIR) + "/" + str(filenzb) + ".nzb"
-                                        #if mylar.PROG_DIR is not "/":
-                                             #os.remove(delnzb)
+                                if mylar.PROG_DIR is not "/":
+                                    os.remove(savefile)
+                                    logger.info(u"Removed temporary save file")
+#--- NOT NEEDED.
                                             #we need to track nzo_id to make sure finished downloaded with SABnzbd.
                                             #controlValueDict = {"nzo_id":      str(slot_nzoid)}
                                             #newValueDict = {"ComicName":       str(ComicName),
@@ -490,15 +510,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                             #print ("updating SABLOG")
                                             #myDB = db.DBConnection()
                                             #myDB.upsert("sablog", newValueDict, controlValueDict)
-                                    else: logger.info(u"Couldn't locate file in SAB - are you sure it's being downloaded?")
+#                                    else: logger.info(u"Couldn't locate file in SAB - are you sure it's being downloaded?")
                                 #resume sab if it was running before we started
-                                if pausestatus != 'True':
+#                                if pausestatus != 'True':
                                     #let's unpause queue now that we did our jobs.
-                                    resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
-                                    urllib2.urlopen(resumeapi);
+#                                    resumeapi = str(mylar.SAB_HOST) + "/api?mode=resume&apikey=" + str(mylar.SAB_APIKEY)
+#                                    urllib2.urlopen(resumeapi);
                                 #else:
 									#print "Queue already paused"
-
+#--- END OF NOT NEEDED.
                             #raise an exception to break out of loop
                             foundc = "yes"
                             done = True
@@ -510,7 +530,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             cmloopit-=1
         findloop+=1
         if foundc == "yes":
+            print ("found-yes")
             foundcomic.append("yes")
+            updater.nzblog(IssueID, nzbname)
             break
         elif foundc == "no" and nzbpr <> 0:
             logger.info(u"More than one search provider given - trying next one.")
@@ -543,7 +565,7 @@ def searchforissue(issueid=None, new=False):
                 ComicYear = str(result['IssueDate'])[:4]
 
             if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate)
+                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'])
                     if foundNZB == "yes": 
                         #print ("found!")
                         updater.foundsearch(result['ComicID'], result['IssueID'])
@@ -563,7 +585,7 @@ def searchforissue(issueid=None, new=False):
 
         foundNZB = "none"
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate)
+            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'])
             if foundNZB == "yes":
                 #print ("found!")
                 updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'])
@@ -584,7 +606,7 @@ def searchIssueIDList(issuelist):
         else:
             ComicYear = str(issue['IssueDate'])[:4]
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'])
+                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'])
                 if foundNZB == "yes":
                     #print ("found!")
                     updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'])

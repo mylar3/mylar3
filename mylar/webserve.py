@@ -25,7 +25,7 @@ import threading
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor
 #from mylar.helpers import checked, radio, today
 
 import lib.simplejson as simplejson
@@ -158,6 +158,16 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % gcomicid)
     GCDaddComic.exposed = True
 
+    def post_process(self, nzb_name, nzb_folder):
+        logger.info(u"Starting postprocessing for : " + str(nzb_name) )
+        result = PostProcessor.PostProcess(nzb_name, nzb_folder)
+        #result = post_results.replace("\n","<br />\n")
+        return result
+        #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
+        #return serve_template(templatename="postprocess.html", title="postprocess")
+        #raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+    post_process.exposed = True
+
     def pauseArtist(self, ComicID):
         logger.info(u"Pausing comic: " + ComicID)
         myDB = db.DBConnection()
@@ -211,6 +221,7 @@ class WebInterface(object):
     def markissues(self, action=None, **args):
         myDB = db.DBConnection()
         issuesToAdd = []
+        issuestoArchive = []
         if action == 'WantedNew':
             newaction = 'Wanted'
         else:
@@ -220,14 +231,25 @@ class WebInterface(object):
             else:
                 mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
                 miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
-                logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
+                if action == 'Downloaded':
+                    if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
+                        logger.info(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
+                        continue
+                elif action == 'Archived':
+                    logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
+                    #updater.forceRescan(mi['ComicID'])
+                    issuestoArchive.append(IssueID)
+                elif action == 'Wanted':
+                    logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
+                    issuesToAdd.append(IssueID)
+
                 controlValueDict = {"IssueID": IssueID}
                 newValueDict = {"Status": newaction}
                 myDB.upsert("issues", newValueDict, controlValueDict)
-                if action == 'Wanted':
-                    issuesToAdd.append(IssueID)
+        if len(issuestoArchive) > 0:
+            updater.forceRescan(mi['ComicID'])
         if len(issuesToAdd) > 0:
-            logger.debug("Marking issues: %s" % issuesToAdd)
+            logger.debug("Marking issues: %s as Wanted" % issuesToAdd)
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
         #if IssueID:
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % mi['ComicID'])
@@ -258,7 +280,7 @@ class WebInterface(object):
             ComicYear = str(cyear['SHIPDATE'])[:4]
             if ComicYear == '': ComicYear = "2012"
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, IssueDate=cyear['SHIPDATE'])
+            foundcom = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, IssueDate=cyear['SHIPDATE'], IssueID=IssueID)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
             return
@@ -278,7 +300,7 @@ class WebInterface(object):
             ComicYear = str(issues['IssueDate'])[:4]
         miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         SeriesYear = miyr['ComicYear']
-        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'])
+        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -461,7 +483,7 @@ class WebInterface(object):
                     "http_user" : mylar.HTTP_USERNAME,
                     "http_port" : mylar.HTTP_PORT,
                     "http_pass" : mylar.HTTP_PASSWORD,
-                    "launch_browser" : mylar.LAUNCH_BROWSER,
+                    "launch_browser" : helpers.checked(mylar.LAUNCH_BROWSER),
                     "download_scan_interval" : mylar.DOWNLOAD_SCAN_INTERVAL,
                     "nzb_search_interval" : mylar.SEARCH_INTERVAL,
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
@@ -497,6 +519,8 @@ class WebInterface(object):
                     "rename_files" : helpers.checked(mylar.RENAME_FILES),
                     "folder_format" : mylar.FOLDER_FORMAT,
                     "file_format" : mylar.FILE_FORMAT,
+                    "zero_level" : helpers.checked(mylar.ZERO_LEVEL),
+                    "zero_level_n" : mylar.ZERO_LEVEL_N,
                     "log_dir" : mylar.LOG_DIR
                }
         return serve_template(templatename="config.html", title="Settings", config=config)  
@@ -520,7 +544,7 @@ class WebInterface(object):
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None,
-        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, interface=None):
+        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, zero_level=0, zero_level_n=None, interface=None):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -553,6 +577,8 @@ class WebInterface(object):
         mylar.RENAME_FILES = rename_files
         mylar.REPLACE_SPACES = replace_spaces
         mylar.REPLACE_CHAR = replace_char
+        mylar.ZERO_LEVEL = zero_level
+        mylar.ZERO_LEVEL_N = zero_level_n
         mylar.FOLDER_FORMAT = folder_format
         mylar.FILE_FORMAT = file_format
         mylar.DESTINATION_DIR = destination_dir

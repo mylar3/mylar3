@@ -101,6 +101,8 @@ FOLDER_FORMAT = None
 FILE_FORMAT = None
 REPLACE_SPACES = False
 REPLACE_CHAR = None
+ZERO_LEVEL = False
+ZERO_LEVEL_N = None
 
 AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
@@ -186,7 +188,7 @@ def initialize():
         global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
-                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, \
+                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
@@ -243,6 +245,8 @@ def initialize():
         BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
         REPLACE_SPACES = bool(check_setting_int(CFG, 'General', 'replace_spaces', 0))
         REPLACE_CHAR = check_setting_str(CFG, 'General', 'replace_char', '')
+        ZERO_LEVEL = bool(check_setting_int(CFG, 'General', 'zero_level', 0))
+        ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
 
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
@@ -451,7 +455,8 @@ def config_write():
     new_config['General']['blackhole_dir'] = BLACKHOLE_DIR
     new_config['General']['replace_spaces'] = int(REPLACE_SPACES)
     new_config['General']['replace_char'] = REPLACE_CHAR
-
+    new_config['General']['zero_level'] = int(ZERO_LEVEL)
+    new_config['General']['zero_level_n'] = ZERO_LEVEL_N
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_host'] = SAB_HOST
@@ -515,10 +520,11 @@ def dbcheck():
 
     c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT)')
-    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+#    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
 
     #new
     c.execute('DROP TABLE IF EXISTS exceptions')

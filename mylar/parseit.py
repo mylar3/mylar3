@@ -304,11 +304,15 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             #however, if ONLY alternate covers exist of an issue it won't work.
             #let's use the FIRST record, and ignore all other covers for the given issue.
             isschk = ParseIssue[:isslen]
-            #check if decimal exists or not, and store decimal results
+            #check if decimal or '1/2' exists or not, and store decimal results
             if '.' in isschk:
                 isschk_find = isschk.find('.')
                 isschk_b4dec = isschk[:isschk_find]
                 isschk_decval = isschk[isschk_find+1:]
+            elif '/' in isschk:
+                ParseIssue = "0.50"
+                isslen = 0
+                halfchk = "yes"
             else:
                 isschk_decval = ".00"
 
@@ -334,22 +338,28 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     altcount = 1
                     ParseIssue = str(isschk) + isschk_decval
             else:
-                ParseIssue = ParseIssue + isschk_decval
+                if halfchk == "yes": pass
+                else: 
+                    ParseIssue = ParseIssue + isschk_decval
                 #print ("no alt.cover detected for - " + str(ParseIssue))
                 altcount = 1
             if (altcount == 1):
                 # in order to get the compare right, let's decimialize the string to '.00'.
                 gcdinfo['ComicIssue'] = ParseIssue
+                #print "Issue: " + str(ParseIssue)
                 #^^ will retrieve issue
                 #if datetype == "on-sale":
                 subtxt1 = parsed('td')[2]
                 ParseDate = subtxt1.findNext(text=True)
                 pdlen = len(ParseDate)
+                #print "sale-date..ParseDate:" + str(ParseDate)
                 #print ("Parsed Date length: " + str(pdlen))
                 if len(ParseDate) < 7:
-                    subtxt1 = parsed.find("td")
-                    ParseDate = subtxt1.findNext(text=True)               
+                    subtxt3 = parsed('td')[0]
+                    ParseDate = subtxt3.findNext(text=True)               
+                    #print "pub-date..ParseDate:" + str(ParseDate)
                     if ParseDate == ' ':
+                        #default to empty so doesn't error out.
                         ParseDate = "0000-00-00"
                 #ParseDate = ParseDate.replace('?','')
                 ParseDate = ParseDate.replace(' ','')

@@ -66,7 +66,10 @@ def GetComicInfo(comicid,dom):
     #comicvine isn't as up-to-date with issue counts..
     #so this can get really buggered, really fast.
     tracks = dom.getElementsByTagName('issue')
-    cntit = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+    try:
+        cntit = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+    except:
+        cntit = len(tracks)
     trackcnt = len(tracks)
     # if the two don't match, use trackcnt as count_of_issues might be not upto-date for some reason
     if int(trackcnt) != int(cntit):

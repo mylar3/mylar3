@@ -18,6 +18,7 @@ from xml.dom.minidom import parseString
 import urllib2
 import shlex
 import re 
+import os
 
 import mylar
 from mylar import db, logger, helpers, filechecker
@@ -102,6 +103,14 @@ def no_searchresults(ComicID):
     newValue = {"Status":       "Error"}    
     myDB.upsert("comics", newValue, controlValue)
 
+def nzblog(IssueID, NZBName):
+    myDB = db.DBConnection()
+    controlValue = {"IssueID": IssueID}
+    print controlValue
+    newValue = {"NZBName": NZBName}
+    print newValue
+    myDB.upsert("nzblog", newValue, controlValue)
+
 def foundsearch(ComicID, IssueID):
     myDB = db.DBConnection()
     #print ("Updater-ComicID: " + str(ComicID))
@@ -161,6 +170,12 @@ def forceRescan(ComicID):
     fcnew = []
     fn = 0
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
+    # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
+    # the loop below won't work...let's adjust :)
+    arcissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
+    if len(arcissues) > 0:
+        havefiles = len(arcissues)
+        print "have count adjusted to:" + str(len(arcissues))
     while (fn < fccnt):  
         haveissue = "no"
         try:
@@ -194,12 +209,14 @@ def forceRescan(ComicID):
                     if fcnew[som].isdigit():
                         #print ("digit detected")
                         if int(fcnew[som]) > 0:
-                            fcdigit = fcnew[som].lstrip('0')
-                        else: fcdigit = "0"
+                            # fcdigit = fcnew[som].lstrip('0')
+                            fcdigit = str(int(fcnew[som]))
+                        else: 
+                            fcdigit = "0"
                         if int(fcdigit) == int_iss:
                             #if issyear in fcnew[som+1]: 
                             #    print "matched on year:" + str(issyear)
-                            #print ("matched...")
+                            #print ("matched...issue: " + str(fcdigit) + " --- " + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
                             isslocation = str(tmpfc['ComicFilename'])
@@ -211,17 +228,25 @@ def forceRescan(ComicID):
                 if haveissue == "yes": break
                 n+=1
         #we have the # of comics, now let's update the db.
+        #even if we couldn't find the physical issue, check the status.
+        #if Archived, increase the 'Have' count.
         if haveissue == "no":
             isslocation = "None"
-            if mylar.AUTOWANT_ALL:
+            if old_status == "Skipped":
+                if mylar.AUTOWANT_ALL:
+                    issStatus = "Wanted"
+                else:
+                    issStatus = "Skipped"
+            elif old_status == "Archived":
+                havefiles+=1
+                issStatus = "Archived"
+            elif old_status == "Downloaded":
+                issStatus = "Archived"
+                havefiles+=1
+            elif old_status == "Wanted":
                 issStatus = "Wanted"
             else:
-                if old_status == "Wanted": 
-                    issStatus = "Wanted"
-                elif old_status == "Downloaded":
-                    issStatus = "Downloaded"
-                else: 
-                    issStatus = "Skipped"
+                issStatus = "Skipped"
         elif haveissue == "yes":
             issStatus = "Downloaded"
         controlValueDict = {"IssueID":  reiss['IssueID']}
@@ -238,5 +263,23 @@ def forceRescan(ComicID):
 
     myDB.upsert("comics", newValueStat, controlValueStat)
     logger.info(u"I've found " + str(havefiles) + " / " + str(rescan['Total']) + " issues." )
+
+    #now that we are finished...
+    #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
+    #do it here, because above loop only cycles though found comics using filechecker.
+    downissues = myDB.action("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID]).fetchall()
+    if downissues is None:
+        pass
+    else:
+        for down in downissues:
+            #print "downlocation:" + str(down['Location'])
+            comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
+            if os.path.exists(comicpath):
+                #print "Issue exists - no need to change status."
+            else:
+                #print "Changing status from Downloaded to Archived - cannot locate file"
+                controlValue = {"IssueID":   down['IssueID']}
+                newValue = {"Status":    "Archived"}
+                myDB.upsert("issues", newValue, controlValue) 
 
     return
