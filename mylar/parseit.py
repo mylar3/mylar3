@@ -305,6 +305,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             #let's use the FIRST record, and ignore all other covers for the given issue.
             isschk = ParseIssue[:isslen]
             #check if decimal or '1/2' exists or not, and store decimal results
+            halfchk = "no"
             if '.' in isschk:
                 isschk_find = isschk.find('.')
                 isschk_b4dec = isschk[:isschk_find]
@@ -428,8 +429,11 @@ def GCDAdd(gcdcomicid):
         #covers end
         #publisher start
         pubst = soup.find("div", {"class" : "item_data"})
-        subpubst = pubst('a')[0]
-        publisher = subpubst.findNext(text=True)
+        try:
+            subpubst = pubst('a')[0]
+            publisher = subpubst.findNext(text=True)
+        except IndexError,TypeError:
+            publisher = "Unknown"
         #print ("Publisher: " + str(publisher))
         #publisher end
         parsed = soup.find("div", {"id" : "series_data"})
