@@ -115,12 +115,14 @@ def addComictoDB(comicid,mismatch=None):
     # setup default location here
 
     if comlocation is None:
-        if ':' in comic['ComicName'] or '/' in comic['ComicName']:
+        if ':' in comic['ComicName'] or '/' in comic['ComicName'] or ',' in comic['ComicName']:
             comicdir = comic['ComicName']
             if ':' in comicdir:
                 comicdir = comicdir.replace(':','')
             if '/' in comicdir:
                 comicdir = comicdir.replace('/','-')
+            if ',' in comicdir:
+                comicdir = comicdir.replace(',','')
         else: comicdir = comic['ComicName']
 
         series = comicdir
@@ -445,13 +447,14 @@ def GCDimport(gcomicid):
     #comic book location on machine
     # setup default location here
     if comlocation is None:
-        if ':' in ComicName or '/' in ComicName:
+        if ':' in ComicName or '/' in ComicName or ',' in ComicName:
             comicdir = ComicName
             if ':' in comicdir:
                 comicdir = comicdir.replace(':','')
             if '/' in comicdir:
                 comicdir = comicdir.replace('/','-')
-            
+            if ',' in comicdir:
+                comicdir = comicdir.replace(',','')            
         else: comicdir = ComicName
         comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
         if mylar.DESTINATION_DIR == "":
@@ -568,11 +571,11 @@ def GCDimport(gcomicid):
         #---END.NEW.
 
         # check if the issue already exists
-        iss_exists = myDB.select('SELECT * from issues WHERE IssueID=?', [issid])
+        iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
 
 
         # Only change the status & add DateAdded if the issue is not already in the database
-        if not len(iss_exists):
+        if iss_exists is None:
             newValueDict['DateAdded'] = helpers.today()
 
         #adjust for inconsistencies in GCD date format - some dates have ? which borks up things.
