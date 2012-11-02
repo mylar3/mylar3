@@ -45,7 +45,7 @@ def PostProcess(nzb_name, nzb_folder):
         issueno = str(issuenum).split('.')[0]
         log2screen = log2screen + "Issue Number: " + str(issueno) + "\n"
         # issue zero-suppression here
-        if mylar.ZERO_LEVEL is None: 
+        if mylar.ZERO_LEVEL == "0": 
             zeroadd = ""
         else:
             if mylar.ZERO_LEVEL_N  == "none": zeroadd = ""
