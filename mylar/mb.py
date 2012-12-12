@@ -28,7 +28,7 @@ mb_lock = threading.Lock()
 
 
 def pullsearch(comicapi,comicquery,offset):
-    PULLURL='http://api.comicvine.com/search?api_key=' + str(comicapi) + '&resources=volume&query=' + str(comicquery) + '&field_list=id,name,description,start_year,site_detail_url,count_of_issues,image&format=xml&offset=' + str(offset)
+    PULLURL='http://api.comicvine.com/search?api_key=' + str(comicapi) + '&resources=volume&query=' + str(comicquery) + '&field_list=id,name,description,start_year,site_detail_url,count_of_issues,image,publisher&format=xml&offset=' + str(offset)
 
     #all these imports are standard on most modern python implementations
     #download the file:
@@ -56,7 +56,7 @@ def findComic(name, mode, issue):
     offset = 20
 
     #let's find out how many results we get from the query...    
-    searched = pullsearch(comicapi,comicquery,offset)
+    searched = pullsearch(comicapi,comicquery,0)
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
     #print ("there are " + str(totalResults) + " search results...")
     if not totalResults:
@@ -64,8 +64,9 @@ def findComic(name, mode, issue):
     countResults = 0
     while (countResults < totalResults):
         #print ("querying " + str(countResults))
-        searched = pullsearch(comicapi,comicquery,countResults)
-        comicResults = searched.getElementsByTagName('name')
+        if countResults > 0:
+            searched = pullsearch(comicapi,comicquery,countResults)
+        comicResults = searched.getElementsByTagName('volume')
         body = ''
         n = 0        
         if not comicResults:
@@ -73,20 +74,25 @@ def findComic(name, mode, issue):
         for result in comicResults:
                 #retrieve the first xml tag (<tag>data</tag>)
                 #that the parser finds with name tagName:
-                xmlcnt = searched.getElementsByTagName('count_of_issues')[n].firstChild.wholeText
+                xmlcnt = result.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
                 #here we can determine what called us, and either start gathering all issues or just limited ones.
                 #print ("n: " + str(n) + "--xmcnt" + str(xmlcnt))
                 if issue is not None: limiter = int(issue)
                 else: limiter = 0
                 if int(xmlcnt) >= limiter:
-                    xmlTag = searched.getElementsByTagName('name')[n].firstChild.wholeText
-                    if (searched.getElementsByTagName('start_year')[n].firstChild) is not None:
-                        xmlYr = searched.getElementsByTagName('start_year')[n].firstChild.wholeText
+                    xmlTag = result.getElementsByTagName('name')[0].firstChild.wholeText
+                    if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
+                        xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                     else: xmlYr = "0000"
-                    xmlurl = searched.getElementsByTagName('site_detail_url')[n].firstChild.wholeText
-                    xmlid = searched.getElementsByTagName('id')[n].firstChild.wholeText
-                    if (searched.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
-                        xmlimage = searched.getElementsByTagName('super_url')[n].firstChild.wholeText
+                    xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
+                    xmlid = result.getElementsByTagName('id')[0].firstChild.wholeText
+                    publishers = result.getElementsByTagName('publisher')
+                    if len(publishers) > 0:
+                        pubnames = publishers[0].getElementsByTagName('name')
+                        if len(pubnames) >0:
+                            xmlpub = pubnames[0].firstChild.wholeText
+                    if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
+                        xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
                     else:
                         xmlimage = "cache/blankcover.jpg"            
                     comiclist.append({
@@ -95,7 +101,8 @@ def findComic(name, mode, issue):
                             'comicid':                xmlid,
                             'url':                 xmlurl,
                             'issues':            xmlcnt,
-                            'comicimage':          xmlimage   
+                            'comicimage':          xmlimage,
+                            'publisher':            xmlpub
                             })
                 n+=1
                     
