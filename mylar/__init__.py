@@ -20,6 +20,7 @@ import os, sys, subprocess
 import threading
 import webbrowser
 import sqlite3
+import itertools
 import csv
 
 from lib.apscheduler.scheduler import Scheduler
@@ -120,6 +121,12 @@ NZBSU_APIKEY = None
 DOGNZB = False
 DOGNZB_APIKEY = None
 
+NEWZNAB = False
+NEWZNAB_HOST = None
+NEWZNAB_APIKEY = None
+NEWZNAB_ENABLED = False
+EXTRA_NEWZNABS = []
+
 RAW = False
 RAW_PROVIDER = None
 RAW_USERNAME = None
@@ -191,6 +198,7 @@ def initialize():
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
+                NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY
@@ -205,6 +213,7 @@ def initialize():
         CheckSection('DOGnzb')
         CheckSection('Raw')
         CheckSection('Experimental')        
+        CheckSection('Newznab')
         # Set global variables based on config file or use defaults
         try:
             HTTP_PORT = check_setting_int(CFG, 'General', 'http_port', 8090)
@@ -239,8 +248,8 @@ def initialize():
         CORRECT_METADATA = bool(check_setting_int(CFG, 'General', 'correct_metadata', 0))
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
         RENAME_FILES = bool(check_setting_int(CFG, 'General', 'rename_files', 0))
-        FOLDER_FORMAT = check_setting_str(CFG, 'General', 'folder_format', 'Artist/Album [Year]')
-        FILE_FORMAT = check_setting_str(CFG, 'General', 'file_format', 'Track Artist - Album [Year]- Title')
+        FOLDER_FORMAT = check_setting_str(CFG, 'General', 'folder_format', '$Series-($Year)')
+        FILE_FORMAT = check_setting_str(CFG, 'General', 'file_format', '$Series $Issue ($Year)')
         BLACKHOLE = bool(check_setting_int(CFG, 'General', 'blackhole', 0))
         BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
         REPLACE_SPACES = bool(check_setting_int(CFG, 'General', 'replace_spaces', 0))
@@ -268,12 +277,22 @@ def initialize():
         RAW_GROUPS = check_setting_str(CFG, 'Raw', 'raw_groups', '')
 
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
+
+        NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
+        NEWZNAB_HOST = check_setting_str(CFG, 'Newznab', 'newznab_host', '')
+        NEWZNAB_APIKEY = check_setting_str(CFG, 'Newznab', 'newznab_apikey', '')
+        NEWZNAB_ENABLED = bool(check_setting_int(CFG, 'Newznab', 'newznab_enabled', 1))
+
+        # Need to pack the extra newznabs back into a list of tuples
+        flattened_newznabs = check_setting_str(CFG, 'Newznab', 'extra_newznabs', [], log=False)
+        EXTRA_NEWZNABS = list(itertools.izip(*[itertools.islice(flattened_newznabs, i, None, 3) for i in range(3)]))
+
         
         # update folder formats in the config & bump up config version
         if CONFIG_VERSION == '0':
             from mylar.helpers import replace_all
-            file_values = { 'tracknumber':  'Track', 'title': 'Title','artist' : 'Artist', 'album' : 'Album', 'year' : 'Year' }
-            folder_values = { 'artist' : 'Artist', 'album':'Album', 'year' : 'Year', 'releasetype' : 'Type', 'first' : 'First', 'lowerfirst' : 'first' }
+            file_values = { 'issue':  'Issue', 'title': 'Title', 'series' : 'Series', 'year' : 'Year' }
+            folder_values = { 'series' : 'Series', 'publisher':'Publisher', 'year' : 'Year', 'first' : 'First', 'lowerfirst' : 'first' }
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
             
@@ -283,27 +302,22 @@ def initialize():
 
             from mylar.helpers import replace_all
 
-            file_values = { 'Track':        '$Track',
+            file_values = { 'Issue':        '$Issue',
                             'Title':        '$Title',
-                            'Artist':       '$Artist',
-                            'Album':        '$Album',
+                            'Series':       '$Series',
                             'Year':         '$Year',
-                            'track':        '$track',
                             'title':        '$title',
-                            'artist':       '$artist',
-                            'album':        '$album',
+                            'series':       '$series',
                             'year':         '$year'
                             }
-            folder_values = {   'Artist':   '$Artist',
-                                'Album':    '$Album',
-                                'Year':     '$Year',
-                                'Type':     '$Type',
-                                'First':    '$First',
-                                'artist':   '$artist',
-                                'album':    '$album',
-                                'year':     '$year',
-                                'type':     '$type',
-                                'first':    '$first'
+            folder_values = {   'Series':       '$Series',
+                                'Publisher':    '$Publisher',
+                                'Year':         '$Year',
+                                'First':        '$First',
+                                'series':       '$series',
+                                'publisher':    '$publisher',
+                                'year':         '$year',
+                                'first':        '$first'
                             }   
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
@@ -335,6 +349,12 @@ def initialize():
             except OSError:
                 logger.error('Could not create cache dir. Check permissions of datadir: ' + DATA_DIR)
         
+        # Sanity check for search interval. Set it to at least 6 hours
+        if SEARCH_INTERVAL < 360:
+            logger.info("Search interval too low. Resetting to 6 hour minimum")
+            SEARCH_INTERVAL = 360
+
+
         # Initialize the database
         logger.info('Checking to see if the database has all tables....')
         try:
@@ -477,6 +497,19 @@ def config_write():
     new_config['Experimental'] = {}
     new_config['Experimental']['experimental'] = int(EXPERIMENTAL)
 
+    new_config['Newznab'] = {}
+    new_config['Newznab']['newznab'] = int(NEWZNAB)
+    new_config['Newznab']['newznab_host'] = NEWZNAB_HOST
+    new_config['Newznab']['newznab_apikey'] = NEWZNAB_APIKEY
+    new_config['Newznab']['newznab_enabled'] = int(NEWZNAB_ENABLED)
+    # Need to unpack the extra newznabs for saving in config.ini
+    flattened_newznabs = []
+    for newznab in EXTRA_NEWZNABS:
+        for item in newznab:
+            flattened_newznabs.append(item)
+
+    new_config['Newznab']['extra_newznabs'] = flattened_newznabs
+
     new_config['Raw'] = {}
     new_config['Raw']['raw'] = int(RAW)
     new_config['Raw']['raw_provider'] = RAW_PROVIDER
@@ -523,7 +556,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT)')
-#    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
 
     #new

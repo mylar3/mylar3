@@ -15,13 +15,14 @@
 
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed
 
 nzbsu_APIkey = mylar.NZBSU_APIKEY
 dognzb_APIkey = mylar.DOGNZB_APIKEY
 
 LOG = mylar.LOG_DIR
 
+import pickle
 import lib.feedparser as feedparser
 import urllib
 import os, errno
@@ -33,7 +34,6 @@ import re
 import time
 from xml.dom.minidom import parseString
 import urllib2
-
 from datetime import datetime
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID):
@@ -54,6 +54,23 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     if mylar.EXPERIMENTAL == 1:
         nzbprovider.append('experimental')
         nzbp+=1
+    if mylar.NEWZNAB == 1:
+        nzbprovider.append('newznab')
+        nzbp+=1
+        #newznabs = 0
+        newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
+
+        for newznab_host in mylar.EXTRA_NEWZNABS:
+            if newznab_host[2] == '1' or newznab_host[2] == 1:
+                newznab_hosts.append(newznab_host)              
+                newznabs = newznabs + 1
+
+        #categories = "7030"
+
+        #for newznab_host in newznab_hosts:
+        #    mylar.NEWZNAB_APIKEY = newznab_host[1]
+        #    mylar.NEWZNAB_HOST = newznab_host[0]
+
     # --------
     nzbpr = nzbp-1
     findit = 'no'
@@ -67,6 +84,22 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
          IssDateFix = "no"
 
     while (nzbpr >= 0 ):
+    
+        if nzbprovider[nzbpr] == 'newznab':
+        #this is for newznab
+            nzbprov = 'newznab'
+            for newznab_host in newznab_hosts:
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
+                if findit == 'yes':
+                    break
+                else:
+                    if IssDateFix == "yes":
+                        logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
+                        findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
+                        if findit == 'yes':
+                            break
+            nzbpr-=1
+
         if nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
@@ -75,7 +108,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 break
             else:
                 if IssDateFix == "yes":
-                    logger.info(u"Hang on - this issue was published between /NovDec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
+                    logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
@@ -122,15 +155,18 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         # ----
     return findit
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID):
-    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " using " + str(nzbprov))
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host=None):
+    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + "(" + str(ComicYear) + ") using " + str(nzbprov))
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
     elif nzbprov == 'dognzb':
         apikey = mylar.DOGNZB_APIKEY
     elif nzbprov == 'experimental':
         apikey = 'none'
-    #print ("-------------------------")
+    elif nzbprov == 'newznab':
+        host_newznab = newznab_host[0]
+        apikey = newznab_host[1]
+        print ("using Newznab of : " + str(host_newznab))
 
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
@@ -202,22 +238,29 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     findurl = "http://dognzb.cr/api?t=search&apikey=" + str(apikey) + "&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzb.su':
                     findurl = "http://nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
+                elif nzbprov == 'newznab':
+                    findurl = str(host_newznab) + "/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                 bb = feedparser.parse(findurl)
             elif nzbprov == 'experimental':
-                bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
+                #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
+                bb = findcomicfeed.Startit(cm, isssearch[findloop], comyear)
+                # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
+                cmloopit == 1
             done = False
             foundc = "no"
+            log2file = ""
             if bb == "no results":               
                 pass
                 foundc = "no"
             else:
                 for entry in bb['entries']:
-                    #print ("Entry:" + str(entry['title']))
+                    thisentry = str(entry['title'])
+                    logger.fdebug("Entry: " + str(thisentry))
                     cleantitle = re.sub('_', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
                     nzbname = cleantitle
 
-                    #print ("cleantitle:" + str(cleantitle))
+                    logger.fdebug("Cleantitle: " + str(cleantitle))
                     if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"                      
                     if done:
                         break
@@ -238,31 +281,31 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     while (cnt < lenm):
                         if m[cnt] is None: break
-                        #print (str(cnt) + ". Bracket Word: " + m[cnt] )                        
+                        logger.fdebug(str(cnt) + ". Bracket Word: " + str(m[cnt]))
                         if cnt == 0:
                             comic_andiss = m[cnt]
-                            #print ("Comic:" + str(comic_andiss))
+                            logger.fdebug("Comic: " + str(comic_andiss))
                         if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
-                            #print ("year detected!")
+                            logger.fdebug("year detected: " + str(m[cnt]))
                             result_comyear = m[cnt]
                             if str(comyear) in result_comyear:
-                                #print (str(comyear) + " - right - years match baby!")
+                                logger.fdebug(str(comyear) + " - right years match baby!")
                                 yearmatch = "true"
                             else:
-                                #print (str(comyear) + " - not right - years don't match ")
+                                logger.fdebug(str(comyear) + " - not right - years do not match")
                                 yearmatch = "false"
                         if 'digital' in m[cnt] and len(m[cnt]) == 7: 
                             pass
                             #print ("digital edition")
                         if ' of ' in m[cnt]:
-                            #print ("mini-series detected : " + str(m[cnt]))
+                            logger.fdebug("mini-series detected : " + str(m[cnt]))
                             result_of = m[cnt]
                         if 'cover' in m[cnt]: 
-                            #print ("covers detected")
+                            logger.fdebug("covers detected: " + str(m[cnt]))
                             result_comcovers = m[cnt]
                         for ripper in ripperlist:
                             if ripper in m[cnt]:
-                                #print ("Scanner detected:" + str(m[cnt]))
+                                logger.fdebug("Scanner detected: " + str(m[cnt]))
                                 result_comscanner = m[cnt]
                         cnt+=1
 
@@ -270,73 +313,82 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     
                     splitit = []   
                     watchcomic_split = []
-                    comic_iss = re.sub('[\-\:\,]', '', str(comic_andiss))
+                    comic_iss_b4 = re.sub('[\-\:\,]', '', str(comic_andiss))
+                    logger.fdebug("original nzb comic and issue: " + str(comic_iss_b4))
+                    #log2file = log2file + "o.g.comic: " + str(comic_iss_b4) + "\n"
+                    comic_iss = comic_iss_b4.replace('.',' ')
+                    logger.fdebug("adjusted nzb comic and issue: " + str(comic_iss))
                     splitit = comic_iss.split(None)
+                    #something happened to dognzb searches or results...added a '.' in place of spaces
+                    #screwed up most search results with dognzb. Let's try to adjust.
                     watchcomic_split = findcomic[findloop].split(None)
-
+                    #log2file = log2file + "adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss) + "\n"
                     bmm = re.findall('v\d', comic_iss)
-                    #print ("vers - " + str(bmm))
                     if len(bmm) > 0: splitst = len(splitit) - 2
                     else: splitst = len(splitit) - 1
                     if (splitst) != len(watchcomic_split):
-                        #print ("incorrect comic lengths...not a match")
+                        logger.fdebug("incorrect comic lengths...not a match")
                         if str(splitit[0]).lower() == "the":
-                            #print ("THE word detected...attempting to adjust pattern matching")
+                            logger.fdebug("THE word detected...attempting to adjust pattern matching")
                             splitit[0] = splitit[4:]
                     else:
-                        #print ("length match..proceeding")
+                        logger.fdebug("length match..proceeding")
                         n = 0
                         scount = 0
-                        #print ("search-length:" + str(len(splitit)))
-                        #print ("watchlist-length:" + str(len(watchcomic_split)))
+                        logger.fdebug("search-length: " + str(len(splitit)))
+                        logger.fdebug("Watchlist-length: " + str(len(watchcomic_split)))
                         while ( n <= len(splitit)-1 ):
-                            #print ("splitit:" + str(splitit[n]))
-                            if n < len(splitit)-1 and n < len(watchcomic_split)-1:
-                                #print ( str(n) + ". Comparing: " + watchcomic_split[n] + " .to. " + splitit[n] )
+                            logger.fdebug("splitit: " + str(splitit[n]))
+                            if n < len(splitit)-1 and n < len(watchcomic_split):
+                                logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
                                 if str(watchcomic_split[n].lower()) in str(splitit[n].lower()):
-                                    #print ("word matched on : " + splitit[n])
+                                    logger.fdebug("word matched on : " + str(splitit[n]))
                                     scount+=1
                                 #elif ':' in splitit[n] or '-' in splitit[n]:
                                 #    splitrep = splitit[n].replace('-', '')
                                 #    print ("non-character keyword...skipped on " + splitit[n])
                             elif str(splitit[n].lower()).startswith('v'):
-                                #print ("possible verisoning..checking")
+                                logger.fdebug("possible verisoning..checking")
                                 #we hit a versioning # - account for it
                                 if splitit[n][1:].isdigit():
                                     comicversion = str(splitit[n])
-                                    #print ("version found:" + str(comicversion))
-
+                                    logger.fdebug("version found: " + str(comicversion))
                             else:
-                                #print ("issue section")
+                                logger.fdebug("issue section")
                                 if splitit[n].isdigit():
-                                    #print ("issue detected")
+                                    logger.fdebug("issue detected")
                                     comiss = splitit[n]
                                     comicNAMER = n - 1
                                     comNAME = splitit[0]
                                     cmnam = 1
-                                    while (cmnam < comicNAMER):
+                                    while (cmnam <= comicNAMER):
                                         comNAME = str(comNAME) + " " + str(splitit[cmnam])
                                         cmnam+=1
-                                    #print ("comic: " + str(comNAME))
+                                    logger.fdebug("comic: " + str(comNAME))
                                 else:
-                                    #print ("non-match for: " + splitit[n])
+                                    logger.fdebug("non-match for: "+ str(splitit[n]))
                                     pass
                             n+=1
+                        #set the match threshold to 80% (for now)
+                        # if it's less than 80% consider it a non-match and discard.
                         spercent = ( scount/int(len(splitit)) ) * 100
-                        #print (str(spercent) + "% match")
-                        #if spercent >= 75: print ("it's a go captain...")
-                        #if spercent < 75: print ("failure - we only got " + str(spercent) + "% right!")
-                        #print ("this should be a match!")
+                        logger.fdebug(str(spercent) + "% match")
+                        #if spercent >= 80:
+                        #    logger.fdebug("it's a go captain... - we matched " + str(spercent) + "%!")
+                        #if spercent < 80:
+                        #    logger.fdebug("failure - we only got " + str(spercent) + "% right!")
+                        #    continue
+                        logger.fdebug("this should be a match!")
                         #issue comparison now as well
                         if int(findcomiciss[findloop]) == int(comiss):
-                            #print ("issues match!")
+                            logger.fdebug('issues match!')
                             logger.info(u"Found " + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(nzbprov) )
                         ## -- inherit issue. Comic year is non-standard. nzb year is the year
                         ## -- comic was printed, not the start year of the comic series and
                         ## -- thus the deciding component if matches are correct or not
                             linkstart = os.path.splitext(entry['link'])[0]
                         #following is JUST for nzb.su
-                            if nzbprov == 'nzb.su':
+                            if nzbprov == 'nzb.su' or nzbprov == 'newznab':
                                 linkit = os.path.splitext(entry['link'])[1]
                                 linkit = linkit.replace("&", "%26")
                                 linkapi = str(linkstart) + str(linkit)
@@ -371,10 +423,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 filenamenzb = os.path.split(linkapi)[1]
                                 #filenzb = os.path.join(tmppath,filenamenzb)
-                                if nzbprov == 'nzb.su':
-                                    filenzb = linkstart[21:]
-                                elif nzbprov == 'experimental':
-                                    filenzb = filenamenzb[6:]
+                                if nzbprov == 'nzb.su' or nzbprov == 'newznab' or nzbprov == 'experimental':
+                                    #filenzb = linkstart[21:]
+                                #elif nzbprov == 'experimental':
+                                    #let's send a clean copy to SAB because the name could be stupid.
+                                    filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
+                                    #filenzb = str(filenamenzb)
                                 elif nzbprov == 'dognzb':
                                     filenzb = str(filenamenzb)
 
@@ -429,11 +483,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #else:
                                     #print "Queue already paused"
 # END OF NOT NEEDED.                                
-                                if mylar.RENAME_FILES == 1:
-                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-                                else:
-                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
+#redudant.                       if mylar.RENAME_FILES == 1:
+                                tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
+#outdated...
+#                                else:
+#                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
 #                               time.sleep(5)
+#end outdated.
                                 print "send-to-SAB:" + str(tmpapi)
                                 try:
                                     urllib2.urlopen(tmpapi)
@@ -524,8 +580,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             done = True
                             break
                         else:
-                            #print ("issues don't match..")
+                            log2file = log2file + "issues don't match.." + "\n"
                             foundc = "no"
+                    # write the log to file now so it logs / file found.
+                    #newlog = mylar.CACHE_DIR + "/searchlog.txt"
+                    #local_file = open(newlog, "a")
+                    #pickle.dump(str(log2file), local_file)
+                    #local_file.write(log2file)
+                    #local_file.close
+                    #log2file = ""
                 if done == True: break
             cmloopit-=1
         findloop+=1
@@ -533,6 +596,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             print ("found-yes")
             foundcomic.append("yes")
             updater.nzblog(IssueID, nzbname)
+            nzbpr == 0
             break
         elif foundc == "no" and nzbpr <> 0:
             logger.info(u"More than one search provider given - trying next one.")

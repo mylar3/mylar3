@@ -329,8 +329,8 @@ class WebInterface(object):
         if popit:
             weeklyresults = myDB.select("SELECT * from weekly")        
             pulldate = myDB.action("SELECT * from weekly").fetchone()
-            if pulldate is None:
-                raise cherrypy.HTTPRedirect("home")
+            #if pulldate is None:
+            #    raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
         return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'],pullfilter=False)
@@ -507,6 +507,11 @@ class WebInterface(object):
                     "use_dognzb" : helpers.checked(mylar.DOGNZB),
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
+                    "use_newznab" : helpers.checked(mylar.NEWZNAB),
+                    "newznab_host" : mylar.NEWZNAB_HOST,
+                    "newznab_api" : mylar.NEWZNAB_APIKEY,
+                    "newznab_enabled" : helpers.checked(mylar.NEWZNAB_ENABLED),
+                    "extra_newznabs" : mylar.EXTRA_NEWZNABS,
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "replace_spaces" : helpers.checked(mylar.REPLACE_SPACES),
                     "replace_char" : mylar.REPLACE_CHAR,
@@ -541,12 +546,12 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     comic_config.exposed = True
     
-    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8181, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
+    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
-        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None,
+        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None,
-        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, zero_level=0, zero_level_n=None, interface=None):
+        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -574,6 +579,10 @@ class WebInterface(object):
         mylar.RAW_PASSWORD = raw_password
         mylar.RAW_GROUPS = raw_groups
         mylar.EXPERIMENTAL = experimental
+        mylar.NEWZNAB = newznab
+        mylar.NEWZNAB_HOST = newznab_host
+        mylar.NEWZNAB_APIKEY = newznab_apikey
+        mylar.NEWZNAB_ENABLED = newznab_enabled
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files
         mylar.RENAME_FILES = rename_files
@@ -588,6 +597,29 @@ class WebInterface(object):
         mylar.AUTOWANT_UPCOMING = autowant_upcoming
         mylar.INTERFACE = interface
         mylar.LOG_DIR = log_dir
+
+        # Handle the variable config options. Note - keys with False values aren't getting passed
+
+        mylar.EXTRA_NEWZNABS = []
+        print ("here")
+        for kwarg in kwargs:
+            if kwarg.startswith('newznab_host'):
+                newznab_number = kwarg[12:]
+                newznab_host = kwargs['newznab_host' + newznab_number]
+                newznab_api = kwargs['newznab_api' + newznab_number]
+                try:
+                    newznab_enabled = int(kwargs['newznab_enabled' + newznab_number])
+                except KeyError:
+                    newznab_enabled = 0
+
+                mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_api, newznab_enabled))
+        print ("there")
+        # Sanity checking
+        if mylar.SEARCH_INTERVAL < 360:
+            logger.info("Search interval too low. Resetting to 6 hour minimum")
+            mylar.SEARCH_INTERVAL = 360
+        print ("boo")
+        # Write the config
         mylar.config_write()
 
         raise cherrypy.HTTPRedirect("config")
