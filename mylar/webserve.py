@@ -329,8 +329,9 @@ class WebInterface(object):
         if popit:
             weeklyresults = myDB.select("SELECT * from weekly")        
             pulldate = myDB.action("SELECT * from weekly").fetchone()
-            #if pulldate is None:
-            #    raise cherrypy.HTTPRedirect("home")
+            if pulldate is None:
+                return self.manualpull()
+                #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
         return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'],pullfilter=False)
@@ -601,7 +602,7 @@ class WebInterface(object):
         # Handle the variable config options. Note - keys with False values aren't getting passed
 
         mylar.EXTRA_NEWZNABS = []
-        print ("here")
+
         for kwarg in kwargs:
             if kwarg.startswith('newznab_host'):
                 newznab_number = kwarg[12:]
@@ -613,12 +614,12 @@ class WebInterface(object):
                     newznab_enabled = 0
 
                 mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_api, newznab_enabled))
-        print ("there")
+
         # Sanity checking
         if mylar.SEARCH_INTERVAL < 360:
             logger.info("Search interval too low. Resetting to 6 hour minimum")
             mylar.SEARCH_INTERVAL = 360
-        print ("boo")
+
         # Write the config
         mylar.config_write()
 
