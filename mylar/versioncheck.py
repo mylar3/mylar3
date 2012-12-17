@@ -21,7 +21,7 @@ from mylar import logger, version
 import lib.simplejson as simplejson
 
 user = "evilhero"
-branch = "master"
+branch = "development"
 
 def runGit(args):
 

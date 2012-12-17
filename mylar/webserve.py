@@ -64,19 +64,6 @@ class WebInterface(object):
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
-        else:
-            # make sure comic dir exists..
-            comlocation = comic['ComicLocation']
-            if os.path.isdir(str(comlocation)): pass
-                #logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
-            else:
-                print ("Directory doesn't exist!")
-                try:
-                    os.makedirs(str(comlocation))
-                    logger.info(u"No directory found - So I created one at: " + str(comlocation))
-                except OSError:
-                    logger.error(u"Could not create directory for comic : " + str(comlocation))
-
         comicConfig = {
                     "comiclocation" : mylar.COMIC_LOCATION
                }
