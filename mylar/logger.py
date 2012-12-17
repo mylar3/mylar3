@@ -81,6 +81,7 @@ class RotatingLogger(object):
             logger.error(message)
 
 mylar_log = RotatingLogger('mylar.log', MAX_SIZE, MAX_FILES)
+search_log = RotatingLogger('search.log', MAX_SIZE, MAX_FILES)
 
 def debug(message):
     mylar_log.log(message, level='DEBUG')
@@ -93,4 +94,7 @@ def warn(message):
     
 def error(message):
     mylar_log.log(message, level='ERROR')
+
+def fdebug(message):
+    search_log.log(message, level='DEBUG')
     
