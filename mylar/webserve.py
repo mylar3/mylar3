@@ -531,6 +531,17 @@ class WebInterface(object):
                      #"QUALtype":             qual_type,
                      #"QUALquality":          qual_quality
                      #}
+        #force the check/creation of directory com_location here
+        if os.path.isdir(str(com_location)):
+            logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
+        else:
+            logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
+            try:
+                os.makedirs(str(com_location))
+                logger.info(u"Directory successfully created at: " + str(com_location))
+            except OSError:
+                logger.error(u"Could not create comicdir : " + str(com_location))
+
         myDB.upsert("comics", newValues, controlValueDict)
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     comic_config.exposed = True

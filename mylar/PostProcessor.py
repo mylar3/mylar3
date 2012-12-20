@@ -16,6 +16,7 @@
 
 import os
 import shutil
+import re
 
 import time
 
@@ -130,6 +131,8 @@ def PostProcess(nzb_name, nzb_folder):
                 #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                 nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
         #TODO - sort issue numbering 12.00 should be 12
+        #replace funky characters so it doesn't break things
+        nfilename = re.sub('[\,\:]', '', nfilename)
         log2screen = log2screen + "New Filename: " + nfilename + "\n"
 
         src = nzb_folder + "/" + ofilename

@@ -441,6 +441,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #filenzb = os.path.join(tmppath,filenamenzb)
                                 logger.fdebug("unalterted nzb name: " + str(filenamenzb))
                                 #let's send a clean copy to SAB because the names are random characters and/or could be stupid.
+                                ComicName = re.sub('[\:\,]', '', ComicName)
                                 filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
                                 logger.fdebug("prettified nzb name: " + str(filenzb))
 
