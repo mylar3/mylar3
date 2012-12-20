@@ -72,7 +72,7 @@
           				<td id="status">${weekly['STATUS']}
                                         %if weekly['STATUS'] == 'Skipped':
                                              [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${weekly['COMIC']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="'${weekly['COMIC']}' #'${weekly['ISSUE']}' marked as wanted">want</a>]
-                                             <td id="add"><a href="searchit?name=${weekly['COMIC']}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
+                                             <td id="add"><a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
                                         %elif (weekly['STATUS'] == 'Wanted'):
                                              [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}',$(this),'table')" data-success="'${weekly['COMIC']}' skipped">skip</a>]
                                         %else:
@@ -98,7 +98,7 @@
                                              <td id="status">${weekly['STATUS']}
                                              %if weekly['STATUS'] == 'Skipped':
                                                   [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${weekly['COMIC']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="'${weekly['COMIC']}' #'${weekly['ISSUE']}' marked as wanted">want</a>]
-                                                  <td id="add"><a href="searchit?name=${weekly['COMIC']}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
+                                                  <td id="add"><a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
                                              %elif (weekly['STATUS'] == 'Wanted'):
                                                   [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}',$(this),'table')" data-success="'${weekly['COMIC']}' skipped">skip</a>]
                                              %else:
