@@ -68,7 +68,7 @@ HTTP_USERNAME = None
 HTTP_PASSWORD = None
 HTTP_ROOT = None
 LAUNCH_BROWSER = False
-
+LOGVERBOSE = 1
 GIT_PATH = None
 INSTALL_TYPE = None
 CURRENT_VERSION = None
@@ -192,7 +192,7 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, \
+        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, \
@@ -228,6 +228,7 @@ def initialize():
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
         HTTP_ROOT = check_setting_str(CFG, 'General', 'http_root', '/')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
+        LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 1))
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         LOG_DIR = check_setting_str(CFG, 'General', 'log_dir', '')
         
@@ -450,6 +451,7 @@ def config_write():
     new_config['General']['http_root'] = HTTP_ROOT
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
     new_config['General']['log_dir'] = LOG_DIR
+    new_config['General']['logverbose'] = int(LOGVERBOSE)
     new_config['General']['git_path'] = GIT_PATH
     
     new_config['General']['check_github'] = int(CHECK_GITHUB)

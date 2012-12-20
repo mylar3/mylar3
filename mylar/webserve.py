@@ -474,6 +474,7 @@ class WebInterface(object):
                     "http_port" : mylar.HTTP_PORT,
                     "http_pass" : mylar.HTTP_PASSWORD,
                     "launch_browser" : helpers.checked(mylar.LAUNCH_BROWSER),
+                    "logverbose" : helpers.checked(mylar.LOGVERBOSE),
                     "download_scan_interval" : mylar.DOWNLOAD_SCAN_INTERVAL,
                     "nzb_search_interval" : mylar.SEARCH_INTERVAL,
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
@@ -534,7 +535,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     comic_config.exposed = True
     
-    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
+    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
@@ -545,6 +546,7 @@ class WebInterface(object):
         mylar.HTTP_USERNAME = http_username
         mylar.HTTP_PASSWORD = http_password
         mylar.LAUNCH_BROWSER = launch_browser
+        mylar.LOGVERBOSE = logverbose
         mylar.DOWNLOAD_SCAN_INTERVAL = download_scan_interval
         mylar.SEARCH_INTERVAL = nzb_search_interval
         mylar.LIBRARYSCAN_INTERVAL = libraryscan_interval

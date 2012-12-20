@@ -407,40 +407,52 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 def GCDAdd(gcdcomicid):
     serieschoice = []
     series = {}
-
+    logger.fdebug("this one's for Ataribaby:")
+    logger.fdebug("I'm trying to find these GCD comicid's:" + str(gcdcomicid))
     for gcdid in gcdcomicid:
-        #print ("gcdid:" + str(gcdid))
+        logger.fdebug("looking at gcdid:" + str(gcdid))
         input2 = 'http://www.comics.org/series/' + str(gcdid)
+        logger.fdebug("---url: " + str(input2))
         resp = urllib2.urlopen ( input2 )
         soup = BeautifulSoup ( resp )
-
+        logger.fdebug("SeriesName section...")
         parsen = soup.find("span", {"id" : "series_name"})
+        logger.fdebug("series name (UNPARSED): " + str(parsen))
         subpar = parsen('a')[0]
+        logger.fdebug("series name parsed value: " + str(subpar))
         resultName = subpar.findNext(text=True)
-        #print ("ComicName: " + resultName)
+        logger.fdebug("ComicName: " + str(resultName))
         #covers-start
+        logger.fdebug("Covers section...")
         coverst = soup.find("div", {"id" : "series_cover"})
         if coverst < 0:
             gcdcover = "None"
+            logger.fdebug("unable to find any covers - setting to None")
         else:
             subcoverst = coverst('img',src=True)[0]
+            logger.fdebug("cover (UNPARSED) : " + str(subcoverst))
             gcdcover = subcoverst['src']
-        #print ("Cover: " + str(gcdcover))
+        logger.fdebug("Cover: " + str(gcdcover))
         #covers end
         #publisher start
+        logger.fdebug("Publisher section...")
         pubst = soup.find("div", {"class" : "item_data"})
+        logger.fdebug("publisher (UNPARSED): " + str(pubst))
         try:
             subpubst = pubst('a')[0]
+            logger.fdebug("publisher parsed value : " + str(subpubst))
             publisher = subpubst.findNext(text=True)
-        except IndexError,TypeError:
+        except IndexError:
             publisher = "Unknown"
-        #print ("Publisher: " + str(publisher))
+        logger.fdebug("Publisher: " + str(publisher))
         #publisher end
         parsed = soup.find("div", {"id" : "series_data"})
+        logger.fdebug("series_data: " + str(parsed))
         #print ("parse:" + str(parsed))
         subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
+        logger.fdebug("publication_dates: " + str(subtxt3))
         pubdate = subtxt3.findNext(text=True).rstrip()
-        #print ("pubdate:" + str(pubdate))
+        logger.fdebug("pubdate:" + str(pubdate))
         subtxt4 = parsed.find("dd", {"id" : "issues_published"})
         noiss = subtxt4.findNext(text=True)
         lenwho = len(noiss)
@@ -450,8 +462,8 @@ def GCDAdd(gcdcomicid):
         stringout = noiss[:lent]
         noissues = stringout.rstrip('  \t\r\n\0')
         numbering = stringit.rstrip('  \t\r\n\0')
-        #print ("noissues:" + str(noissues))
-        #print ("numbering:" + str(numbering))
+        logger.fdebug("noissues:" + str(noissues))
+        logger.fdebug("numbering:" + str(numbering))
         serieschoice.append({
                "ComicID":         gcdid,
                "ComicName":       resultName,

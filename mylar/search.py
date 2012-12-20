@@ -37,7 +37,7 @@ import urllib2
 from datetime import datetime
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID):
-    if ComicYear == None: ComicYear = '2012'
+    if ComicYear == None: ComicYear = '2013'
     else: ComicYear = str(ComicYear)[:4]
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
@@ -72,6 +72,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #    mylar.NEWZNAB_HOST = newznab_host[0]
 
     # --------
+    logger.fdebug("there are : " + str(nzbp) + " search providers you have selected.")
     nzbpr = nzbp-1
     findit = 'no'
 
@@ -89,9 +90,11 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #this is for newznab
             nzbprov = 'newznab'
             for newznab_host in newznab_hosts:
+                logger.fdebug("newnzb_host: " + str(newznab_host))
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
                 if findit == 'yes':
-                    break
+                    logger.fdebug("findit = found!")
+                    continue
                 else:
                     if IssDateFix == "yes":
                         logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
@@ -100,7 +103,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                             break
             nzbpr-=1
 
-        if nzbprovider[nzbpr] == 'experimental':
+        elif nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
@@ -114,7 +117,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                         break
             nzbpr-=1
 
-        if nzbprovider[nzbpr] == 'nzb.su':
+        elif nzbprovider[nzbpr] == 'nzb.su':
         # ----
         # this is for nzb.su
             #d = feedparser.parse("http://nzb.su/rss?t=7030&dl=1&i=" + str(nzbsu_APIID) + "&r=" + str(nzbsu_APIkey))
@@ -153,6 +156,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             nzbpr-=1
 
         # ----
+        if findit == 'yes': return findit
     return findit
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host=None):
@@ -166,7 +170,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     elif nzbprov == 'newznab':
         host_newznab = newznab_host[0]
         apikey = newznab_host[1]
-        print ("using Newznab of : " + str(host_newznab))
+        logger.fdebug("using Newznab host of : " + str(host_newznab))
 
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
@@ -239,7 +243,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 elif nzbprov == 'nzb.su':
                     findurl = "http://nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
-                    findurl = str(host_newznab) + "/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
+                    findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
+                    logger.fdebug("search-url: " + str(findurl))
                 bb = feedparser.parse(findurl)
             elif nzbprov == 'experimental':
                 #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
@@ -254,9 +259,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 foundc = "no"
             else:
                 for entry in bb['entries']:
+                    logger.fdebug("checking search result: " + str(entry['title']))
                     thisentry = str(entry['title'])
                     logger.fdebug("Entry: " + str(thisentry))
-                    cleantitle = re.sub('_', ' ', str(entry['title']))
+                    cleantitle = re.sub('[_/.]', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
                     nzbname = cleantitle
 
@@ -281,7 +287,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     while (cnt < lenm):
                         if m[cnt] is None: break
-                        logger.fdebug(str(cnt) + ". Bracket Word: " + str(m[cnt]))
+                        if m[cnt] == ' ': 
+                            pass
+                        else: 
+                            logger.fdebug(str(cnt) + ". Bracket Word: " + str(m[cnt]))
                         if cnt == 0:
                             comic_andiss = m[cnt]
                             logger.fdebug("Comic: " + str(comic_andiss))
@@ -295,8 +304,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug(str(comyear) + " - not right - years do not match")
                                 yearmatch = "false"
                         if 'digital' in m[cnt] and len(m[cnt]) == 7: 
+                            logger.fdebug("digital edition detected")
                             pass
-                            #print ("digital edition")
                         if ' of ' in m[cnt]:
                             logger.fdebug("mini-series detected : " + str(m[cnt]))
                             result_of = m[cnt]
@@ -322,7 +331,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     #something happened to dognzb searches or results...added a '.' in place of spaces
                     #screwed up most search results with dognzb. Let's try to adjust.
                     watchcomic_split = findcomic[findloop].split(None)
-                    #log2file = log2file + "adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss) + "\n"
+                    logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
                     bmm = re.findall('v\d', comic_iss)
                     if len(bmm) > 0: splitst = len(splitit) - 2
                     else: splitst = len(splitit) - 1
@@ -396,23 +405,30 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 # this should work for every other provider
                                 linkstart = linkstart.replace("&", "%26")
                                 linkapi = str(linkstart)
+                            logger.fdebug("link given by: " + str(nzbprov))
+                            logger.fdebug("link: " + str(linkstart))
+                            logger.fdebug("linkforapi: " + str(linkapi))
                             #here we distinguish between rename and not.
                             #blackhole functinality---
                             #let's download the file to a temporary cache.
 
                             if mylar.BLACKHOLE:
+                                logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     filenamenzb = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
                                     urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    logger.fdebug("filename saved to your blackhole as : " + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
                             #end blackhole
 
                             else:
                                 tmppath = mylar.CACHE_DIR
                                 if os.path.exists(tmppath):
+                                    logger.fdebug("cache directory successfully found at : " + str(tmppath))
                                     pass
                                 else:
                                 #let's make the dir.
+                                    logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
                                     try:
                                         os.makedirs(str(mylar.CACHE_DIR))
                                         logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
@@ -423,32 +439,38 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 filenamenzb = os.path.split(linkapi)[1]
                                 #filenzb = os.path.join(tmppath,filenamenzb)
-                                if nzbprov == 'nzb.su' or nzbprov == 'newznab' or nzbprov == 'experimental':
-                                    #filenzb = linkstart[21:]
-                                #elif nzbprov == 'experimental':
-                                    #let's send a clean copy to SAB because the name could be stupid.
-                                    filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
-                                    #filenzb = str(filenamenzb)
-                                elif nzbprov == 'dognzb':
-                                    filenzb = str(filenamenzb)
+                                logger.fdebug("unalterted nzb name: " + str(filenamenzb))
+                                #let's send a clean copy to SAB because the names are random characters and/or could be stupid.
+                                filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
+                                logger.fdebug("prettified nzb name: " + str(filenzb))
 
                                 if mylar.RENAME_FILES == 1:
+                                    logger.fdebug("Rename Files enabled..")
                                     filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
+                                    logger.fdebug("this should be the same as prettified nzb name:" + str(filenzb))
                                     if mylar.REPLACE_SPACES:
+                                        logger.fdebug("Replace spaces option enabled")
+                                        logger.fdebug("replace character: " + str(mylar.REPLACE_CHAR))
                                         repchar = mylar.REPLACE_CHAR
                                         repurlchar = mylar.REPLACE_CHAR
                                     else:
+                                        logger.fdebug("Replace spaces option NOT enabled")
                                         repchar = ' '
                                         repurlchar = "%20"
                                     #let's make sure there's no crap in the ComicName since it's O.G.
+                                    logger.fdebug("original Name of comic: " + str(ComicName))
                                     ComicNM = re.sub('[\:\,]', '', str(ComicName))
+                                    logger.fdebug("altered Name of comic: " + str(ComicNM))
                                     renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
+                                    logger.fdebug("altered Name with additional info: " + str(renameit))
                                     renamethis = renameit.replace(' ', repchar)
+                                    logger.fdebug("...with replace spaces: " + str(renamethis))
                                     renamer1 = renameit.replace(' ', repurlchar)
                                     renamer = re.sub("\&", "%26", str(renamer1))
+                                    logger.fdebug("...adjusting for url restrictions: " + str(renamer))
 
                                 savefile = str(tmppath) + "/" + str(filenzb) + ".nzb"
-                                print "savefile:" + str(savefile)
+                                logger.fdebug("nzb file to be saved: " + str(savefile))
 
                                 try:
                                     urllib.urlretrieve(linkapi, str(savefile))                                
@@ -462,7 +484,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
                                 nzbname = str(filenzb)
-                                print "nzbname:" + str(nzbname)
+                                logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 # NOT NEEDED ANYMORE.
 								#print (str(mylar.RENAME_FILES))
 								
@@ -490,7 +512,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 #                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
 #                               time.sleep(5)
 #end outdated.
-                                print "send-to-SAB:" + str(tmpapi)
+                                logger.fdebug("Completed Send-To-SAB URL:" + str(tmpapi))
                                 try:
                                     urllib2.urlopen(tmpapi)
                                 except urllib2.URLError:
@@ -554,6 +576,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 #---END OF NOT NEEDED.
                                         #delete the .nzb now.
                                 if mylar.PROG_DIR is not "/":
+                                    logger.fdebug("preparing to remove temporary nzb file at: " + str(savefile))
                                     os.remove(savefile)
                                     logger.info(u"Removed temporary save file")
 #--- NOT NEEDED.
@@ -595,13 +618,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         if foundc == "yes":
             print ("found-yes")
             foundcomic.append("yes")
+            logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
             updater.nzblog(IssueID, nzbname)
             nzbpr == 0
-            break
+            continue
         elif foundc == "no" and nzbpr <> 0:
             logger.info(u"More than one search provider given - trying next one.")
         elif foundc == "no" and nzbpr == 0:
             foundcomic.append("no")
+            logger.fdebug("couldn't find a matching comic")
             if IssDateFix == "no":
                 logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + str(ComicName) + "(" + str(comyear) + "). Status kept as wanted." )
                 break
