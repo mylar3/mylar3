@@ -506,14 +506,29 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #else:
                                     #print "Queue already paused"
 # END OF NOT NEEDED.                                
-#redudant.                       if mylar.RENAME_FILES == 1:
-                                tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-#outdated...
-#                                else:
-#                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
-#                               time.sleep(5)
+                                # let's build the send-to-SAB string now:
+                                tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name="
+                                logger.fdebug("send-to-SAB host string: " + str(tmpapi))
+                                # if the savefile location has spaces in the path, could cause problems.
+                                # let's adjust.
+                                savefileURL = re.sub(" ","%20", str(savefile))
+                                tmpapi = tmpapi + str(savefileURL)
+                                logger.fdebug("...attaching nzbfile: " + str(tmpapi))
+                                # if category is blank, let's adjust
+                                if mylar.SAB_CATEGORY:
+                                    tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
+                                    logger.fdebug("...attaching category: " + str(tmpapi))
+                                if mylar.RENAME_FILES == 1:
+                                    tmpapi = tmpapi + "&script=ComicRN.py"
+                                    logger.fdebug("...attaching rename script: " + str(tmpapi))
+                                #final build of send-to-SAB    
+                                tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
+                                logger.fdebug("Completed send-to-SAB link: " + str(tmpapi))
+#                               tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
+
+#                               tmpapi = str(mylar.SAB_HOST) + "/api?mode=addurl&name=" + str(linkapi) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
 #end outdated.
-                                logger.fdebug("Completed Send-To-SAB URL:" + str(tmpapi))
+#                                logger.fdebug("Completed Send-To-SAB URL:" + str(tmpapi))
                                 try:
                                     urllib2.urlopen(tmpapi)
                                 except urllib2.URLError:
@@ -624,7 +639,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             nzbpr == 0
             continue
         elif foundc == "no" and nzbpr <> 0:
-            logger.info(u"More than one search provider given - trying next one.")
+            if IssDateFix == "no":
+                logger.info(u"More than one search provider given - trying next one.")
         elif foundc == "no" and nzbpr == 0:
             foundcomic.append("no")
             logger.fdebug("couldn't find a matching comic")
