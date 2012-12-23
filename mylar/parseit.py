@@ -23,71 +23,11 @@ import datetime
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 
-def MysterBinScrape(comsearch, comyear):
-        #comyear is publication year of comic - should result in fewer results, which means better (hopefully)
-        searchterms = str(comsearch) + "+" + str(comyear)
-        # subsetting the results by cbr/cbz will allow for better control.
-        # min/max size should be set or else *.part01's and group collections will be parsed
-        #  and will result in errors all over & no hits.
-        # min is set low enough to filter out cover-only releases and the like
-        # max is set high enough to inlude everything but collections/groups of cbr/cbz which confuse us.
-        # minsize = 9mb  maxsize = 75mb  (for now)
-	input = 'http://www.mysterbin.com/advsearch?q=' + str(searchterms) + '&match=normal&minSize=9&maxSize=75&group=alt.binaries.comics.dcp&maxAge=1269&complete=2'
-	response = urllib2.urlopen ( input )
-	try:
-            soup = BeautifulSoup ( response )
-        except HTMLParseError:
-            logger.info(u"Unable to decipher using Experimental Search. Parser problem.")            
-            return "no results"
-	cnt = len(soup.findAll("input", {"class" : "check4nzb"}))
-        logger.info(u"I found " + str(cnt) + " results doing my search...now I'm going to analyze the results.")
-
-        if cnt == 0: return "no results"
-	resultName = []
-	resultComic = []
-	n = 0
-        mres = {}
-        entries = []
-	while ( n < cnt ):
-	    resultp = soup.findAll("input", {"class" : "check4nzb"})[n]
-	    nzblink = str("http://www.mysterbin.com/nzb?c=" + resultp['value'])
-	    #print ( "nzb-link: " + str(nzblink) )
-
-	    subtxt3 = soup.findAll("div", {"class" : "divc"})[n]
-	    subres = subtxt3.find("span", {"style" : ""})
-	    blah = subres.find('a').contents[2]
-	    blah = re.sub("</?[^\W].{0,10}?>", "", str(blah))
-            #print ("Blah:" + str(blah))
-	    nook=3
-	    totlink = str(blah)
-	    while ('"' not in blah):               
-	        blah = subres.find('a').contents[nook]
-	        if '"</a>' in blah:
-                    findyenc = blah.find('"')
-                    blah = blah[findyenc:]
-                    #break
-                #print ("Blah:" + str(blah))
-	        goo = re.sub("</?[^\W].{0,10}?>", "", str(blah))
-	        #print ("goo:" + str(goo))
-    	    	totlink = totlink + str(goo)
-    	    	#print (nook, blah)
-   	   	nook+=1
-
-            #print ("exit mainloop")
-            #print (str(nzblink))
-            #print (str(totlink))
-            entries.append({
-                'title':   str(totlink),
-                'link':    str(nzblink)
-                })
-            #print (entries[n])
-            mres['entries'] = entries
-    	    n+=1
-    	#print ("FINAL: " + str(totlink))
-        return mres    
-
 def GCDScraper(ComicName, ComicYear, Total, ComicID):
     NOWyr = datetime.date.today().year
+    if datetime.date.today().month == 12:
+        NOWyr = NOWyr + 1
+        logger.fdebug("We're in December, incremented search Year to increase search results: " + str(NOWyr))
     comicnm = ComicName
     comicyr = ComicYear
     comicis = Total

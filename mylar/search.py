@@ -156,6 +156,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 
             nzbpr-=1
 
+        if nzbpr >= 0 and findit != 'yes':
+            logger.info(u"More than one search provider given - trying next one.")
         # ----
         if findit == 'yes': return findit
     return findit
@@ -323,19 +325,25 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     
                     splitit = []   
                     watchcomic_split = []
-                    comic_iss_b4 = re.sub('[\-\:\,]', '', str(comic_andiss))
-                    logger.fdebug("original nzb comic and issue: " + str(comic_iss_b4))
-                    #log2file = log2file + "o.g.comic: " + str(comic_iss_b4) + "\n"
+                    logger.fdebug("original nzb comic and issue: " + str(comic_andiss)) 
+                    #changed this from '' to ' '
+                    comic_iss_b4 = re.sub('[\-\:\,]', ' ', str(comic_andiss))
+
                     comic_iss = comic_iss_b4.replace('.',' ')
                     logger.fdebug("adjusted nzb comic and issue: " + str(comic_iss))
                     splitit = comic_iss.split(None)
                     #something happened to dognzb searches or results...added a '.' in place of spaces
                     #screwed up most search results with dognzb. Let's try to adjust.
-                    watchcomic_split = findcomic[findloop].split(None)
+                    #watchcomic_split = findcomic[findloop].split(None)
                     logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
                     bmm = re.findall('v\d', comic_iss)
                     if len(bmm) > 0: splitst = len(splitit) - 2
                     else: splitst = len(splitit) - 1
+                    # make sure that things like - in watchcomic are accounted for when comparing to nzb.
+                    watchcomic_split = re.sub('[\-\:\,]', ' ', findcomic[findloop]).split(None)
+
+                    logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
+                    logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
                     if (splitst) != len(watchcomic_split):
                         logger.fdebug("incorrect comic lengths...not a match")
                         if str(splitit[0]).lower() == "the":
@@ -490,29 +498,42 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                     logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
                                     nzbname = str(filenzb)
-                                    logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 
-                                    # let's build the send-to-SAB string now:
-                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name="
-                                    logger.fdebug("send-to-SAB host string: " + str(tmpapi))
-                                    # if the savefile location has spaces in the path, could cause problems.
-                                    # let's adjust.
-                                    savefileURL = re.sub(" ","%20", str(savefile))
-                                    tmpapi = tmpapi + str(savefileURL)
-                                    logger.fdebug("...attaching nzbfile: " + str(tmpapi))
-                                    # if category is blank, let's adjust
-                                    if mylar.SAB_CATEGORY:
-                                        tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
-                                        logger.fdebug("...attaching category: " + str(tmpapi))
-                                    if mylar.RENAME_FILES == 1:
-                                        tmpapi = tmpapi + "&script=ComicRN.py"
-                                        logger.fdebug("...attaching rename script: " + str(tmpapi))
-                                    #final build of send-to-SAB    
-                                    tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
-                                    tmpapi = str(mylar.SAB_HOST) + "/api?mode=addlocalfile&name=" + str(savefile) + "&pp=3&cat=" + str(mylar.SAB_CATEGORY) + "&script=ComicRN.py&apikey=" + str(mylar.SAB_APIKEY)
                                 elif nzbprov == 'nzb.su':
                                     logger.fdebug("NZB.SU - linkapi:" + str(linkapi))
                                     nzbname = re.sub(" ", "_", str(entry['title']))
+
+                                logger.fdebug("nzbname used for post-processing:" + str(nzbname))
+
+                                # let's build the send-to-SAB string now:
+                                tmpapi = str(mylar.SAB_HOST)
+                                logger.fdebug("send-to-SAB host string: " + str(tmpapi))
+                                # nzb.su only works with direct links for some reason...
+                                if nzbprov == 'nzb.su':
+                                    SABtype = "/api?mode=addurl&name="
+                                    savefileURL = str(linkapi)
+                                else:
+                                    SABtype = "/api?mode=addlocalfile&name="
+                                    # if the savefile location has spaces in the path, could cause problems.
+                                    # let's adjust.
+                                    savefileURL = re.sub(" ","%20", str(savefile))
+                                tmpapi = tmpapi + str(SABtype)
+                                logger.fdebug("...selecting API type: " + str(tmpapi))
+                                tmpapi = tmpapi + str(savefileURL)
+                                logger.fdebug("...attaching nzbfile: " + str(tmpapi))
+                                # determine SAB priority
+                                if mylar.SAB_PRIORITY:
+                                    tmpapi = tmpapi + "&priority=" + str(sabpriority)
+                                    logger.fdebug("...setting priority: " + str(tmpapi))
+                                # if category is blank, let's adjust
+                                if mylar.SAB_CATEGORY:
+                                    tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
+                                    logger.fdebug("...attaching category: " + str(tmpapi))
+                                if mylar.RENAME_FILES == 1:
+                                    tmpapi = tmpapi + "&script=ComicRN.py"
+                                    logger.fdebug("...attaching rename script: " + str(tmpapi))
+                                #final build of send-to-SAB    
+                                tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
 
                                 logger.fdebug("Completed send-to-SAB link: " + str(tmpapi))
 
@@ -544,9 +565,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             updater.nzblog(IssueID, nzbname)
             nzbpr == 0
             continue
-        elif foundc == "no" and nzbpr <> 0:
-            if IssDateFix == "no":
-                logger.info(u"More than one search provider given - trying next one.")
         elif foundc == "no" and nzbpr == 0:
             foundcomic.append("no")
             logger.fdebug("couldn't find a matching comic")
