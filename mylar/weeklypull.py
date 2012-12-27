@@ -16,14 +16,14 @@
 
 from __future__ import print_function
 
-import sys
-import fileinput
-import csv
-import getopt
-import sqlite3
-import urllib
-import os
-import time
+import sys 
+import fileinput 
+import csv 
+import getopt 
+import sqlite3 
+import urllib 
+import os 
+import time 
 import re
 
 import mylar 
@@ -31,13 +31,21 @@ from mylar import db, updater, helpers, logger
 
 def pullit():
     myDB = db.DBConnection()
-    popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
+    popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
     if popit:
-        pullold = myDB.action("SELECT * from weekly").fetchone()
-        pulldate = pullold['SHIPDATE'] 
+        try:
+            pulldate = myDB.action("SELECT SHIPDATE from weekly").fetchone()
+        except sqlite3.OperationalError, msg:
+            conn=sqlite3.connect(mylar.DB_FILE)
+            c=conn.cursor()
+            logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
+            c.execute('DROP TABLE weekly')    
+            c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+            pulldate = '00000000'
     else:
         logger.info(u"No pullist found...I'm going to try and get a new list now.")
         pulldate = '00000000'
+    if pulldate is None: pulldate = '00000000'
     PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
     #PULLURL = 'http://www.previewsworld.com/Archive/GetFile/1/1/71/994/081512.txt'
 
@@ -85,17 +93,14 @@ def pullit():
 
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
-
-    f = urllib.urlopen(PULLURL)
-    
     newrl = mylar.CACHE_DIR + "/newreleases.txt"
-    local_file = open(newrl, "wb")
-    local_file.write(f.read())
-    local_file.close
+    f = urllib.urlretrieve(PULLURL, newrl)
+#    local_file = open(newrl, "wb")
+#    local_file.write(f.read())
+#    local_file.close
 
     newfl = mylar.CACHE_DIR + "/Clean-newreleases.txt"
     newtxtfile = open(newfl, 'wb')
-
 
     for i in open(newrl):
         if not i.strip():
@@ -105,11 +110,11 @@ def pullit():
         for nono in not_these:
             if nono in i:
                 #let's try and grab the date for future pull checks
-                if 'Shipping' in nono or 'New Releases' in nono:
+                if i.startswith('Shipping') or i.startswith('New Releases'):
                     shipdatechk = i.split()
-                    if 'Shipping' in nono:
+                    if i.startswith('Shipping'):
                         shipdate = shipdatechk[1]                
-                    if 'New Releases' in nono:
+                    elif i.startswith('New Releases'):
                         shipdate = shipdatechk[3]
                     sdsplit = shipdate.split('/')
                     mo = sdsplit[0]
@@ -118,7 +123,7 @@ def pullit():
                     if len(dy) == 1: dy = "0" + sdsplit[1]
                     shipdate = sdsplit[2] + "-" + mo + "-" + dy
                     shipdaterep = shipdate.replace('-', '')
-                    pulldate = pulldate.replace('-', '')
+                    pulldate = re.sub('-', '', str(pulldate))
                     #print ("shipdate: " + str(shipdaterep))
                     #print ("today: " + str(pulldate))
                     if pulldate == shipdaterep:
@@ -194,7 +199,10 @@ def pullit():
                     #print ("ship: " + str(shipdate))
                     #print ("pub: " + str(pub))
                     #print ("issue: " + str(issue))
-                    issue = re.sub("\D", "", str(issue))
+                    #--let's make sure we don't wipe out decimal issues ;)
+                    issue_decimal = re.compile(r'[^\d.]+')
+                    issue = issue_decimal.sub('', str(issue))                   
+                    #issue = re.sub("\D", "", str(issue))
                     #store the previous comic/issue for comparison to filter out duplicate issues/alt covers
                     #print ("Previous Comic & Issue: " + str(prevcomic) + "--" + str(previssue))
                     dupefound = "no"

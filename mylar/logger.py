@@ -24,6 +24,10 @@ from mylar import helpers
 MAX_SIZE = 1000000 # 1mb
 MAX_FILES = 5
 
+ERROR = logging.ERROR
+WARNING = logging.WARNING
+MESSAGE = logging.INFO
+DEBUG = logging.DEBUG
 
 # Simple rotating log handler that uses RotatingFileHandler
 class RotatingLogger(object):
@@ -81,7 +85,6 @@ class RotatingLogger(object):
             logger.error(message)
 
 mylar_log = RotatingLogger('mylar.log', MAX_SIZE, MAX_FILES)
-#search_log = RotatingLogger('search.log', MAX_SIZE, MAX_FILES)
 
 def debug(message):
     mylar_log.log(message, level='DEBUG')

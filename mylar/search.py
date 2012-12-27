@@ -515,8 +515,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 else:
                                     SABtype = "/api?mode=addlocalfile&name="
                                     # if the savefile location has spaces in the path, could cause problems.
+                                    # if the savefile has a &, escape it otherwise will botch up send-to-SAB link
                                     # let's adjust.
-                                    savefileURL = re.sub(" ","%20", str(savefile))
+                                    saveF = re.sub("\&", "%26", str(savefile))
+                                    savefileURL = re.sub(" ","%20", str(saveF))
                                 tmpapi = tmpapi + str(SABtype)
                                 logger.fdebug("...selecting API type: " + str(tmpapi))
                                 tmpapi = tmpapi + str(savefileURL)

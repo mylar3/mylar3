@@ -149,7 +149,8 @@ class WebInterface(object):
 
     def post_process(self, nzb_name, nzb_folder):
         logger.info(u"Starting postprocessing for : " + str(nzb_name) )
-        result = PostProcessor.PostProcess(nzb_name, nzb_folder)
+        PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder)
+        result = PostProcess.Process()
         #result = post_results.replace("\n","<br />\n")
         return result
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
@@ -507,6 +508,7 @@ class WebInterface(object):
                     "interface_list" : interface_list,
                     "autowant_all" : helpers.checked(mylar.AUTOWANT_ALL),
                     "autowant_upcoming" : helpers.checked(mylar.AUTOWANT_UPCOMING),
+                    "comic_cover_local" : helpers.checked(mylar.COMIC_COVER_LOCAL),
                     "pref_qual_0" : helpers.radio(mylar.PREFERRED_QUALITY, 0),
                     "pref_qual_1" : helpers.radio(mylar.PREFERRED_QUALITY, 1),
                     "pref_qual_3" : helpers.radio(mylar.PREFERRED_QUALITY, 3),
@@ -517,6 +519,8 @@ class WebInterface(object):
                     "file_format" : mylar.FILE_FORMAT,
                     "zero_level" : helpers.checked(mylar.ZERO_LEVEL),
                     "zero_level_n" : mylar.ZERO_LEVEL_N,
+                    "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
+                    "extra_scripts" : mylar.EXTRA_SCRIPTS,
                     "log_dir" : mylar.LOG_DIR
                }
         return serve_template(templatename="config.html", title="Settings", config=config)  
@@ -550,8 +554,8 @@ class WebInterface(object):
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
-        preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None,
-        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
+        preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None,
+        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -596,7 +600,10 @@ class WebInterface(object):
         mylar.DESTINATION_DIR = destination_dir
         mylar.AUTOWANT_ALL = autowant_all
         mylar.AUTOWANT_UPCOMING = autowant_upcoming
+        mylar.COMIC_COVER_LOCAL = comic_cover_local
         mylar.INTERFACE = interface
+        mylar.ENABLE_EXTRA_SCRIPTS = enable_extra_scripts
+        mylar.EXTRA_SCRIPTS = extra_scripts
         mylar.LOG_DIR = log_dir
 
         # Handle the variable config options. Note - keys with False values aren't getting passed

@@ -107,6 +107,7 @@ ZERO_LEVEL_N = None
 
 AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
+COMIC_COVER_LOCAL = False
 
 SAB_HOST = None
 SAB_USERNAME = None
@@ -141,6 +142,8 @@ QUAL_SCANNER = None
 QUAL_TYPE = None
 QUAL_QUALITY = None
 
+ENABLE_EXTRA_SCRIPTS = 1
+EXTRA_SCRIPTS = None
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -195,13 +198,13 @@ def initialize():
         global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
-                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, \
+                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS
                 
         if __INITIALIZED__:
             return False
@@ -245,6 +248,7 @@ def initialize():
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
+        COMIC_COVER_LOCAL = bool(check_setting_int(CFG, 'General', 'comic_cover_local', 0))
         PREFERRED_QUALITY = check_setting_int(CFG, 'General', 'preferred_quality', 0)
         CORRECT_METADATA = bool(check_setting_int(CFG, 'General', 'correct_metadata', 0))
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
@@ -257,6 +261,9 @@ def initialize():
         REPLACE_CHAR = check_setting_str(CFG, 'General', 'replace_char', '')
         ZERO_LEVEL = bool(check_setting_int(CFG, 'General', 'zero_level', 0))
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
+
+        ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
+        EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
 
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
@@ -468,6 +475,7 @@ def config_write():
     new_config['General']['autowant_all'] = AUTOWANT_ALL
     new_config['General']['autowant_upcoming'] = AUTOWANT_UPCOMING
     new_config['General']['preferred_quality'] = PREFERRED_QUALITY
+    new_config['General']['comic_cover_local'] = COMIC_COVER_LOCAL
     new_config['General']['correct_metadata'] = int(CORRECT_METADATA)
     new_config['General']['move_files'] = int(MOVE_FILES)
     new_config['General']['rename_files'] = int(RENAME_FILES)
@@ -479,6 +487,8 @@ def config_write():
     new_config['General']['replace_char'] = REPLACE_CHAR
     new_config['General']['zero_level'] = int(ZERO_LEVEL)
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
+    new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
+    new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_host'] = SAB_HOST
@@ -562,7 +572,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT)')
-#    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
 
     #new

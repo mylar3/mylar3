@@ -106,9 +106,9 @@ def no_searchresults(ComicID):
 def nzblog(IssueID, NZBName):
     myDB = db.DBConnection()
     controlValue = {"IssueID": IssueID}
-    print controlValue
+    #print controlValue
     newValue = {"NZBName": NZBName}
-    print newValue
+    #print newValue
     myDB.upsert("nzblog", newValue, controlValue)
 
 def foundsearch(ComicID, IssueID):

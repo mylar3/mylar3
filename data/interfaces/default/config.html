@@ -284,7 +284,15 @@
                                 <div class="row checkbox left clearfix">
                                      <input type="checkbox" name="rename_files" value="1" ${config['rename_files']} /><label>Rename files </label>
                                 </div>
-                                <div class="row"</div>
+                                <div class="row checkbox left clearfix">
+                                     <input type="checkbox" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
+                                </div>
+                                <div class="row">
+                                      <label>Extra Script Location</label>
+                                      <input type="text" name="extra_scripts" value="${config['extra_scripts']}" size="30">
+                                      <small>enter in the absolute path to the script</small>
+                                </div>
+                                <div class="row">
                                 </div>
                 	</fieldset>
                </td>
@@ -361,8 +369,12 @@
                                         <div class="row left checkbox">
                                                     <input type="checkbox" name="autowant_upcoming" value="1" ${config['autowant_upcoming']} /><label>Automatically Mark Upcoming Issues as Wanted</label>
                                                 <div class="row leftcheckbox">
-                                                    <input type="checkbox" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
+                                                     <input type="checkbox" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
                                                 </div>
+                                                <div class="row leftcheckbox">
+                                                      <input type="checkbox" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
+                                                </div>
+
                                         </div>
 		        	</fieldset>
 					<fieldset>
