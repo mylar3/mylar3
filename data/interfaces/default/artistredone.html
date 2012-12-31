@@ -130,6 +130,11 @@
 	                    	<div>
 		                    <label><big>Quality :</big><norm>${comic['QUALquality']}</norm></label>
                                 </div>
+                                <div>
+                                    <label><big>Alternate Search Names :</big><norm>${comic['AlternateSearch']}</norm></label>
+                                </div>
+
+
                     </fieldset>
                 </td>
             </tr>            
@@ -166,6 +171,14 @@
                                    <input type="text" name="com_location" value="${comic['ComicLocation']}" size="60"><br/>
                                 <div class="row"><small>the directory where all the comics are located for this particular comic</small></div>
                                 </div>
+                                <div>
+                                   <label>Alternate Search Names</label>
+                                   <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="60"><br/>
+                                <div class="row"><small>Alternate comic names to be searched in case naming is different</small>
+                                <small>(ie. Hack/Slash = hack-slash)</small></div>
+                                </div>
+
+
                                 <div>
                                    <input type="submit" value="Update"/>
                                 </div>

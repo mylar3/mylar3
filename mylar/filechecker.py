@@ -18,6 +18,7 @@ import os
 import os.path
 import pprint
 import subprocess
+import re
 
 def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
@@ -26,8 +27,6 @@ def file2comicmatch(watchmatch):
 def listFiles(dir,watchcomic):
     #print("dir:" + dir)
     #print("comic: " + watchcomic)
-    if ':' in watchcomic:
-        watchcomic = watchcomic.replace(':','')
     basedir = dir
     #print "Files in ", dir, ": "
     watchmatch = {}
@@ -35,10 +34,13 @@ def listFiles(dir,watchcomic):
     comiccnt = 0
     for item in os.listdir(basedir):
         #print item
-        subname = os.path.join(basedir, item)
+        #subname = os.path.join(basedir, item)
+        subname = item
         #print subname
-        if '_' in subname:
-            subname = subname.replace('_', ' ')
+        subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
+        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
+        #if '_' in subname:
+        #    subname = subname.replace('_', ' ')
         if watchcomic.lower() in subname.lower():
             if 'annual' in subname.lower():
                 #print ("it's an annual - unsure how to proceed")

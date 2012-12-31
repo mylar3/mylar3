@@ -58,14 +58,13 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
 
 
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
-    if issuechk is None: pass
+    if issuechk is None:
+        logger.fdebug(str(issuechk['ComicName']) + " Issue: " + str(issuechk['IssueNumber']) + " not available for download yet...adding to Upcoming Wanted Releases.")
+        pass
     else:
-        #print ("checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
-        #print ("existing status: " + str(issuechk['Status']))
+        logger.fdebug("Available for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
+        logger.fdebug("...Existing status: " + str(issuechk['Status']))
         control = {"IssueID":   issuechk['IssueID']}
-        if mylar.AUTOWANT_UPCOMING:
-            newValue['Status'] = "Wanted"
-            values = { "Status":  "Wanted"}
         if issuechk['Status'] == "Snatched":
             values = { "Status":   "Snatched"}
             newValue['Status'] = "Snatched"
@@ -75,6 +74,16 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         else:
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"
+        #was in wrong place :(
+        if mylar.AUTOWANT_UPCOMING: 
+            if issuechk['Status'] == "Skipped":
+                newValue['Status'] = "Wanted"
+                values = { "Status":  "Wanted"}
+                logger.fdebug("...New status of Wanted")
+            elif issuechk['Status'] == "Wanted":
+                logger.fdebug("...Status already Wanted .. not changing.")
+            else:
+                logger.fdebug("...Already have issue - keeping existing status of : " + issuechk['Status'])
 
         myDB.upsert("upcoming", newValue, controlValue)
         myDB.upsert("issues", values, control)
@@ -194,11 +203,11 @@ def forceRescan(ComicID):
                     reiss = reissues[n]
                 except IndexError:
                     break
-                int_iss = reiss['Int_IssueNumber']
+                int_iss = helpers.decimal_issue(reiss['Issue_Number'])
                 issyear = reiss['IssueDate'][:4]
                 old_status = reiss['Status']
-                
-                #print "integer_issue:" + str(int_iss) + " ... status: " + str(old_status)
+                                                
+                logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
                     #print ("checking word - " + str(fcnew[som]))
@@ -206,24 +215,76 @@ def forceRescan(ComicID):
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbz", "")
-                    if fcnew[som].isdigit():
+                    elif fcnew[som].isdigit():
+                        #this won't match on decimal issues - need to fix.
                         #print ("digit detected")
                         if int(fcnew[som]) > 0:
                             # fcdigit = fcnew[som].lstrip('0')
-                            fcdigit = str(int(fcnew[som]))
+                            #fcdigit = str(int(fcnew[som]))
+                            fcdigit = int(fcnew[som]) * 1000
                         else: 
-                            fcdigit = "0"
-                        if int(fcdigit) == int_iss:
-                            #if issyear in fcnew[som+1]: 
-                            #    print "matched on year:" + str(issyear)
-                            #print ("matched...issue: " + str(fcdigit) + " --- " + str(int_iss))
-                            havefiles+=1
-                            haveissue = "yes"
-                            isslocation = str(tmpfc['ComicFilename'])
-                            break
-                            #else:
-                            # if the issue # matches, but there is no year present - still match.
-                            # determine a way to match on year if present, or no year (currently).
+                            #fcdigit = "0"
+                            fcdigit = 0
+                    elif "." in fcnew[som]:
+                        #this will match on decimal issues
+                        IssueChk = fcnew[som]
+                        #print ("decimal detected...analyzing if issue")
+                        isschk_find = IssueChk.find('.')
+                        isschk_b4dec = IssueChk[:isschk_find]
+                        isschk_decval = IssueChk[isschk_find+1:]
+                        if isschk_b4dec.isdigit():
+                            logger.fdebug("digit detected prior to decimal.")
+                            if isschk_decval.isdigit():
+                                logger.fdebug("digit detected after decimal.")
+                            else:
+                                logger.fdebug("not an issue - no digit detected after decimal")
+                                continue
+                        else:
+                            logger.fdebug("not an issue - no digit detected prior to decimal")
+                            continue
+                        logger.fdebug("IssueNumber: " + str(IssueChk))
+                        logger.fdebug("..before decimal: " + str(isschk_b4dec))
+                        logger.fdebug("...after decimal: " + str(isschk_decval))
+                        #--let's make sure we don't wipe out decimal issues ;)
+                        if int(isschk_decval) == 0:
+                            iss = isschk_b4dec
+                            intdec = int(isschk_decval)
+                        else:
+                            if len(isschk_decval) == 1:
+                                iss = isschk_b4dec + "." + isschk_decval
+                                intdec = int(isschk_decval) * 10
+                            else:
+                                iss = isschk_b4dec + "." + isschk_decval.rstrip('0')
+                                intdec = int(isschk_decval.rstrip('0')) * 10
+                        fcdigit = (int(isschk_b4dec) * 1000) + intdec
+                        logger.fdebug("b4dec: " + str(isschk_b4dec))
+                        logger.fdebug("decval: " + str(isschk_decval))
+                        logger.fdebug("intdec: " + str(intdec))
+                        logger.fdebug("let's compare with this issue value: " + str(fcdigit))
+                    else:
+                        # it's a word, skip it.
+                        fcdigit = 1000000    
+                    logger.fdebug("fcdigit: " + str(fcdigit))
+                    logger.fdebug("int_iss: " + str(int_iss))
+                    if "." in str(int_iss):
+                         int_iss = helpers.decimal_issue(int_iss)
+                    logger.fdebug("this is the int issue:" + str(int_iss))
+
+                    if int(fcdigit) == int_iss:
+                        #if issyear in fcnew[som+1]:
+                        #    print "matched on year:" + str(issyear)
+                        logger.fdebug("matched...issue: " + str(fcdigit) + " --- " + str(int_iss))
+                        havefiles+=1
+                        haveissue = "yes"
+                        isslocation = str(tmpfc['ComicFilename'])
+                        issSize = str(tmpfc['ComicSize'])
+                        logger.fdebug(".......filename: " + str(isslocation))
+                        logger.fdebug(".......filesize: " + str(tmpfc['ComicSize'])) 
+                        break
+                        #else:
+                        # if the issue # matches, but there is no year present - still match.
+                        # determine a way to match on year if present, or no year (currently).
+
                     som+=1
                 if haveissue == "yes": break
                 n+=1
@@ -251,6 +312,7 @@ def forceRescan(ComicID):
             issStatus = "Downloaded"
         controlValueDict = {"IssueID":  reiss['IssueID']}
         newValueDict = {"Location":           isslocation,
+                        "ComicSize":          issSize,
                         "Status":             issStatus
                         }
         myDB.upsert("issues", newValueDict, controlValueDict)
@@ -273,6 +335,11 @@ def forceRescan(ComicID):
     else:
         for down in downissues:
             #print "downlocation:" + str(down['Location'])
+            #remove special characters from 
+            #temploc = rescan['ComicLocation'].replace('_', ' ')
+            #temploc = re.sub('[\#\'\/\.]', '', temploc)
+            #print ("comiclocation: " + str(rescan['ComicLocation']))
+            #print ("downlocation: " + str(down['Location']))
             comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
             if os.path.exists(comicpath):
                 pass

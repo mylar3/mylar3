@@ -15,6 +15,7 @@
 
 import os
 import cherrypy
+import datetime
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -253,6 +254,7 @@ class WebInterface(object):
     addArtists.exposed = True
     
     def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
+        now = datetime.datetime.now()
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
         if ComicID is None and mode == 'series':
@@ -268,7 +270,7 @@ class WebInterface(object):
             #better to set both to some generic #, and then filter out later...
             cyear = myDB.action("SELECT SHIPDATE FROM weekly").fetchone()
             ComicYear = str(cyear['SHIPDATE'])[:4]
-            if ComicYear == '': ComicYear = "2012"
+            if ComicYear == '': ComicYear = now.year
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
             foundcom = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, IssueDate=cyear['SHIPDATE'], IssueID=IssueID)
             if foundcom  == "yes":
@@ -288,9 +290,10 @@ class WebInterface(object):
         issues = myDB.action("SELECT IssueDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
         if ComicYear == None:
             ComicYear = str(issues['IssueDate'])[:4]
-        miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [ComicID]).fetchone()
-        SeriesYear = miyr['ComicYear']
-        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID)
+        miy = myDB.action("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+        SeriesYear = miy['ComicYear']
+        AlternateSearch = miy['AlternateSearch']
+        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -526,10 +529,11 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
     
-    def comic_config(self, com_location, ComicID):
+    def comic_config(self, com_location, alt_search, ComicID):
         myDB = db.DBConnection()
         controlValueDict = {'ComicID': ComicID}
-        newValues = {"ComicLocation":        com_location }
+        newValues = {"ComicLocation":        com_location,
+                     "AlternateSearch":      alt_search }
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,

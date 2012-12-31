@@ -166,3 +166,20 @@ def is_number(s):
         return True
     except ValueError:
         return False
+
+def decimal_issue(iss):
+    iss_find = iss.find('.')
+    iss_b4dec = iss[:iss_find]
+    iss_decval = iss[iss_find+1:]
+    if int(iss_decval) == 0:
+        iss = iss_b4dec
+        issdec = int(iss_decval)
+    else:
+        if len(iss_decval) == 1:
+            iss = iss_b4dec + "." + iss_decval
+            issdec = int(iss_decval) * 10
+        else:
+            iss = iss_b4dec + "." + iss_decval.rstrip('0')
+            issdec = int(iss_decval.rstrip('0')) * 10
+    deciss = (int(iss_b4dec) * 1000) + issdec
+    return deciss

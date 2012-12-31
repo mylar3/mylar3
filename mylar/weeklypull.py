@@ -371,7 +371,7 @@ def pullitcheck():
         kc = []
         otot = 0
 
-        #print ("You are watching for: " + str(w) + " comics")
+        logger.fdebug("You are watching for: " + str(w) + " comics")
         #print ("----------THIS WEEK'S PUBLISHED COMICS------------")
         if w > 0:
             while (cnt > -1):
@@ -428,7 +428,7 @@ def pullitcheck():
                                             ComicIssue = str(watchfndiss[tot -1] + ".00")
                                             ComicDate = str(week['SHIPDATE'])
                                             ComicName = str(unlines[cnt])
-                                            #print ("added: " + str(watchfnd[tot -1]) + " ISSUE: " + str(watchfndiss[tot -1]))
+                                            logger.fdebug("Watchlist hit for : " + str(watchfnd[tot -1]) + " ISSUE: " + str(watchfndiss[tot -1]))
                                             # here we add to comics.latest
                                             updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
                                             # here we add to upcoming table...
@@ -440,7 +440,7 @@ def pullitcheck():
                         break
                 cnt-=1
         #print ("-------------------------")
-        #print ("There are " + str(otot) + " comics this week to get!")
+        print ("There are " + str(otot) + " comics this week to get!")
         #print ("However I've already grabbed " + str(btotal) )
         #print ("I need to get " + str(tot) + " comic(s)!" )
 
