@@ -82,6 +82,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         elif issuechk['Status'] == "Downloaded":
             values = { "Status":    "Downloaded"}
             newValue['Status'] = "Downloaded"
+        elif issuechk['Status'] == "Wanted":
+            values = { "Status":    "Wanted"}
+            newValue['Status'] = "Wanted"            
         else:
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"

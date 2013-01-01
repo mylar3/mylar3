@@ -331,8 +331,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
                         }        
         if mylar.AUTOWANT_ALL:
             newValueDict['Status'] = "Wanted"
-            #elif release_dict['releasedate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
-            #    newValueDict['Status'] = "Wanted"
+        elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
+            newValueDict['Status'] = "Wanted"
         else:
             newValueDict['Status'] = "Skipped"
 
@@ -601,8 +601,8 @@ def GCDimport(gcomicid, pullupd=None):
 
         if mylar.AUTOWANT_ALL:
             newValueDict['Status'] = "Wanted"
-            #elif release_dict['releasedate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
-            #    newValueDict['Status'] = "Wanted"
+        elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
+            newValueDict['Status'] = "Wanted"
         else:
             newValueDict['Status'] = "Skipped"
 
