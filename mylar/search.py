@@ -750,7 +750,7 @@ def searchforissue(issueid=None, new=False):
             else: 
                 ComicYear = str(result['IssueDate'])[:4]
 
-            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
                     foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'])
                     if foundNZB == "yes": 
                         #print ("found!")
@@ -770,7 +770,7 @@ def searchforissue(issueid=None, new=False):
             IssueYear = str(result['IssueDate'])[:4]
 
         foundNZB = "none"
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
             foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'])
             if foundNZB == "yes":
                 #print ("found!")
@@ -791,7 +791,7 @@ def searchIssueIDList(issuelist):
             ComicYear = comic['ComicYear']
         else:
             ComicYear = str(issue['IssueDate'])[:4]
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
                 foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'])
                 if foundNZB == "yes":
                     #print ("found!")
