@@ -40,7 +40,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid,mismatch=None):
+def addComictoDB(comicid,mismatch=None,pullupd=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
     from mylar import cache
     
@@ -363,29 +363,30 @@ def addComictoDB(comicid,mismatch=None):
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
     
+    if pullupd == "no":
     # lets' check the pullist for anyting at this time as well since we're here.
-    if mylar.AUTOWANT_UPCOMING:
-        logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
-        updater.newpullcheck()
+        if mylar.AUTOWANT_UPCOMING:
+            logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
+            updater.newpullcheck()
 
     #here we grab issues that have been marked as wanted above...
   
-    results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])    
-    if results:
-        logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
+        results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])    
+        if results:
+            logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
 
-        for result in results:
-            foundNZB = "none"
-            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-                foundNZB = search.searchforissue(result['IssueID'])
-                if foundNZB == "yes":
-                    updater.foundsearch(result['ComicID'], result['IssueID'])
-    else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
+            for result in results:
+                foundNZB = "none"
+                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+                    foundNZB = search.searchforissue(result['IssueID'])
+                    if foundNZB == "yes":
+                        updater.foundsearch(result['ComicID'], result['IssueID'])
+        else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
 
-    logger.info(u"Finished grabbing what I could.")
+        logger.info(u"Finished grabbing what I could.")
 
 
-def GCDimport(gcomicid):
+def GCDimport(gcomicid, pullupd=None):
     # this is for importing via GCD only and not using CV.
     # used when volume spanning is discovered for a Comic (and can't be added using CV).
     # Issue Counts are wrong (and can't be added).
@@ -633,24 +634,25 @@ def GCDimport(gcomicid):
 
     logger.info(u"Updating complete for: " + ComicName)
 
-    # lets' check the pullist for anyting at this time as well since we're here.
-    if mylar.AUTOWANT_UPCOMING:
-        logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))
-        updater.newpullcheck()
+    if pullupd == "no":
+        # lets' check the pullist for anyting at this time as well since we're here.
+        if mylar.AUTOWANT_UPCOMING:
+            logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))
+            updater.newpullcheck()
 
-    #here we grab issues that have been marked as wanted above...
+        #here we grab issues that have been marked as wanted above...
 
-    results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [gcomicid])
-    if results:
-        logger.info(u"Attempting to grab wanted issues for : "  + ComicName)
+        results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [gcomicid])
+        if results:
+            logger.info(u"Attempting to grab wanted issues for : "  + ComicName)
 
-        for result in results:
-            foundNZB = "none"
-            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
-                foundNZB = search.searchforissue(result['IssueID'])
-                if foundNZB == "yes":
-                    updater.foundsearch(result['ComicID'], result['IssueID'])
-    else: logger.info(u"No issues marked as wanted for " + ComicName)
+            for result in results:
+                foundNZB = "none"
+                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+                    foundNZB = search.searchforissue(result['IssueID'])
+                    if foundNZB == "yes":
+                        updater.foundsearch(result['ComicID'], result['IssueID'])
+        else: logger.info(u"No issues marked as wanted for " + ComicName)
 
-    logger.info(u"Finished grabbing what I could.")
+        logger.info(u"Finished grabbing what I could.")
 

@@ -377,28 +377,44 @@ def pullitcheck():
             while (cnt > -1):
                 lines[cnt] = str(lines[cnt]).upper()
                 llen[cnt] = str(llen[cnt])
-                #print ("looking for : " + str(lines[cnt]))
-                weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
+                logger.fdebug("looking for : " + str(lines[cnt]))
+                sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(lines[cnt]))
+                sqlsearch = re.sub(r'\s', '%', sqlsearch) 
+                logger.fdebug("searchsql: " + str(sqlsearch))
+                weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
                 for week in weekly:
                     if week == None:
                         break
                     for nono in not_t:
                         if nono in week['PUBLISHER']:
-                            #print ("nono present")
+                            logger.fdebug("nono present")
+                            break
+                        if nono in week['ISSUE']:
+                            logger.fdebug("graphic novel/tradeback detected..ignoring.")
                             break
                         for nothere in not_c:
                             if nothere in week['EXTRA']:
-                                #print ("nothere present")
+                                logger.fdebug("nothere present")
                                 break
                             else:
                                 comicnm = week['COMIC']
                                 #here's the tricky part, ie. BATMAN will match on
                                 #every batman comic, not exact
-                                #print ("comparing" + str(comicnm) + "..to.." + str(unlines[cnt]).upper())
-                                if str(comicnm) == str(unlines[cnt]).upper():
-                                    #print ("matched on:")
-                                    pass
+#                                logger.fdebug("comparing" + str(comicnm) + "..to.." + str(unlines[cnt]).upper())
+                                logger.fdebug("comparing" + str(sqlsearch) + "..to.." + str(unlines[cnt]).upper())
+
+                                #-NEW-
+                                # strip out all special characters and compare
+                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(sqlsearch))
+                                comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(comicnm))
+                                watchcomic = re.sub(r'\s', '', watchcomic)
+                                comicnm = re.sub(r'\s', '', comicnm)
+                                logger.fdebug("Revised_Watch: " + str(watchcomic))
+                                logger.fdebug("ComicNM: " + str(comicnm))
+                                if str(comicnm) == str(watchcomic).upper():
+                                    logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
+                                    #pass
                                 elif ("ANNUAL" in week['EXTRA']):
                                     pass
                                     #print ( row[3] + " matched on ANNUAL")
@@ -428,19 +444,19 @@ def pullitcheck():
                                             ComicIssue = str(watchfndiss[tot -1] + ".00")
                                             ComicDate = str(week['SHIPDATE'])
                                             ComicName = str(unlines[cnt])
-                                            logger.fdebug("Watchlist hit for : " + str(watchfnd[tot -1]) + " ISSUE: " + str(watchfndiss[tot -1]))
+                                            logger.fdebug("Watchlist hit for : " + str(ComicName) + " ISSUE: " + str(watchfndiss[tot -1]))
                                             # here we add to comics.latest
                                             updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
                                             # here we add to upcoming table...
                                             updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate)
                                             # here we update status of weekly table...
-                                            updater.weekly_update(ComicName=comicnm)
+                                            updater.weekly_update(ComicName=week['COMIC'])
                                             break
                                         break
                         break
                 cnt-=1
         #print ("-------------------------")
-        print ("There are " + str(otot) + " comics this week to get!")
+        logger.fdebug("There are " + str(otot) + " comics this week to get!")
         #print ("However I've already grabbed " + str(btotal) )
         #print ("I need to get " + str(tot) + " comic(s)!" )
 

@@ -56,10 +56,21 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
                 "IssueNumber":      str(IssueNumber),
                 "IssueDate":        str(IssueDate)}
 
+    #let's refresh the artist here just to make sure if an issue is available/not.
+    mismatch = "no"
+    CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
+    if CV_EXcomicid is None: pass
+    else:
+        if CV_EXcomicid['variloop'] == '99':
+            mismatch = "yes"
+    logger.fdebug("Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
+    if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd="yes")
+    else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd="yes")
+
 
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
     if issuechk is None:
-        logger.fdebug(str(issuechk['ComicName']) + " Issue: " + str(issuechk['IssueNumber']) + " not available for download yet...adding to Upcoming Wanted Releases.")
+        logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not available for download yet...adding to Upcoming Wanted Releases.")
         pass
     else:
         logger.fdebug("Available for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
@@ -273,7 +284,7 @@ def forceRescan(ComicID):
                     if int(fcdigit) == int_iss:
                         #if issyear in fcnew[som+1]:
                         #    print "matched on year:" + str(issyear)
-                        logger.fdebug("matched...issue: " + str(fcdigit) + " --- " + str(int_iss))
+                        logger.fdebug("matched...issue: " + str(rescan['ComicName']) + " --- " + str(int_iss))
                         havefiles+=1
                         haveissue = "yes"
                         isslocation = str(tmpfc['ComicFilename'])

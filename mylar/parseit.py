@@ -357,7 +357,7 @@ def GCDAdd(gcdcomicid):
         soup = BeautifulSoup ( resp )
         logger.fdebug("SeriesName section...")
         parsen = soup.find("span", {"id" : "series_name"})
-        logger.fdebug("series name (UNPARSED): " + str(parsen))
+        #logger.fdebug("series name (UNPARSED): " + str(parsen))
         subpar = parsen('a')[0]
         logger.fdebug("series name parsed value: " + str(subpar))
         resultName = subpar.findNext(text=True)
@@ -370,14 +370,14 @@ def GCDAdd(gcdcomicid):
             logger.fdebug("unable to find any covers - setting to None")
         else:
             subcoverst = coverst('img',src=True)[0]
-            logger.fdebug("cover (UNPARSED) : " + str(subcoverst))
+            #logger.fdebug("cover (UNPARSED) : " + str(subcoverst))
             gcdcover = subcoverst['src']
         logger.fdebug("Cover: " + str(gcdcover))
         #covers end
         #publisher start
         logger.fdebug("Publisher section...")
         pubst = soup.find("div", {"class" : "item_data"})
-        logger.fdebug("publisher (UNPARSED): " + str(pubst))
+        #logger.fdebug("publisher (UNPARSED): " + str(pubst))
         try:
             subpubst = pubst('a')[0]
             logger.fdebug("publisher parsed value : " + str(subpubst))
@@ -387,7 +387,7 @@ def GCDAdd(gcdcomicid):
         logger.fdebug("Publisher: " + str(publisher))
         #publisher end
         parsed = soup.find("div", {"id" : "series_data"})
-        logger.fdebug("series_data: " + str(parsed))
+        #logger.fdebug("series_data: " + str(parsed))
         #print ("parse:" + str(parsed))
         subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
         logger.fdebug("publication_dates: " + str(subtxt3))
