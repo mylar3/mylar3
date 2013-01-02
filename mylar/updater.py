@@ -230,7 +230,7 @@ def forceRescan(ComicID):
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbz", "")
-                    elif fcnew[som].isdigit():
+                    if fcnew[som].isdigit():
                         #this won't match on decimal issues - need to fix.
                         #print ("digit detected")
                         if int(fcnew[som]) > 0:
@@ -248,18 +248,19 @@ def forceRescan(ComicID):
                         isschk_b4dec = IssueChk[:isschk_find]
                         isschk_decval = IssueChk[isschk_find+1:]
                         if isschk_b4dec.isdigit():
-                            logger.fdebug("digit detected prior to decimal.")
+                            #logger.fdebug("digit detected prior to decimal.")
                             if isschk_decval.isdigit():
-                                logger.fdebug("digit detected after decimal.")
+                                pass
+                                #logger.fdebug("digit detected after decimal.")
                             else:
-                                logger.fdebug("not an issue - no digit detected after decimal")
+                                #logger.fdebug("not an issue - no digit detected after decimal")
                                 continue
                         else:
-                            logger.fdebug("not an issue - no digit detected prior to decimal")
+                            #logger.fdebug("not an issue - no digit detected prior to decimal")
                             continue
-                        logger.fdebug("IssueNumber: " + str(IssueChk))
-                        logger.fdebug("..before decimal: " + str(isschk_b4dec))
-                        logger.fdebug("...after decimal: " + str(isschk_decval))
+                        #logger.fdebug("IssueNumber: " + str(IssueChk))
+                        #logger.fdebug("..before decimal: " + str(isschk_b4dec))
+                        #logger.fdebug("...after decimal: " + str(isschk_decval))
                         #--let's make sure we don't wipe out decimal issues ;)
                         if int(isschk_decval) == 0:
                             iss = isschk_b4dec
@@ -272,10 +273,10 @@ def forceRescan(ComicID):
                                 iss = isschk_b4dec + "." + isschk_decval.rstrip('0')
                                 intdec = int(isschk_decval.rstrip('0')) * 10
                         fcdigit = (int(isschk_b4dec) * 1000) + intdec
-                        logger.fdebug("b4dec: " + str(isschk_b4dec))
-                        logger.fdebug("decval: " + str(isschk_decval))
-                        logger.fdebug("intdec: " + str(intdec))
-                        logger.fdebug("let's compare with this issue value: " + str(fcdigit))
+                        #logger.fdebug("b4dec: " + str(isschk_b4dec))
+                        #logger.fdebug("decval: " + str(isschk_decval))
+                        #logger.fdebug("intdec: " + str(intdec))
+                        #logger.fdebug("let's compare with this issue value: " + str(fcdigit))
                     else:
                         # it's a word, skip it.
                         fcdigit = 1000000    

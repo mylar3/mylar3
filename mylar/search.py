@@ -95,23 +95,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
-                    continue
+                    break
                 else:
                     if AlternateSearch is not None:
                         logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                         findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
                         if findit == 'yes':
                             break
-               #     if IssDateFix == "yes":
-               #         logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-               #         findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
-               #         if findit == 'yes':
-               #             break
-               #         elif AlternateSearch is not None:
-               #             logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYearFix))
-               #             findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
-               #             if findit == 'yes':
-               #                 break
 
             nzbpr-=1
 
@@ -121,53 +111,29 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
-                continue
+                break
             else:
                 if AlternateSearch is not None:
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
-               # if IssDateFix == "yes":
-               #     logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-               #     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-               #     if findit == 'yes':
-               #         break
-               #     elif AlternateSearch is not None:
-               #         logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYearFix))
-               #         findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-               #         if findit == 'yes':
-               #             break
 
             nzbpr-=1
 
         elif nzbprovider[nzbpr] == 'nzb.su':
-        # ----
         # this is for nzb.su
-            #d = feedparser.parse("http://nzb.su/rss?t=7030&dl=1&i=" + str(nzbsu_APIID) + "&r=" + str(nzbsu_APIkey))
-            #--LATER ?search.rss_find = RSS_SEARCH(ComicName, IssueNumber)
-            #if rss_find == 0:
             nzbprov = 'nzb.su'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
-                continue
+                break
             else:
                 if AlternateSearch is not None:
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
-                #if IssDateFix == "yes":
-                #    logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-                #    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-                #    if findit == 'yes':
-                #        break
-                #    elif AlternateSearch is not None:
-                #        logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYearFix))
-                #        findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-                #        if findit == 'yes':
-                #            break
 
             nzbpr-=1
 
@@ -175,30 +141,18 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
        
         elif nzbprovider[nzbpr] == 'dognzb':
         # this is for dognzb.com
-            #d = feedparser.parse("http://dognzb.cr/rss.cfm?r=" + str(dognzb_APIkey) + "&t=7030&num=100")
-            #RSS_SEARCH(ComicName, IssueNumber)
             nzbprov = 'dognzb'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
 
             if findit == 'yes':
                 logger.fdebug("findit = found!")
-                continue
+                break
             else:
                 if AlternateSearch is not None:
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
-                #if IssDateFix == "yes":
-                #    logger.info(u"Hang on - this issue was published between Nov/Dec of " + str(ComicYear) + "...adjusting to " + str(ComicYearFix) + " and retrying...")
-                #    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-                #    if findit == 'yes':
-                #        break
-                #    elif AlternateSearch is not None:
-                #        logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYearFix))
-                #        findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYearFix, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
-                #        if findit == 'yes':
-                #            break
 
             nzbpr-=1
 
@@ -720,7 +674,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
             updater.nzblog(IssueID, nzbname)
             nzbpr == 0
-            break
+            #break
+            return foundc
         elif foundc == "no" and nzbpr == 0:
             foundcomic.append("no")
             logger.fdebug("couldn't find a matching comic")

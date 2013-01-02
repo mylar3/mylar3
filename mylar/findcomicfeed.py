@@ -5,6 +5,7 @@ import sys
 import lib.feedparser as feedparser
 #import feedparser
 import re
+import logger
 
 def Startit(searchName, searchIssue, searchYear):
     #searchName = "Uncanny Avengers"
@@ -12,12 +13,9 @@ def Startit(searchName, searchIssue, searchYear):
     #searchYear = "2012"
     #clean up searchName due to webparse.
     searchName = searchName.replace("%20", " ")
-    print "name:"+searchName
-    print "issue:"+searchIssue
-    print "year:"+searchYear
-#    searchName = input("Enter a Title: ")
-#    searchIssue =input("Enter an Issue #: ")
-#    searchYear = input("Enter a year: ")
+    logger.fdebug("name:" + str(searchName))
+    logger.fdebug("issue:" + str(searchIssue))
+    logger.fdebug("year:" + str(searchYear))
     splitSearch = searchName.split(" ")
     joinSearch = "+".join(splitSearch)+"+"+searchIssue
     searchIsOne = "0"+searchIssue
@@ -34,7 +32,7 @@ def Startit(searchName, searchIssue, searchYear):
     mres = {}
     countUp = 0
 
-    print (str(totNum))+" results"
+    logger.fdebug(str(totNum) + " results")
 
     while countUp < totNum:
  	urlParse = feed.entries[countUp].enclosures[0]
@@ -58,18 +56,18 @@ def Startit(searchName, searchIssue, searchYear):
 	splitTitle = title.split("\"")
 
 	for subs in splitTitle:
-		print("looking at: " + str(subs))
+		logger.fdebug("looking at: " + str(subs))
 		regEx = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIssue, searchYear), subs, flags=re.IGNORECASE)
 		regExOne = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsOne, searchYear), subs, flags=re.IGNORECASE)
 		regExTwo = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsTwo, searchYear), subs, flags=re.IGNORECASE)
 
 		#print("regex: " + str(regEx))
 		if regEx or regExOne or regExTwo:
-			print("name: " + str(title))
-                        print("sub: " + str(subs))
-			print("-----")
-			print("url: " + str(link))
-			print("-----")
+		        logger.fdebug("name: " + str(title))
+                        logger.fdebug("sub: " + str(subs))
+			logger.fdebug("-----")
+			logger.fdebug("url: " + str(link))
+			logger.fdebug("-----")
 			#regList.append(title)
                         #regList.append(subs)
                         entries.append({
@@ -83,7 +81,7 @@ def Startit(searchName, searchIssue, searchYear):
 #       print("Title: "+regList[0])
 #       print("Link: "+keyPair[regList[0]])        
     else:
-        print("No Results Found")
+        logger.fdebug("No Results Found")
         return "no results"
    
 
