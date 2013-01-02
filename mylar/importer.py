@@ -363,11 +363,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
     
-    if pullupd == "no":
+    if pullupd is None:
     # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.AUTOWANT_UPCOMING:
             logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
-            updater.newpullcheck()
+            updater.newpullcheck(comic['ComicName'], comicid)
 
     #here we grab issues that have been marked as wanted above...
   
@@ -634,7 +634,7 @@ def GCDimport(gcomicid, pullupd=None):
 
     logger.info(u"Updating complete for: " + ComicName)
 
-    if pullupd == "no":
+    if pullupd is None:
         # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.AUTOWANT_UPCOMING:
             logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))

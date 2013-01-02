@@ -310,7 +310,7 @@ def pullit():
     os.remove( str(pullpath) + "newreleases.txt" )
     pullitcheck()
 
-def pullitcheck():
+def pullitcheck(comic1off_name=None,comic1off_id=None):
     myDB = db.DBConnection()
 
     not_t = ['TP',
@@ -345,25 +345,32 @@ def pullitcheck():
     with con:
 
         cur = con.cursor()
-        #let's read in the comic.watchlist from the db here
-        cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher from comics")
-        while True:
-            watchd = cur.fetchone()
-            if watchd == None:
-                break
-            a_list.append(watchd[1])
-            b_list.append(watchd[2])
-            comicid.append(watchd[0])
-            #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
-            if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
-            lines.append(a_list[w].strip())
-            unlines.append(a_list[w].strip())
-            llen.append(a_list[w].splitlines())
-            ccname.append(a_list[w].strip())
-            tmpwords = a_list[w].split(None)
-            ltmpwords = len(tmpwords)
-            ltmp = 1
-            w+=1
+        # if it's a one-off check (during an add series), load the comicname here and ignore below.
+        if comic1off_name:
+            lines.append(comic1off_name.strip())
+            unlines.append(comic1off_name.strip())
+            comicid.append(comic1off_id)
+            w = 1            
+        else:
+            #let's read in the comic.watchlist from the db here
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher from comics")
+            while True:
+                watchd = cur.fetchone()
+                if watchd == None:
+                    break
+                a_list.append(watchd[1])
+                b_list.append(watchd[2])
+                comicid.append(watchd[0])
+                #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
+                #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
+                lines.append(a_list[w].strip())
+                unlines.append(a_list[w].strip())
+                llen.append(a_list[w].splitlines())
+                ccname.append(a_list[w].strip())
+                tmpwords = a_list[w].split(None)
+                ltmpwords = len(tmpwords)
+                ltmp = 1
+                w+=1
         cnt = int(w-1)
         cntback = int(w-1)
         kp = []
@@ -376,7 +383,7 @@ def pullitcheck():
         if w > 0:
             while (cnt > -1):
                 lines[cnt] = str(lines[cnt]).upper()
-                llen[cnt] = str(llen[cnt])
+                #llen[cnt] = str(llen[cnt])
                 logger.fdebug("looking for : " + str(lines[cnt]))
                 sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(lines[cnt]))
                 sqlsearch = re.sub(r'\s', '%', sqlsearch) 
@@ -421,8 +428,8 @@ def pullitcheck():
                                 else:
                                     #print ( row[2] + " not an EXACT match...")
                                     break
-                                if "WOLVERINE AND X-MEN" in str(comicnm):
-                                    comicnm = "WOLVERINE AND THE X-MEN"
+                                #if "WOLVERINE AND X-MEN" in str(comicnm):
+                                #    comicnm = "WOLVERINE AND THE X-MEN"
                                     #print ("changed wolvy")
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
                                     if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):

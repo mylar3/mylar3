@@ -64,8 +64,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         if CV_EXcomicid['variloop'] == '99':
             mismatch = "yes"
     logger.fdebug("Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
-    if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd="yes")
-    else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd="yes")
+    pullupd = "yes"
+    if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
+    else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
 
 
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
@@ -113,9 +114,9 @@ def weekly_update(ComicName):
         newValue = {"STATUS":             "Skipped"}
     myDB.upsert("weekly", newValue, controlValue)
 
-def newpullcheck():
+def newpullcheck(ComicName, ComicID):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    mylar.weeklypull.pullitcheck()
+    mylar.weeklypull.pullitcheck(ComicName, ComicID)
     return
 
 def no_searchresults(ComicID):
@@ -278,11 +279,11 @@ def forceRescan(ComicID):
                     else:
                         # it's a word, skip it.
                         fcdigit = 1000000    
-                    logger.fdebug("fcdigit: " + str(fcdigit))
-                    logger.fdebug("int_iss: " + str(int_iss))
+                    #logger.fdebug("fcdigit: " + str(fcdigit))
+                    #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):
                          int_iss = helpers.decimal_issue(int_iss)
-                    logger.fdebug("this is the int issue:" + str(int_iss))
+                    #logger.fdebug("this is the int issue:" + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         #if issyear in fcnew[som+1]:
