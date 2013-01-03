@@ -425,11 +425,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("length match..proceeding")
                         n = 0
                         scount = 0
-                        logger.fdebug("search-length: " + str(len(splitit)))
+                        logger.fdebug("search-length: " + str(splitst))
                         logger.fdebug("Watchlist-length: " + str(len(watchcomic_split)))
-                        while ( n <= len(splitit)-1 ):
+                        while ( n <= (splitst)-1 ):
                             logger.fdebug("splitit: " + str(splitit[n]))
-                            if n < len(splitit)-1 and n < len(watchcomic_split):
+                            if n < (splitst) and n < len(watchcomic_split):
                                 logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
                                 if str(watchcomic_split[n].lower()) in str(splitit[n].lower()):
                                     logger.fdebug("word matched on : " + str(splitit[n]))
@@ -464,7 +464,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         #splitit has to splitit-1 because last position is issue.
                         wordcnt = int(scount)
                         logger.fdebug("scount:" + str(wordcnt))
-                        totalcnt = int(len(splitit)-1)
+                        totalcnt = int(splitst)
                         logger.fdebug("splitit-len:" + str(totalcnt))
                         spercent = (wordcnt/totalcnt) * 100
                         logger.fdebug("we got " + str(spercent) + " percent.")

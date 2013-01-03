@@ -193,6 +193,7 @@ def forceRescan(ComicID):
     issnum = 1
     fcnew = []
     fn = 0
+    issuedupechk = []
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
     # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
     # the loop below won't work...let's adjust :)
@@ -202,6 +203,7 @@ def forceRescan(ComicID):
         print "have count adjusted to:" + str(len(arcissues))
     while (fn < fccnt):  
         haveissue = "no"
+        issuedupe = "no"
         try:
             tmpfc = fc['comiclist'][fn]
         except IndexError:
@@ -289,6 +291,11 @@ def forceRescan(ComicID):
                     if int(fcdigit) == int_iss:
                         #if issyear in fcnew[som+1]:
                         #    print "matched on year:" + str(issyear)
+                        #issuedupechk here.
+                        if int(fcdigit) in issuedupechk:
+                            logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
+                            issuedupe = "yes"
+                            break
                         logger.fdebug("matched...issue: " + str(rescan['ComicName']) + " --- " + str(int_iss))
                         havefiles+=1
                         haveissue = "yes"
@@ -296,6 +303,9 @@ def forceRescan(ComicID):
                         issSize = str(tmpfc['ComicSize'])
                         logger.fdebug(".......filename: " + str(isslocation))
                         logger.fdebug(".......filesize: " + str(tmpfc['ComicSize'])) 
+                        # to avoid duplicate issues which screws up the count...let's store the filename issues then 
+                        # compare earlier...
+                        issuedupechk.append(int(fcdigit))
                         break
                         #else:
                         # if the issue # matches, but there is no year present - still match.
@@ -307,7 +317,7 @@ def forceRescan(ComicID):
         #we have the # of comics, now let's update the db.
         #even if we couldn't find the physical issue, check the status.
         #if Archived, increase the 'Have' count.
-        if haveissue == "no":
+        if haveissue == "no" and issuedupe == "no":
             isslocation = "None"
             if old_status == "Skipped":
                 if mylar.AUTOWANT_ALL:
