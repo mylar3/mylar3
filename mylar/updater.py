@@ -63,18 +63,17 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     else:
         if CV_EXcomicid['variloop'] == '99':
             mismatch = "yes"
-    logger.fdebug("Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
     pullupd = "yes"
-    if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
-    else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
-
-
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
     if issuechk is None:
-        logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not available for download yet...adding to Upcoming Wanted Releases.")
-        pass
-    else:
-        logger.fdebug("Available for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
+        logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
+        logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
+        if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
+        else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
+
+    if issuechk['Issue_Number'] == IssueNumber:
+        logger.fdebug("Comic series already up-to-date ... no need to refresh at this time.")
+        logger.fdebug("Available to be marked for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
         logger.fdebug("...Existing status: " + str(issuechk['Status']))
         control = {"IssueID":   issuechk['IssueID']}
         if issuechk['Status'] == "Snatched":
@@ -102,6 +101,8 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
 
         myDB.upsert("upcoming", newValue, controlValue)
         myDB.upsert("issues", values, control)
+    else:
+        logger.fdebug("Issues don't match for some reason... db issue: " + str(issuechk['Issue_Number']) + " ...weekly new issue: " + str(IssueNumber))
 
 
 def weekly_update(ComicName):
