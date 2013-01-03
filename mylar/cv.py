@@ -71,11 +71,14 @@ def GetComicInfo(comicid,dom):
     except:
         cntit = len(tracks)
     trackcnt = len(tracks)
+    logger.fdebug("number of issues I counted: " + str(trackcnt))
+    logger.fdebug("number of issues CV says it has: " + str(cntit))
     # if the two don't match, use trackcnt as count_of_issues might be not upto-date for some reason
     if int(trackcnt) != int(cntit):
         cntit = trackcnt
         vari = "yes"
     else: vari = "no"
+    logger.fdebug("vari is set to: " + str(vari))
     #if str(trackcnt) != str(int(cntit)+2):
     #    cntit = int(cntit) + 1
     comic = {}
@@ -110,8 +113,15 @@ def GetComicInfo(comicid,dom):
 def GetIssuesInfo(comicid,dom):
     subtracks = dom.getElementsByTagName('issue')
     cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+    logger.fdebug("issues I've counted: " + str(len(subtracks)))
+    logger.fdebug("issues CV says it has: " + str(int(cntiss)))
+
+    if int(len(subtracks)) != int(cntiss):
+        logger.fdebug("CV's count is wrong, I counted different...going with my count for physicals" + str(len(subtracks)))
+        cntiss = len(subtracks) # assume count of issues is wrong, go with ACTUAL physical api count
     cntiss = int(cntiss)
     n = cntiss-1
+    
     issue = {}
     issuechoice = []
     for subtrack in subtracks:
@@ -119,17 +129,23 @@ def GetIssuesInfo(comicid,dom):
             issue['Issue_Name'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
         else:
             issue['Issue_Name'] = 'None'
-        issue['Issue_Number'] = dom.getElementsByTagName('issue_number')[n].firstChild.wholeText
         issue['Issue_ID'] = dom.getElementsByTagName('id')[n].firstChild.wholeText
+        try:
+            issue['Issue_Number'] = dom.getElementsByTagName('issue_number')[n].firstChild.wholeText
 
-        issuechoice.append({
-             'Issue_ID':                issue['Issue_ID'],
-             'Issue_Number':            issue['Issue_Number'],
-             'Issue_Name':              issue['Issue_Name']
-             })
+            issuechoice.append({
+                 'Issue_ID':                issue['Issue_ID'],
+                 'Issue_Number':            issue['Issue_Number'],
+                 'Issue_Name':              issue['Issue_Name']
+                 })
 
-        issue['issuechoice'] = issuechoice
-        #logger.info(u"issue retrieval: " + issue['Issue_ID'] + "for Issue No." + issue['Issue_Number'])
+            issue['issuechoice'] = issuechoice
+        except:
+            #logger.fdebug("publisher...ignoring this.")
+            #logger.fdebug("n value: " + str(n) + " ...subtracks: " + str(len(subtracks)))
+            # in order to get ALL the issues, we need to increment the count back by 1 so it grabs the
+            # last issue
+            pass
         n-=1
 
     return issue
