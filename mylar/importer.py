@@ -193,9 +193,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
             ComicImage = "cache/" + str(comicid) + ".jpg"
             logger.info(u"Sucessfully retrieved cover for " + str(comic['ComicName']))
             #if the comic cover local is checked, save a cover.jpg to the series folder.
-           # if mylar.COMIC_COVER_LOCAL:
-            comiclocal = os.path.join(str(comlocation) + "/cover.jpg")
-            shutil.copy(ComicImage,comiclocal)
+            if mylar.COMIC_COVER_LOCAL:
+                comiclocal = os.path.join(str(comlocation) + "/cover.jpg")
+                shutil.copy(ComicImage,comiclocal)
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
 
