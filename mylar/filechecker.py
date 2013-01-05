@@ -19,16 +19,16 @@ import os.path
 import pprint
 import subprocess
 import re
+import logger
 
 def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
     pass
 
 def listFiles(dir,watchcomic):
-    #print("dir:" + dir)
-    #print("comic: " + watchcomic)
+    logger.fdebug("comic: " + watchcomic)
     basedir = dir
-    #print "Files in ", dir, ": "
+    logger.fdebug("Looking in: " + dir)
     watchmatch = {}
     comiclist = []
     comiccnt = 0
@@ -38,15 +38,18 @@ def listFiles(dir,watchcomic):
         subname = item
         #print subname
         subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
+        modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
+        subname = re.sub('\s+', ' ', str(subname)).strip()
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
-        if watchcomic.lower() in subname.lower():
+        logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
+        if modwatchcomic.lower() in subname.lower():
             if 'annual' in subname.lower():
                 #print ("it's an annual - unsure how to proceed")
                 continue
             comicpath = os.path.join(basedir, item)
-            #print ( watchcomic + " - watchlist match on : " + comicpath)
+            logger.fdebug( modwatchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)
             #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
@@ -60,8 +63,7 @@ def listFiles(dir,watchcomic):
             pass
             #print ("directory found - ignoring")
     
-    #print ("you have a total of " + str(comiccnt) + " comics")
-    #print ("watchdata: " + str(watchmatch))
+    logger.fdebug("you have a total of " + str(comiccnt) + " " + str(watchcomic) + " comics")
     watchmatch['comiccount'] = comiccnt
     return watchmatch
 
