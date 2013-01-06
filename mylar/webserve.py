@@ -16,6 +16,7 @@
 import os
 import cherrypy
 import datetime
+import re
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -32,7 +33,6 @@ from mylar import logger, db, importer, mb, search, filechecker, helpers, update
 import lib.simplejson as simplejson
 
 from operator import itemgetter
-
 
 def serve_template(templatename, **kwargs):
 
@@ -63,6 +63,9 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
+        #print (pickle.loads(comic['AlternateSearch']))
+        #AlternateSearch = []
+        #AlternateSearch.append(pickle.loads (comic['AlternateSearch']))
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         comicConfig = {
@@ -531,14 +534,42 @@ class WebInterface(object):
     
     def comic_config(self, com_location, alt_search, ComicID):
         myDB = db.DBConnection()
+#--- this is for multipe search terms............
+#--- works, just need to redo search.py to accomodate multiple search terms
+#        ffs_alt = []
+#        if '+' in alt_search:
+            #find first +
+#            ffs = alt_search.find('+')
+#            ffs_alt.append(alt_search[:ffs])
+#            ffs_alt_st = str(ffs_alt[0])
+#            print("ffs_alt: " + str(ffs_alt[0]))
+
+            # split the entire string by the delimter + 
+#            ffs_test = alt_search.split('+')
+#            if len(ffs_test) > 0:
+#                print("ffs_test names: " + str(len(ffs_test)))
+#                ffs_count = len(ffs_test)
+#                n=1
+#                while (n < ffs_count):
+#                    ffs_alt.append(ffs_test[n])
+#                    print("adding : " + str(ffs_test[n]))
+                    #print("ffs_alt : " + str(ffs_alt))
+#                    ffs_alt_st = str(ffs_alt_st) + "..." + str(ffs_test[n])
+#                    n+=1
+#            asearch = ffs_alt
+#        else:
+#            asearch = alt_search
+        asearch = str(alt_search)
+
         controlValueDict = {'ComicID': ComicID}
         newValues = {"ComicLocation":        com_location,
-                     "AlternateSearch":      alt_search }
+                     "AlternateSearch":      str(asearch) }
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,
                      #"QUALquality":          qual_quality
                      #}
+
         #force the check/creation of directory com_location here
         if os.path.isdir(str(com_location)):
             logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")

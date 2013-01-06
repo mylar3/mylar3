@@ -114,7 +114,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 break
             else:
                 if AlternateSearch is not None:
-                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYear))
+                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
@@ -130,7 +130,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 break
             else:
                 if AlternateSearch is not None:
-                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + str(ComicYear))
+                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
                     if findit == 'yes':
                         break
@@ -405,14 +405,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug("changeup to decimal: " + str(changeup))
                                 comic_iss = splitit[(len(splitit)-2)] + "." + comic_iss
                                 splitst = len(splitit) - 2
-
+                    else:
+                        # if the nzb name doesn't follow the series-issue-year format even closely..ignore nzb
+                        logger.fdebug("invalid naming format of nzb detected - cannot properly determine issue") 
+                        continue
                     logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
                     #bmm = re.findall('v\d', comic_iss)
                     #if len(bmm) > 0: splitst = len(splitit) - 2
                     #else: splitst = len(splitit) - 1
 
                     # make sure that things like - in watchcomic are accounted for when comparing to nzb.
-                    watchcomic_split = re.sub('[\-\:\,]', ' ', findcomic[findloop]).split(None)
+                    watchcomic_split = re.sub('[\-\:\,\.]', ' ', findcomic[findloop]).split(None)
                      
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
                     logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
@@ -438,7 +441,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #    splitrep = splitit[n].replace('-', '')
                                 #    print ("non-character keyword...skipped on " + splitit[n])
                             elif str(splitit[n].lower()).startswith('v'):
-                                logger.fdebug("possible verisoning..checking")
+                                logger.fdebug("possible versioning..checking")
                                 #we hit a versioning # - account for it
                                 if splitit[n][1:].isdigit():
                                     comicversion = str(splitit[n])
@@ -699,6 +702,7 @@ def searchforissue(issueid=None, new=False):
             comic = myDB.action('SELECT * from comics WHERE ComicID=?', [result['ComicID']]).fetchone()
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
+            AlternateSearch = comic['AlternateSearch']
             IssueDate = result['IssueDate']
             if result['IssueDate'] == None: 
                 ComicYear = comic['ComicYear']
@@ -706,7 +710,7 @@ def searchforissue(issueid=None, new=False):
                 ComicYear = str(result['IssueDate'])[:4]
 
             if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
-                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'])
+                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch)
                     if foundNZB == "yes": 
                         #print ("found!")
                         updater.foundsearch(result['ComicID'], result['IssueID'])
@@ -718,6 +722,7 @@ def searchforissue(issueid=None, new=False):
         ComicID = result['ComicID']
         comic = myDB.action('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
         SeriesYear = comic['ComicYear']
+        AlternateSearch = comic['AlternateSearch']
         IssueDate = result['IssueDate']
         if result['IssueDate'] == None:
             IssueYear = comic['ComicYear']
@@ -726,7 +731,7 @@ def searchforissue(issueid=None, new=False):
 
         foundNZB = "none"
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
-            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'])
+            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch)
             if foundNZB == "yes":
                 #print ("found!")
                 updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'])
@@ -742,12 +747,13 @@ def searchIssueIDList(issuelist):
         print ("Checking for issue: " + str(issue['Issue_Number']))
         foundNZB = "none"
         SeriesYear = comic['ComicYear']
+        AlternateSearch = comic['AlternateSearch']
         if issue['IssueDate'] == None:
             ComicYear = comic['ComicYear']
         else:
             ComicYear = str(issue['IssueDate'])[:4]
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
-                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'])
+                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'], AlternateSearch)
                 if foundNZB == "yes":
                     #print ("found!")
                     updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'])

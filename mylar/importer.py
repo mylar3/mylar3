@@ -638,7 +638,7 @@ def GCDimport(gcomicid, pullupd=None):
         # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.AUTOWANT_UPCOMING:
             logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))
-            updater.newpullcheck()
+            updater.newpullcheck(comic['ComicName'], gcomicid)
 
         #here we grab issues that have been marked as wanted above...
 
@@ -648,7 +648,7 @@ def GCDimport(gcomicid, pullupd=None):
 
             for result in results:
                 foundNZB = "none"
-                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
                     foundNZB = search.searchforissue(result['IssueID'])
                     if foundNZB == "yes":
                         updater.foundsearch(result['ComicID'], result['IssueID'])
