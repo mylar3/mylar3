@@ -56,16 +56,32 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         nzbprovider.append('experimental')
         nzbp+=1
     if mylar.NEWZNAB == 1:
-        newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
+        logger.fdebug("mylar.newznab:" + str(mylar.NEWZNAB))
         if mylar.NEWZNAB_ENABLED:
-            nzbprovider.append('newznab')
-            nzbp+=1
-        #newznabs = 0
+            newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
+            logger.fdebug("newznab_hosts:" + str(newznab_hosts))
+            logger.fdebug("newznab_enabled:" + str(mylar.NEWZNAB_ENABLED))
+        else:
+            newznab_hosts = []
+            logger.fdebug("initial newznab provider not enabled...checking for additional newznabs.")
+        newznabs = 0
+
+        logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
 
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
+                nzbprovider.append('newznab')
+                nzbp+=1
                 newznab_hosts.append(newznab_host)              
                 newznabs = newznabs + 1
+                logger.fdebug("newznab hosts:" + str(newznab_host))
+
+#        print("newznab_nzbp-1:" + str(nzbprovider(nzbp-1)))
+#        print("newznab_nzbp:" + str(nzbprovider(nzbp)))
+        if mylar.NEWZNAB_ENABLED and 'newznab' not in nzbprovider:
+            nzbprovider.append('newznab')
+            nzbp+=1
+
 
         #categories = "7030"
 
@@ -74,7 +90,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #    mylar.NEWZNAB_HOST = newznab_host[0]
 
     # --------
-    logger.fdebug("there are : " + str(nzbp) + " search providers you have selected.")
+    logger.fdebug("there are : " + str(int(nzbp + newznabs-1)) + " search providers you have selected.")
     nzbpr = nzbp-1
     findit = 'no'
 
@@ -91,7 +107,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #this is for newznab
             nzbprov = 'newznab'
             for newznab_host in newznab_hosts:
-                logger.fdebug("newnzb_host: " + str(newznab_host))
+                logger.fdebug("using newznab_host: " + str(newznab_host))
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
