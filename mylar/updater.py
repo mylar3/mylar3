@@ -71,7 +71,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
         else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
 
-    if issuechk['Issue_Number'] == IssueNumber:
+    elif issuechk['Issue_Number'] == IssueNumber:
         logger.fdebug("Comic series already up-to-date ... no need to refresh at this time.")
         logger.fdebug("Available to be marked for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
         logger.fdebug("...Existing status: " + str(issuechk['Status']))
@@ -89,18 +89,25 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"
         #was in wrong place :(
-        if mylar.AUTOWANT_UPCOMING: 
-            if issuechk['Status'] == "Skipped":
-                newValue['Status'] = "Wanted"
-                values = { "Status":  "Wanted"}
-                logger.fdebug("...New status of Wanted")
-            elif issuechk['Status'] == "Wanted":
-                logger.fdebug("...Status already Wanted .. not changing.")
-            else:
-                logger.fdebug("...Already have issue - keeping existing status of : " + issuechk['Status'])
+    if mylar.AUTOWANT_UPCOMING: 
+        #for issues not in db - to be added to Upcoming table.
+        if issuechk is None:
+            newValue['Status'] = "Wanted"
+            logger.fdebug("...Changing Status to Wanted and throwing it in the Upcoming section since it's not published yet.")
+        #this works for issues existing in DB...        
+        elif issuechk['Status'] == "Skipped":
+            newValue['Status'] = "Wanted"
+            values = { "Status":  "Wanted"}
+            logger.fdebug("...New status of Wanted")
+        elif issuechk['Status'] == "Wanted":
+            logger.fdebug("...Status already Wanted .. not changing.")
+        else:
+            logger.fdebug("...Already have issue - keeping existing status of : " + issuechk['Status'])
 
-        myDB.upsert("upcoming", newValue, controlValue)
-        myDB.upsert("issues", values, control)
+        if issuechk is None:
+            myDB.upsert("upcoming", newValue, controlValue)
+        else:
+            myDB.upsert("issues", values, control)
     else:
         logger.fdebug("Issues don't match for some reason... db issue: " + str(issuechk['Issue_Number']) + " ...weekly new issue: " + str(IssueNumber))
 
@@ -198,7 +205,7 @@ def forceRescan(ComicID):
     arcissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
     if len(arcissues) > 0:
         havefiles = len(arcissues)
-        print "have count adjusted to:" + str(len(arcissues))
+        logger.fdebug("Adjusting have total because of this many archive files:" + str(len(arcissues))
     while (fn < fccnt):  
         haveissue = "no"
         issuedupe = "no"
@@ -223,28 +230,28 @@ def forceRescan(ComicID):
                 issyear = reiss['IssueDate'][:4]
                 old_status = reiss['Status']
                                                 
-                logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
+                #logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                    logger.fdebug("checking word - " + str(fcnew[som]))
+                    #logger.fdebug("checking word - " + str(fcnew[som]))
                     if ".cbr" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbz", "")
                     if '.' in fcnew[som]:
-                        logger.fdebug("decimal detected...adjusting.")
+                        #logger.fdebug("decimal detected...adjusting.")
                         try:
                             i = float(fcnew[som])
                         except ValueError, TypeError:
                             #not numeric
                             fcnew[som] = fcnew[som].replace(".", "")
-                            logger.fdebug("new word: " + str(fcnew[som]))
+                            #logger.fdebug("new word: " + str(fcnew[som]))
                         else:
                             #numeric
                             pass
                     if fcnew[som].isdigit():
                         #this won't match on decimal issues - need to fix.
-                        logger.fdebug("digit detected")
+                        #logger.fdebug("digit detected")
                         if int(fcnew[som]) > 0:
                             # fcdigit = fcnew[som].lstrip('0')
                             #fcdigit = str(int(fcnew[som]))
@@ -255,24 +262,24 @@ def forceRescan(ComicID):
                     elif "." in fcnew[som]:
                         #this will match on decimal issues
                         IssueChk = fcnew[som]
-                        logger.fdebug("decimal detected...analyzing if issue")
+                        #logger.fdebug("decimal detected...analyzing if issue")
                         isschk_find = IssueChk.find('.')
                         isschk_b4dec = IssueChk[:isschk_find]
                         isschk_decval = IssueChk[isschk_find+1:]
                         if isschk_b4dec.isdigit():
-                            logger.fdebug("digit detected prior to decimal.")
+                            #logger.fdebug("digit detected prior to decimal.")
                             if isschk_decval.isdigit():
-                                #pass
-                                logger.fdebug("digit detected after decimal.")
+                                pass
+                                #logger.fdebug("digit detected after decimal.")
                             else:
-                                logger.fdebug("not an issue - no digit detected after decimal")
+                                #logger.fdebug("not an issue - no digit detected after decimal")
                                 break
                         else:
-                            logger.fdebug("not an issue - no digit detected prior to decimal")
+                            #logger.fdebug("not an issue - no digit detected prior to decimal")
                             break
-                        logger.fdebug("IssueNumber: " + str(IssueChk))
-                        logger.fdebug("..before decimal: " + str(isschk_b4dec))
-                        logger.fdebug("...after decimal: " + str(isschk_decval))
+                        #logger.fdebug("IssueNumber: " + str(IssueChk))
+                        #logger.fdebug("..before decimal: " + str(isschk_b4dec))
+                        #logger.fdebug("...after decimal: " + str(isschk_decval))
                         #--let's make sure we don't wipe out decimal issues ;)
                         if int(isschk_decval) == 0:
                             iss = isschk_b4dec
@@ -285,18 +292,18 @@ def forceRescan(ComicID):
                                 iss = isschk_b4dec + "." + isschk_decval.rstrip('0')
                                 intdec = int(isschk_decval.rstrip('0')) * 10
                         fcdigit = (int(isschk_b4dec) * 1000) + intdec
-                        logger.fdebug("b4dec: " + str(isschk_b4dec))
-                        logger.fdebug("decval: " + str(isschk_decval))
-                        logger.fdebug("intdec: " + str(intdec))
-                        logger.fdebug("let's compare with this issue value: " + str(fcdigit))
+                        #logger.fdebug("b4dec: " + str(isschk_b4dec))
+                        #logger.fdebug("decval: " + str(isschk_decval))
+                        #logger.fdebug("intdec: " + str(intdec))
+                        #logger.fdebug("let's compare with this issue value: " + str(fcdigit))
                     else:
                         # it's a word, skip it.
                         fcdigit = 1000000    
-                    logger.fdebug("fcdigit: " + str(fcdigit))
-                    logger.fdebug("int_iss: " + str(int_iss))
+                    #logger.fdebug("fcdigit: " + str(fcdigit))
+                    #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):
                          int_iss = helpers.decimal_issue(int_iss)
-                    logger.fdebug("this is the int issue:" + str(int_iss))
+                    #logger.fdebug("this is the int issue:" + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         #if issyear in fcnew[som+1]:

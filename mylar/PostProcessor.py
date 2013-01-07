@@ -23,6 +23,9 @@ import time
 import logging
 import mylar
 import subprocess
+import urllib2
+import sqlite3
+from xml.dom.minidom import parseString
 
 from mylar import logger, db, helpers, updater
 
@@ -80,7 +83,7 @@ class PostProcessor(object):
 #        logger.log(message, level)
         self.log += message + '\n'
 
-    def _run_extra_scripts(self, nzb_name, nzb_folder):
+    def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
         Executes any extra scripts defined in the config.
 
@@ -92,7 +95,7 @@ class PostProcessor(object):
         curScriptName = mylar.EXTRA_SCRIPTS
         self._log("extra script detected...enabling: " + str(curScriptName), logger.DEBUG)
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(curScriptName) + [nzb_name, nzb_folder]
+        script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
         self._log("cmd to be executed: " + str(script_cmd), logger.DEBUG)
 
             # use subprocess to run the command and capture output
@@ -108,26 +111,66 @@ class PostProcessor(object):
 
 #    def PostProcess(nzb_name, nzb_folder):
     def Process(self):
-            print ("..here.")
             self._log("nzb name: " + str(self.nzb_name), logger.DEBUG)
             self._log("nzb folder: " + str(self.nzb_folder), logger.DEBUG)
-#            log2screen = ""
-#            log2screen = log2screen + "Nzb Name:" + self.nzb_name + "\n"
-#            log2screen = log2screen + "Nzb Folder:"  + self.nzb_folder + "\n"
-                #lookup nzb_name in nzblog table to get issueid
+            #lookup nzb_name in nzblog table to get issueid
+
+            #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
+            #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
+            querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+            #logger.info("querysab_string:" + str(querysab))
+            file = urllib2.urlopen(querysab)
+            data = file.read()
+            file.close()
+            dom = parseString(data)
+
+            sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
+            sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
+            #logger.fdebug("sabreps:" + str(sabreps))
+
             myDB = db.DBConnection()
-            nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [self.nzb_name]).fetchone()
+
+            nzbname = self.nzb_name
+
+            nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
             if nzbiss is None:
-                self._log("Epic failure - could not locate file to rename.", logger.DEBUG)
-                logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
-                return
+                self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
+                #decimals need to be accounted for....
+                if str(sabrepd) == '0':
+                    #Replace decimals is enabled so decimlas should already be passed through converted.
+                    logger.info("SABnzbd setting: Replace Decimals is disabled.")
+                elif str(sabrepd) == '1':
+                    #Replace decimals is enabled.
+                    #By default SAB will pass back the value with decimals replaced with a ' ' or a '_'
+                    logger.info("SABnzbd setting: Replace Decimals is enabled.")
+                    self._log("I'm going to try to rejig the nzbname passed from SAB accounting for decmials to see if I can find it.")
+                    nzbname = re.sub('[\.]', '_', str(nzbname))
+                #spaces need to be accounted for
+                if str(sabreps) == '1':
+                    #Replace spaces is enabled so spaces should already be passed through converted.
+                    logger.info("SABnzbd setting: Replace spaces is enabled.")
+                elif str(sabreps) == '0':
+                    #Replace space is disabled.
+                    #By default SAB will pass back the value with spaces replaced with a '+'
+                    logger.info("SABnzbd setting: Replace spaces is disabled.")
+                    self._log("I'm going to try to rejig the nzbname passed from SAB accouting for spaces to see if I can find it.")
+                    nzbname = re.sub(' ', '_', str(nzbname))
+                #let's remove the - cause it will cause problems at this point...
+                nzbname = re.sub('[\-]', '_', str(nzbname))
+
+                logger.fdebug("trying again with this nzbname: " + str(nzbname))
+                nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                if nzbiss is None:
+                    logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
+                    return
+                else:
+                    self._log("I corrected and found the nzb as : " + str(nzbname))
+                    issueid = nzbiss['IssueID']
             else: 
                 issueid = nzbiss['IssueID']
-            #log2screen = log2screen + "IssueID: " + issueid + "\n"
                 #use issueid to get publisher, series, year, issue number
             issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
             comicid = issuenzb['ComicID']
-            #log2screen = log2screen + "ComicID: " + comicid + "\n"
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
 
@@ -199,22 +242,6 @@ class PostProcessor(object):
             self._log("Year: " + seriesyear, logger.DEBUG)
             comlocation = comicnzb['ComicLocation']
             self._log("Comic Location: " + comlocation, logger.DEBUG)
-#---move to importer.py
-                #get output path format
-#        if ':' in series:
-#            series = series.replace(':','')
-                #do work to generate folder path
-#        values = {'$Series':    series,
-#              '$Publisher': publisher,
-#              '$Year':      seriesyear
-#              }
-#        comlocation = mylar.DESTINATION_DIR + "/" + helpers.replace_all(mylar.FOLDER_FORMAT, values)
-            #last perform space replace
-#        if mylar.REPLACE_SPACES:
-            #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-#            comlocation = comlocation.replace(' ', mylar.REPLACE_CHAR)
-#        log2screen = log2screen + "Final Location: " + comlocation + "\n"
-#---
         #rename file and move to new path
         #nfilename = series + " " + issueno + " (" + seriesyear + ")"
             file_values = {'$Series':    series,
@@ -243,8 +270,6 @@ class PostProcessor(object):
                 if mylar.REPLACE_SPACES:
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
-            #TODO - sort issue numbering 12.00 should be 12
-            #replace funky characters so it doesn't break things
             nfilename = re.sub('[\,\:]', '', nfilename)
             self._log("New Filename: " + nfilename, logger.DEBUG)
 
@@ -279,7 +304,24 @@ class PostProcessor(object):
             # retrieve/create the corresponding comic objects
 
             if mylar.ENABLE_EXTRA_SCRIPTS:
-                self._run_extra_scripts(self.nzb_name, self.nzb_folder)
+                folderp = str(dst) #folder location after move/rename
+                nzbn = self.nzb_name #original nzb name
+                filen = str(nfilename + ext) #new filename
+                #name, comicyear, comicid , issueid, issueyear, issue, publisher
+                #create the dic and send it.
+                seriesmeta = []
+                seriesmetadata = {}
+                seriesmeta.append({
+                            'name':                 series,
+                            'comicyear':            seriesyear,
+                            'comicid':              comicid,
+                            'issueid':              issueid,
+                            'issueyear':            issueyear,
+                            'issue':                issuenum,
+                            'publisher':            publisher
+                            })
+                seriesmetadata['seriesmeta'] = seriesmeta
+                self._run_extra_scripts(nzbname, self.nzb_folder, filen, folderp, seriesmetadata )
 
             return self.log
 

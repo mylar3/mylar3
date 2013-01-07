@@ -55,6 +55,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     if mylar.EXPERIMENTAL == 1:
         nzbprovider.append('experimental')
         nzbp+=1
+
+    newznabs = 0
+
     if mylar.NEWZNAB == 1:
         logger.fdebug("mylar.newznab:" + str(mylar.NEWZNAB))
         if mylar.NEWZNAB_ENABLED:
@@ -65,7 +68,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         else:
             newznab_hosts = []
             logger.fdebug("initial newznab provider not enabled...checking for additional newznabs.")
-            newznabs = 0
 
         logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
 
@@ -558,98 +560,41 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             #end blackhole
 
                             else:
-                                if nzbprov != 'nzb.su':
-                                    tmppath = mylar.CACHE_DIR
-                                    if os.path.exists(tmppath):
-                                       logger.fdebug("cache directory successfully found at : " + str(tmppath))
-                                       pass
-                                    else:
-                                    #let's make the dir.
-                                        logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
-                                        try:
-                                            os.makedirs(str(mylar.CACHE_DIR))
-                                            logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
-
-                                        except OSError.e:
-                                            if e.errno != errno.EEXIST:
-                                                raise
-
-                                    filenamenzb = os.path.split(linkapi)[1]
-                                    #filenzb = os.path.join(tmppath,filenamenzb)
-                                    logger.fdebug("unalterted nzb name: " + str(filenamenzb))
-                                    #let's send a clean copy to SAB because the names are random characters and/or could be stupid.
-                                    ComicName = re.sub('[\:\,]', '', ComicName)
-                                    filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
-                                    logger.fdebug("prettified nzb name: " + str(filenzb))
-
-                                    if mylar.RENAME_FILES == 1:
-                                        logger.fdebug("Rename Files enabled..")
-                                        filenzb = str(ComicName.replace(' ', '_')) + "_" + str(IssueNumber) + "_(" + str(comyear) + ")"
-                                        logger.fdebug("this should be the same as prettified nzb name:" + str(filenzb))
-                                        if mylar.REPLACE_SPACES:
-                                            logger.fdebug("Replace spaces option enabled")
-                                            logger.fdebug("replace character: " + str(mylar.REPLACE_CHAR))
-                                            repchar = mylar.REPLACE_CHAR
-                                            repurlchar = mylar.REPLACE_CHAR
-                                        else:
-                                            logger.fdebug("Replace spaces option NOT enabled")
-                                            repchar = ' '
-                                            repurlchar = "%20"
-                                        #let's make sure there's no crap in the ComicName since it's O.G.
-                                        logger.fdebug("original Name of comic: " + str(ComicName))
-                                        ComicNM = re.sub('[\:\,]', '', str(ComicName))
-                                        logger.fdebug("altered Name of comic: " + str(ComicNM))
-                                        renameit = str(ComicNM) + " " + str(IssueNumber) + " (" + str(SeriesYear) + ")" + " " + "(" + str(comyear) + ")"
-                                        logger.fdebug("altered Name with additional info: " + str(renameit))
-                                        renamethis = renameit.replace(' ', repchar)
-                                        logger.fdebug("...with replace spaces: " + str(renamethis))
-                                        renamer1 = renameit.replace(' ', repurlchar)
-                                        renamer = re.sub("\&", "%26", str(renamer1))
-                                        logger.fdebug("...adjusting for url restrictions: " + str(renamer))
-
-                                    filenext = str(filenzb) + ".nzb"
-                                    savefile = os.path.join(tmppath, filenext)
-                                    logger.fdebug("nzb file to be saved: " + str(savefile))
-
+                                tmppath = mylar.CACHE_DIR
+                                if os.path.exists(tmppath):
+                                   logger.fdebug("cache directory successfully found at : " + str(tmppath))
+                                   pass
+                                else:
+                                #let's make the dir.
+                                    logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
                                     try:
-                                        urllib.urlretrieve(linkapi, str(savefile))                                
-                                    except urllib.URLError:
-                                        logger.fdebug(u"Unable to retrieve nzb using link: " + str(linkapi))
-                                        logger.fdebug(u"Possibly unable to save nzb: " + str(savefile))
-                                        logger.error(u"Unable to retrieve nzb file.")
-                                        return
+                                        os.makedirs(str(mylar.CACHE_DIR))
+                                        logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
 
-                                    if os.path.getsize(str(savefile)) == 0:
-                                        logger.error(u"nzb size detected as zero bytes.")
-                                        continue
+                                    except OSError.e:
+                                        if e.errno != errno.EEXIST:
+                                            raise
 
-                                    logger.info(u"Sucessfully retrieved nzb file using " + str(nzbprov))
-                                    nzbname = str(filenzb)
+                                logger.fdebug("link to retrieve via api:" + str(linkapi))
 
-                                elif nzbprov == 'nzb.su':
-                                    logger.fdebug("NZB.SU - linkapi:" + str(linkapi))
-                                    nzbname = re.sub(" ", "_", str(entry['title']))
+                                #when the series contains a '-' or the issue a decimal it can't convert
+                                #if SAB's settings differ on how it handles spaces / decimals.
+                                #let's attempt to adjust by removing the - and .
+                                nzbname = re.sub(" ", "_", str(entry['title']))
+                                nzbname = re.sub('[\.\-]', '_', str(nzbname))
 
                                 logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 
                                 # let's build the send-to-SAB string now:
                                 tmpapi = str(mylar.SAB_HOST)
                                 logger.fdebug("send-to-SAB host string: " + str(tmpapi))
-                                # nzb.su only works with direct links for some reason...
-                                if nzbprov == 'nzb.su':
-                                    SABtype = "/api?mode=addurl&name="
-                                    savefileURL = str(linkapi)
-                                else:
-                                    SABtype = "/api?mode=addlocalfile&name="
-                                    # if the savefile location has spaces in the path, could cause problems.
-                                    # if the savefile has a &, escape it otherwise will botch up send-to-SAB link
-                                    # let's adjust.
-                                    saveF = re.sub("\&", "%26", str(savefile))
-                                    savefileURL = re.sub(" ","%20", str(saveF))
+                                # changed to just work with direct links now...
+                                SABtype = "/api?mode=addurl&name="
+                                fileURL = str(linkapi)
                                 tmpapi = tmpapi + str(SABtype)
                                 logger.fdebug("...selecting API type: " + str(tmpapi))
-                                tmpapi = tmpapi + str(savefileURL)
-                                logger.fdebug("...attaching nzbfile: " + str(tmpapi))
+                                tmpapi = tmpapi + str(fileURL)
+                                logger.fdebug("...attaching nzb provider link: " + str(tmpapi))
                                 # determine SAB priority
                                 if mylar.SAB_PRIORITY:
                                     tmpapi = tmpapi + "&priority=" + str(sabpriority)
@@ -674,10 +619,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 logger.info(u"Successfully sent nzb file to SABnzbd")
                                 #delete the .nzb now.
-                                if mylar.PROG_DIR is not "/" and nzbprov != 'nzb.su':
-                                    logger.fdebug("preparing to remove temporary nzb file at: " + str(savefile))
-                                    os.remove(savefile)
-                                    logger.info(u"Removed temporary save file")
+                                #if mylar.PROG_DIR is not "/" and nzbprov != 'nzb.su':
+                                #    logger.fdebug("preparing to remove temporary nzb file at: " + str(savefile))
+                                #    os.remove(savefile)
+                                #    logger.info(u"Removed temporary save file")
                             #raise an exception to break out of loop
                             foundc = "yes"
                             done = True

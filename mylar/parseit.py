@@ -389,7 +389,7 @@ def GCDAdd(gcdcomicid):
         #logger.fdebug("series_data: " + str(parsed))
         #print ("parse:" + str(parsed))
         subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
-        logger.fdebug("publication_dates: " + str(subtxt3))
+        #logger.fdebug("publication_dates: " + str(subtxt3))
         pubdate = subtxt3.findNext(text=True).rstrip()
         logger.fdebug("pubdate:" + str(pubdate))
         subtxt4 = parsed.find("dd", {"id" : "issues_published"})
