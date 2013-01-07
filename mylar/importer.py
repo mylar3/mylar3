@@ -402,11 +402,12 @@ def GCDimport(gcomicid, pullupd=None):
 
     controlValueDict = {"ComicID":     gcdcomicid}
 
-    comic = myDB.action('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
+    comic = myDB.action('SELECT ComicName, ComicYear, Total, ComicPublished, ComicImage, ComicLocation, ComicPublisher FROM comics WHERE ComicID=?', [gcomicid]).fetchone()
     ComicName = comic[0]
     ComicYear = comic[1]
     ComicIssues = comic[2]
     comlocation = comic[5]
+    ComicPublisher = comic[6]
     #ComicImage = comic[4]
     #print ("Comic:" + str(ComicName))
 
@@ -462,7 +463,24 @@ def GCDimport(gcomicid, pullupd=None):
             if ',' in comicdir:
                 comicdir = comicdir.replace(',','')            
         else: comicdir = ComicName
-        comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
+
+        series = comicdir
+        publisher = ComicPublisher
+        year = ComicYear
+
+        #do work to generate folder path
+
+        values = {'$Series':        series,
+                  '$Publisher': publisher,
+                  '$Year':      year
+                  }
+
+        if mylar.FOLDER_FORMAT == '':
+            comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
+        else:
+            comlocation = mylar.DESTINATION_DIR + "/" + helpers.replace_all(mylar.FOLDER_FORMAT, values)
+
+        #comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
         if mylar.DESTINATION_DIR == "":
             logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
             return

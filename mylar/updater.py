@@ -14,6 +14,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import time
+import datetime
 from xml.dom.minidom import parseString
 import urllib2
 import shlex
@@ -63,14 +64,30 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     else:
         if CV_EXcomicid['variloop'] == '99':
             mismatch = "yes"
-    pullupd = "yes"
+    lastupdatechk = myDB.action("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+    if lastupdatechk is None:
+        pullupd = "yes"
+    else:
+        c_date = lastupdatechk['LastUpdated']
+        c_obj_date = datetime.datetime.strptime(c_date, "%Y-%m-%d %H:%M:%S")
+        n_date = datetime.datetime.now()
+        absdiff = abs(n_date - c_obj_date)
+        hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
+        # no need to hammer the refresh 
+        # let's check it every 5 hours (or more)
+        #pullupd = "yes"
+
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
     if issuechk is None:
         logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
-        logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
-        if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
-        else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
-
+        if hours > 5:
+            pullupd = "yes"
+            logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
+            if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
+            else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
+        else:
+            logger.fdebug("It hasn't been longer than 5 hours since we last did this...let's wait so we don't hammer things.")
+            return
     elif issuechk['Issue_Number'] == IssueNumber:
         logger.fdebug("Comic series already up-to-date ... no need to refresh at this time.")
         logger.fdebug("Available to be marked for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
@@ -205,7 +222,7 @@ def forceRescan(ComicID):
     arcissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
     if len(arcissues) > 0:
         havefiles = len(arcissues)
-        logger.fdebug("Adjusting have total because of this many archive files:" + str(len(arcissues))
+        logger.fdebug("Adjusting have total because of this many archive files:" + str(len(arcissues)))
     while (fn < fccnt):  
         haveissue = "no"
         issuedupe = "no"
