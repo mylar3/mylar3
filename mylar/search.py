@@ -61,17 +61,18 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
             logger.fdebug("newznab_hosts:" + str(newznab_hosts))
             logger.fdebug("newznab_enabled:" + str(mylar.NEWZNAB_ENABLED))
+            newznabs = 1
         else:
             newznab_hosts = []
             logger.fdebug("initial newznab provider not enabled...checking for additional newznabs.")
-        newznabs = 0
+            newznabs = 0
 
         logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
 
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
-                nzbprovider.append('newznab')
-                nzbp+=1
+#                nzbprovider.append('newznab')
+#                nzbp+=1
                 newznab_hosts.append(newznab_host)              
                 newznabs = newznabs + 1
                 logger.fdebug("newznab hosts:" + str(newznab_host))
@@ -90,7 +91,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #    mylar.NEWZNAB_HOST = newznab_host[0]
 
     # --------
-    logger.fdebug("there are : " + str(int(nzbp + newznabs-1)) + " search providers you have selected.")
+    providercount = int(nzbp + newznabs)
+    logger.fdebug("there are : " + str(providercount) + " search providers you have selected.")
     nzbpr = nzbp-1
     findit = 'no'
 

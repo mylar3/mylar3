@@ -347,7 +347,6 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 def GCDAdd(gcdcomicid):
     serieschoice = []
     series = {}
-    logger.fdebug("this one's for Ataribaby:")
     logger.fdebug("I'm trying to find these GCD comicid's:" + str(gcdcomicid))
     for gcdid in gcdcomicid:
         logger.fdebug("looking at gcdid:" + str(gcdid))
@@ -359,7 +358,6 @@ def GCDAdd(gcdcomicid):
         parsen = soup.find("span", {"id" : "series_name"})
         #logger.fdebug("series name (UNPARSED): " + str(parsen))
         subpar = parsen('a')[0]
-        logger.fdebug("series name parsed value: " + str(subpar))
         resultName = subpar.findNext(text=True)
         logger.fdebug("ComicName: " + str(resultName))
         #covers-start
@@ -376,14 +374,15 @@ def GCDAdd(gcdcomicid):
         #covers end
         #publisher start
         logger.fdebug("Publisher section...")
-        pubst = soup.find("div", {"class" : "item_data"})
-        #logger.fdebug("publisher (UNPARSED): " + str(pubst))
         try:
-            subpubst = pubst('a')[0]
-            logger.fdebug("publisher parsed value : " + str(subpubst))
-            publisher = subpubst.findNext(text=True)
-        except IndexError:
-            publisher = "Unknown"
+            pubst = soup.find("div", {"class" : "item_data"})
+            catchit = pubst('a')[0]
+
+        except (IndexError, TypeError):
+            pubst = soup.findAll("div", {"class" : "left"})[1]
+            catchit = pubst.find("a")
+
+        publisher = catchit.findNext(text=True)
         logger.fdebug("Publisher: " + str(publisher))
         #publisher end
         parsed = soup.find("div", {"id" : "series_data"})
