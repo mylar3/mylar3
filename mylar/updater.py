@@ -208,7 +208,7 @@ def forceRescan(ComicID):
     # file check to see if issue exists
     rescan = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
     logger.info(u"Now checking files for " + str(rescan['ComicName']) + " (" + str(rescan['ComicYear']) + ") in " + str(rescan['ComicLocation']) )
-    fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'])
+    fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
     iscnt = rescan['Total']
     havefiles = 0
     fccnt = int(fc['comiccount'])

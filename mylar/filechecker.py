@@ -25,7 +25,11 @@ def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
     pass
 
-def listFiles(dir,watchcomic):
+def listFiles(dir,watchcomic,AlternateSearch=None):
+    # use AlternateSearch to check for filenames that follow that naming pattern
+    # ie. Star Trek TNG Doctor Who Assimilation won't get hits as the 
+    # checker looks for Star Trek TNG Doctor Who Assimilation2 (according to CV)
+
     logger.fdebug("comic: " + watchcomic)
     basedir = dir
     logger.fdebug("Looking in: " + dir)
@@ -41,10 +45,16 @@ def listFiles(dir,watchcomic):
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
         subname = re.sub('\s+', ' ', str(subname)).strip()
+        if AlternateSearch is not None:
+            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(AlternateSearch))
+            altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
+        else:
+            #create random characters so it will never match.
+            altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
         logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
-        if modwatchcomic.lower() in subname.lower():
+        if modwatchcomic.lower() in subname.lower() or altsearchcomic.lower() in subname.lower():
             if 'annual' in subname.lower():
                 #print ("it's an annual - unsure how to proceed")
                 continue
