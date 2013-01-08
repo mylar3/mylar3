@@ -131,34 +131,26 @@ class PostProcessor(object):
             myDB = db.DBConnection()
 
             nzbname = self.nzb_name
+            #remove extensions from nzb_name if they somehow got through (Experimental most likely)
+            extensions = ('.cbr', '.cbz')
+
+            if nzbname.lower().endswith(extensions):
+                fd, ext = os.path.splitext(nzbname)
+                self._log("Removed extension from nzb: " + ext, logger.DEBUG)
+                nzbname = re.sub(str(ext), '', str(nzbname))
+
+            #replace spaces
+            nzbname = re.sub(' ', '.', str(nzbname))
+
+            self._log("nzbname: " + str(nzbname), logger.DEBUG)
 
             nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+
             if nzbiss is None:
                 self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
-                #decimals need to be accounted for....
-                if str(sabrepd) == '0':
-                    #Replace decimals is enabled so decimlas should already be passed through converted.
-                    logger.info("SABnzbd setting: Replace Decimals is disabled.")
-                elif str(sabrepd) == '1':
-                    #Replace decimals is enabled.
-                    #By default SAB will pass back the value with decimals replaced with a ' ' or a '_'
-                    logger.info("SABnzbd setting: Replace Decimals is enabled.")
-                    self._log("I'm going to try to rejig the nzbname passed from SAB accounting for decmials to see if I can find it.")
-                    nzbname = re.sub('[\.]', '_', str(nzbname))
-                #spaces need to be accounted for
-                if str(sabreps) == '1':
-                    #Replace spaces is enabled so spaces should already be passed through converted.
-                    logger.info("SABnzbd setting: Replace spaces is enabled.")
-                elif str(sabreps) == '0':
-                    #Replace space is disabled.
-                    #By default SAB will pass back the value with spaces replaced with a '+'
-                    logger.info("SABnzbd setting: Replace spaces is disabled.")
-                    self._log("I'm going to try to rejig the nzbname passed from SAB accouting for spaces to see if I can find it.")
-                    nzbname = re.sub(' ', '_', str(nzbname))
-                #let's remove the - cause it will cause problems at this point...
-                nzbname = re.sub('[\-]', '_', str(nzbname))
-
-                logger.fdebug("trying again with this nzbname: " + str(nzbname))
+                # if failed on spaces, change it all to decimals and try again.
+                nzbname = re.sub('_', '.', str(nzbname))
+                self._log("trying again with this nzbname: " + str(nzbname), logger.DEBUG)
                 nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
                 if nzbiss is None:
                     logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
@@ -249,8 +241,6 @@ class PostProcessor(object):
                            '$Year':      issueyear
                           }
 
-            extensions = ('.cbr', '.cbz')
-   
             for root, dirnames, filenames in os.walk(self.nzb_folder):
                 for filename in filenames:
                     if filename.lower().endswith(extensions):

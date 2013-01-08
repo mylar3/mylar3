@@ -577,11 +577,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 logger.fdebug("link to retrieve via api:" + str(linkapi))
 
-                                #when the series contains a '-' or the issue a decimal it can't convert
-                                #if SAB's settings differ on how it handles spaces / decimals.
-                                #let's attempt to adjust by removing the - and .
-                                nzbname = re.sub(" ", "_", str(entry['title']))
-                                nzbname = re.sub('[\.\-]', '_', str(nzbname))
+                                #let's change all space to decimals for simplicity
+                                nzbname = re.sub(" ", ".", str(entry['title']))
+  
+                                extensions = ('.cbr', '.cbz')
+
+                                if nzbname.lower().endswith(extensions):
+                                    fd, ext = os.path.splitext(nzbname)
+                                    logger.fdebug("Removed extension from nzb: " + ext)
+                                    nzbname = re.sub(str(ext), '', str(nzbname))
 
                                 logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 

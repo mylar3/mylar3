@@ -262,7 +262,8 @@ def forceRescan(ComicID):
                     if "(c2c)" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace("(c2c)", " ")
                         get_issue = shlex.split(str(fcnew[som]))
-                        fcnew[som] = get_issue[0]
+                        if fcnew[som] != " ":
+                            fcnew[som] = get_issue[0]
                     if '.' in fcnew[som]:
                         logger.fdebug("decimal detected...adjusting.")
                         try:
