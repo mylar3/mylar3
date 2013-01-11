@@ -356,7 +356,8 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
             cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher from comics")
             while True:
                 watchd = cur.fetchone()
-                if watchd == None:
+                #print ("watchd: " + str(watchd))
+                if watchd is None:
                     break
                 a_list.append(watchd[1])
                 b_list.append(watchd[2])
@@ -387,6 +388,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                 logger.fdebug("looking for : " + str(lines[cnt]))
                 sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(lines[cnt]))
                 sqlsearch = re.sub(r'\s', '%', sqlsearch) 
+                if 'THE' in sqlsearch: sqlsearch = re.sub('THE', '', sqlsearch)
                 logger.fdebug("searchsql: " + str(sqlsearch))
                 weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
@@ -419,13 +421,17 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                 comicnm = re.sub(r'\s', '', comicnm)
                                 logger.fdebug("Revised_Watch: " + str(watchcomic))
                                 logger.fdebug("ComicNM: " + str(comicnm))
-                                if str(comicnm) == str(watchcomic).upper():
+                                if 'THE' in str(watchcomic):
+                                    modcomicnm = re.sub('THE', '', comicnm)
+                                if str(comicnm) == str(watchcomic).upper() or str(modcomicnm) == str(watchcomic).upper():
                                     logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
                                     #pass
                                 elif ("ANNUAL" in week['EXTRA']):
                                     pass
                                     #print ( row[3] + " matched on ANNUAL")
                                 else:
+                                    if 'THE' in str(comicnm):
+                                        modcomicnm = re.sub('THE', '', comicnm)
                                     #print ( row[2] + " not an EXACT match...")
                                     break
                                 #if "WOLVERINE AND X-MEN" in str(comicnm):

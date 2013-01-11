@@ -22,15 +22,43 @@
 	
 	<div id="tabs">
 		<ul>
-			<li><a href="#tabs-1">Web Interface</a></li>
-			<li><a href="#tabs-2">Download settings</a></li>
-			<li><a href="#tabs-3">Search providers</a></li>
-			<li><a href="#tabs-4">Quality &amp; Post Processing</a></li>
-			<li><a href="#tabs-5">Advanced Settings</a></li>
+                        <li><a href="#tabs-1">Information</a></li>
+			<li><a href="#tabs-2">Web Interface</a></li>
+			<li><a href="#tabs-3">Download settings</a></li>
+			<li><a href="#tabs-4">Search providers</a></li>
+			<li><a href="#tabs-5">Quality &amp; Post Processing</a></li>
+			<li><a href="#tabs-6">Advanced Settings</a></li>
 		</ul>
-		<div id="tabs-1">
-		
-		
+
+        <div id="tabs-1">
+        <table class="configtable" summary="Information">
+            <tr>
+                <td>
+                  <fieldset>
+                  <legend>Configuration Options</legend>
+                       <div>
+                            <label><strong>Mylar Version: </strong> ${config['branch']}</br> -- ${config['br_type']}  build ${config['br_version']}.</label></br>
+                            <label><strong>Python Version:</strong> ${config['py_version']}</label></br></br>
+                            <legend>MYLAR PROGRAM OPTIONS</legend>
+                            <label><strong>Mylar Data Directory:</strong>  ${config['data_dir']}</label></br>
+                            <label><strong>Mylar Program Directory :</strong> ${config['prog_dir']}</label></br>
+                            <label><strong>Mylar Cache Directory :</strong> ${config['cache_dir']}</label></br>
+                            <label><strong>Mylar Config File :</strong>${config['config_file']}</label></br>
+
+                       </div>                       
+                   </fieldset>
+                </td>
+                <td>
+                <fieldset>
+                    <legend>Branch history</legend>
+                          <label>${config['branch_history']}</label>
+                </fieldset>
+               </td>
+            </tr>
+        </table>
+        </div>
+
+	<div id="tabs-2">	
         <table class="configtable" summary="Web Interface">
             <tr>
             	<td>
@@ -99,7 +127,7 @@
         </table>
 	</div>
 	
-	<div id="tabs-2">
+	<div id="tabs-3">
         <table class="configtable" summary="Download Settings">
 	    <tr>
                 <td>
@@ -126,13 +154,13 @@
 	                        <label>SABnzbd Category:</label>
 	                        <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
 	                    </div>
-                                <div class="row radio clearfix">
+                                <div class="row radio left clearfix">
                                 <label>SABNzbd Priority:</label>
-<input type="radio" name="sab_priority" value="1" ${config['sab_priority_1']} /><label>default Priority</label>
-<input type="radio" name="sab_priority" value="2" ${config['sab_priority_2']} /><label>Low Priority</label>
-<input type="radio" name="sab_priority" value="3" ${config['sab_priority_3']} /><label>Normal Priority</label>
-<input type="radio" name="sab_priority" value="4" ${config['sab_priority_4']} /><label>High Priority</label>
-<input type="radio" name="sab_priority" value="5" ${config['sab_priority_5']} /><label>Paused</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="1" ${config['sab_priority_1']} /><label>default Priority</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="2" ${config['sab_priority_2']} /><label>Low Priority</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="3" ${config['sab_priority_3']} /><label>Normal Priority</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="4" ${config['sab_priority_4']} /><label>High Priority</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="5" ${config['sab_priority_5']} /><label>Paused</label>
                                 </div>
                     </fieldset>
                 </td>
@@ -163,7 +191,7 @@
     
 	    </table>
 	</div>
-	<div id="tabs-3">
+	<div id="tabs-4">
         <table class="configtable" summary="Search Providers">
 	    <tr>
                 <td>
@@ -183,7 +211,7 @@
                         <fieldset>
                                 <legend>DOGNZB</legend>
                                 <div class="row checkbox">
-                                    <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><label>Use DOGnzb</label>
+                                <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><label>Use DOGnzb</label>
                                 </div>
                                 <div class="config">
                                         <div class="row">
@@ -192,6 +220,15 @@
                                          </div>
                                 </div>
                         </fieldset>
+
+                        <fieldset>
+                                <legend>NZBX</legend>
+                                <div class="row checkbox">
+                                <input id="usenzbx" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbx" value="1" ${config['use_nzbx']} /><label>Use NZBx</label>
+                                </div>
+                        </fieldset>
+
+
                         <fieldset>
                                 <legend>EXPERIMENTAL</legend>
                                 <div>
@@ -264,16 +301,16 @@
             </tr>
         </table>
 	</div>
-	<div id="tabs-4">
+	<div id="tabs-5">
         <table class="configtable" summary="Post Processing">
             <tr>
                 <td>
                         <fieldset>
                                 <legend>Quality</legend>
-                                <div class="row radio clearfix">
-<input type="radio" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
-<input type="radio" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
-<input type="radio" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
+                                <div class="row radio left clearfix">
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
                                 </div>
 
                         </fieldset>
@@ -299,7 +336,7 @@
             </tr>
 		</table>
 	</div>
-	<div id="tabs-5">
+	<div id="tabs-6">
         <table class="configtable" summary="Advanced Settings">
             <tr>
                 <td>                
@@ -366,15 +403,10 @@
 					
 		        	<fieldset>
 		        		<legend>Miscellaneous</legend>
-                                        <div class="row left checkbox">
-                                                    <input type="checkbox" name="autowant_upcoming" value="1" ${config['autowant_upcoming']} /><label>Automatically Mark Upcoming Issues as Wanted</label>
-                                                <div class="row leftcheckbox">
-                                                     <input type="checkbox" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
-                                                </div>
-                                                <div class="row leftcheckbox">
-                                                      <input type="checkbox" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
-                                                </div>
-
+                                        <div class="row checkbox left clearfix">
+                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_upcoming" value="1" ${config['autowant_upcoming']} /><label>Automatically Mark Upcoming Issues as Wanted</label>
+                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
+                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
                                         </div>
 		        	</fieldset>
 					<fieldset>

@@ -122,6 +122,8 @@ NZBSU_APIKEY = None
 DOGNZB = False
 DOGNZB_APIKEY = None
 
+NZBX = False
+
 NEWZNAB = False
 NEWZNAB_HOST = None
 NEWZNAB_APIKEY = None
@@ -200,7 +202,7 @@ def initialize():
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
-                NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
+                NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
@@ -277,6 +279,8 @@ def initialize():
 
         DOGNZB = bool(check_setting_int(CFG, 'DOGnzb', 'dognzb', 0))
         DOGNZB_APIKEY = check_setting_str(CFG, 'DOGnzb', 'dognzb_apikey', '')
+
+        NZBX = bool(check_setting_int(CFG, 'nzbx', 'nzbx', 0))
 
         RAW = bool(check_setting_int(CFG, 'Raw', 'raw', 0))
         RAW_PROVIDER = check_setting_str(CFG, 'Raw', 'raw_provider', '')
@@ -506,6 +510,9 @@ def config_write():
     new_config['DOGnzb']['dognzb'] = int(DOGNZB)
     new_config['DOGnzb']['dognzb_apikey'] = DOGNZB_APIKEY
 
+    new_config['nzbx'] = {}
+    new_config['nzbx']['nzbx'] = int(NZBX)
+
     new_config['Experimental'] = {}
     new_config['Experimental']['experimental'] = int(EXPERIMENTAL)
 
@@ -542,6 +549,7 @@ def start():
         #from mylar import updater, searcher, librarysync, postprocessor
 
         from mylar import updater, search, weeklypull
+
         SCHED.add_interval_job(updater.dbUpdate, hours=48)
         SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
         #SCHED.add_interval_job(librarysync.libraryScan, minutes=LIBRARYSCAN_INTERVAL)
@@ -551,7 +559,9 @@ def start():
         threading.Thread(target=weeklypull.pullit).start()
         #now the scheduler (check every 24 hours)
         SCHED.add_interval_job(weeklypull.pullit, hours=24)
-
+        
+        #let's do a run at the Wanted issues here (on startup).
+        threading.Thread(target=search.searchforissue).start()
 
         if CHECK_GITHUB:
             SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
@@ -575,50 +585,13 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
 
+    conn.commit
+    c.close
     #new
-    c.execute('DROP TABLE IF EXISTS exceptions')
 
-    c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
+    csv_load()
 
-    # for Mylar-based Exception Updates....
-    i = 0
-    EXCEPTIONS = []
-    EXCEPTIONS.append('exceptions.csv')
-    EXCEPTIONS.append('custom_exceptions.csv')
-
-    while (i <= 1):
-    #EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
-        EXCEPTIONS_FILE = os.path.join(DATA_DIR, EXCEPTIONS[i])
-
-        if not os.path.exists(EXCEPTIONS_FILE):
-            try:
-                csvfile = open(str(EXCEPTIONS_FILE), "rb")
-            except (OSError,IOError):
-                if i == 1:
-                    logger.error("No Custom Exceptions found. Using base exceptions only.")
-                else:
-                    logger.error("Could not locate " + str(EXCEPTIONS[i]) + " file. Make sure it's in datadir: " + DATA_DIR)
-                break                
-        else:
-            csvfile = open(str(EXCEPTIONS_FILE), "rb")
-        if i == 0:
-            logger.info(u"Populating Base Exception listings into Mylar....")
-        elif i == 1:
-            logger.info(u"Populating Custom Exception listings into Mylar....")
-
-        creader = csv.reader(csvfile, delimiter=',')
-
-        for row in creader:
-            try:
-                c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
-            except Exception, e:
-                #print ("Error - invald arguments...-skipping")
-                pass
-        csvfile.close()
-        i+=1
-
-    #c.executemany("INSERT INTO exceptions VALUES (?, ?);", to_db)
-
+    
     #add in the late players to the game....
     try:
         c.execute('SELECT LastUpdated from comics')
@@ -652,10 +625,64 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ComicSize TEXT')
 
+    #let's delete errant comics that are stranded (ie. None)
+    c.execute("DELETE from COMICS WHERE ComicName='None'")
+    logger.info(u"Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)")
+
     conn.commit()
     c.close()
 
-    
+
+def csv_load():
+    # for redudant module calls..include this.
+    conn=sqlite3.connect(DB_FILE)
+    c=conn.cursor()
+
+    c.execute('DROP TABLE IF EXISTS exceptions')
+
+    c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
+
+    # for Mylar-based Exception Updates....
+    i = 0
+    EXCEPTIONS = []
+    EXCEPTIONS.append('exceptions.csv')
+    EXCEPTIONS.append('custom_exceptions.csv')
+
+    while (i <= 1):
+    #EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
+        EXCEPTIONS_FILE = os.path.join(DATA_DIR, EXCEPTIONS[i])
+
+        if not os.path.exists(EXCEPTIONS_FILE):
+            try:
+                csvfile = open(str(EXCEPTIONS_FILE), "rb")
+            except (OSError,IOError):
+                if i == 1:
+                    logger.error("No Custom Exceptions found. Using base exceptions only.")
+                else:
+                    logger.error("Could not locate " + str(EXCEPTIONS[i]) + " file. Make sure it's in datadir: " + DATA_DIR)
+                break
+        else:
+            csvfile = open(str(EXCEPTIONS_FILE), "rb")
+        if i == 0:
+            logger.info(u"Populating Base Exception listings into Mylar....")
+        elif i == 1:
+            logger.info(u"Populating Custom Exception listings into Mylar....")
+
+        creader = csv.reader(csvfile, delimiter=',')
+
+        for row in creader:
+            try:
+                c.execute("INSERT INTO exceptions VALUES (?,?,?,?);", row)
+            except Exception, e:
+                #print ("Error - invald arguments...-skipping")
+                pass
+                pass
+        csvfile.close()
+        i+=1
+
+    conn.commit()
+    c.close()    
+
 def shutdown(restart=False, update=False):
 
     cherrypy.engine.exit()

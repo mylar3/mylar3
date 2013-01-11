@@ -91,7 +91,8 @@ def findComic(name, mode, issue):
                         pubnames = publishers[0].getElementsByTagName('name')
                         if len(pubnames) >0:
                             xmlpub = pubnames[0].firstChild.wholeText
-                    if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
+#                    if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
+                    if (result.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
                         xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
                     else:
                         xmlimage = "cache/blankcover.jpg"            

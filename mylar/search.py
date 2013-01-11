@@ -16,14 +16,13 @@
 from __future__ import division
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit, findcomicfeed
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed, prov_nzbx
 
 nzbsu_APIkey = mylar.NZBSU_APIKEY
 dognzb_APIkey = mylar.DOGNZB_APIKEY
 
 LOG = mylar.LOG_DIR
 
-import pickle
 import lib.feedparser as feedparser
 import urllib
 import os, errno
@@ -49,6 +48,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         nzbp+=1
     if mylar.DOGNZB == 1:
         nzbprovider.append('dognzb')
+        nzbp+=1
+    if mylar.NZBX == 1:
+        nzbprovider.append('nzbx')
         nzbp+=1
     # -------- 
     #  Xperimental
@@ -122,12 +124,27 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                         findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host)
                         if findit == 'yes':
                             break
-
             nzbpr-=1
 
         elif nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
+            if findit == 'yes':
+                logger.fdebug("findit = found!")
+                break
+            else:
+                if AlternateSearch is not None:
+                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
+                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
+                    if findit == 'yes':
+                        break
+
+            nzbpr-=1
+
+        elif nzbprovider[nzbpr] == 'nzbx':
+        # this is for nzbx.co
+            nzbprov = 'nzbx'
             findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
@@ -183,17 +200,22 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     return findit
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, newznab_host=None):
-    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + "(" + str(ComicYear) + ") using " + str(nzbprov))
+
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
     elif nzbprov == 'dognzb':
         apikey = mylar.DOGNZB_APIKEY
+    elif nzbprov == 'nzbx':
+        apikey = 'none'
     elif nzbprov == 'experimental':
         apikey = 'none'
     elif nzbprov == 'newznab':
         host_newznab = newznab_host[0]
         apikey = newznab_host[1]
         logger.fdebug("using Newznab host of : " + str(host_newznab))
+
+    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + "(" + str(ComicYear) + ") using " + str(nzbprov))
+
 
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
@@ -311,12 +333,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 elif nzbprov == 'newznab':
                     findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                     logger.fdebug("search-url: " + str(findurl))
-                bb = feedparser.parse(findurl)
+                elif nzbprov == 'nzbx':
+                    bb = prov_nzbx.searchit(comsearch[findloop])
+                    logger.fdebug("nzbx.co!")
+                if nzbprov != 'nzbx':
+                    bb = feedparser.parse(findurl)
             elif nzbprov == 'experimental':
                 #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
                 bb = findcomicfeed.Startit(cm, isssearch[findloop], comyear)
                 # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
                 cmloopit == 1
+
             done = False
             foundc = "no"
             log2file = ""
@@ -552,11 +579,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             if mylar.BLACKHOLE:
                                 logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
-                                    filenamenzb = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
+                                    #pretty this biatch up.
+                                    Bl_ComicName = re.sub('[/:/,\/]', '', str(ComicName))
+                                    filenamenzb = str(Bl_ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ").nzb"
                                     urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
                                     logger.fdebug("filename saved to your blackhole as : " + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
-                                    nzbname = str(ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ")"
+                                    nzbname = str(Bl_ComicName) + " " + str(IssueNumber) + " (" + str(comyear) + ")"
                             #end blackhole
 
                             else:
@@ -676,7 +705,7 @@ def searchforissue(issueid=None, new=False):
             else: 
                 ComicYear = str(result['IssueDate'])[:4]
 
-            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
+            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
                     foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch)
                     if foundNZB == "yes": 
                         #print ("found!")
@@ -697,7 +726,7 @@ def searchforissue(issueid=None, new=False):
             IssueYear = str(result['IssueDate'])[:4]
 
         foundNZB = "none"
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
+        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
             foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch)
             if foundNZB == "yes":
                 #print ("found!")
@@ -719,7 +748,7 @@ def searchIssueIDList(issuelist):
             ComicYear = comic['ComicYear']
         else:
             ComicYear = str(issue['IssueDate'])[:4]
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
+        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
                 foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'], AlternateSearch)
                 if foundNZB == "yes":
                     #print ("found!")

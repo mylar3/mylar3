@@ -149,7 +149,8 @@ def no_searchresults(ComicID):
     # something other than 'Loaded'
     myDB = db.DBConnection()
     controlValue = { "ComicID":        ComicID}
-    newValue = {"Status":       "Error"}    
+    newValue = {"Status":       "Error",
+                "ComicName":    "None"}    
     myDB.upsert("comics", newValue, controlValue)
 
 def nzblog(IssueID, NZBName):
@@ -232,7 +233,7 @@ def forceRescan(ComicID):
             break
         temploc = tmpfc['ComicFilename'].replace('_', ' ')
         temploc = re.sub('[\#\']', '', temploc)
-        logger.fdebug("temploc: " + str(temploc))
+        #logger.fdebug("temploc: " + str(temploc))
         if 'annual' not in temploc:
             fcnew = shlex.split(str(temploc))
             fcn = len(fcnew)
@@ -247,14 +248,14 @@ def forceRescan(ComicID):
                 issyear = reiss['IssueDate'][:4]
                 old_status = reiss['Status']
                                                 
-                logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
+                #logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
 
                 #if comic in format of "SomeSeries 5(c2c)(2013).cbr" whatever...it'll die.
                 #can't distinguish the 5(c2c) to tell it's the issue #...
 
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                    logger.fdebug("checking word - " + str(fcnew[som]))
+                    #logger.fdebug("checking word - " + str(fcnew[som]))
                     if ".cbr" in fcnew[som]:
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som]:
@@ -265,7 +266,7 @@ def forceRescan(ComicID):
                         if fcnew[som] != " ":
                             fcnew[som] = get_issue[0]
                     if '.' in fcnew[som]:
-                        logger.fdebug("decimal detected...adjusting.")
+                        #logger.fdebug("decimal detected...adjusting.")
                         try:
                             i = float(fcnew[som])
                         except ValueError, TypeError:
@@ -277,7 +278,7 @@ def forceRescan(ComicID):
                             pass
                     if fcnew[som].isdigit():
                         #this won't match on decimal issues - need to fix.
-                        logger.fdebug("digit detected")
+                        #logger.fdebug("digit detected")
                         if int(fcnew[som]) > 0:
                             # fcdigit = fcnew[som].lstrip('0')
                             #fcdigit = str(int(fcnew[som]))
@@ -288,7 +289,7 @@ def forceRescan(ComicID):
                     elif "." in fcnew[som]:
                         #this will match on decimal issues
                         IssueChk = fcnew[som]
-                        logger.fdebug("decimal detected...analyzing if issue")
+                        #logger.fdebug("decimal detected...analyzing if issue")
                         isschk_find = IssueChk.find('.')
                         isschk_b4dec = IssueChk[:isschk_find]
                         isschk_decval = IssueChk[isschk_find+1:]
@@ -325,11 +326,11 @@ def forceRescan(ComicID):
                     else:
                         # it's a word, skip it.
                         fcdigit = 1000000    
-                    logger.fdebug("fcdigit: " + str(fcdigit))
-                    logger.fdebug("int_iss: " + str(int_iss))
+                    #logger.fdebug("fcdigit: " + str(fcdigit))
+                    #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):
                          int_iss = helpers.decimal_issue(int_iss)
-                    logger.fdebug("this is the int issue:" + str(int_iss))
+                    #logger.fdebug("this is the int issue:" + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         #if issyear in fcnew[som+1]:

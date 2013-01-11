@@ -53,13 +53,13 @@
 		%for weekly in weeklyresults:
 			<%
 				if weekly['STATUS'] == 'Skipped':
-					grade = 'X'
+					grade = 'Z'
 				elif weekly['STATUS'] == 'Wanted':
-					grade = 'A'
+					grade = 'X'
 				elif weekly['STATUS'] == 'Snatched':
 					grade = 'C'
 				else:
-					grade = 'Z'
+					grade = 'A'
 			%>
 			<tr class="grade${grade}">
                                 %if pullfilter is True:

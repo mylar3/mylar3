@@ -24,10 +24,12 @@ from mako import exceptions
 
 import time
 import threading
+import csv
+import platform
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version
 #from mylar.helpers import checked, radio, today
 
 import lib.simplejson as simplejson
@@ -63,9 +65,6 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
-        #print (pickle.loads(comic['AlternateSearch']))
-        #AlternateSearch = []
-        #AlternateSearch.append(pickle.loads (comic['AlternateSearch']))
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         comicConfig = {
@@ -94,13 +93,46 @@ class WebInterface(object):
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type)
     searchit.exposed = True
 
-    def addComic(self, comicid, comicname=None, comicyear=None, comicissues=None):
+    def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None):
         myDB = db.DBConnection()
         sresults = []
+        cresults = []
         mismatch = "no"
+        print ("comicid: " + str(comicid))
+        print ("comicname: " + str(comicname))
+        print ("comicyear: " + str(comicyear))
+        print ("comicissues: " + str(comicissues))
+        print ("comicimage: " + str(comicimage))
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
-        if CV_EXcomicid is None: pass
+        if CV_EXcomicid is None: # pass #
+            gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid)
+            if gcdinfo == "No Match":
+                updater.no_searchresults(comicid)
+                nomatch = "true"
+                logger.info(u"I couldn't find an exact match for " + str(comicname) + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
+                i = 0
+                loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
+                print ("total count : " + str(cnt))
+                while (i < cnt):
+                    try:
+                        stoopie = loopie['comchkchoice'][i]
+                    except (IndexError, TypeError):
+                        break
+                    cresults.append({
+                           'ComicID'   :   stoopie['ComicID'],
+                           'ComicName' :   stoopie['ComicName'],
+                           'ComicYear' :   stoopie['ComicYear'],
+                           'ComicIssues' : stoopie['ComicIssues'],
+                           'ComicURL' :    stoopie['ComicURL'],
+                           'ComicPublisher' : stoopie['ComicPublisher'],
+                           'GCDID' : stoopie['GCDID']
+                           })
+                    i+=1
+                return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues,cresults=cresults)
+            else:
+                nomatch = "false"
+                logger.info(u"Quick match success..continuing.")  
         else:
             if CV_EXcomicid['variloop'] == '99':
                 logger.info(u"mismatched name...autocorrecting to correct GID and auto-adding.")
@@ -132,6 +164,24 @@ class WebInterface(object):
         threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
     addComic.exposed = True
+
+    def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None):
+        mismatch = "yes"
+        print ("gcdid:" + str(gcdid))
+        #write it to the custom_exceptions.csv and reload it so that importer will pick it up and do it's thing :)
+        #custom_exceptions in this format...
+        #99, (comicid), (gcdid), none
+        logger.info("saving new information into custom_exceptions.csv...")
+        except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")"
+        with open('custom_exceptions.csv', 'a') as f:
+            f.write('%s,%s,%s,%s\n' % ("99", str(comicid), str(gcdid), str(except_info)) )
+        
+        logger.info("re-loading csv file so it's all nice and current.")
+        mylar.csv_load()
+       
+        threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+    from_Exceptions.exposed = True
 
     def GCDaddComic(self, comicid, comicname=None, comicyear=None, comicissues=None, comiccover=None, comicpublisher=None):
         #since we already know most of the info, let's add it to the db so we can reference it later.
@@ -475,6 +525,8 @@ class WebInterface(object):
         interface_dir = os.path.join(mylar.PROG_DIR, 'data/interfaces/')
         interface_list = [ name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name)) ]
 
+        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
+
         config = { 
                     "http_host" : mylar.HTTP_HOST,
                     "http_user" : mylar.HTTP_USERNAME,
@@ -502,6 +554,7 @@ class WebInterface(object):
                     "nzbsu_api" : mylar.NZBSU_APIKEY,
                     "use_dognzb" : helpers.checked(mylar.DOGNZB),
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
+                    "use_nzbx" : helpers.checked(mylar.NZBX),
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
                     "use_newznab" : helpers.checked(mylar.NEWZNAB),
                     "newznab_host" : mylar.NEWZNAB_HOST,
@@ -527,10 +580,31 @@ class WebInterface(object):
                     "zero_level_n" : mylar.ZERO_LEVEL_N,
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
-                    "log_dir" : mylar.LOG_DIR
+                    "log_dir" : mylar.LOG_DIR,
+                    "branch" : version.MYLAR_VERSION,
+                    "br_type" : mylar.INSTALL_TYPE,
+                    "br_version" : mylar.versioncheck.getVersion(),
+                    "py_version" : platform.python_version(),
+                    "data_dir" : mylar.DATA_DIR,
+                    "prog_dir" : mylar.PROG_DIR,
+                    "cache_dir" : mylar.CACHE_DIR,
+                    "config_file" : mylar.CONFIG_FILE,
+                    "branch_history" : re.sub('[\n]', '</br>', branch_history)
                }
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
+
+    def error_change(self, comicid, errorgcd):
+        if errorgcd[:5].isdigit():
+            print ("GCD-ID detected : + str(errorgcd)[:5]")
+            print ("I'm assuming you know what you're doing - going to force-match.")
+            self.from_Exceptions(comicid=comicid,gcdid=errorgcd)
+        else:
+            print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
+            self.addComic(errorgcd)
+
+    error_change.exposed = True
+
     
     def comic_config(self, com_location, alt_search, ComicID):
         myDB = db.DBConnection()
@@ -587,7 +661,7 @@ class WebInterface(object):
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
-        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None,
         destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
@@ -613,6 +687,7 @@ class WebInterface(object):
         mylar.NZBSU_APIKEY = nzbsu_apikey
         mylar.DOGNZB = dognzb
         mylar.DOGNZB_APIKEY = dognzb_apikey
+        mylar.NZBX = nzbx
         mylar.RAW = raw
         mylar.RAW_PROVIDER = raw_provider
         mylar.RAW_USERNAME = raw_username
