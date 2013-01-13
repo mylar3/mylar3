@@ -256,11 +256,11 @@ def forceRescan(ComicID):
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
                     #logger.fdebug("checking word - " + str(fcnew[som]))
-                    if ".cbr" in fcnew[som]:
+                    if ".cbr" in fcnew[som].lower():
                         fcnew[som] = fcnew[som].replace(".cbr", "")
-                    elif ".cbz" in fcnew[som]:
+                    elif ".cbz" in fcnew[som].lower():
                         fcnew[som] = fcnew[som].replace(".cbz", "")
-                    if "(c2c)" in fcnew[som]:
+                    if "(c2c)" in fcnew[som].lower():
                         fcnew[som] = fcnew[som].replace("(c2c)", " ")
                         get_issue = shlex.split(str(fcnew[som]))
                         if fcnew[som] != " ":

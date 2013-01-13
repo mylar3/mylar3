@@ -312,7 +312,7 @@ class PostProcessor(object):
             self._log("New Filename: " + nfilename, logger.DEBUG)
 
             src = self.nzb_folder + "/" + ofilename
-            dst = comlocation + "/" + nfilename + ext
+            dst = comlocation + "/" + nfilename + ext.lower()
             self._log("Source:" + src, logger.DEBUG)
             self._log("Destination:" +  dst, logger.DEBUG)
             os.rename(self.nzb_folder + "/" + ofilename, self.nzb_folder + "/" + nfilename + ext)
