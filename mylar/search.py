@@ -636,6 +636,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 
+                                #we need to change the nzbx string now to allow for the nzbname rename.
+                                if nzbprov == 'nzbx':
+                                    nzbxlink_st = linkapi.find("*|*")
+                                    linkapi = linkapi[:(nzbxlink_st + 3)] + str(nzbname)
+                                    logger.fdebug("new linkapi (this should =nzbname) :" + str(linkapi))
                                 # let's build the send-to-SAB string now:
                                 tmpapi = str(mylar.SAB_HOST)
                                 logger.fdebug("send-to-SAB host string: " + str(tmpapi))
