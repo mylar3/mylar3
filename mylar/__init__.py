@@ -287,7 +287,13 @@ def initialize():
         SAB_APIKEY = check_setting_str(CFG, 'SABnzbd', 'sab_apikey', '')
         SAB_CATEGORY = check_setting_str(CFG, 'SABnzbd', 'sab_category', '')
         SAB_PRIORITY = check_setting_str(CFG, 'SABnzbd', 'sab_priority', '')
-        
+        if SAB_PRIORITY.isdigit():
+            if SAB_PRIORITY == "0": SAB_PRIORITY = "Default"
+            elif SAB_PRIORITY == "1": SAB_PRIORITY = "Low"
+            elif SAB_PRIORITY == "2": SAB_PRIORITY = "Normal"
+            elif SAB_PRIORITY == "3": SAB_PRIORITY = "High"
+            elif SAB_PRIORITY == "4": SAB_PRIORITY = "Paused"
+            else: SAB_PRIORITY = "Default"
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
 
