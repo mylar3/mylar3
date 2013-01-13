@@ -585,7 +585,6 @@ class WebInterface(object):
                     "zero_level_n" : mylar.ZERO_LEVEL_N,
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
-                    "log_dir" : mylar.LOG_DIR,
                     "branch" : version.MYLAR_VERSION,
                     "br_type" : mylar.INSTALL_TYPE,
                     "br_version" : mylar.versioncheck.getVersion(),
@@ -593,8 +592,11 @@ class WebInterface(object):
                     "data_dir" : mylar.DATA_DIR,
                     "prog_dir" : mylar.PROG_DIR,
                     "cache_dir" : mylar.CACHE_DIR,
-                    "config_file" : mylar.CONFIG_FILE
+                    "config_file" : mylar.CONFIG_FILE,
 #                    "branch_history" : br_hist
+                    "enable_pre_scripts" : helpers.checked(mylar.ENABLE_PRE_SCRIPTS),
+                    "pre_scripts" : mylar.PRE_SCRIPTS,
+                    "log_dir" : mylar.LOG_DIR
                }
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
@@ -617,12 +619,6 @@ class WebInterface(object):
         if fuzzy_year == '0': fuzzy_string = "None"
         elif fuzzy_year == '1': fuzzy_string = "Remove Year"
         elif fuzzy_year == '2': fuzzy_string = "Fuzzy Year"
-#                    "pref_qual_0" : helpers.radio(mylar.PREFERRED_QUALITY, 0),
-#                    "pref_qual_1" : helpers.radio(mylar.PREFERRED_QUALITY, 1),
-#                    "pref_qual_3" : helpers.radio(mylar.PREFERRED_QUALITY, 3),
-#                    "pref_qual_2" : helpers.radio(mylar.PREFERRED_QUALITY, 2),
-
-
 
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -680,7 +676,7 @@ class WebInterface(object):
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
-        preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None,
+        preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -735,6 +731,8 @@ class WebInterface(object):
         mylar.INTERFACE = interface
         mylar.ENABLE_EXTRA_SCRIPTS = enable_extra_scripts
         mylar.EXTRA_SCRIPTS = extra_scripts
+        mylar.ENABLE_PRE_SCRIPTS = enable_pre_scripts
+        mylar.PRE_SCRIPTS = pre_scripts
         mylar.LOG_DIR = log_dir
 
         # Handle the variable config options. Note - keys with False values aren't getting passed

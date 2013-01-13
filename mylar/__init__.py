@@ -150,6 +150,9 @@ QUAL_QUALITY = None
 ENABLE_EXTRA_SCRIPTS = 1
 EXTRA_SCRIPTS = None
 
+ENABLE_PRE_SCRIPTS = 1
+PRE_SCRIPTS = None
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -208,8 +211,8 @@ def initialize():
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS
                 
         if __INITIALIZED__:
             return False
@@ -274,6 +277,9 @@ def initialize():
 
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
+
+        ENABLE_PRE_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_pre_scripts', 0))
+        PRE_SCRIPTS = check_setting_str(CFG, 'General', 'pre_scripts', '')
 
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
@@ -508,6 +514,8 @@ def config_write():
 
     new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
+    new_config['General']['enable_pre_scripts'] = int(ENABLE_PRE_SCRIPTS)
+    new_config['General']['pre_scripts'] = PRE_SCRIPTS
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_host'] = SAB_HOST

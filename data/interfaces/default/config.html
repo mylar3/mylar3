@@ -352,14 +352,21 @@
                                      <input type="checkbox" name="rename_files" value="1" ${config['rename_files']} /><label>Rename files </label>
                                 </div>
                                 <div class="row checkbox left clearfix">
+                                     <input type="checkbox" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Use Extra Script BEFORE Post-Processing</label>
+                                </div>
+                                <div class="row">
+                                      <label>Pre - Script Location</label>
+                                      <input type="text" name="pre_scripts" value="${config['pre_scripts']}" size="30">
+                                      <small>enter in the absolute path to the script</small>
+                                </div>  
+                                <div class="row checkbox left clearfix">
                                      <input type="checkbox" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
                                 </div>
                                 <div class="row">
                                       <label>Extra Script Location</label>
                                       <input type="text" name="extra_scripts" value="${config['extra_scripts']}" size="30">
                                       <small>enter in the absolute path to the script</small>
-                                </div>
-                                <div class="row">
+                                </div>                           
                                 </div>
                 	</fieldset>
                </td>

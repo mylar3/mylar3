@@ -83,6 +83,31 @@ class PostProcessor(object):
 #        logger.log(message, level)
         self.log += message + '\n'
 
+    def _run_pre_scripts(self, nzb_name, nzb_folder, seriesmetadata):
+        """
+        Executes any pre scripts defined in the config.
+
+        ep_obj: The object to use when calling the pre script
+        """
+        self._log("initiating pre script detection.", logger.DEBUG)
+        self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS, logger.DEBUG)
+#        for currentScriptName in mylar.PRE_SCRIPTS:
+        currentScriptName = mylar.PRE_SCRIPTS
+        self._log("pre script detected...enabling: " + str(currentScriptName), logger.DEBUG)
+            # generate a safe command line string to execute the script and provide all the parameters
+        script_cmd = shlex.split(currentScriptName) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
+        self._log("cmd to be executed: " + str(script_cmd), logger.DEBUG)
+
+            # use subprocess to run the command and capture output
+        self._log(u"Executing command "+str(script_cmd))
+        self._log(u"Absolute path to script: "+script_cmd[0], logger.DEBUG)
+        try:
+            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
+            out, err = p.communicate() #@UnusedVariable
+            self._log(u"Script result: "+str(out), logger.DEBUG)
+        except OSError, e:
+            self._log(u"Unable to run pre_script: " + str(script_cmd))
+
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
         Executes any extra scripts defined in the config.
@@ -235,6 +260,28 @@ class PostProcessor(object):
             self._log("Year: " + seriesyear, logger.DEBUG)
             comlocation = comicnzb['ComicLocation']
             self._log("Comic Location: " + comlocation, logger.DEBUG)
+
+            #Run Pre-script
+
+            if mylar.ENABLE_PRE_SCRIPTS:
+                nzbn = self.nzb_name #original nzb name
+                nzbf = self.nzb_folder #original nzb folder
+                #name, comicyear, comicid , issueid, issueyear, issue, publisher
+                #create the dic and send it.
+                seriesmeta = []
+                seriesmetadata = {}
+                seriesmeta.append({
+                            'name':                 series,
+                            'comicyear':            seriesyear,
+                            'comicid':              comicid,
+                            'issueid':              issueid,
+                            'issueyear':            issueyear,
+                            'issue':                issuenum,
+                            'publisher':            publisher
+                            })
+                seriesmetadata['seriesmeta'] = seriesmeta
+                self._run_pre_scripts(nzbn, nzbf, seriesmetadata )
+
         #rename file and move to new path
         #nfilename = series + " " + issueno + " (" + seriesyear + ")"
             file_values = {'$Series':    series,
