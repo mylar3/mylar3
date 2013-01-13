@@ -78,6 +78,12 @@ def getVersion():
             logger.error('Couldn\'t find latest installed version.')
             return None
             
+        #branch_history, err = runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 5")
+        #bh = []
+        #print ("branch_history: " + branch_history)
+        #bh.append(branch_history.split('\n'))
+        #print ("bh1: " + bh[0])
+
         cur_commit_hash = output.strip()
         
         if not re.match('^[a-z0-9]+$', cur_commit_hash):

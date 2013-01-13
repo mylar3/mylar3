@@ -17,7 +17,7 @@ import time
 from operator import itemgetter
 import datetime
 import re
-
+import itertools
 import mylar
 
 def multikeysort(items, columns):
