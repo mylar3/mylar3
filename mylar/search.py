@@ -390,7 +390,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         if cnt == 0:
                             comic_andiss = m[cnt]
                             logger.fdebug("Comic: " + str(comic_andiss))
-                        if UseFuzzy == "0" or UseFuzzy == "2":
+                        if UseFuzzy == "0" or UseFuzzy == "2" or IssDateFix == "yes":
 
                             if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
                                 logger.fdebug("year detected: " + str(m[cnt]))
