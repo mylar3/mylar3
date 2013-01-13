@@ -51,7 +51,7 @@
                 <td>
                 <fieldset>
                     <legend>Branch history</legend>
-                          <label>${config['branch_history']}</label>
+                          <label>This would be a nice place to see revision history...</label>
                 </fieldset>
                </td>
             </tr>
@@ -154,14 +154,22 @@
 	                        <label>SABnzbd Category:</label>
 	                        <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
 	                    </div>
-                                <div class="row radio left clearfix">
-                                <label>SABNzbd Priority:</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="1" ${config['sab_priority_1']} /><label>default Priority</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="2" ${config['sab_priority_2']} /><label>Low Priority</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="3" ${config['sab_priority_3']} /><label>Normal Priority</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="4" ${config['sab_priority_4']} /><label>High Priority</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="sab_priority" value="5" ${config['sab_priority_5']} /><label>Paused</label>
-                                </div>
+                                              <div class="row">
+                                                <label>SAB Priority</label>
+                                                <select name="sab_priority">
+                                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
+                                                        <%
+                                                                if config['sab_priority'] == prio:
+                                                                        outputselect = 'selected'
+                                                                else:
+                                                                        outputselect = ''
+                                                        %>
+                                                        <option value=${prio} ${outputselect}>${prio}</option>
+                                                %endfor
+                                                </select>
+                                              </div>
+
+
                     </fieldset>
                 </td>
            
@@ -211,7 +219,7 @@
                         <fieldset>
                                 <legend>DOGNZB</legend>
                                 <div class="row checkbox">
-                                <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><label>Use DOGnzb</label>
+                                     <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><label>Use DOGnzb</label>
                                 </div>
                                 <div class="config">
                                         <div class="row">
@@ -312,8 +320,30 @@
 <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
 <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
                                 </div>
-
                         </fieldset>
+                        <fieldset>
+                                <legend>Restrictions (not working yet)</legend>
+                                <div class="row checkbox left">
+                                      <input id="use_minsize" type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="initConfigCheckbox($(this));" name="use_minsize" value="1" ${config['use_minsize']} /><label>Minimum File size<small>(MB)</small></label>
+                                </div>
+                                <div class="config">
+                                       <div class="row">
+                                           <input type="text" name="minsize" value="${config['minsize']}" size="6">
+                                       </div>
+                                </div>
+                                </div>
+                         </fieldset>
+                         <fieldset>
+                                   <div class="row checkbox left">
+                                       <input id="use_maxsize" type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="initConfigCheckbox($(this));" name="use_maxsize" value="1" ${config['use_maxsize']} /><label>Maximum File size<small>(MB)</small></label>
+                                   </div>
+                                   <div class="config">
+                                      <div class="row">
+                                         <input type="text" name="maxsize" value="${config['maxsize']}" size="6">
+                                      </div>
+                                   </div>
+                        </fieldset>
+
                	</td>
                 <td>
                         <fieldset>
@@ -506,6 +536,8 @@
 		initConfigCheckbox("#useexperimental");
 		initConfigCheckbox("#useraw");
                 initConfigCheckbox("#replace_spaces");
+                initConfigCheckbox("#use_minsize");
+                initConfigCheckbox("#use_maxsize");
                 initConfigCheckbox("#zero_level");
 	}
 	$(document).ready(function() {

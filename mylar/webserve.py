@@ -68,7 +68,8 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         comicConfig = {
-                    "comiclocation" : mylar.COMIC_LOCATION
+                    "comiclocation" : mylar.COMIC_LOCATION,
+                    "use_fuzzy" : comic['UseFuzzy']
                }
         return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig)
     artistPage.exposed = True
@@ -108,6 +109,9 @@ class WebInterface(object):
         if CV_EXcomicid is None: # pass #
             gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid)
             if gcdinfo == "No Match":
+                #when it no matches, the image will always be blank...let's fix it.
+                cvdata = mylar.cv.getComic(comicid,'comic')
+                comicimage = cvdata['ComicImage']
                 updater.no_searchresults(comicid)
                 nomatch = "true"
                 logger.info(u"I couldn't find an exact match for " + str(comicname) + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
@@ -525,7 +529,8 @@ class WebInterface(object):
         interface_dir = os.path.join(mylar.PROG_DIR, 'data/interfaces/')
         interface_list = [ name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name)) ]
 
-        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
+#        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
+#        br_hist = branch_history.replace("\n", "<br />\n")
 
         config = { 
                     "http_host" : mylar.HTTP_HOST,
@@ -542,11 +547,7 @@ class WebInterface(object):
                     "sab_api" : mylar.SAB_APIKEY,
                     "sab_pass" : mylar.SAB_PASSWORD,
                     "sab_cat" : mylar.SAB_CATEGORY,
-                    "sab_priority_1" : helpers.radio(mylar.SAB_PRIORITY, 1),
-                    "sab_priority_2" : helpers.radio(mylar.SAB_PRIORITY, 2),
-                    "sab_priority_3" : helpers.radio(mylar.SAB_PRIORITY, 3),
-                    "sab_priority_4" : helpers.radio(mylar.SAB_PRIORITY, 4),
-                    "sab_priority_5" : helpers.radio(mylar.SAB_PRIORITY, 5),
+                    "sab_priority" : mylar.SAB_PRIORITY,
                     "use_blackhole" : helpers.checked(mylar.BLACKHOLE),
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,
@@ -564,6 +565,10 @@ class WebInterface(object):
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "replace_spaces" : helpers.checked(mylar.REPLACE_SPACES),
                     "replace_char" : mylar.REPLACE_CHAR,
+                    "use_minsize" : mylar.USE_MINSIZE,
+                    "minsize" : mylar.MINSIZE,
+                    "use_maxsize" : mylar.USE_MAXSIZE,
+                    "maxsize" : mylar.MAXSIZE,
                     "interface_list" : interface_list,
                     "autowant_all" : helpers.checked(mylar.AUTOWANT_ALL),
                     "autowant_upcoming" : helpers.checked(mylar.AUTOWANT_UPCOMING),
@@ -588,8 +593,8 @@ class WebInterface(object):
                     "data_dir" : mylar.DATA_DIR,
                     "prog_dir" : mylar.PROG_DIR,
                     "cache_dir" : mylar.CACHE_DIR,
-                    "config_file" : mylar.CONFIG_FILE,
-                    "branch_history" : re.sub('[\n]', '</br>', branch_history)
+                    "config_file" : mylar.CONFIG_FILE
+#                    "branch_history" : br_hist
                }
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
@@ -606,8 +611,19 @@ class WebInterface(object):
     error_change.exposed = True
 
     
-    def comic_config(self, com_location, alt_search, ComicID):
+    def comic_config(self, com_location, alt_search, fuzzy_year, ComicID):
         myDB = db.DBConnection()
+        print ("fuzzy:" + fuzzy_year)
+        if fuzzy_year == '0': fuzzy_string = "None"
+        elif fuzzy_year == '1': fuzzy_string = "Remove Year"
+        elif fuzzy_year == '2': fuzzy_string = "Fuzzy Year"
+#                    "pref_qual_0" : helpers.radio(mylar.PREFERRED_QUALITY, 0),
+#                    "pref_qual_1" : helpers.radio(mylar.PREFERRED_QUALITY, 1),
+#                    "pref_qual_3" : helpers.radio(mylar.PREFERRED_QUALITY, 3),
+#                    "pref_qual_2" : helpers.radio(mylar.PREFERRED_QUALITY, 2),
+
+
+
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
 #        ffs_alt = []
@@ -637,7 +653,8 @@ class WebInterface(object):
 
         controlValueDict = {'ComicID': ComicID}
         newValues = {"ComicLocation":        com_location,
-                     "AlternateSearch":      str(asearch) }
+                     "AlternateSearch":      str(asearch),
+                     "UseFuzzy":             fuzzy_year }
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,
@@ -660,11 +677,11 @@ class WebInterface(object):
     comic_config.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
-        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=0, log_dir=None, blackhole=0, blackhole_dir=None,
+        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None,
-        destination_dir=None, replace_spaces=0, replace_char=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
+        destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -705,6 +722,10 @@ class WebInterface(object):
         mylar.REPLACE_CHAR = replace_char
         mylar.ZERO_LEVEL = zero_level
         mylar.ZERO_LEVEL_N = zero_level_n
+        mylar.USE_MINSIZE = use_minsize
+        mylar.MINSIZE = minsize
+        mylar.USE_MAXSIZE = use_maxsize
+        mylar.MAXSIZE = maxsize
         mylar.FOLDER_FORMAT = folder_format
         mylar.FILE_FORMAT = file_format
         mylar.DESTINATION_DIR = destination_dir

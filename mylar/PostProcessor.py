@@ -141,6 +141,7 @@ class PostProcessor(object):
 
             #replace spaces
             nzbname = re.sub(' ', '.', str(nzbname))
+            nzbname = re.sub('[\,\:]', '', str(nzbname))
 
             self._log("nzbname: " + str(nzbname), logger.DEBUG)
 

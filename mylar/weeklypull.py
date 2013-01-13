@@ -419,6 +419,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                 comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(comicnm))
                                 watchcomic = re.sub(r'\s', '', watchcomic)
                                 comicnm = re.sub(r'\s', '', comicnm)
+                                modcomicnm = ''
                                 logger.fdebug("Revised_Watch: " + str(watchcomic))
                                 logger.fdebug("ComicNM: " + str(comicnm))
                                 if 'THE' in str(watchcomic):

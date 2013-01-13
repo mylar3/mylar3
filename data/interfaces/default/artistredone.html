@@ -133,7 +133,22 @@
                                 <div>
                                     <label><big>Alternate Search Names :</big><norm>${comic['AlternateSearch']}</norm></label>
                                 </div>
+                                <%
+                                    if comic['UseFuzzy'] == "0" or comic['UseFuzzy'] is None:
+                                        fuzzy = "None"
+                                        fuzzy_year = "0"
+                                    elif comic['UseFuzzy'] == "1":
+                                        fuzzy = "Remove Year"
+                                        fuzzy_year = "1"
+                                    elif comic['UseFuzzy'] == "2":
+                                        fuzzy = "Fuzzy Year"
+                                        fuzzy_year = "2"
 
+                                %>
+
+                                <div>
+                                    <label><big>Fuzzy Year logic : </big><norm>${fuzzy} </norm></label>
+                                </div>
 
                     </fieldset>
                 </td>
@@ -165,6 +180,7 @@
 
                 <form action="comic_config" method="GET">
                 <input type="hidden" name="ComicID" value=${comic['ComicID']}>
+                        <br/><br/><br/>
                         <fieldset>
                                 <div>
                                    <label>Directory Location</label>
@@ -174,12 +190,14 @@
                                 <div>
                                    <label>Alternate Search Names</label>
                                    <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="60"><br/>
-                                <div class="row"><small>Alternate comic names to be searched in case naming is different</small>
-                                <small>(ie. Hack/Slash = hack-slash)</small></div>
+                                <div class="row"><small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small></div>
                                 </div>
-
-
-                                <div>
+                                <label>Year Options</label>
+                                <div class="row radio left clearfix">
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="fuzzy_year" value="0" /><label>Keep the Year as is<small>Default</small></label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="fuzzy_year" value="1" /><label>Year Removal<small>Remove issue publication year from searches (dangerous)</small></label>
+<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="fuzzy_year" value="2" /><label>Fuzzy the Year<small>Increase & Decrease the issue publication year by one</small></label>
+                                </div>
                                    <input type="submit" value="Update"/>
                                 </div>
                          </fieldset>

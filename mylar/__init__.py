@@ -104,7 +104,10 @@ REPLACE_SPACES = False
 REPLACE_CHAR = None
 ZERO_LEVEL = False
 ZERO_LEVEL_N = None
-
+USE_MINSIZE = False
+MINSIZE = None
+USE_MAXSIZE = False
+MAXSIZE = None
 AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
@@ -205,12 +208,12 @@ def initialize():
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS
                 
         if __INITIALIZED__:
             return False
-                
+
         # Make sure all the config sections exist
         CheckSection('General')
         CheckSection('SABnzbd')
@@ -228,6 +231,7 @@ def initialize():
         if HTTP_PORT < 21 or HTTP_PORT > 65535:
             HTTP_PORT = 8090
             
+#        CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
         HTTP_HOST = check_setting_str(CFG, 'General', 'http_host', '0.0.0.0')
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
@@ -263,6 +267,10 @@ def initialize():
         REPLACE_CHAR = check_setting_str(CFG, 'General', 'replace_char', '')
         ZERO_LEVEL = bool(check_setting_int(CFG, 'General', 'zero_level', 0))
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
+        USE_MINSIZE = bool(check_setting_int(CFG, 'General', 'use_minsize', 0))
+        MINSIZE = check_setting_str(CFG, 'General', 'minsize', '')
+        USE_MAXSIZE = bool(check_setting_int(CFG, 'General', 'use_maxsize', 0))
+        MAXSIZE = check_setting_str(CFG, 'General', 'maxsize', '')
 
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
@@ -272,7 +280,7 @@ def initialize():
         SAB_PASSWORD = check_setting_str(CFG, 'SABnzbd', 'sab_password', '')
         SAB_APIKEY = check_setting_str(CFG, 'SABnzbd', 'sab_apikey', '')
         SAB_CATEGORY = check_setting_str(CFG, 'SABnzbd', 'sab_category', '')
-        SAB_PRIORITY = check_setting_int(CFG, 'SABnzbd', 'sab_priority', 0)
+        SAB_PRIORITY = check_setting_str(CFG, 'SABnzbd', 'sab_priority', '')
         
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
@@ -336,31 +344,31 @@ def initialize():
             
             CONFIG_VERSION = '2'
 
-        if 'http://' not in SAB_HOST[:7] and 'https://' not in SAB_HOST[:8]: 
+        if 'http://' not in SAB_HOST[:7] and 'https://' not in SAB_HOST[:8]:
             SAB_HOST = 'http://' + SAB_HOST
-            #print ("SAB_HOST:" + SAB_HOST)        
+            #print ("SAB_HOST:" + SAB_HOST)
 
         if not LOG_DIR:
             LOG_DIR = os.path.join(DATA_DIR, 'logs')
-        
+
         if not os.path.exists(LOG_DIR):
             try:
                 os.makedirs(LOG_DIR)
             except OSError:
                 if VERBOSE:
                     print 'Unable to create the log directory. Logging to screen only.'
-        
+
         # Start the logger, silence console logging if we need to
         logger.mylar_log.initLogger(verbose=VERBOSE)
-        
+
         # Put the cache dir in the data dir for now
         CACHE_DIR = os.path.join(DATA_DIR, 'cache')
         if not os.path.exists(CACHE_DIR):
             try:
-                os.makedirs(CACHE_DIR)
+               os.makedirs(CACHE_DIR)
             except OSError:
                 logger.error('Could not create cache dir. Check permissions of datadir: ' + DATA_DIR)
-        
+
         # Sanity check for search interval. Set it to at least 6 hours
         if SEARCH_INTERVAL < 360:
             logger.info("Search interval too low. Resetting to 6 hour minimum")
@@ -373,11 +381,11 @@ def initialize():
             dbcheck()
         except Exception, e:
             logger.error("Can't connect to the database: %s" % e)
-            
+
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION = versioncheck.getVersion()
-        
+
         # Check for new versions
         if CHECK_GITHUB_ON_STARTUP:
             try:
@@ -389,7 +397,7 @@ def initialize():
 
         __INITIALIZED__ = True
         return True
-    
+
 def daemonize():
 
     if threading.activeCount() != 1:
@@ -453,6 +461,8 @@ def config_write():
     new_config = ConfigObj()
     new_config.filename = CONFIG_FILE
 
+    print ("falalal")
+
     new_config['General'] = {}
     new_config['General']['config_version'] = CONFIG_VERSION
     new_config['General']['http_port'] = HTTP_PORT
@@ -491,6 +501,11 @@ def config_write():
     new_config['General']['replace_char'] = REPLACE_CHAR
     new_config['General']['zero_level'] = int(ZERO_LEVEL)
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
+    new_config['General']['use_minsize'] = int(USE_MINSIZE)
+    new_config['General']['minsize'] = MINSIZE
+    new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
+    new_config['General']['maxsize'] = MAXSIZE
+
     new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
 
@@ -537,7 +552,6 @@ def config_write():
     new_config['Raw']['raw_groups'] = RAW_GROUPS
 
     new_config.write()
-
     
 def start():
     
@@ -577,7 +591,7 @@ def dbcheck():
     conn=sqlite3.connect(DB_FILE)
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
@@ -624,6 +638,11 @@ def dbcheck():
         c.execute('SELECT ComicSize from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ComicSize TEXT')
+
+    try:
+        c.execute('SELECT UseFuzzy from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
 
     #let's delete errant comics that are stranded (ie. None)
     c.execute("DELETE from COMICS WHERE ComicName='None'")

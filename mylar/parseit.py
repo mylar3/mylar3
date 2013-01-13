@@ -260,22 +260,26 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             if isslen > 0:
                 isschk = ParseIssue[:isslen]
                 isschk2 = str(isschk) + isschk_decval
+                #logger.fdebug("isschk: " + str(isschk) + " ...isschk2: " + str(isschk2))
                 if 'a' in isschk or 'b' in isschk or 'c' in isschk:
                     isschk2 = ParseIssue[:isslen-1] + isschk_decval
                     #altcount == 2
                 ParseIssue = str(isschk2)
-                #print ("Alt.cover found = " + str(isschk2))
+                #logger.fdebug("Alt.cover found = " + str(isschk2))
                 if str(PI) == str(isschk2):
+                    #logger.fdebug("matched on PI: " + str(PI) + " .. and isschk2: " + str(isschk2))
                     if altcount == 0:
-                        #this handles the first occurance..                    print ("Fist occurance detected - " + str(isschk))
+                        #logger.fdebug("first occurance - marking and continuing..." + str(isschk2))
+                        #this handles the first occurance..
                         ParseIssue = str(isschk2)
                         PI = str(isschk2)
                         altcount = 1
                     else:
-                        #print ("Using only first record for issue - ignoring further alternate matches")
+                        #logger.fdebug("Using only first record for issue - ignoring further alternate matches")
                         ParseIssue = "this is wrong"
                         altcount+=1
                 else:
+                    #logger.fdebug("issues didn't match.")
                     altcount = 1
                     ParseIssue = str(isschk) + isschk_decval
             else:
@@ -285,6 +289,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 #print ("no alt.cover detected for - " + str(ParseIssue))
                 altcount = 1
             if (altcount == 1):
+                #logger.fdebug("adding issue to db : " + str(ParseIssue))
                 # in order to get the compare right, let's decimialize the string to '.00'.
                 gcdinfo['ComicIssue'] = ParseIssue
                 #print "Issue: " + str(ParseIssue)
@@ -306,21 +311,29 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 ParseDate = ParseDate.replace(' ','')
                 gcdinfo['ComicDate'] = ParseDate
                 #^^ will retrieve date #
-                if ComicID[:1] == "G":
-                    gcdchoice.append({
-                        'GCDid':                ComicID,
-                        'IssueID':              resultID,
-                        'GCDIssue':             gcdinfo['ComicIssue'],
-                        'GCDDate':              gcdinfo['ComicDate']
-                        })
-                    gcount+=1
+                if not any(d.get('GCDIssue', None) == str(gcdinfo['ComicIssue']) for d in gcdchoice):
+                    #logger.fdebug("adding: " + str(gcdinfo['ComicIssue']))
+                    if ComicID[:1] == "G":
+                        gcdchoice.append({
+                            'GCDid':                ComicID,
+                            'IssueID':              resultID,
+                            'GCDIssue':             gcdinfo['ComicIssue'],
+                            'GCDDate':              gcdinfo['ComicDate']
+                            })
+                        gcount+=1
+                    else:
+                        gcdchoice.append({
+                            'GCDid':                ComicID,
+                            'GCDIssue':             gcdinfo['ComicIssue'],
+                            'GCDDate':              gcdinfo['ComicDate']
+                            })
+
+                    gcdinfo['gcdchoice'] = gcdchoice
+
                 else:
-                    gcdchoice.append({
-                        'GCDid':                ComicID,
-                        'GCDIssue':             gcdinfo['ComicIssue'],
-                        'GCDDate':              gcdinfo['ComicDate']
-                        })
-                gcdinfo['gcdchoice'] = gcdchoice
+                    pass
+                    #logger.fdebug("Duplicate issue detected in DB - ignoring subsequent issue # " + str(gcdinfo['ComicIssue']))
+
                 PI = ParseIssue
         #else:
             # -- this needs a rework --
