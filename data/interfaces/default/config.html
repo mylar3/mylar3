@@ -360,7 +360,7 @@
                                       <small>enter in the absolute path to the script</small>
                                 </div>  
                                 <div class="row checkbox left clearfix">
-                                     <input type="checkbox" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
+                                    <input type="checkbox" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
                                 </div>
                                 <div class="row">
                                       <label>Extra Script Location</label>
@@ -393,6 +393,7 @@
                                  <input type="text" name="file_format" value="${config['file_format']}" size="43">
                                  <small>Use:  $Series, $Year, $Issue<br />
                                                                 E.g.: $Series $Issue ($Year) = Animal Man 0 (2012) </small>
+
                       </fieldset>
                 	
     				<fieldset>
@@ -432,6 +433,10 @@
                                                 </select>
                                                 </div>
 
+                                <div class="row checkboxclearfix">
+                                   <input type="checkbox" name="lowercase_filenames" value="1" ${config['lowercase_filenames']} /><label>Lowercase the entire filename</label><br/>
+                                   <small>(will work regardless if Rename Files is enabled)</small>
+                                </div>
 
     				</fieldset>
     				

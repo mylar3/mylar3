@@ -583,6 +583,7 @@ class WebInterface(object):
                     "file_format" : mylar.FILE_FORMAT,
                     "zero_level" : helpers.checked(mylar.ZERO_LEVEL),
                     "zero_level_n" : mylar.ZERO_LEVEL_N,
+                    "lowercase_filenames" : mylar.LOWERCASE_FILENAMES,
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
                     "branch" : version.MYLAR_VERSION,
@@ -676,7 +677,7 @@ class WebInterface(object):
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
-        preferred_quality=0, move_files=0, rename_files=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
+        preferred_quality=0, move_files=0, rename_files=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -718,6 +719,7 @@ class WebInterface(object):
         mylar.REPLACE_CHAR = replace_char
         mylar.ZERO_LEVEL = zero_level
         mylar.ZERO_LEVEL_N = zero_level_n
+        mylar.LOWERCASE_FILENAMES = lowercase_filenames
         mylar.USE_MINSIZE = use_minsize
         mylar.MINSIZE = minsize
         mylar.USE_MAXSIZE = use_maxsize

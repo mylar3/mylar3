@@ -284,9 +284,14 @@ class PostProcessor(object):
 
         #rename file and move to new path
         #nfilename = series + " " + issueno + " (" + seriesyear + ")"
+
             file_values = {'$Series':    series,
                            '$Issue':     prettycomiss,
-                           '$Year':      issueyear
+                           '$Year':      issueyear,
+                           '$series':    series.lower(),
+                           '$Publisher': publisher,
+                           '$publisher': publisher.lower(),
+                           '$Volume':    seriesyear
                           }
 
             for root, dirnames, filenames in os.walk(self.nzb_folder):
@@ -312,7 +317,10 @@ class PostProcessor(object):
             self._log("New Filename: " + nfilename, logger.DEBUG)
 
             src = self.nzb_folder + "/" + ofilename
-            dst = comlocation + "/" + nfilename + ext.lower()
+            if mylar.LOWERCASE_FILENAMES:
+                dst = (comlocation + "/" + nfilename + ext).lower()
+            else:
+                dst = comlocation + "/" + nfilename + ext.lower()    
             self._log("Source:" + src, logger.DEBUG)
             self._log("Destination:" +  dst, logger.DEBUG)
             os.rename(self.nzb_folder + "/" + ofilename, self.nzb_folder + "/" + nfilename + ext)

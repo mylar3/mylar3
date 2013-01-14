@@ -133,8 +133,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
         #do work to generate folder path
 
         values = {'$Series':        series,
-                  '$Publisher': publisher,
-                  '$Year':      year
+                  '$Publisher':     publisher,
+                  '$Year':          year,
+                  '$series':        series.lower(),
+                  '$publisher':     publisher.lower(),
+                  '$Volume':        year
                   }
 
         #print mylar.FOLDER_FORMAT
@@ -469,10 +472,12 @@ def GCDimport(gcomicid, pullupd=None):
         year = ComicYear
 
         #do work to generate folder path
-
         values = {'$Series':        series,
-                  '$Publisher': publisher,
-                  '$Year':      year
+                  '$Publisher':     publisher,
+                  '$Year':          year,
+                  '$series':        series.lower(),
+                  '$publisher':     publisher.lower(),
+                  '$Volume':        year
                   }
 
         if mylar.FOLDER_FORMAT == '':
