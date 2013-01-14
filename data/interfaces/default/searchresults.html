@@ -31,11 +31,8 @@
                     <td class="publisher">${result['publisher']}</a></td>
                     <td class="comicyear">${result['comicyear']}</a></td>
 					<td class="issues">${result['issues']}</td>
-				%if type == 'album':	
-					<td class="add" nowrap="nowrap"><a href="addReleaseById?rid=${result['albumid']}"><span class="ui-icon ui-icon-plus"></span> Add this album</a></td>
-				%else:
-					<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name']}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher']}&comicimage=${result['comicimage']}&comicissues=${result['issues']}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
-				%endif
+
+					<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher']}&comicimage=${result['comicimage']}&comicissues=${result['issues']}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
 				</tr>
 				%endfor
 			%endif

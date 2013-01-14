@@ -133,7 +133,7 @@ class WebInterface(object):
                            'GCDID' : stoopie['GCDID']
                            })
                     i+=1
-                return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues,cresults=cresults)
+                return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults)
             else:
                 nomatch = "false"
                 logger.info(u"Quick match success..continuing.")  
