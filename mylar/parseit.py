@@ -499,17 +499,17 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         cnt1 = len(soup.findAll("tr", {"class" : "listing_even"}))
         cnt2 = len(soup.findAll("tr", {"class" : "listing_odd"}))
 
-        try:
-            cntit = soup.find("div", {"class" : "item_data"})
+#        try:
+#            cntit = soup.find("div", {"class" : "item_data"})
 #            catchit = pubst('a')[0]
 
-        except (IndexError, TypeError):
-            cntit = soup.findAll("div", {"class" : "left"})[1]
+#        except (IndexError, TypeError):
+#            cntit = soup.findAll("div", {"class" : "left"})[1]
 #            catchit = pubst.find("a")
 
-        truecnt = cntit.findNext(text=True)
+#        truecnt = cntit.findNext(text=True)
         cnt = int(cnt1 + cnt2)
-        print ("truecnt: " + str(truecnt))
+#        print ("truecnt: " + str(truecnt))
         print ("cnt1: " + str(cnt1))
         print ("cnt2: " + str(cnt2))
         print (str(cnt) + " results")
