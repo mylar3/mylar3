@@ -13,6 +13,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import with_statement
+
 import os
 import cherrypy
 import datetime
@@ -177,9 +179,17 @@ class WebInterface(object):
         #99, (comicid), (gcdid), none
         logger.info("saving new information into custom_exceptions.csv...")
         except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")"
-        with open('custom_exceptions.csv', 'a') as f:
+        except_file = os.path.join(mylar.DATA_DIR,"custom_exceptions.csv")
+        if not os.path.exists(except_file):
+            try:
+                 csvfile = open(str(except_file), 'rb')
+                 csvfile.close()
+            except (OSError,IOError):
+                logger.error("Could not locate " + str(except_file) + " file. Make sure it's in datadir: " + mylar.DATA_DIR + " with proper permissions.")
+                return
+
+        with open(str(except_file), 'a') as f:
             f.write('%s,%s,%s,%s\n' % ("99", str(comicid), str(gcdid), str(except_info)) )
-        
         logger.info("re-loading csv file so it's all nice and current.")
         mylar.csv_load()
        

@@ -22,6 +22,7 @@ import webbrowser
 import sqlite3
 import itertools
 import csv
+import shutil
 
 from lib.apscheduler.scheduler import Scheduler
 from lib.configobj import ConfigObj
@@ -698,7 +699,12 @@ def csv_load():
                 csvfile = open(str(EXCEPTIONS_FILE), "rb")
             except (OSError,IOError):
                 if i == 1:
-                    logger.error("No Custom Exceptions found. Using base exceptions only.")
+                    logger.info("No Custom Exceptions found - Using base exceptions only. Creating blank custom_exceptions for your personal use.")
+                    try:
+                        shutil.copy(os.path.join(DATA_DIR,"custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
+                    except (OSError,IOError):
+                        logger.error("Cannot create custom_exceptions.csv in " + str(DATA_DIR) + ". Make sure _sample.csv is present and/or check permissions.")
+                        return  
                 else:
                     logger.error("Could not locate " + str(EXCEPTIONS[i]) + " file. Make sure it's in datadir: " + DATA_DIR)
                 break
