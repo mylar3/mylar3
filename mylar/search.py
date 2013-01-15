@@ -334,6 +334,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 elif nzbprov == 'nzb.su':
                     findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
+                    #let's make sure the host has a '/' at the end, if not add it.
+                    if host_newznab[-1] != "/": host_newznab = str(host_newznab) + "/"
                     findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                     logger.fdebug("search-url: " + str(findurl))
                 elif nzbprov == 'nzbx':
@@ -390,9 +392,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         if cnt == 0:
                             comic_andiss = m[cnt]
                             logger.fdebug("Comic: " + str(comic_andiss))
-                        logger.fdebug("UseFuzzy is  : " + str(UseFuzzy))
                         if UseFuzzy == "0" or UseFuzzy == "2" or IssDateFix == "yes":
-
+                            #logger.fdebug("UseFuzzy is  : " + str(UseFuzzy))
                             if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
                                 logger.fdebug("year detected: " + str(m[cnt]))
                                 result_comyear = m[cnt]

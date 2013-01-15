@@ -34,7 +34,9 @@ def pullit():
     popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
     if popit:
         try:
-            pulldate = myDB.action("SELECT SHIPDATE from weekly").fetchone()
+            pull_date = myDB.action("SELECT SHIPDATE from weekly").fetchone()
+            logger.info(u"Weekly pull list present - checking if it's up-to-date..")
+            pulldate = pull_date['SHIPDATE']
         except sqlite3.OperationalError, msg:
             conn=sqlite3.connect(mylar.DB_FILE)
             c=conn.cursor()
@@ -130,6 +132,8 @@ def pullit():
                         logger.info(u"No new pull-list available - will re-check again in 24 hours.")
                         pullitcheck()
                         return
+                    else:
+                        logger.info(u"Preparing to update to the new listing.")
                 break    
         else:
             for yesyes in checkit:
@@ -273,6 +277,7 @@ def pullit():
                     newtxtfile.write(str(shipdate) + '\t' + str(pub) + '\t' + str(issue) + '\t' + str(comicnm) + '\t' + str(comicrm) + '\tSkipped' + '\n')
                 prevcomic = str(comicnm)
                 previssue = str(issue)
+    logger.info(u"Populating the NEW Weekly Pull list into Mylar.")
     newtxtfile.close()
 
     mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
@@ -304,6 +309,7 @@ def pullit():
     csvfile.close()
     connection.commit()
     connection.close()
+    logger.info(u"Weekly Pull List successfully loaded.")
     #let's delete the files
     pullpath = str(mylar.CACHE_DIR) + "/"
     os.remove( str(pullpath) + "Clean-newreleases.txt" )
@@ -311,6 +317,7 @@ def pullit():
     pullitcheck()
 
 def pullitcheck(comic1off_name=None,comic1off_id=None):
+    logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
     myDB = db.DBConnection()
 
     not_t = ['TP',
@@ -473,6 +480,6 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
         logger.fdebug("There are " + str(otot) + " comics this week to get!")
         #print ("However I've already grabbed " + str(btotal) )
         #print ("I need to get " + str(tot) + " comic(s)!" )
-
+        logger.info(u"Finished checking for comics on my watchlist.")
     #con.close()
     return

@@ -541,6 +541,7 @@ class WebInterface(object):
                     "logverbose" : helpers.checked(mylar.LOGVERBOSE),
                     "download_scan_interval" : mylar.DOWNLOAD_SCAN_INTERVAL,
                     "nzb_search_interval" : mylar.SEARCH_INTERVAL,
+                    "nzb_startup_search" : helpers.checked(mylar.NZB_STARTUP_SEARCH),
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
                     "sab_host" : mylar.SAB_HOST,
                     "sab_user" : mylar.SAB_USERNAME,
@@ -565,9 +566,9 @@ class WebInterface(object):
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "replace_spaces" : helpers.checked(mylar.REPLACE_SPACES),
                     "replace_char" : mylar.REPLACE_CHAR,
-                    "use_minsize" : mylar.USE_MINSIZE,
+                    "use_minsize" : helpers.checked(mylar.USE_MINSIZE),
                     "minsize" : mylar.MINSIZE,
-                    "use_maxsize" : mylar.USE_MAXSIZE,
+                    "use_maxsize" : helpers.checked(mylar.USE_MAXSIZE),
                     "maxsize" : mylar.MAXSIZE,
                     "interface_list" : interface_list,
                     "autowant_all" : helpers.checked(mylar.AUTOWANT_ALL),
@@ -583,7 +584,8 @@ class WebInterface(object):
                     "file_format" : mylar.FILE_FORMAT,
                     "zero_level" : helpers.checked(mylar.ZERO_LEVEL),
                     "zero_level_n" : mylar.ZERO_LEVEL_N,
-                    "lowercase_filenames" : mylar.LOWERCASE_FILENAMES,
+                    "add_to_csv" : helpers.checked(mylar.ADD_TO_CSV),
+                    "lowercase_filenames" : helpers.checked(mylar.LOWERCASE_FILENAMES),
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
                     "branch" : version.MYLAR_VERSION,
@@ -602,9 +604,10 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
 
-    def error_change(self, comicid, errorgcd):
+    def error_change(self, comicid, errorgcd, add_to_csv):
+        print ("addtocsv is : " + str(add_to_csv))
         if errorgcd[:5].isdigit():
-            print ("GCD-ID detected : + str(errorgcd)[:5]")
+            print ("GCD-ID detected : " + str(errorgcd)[:5])
             print ("I'm assuming you know what you're doing - going to force-match.")
             self.from_Exceptions(comicid=comicid,gcdid=errorgcd)
         else:
@@ -614,12 +617,17 @@ class WebInterface(object):
     error_change.exposed = True
 
     
-    def comic_config(self, com_location, alt_search, fuzzy_year, ComicID):
+    def comic_config(self, com_location, alt_search, ComicID, fuzzy_year=None):
         myDB = db.DBConnection()
         print ("fuzzy:" + fuzzy_year)
-        if fuzzy_year == '0': fuzzy_string = "None"
-        elif fuzzy_year == '1': fuzzy_string = "Remove Year"
-        elif fuzzy_year == '2': fuzzy_string = "Fuzzy Year"
+        if fuzzy_year is not None:
+            newValues['UseFuzzy'] = fuzzy_year
+            if fuzzy_year == '0': 
+                fuzzy_string = "None"
+            elif fuzzy_year == '1': 
+                fuzzy_string = "Remove Year"
+            elif fuzzy_year == '2':
+                fuzzy_string = "Fuzzy Year"
 
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -650,8 +658,8 @@ class WebInterface(object):
 
         controlValueDict = {'ComicID': ComicID}
         newValues = {"ComicLocation":        com_location,
-                     "AlternateSearch":      str(asearch),
-                     "UseFuzzy":             fuzzy_year }
+                     "AlternateSearch":      str(asearch) }
+
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,
@@ -673,11 +681,11 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     comic_config.exposed = True
     
-    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, libraryscan_interval=None,
+    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, log_dir=None, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
-        preferred_quality=0, move_files=0, rename_files=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -687,6 +695,7 @@ class WebInterface(object):
         mylar.LOGVERBOSE = logverbose
         mylar.DOWNLOAD_SCAN_INTERVAL = download_scan_interval
         mylar.SEARCH_INTERVAL = nzb_search_interval
+        mylar.NZB_STARTUP_SEARCH = nzb_startup_search
         mylar.LIBRARYSCAN_INTERVAL = libraryscan_interval
         mylar.SAB_HOST = sab_host
         mylar.SAB_USERNAME = sab_username
@@ -719,6 +728,7 @@ class WebInterface(object):
         mylar.REPLACE_CHAR = replace_char
         mylar.ZERO_LEVEL = zero_level
         mylar.ZERO_LEVEL_N = zero_level_n
+        mylar.ADD_TO_CSV = add_to_csv
         mylar.LOWERCASE_FILENAMES = lowercase_filenames
         mylar.USE_MINSIZE = use_minsize
         mylar.MINSIZE = minsize

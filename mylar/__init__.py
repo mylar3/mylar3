@@ -85,6 +85,7 @@ USENET_RETENTION = None
 ADD_COMICS = False
 
 SEARCH_INTERVAL = 360
+NZB_STARTUP_SEARCH = False
 LIBRARYSCAN_INTERVAL = 300
 DOWNLOAD_SCAN_INTERVAL = 5
 INTERFACE = None
@@ -112,6 +113,7 @@ MAXSIZE = None
 AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
+ADD_TO_CSV = True
 
 SAB_HOST = None
 SAB_USERNAME = None
@@ -207,12 +209,12 @@ def initialize():
         global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
-                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
+                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
                 LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS
                 
         if __INITIALIZED__:
@@ -253,6 +255,7 @@ def initialize():
         USENET_RETENTION = check_setting_int(CFG, 'General', 'usenet_retention', '1500')
         
         SEARCH_INTERVAL = check_setting_int(CFG, 'General', 'search_interval', 360)
+        NZB_STARTUP_SEARCH = bool(check_setting_int(CFG, 'General', 'nzb_startup_search', 0))
         LIBRARYSCAN_INTERVAL = check_setting_int(CFG, 'General', 'libraryscan_interval', 300)
         DOWNLOAD_SCAN_INTERVAL = check_setting_int(CFG, 'General', 'download_scan_interval', 5)
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
@@ -276,6 +279,7 @@ def initialize():
         MINSIZE = check_setting_str(CFG, 'General', 'minsize', '')
         USE_MAXSIZE = bool(check_setting_int(CFG, 'General', 'use_maxsize', 0))
         MAXSIZE = check_setting_str(CFG, 'General', 'maxsize', '')
+        ADD_TO_CSV = bool(check_setting_int(CFG, 'General', 'add_to_csv', 1))
 
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
@@ -475,8 +479,6 @@ def config_write():
     new_config = ConfigObj()
     new_config.filename = CONFIG_FILE
 
-    print ("falalal")
-
     new_config['General'] = {}
     new_config['General']['config_version'] = CONFIG_VERSION
     new_config['General']['http_port'] = HTTP_PORT
@@ -497,6 +499,7 @@ def config_write():
     new_config['General']['usenet_retention'] = USENET_RETENTION
 
     new_config['General']['search_interval'] = SEARCH_INTERVAL
+    new_config['General']['nzb_startup_search'] = int(NZB_STARTUP_SEARCH)
     new_config['General']['libraryscan_interval'] = LIBRARYSCAN_INTERVAL
     new_config['General']['download_scan_interval'] = DOWNLOAD_SCAN_INTERVAL
     new_config['General']['interface'] = INTERFACE
@@ -520,6 +523,7 @@ def config_write():
     new_config['General']['minsize'] = MINSIZE
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
     new_config['General']['maxsize'] = MAXSIZE
+    new_config['General']['add_to_csv'] = int(ADD_TO_CSV)
 
     new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
@@ -591,8 +595,9 @@ def start():
         #now the scheduler (check every 24 hours)
         SCHED.add_interval_job(weeklypull.pullit, hours=24)
         
-        #let's do a run at the Wanted issues here (on startup).
-        threading.Thread(target=search.searchforissue).start()
+        #let's do a run at the Wanted issues here (on startup) if enabled.
+        if NZB_STARTUP_SEARCH:
+            threading.Thread(target=search.searchforissue).start()
 
         if CHECK_GITHUB:
             SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)

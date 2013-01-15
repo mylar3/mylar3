@@ -95,11 +95,17 @@
                 <td>          
                     <fieldset>
                     	<legend>Interval</legend>
-	                   	<div class="row">
+	                    <div class="row">
 	                    	<label>NZB Search Interval</label>
 	                    	<input type="text" name="nzb_search_interval" value="${config['nzb_search_interval']}" size="4">mins
-	                    </div>
-	            
+                                  <div class="row checkbox">
+                                    <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>NZB Search on startup</label>
+                                  </div>
+                            </div>
+
+      	                    </div>
+   	       
+     
 	                	<div class="row">
 	                    	<label>Download Scan Interval</label>
 	                    	<input type="text" name="download_scan_interval" value="${config['download_scan_interval']}" size="4">mins
