@@ -93,6 +93,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         logger.fdebug("Available to be marked for download - checking..." + str(issuechk['ComicName']) + " Issue: " + str(issuechk['Issue_Number']))
         logger.fdebug("...Existing status: " + str(issuechk['Status']))
         control = {"IssueID":   issuechk['IssueID']}
+        newValue['IssueID'] = issuechk['IssueID']
         if issuechk['Status'] == "Snatched":
             values = { "Status":   "Snatched"}
             newValue['Status'] = "Snatched"
@@ -106,7 +107,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"
         #was in wrong place :(
-    if mylar.AUTOWANT_UPCOMING: 
+    if mylar.AUTOWANT_UPCOMING:
         #for issues not in db - to be added to Upcoming table.
         if issuechk is None:
             newValue['Status'] = "Wanted"

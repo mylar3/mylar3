@@ -69,9 +69,13 @@ class WebInterface(object):
         issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
+        usethefuzzy = comic['UseFuzzy']
+        if usethefuzzy is None: usethefuzzy = "0"
         comicConfig = {
                     "comiclocation" : mylar.COMIC_LOCATION,
-                    "use_fuzzy" : comic['UseFuzzy']
+                    "fuzzy_year0" : helpers.radio(int(usethefuzzy), 0),
+                    "fuzzy_year1" : helpers.radio(int(usethefuzzy), 1),
+                    "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2)
                }
         return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig)
     artistPage.exposed = True
@@ -414,7 +418,7 @@ class WebInterface(object):
     def upcoming(self):
         myDB = db.DBConnection()
         #upcoming = myDB.select("SELECT * from issues WHERE ReleaseDate > date('now') order by ReleaseDate DESC")
-        upcoming = myDB.select("SELECT * from upcoming WHERE IssueDate > date('now') order by IssueDate DESC")
+        upcoming = myDB.select("SELECT * from upcoming WHERE IssueDate > date('now') AND IssueID is NULL order by IssueDate DESC")
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
         #gather the list...
@@ -629,16 +633,6 @@ class WebInterface(object):
     
     def comic_config(self, com_location, alt_search, ComicID, fuzzy_year=None):
         myDB = db.DBConnection()
-        print ("fuzzy:" + fuzzy_year)
-        if fuzzy_year is not None:
-            newValues['UseFuzzy'] = fuzzy_year
-            if fuzzy_year == '0': 
-                fuzzy_string = "None"
-            elif fuzzy_year == '1': 
-                fuzzy_string = "Remove Year"
-            elif fuzzy_year == '2':
-                fuzzy_string = "Fuzzy Year"
-
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
 #        ffs_alt = []
@@ -669,12 +663,17 @@ class WebInterface(object):
         controlValueDict = {'ComicID': ComicID}
         newValues = {"ComicLocation":        com_location,
                      "AlternateSearch":      str(asearch) }
-
+        
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,
                      #"QUALquality":          qual_quality
                      #}
+
+        if fuzzy_year is None:
+            newValues['UseFuzzy'] = "0"
+        else:
+            newValues['UseFuzzy'] = str(fuzzy_year)
 
         #force the check/creation of directory com_location here
         if os.path.isdir(str(com_location)):
