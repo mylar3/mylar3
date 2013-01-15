@@ -263,7 +263,7 @@ def initialize():
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
         COMIC_COVER_LOCAL = bool(check_setting_int(CFG, 'General', 'comic_cover_local', 0))
-        PREFERRED_QUALITY = check_setting_int(CFG, 'General', 'preferred_quality', 0)
+        PREFERRED_QUALITY = bool(check_setting_int(CFG, 'General', 'preferred_quality', 0))
         CORRECT_METADATA = bool(check_setting_int(CFG, 'General', 'correct_metadata', 0))
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
         RENAME_FILES = bool(check_setting_int(CFG, 'General', 'rename_files', 0))
@@ -504,10 +504,10 @@ def config_write():
     new_config['General']['libraryscan_interval'] = LIBRARYSCAN_INTERVAL
     new_config['General']['download_scan_interval'] = DOWNLOAD_SCAN_INTERVAL
     new_config['General']['interface'] = INTERFACE
-    new_config['General']['autowant_all'] = AUTOWANT_ALL
-    new_config['General']['autowant_upcoming'] = AUTOWANT_UPCOMING
-    new_config['General']['preferred_quality'] = PREFERRED_QUALITY
-    new_config['General']['comic_cover_local'] = COMIC_COVER_LOCAL
+    new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
+    new_config['General']['autowant_upcoming'] = int(AUTOWANT_UPCOMING)
+    new_config['General']['preferred_quality'] = int(PREFERRED_QUALITY)
+    new_config['General']['comic_cover_local'] = int(COMIC_COVER_LOCAL)
     new_config['General']['correct_metadata'] = int(CORRECT_METADATA)
     new_config['General']['move_files'] = int(MOVE_FILES)
     new_config['General']['rename_files'] = int(RENAME_FILES)
