@@ -247,6 +247,8 @@ def initialize():
         LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 1))
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         LOG_DIR = check_setting_str(CFG, 'General', 'log_dir', '')
+        if not CACHE_DIR:
+            CACHE_DIR = check_setting_str(CFG, 'General', 'cache_dir', '')
         
         CHECK_GITHUB = bool(check_setting_int(CFG, 'General', 'check_github', 1))
         CHECK_GITHUB_ON_STARTUP = bool(check_setting_int(CFG, 'General', 'check_github_on_startup', 1))
@@ -381,7 +383,9 @@ def initialize():
         logger.mylar_log.initLogger(verbose=VERBOSE)
 
         # Put the cache dir in the data dir for now
-        CACHE_DIR = os.path.join(DATA_DIR, 'cache')
+        if not CACHE_DIR:
+            CACHE_DIR = os.path.join(str(DATA_DIR), 'cache')
+        logger.info("cache set to : " + str(CACHE_DIR))
         if not os.path.exists(CACHE_DIR):
             try:
                os.makedirs(CACHE_DIR)
@@ -491,6 +495,7 @@ def config_write():
     new_config['General']['log_dir'] = LOG_DIR
     new_config['General']['logverbose'] = int(LOGVERBOSE)
     new_config['General']['git_path'] = GIT_PATH
+    new_config['General']['cache_dir'] = CACHE_DIR
     
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)

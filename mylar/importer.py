@@ -42,7 +42,7 @@ def is_exists(comicid):
 
 def addComictoDB(comicid,mismatch=None,pullupd=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
-    from mylar import cache
+#    from mylar import cache
     
     myDB = db.DBConnection()
     
@@ -193,7 +193,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
     urllib.urlretrieve(str(comic['ComicImage']), str(coverfile))
     try:
         with open(str(coverfile)) as f:
-            ComicImage = "cache/" + str(comicid) + ".jpg"
+            ComicImage = os.path.join('cache',str(comicid) + ".jpg")
             logger.info(u"Sucessfully retrieved cover for " + str(comic['ComicName']))
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.COMIC_COVER_LOCAL:
