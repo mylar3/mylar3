@@ -333,6 +333,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
     unlines = []
     llen = []
     ccname = []
+    pubdate = []
     w = 0
     tot = 0
     chkout = []
@@ -360,25 +361,28 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher from comics")
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished from comics")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
                 if watchd is None:
                     break
-                a_list.append(watchd[1])
-                b_list.append(watchd[2])
-                comicid.append(watchd[0])
-                #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
-                #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
-                lines.append(a_list[w].strip())
-                unlines.append(a_list[w].strip())
-                llen.append(a_list[w].splitlines())
-                ccname.append(a_list[w].strip())
-                tmpwords = a_list[w].split(None)
-                ltmpwords = len(tmpwords)
-                ltmp = 1
-                w+=1
+                if 'Present' in watchd[4]:
+                 # let's not even bother with comics that are in the Present.
+                    a_list.append(watchd[1])
+                    b_list.append(watchd[2])
+                    comicid.append(watchd[0])
+                    pubdate.append(watchd[4])
+                    #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
+                    #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
+                    lines.append(a_list[w].strip())
+                    unlines.append(a_list[w].strip())
+                    llen.append(a_list[w].splitlines())
+                    ccname.append(a_list[w].strip())
+                    tmpwords = a_list[w].split(None)
+                    ltmpwords = len(tmpwords)
+                    ltmp = 1
+                    w+=1
         cnt = int(w-1)
         cntback = int(w-1)
         kp = []

@@ -455,11 +455,11 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     comicis = Total
     comicid = ComicID
     comicpub = ComicPublisher
-    #print ( "comicname: " + str(comicnm) )
-    #print ( "comicyear: " + str(comicyr) )
-    #print ( "comichave: " + str(comicis) )
-    #print ( "comicpub: " + str(comicpub) )
-    #print ( "comicid: " + str(comicid) )
+    print ( "comicname: " + str(comicnm) )
+    print ( "comicyear: " + str(comicyr) )
+    print ( "comichave: " + str(comicis) )
+    print ( "comicpub: " + str(comicpub) )
+    print ( "comicid: " + str(comicid) )
     # do 3 runs at the comics.org search to get the best results
     comicrun = []
     # &pub_name=DC

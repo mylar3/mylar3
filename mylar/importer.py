@@ -367,8 +367,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
     logger.info(u"Updating complete for: " + comic['ComicName'])
     
     if pullupd is None:
-    # lets' check the pullist for anyting at this time as well since we're here.
-        if mylar.AUTOWANT_UPCOMING:
+    # lets' check the pullist for anything at this time as well since we're here.
+    # do this for only Present comics....
+        if mylar.AUTOWANT_UPCOMING and 'Present' in gcdinfo['resultPublished']:
             logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
             updater.newpullcheck(comic['ComicName'], comicid)
 
@@ -380,7 +381,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
 
             for result in results:
                 foundNZB = "none"
-                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL) and (mylar.SAB_HOST):
+                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
                     foundNZB = search.searchforissue(result['IssueID'])
                     if foundNZB == "yes":
                         updater.foundsearch(result['ComicID'], result['IssueID'])
@@ -409,6 +410,7 @@ def GCDimport(gcomicid, pullupd=None):
     ComicName = comic[0]
     ComicYear = comic[1]
     ComicIssues = comic[2]
+    ComicPublished = comic[3]
     comlocation = comic[5]
     ComicPublisher = comic[6]
     #ComicImage = comic[4]
@@ -659,7 +661,7 @@ def GCDimport(gcomicid, pullupd=None):
 
     if pullupd is None:
         # lets' check the pullist for anyting at this time as well since we're here.
-        if mylar.AUTOWANT_UPCOMING:
+        if mylar.AUTOWANT_UPCOMING and 'Present' in ComicPublished:
             logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))
             updater.newpullcheck(comic['ComicName'], gcomicid)
 
@@ -671,7 +673,7 @@ def GCDimport(gcomicid, pullupd=None):
 
             for result in results:
                 foundNZB = "none"
-                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB) and (mylar.SAB_HOST):
+                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
                     foundNZB = search.searchforissue(result['IssueID'])
                     if foundNZB == "yes":
                         updater.foundsearch(result['ComicID'], result['IssueID'])

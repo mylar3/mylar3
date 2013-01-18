@@ -105,11 +105,11 @@ class WebInterface(object):
         sresults = []
         cresults = []
         mismatch = "no"
-        print ("comicid: " + str(comicid))
-        print ("comicname: " + str(comicname))
-        print ("comicyear: " + str(comicyear))
-        print ("comicissues: " + str(comicissues))
-        print ("comicimage: " + str(comicimage))
+        #print ("comicid: " + str(comicid))
+        #print ("comicname: " + str(comicname))
+        #print ("comicyear: " + str(comicyear))
+        #print ("comicissues: " + str(comicissues))
+        #print ("comicimage: " + str(comicimage))
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
         if CV_EXcomicid is None: # pass #
@@ -123,7 +123,7 @@ class WebInterface(object):
                 logger.info(u"I couldn't find an exact match for " + str(comicname) + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
                 i = 0
                 loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
-                print ("total count : " + str(cnt))
+                #print ("total count : " + str(cnt))
                 while (i < cnt):
                     try:
                         stoopie = loopie['comchkchoice'][i]
@@ -626,7 +626,8 @@ class WebInterface(object):
             self.from_Exceptions(comicid=comicid,gcdid=errorgcd)
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
-            self.addComic(errorgcd)
+            Err_Info = mylar.cv.getComic(comicid,'comic')
+            self.addComic(comicid=comicid,comicname=errorgcd, comicyear=Err_Info['ComicYear'], comicissues=Err_Info['ComicIssues'], comicpublisher=Err_Info['ComicPublisher'])
 
     error_change.exposed = True
 
