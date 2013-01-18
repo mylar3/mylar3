@@ -32,10 +32,10 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
     comicyr = ComicYear
     comicis = Total
     comicid = ComicID
-    print ( "comicname: " + str(comicnm) )
-    print ( "comicyear: " + str(comicyr) )
-    print ( "comichave: " + str(comicis) )
-    print ( "comicid: " + str(comicid) )
+    #print ( "comicname: " + str(comicnm) )
+    #print ( "comicyear: " + str(comicyr) )
+    #print ( "comichave: " + str(comicis) )
+    #print ( "comicid: " + str(comicid) )
     comicnm = re.sub(' ', '+', comicnm)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib2.urlopen ( input )
@@ -331,7 +331,21 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     gcdinfo['gcdchoice'] = gcdchoice
 
                 else:
-                    pass
+                    #--if 2 identical issue numbers legitimately exist, but have different
+                    #--publication dates, try to distinguish
+                    logger.fdebug("2 identical issue #'s have been found...determining if it's intentional.")
+                    #get current issue & publication date.
+                    logger.fdebug("Issue #:" + str(gcdinfo['ComicIssue']))
+                    logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
+                    #get conflicting issue from tuple
+                    for d in gcdchoice:
+                        if str(d['GCDIssue']) == str(gcdinfo['ComicIssue']):
+                            logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
+                            if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
+                                logger.fdebug("Issue #'s and dates match...skipping.")
+                            else:
+                                logger.fdebug("Issue#'s match but different publication dates, not skipping.")
+                    #pass
                     #logger.fdebug("Duplicate issue detected in DB - ignoring subsequent issue # " + str(gcdinfo['ComicIssue']))
 
                 PI = ParseIssue

@@ -631,7 +631,7 @@ class WebInterface(object):
     error_change.exposed = True
 
     
-    def comic_config(self, com_location, alt_search, ComicID, fuzzy_year=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None):
         myDB = db.DBConnection()
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -661,14 +661,17 @@ class WebInterface(object):
         asearch = str(alt_search)
 
         controlValueDict = {'ComicID': ComicID}
-        newValues = {"ComicLocation":        com_location,
-                     "AlternateSearch":      str(asearch) }
-        
+        newValues = {"ComicLocation":        com_location }
                      #"QUALalt_vers":         qual_altvers,
                      #"QUALScanner":          qual_scanner,
                      #"QUALtype":             qual_type,
                      #"QUALquality":          qual_quality
                      #}
+        if asearch is not None:
+            if asearch == '':
+                newValues['AlternateSearch'] = "None"
+            else:
+                newValues['AlternateSearch'] = str(asearch)
 
         if fuzzy_year is None:
             newValues['UseFuzzy'] = "0"

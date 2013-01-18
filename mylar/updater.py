@@ -273,7 +273,7 @@ def forceRescan(ComicID):
                         except ValueError, TypeError:
                             #not numeric
                             fcnew[som] = fcnew[som].replace(".", "")
-                            #logger.fdebug("new word: " + str(fcnew[som]))
+                            #logger.fdebug("NOT NUMERIC - new word: " + str(fcnew[som]))
                         else:
                             #numeric
                             pass
@@ -355,7 +355,6 @@ def forceRescan(ComicID):
                         #else:
                         # if the issue # matches, but there is no year present - still match.
                         # determine a way to match on year if present, or no year (currently).
-
                     som+=1
                 if haveissue == "yes": break
                 n+=1
@@ -379,13 +378,16 @@ def forceRescan(ComicID):
                 issStatus = "Wanted"
             else:
                 issStatus = "Skipped"
+            controlValueDict = {"IssueID": reiss['IssueID']}
+            newValueDict = {"Status":    issStatus }
+
         elif haveissue == "yes":
             issStatus = "Downloaded"
-        controlValueDict = {"IssueID":  reiss['IssueID']}
-        newValueDict = {"Location":           isslocation,
-                        "ComicSize":          issSize,
-                        "Status":             issStatus
-                        }
+            controlValueDict = {"IssueID":  reiss['IssueID']}
+            newValueDict = {"Location":           isslocation,
+                            "ComicSize":          issSize,
+                            "Status":             issStatus
+                            }
         myDB.upsert("issues", newValueDict, controlValueDict)
         fn+=1
 
