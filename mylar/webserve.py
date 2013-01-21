@@ -618,8 +618,7 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
 
-    def error_change(self, comicid, errorgcd, add_to_csv):
-        print ("addtocsv is : " + str(add_to_csv))
+    def error_change(self, comicid, errorgcd):
         if errorgcd[:5].isdigit():
             print ("GCD-ID detected : " + str(errorgcd)[:5])
             print ("I'm assuming you know what you're doing - going to force-match.")
@@ -627,7 +626,7 @@ class WebInterface(object):
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid,'comic')
-            self.addComic(comicid=comicid,comicname=errorgcd, comicyear=Err_Info['ComicYear'], comicissues=Err_Info['ComicIssues'], comicpublisher=Err_Info['ComicPublisher'])
+            self.addComic(comicid=comicid,comicname=str(errorgcd), comicyear=Err_Info['ComicYear'], comicissues=Err_Info['ComicIssues'], comicpublisher=Err_Info['ComicPublisher'])
 
     error_change.exposed = True
 

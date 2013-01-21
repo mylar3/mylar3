@@ -501,6 +501,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             logger.fdebug("splitit: " + str(splitit[n]))
                             if n < (splitst) and n < len(watchcomic_split):
                                 logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
+                                if '+' in watchcomic_split[n]:
+                                    watchcomic_split[n] = re.sub('+', '', str(watchcomic_split[n]))
                                 if str(watchcomic_split[n].lower()) in str(splitit[n].lower()):
                                     logger.fdebug("word matched on : " + str(splitit[n]))
                                     scount+=1

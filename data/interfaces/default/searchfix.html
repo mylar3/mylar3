@@ -19,15 +19,13 @@
 			<li><a href="#tabs-1">Analysis Required</a></li>
 		</ul>
 		<div id="tabs-1" class="configtable">
+
                    <table>
                     <tr>
                      <td width="250">
                      <fieldset>
                            <div>
                                <img src="${comicimage}" alt="" height="350" width="230" />
-                           </div>
-                           <div class="row checkbox">
-                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="addtocsv" value="1" ${mylar.ADD_TO_CSV} /><label><small>Add the selected entry to the custom_exceptions.csv (default)</small></label>
                            </div>
                      </fieldset>
                       </td>
@@ -82,9 +80,9 @@
                             </div>
                           </tbody>
                           </table>
-                                 <form action="error_change" method="GET">
+                            <form action="error_change" method="GET">
                                  <input type="hidden" name="comicid" value=${comicid}>
-                                 <input type="hidden" name="add_to_csv" value=addtocsv>
+                                 <inptu type="hidden" name="comicname" value=${comicname}>
                                         <div><br/>
                                            <label><center><strong>Didn't get it right? Enter what it should be (or the GCD-ID) here:</strong></label></center>
                                            <center><input type="text" name="errorgcd" size="30"><input type="submit" value="Update"/></center>
