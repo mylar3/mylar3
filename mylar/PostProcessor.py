@@ -134,10 +134,11 @@ class PostProcessor(object):
             self._log(u"Unable to run extra_script: " + str(script_cmd))
 
 
-#    def PostProcess(nzb_name, nzb_folder):
     def Process(self):
             self._log("nzb name: " + str(self.nzb_name), logger.DEBUG)
             self._log("nzb folder: " + str(self.nzb_folder), logger.DEBUG)
+            logger.fdebug("nzb name: " + str(self.nzb_name))
+            logger.fdebug("nzb folder: " + str(self.nzb_folder))
             #lookup nzb_name in nzblog table to get issueid
 
             #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
@@ -151,8 +152,8 @@ class PostProcessor(object):
 
             sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
             sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
-            #logger.fdebug("sabreps:" + str(sabreps))
-
+            logger.fdebug("SAB Replace Spaces: " + str(sabreps))
+            logger.fdebug("SAB Replace Dots: " + str(sabrepd))
             myDB = db.DBConnection()
 
             nzbname = self.nzb_name
@@ -168,21 +169,25 @@ class PostProcessor(object):
             nzbname = re.sub(' ', '.', str(nzbname))
             nzbname = re.sub('[\,\:]', '', str(nzbname))
 
+            logger.fdebug("After conversions, nzbname is : " + str(nzbname))
             self._log("nzbname: " + str(nzbname), logger.DEBUG)
 
             nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
 
             if nzbiss is None:
                 self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
+                logger.fdebug("Failure - could not locate nzbfile initially.")
                 # if failed on spaces, change it all to decimals and try again.
                 nzbname = re.sub('_', '.', str(nzbname))
                 self._log("trying again with this nzbname: " + str(nzbname), logger.DEBUG)
+                logger.fdebug("trying again with nzbname of : " + str(nzbname))
                 nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
                 if nzbiss is None:
                     logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
                     return
                 else:
                     self._log("I corrected and found the nzb as : " + str(nzbname))
+                    logger.fdebug("auto-corrected and found the nzb as : " + str(nzbname))
                     issueid = nzbiss['IssueID']
             else: 
                 issueid = nzbiss['IssueID']
@@ -200,6 +205,7 @@ class PostProcessor(object):
                 issdec = int(iss_decval)
                 issueno = str(iss)
                 self._log("Issue Number: " + str(issueno), logger.DEBUG)
+                logger.fdebug("Issue Number: " + str(issueno))
             else:
                 if len(iss_decval) == 1:
                     iss = iss_b4dec + "." + iss_decval
@@ -209,6 +215,7 @@ class PostProcessor(object):
                     issdec = int(iss_decval.rstrip('0')) * 10
                 issueno = iss_b4dec
                 self._log("Issue Number: " + str(iss), logger.DEBUG)
+                logger.fdebug("Issue Number: " + str(iss))
 
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0": 
@@ -217,6 +224,8 @@ class PostProcessor(object):
                 if mylar.ZERO_LEVEL_N  == "none": zeroadd = ""
                 elif mylar.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
+
+            logger.fdebug("Zero Suppression set to : " + str(mylar.ZERO_LEVEL_N))
 
             if str(len(issueno)) > 1:
                 if int(issueno) < 10:
@@ -249,17 +258,23 @@ class PostProcessor(object):
                 prettycomiss = str(issueno)
                 self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss), logger.DEBUG)
 
+            logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
             self._log("Issue Year: " + str(issueyear), logger.DEBUG)
+            logger.fdebug("Issue Year : " + str(issueyear))
             comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher, logger.DEBUG)
+            logger.fdebug("Publisher: " + str(publisher))
             series = comicnzb['ComicName']
             self._log("Series: " + series, logger.DEBUG)
+            logger.fdebug("Series: " + str(series))
             seriesyear = comicnzb['ComicYear']
             self._log("Year: " + seriesyear, logger.DEBUG)
+            logger.fdebug("Year: "  + str(seriesyear))
             comlocation = comicnzb['ComicLocation']
             self._log("Comic Location: " + comlocation, logger.DEBUG)
+            logger.fdebug("Comic Location: " + str(comlocation))
 
             #Run Pre-script
 
@@ -301,8 +316,12 @@ class PostProcessor(object):
                         path, ext = os.path.splitext(ofilename)
             self._log("Original Filename: " + ofilename, logger.DEBUG)
             self._log("Original Extension: " + ext, logger.DEBUG)
+            logger.fdebug("Original Filname: " + str(ofilename))
+            logger.fdebug("Original Extension: " + str(ext))
+
             if mylar.FILE_FORMAT == '':
                 self._log("Rename Files isn't enabled...keeping original filename.", logger.DEBUG)
+                logger.fdebug("Rename Files isn't enabled - keeping original filename.")
                 #check if extension is in nzb_name - will screw up otherwise
                 if ofilename.lower().endswith(extensions):
                     nfilename = ofilename[:-4]
@@ -315,16 +334,20 @@ class PostProcessor(object):
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
             nfilename = re.sub('[\,\:]', '', nfilename)
             self._log("New Filename: " + nfilename, logger.DEBUG)
+            logger.fdebug("New Filename: " + str(nfilename))
 
-            src = self.nzb_folder + "/" + ofilename
+            src = os.path.join(self.nzb_folder, ofilename)
             if mylar.LOWERCASE_FILENAMES:
                 dst = (comlocation + "/" + nfilename + ext).lower()
             else:
                 dst = comlocation + "/" + nfilename + ext.lower()    
             self._log("Source:" + src, logger.DEBUG)
             self._log("Destination:" +  dst, logger.DEBUG)
-            os.rename(self.nzb_folder + "/" + ofilename, self.nzb_folder + "/" + nfilename + ext)
-            src = self.nzb_folder + "/" + nfilename + ext
+            logger.fdebug("Source: " + str(src))
+            logger.fdebug("Destination: " + str(dst))
+
+            os.rename(os.path.join(self.nzb_folder, ofilename), os.path.join(self.nzb_folder,str(nfilename + ext)))
+            #src = os.path.join(self.nzb_folder, str(nfilename + ext))
             try:
                 shutil.move(src, dst)
             except (OSError, IOError):
