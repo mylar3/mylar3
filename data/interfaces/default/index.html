@@ -1,9 +1,11 @@
 <%inherit file="base.html"/>
 <%!
-	from mylar import helpers
+	from mylar import helpers, db
 %>
 
 <%def name="body()">
+        <div class="table_wrapper">
+
 	<table class="display" id="artist_table">
 		<thead>
 			<tr>
@@ -18,10 +20,28 @@
 		<tbody>
 		%for comic in comics:
 			<%
-				totaltracks = comic['Total']
-				havetracks = comic['Have']
-				if not havetracks:
-					havetracks = 0
+                                myDB = db.DBConnection()
+                                issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
+                                wantedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
+                                archedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Archived'", [comic['ComicID']]).fetchone()
+                                totaltracks = comic['Total']
+                                havetracks = comic['Have']
+                                wants = wantedc[0]
+                                arcs = archedc[0]
+                                if not havetracks:
+                                        havetracks = 0
+                                if not wants:
+                                    wants = 0
+                                if not arcs:
+                                    arcs = 0
+                                try:
+                                    wantpercent = (wants*100.0)/totaltracks
+                                    if wantpercent > 100:
+                                        wantpercent = 100
+                                except (ZeroDivisionError, TypeError):
+                                        wantpercent = 0
+                                        wants = '?'
+
 				try:
 					percent = (havetracks*100.0)/totaltracks
 					if percent > 100:
@@ -34,7 +54,7 @@
 				if comic['Status'] == 'Paused':
 					grade = 'X'
 				elif comic['Status'] == 'Loading':
-					grade = 'L'
+			        	grade = 'L'
                                 elif comic['Status'] == 'Error':
                                         grade = 'Z'
                                 else:
@@ -47,11 +67,11 @@
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>                               
 				<td id="status">${comic['Status']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']} (${comic['LatestDate']})</td>
-				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
-			</tr>
+				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
 		%endfor
 		</tbody>
 	</table>
+      </div>
 </%def>
 
 <%def name="headIncludes()">
@@ -62,40 +82,32 @@
 	<script src="js/libs/jquery.dataTables.min.js"></script>
 	<script>
 
-	function initThisPage()
-        {
-		$('#artist_table').dataTable({
-			"bDestroy": true,
-			"aoColumnDefs": [
-			      { 'bSortable': false, 'aTargets': [ 0 ] }
-			],
-			"aoColumns": [
-				null,
-				{ "sType": "title-string"},
-				null,
-				{ "sType": "title-string"},
-				{ "sType": "title-numeric"}
-			],
-			"oLanguage": {
-                                "sLengthMenu":"Show _MENU_ results per page",
-                                "sEmptyTable": "No results",
-                                "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
-                                "sInfoEmpty":"Showing 0 to 0 of 0 results",
-                                "sInfoFiltered":"(filtered from _MAX_ total results)",
-                                "sSearch" : ""},
-			"bStateSave": true,
-			"iDisplayLength": 25,
-			"sPaginationType": "full_numbers"				
-		});
-		resetFilters("comic");
+	function initThisPage() {
+		$('#artist_table').dataTable(
+                        {
+			        "bDestroy": true,
+			        "aoColumnDefs": [
+			          { 'bSortable': false, 'aTargets': [ 4 ] }
+			        ],
+			        "oLanguage": {
+                                        "sLengthMenu":"Show _MENU_ results per page",
+                                        "sEmptyTable": "No results",
+                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
+                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
+                                        "sSearch" : ""},
+                                "iDisplayLength": 15,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": []
+		        });
+		        resetFilters("comic");
 	}
 	
-	$(document).ready(function() {
-		initThisPage();
+	$(document).ready(function(){
+		        initThisPage();
 	});
 	$(window).load(function(){
 		initFancybox();
-		refreshLoadArtist();
 	});
 	</script>
 	

@@ -20,7 +20,7 @@
 			%if searchresults:
 				%for result in searchresults:
 				<%
-					if result['comicyear'] == '2012':
+					if result['comicyear'] == '2013':
 						grade = 'A'
 					else:
 						grade = 'Z'
@@ -28,8 +28,8 @@
 				<tr class="grade${grade}">
 					<td class="blank"></td>
 					<td class="name"><a href="${result['url']}" title="${result['name']}" target="_blank">${result['name']}</a></td>
-                    <td class="publisher">${result['publisher']}</a></td>
-                    <td class="comicyear">${result['comicyear']}</a></td>
+                                        <td class="publisher">${result['publisher']}</a></td>
+                                        <td class="comicyear">${result['comicyear']}</a></td>
 					<td class="issues">${result['issues']}</td>
 
 					<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher']}&comicimage=${result['comicimage']}&comicissues=${result['issues']}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>

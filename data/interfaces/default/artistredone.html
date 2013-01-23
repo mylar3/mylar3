@@ -298,44 +298,35 @@
 		}
 	};
 
-        function initThisPage()
-        {
+        function initThisPage(){
 
                 $(function() {
                         $( "#tabs" ).tabs();
                 });
                 initActions();
 
-                $('#issue_table').dataTable({
-                        "bDestroy": true,
-                        "aoColumns": [
-                                null,
-                                null,
-                                null,
-                                null,
-                                null
-
-                        ],
-                        "aoColumnDefs": [
-                                  { 'bSortable': false, 'aTargets': [ 0,1 ] }
-                        ],
-                        "oLanguage": {
-                               "sLengthMenu":"Show _MENU_ issues per page",
-                                "sEmptyTable": "No issue information available",
-                                "sInfo":"Showing _TOTAL_ issues",
-                                "sInfoEmpty":"Showing 0 to 0 of 0 issues",
-                                "sInfoFiltered":"(filtered from _MAX_ total issues)",
-                                "sSearch": ""},
-                        "bPaginate": false,
-                        "aaSorting": [[1, 'desc'],[3,'desc']]
-
-                });
-                resetFilters("issues");
-                setTimeout(function(){
-                        initFancybox();
-                },1500)
+                $('#issue_table').dataTable(
+                        {
+                               "bDestroy": true,
+                               "aoColumnDefs": [
+                                    { 'bSortable': false, 'aTargets': [ 0, 2 ] }
+                               ],
+                               "oLanguage": {
+                                       "sLengthMenu":"Show _MENU_ issues per page",
+                                       "sEmptyTable": "No issue information available",
+                                       "sInfo":"Showing _TOTAL_ issues",
+                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
+                                       "sInfoFiltered":"(filtered from _MAX_ total issues)",
+                                       "sSearch": ""},
+                               "iDisplayLength": 25,
+                               "sPaginationType": "full_numbers",
+                               "aaSorting": [[1, 'desc'],[3,'desc']]
+                        });
+                        resetFilters("issues");
+                        setTimeout(function(){
+                            initFancybox();
+                        },1500)
         }
-
 
         $(document).ready(function() {
                 initThisPage();
