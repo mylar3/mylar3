@@ -70,12 +70,14 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         usethefuzzy = comic['UseFuzzy']
+        skipped2wanted = "0"
         if usethefuzzy is None: usethefuzzy = "0"
         comicConfig = {
                     "comiclocation" : mylar.COMIC_LOCATION,
                     "fuzzy_year0" : helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1" : helpers.radio(int(usethefuzzy), 1),
-                    "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2)
+                    "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2),
+                    "skipped2wanted" : helpers.checked(skipped2wanted)
                }
         return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig)
     artistPage.exposed = True
@@ -443,6 +445,25 @@ class WebInterface(object):
 
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
     upcoming.exposed = True
+
+    def skipped2wanted(self, comicid):
+        # change all issues for a given ComicID that are Skipped, into Wanted.
+        issuestowanted = []
+        issuesnumwant = []
+        myDB = db.DBConnection()
+        skipped2 = myDB.select("SELECT * from issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        for skippy in skipped2:
+            mvcontroldict = {"IssueID":    skippy['IssueID']}
+            mvvalues = {"Status":         "Wanted"}
+            #print ("Changing issue " + str(skippy['Issue_Number']) + " to Wanted.")
+            myDB.upsert("issues", mvvalues, mvcontroldict)
+            issuestowanted.append(skippy['IssueID'])
+            issuesnumwant.append(skippy['Issue_Number'])
+        if len(issuestowanted) > 0 :
+            logger.info("Marking issues: %s as Wanted" % issuesnumwant)
+            threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % [comicid])
+    skipped2wanted.exposed = True
 
     def searchScan(self, name):
         return serve_template(templatename="searchfix.html", title="Manage", name=name)

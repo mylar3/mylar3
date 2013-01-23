@@ -503,7 +503,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
                                 if '+' in watchcomic_split[n]:
                                     watchcomic_split[n] = re.sub('+', '', str(watchcomic_split[n]))
-                                if str(watchcomic_split[n].lower()) in str(splitit[n].lower()):
+                                if str(watchcomic_split[n].lower()) in str(splitit[n].lower()) and len(watchcomic_split[n]) >= len(splitit[n]):
                                     logger.fdebug("word matched on : " + str(splitit[n]))
                                     scount+=1
                                 #elif ':' in splitit[n] or '-' in splitit[n]:
@@ -607,6 +607,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
                                     logger.fdebug("filename saved to your blackhole as : " + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
+                                    nzbname = filenamenzb[:-4]
+                                    logger.fdebug("nzb name to be used for post-processing is : " + str(nzbname))
                             #end blackhole
 
                             else:
@@ -627,6 +629,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 logger.fdebug("link to retrieve via api:" + str(linkapi))
 
+                                #let's change all space to decimals for simplicity
+                                nzbname = re.sub(" ", ".", str(entry['title']))
+                                nzbname = re.sub('[\,\:]', '', str(nzbname))
+                                extensions = ('.cbr', '.cbz')
+
+                                if nzbname.lower().endswith(extensions):
+                                    fd, ext = os.path.splitext(nzbname)
+                                    logger.fdebug("Removed extension from nzb: " + ext)
+                                    nzbname = re.sub(str(ext), '', str(nzbname))
+
+                                logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 
                                 #we need to change the nzbx string now to allow for the nzbname rename.
                                 if nzbprov == 'nzbx':
@@ -673,22 +686,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #    logger.info(u"Removed temporary save file")
                             #raise an exception to break out of loop
 
-                            #let's change all space to decimals for simplicity
-                            if mylar.BLACKHOLE:
-                                    bhole_cname = re.sub('[/:/,\/]', '', str(ComicName))
-                                    nzbname = str(re.sub(" ", ".", str(bhole_cname))) + "." + str(IssueNumber) + ".(" + str(comyear) + ")"
-                            else:
-                                nzbname = re.sub(" ", ".", str(entry['title']))
-                                nzbname = re.sub('[\,\:]', '', str(nzbname))
-                                extensions = ('.cbr', '.cbz')
-
-                                if nzbname.lower().endswith(extensions):
-                                    fd, ext = os.path.splitext(nzbname)
-                                    logger.fdebug("Removed extension from nzb: " + ext)
-                                    nzbname = re.sub(str(ext), '', str(nzbname))
-                           
-
-                            logger.fdebug("nzbname used for post-processing:" + str(nzbname))
 
                             foundc = "yes"
                             done = True

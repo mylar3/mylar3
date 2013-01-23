@@ -115,6 +115,7 @@ AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
 ADD_TO_CSV = True
+SKIPPED2WANTED = False
 
 SAB_HOST = None
 SAB_USERNAME = None
@@ -530,7 +531,6 @@ def config_write():
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
     new_config['General']['maxsize'] = MAXSIZE
     new_config['General']['add_to_csv'] = int(ADD_TO_CSV)
-
     new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
     new_config['General']['enable_pre_scripts'] = int(ENABLE_PRE_SCRIPTS)

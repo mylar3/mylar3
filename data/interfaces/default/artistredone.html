@@ -220,11 +220,12 @@
                 </select>
                 selected issues
                 <input type="hidden" value="Go">
+            <input type="checkbox" name="skipped2wanted" onclick="doAjaxCall('skipped2wanted?comicid=${comic['ComicID']}',$(this),'table')" value="1" data-success="Skipped Issues Changed to Wanted" style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;" /><label style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;">Change All Skipped to Wanted </label>
         </div>
         <table class="display" id="issue_table">
                 <thead>
                         <tr>
-                                <th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
                                 <th id="issuenumber">Number</th>
                                 <th id="issuename">Name</th>
                                 <th id="reldate">Date</th>
