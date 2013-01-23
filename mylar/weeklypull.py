@@ -37,7 +37,7 @@ def pullit():
             pull_date = myDB.action("SELECT SHIPDATE from weekly").fetchone()
             logger.info(u"Weekly pull list present - checking if it's up-to-date..")
             pulldate = pull_date['SHIPDATE']
-        except sqlite3.OperationalError, msg:
+        except (sqlite3.OperationalError, TypeError),msg:
             conn=sqlite3.connect(mylar.DB_FILE)
             c=conn.cursor()
             logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
