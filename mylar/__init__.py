@@ -116,6 +116,7 @@ AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
 ADD_TO_CSV = True
 SKIPPED2WANTED = False
+CVINFO = False
 
 SAB_HOST = None
 SAB_USERNAME = None
@@ -216,7 +217,7 @@ def initialize():
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS
                 
         if __INITIALIZED__:
@@ -284,7 +285,7 @@ def initialize():
         USE_MAXSIZE = bool(check_setting_int(CFG, 'General', 'use_maxsize', 0))
         MAXSIZE = check_setting_str(CFG, 'General', 'maxsize', '')
         ADD_TO_CSV = bool(check_setting_int(CFG, 'General', 'add_to_csv', 1))
-
+        CVINFO = bool(check_setting_int(CFG, 'General', 'cvinfo', 0))
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
 
@@ -531,6 +532,7 @@ def config_write():
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
     new_config['General']['maxsize'] = MAXSIZE
     new_config['General']['add_to_csv'] = int(ADD_TO_CSV)
+    new_config['General']['cvinfo'] = int(CVINFO)
     new_config['General']['enable_extra_scripts'] = int(ENABLE_EXTRA_SCRIPTS)
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
     new_config['General']['enable_pre_scripts'] = int(ENABLE_PRE_SCRIPTS)
