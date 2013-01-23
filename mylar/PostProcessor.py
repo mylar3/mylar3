@@ -346,8 +346,8 @@ class PostProcessor(object):
             logger.fdebug("Source: " + str(src))
             logger.fdebug("Destination: " + str(dst))
 
-            os.rename(os.path.join(self.nzb_folder, ofilename), os.path.join(self.nzb_folder,str(nfilename + ext)))
-            #src = os.path.join(self.nzb_folder, str(nfilename + ext))
+            os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+            src = os.path.join(self.nzb_folder, str(nfilename + ext))
             try:
                 shutil.move(src, dst)
             except (OSError, IOError):
