@@ -725,7 +725,7 @@ def searchforissue(issueid=None, new=False):
         new = True
 
         for result in results:
-            comic = myDB.action('SELECT * from comics WHERE ComicID=?', [result['ComicID']]).fetchone()
+            comic = myDB.action("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
             AlternateSearch = comic['AlternateSearch']

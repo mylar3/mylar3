@@ -184,7 +184,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             parsed = soup.find("div", {"id" : "series_data"})
             subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
             resultPublished = subtxt3.findNext(text=True).rstrip()
-            #print ("pubdate:" + str(resultPublished))
+            print ("pubdate:" + str(resultPublished))
             coverst = soup.find("div", {"id" : "series_cover"})
             if coverst < 0: 
                 gcdcover = "None"
@@ -192,21 +192,21 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 subcoverst = coverst('img',src=True)[0]
                 gcdcover = subcoverst['src']
 
-        #print ("resultURL:" + str(resultURL))
-        #print ("comicID:" + str(ComicID))
+        print ("resultURL:" + str(resultURL))
+        print ("comicID:" + str(ComicID))
         input2 = 'http://www.comics.org' + str(resultURL) + 'details/'
-        resp = urllib2.urlopen ( input2 )
-        soup = BeautifulSoup ( resp )
+        resp = urllib2.urlopen(input2)
+        soup = BeautifulSoup(resp)
 
         #for newer comics, on-sale date has complete date...
         #for older comics, pub.date is to be used
 
         type = soup.find(text=' On-sale date ')
         if type:
-            #print ("on-sale date detected....adjusting")
+            print ("on-sale date detected....adjusting")
             datetype = "on-sale"
         else:
-            #print ("pub date defaulting")
+            print ("pub date defaulting")
             datetype = "pub"
 
         cnt1 = len(soup.findAll("tr", {"class" : "row_even_False"}))
@@ -214,7 +214,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 
         cnt = int(cnt1 + cnt2)
 
-        #print (str(cnt) + " Issues in Total (this may be wrong due to alternate prints, etc")
+        print (str(cnt) + " Issues in Total (this may be wrong due to alternate prints, etc")
 
         n_odd = -1
         n_even = -1
@@ -236,14 +236,19 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             fid = parsed('a',href=True)[0]
             resultGID = fid['href']
             resultID = resultGID[7:-1]
-            #print ( "ID: " + str(resultID) )
+            print ( "ID: " + str(resultID) )
 
             if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
+            #print ("ParseIssue before : " + str(ParseIssue))
+            if 'Vol' in ParseIssue or '[' in ParseIssue: 
+                ParseIssue = re.sub("[^0-9]", "", ParseIssue)
             isslen = ParseIssue.find(' ')
             #if 'isslen' exists, it means that it's an alternative cover.
             #however, if ONLY alternate covers exist of an issue it won't work.
             #let's use the FIRST record, and ignore all other covers for the given issue.
             isschk = ParseIssue[:isslen]
+            print ("Parse is now: " + str(isschk))
+
             #check if decimal or '1/2' exists or not, and store decimal results
             halfchk = "no"
             if '.' in isschk:
@@ -292,23 +297,24 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 #logger.fdebug("adding issue to db : " + str(ParseIssue))
                 # in order to get the compare right, let's decimialize the string to '.00'.
                 gcdinfo['ComicIssue'] = ParseIssue
-                #print "Issue: " + str(ParseIssue)
+                print "Issue: " + str(ParseIssue)
                 #^^ will retrieve issue
                 #if datetype == "on-sale":
                 subtxt1 = parsed('td')[2]
                 ParseDate = subtxt1.findNext(text=True)
                 pdlen = len(ParseDate)
-                #print "sale-date..ParseDate:" + str(ParseDate)
-                #print ("Parsed Date length: " + str(pdlen))
+                print "sale-date..ParseDate:" + str(ParseDate)
+                print ("Parsed Date length: " + str(pdlen))
                 if len(ParseDate) < 7:
                     subtxt3 = parsed('td')[0]
                     ParseDate = subtxt3.findNext(text=True)               
-                    #print "pub-date..ParseDate:" + str(ParseDate)
+                    print "pub-date..ParseDate:" + str(ParseDate)
                     if ParseDate == ' ':
                         #default to empty so doesn't error out.
                         ParseDate = "0000-00-00"
                 #ParseDate = ParseDate.replace('?','')
                 ParseDate = ParseDate.replace(' ','')
+                print "Parse date: " + str(ParseDate)
                 gcdinfo['ComicDate'] = ParseDate
                 #^^ will retrieve date #
                 if not any(d.get('GCDIssue', None) == str(gcdinfo['ComicIssue']) for d in gcdchoice):
