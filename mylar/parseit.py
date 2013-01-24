@@ -23,7 +23,7 @@ import datetime
 from decimal import Decimal 
 from HTMLParser import HTMLParseError
 
-def GCDScraper(ComicName, ComicYear, Total, ComicID):
+def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     NOWyr = datetime.date.today().year
     if datetime.date.today().month == 12:
         NOWyr = NOWyr + 1
@@ -148,8 +148,11 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID):
         if 'and' in ComicName.lower():
             ComicName = ComicName.replace('and', '&')
             return GCDScraper(ComicName, ComicYear, Total, ComicID)        
-        return 'No Match'
+        if not quickmatch: return 'No Match'
     #vari_loop = 0
+    if quickmatch == "yes":
+        if resultURL is None: return 'No Match'
+        else: return 'Match'
     return GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=ComicID, TotalIssues=TotalIssues, issvariation=issvariation, resultPublished=resultPublished)
 
 

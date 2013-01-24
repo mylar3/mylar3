@@ -115,7 +115,7 @@ class WebInterface(object):
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
         if CV_EXcomicid is None: # pass #
-            gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid)
+            gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid, quickmatch="yes")
             if gcdinfo == "No Match":
                 #when it no matches, the image will always be blank...let's fix it.
                 cvdata = mylar.cv.getComic(comicid,'comic')
