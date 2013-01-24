@@ -343,6 +343,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
             #print ("Existing status : " + str(iss_exists['Status']))
             newValueDict['Status'] = iss_exists['Status']     
 
+        #logger.fdebug("newValueDict:" + str(newValueDict))
+            
         myDB.upsert("issues", newValueDict, controlValueDict)
         n+=1
 

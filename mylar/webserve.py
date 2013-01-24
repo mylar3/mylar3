@@ -179,7 +179,7 @@ class WebInterface(object):
 
     def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None):
         mismatch = "yes"
-        print ("gcdid:" + str(gcdid))
+        #print ("gcdid:" + str(gcdid))
         #write it to the custom_exceptions.csv and reload it so that importer will pick it up and do it's thing :)
         #custom_exceptions in this format...
         #99, (comicid), (gcdid), none
@@ -209,6 +209,20 @@ class WebInterface(object):
         gcomicid = "G" + str(comicid)
         comicyear_len = comicyear.find(' ', 2)
         comyear = comicyear[comicyear_len+1:comicyear_len+5]
+        if comyear.isdigit():
+            logger.fdebug("Series year set to : " + str(comyear))
+        else:
+            logger.fdebug("Invalid Series year detected - trying to adjust from " + str(comyear))
+            #comicyear_len above will trap wrong year if it's 10 October 2010 - etc ( 2000 AD)...
+            find_comicyear = comicyear.split()
+            for i in find_comicyear:
+                if len(i) == 4:
+                    logger.fdebug("Series year detected as : " + str(i))
+                    comyear = str(i)
+                    continue
+
+            logger.fdebug("Series year set to: " + str(comyear))
+            
         controlValueDict = { 'ComicID': gcomicid }
         newValueDict = {'ComicName': comicname,
                         'ComicYear': comyear,
@@ -398,7 +412,7 @@ class WebInterface(object):
                 #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'],pullfilter=False)
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'])
     pullist.exposed = True   
 
     def filterpull(self):
@@ -407,7 +421,7 @@ class WebInterface(object):
         pulldate = myDB.action("SELECT * from weekly").fetchone()
         if pulldate is None:
             raise cherrypy.HTTPRedirect("home")
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True)
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'])
     filterpull.exposed = True
 
     def manualpull(self):
