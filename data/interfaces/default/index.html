@@ -68,6 +68,7 @@
 				<td id="status">${comic['Status']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']} (${comic['LatestDate']})</td>
 				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
+                         </tr>
 		%endfor
 		</tbody>
 	</table>
@@ -97,7 +98,7 @@
                                         "sInfoFiltered":"(filtered from _MAX_ total results)",
                                         "sSearch" : ""},
                                 "bStateSave": true,
-                                "iDisplayLength": 15,
+                                "iDisplayLength": 25,
                                 "sPaginationType": "full_numbers",
                                 "aaSorting": []
 		        });

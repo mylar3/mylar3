@@ -14,12 +14,13 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from bs4 import BeautifulSoup 
+from bs4 import BeautifulSoup, UnicodeDammit 
 import urllib2 
 import re 
 import helpers 
 import logger 
 import datetime 
+import sys
 from decimal import Decimal 
 from HTMLParser import HTMLParseError
 
@@ -182,8 +183,17 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             # let's pull down the publication date as it'll be blank otherwise
             inputMIS = 'http://www.comics.org' + str(resultURL)
             resp = urllib2.urlopen ( inputMIS )
-            soup = BeautifulSoup ( resp )
-
+#            soup = BeautifulSoup ( resp )
+            try:
+                soup = BeautifulSoup(urllib2.urlopen(inputMIS))
+            except UnicodeDecodeError:
+                logger.info("I've detected your system is using: " + sys.stdout.encoding)
+                logger.info("unable to parse properly due to utf-8 problem, ignoring wrong symbols")
+                try:
+                    soup = BeautifulSoup(urllib2.urlopen(inputMIS)).decode('utf-8', 'ignore')
+                except UnicodeDecodeError:
+                    logger.info("not working...aborting. Tell Evilhero.")
+                    return
             parsed = soup.find("div", {"id" : "series_data"})
             subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
             resultPublished = subtxt3.findNext(text=True).rstrip()
@@ -583,3 +593,11 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     comchoice['comchkchoice'] = comchkchoice
     return comchoice, totalcount 
 
+def decode_html(html_string):
+    converted = UnicodeDammit(html_string, isHTML=True)
+    if not converted.unicode:
+        raise UnicodeDecodeError(
+            "Failed to detect encoding, tried [%s]",
+            ', '.join(converted.triedEncodings))
+    # print converted.originalEncoding
+    return converted.unicode

@@ -84,6 +84,9 @@ DESTINATION_DIR = None
 USENET_RETENTION = None
 
 ADD_COMICS = False
+COMIC_DIR = None
+LIBRARYSCAN = False
+IMP_MOVE = False
 
 SEARCH_INTERVAL = 360
 NZB_STARTUP_SEARCH = False
@@ -213,7 +216,7 @@ def initialize():
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
-                LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, \
+                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
@@ -261,7 +264,11 @@ def initialize():
         
         SEARCH_INTERVAL = check_setting_int(CFG, 'General', 'search_interval', 360)
         NZB_STARTUP_SEARCH = bool(check_setting_int(CFG, 'General', 'nzb_startup_search', 0))
+        LIBRARYSCAN = bool(check_setting_int(CFG, 'General', 'libraryscan', 1))
         LIBRARYSCAN_INTERVAL = check_setting_int(CFG, 'General', 'libraryscan_interval', 300)
+        ADD_COMICS = bool(check_setting_int(CFG, 'General', 'add_comics', 0))
+        COMIC_DIR = check_setting_str(CFG, 'General', 'comic_dir', '')
+        IMP_MOVE = bool(check_setting_int(CFG, 'General', 'imp_move', 0))
         DOWNLOAD_SCAN_INTERVAL = check_setting_int(CFG, 'General', 'download_scan_interval', 5)
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
@@ -508,7 +515,11 @@ def config_write():
 
     new_config['General']['search_interval'] = SEARCH_INTERVAL
     new_config['General']['nzb_startup_search'] = int(NZB_STARTUP_SEARCH)
+    new_config['General']['libraryscan'] = int(LIBRARYSCAN)
     new_config['General']['libraryscan_interval'] = LIBRARYSCAN_INTERVAL
+    new_config['General']['add_comics'] = int(ADD_COMICS)
+    new_config['General']['comic_dir'] = COMIC_DIR
+    new_config['General']['imp_move'] = int(IMP_MOVE)
     new_config['General']['download_scan_interval'] = DOWNLOAD_SCAN_INTERVAL
     new_config['General']['interface'] = INTERFACE
     new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
@@ -674,8 +685,8 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
 
-    #let's delete errant comics that are stranded (ie. None)
-    c.execute("DELETE from COMICS WHERE ComicName='None'")
+    #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
+    c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%'")
     logger.info(u"Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)")
 
     conn.commit()

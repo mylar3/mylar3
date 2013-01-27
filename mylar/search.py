@@ -362,6 +362,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     logger.fdebug("Entry: " + str(thisentry))
                     cleantitle = re.sub('[_/.]', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
+
                     nzbname = cleantitle
 
                     logger.fdebug("Cleantitle: " + str(cleantitle))
@@ -482,7 +483,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     #else: splitst = len(splitit) - 1
 
                     # make sure that things like - in watchcomic are accounted for when comparing to nzb.
-                    watchcomic_split = re.sub('[\-\:\,\.]', ' ', findcomic[findloop]).split(None)
+                    watchcomic_split = helpers.cleanName(str(findcomic[findloop]))
+                    watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
                      
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
                     logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
