@@ -28,10 +28,11 @@ import time
 import threading
 import csv
 import platform
+import Queue
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version, librarysync
 #from mylar.helpers import checked, radio, today
 
 import lib.simplejson as simplejson
@@ -97,6 +98,7 @@ class WebInterface(object):
             searchresults = mb.findComic(name, mode, issue=None)
         elif type == 'comic' and mode == 'want':
             searchresults = mb.findComic(name, mode, issue)
+
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)            
         #print ("Results: " + str(searchresults))
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type)
@@ -403,16 +405,26 @@ class WebInterface(object):
     
     def pullist(self):
         myDB = db.DBConnection()
+        weeklyresults = []
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
-            weeklyresults = myDB.select("SELECT * from weekly")        
+            w_results = myDB.select("SELECT PUBLISHER, ISSUE, COMIC, STATUS from weekly")
+            for weekly in w_results:
+                if weekly['ISSUE'].isdigit():
+                    weeklyresults.append({
+                                           "PUBLISHER"  : weekly['PUBLISHER'],
+                                           "ISSUE"      : weekly['ISSUE'],
+                                           "COMIC"      : weekly['COMIC'],
+                                           "STATUS"     : weekly['STATUS']
+                                         })
+            weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER','COMIC'), reverse=False)
             pulldate = myDB.action("SELECT * from weekly").fetchone()
             if pulldate is None:
                 return self.manualpull()
                 #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'])
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True)
     pullist.exposed = True   
 
     def filterpull(self):
@@ -421,7 +433,7 @@ class WebInterface(object):
         pulldate = myDB.action("SELECT * from weekly").fetchone()
         if pulldate is None:
             raise cherrypy.HTTPRedirect("home")
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'])
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True)
     filterpull.exposed = True
 
     def manualpull(self):
@@ -478,6 +490,10 @@ class WebInterface(object):
             threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % [comicid])
     skipped2wanted.exposed = True
+
+    def ManualRename(self):
+        print ("hello")
+    ManualRename.exposed = True
 
     def searchScan(self, name):
         return serve_template(templatename="searchfix.html", title="Manage", name=name)
@@ -573,6 +589,64 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("history")
     clearhistory.exposed = True
     
+    #for testing.
+    def idirectory(self):    
+        return serve_template(templatename="idirectory.html", title="Import a Directory")
+    idirectory.exposed = True
+
+    def comicScan(self, path, scan=0, redirect=None, autoadd=0, libraryscan=0, imp_move=0, imp_rename=0):
+        mylar.LIBRARYSCAN = libraryscan
+        mylar.ADD_COMICS = autoadd
+        mylar.COMIC_DIR = path
+        mylar.IMP_MOVE = imp_move
+        mylar.IMP_RENAME = imp_rename
+        mylar.config_write()
+        if scan:
+            try:
+                soma = librarysync.libraryScan()
+            except Exception, e:
+                logger.error('Unable to complete the scan: %s' % e)
+            if soma == "Completed":
+                print ("sucessfully completed import.")
+            else:
+                logger.info(u"Starting mass importing...")
+                #this is what it should do...
+                #store soma (the list of comic_details from importing) into sql table so import can be whenever
+                #display webpage showing results
+                #allow user to select comic to add (one at a time)
+                #call addComic off of the webpage to initiate the add.
+                #return to result page to finish or continue adding.
+                #....
+                #threading.Thread(target=self.searchit).start()
+                #threadthis = threadit.ThreadUrl()
+                #result = threadthis.main(soma)
+                myDB = db.DBConnection()
+                sl = 0
+                while (sl < len(soma)):
+                    soma_sl = soma['comic_info'][sl]
+                    print ("cname: " + soma_sl['comicname'])
+    
+                    controlValue = {"ComicName":    soma_sl['comicname']}
+                    newValue = {"ComicYear":        soma_sl['comicyear'],
+                                "Status":           "Not Imported",
+                                "ImportDate":       helpers.today()}                                
+                    myDB.upsert("importresults", newValue, controlValue)
+                    sl+=1
+                    
+                self.importResults()
+
+        if redirect:
+            raise cherrypy.HTTPRedirect(redirect)
+        else:
+            raise cherrypy.HTTPRedirect("home")
+    comicScan.exposed = True
+
+    def importResults(self):
+        myDB = db.DBConnection()
+        results = myDB.select("SELECT * FROM importresults")
+        return serve_template(templatename="importresults.html", title="Import Results", results=results)
+    importResults.exposed = True
+    #---
     def config(self):
     
         interface_dir = os.path.join(mylar.PROG_DIR, 'data/interfaces/')

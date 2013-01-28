@@ -1,0 +1,77 @@
+<%inherit file="base.html" /> <%!
+	import mylar
+	from mylar.helpers import checked
+%>
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a id="menu_link_edit" href="manageComics">Some Button</a>
+		</div>
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix">Borg Importing Results</h1>
+	</div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tabs-1">Import Results</a></li>
+		</ul>
+		<div id="tabs-1" class="configtable">
+
+                   <table>
+                    <tr>
+                     <td width="250">
+                     <fieldset>
+                     </fieldset>
+                      </td>
+                       <td width="100%">
+                        </td>
+                     </tr>
+                   </table>
+        <table class="display" id="searchmanage_table">
+                <thead>
+                        <tr>
+                                <th id="comicname">Comic Name</th>
+                                <th id="status">Year</th>
+                                <th id="comicissues">Status</th>
+                                <th id="importdate">Import Date</th>
+                                <th id="addcomic">Options</th>
+                        </tr>
+                </thead>
+                <tbody>
+                                        %if results:
+                                          %for result in results:
+                                        <tr>
+                                        <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
+                                        <td id="comicissues"><title="${result['ComicYear']}">${result['ComicYear']}</td>
+                                        <td id="status">${result['Status']}</td>
+                                        <td id="importdate">${result['ImportDate']}</td>
+                                        <td id="addcomic"><a href="searchit?name=${result['ComicName']}"><span class="ui-icon-plus"></span>Add Series</a></td>
+                                        </tr>
+                                           %endfor
+                                        %else:
+                                        <tr>
+                                        <td colspan="5"><center><legend>There are no results to display</legend></center></td>
+                                        </tr>
+                                        %endif
+
+                            </div>
+                          </tbody>
+                          </table>
+                </div>
+</div>
+</%def>
+<%def name="javascriptIncludes()">
+	<script>
+		function initThisPage() {
+			jQuery( "#tabs" ).tabs();
+			initActions();
+		};
+		$(document).ready(function() {
+			initThisPage();
+		});
+	</script>
+</%def>
+

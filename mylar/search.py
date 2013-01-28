@@ -648,6 +648,26 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     nzbxlink_st = linkapi.find("*|*")
                                     linkapi = linkapi[:(nzbxlink_st + 3)] + str(nzbname)
                                     logger.fdebug("new linkapi (this should =nzbname) :" + str(linkapi))
+
+#                               #test nzb.get
+#                               if mylar.NZBGET:                                
+#                                   from xmlrpclib import ServerProxy
+#                                   if mylar.NZBGET_HOST[:4] = 'http':
+#                                       tmpapi = "http://"
+#                                       nzbget_host = mylar.NZBGET_HOST[7]
+#                                   elif mylar.NZBGET_HOST[:5] = 'https':
+#                                       tmpapi = "https://"
+#                                       nzbget_host = mylar.NZBGET_HOST[8]
+#                                   tmpapi = tmpapi + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
+#                                   tmpapi = tmpapi + "@" + nzbget_host + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"                               
+#                                   server = ServerProxy(tmpapi)
+#                                   send_to_nzbget = server.appendurl(nzbname, mylar.NZBGET_CATEGORY, mylar.NZBGET_PRIORITY, True, str(linkapi))
+#                                   if send_to_nzbget is True:
+#                                       logger.info("Successfully sent nzb to NZBGet!")
+#                                   else:
+#                                       logger.info("Unable to send nzb to NZBGet - check your configs.")
+#                               #end nzb.get test
+
                                 # let's build the send-to-SAB string now:
                                 tmpapi = str(mylar.SAB_HOST)
                                 logger.fdebug("send-to-SAB host string: " + str(tmpapi))

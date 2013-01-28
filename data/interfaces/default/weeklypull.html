@@ -8,11 +8,6 @@
 	<div id="subhead_container">
 		<div id="subhead_menu">		
                         <a id="menu_link_refresh" href="manualpull">Refresh Pull-list</a>
-                        %if pullfilter is False:
-                             <a id="menu_link_delete" href="filterpull">Filter Non-Comics</a>
-                        %else:
-                             <a id="menu_link_delete" href="pullist">Show All Comics</a>
-                        %endif
 		</div>
 	</div>	
 	<a href="home" class="back">&laquo; Back to overview</a>
@@ -23,30 +18,15 @@
                 <h1>Weekly Pull list for : ${pulldate}</h1>
         </div>
 
-	<form action="markissues" method="get" id="markissues">
-	<input type="hidden" name="DATE" value="August 2012">
-	<div id="markissue">Mark selected issues as 
-		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
-  			<option disabled="disabled" selected="selected">Choose...</option>
-  			<option value="Wanted">Wanted</option>
-  			<option value="WantedNew">Wanted (new only)</option>
-  			<option value="Skipped">Skipped</option>
-  			<option value="Downloaded">Downloaded</option>
-		</select>
-		<input type="hidden" value="Go">
-	</div>
+        <div class="table_wrapper">
+
 	<table class="display" id="pull_table">
 		<thead>
 			<tr>
-				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
                                 <th id="publisher">Publisher</th>
                                 <th id="comicname">COMIC</th>
 				<th id="comicnumber">Number</th>
-                                %if pullfilter is False:
-				     <th id="type">Type</th>
-                                %endif
 				<th id="status">Status</th>
-                                <th id="series">Series</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -64,60 +44,21 @@
 			<tr class="grade${grade}">
                                 %if pullfilter is True:
                                     %if str(weekly['ISSUE']).isdigit() > 0:
-  				        <td id="select"><input type="checkbox" name="${weekly['COMIC']}" class="checkbox" /></td>
-                                        <td id="publisher">${weekly['PUBLISHER']}</td>
-				        <td id="comicname">${weekly['COMIC']}
-                                        </td>
-                                        <td id="comicnumber">${weekly['ISSUE']}</td>
-          				<td id="status">${weekly['STATUS']}
+                                        <td class="publisher">${weekly['PUBLISHER']}</td>
+				        <td class="comicname">${weekly['COMIC']}</td>
+                                        <td class="comicnumber">${weekly['ISSUE']}</td>
+          				<td class="status">${weekly['STATUS']}
                                         %if weekly['STATUS'] == 'Skipped':
-                                             [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${weekly['COMIC']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="'${weekly['COMIC']}' #'${weekly['ISSUE']}' marked as wanted">want</a>]
-                                             <td id="add"><a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
-                                        %elif (weekly['STATUS'] == 'Wanted'):
-                                             [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}',$(this),'table')" data-success="'${weekly['COMIC']}' skipped">skip</a>]
-                                        %else:
-                                             [<a href="#" onclick="doAjaxCall('queueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}', $(this),'table')" data-success="Retrying the same version of '${weekly['COMIC']}'" title="Retry the same download again">retry</a>][<a href="#" onclick="doAjaxCall('queueissue?issueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}&new=True', $(this),'table')" title="Try a new download, skipping all previously tried nzbs"  data-success="Downloading new version for '${weekly['NAME']}'" data-success="Looking for a new version of '${weekly['NAME']}'">new</a>]
+                                             <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
                                         %endif
                                         </td>
                                     %endif
-                                %elif pullfilter is False:
-                                        <td id="select"><input type="checkbox" name="${weekly['COMIC']}" class="checkbox" /></td>
-                                        <td id="publisher">${weekly['PUBLISHER']}</td>
-                                        <td id="comicname">${weekly['COMIC']}</a></td>
-                                        %if str(weekly['ISSUE']).isdigit() > 0:
-                                             <td id="comicnumber">${weekly['ISSUE']}</td>
-                                        %else:
-                                             <td id="comicnumber"> </td>
-                                        %endif
-                                        %if str(weekly['ISSUE']).isdigit() > 0:
-                                             <td id="type"> </td>
-                                        %else:
-				             <td id="type">${weekly['ISSUE']}</td>
-                                        %endif
-                                        %if str(weekly['ISSUE']).isdigit() > 0:
-                                             <td id="status">${weekly['STATUS']}
-                                             %if weekly['STATUS'] == 'Skipped':
-                                                  [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${weekly['COMIC']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="'${weekly['COMIC']}' #'${weekly['ISSUE']}' marked as wanted">want</a>]
-                                                  <td id="add"><a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a></td>
-                                             %elif (weekly['STATUS'] == 'Wanted'):
-                                                  [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}',$(this),'table')" data-success="'${weekly['COMIC']}' skipped">skip</a>]
-                                             %else:
-                                                  [<a href="#" onclick="doAjaxCall('queueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}', $(this),'table')" data-success="Retrying the same version of '${weekly['COMIC']}'" title="Retry the same download again">retry</a>][<a href="#" onclick="doAjaxCall('queueissue?issueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}&new=True', $(this),'table')" title="Try a new download, skipping all previously tried nzbs"  data-success="Downloading new version for '${weekly['NAME']}'" data-success="Looking for a new version of '${weekly['NAME']}'">new</a>]
-                                             %endif
-                                        %else:
-                                             <td id ="status">${weekly['STATUS']}
-                                             %if weekly['STATUS'] == 'Skipped':
-                                                  [<a href="#" onclick="doAjaxCall('queueissue?ComicName=${weekly['COMIC']}&ComicIssue=${weekly['ISSUE']}&mode=want',$(this),'table')" data-success="'${weekly['COMIC']}' #'${weekly['ISSUE']}' marked as wanted">want</a>]
-                                             %elif (weekly['STATUS'] == 'Wanted'):
-                                                  [<a href="#" onclick="doAjaxCall('unqueueissue?IssueID=${weekly['COMIC']}&ComicID=${weekly['ISSUE']}',$(this),'table')" data-success="'${weekly['COMIC']}' skipped">skip</a>]
-                                             %endif
-                                        %endif
                                 %endif
 			</tr>			
 		%endfor
 		</tbody>
 	</table>
-	</form>
+      </div>
 </%def>
 
 <%def name="headIncludes()">
@@ -129,42 +70,34 @@
 	
 	<script>
 
+        function initThisPage() {
 
-	function initThisPage() 
-        {
-		initActions();
-		$('#weekly_table').dataTable({
-			"bDestroy": true,
-			"aoColumns": [
-				null,
-				null,
-				null,
-				null,
-				null,
-				null
+                initActions();
+                $('#pull_table').dataTable (
+                        {
+                                "bDestroy": true,
+                                "aoColumnDefs": [
+                                       { 'bSortable': false, 'aTargets': [ 2,3 ] }
+                                ],
+                                "oLanguage": {
+                                       "sLengthMenu":"Show _MENU_ issues per page",
+                                       "sEmptyTable": "No issue information available",
+                                       "sInfo":"Showing _TOTAL_ issues",
+                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
+                                       "sInfoFiltered":"(filtered from _MAX_ total issues)",
+                                       "sSearch": ""},
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [[0, 'desc'],[1, 'asc']]
+                        });
+                        resetFilters("weekly");
+                        setTimeout(function(){
+                            initFancybox();
+                        },1500)
+        }
 
-			],
-			"aoColumnDefs": [
-			          { 'bSortable': false, 'aTargets': [ 0,1 ] }
-			],				
-			"oLanguage": {
-				"sLengthMenu":"Show _MENU_ issues per page",
-				"sEmptyTable": "No issue information available",
-				"sInfo":"Showing _TOTAL_ issues",
-				"sInfoEmpty":"Showing 0 to 0 of 0 issues",
-				"sInfoFiltered":"(filtered from _MAX_ total issues)",
-				"sSearch": ""},
-			"bPaginate": false,
-                        "aaSorting": [[1, 'desc'],[2,'desc']]
-		});			
-		setTimeout(function(){
-			initFancybox();
-		},1500)
-	}
-	
-	$(document).ready(function() {		
-		initThisPage();
-	});
-
-	</script>
+        $(document).ready(function() {
+                initThisPage();
+        });
+      </script>
 </%def>

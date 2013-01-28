@@ -397,9 +397,10 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                 lines[cnt] = str(lines[cnt]).upper()
                 #llen[cnt] = str(llen[cnt])
                 logger.fdebug("looking for : " + str(lines[cnt]))
-                sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(lines[cnt]))
+                sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\'\?\@]', ' ', str(lines[cnt]))
                 sqlsearch = re.sub(r'\s', '%', sqlsearch) 
                 if 'THE' in sqlsearch: sqlsearch = re.sub('THE', '', sqlsearch)
+                if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
                 logger.fdebug("searchsql: " + str(sqlsearch))
                 weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
@@ -435,6 +436,10 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                 logger.fdebug("ComicNM: " + str(comicnm))
                                 if 'THE' in str(watchcomic):
                                     modcomicnm = re.sub('THE', '', comicnm)
+                                #thnx to A+X for this...
+                                if '+' in str(watchcomic):
+                                    if 'plus' in str(comicnm).lower():
+                                        modcomicnm = re.sub('plus', '+', comicnm)
                                 if str(comicnm) == str(watchcomic).upper() or str(modcomicnm) == str(watchcomic).upper():
                                     logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
                                     #pass

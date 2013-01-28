@@ -183,3 +183,132 @@ def decimal_issue(iss):
             issdec = int(iss_decval.rstrip('0')) * 10
     deciss = (int(iss_b4dec) * 1000) + issdec
     return deciss
+
+def rename_param(comicid, comicname, comicyear, issue, issueid=None):
+            myDB = db.DBConnection()
+            if issueid is None:
+                chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                if chkissue is None:
+                    logger.error("Invalid Issue_Number - please validate.")
+                    return
+                else:
+                    issueid = chkissue['IssueID']
+
+            #use issueid to get publisher, series, year, issue number
+            issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+            #comicid = issuenzb['ComicID']
+            issuenum = issuenzb['Issue_Number']
+            #issueno = str(issuenum).split('.')[0]
+
+            iss_find = issuenum.find('.')
+            iss_b4dec = issuenum[:iss_find]
+            iss_decval = issuenum[iss_find+1:]
+            if int(iss_decval) == 0:
+                iss = iss_b4dec
+                issdec = int(iss_decval)
+                issueno = str(iss)
+                logger.fdebug("Issue Number: " + str(issueno))
+            else:
+                if len(iss_decval) == 1:
+                    iss = iss_b4dec + "." + iss_decval
+                    issdec = int(iss_decval) * 10
+                else:
+                    iss = iss_b4dec + "." + iss_decval.rstrip('0')
+                    issdec = int(iss_decval.rstrip('0')) * 10
+                issueno = iss_b4dec
+                logger.fdebug("Issue Number: " + str(iss))
+
+            # issue zero-suppression here
+            if mylar.ZERO_LEVEL == "0":
+                zeroadd = ""
+            else:
+                if mylar.ZERO_LEVEL_N  == "none": zeroadd = ""
+                elif mylar.ZERO_LEVEL_N == "0x": zeroadd = "0"
+                elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
+
+            logger.fdebug("Zero Suppression set to : " + str(mylar.ZERO_LEVEL_N))
+
+            if str(len(issueno)) > 1:
+                if int(issueno) < 10:
+                    logger.fdebug("issue detected less than 10")
+                    if int(iss_decval) > 0:
+                        issueno = str(iss)
+                        prettycomiss = str(zeroadd) + str(iss)
+                    else:
+                        prettycomiss = str(zeroadd) + str(int(issueno))
+                    logger.fdebug("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+                elif int(issueno) >= 10 and int(issueno) < 100:
+                    logger.fdebug("issue detected greater than 10, but less than 100")
+                    if mylar.ZERO_LEVEL_N == "none":
+                        zeroadd = ""
+                    else:
+                        zeroadd = "0"
+                    if int(iss_decval) > 0:
+                        issueno = str(iss)
+                        prettycomiss = str(zeroadd) + str(iss)
+                    else:
+                        prettycomiss = str(zeroadd) + str(int(issueno))
+                    logger.fdebug("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
+                else:
+                    logger.fdebug("issue detected greater than 100")
+                    if int(iss_decval) > 0:
+                        issueno = str(iss)
+                    prettycomiss = str(issueno)
+                    logger.fdebug("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+            else:
+                prettycomiss = str(issueno)
+                logger.fdebug("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
+
+            logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
+            issueyear = issuenzb['IssueDate'][:4]
+            logger.fdebug("Issue Year : " + str(issueyear))
+            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+            publisher = comicnzb['ComicPublisher']
+            logger.fdebug("Publisher: " + str(publisher))
+            series = comicnzb['ComicName']
+            logger.fdebug("Series: " + str(series))
+            seriesyear = comicnzb['ComicYear']
+            logger.fdebug("Year: "  + str(seriesyear))
+            comlocation = comicnzb['ComicLocation']
+            logger.fdebug("Comic Location: " + str(comlocation))
+
+            file_values = {'$Series':    series,
+                           '$Issue':     prettycomiss,
+                           '$Year':      issueyear,
+                           '$series':    series.lower(),
+                           '$Publisher': publisher,
+                           '$publisher': publisher.lower(),
+                           '$Volume':    seriesyear
+                          }
+
+            extensions = ('.cbr', '.cbz')
+
+            if mylar.FILE_FORMAT == '':
+                self._log("Rename Files isn't enabled...keeping original filename.", logger.DEBUG)
+                logger.fdebug("Rename Files isn't enabled - keeping original filename.")
+                #check if extension is in nzb_name - will screw up otherwise
+                if ofilename.lower().endswith(extensions):
+                    nfilename = ofilename[:-4]
+                else:
+                    nfilename = ofilename
+            else:
+                nfilename = helpers.replace_all(mylar.FILE_FORMAT, file_values)
+                if mylar.REPLACE_SPACES:
+                    #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
+                    nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
+            nfilename = re.sub('[\,\:]', '', nfilename)
+            logger.fdebug("New Filename: " + str(nfilename))
+
+            if mylar.LOWERCASE_FILENAMES:
+                dst = (comlocation + "/" + nfilename + ext).lower()
+            else:
+                dst = comlocation + "/" + nfilename + ext.lower()
+            logger.fdebug("Source: " + str(src))
+            logger.fdebug("Destination: " + str(dst))
+
+            rename_this = { "destination_dir" : dst, 
+                            "nfilename" : nfilename,
+                            "issueid" : issueid,
+                            "comicid" : comicid }
+
+            return rename_this
