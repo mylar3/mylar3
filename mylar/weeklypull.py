@@ -422,12 +422,12 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                 comicnm = week['COMIC']
                                 #here's the tricky part, ie. BATMAN will match on
                                 #every batman comic, not exact
-#                                logger.fdebug("comparing" + str(comicnm) + "..to.." + str(unlines[cnt]).upper())
-                                logger.fdebug("comparing" + str(sqlsearch) + "..to.." + str(unlines[cnt]).upper())
+                                logger.fdebug("comparing" + str(comicnm) + "..to.." + str(unlines[cnt]).upper())
+                                #logger.fdebug("comparing" + str(sqlsearch) + "..to.." + str(unlines[cnt]).upper())
 
                                 #-NEW-
                                 # strip out all special characters and compare
-                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(sqlsearch))
+                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(unlines[cnt]))
                                 comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(comicnm))
                                 watchcomic = re.sub(r'\s', '', watchcomic)
                                 comicnm = re.sub(r'\s', '', comicnm)
