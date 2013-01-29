@@ -82,7 +82,7 @@
                           </table>
                             <form action="error_change" method="GET">
                                  <input type="hidden" name="comicid" value=${comicid}>
-                                 <inptu type="hidden" name="comicname" value=${comicname}>
+                                 <input type="hidden" name="comicname" value=${comicname |u}>
                                         <div><br/>
                                            <label><center><strong>Didn't get it right? Enter what it should be (or the GCD-ID) here:</strong></label></center>
                                            <center><input type="text" name="errorgcd" size="30"><input type="submit" value="Update"/></center>

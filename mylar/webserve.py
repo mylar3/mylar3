@@ -274,6 +274,7 @@ class WebInterface(object):
         logger.info(u"Deleting all traces of Comic: " + str(ComicName))
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+        myDB.action('DELETE from upcoming WHERE ComicID=?' [ComicID])
         raise cherrypy.HTTPRedirect("home")
     deleteArtist.exposed = True
     
@@ -728,11 +729,17 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config)  
     config.exposed = True
 
-    def error_change(self, comicid, errorgcd):
+    def error_change(self, comicid, errorgcd, comicname):
+        # if comicname contains a "," it will break the exceptions import.
+        import urllib
+        b = urllib.unquote_plus(comicname)
+        cname = b.decode("utf-8")
+        cname = re.sub("\,", "", cname)
+
         if errorgcd[:5].isdigit():
             print ("GCD-ID detected : " + str(errorgcd)[:5])
-            print ("I'm assuming you know what you're doing - going to force-match.")
-            self.from_Exceptions(comicid=comicid,gcdid=errorgcd)
+            print ("I'm assuming you know what you're doing - going to force-match for " + cname.encode("utf-8"))
+            self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname)
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid,'comic')
