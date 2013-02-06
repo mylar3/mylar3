@@ -48,7 +48,11 @@
                                            <input type="checkbox" name="autoadd" id="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Auto-add new series</label>
                                         </div>
                                         <div class="row checkbox">
-                                           <input type="checkbox" name="imp_move" onclick="initConfigCheckbox($this));" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files into corresponding Series directory</label>
+                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use existing Metadata</label>
+                                             <small>Use existing Metadata to better locate series for import</small>
+                                        </div>
+                                        <div class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" onclick="initConfigCheckbox($this));" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files into corresponding Series directory</label>
                                            <small>Leaving this unchecked will not move anything, but will mark the issues as Archived</small>
                                         </div>
                                         <div class="config">

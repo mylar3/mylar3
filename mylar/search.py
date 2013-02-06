@@ -119,7 +119,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                     logger.fdebug("findit = found!")
                     break
                 else:
-                    if AlternateSearch is not None and AlternateSearch is not "None":
+                    if AlternateSearch is not None and AlternateSearch != "None":
                         logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                         findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host)
                         if findit == 'yes':
@@ -134,7 +134,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 logger.fdebug("findit = found!")
                 break
             else:
-                if AlternateSearch is not None and AlternateSearch is not "None":
+                if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy)
                     if findit == 'yes':
@@ -150,7 +150,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 logger.fdebug("findit = found!")
                 break
             else:
-                if AlternateSearch is not None and AlternateSearch is not "None":
+                if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy)
                     if findit == 'yes':
@@ -166,7 +166,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 logger.fdebug("findit = found!")
                 break
             else:
-                if AlternateSearch is not None and AlternateSearch is not "None":
+                if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy)
                     if findit == 'yes':
@@ -185,7 +185,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                 logger.fdebug("findit = found!")
                 break
             else:
-                if AlternateSearch is not None and AlternateSearch is not "None":
+                if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
                     findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy)
                     if findit == 'yes':
@@ -633,6 +633,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 #let's change all space to decimals for simplicity
                                 nzbname = re.sub(" ", ".", str(entry['title']))
+                                #gotta replace & or escape it
+                                nzbname = re.sub("\&", 'and', str(nzbname))
                                 nzbname = re.sub('[\,\:]', '', str(nzbname))
                                 extensions = ('.cbr', '.cbz')
 

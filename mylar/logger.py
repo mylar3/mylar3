@@ -28,6 +28,7 @@ ERROR = logging.ERROR
 WARNING = logging.WARNING
 MESSAGE = logging.INFO
 DEBUG = logging.DEBUG
+FDEBUG = logging.DEBUG
 
 # Simple rotating log handler that uses RotatingFileHandler
 class RotatingLogger(object):
@@ -81,6 +82,8 @@ class RotatingLogger(object):
             logger.info(message)
         elif level == 'WARNING':
             logger.warn(message)
+        elif level == 'FDEBUG':
+            logger.debug(message)
         else:
             logger.error(message)
 

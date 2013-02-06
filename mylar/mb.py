@@ -41,7 +41,7 @@ def pullsearch(comicapi,comicquery,offset):
     dom = parseString(data)
     return dom
 
-def findComic(name, mode, issue):
+def findComic(name, mode, issue, limityear=None):
 
     #with mb_lock:       
     comiclist = []
@@ -50,7 +50,10 @@ def findComic(name, mode, issue):
     chars = set('!?*')
     if any((c in chars) for c in name):
         name = '"'+name+'"'
-            
+
+    print ("limityear: " + str(limityear))            
+    if limityear is None: limityear = 'None'
+
     comicquery=name.replace(" ", "%20")
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     offset = 20
@@ -80,32 +83,35 @@ def findComic(name, mode, issue):
                 if issue is not None: limiter = int(issue)
                 else: limiter = 0
                 if int(xmlcnt) >= limiter:
+                    
                     xmlTag = result.getElementsByTagName('name')[0].firstChild.wholeText
                     if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                         xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                     else: xmlYr = "0000"
-                    xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
-                    xmlid = result.getElementsByTagName('id')[0].firstChild.wholeText
-                    publishers = result.getElementsByTagName('publisher')
-                    if len(publishers) > 0:
-                        pubnames = publishers[0].getElementsByTagName('name')
-                        if len(pubnames) >0:
-                            xmlpub = pubnames[0].firstChild.wholeText
-                    if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
-                        xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                    if xmlYr in limityear or limityear == 'None':
+                        xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
+                        xmlid = result.getElementsByTagName('id')[0].firstChild.wholeText
+                        publishers = result.getElementsByTagName('publisher')
+                        if len(publishers) > 0:
+                            pubnames = publishers[0].getElementsByTagName('name')
+                            if len(pubnames) >0:
+                                xmlpub = pubnames[0].firstChild.wholeText
+                        if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
+                            xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+                        else:
+                            xmlimage = "cache/blankcover.jpg"            
+                        comiclist.append({
+                                'name':             xmlTag,
+                                'comicyear':             xmlYr,
+                                'comicid':                xmlid,
+                                'url':                 xmlurl,
+                                'issues':            xmlcnt,
+                                'comicimage':          xmlimage,
+                                'publisher':            xmlpub
+                                })
                     else:
-                        xmlimage = "cache/blankcover.jpg"            
-                    comiclist.append({
-                            'name':             xmlTag,
-                            'comicyear':             xmlYr,
-                            'comicid':                xmlid,
-                            'url':                 xmlurl,
-                            'issues':            xmlcnt,
-                            'comicimage':          xmlimage,
-                            'publisher':            xmlpub
-                            })
-                n+=1
-                    
+                        print ("year: " + str(xmlYr) + " -  contraint not met. Has to be within " + str(limityear)) 
+                n+=1    
         #search results are limited to 20/page...let's account for this.
         countResults = countResults + 20
    

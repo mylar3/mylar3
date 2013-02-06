@@ -1,5 +1,6 @@
-lossless<%inherit file="base.html"/>
+<%inherit file="base.html"/>
 <%!
+        import mylar
 	from mylar import helpers
 %>
 
@@ -8,6 +9,21 @@ lossless<%inherit file="base.html"/>
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_logs.png" alt="Logs"/>Logs</h1>
 	</div>
 	<table class="display" id="log_table">
+                                                <div class="row">
+                                                        <label>Interface</label>
+                                                        <select name="interface" onchange="doAjaxCall('log_change')">
+                                                        %for interface in ['Info', 'Warning', 'Debug']:
+                                                                <%
+                                                                        if interface == mylar.INTERFACE:
+                                                                                selected = 'selected="selected"'
+                                                                        else:
+                                                                                selected = ''
+                                                                %>
+                                        <option value="${interface}" ${selected}>${interface}</option>
+                                                        %endfor
+                                                        </select>
+                                                </div>
+
 		<thead>
 			<tr>
 				<th id="timestamp">Timestamp</th>

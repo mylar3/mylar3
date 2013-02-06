@@ -40,7 +40,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid,mismatch=None,pullupd=None):
+def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
 #    from mylar import cache
     
@@ -95,7 +95,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
             return nomatch
         else:
             mismatch_com = "yes"
-            #print ("gcdinfo:" + str(gcdinfo))
+            print ("gcdinfo:" + str(gcdinfo))
 
     elif mismatch == "yes":
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
@@ -354,8 +354,6 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
 #        logger.debug(u"Updating cache for: " + comic['ComicName'])
 #        cache.getThumb(ComicIDcomicid)
 
-    #check for existing files...
-    updater.forceRescan(comicid)
 
     controlValueStat = {"ComicID":     comicid}
     newValueStat = {"Status":          "Active",
@@ -372,7 +370,31 @@ def addComictoDB(comicid,mismatch=None,pullupd=None):
                 text_file.write("http://www.comicvine.com/" + str(comic['ComicName']).replace(" ", "-") + "/49-" + str(comicid))
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
-    
+    print ("imported is : " + str(imported))    
+    impres = myDB.action("SELECT * from importresults WHERE ComicName LIKE ?", [comic['ComicName']])
+    if impres is not None:
+        #print ("preparing to move " + str(len(impres)) + " files into the right directory now.")
+        for impr in impres:
+            srcimp = impr['ComicLocation']
+            dstimp = os.path.join(comlocation, impr['ComicFilename'])
+            print ("moving " + str(srcimp) + " ... to " + str(dstimp))
+            try:
+                shutil.move(srcimp, dstimp)
+            except (OSError, IOError):
+                print("Failed to move files - check directories and manually re-run.")
+        print("files moved.")           
+    #now that it's moved / renamed ... we remove it from importResults or mark as completed.
+        results = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [comic['ComicName']])
+        if results is None: pass
+        else:
+            for result in results:
+                controlValue = {"impID":    result['impid']}
+                newValue = {"Status":           "Imported" }
+                myDB.upsert("importresults", newValue, controlValue)
+
+    #check for existing files...
+    updater.forceRescan(comicid)
+
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....

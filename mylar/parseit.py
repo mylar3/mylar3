@@ -23,6 +23,7 @@ import datetime
 import sys
 from decimal import Decimal 
 from HTMLParser import HTMLParseError
+from time import strptime
 
 def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     NOWyr = datetime.date.today().year
@@ -163,6 +164,15 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
     gcdchoice = []
     gcount = 0
     i = 0
+#    datemonth = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':$
+#    #search for number as text, and change to numeric
+#    for numbs in basnumbs:
+#        #print ("numbs:" + str(numbs))
+#        if numbs in ComicName.lower():
+#            numconv = basnumbs[numbs]
+#            #print ("numconv: " + str(numconv))
+
+
     if vari_loop > 1:
         resultPublished = "Unknown"
 
@@ -214,13 +224,14 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
         #for newer comics, on-sale date has complete date...
         #for older comics, pub.date is to be used
 
-        type = soup.find(text=' On-sale date ')
+#        type = soup.find(text=' On-sale date ')
+        type = soup.find(text=' Pub. Date ')
         if type:
             #print ("on-sale date detected....adjusting")
-            datetype = "on-sale"
+            datetype = "pub"
         else:
             #print ("pub date defaulting")
-            datetype = "pub"
+            datetype = "on-sale"
 
         cnt1 = len(soup.findAll("tr", {"class" : "row_even_False"}))
         cnt2 = len(soup.findAll("tr", {"class" : "row_even_True"}))
@@ -234,6 +245,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
         n = 0
         PI = "1.00"
         altcount = 0
+        PrevYRMO = "0000-00"
         while ( n < cnt ):       
             if n%2==0:
                 n_odd+=1
@@ -249,19 +261,30 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             fid = parsed('a',href=True)[0]
             resultGID = fid['href']
             resultID = resultGID[7:-1]
-            #print ( "ID: " + str(resultID) )
 
             if ',' in ParseIssue: ParseIssue = re.sub("\,", "", ParseIssue)
-            #print ("ParseIssue before : " + str(ParseIssue))
-            if 'Vol' in ParseIssue or '[' in ParseIssue: 
-                ParseIssue = re.sub("[^0-9]", "", ParseIssue)
+            variant="no"
+            if 'Vol' in ParseIssue or '[' in ParseIssue or 'a' in ParseIssue or 'b' in ParseIssue or 'c' in ParseIssue:
+                m = re.findall('[^\[\]]+', ParseIssue)
+                # ^^ takes care of [] 
+                ParseIssue = re.sub("[^0-9]", " ", m[0])
+                # ^^ removes everything but the digits from the remaining non-brackets
+                #logger.fdebug("variant cover detected : " + str(ParseIssue))
+                variant="yes"
+                altcount = 1
             isslen = ParseIssue.find(' ')
-            #if 'isslen' exists, it means that it's an alternative cover.
-            #however, if ONLY alternate covers exist of an issue it won't work.
-            #let's use the FIRST record, and ignore all other covers for the given issue.
-            isschk = ParseIssue[:isslen]
-            #print ("Parse is now: " + str(isschk))
-
+            if isslen < 0:
+                #logger.fdebug("just digits left..using " + str(ParseIssue))
+                isslen == 0
+                isschk = ParseIssue
+            else:
+                logger.fdebug("more than digits left - first space detected at position : " + str(isslen))
+                #if 'isslen' exists, it means that it's an alternative cover.
+                #however, if ONLY alternate covers exist of an issue it won't work.
+                #let's use the FIRST record, and ignore all other covers for the given issue.
+                isschk = ParseIssue[:isslen]
+            #logger.fdebug("Parsed Issue#: " + str(isschk))
+            ParseIssue = re.sub("\s", "", ParseIssue)
             #check if decimal or '1/2' exists or not, and store decimal results
             halfchk = "no"
             if '.' in isschk:
@@ -275,109 +298,105 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             else:
                 isschk_decval = ".00"
 
-            if isslen > 0:
-                isschk = ParseIssue[:isslen]
-                isschk2 = str(isschk) + isschk_decval
-                #logger.fdebug("isschk: " + str(isschk) + " ...isschk2: " + str(isschk2))
-                if 'a' in isschk or 'b' in isschk or 'c' in isschk:
-                    isschk2 = ParseIssue[:isslen-1] + isschk_decval
-                    #altcount == 2
-                ParseIssue = str(isschk2)
-                #logger.fdebug("Alt.cover found = " + str(isschk2))
-                if str(PI) == str(isschk2):
-                    #logger.fdebug("matched on PI: " + str(PI) + " .. and isschk2: " + str(isschk2))
-                    if altcount == 0:
-                        #logger.fdebug("first occurance - marking and continuing..." + str(isschk2))
-                        #this handles the first occurance..
-                        ParseIssue = str(isschk2)
-                        PI = str(isschk2)
-                        altcount = 1
-                    else:
-                        #logger.fdebug("Using only first record for issue - ignoring further alternate matches")
-                        ParseIssue = "this is wrong"
-                        altcount+=1
-                else:
-                    #logger.fdebug("issues didn't match.")
-                    altcount = 1
-                    ParseIssue = str(isschk) + isschk_decval
-            else:
-                if halfchk == "yes": pass
-                else: 
-                    ParseIssue = ParseIssue + isschk_decval
-                #print ("no alt.cover detected for - " + str(ParseIssue))
+            if variant == "yes":
+                #logger.fdebug("alternate cover detected - skipping/ignoring.")
                 altcount = 1
-            if (altcount == 1):
-                #logger.fdebug("adding issue to db : " + str(ParseIssue))
-                # in order to get the compare right, let's decimialize the string to '.00'.
+  
+            # in order to get the compare right, let's decimialize the string to '.00'.
+            if halfchk == "yes": pass
+            else: 
+                ParseIssue = ParseIssue + isschk_decval
+
+            if not any(d.get('GCDIssue', None) == str(ParseIssue) for d in gcdchoice):
+                #logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
                 gcdinfo['ComicIssue'] = ParseIssue
-                #print "Issue: " + str(ParseIssue)
-                #^^ will retrieve issue
-                #if datetype == "on-sale":
-                subtxt1 = parsed('td')[2]
+                #--- let's use pubdate.
+                #try publicationd date first
+                subtxt1 = parsed('td')[1]
                 ParseDate = subtxt1.findNext(text=True)
+                basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
                 pdlen = len(ParseDate)
-                #print "sale-date..ParseDate:" + str(ParseDate)
-                #print ("Parsed Date length: " + str(pdlen))
-                if len(ParseDate) < 7:
-                    subtxt3 = parsed('td')[0]
-                    ParseDate = subtxt3.findNext(text=True)               
-                    #print "pub-date..ParseDate:" + str(ParseDate)
-                    if ParseDate == ' ':
-                        #default to empty so doesn't error out.
-                        ParseDate = "0000-00-00"
-                #ParseDate = ParseDate.replace('?','')
+                pdfind = ParseDate.find(' ',2)
+                #logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
+                #logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
+                if ParseDate[pdfind+1:pdlen-1].isdigit():
+                    #assume valid date.
+                    #search for number as text, and change to numeric
+                    for numbs in basmonths:
+                        if numbs in ParseDate.lower():
+                            pconv = basmonths[numbs]
+                            ParseYear = re.sub('/s','',ParseDate[-5:])
+                            ParseDate = str(ParseYear) + "-" + str(pconv)
+                            #logger.fdebug("!success - Publication date: " + str(ParseDate))
+                            break
+                else:
+#                    #try key date
+#                    subtxt1 = parsed('td')[2]
+#                    ParseDate = subtxt1.findNext(text=True)
+#                    #logger.fdebug("no pub.date detected, attempting to use on-sale date: " + str(ParseDate))
+#                    if (ParseDate) < 7:
+#                        #logger.fdebug("Invalid on-sale date - less than 7 characters. Trying Key date")
+#                        subtxt3 = parsed('td')[0]
+#                        ParseDate = subtxt3.findNext(text=True)               
+#                        if ParseDate == ' ':
+                        #increment previous month by one and throw it in until it's populated properly.
+                     if PrevYRMO == '0000-00':
+                         ParseDate = '0000-00'
+                     else:
+                         PrevYR = str(PrevYRMO)[:4]
+                         PrevMO = str(PrevYRMO)[5:]
+                         #let's increment the month now (if it's 12th month, up the year and hit Jan.)
+                         if int(PrevMO) == 12:
+                             PrevYR = int(PrevYR) + 1
+                             PrevMO = 1
+                         else:
+                             PrevMO = int(PrevMO) + 1
+                         if int(PrevMO) < 10:
+                             PrevMO = "0" + str(PrevMO)
+                         ParseDate = str(PrevYR) + "-" + str(PrevMO)
                 ParseDate = ParseDate.replace(' ','')
-                #print "Parse date: " + str(ParseDate)
+                PrevYRMO = ParseDate
                 gcdinfo['ComicDate'] = ParseDate
                 #^^ will retrieve date #
-                if not any(d.get('GCDIssue', None) == str(gcdinfo['ComicIssue']) for d in gcdchoice):
-                    #logger.fdebug("adding: " + str(gcdinfo['ComicIssue']))
-                    if ComicID[:1] == "G":
-                        gcdchoice.append({
-                            'GCDid':                ComicID,
-                            'IssueID':              resultID,
-                            'GCDIssue':             gcdinfo['ComicIssue'],
-                            'GCDDate':              gcdinfo['ComicDate']
-                            })
-                        gcount+=1
-                    else:
-                        gcdchoice.append({
-                            'GCDid':                ComicID,
-                            'GCDIssue':             gcdinfo['ComicIssue'],
-                            'GCDDate':              gcdinfo['ComicDate']
-                            })
-
-                    gcdinfo['gcdchoice'] = gcdchoice
-
+                #logger.fdebug("adding: " + str(gcdinfo['ComicIssue']))
+                if ComicID[:1] == "G":
+                    gcdchoice.append({
+                        'GCDid':                ComicID,
+                        'IssueID':              resultID,
+                        'GCDIssue':             gcdinfo['ComicIssue'],
+                        'GCDDate':              gcdinfo['ComicDate']
+                        })
+                    gcount+=1
                 else:
-                    #--if 2 identical issue numbers legitimately exist, but have different
-                    #--publication dates, try to distinguish
-                    logger.fdebug("2 identical issue #'s have been found...determining if it's intentional.")
-                    #get current issue & publication date.
-                    logger.fdebug("Issue #:" + str(gcdinfo['ComicIssue']))
-                    logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
-                    #get conflicting issue from tuple
-                    for d in gcdchoice:
-                        if str(d['GCDIssue']) == str(gcdinfo['ComicIssue']):
-                            logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
-                            if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
-                                logger.fdebug("Issue #'s and dates match...skipping.")
-                            else:
-                                logger.fdebug("Issue#'s match but different publication dates, not skipping.")
-                    #pass
-                    #logger.fdebug("Duplicate issue detected in DB - ignoring subsequent issue # " + str(gcdinfo['ComicIssue']))
+                    gcdchoice.append({
+                        'GCDid':                ComicID,
+                        'GCDIssue':             gcdinfo['ComicIssue'],
+                        'GCDDate':              gcdinfo['ComicDate']
+                        })
 
-                PI = ParseIssue
-        #else:
-            # -- this needs a rework --
-            # if issue only has alternative covers on comics.org, it won't match
-            # and will cause the script to return a cannot retrieve..
-            #compare previous issue to current issue (to help with alt.cover count)
-         #   PI = ParseIssue
-         #   altcount+=1
-         #   print ("alternate issue - ignoring")
-        #altcount = 0
+                gcdinfo['gcdchoice'] = gcdchoice
+
+            altcount = 0 
             n+=1
+#           ---redundant---
+#                else:
+#                #--if 2 identical issue numbers legitimately exist, but have different
+#                #--publication dates, try to distinguish
+#                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional.")
+#                #get current issue & publication date.
+#                logger.fdebug("Issue #:" + str(ParseIssue))
+#                logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
+#                #get conflicting issue from tuple
+#                for d in gcdchoice:
+#                    if str(d['GCDIssue']) == str(gcdinfo['ComicIssue']):
+#                       logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
+#                       if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
+#                           logger.fdebug("Issue #'s and dates match...skipping.")
+#                       else:
+#                           logger.fdebug("Issue#'s match but different publication dates, not skipping.")
+                #pass
+                #logger.fdebug("Duplicate issue detected in DB - ignoring subsequent issue # " + str(gcdinfo['ComicIssue']))
+
         i+=1
     gcdinfo['gcdvariation'] = issvariation
     if ComicID[:1] == "G":
@@ -386,7 +405,6 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
         gcdinfo['totalissues'] = TotalIssues
     gcdinfo['ComicImage'] = gcdcover
     gcdinfo['resultPublished'] = resultPublished
-    #print ("gcdvariation: " + str(gcdinfo['gcdvariation']))
     return gcdinfo
         ## -- end (GCD) -- ##
 
@@ -474,11 +492,12 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     comicis = Total
     comicid = ComicID
     comicpub = ComicPublisher
-    #print ( "comicname: " + str(comicnm) )
-    #print ( "comicyear: " + str(comicyr) )
-    #print ( "comichave: " + str(comicis) )
-    #print ( "comicpub: " + str(comicpub) )
-    #print ( "comicid: " + str(comicid) )
+    print ("...comchk parser initialization...")
+    print ( "comicname: " + str(comicnm) )
+    print ( "comicyear: " + str(comicyr) )
+    print ( "comichave: " + str(comicis) )
+    print ( "comicpub: " + str(comicpub) )
+    print ( "comicid: " + str(comicid) )
     # do 3 runs at the comics.org search to get the best results
     comicrun = []
     # &pub_name=DC
@@ -495,9 +514,9 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         if pb in comicpub:
             #keep publisher in url if a biggie.    
             uhuh = "yes"
-            #print (" publisher match : " + str(comicpub))
+            print (" publisher match : " + str(comicpub))
             conv_pub = comicpub.split()[0]
-            #print (" converted publisher to : " + str(conv_pub))
+            print (" converted publisher to : " + str(conv_pub))
     #1st run setup - leave it all as it is.
     comicrun.append(comicnm)
     cruncnt = 0
@@ -512,13 +531,13 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         cruncnt+=1
     totalcount = 0
     cr = 0
-    #print ("cruncnt is " + str(cruncnt))
+    print ("cruncnt is " + str(cruncnt))
     while (cr <= cruncnt):
-        #print ("cr is " + str(cr))
+        print ("cr is " + str(cr))
         comicnm = comicrun[cr]
         #leaving spaces in will screw up the search...let's take care of it
         comicnm = re.sub(' ', '+', comicnm)
-        #print ("comicnm: " + str(comicnm))
+        print ("comicnm: " + str(comicnm))
         if uhuh == "yes":
             publink = "&pub_name=" + str(conv_pub)
         if uhuh == "no":

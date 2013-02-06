@@ -12,9 +12,10 @@
 				<th id="publisher">Publisher</th>
 				<th id="name">Comic</th>
                                 <th id="year">Year</th>
-				<th id="status">Status</th>
 				<th id="issue">Latest Issue</th>
 				<th id="have">Have</th>
+                                <th id="status">Status</th>
+                                <th id="status">Active</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -65,9 +66,22 @@
 				<td id="publisher">${comic['ComicPublisher']}</td>
                                 <td id="name"><span title="${comic['ComicSortName']}"></span><a href="artistPage?ComicID=${comic['ComicID']}">${comic['ComicName']}</a></td>
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>                               
-				<td id="status">${comic['Status']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']} (${comic['LatestDate']})</td>
 				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
+				<td id="status">
+                                %if 'present' in comic['ComicPublished'].lower():
+                                    Continuing
+                                %else:
+                                    Ended
+                                %endif
+                                </td>
+                                <td id="active" align="center">
+                                %if comic['Status'] == "Active":
+                                    <img src="/images/checkmark.png" alt="Y" width="16" height="16" />
+                                %else:
+                                    <img src="/images/cross.png" alt="N" width="16" height="16" />
+                                %endif
+                                </td>
                          </tr>
 		%endfor
 		</tbody>

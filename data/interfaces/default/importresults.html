@@ -1,5 +1,7 @@
-<%inherit file="base.html" /> <%!
+<%inherit file="base.html" />
+<%!
 	import mylar
+        from mylar import db
 	from mylar.helpers import checked
 %>
 <%def name="headerIncludes()">
@@ -22,45 +24,74 @@
 
                    <table>
                     <tr>
-                     <td width="250">
-                     <fieldset>
-                     </fieldset>
-                      </td>
-                       <td width="100%">
-                        </td>
+                          <fieldset>
+                              <div class="row checkbox">
+                                   <input type="checkbox" name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Auto-add new series</label>
+                                        </div>
+                                        <div class="row checkbox">
+                                              <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files</label>
+                                        </div>
+                                        <div class="row checkbox">
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
+                                               <small>(After importing, Rename thefiles to configuration settings)</small>
+                                        </div>
+                                        <div class="row checkbox">
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use Existing Metadata</label>
+                                               <small>(Use existing Metadata to better locate series for import)</small>
+                                        </div>
+
+                                </fieldset>
                      </tr>
                    </table>
-        <table class="display" id="searchmanage_table">
+              </div>
+        <form action="markComics" method="get" id="markComics">
+        <div id="markcomic">
+                <select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
+                        <option disabled="disabled" selected="selected">Choose...</option>
+                        <option value="pause">Start Import</option>
+                        <option value="resume">Remove</option>
+                </select>
+                <input type="hidden" value="Go">
+        </div>
+        <table class="display" id="impresults_table">
                 <thead>
                         <tr>
+                                <th id="select"></th>
                                 <th id="comicname">Comic Name</th>
-                                <th id="status">Year</th>
-                                <th id="comicissues">Status</th>
+                                <th id="comicyear">Year</th>
+                                <th id="status">Status</th>
                                 <th id="importdate">Import Date</th>
                                 <th id="addcomic">Options</th>
                         </tr>
                 </thead>
                 <tbody>
-                                        %if results:
-                                          %for result in results:
+                                          %if results:
+                                          %for result in results:                                      
                                         <tr>
+                                        <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" class="checkbox" /></td>
                                         <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
                                         <td id="comicissues"><title="${result['ComicYear']}">${result['ComicYear']}</td>
                                         <td id="status">${result['Status']}</td>
                                         <td id="importdate">${result['ImportDate']}</td>
-                                        <td id="addcomic"><a href="searchit?name=${result['ComicName']}"><span class="ui-icon-plus"></span>Add Series</a></td>
+                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}&imp_rename=$imp_rename&imp_move=$imp_move">Import</a>]
+                                           [<a href="queueissue?ComicID=${result['ComicName']}">Write Metadata</a>]
+                                        </td>
                                         </tr>
-                                           %endfor
+                                        <%
+                                             myDB = db.DBConnection()
+                                             files = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [result['ComicName']])
+
+                                         %>
+                                        %endfor
                                         %else:
                                         <tr>
-                                        <td colspan="5"><center><legend>There are no results to display</legend></center></td>
-                                        </tr>
-                                        %endif
-
-                            </div>
+                                        <td colspan="5"><center><legend>There are no results to display</legend></center></td></tr>
+                                       %endif
                           </tbody>
+
                           </table>
-                </div>
+</div>
+</form>
 </div>
 </%def>
 <%def name="javascriptIncludes()">

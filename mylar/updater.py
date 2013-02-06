@@ -80,6 +80,10 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
     if issuechk is None:
         logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
+        # we need to either decrease the total issue count, OR indicate that an issue is upcoming.
+        upco_iss = myDB.action("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID]).fetchone()
+        if upco_iss > 0:
+            print ("There is " + str(upco_iss[0]) + " of " + str(ComicName) + " that's not accounted for")
         if hours > 5:
             pullupd = "yes"
             logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
@@ -236,7 +240,51 @@ def forceRescan(ComicID):
         temploc = re.sub('[\#\']', '', temploc)
         #logger.fdebug("temploc: " + str(temploc))
         if 'annual' not in temploc:
-            fcnew = shlex.split(str(temploc))
+            #remove the extension here
+            extensions = ('.cbr','.cbz')
+            if temploc.lower().endswith(extensions):
+                print ("removed extension for issue:" + str(temploc))
+                temploc = temploc[:-4]
+            deccnt = str(temploc).count('.')
+            if deccnt > 1:
+                print ("decimal counts are :" + str(deccnt))
+                #if the file is formatted with '.' in place of spaces we need to adjust.
+
+                #before replacing - check to see if digits on either side of decimal and if yes, DON'T REMOVE
+                occur=1
+                prevstart = 0
+                digitfound = "no"
+                decimalfound = "no"
+                tempreconstruct = ''
+                while (occur <= deccnt):
+                    n = occur
+                    start = temploc.find('.')
+                    while start >=0 and n > 1:
+                        start = temploc.find('.', start+len('.'))
+                        n-=1
+                    print "occurance " + str(occur) + " of . at position: " + str(start)
+                    if temploc[prevstart:start].isdigit():
+                        if digitfound == "yes":
+                            print ("this is a decimal, assuming decimal issue.")
+                            decimalfound = "yes"
+                            reconst = "." + temploc[prevstart:start] + " "
+                        else:
+                            print ("digit detected.")
+                            digitfound = "yes"
+                            reconst = temploc[prevstart:start]
+                    else:
+                        reconst = temploc[prevstart:start] + " "
+                    print "word: " + reconst
+                    tempreconstruct = tempreconstruct + reconst 
+                    print ("tempreconstruct is : " + tempreconstruct)
+                    prevstart = (start+1)
+                    occur+=1
+                print "word: " + temploc[prevstart:]
+                tempreconstruct = tempreconstruct + temploc[prevstart:]
+                print ("final filename to use is : " + str(tempreconstruct))
+                temploc = tempreconstruct            
+            print("checking " + str(temploc))
+            fcnew = shlex.split(str(temploc))            
             fcn = len(fcnew)
             n = 0
             while (n <= iscnt):
@@ -256,7 +304,7 @@ def forceRescan(ComicID):
 
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                    #logger.fdebug("checking word - " + str(fcnew[som]))
+                    logger.fdebug("checking word - " + str(fcnew[som]))
                     if ".cbr" in fcnew[som].lower():
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som].lower():
@@ -267,13 +315,13 @@ def forceRescan(ComicID):
                         if fcnew[som] != " ":
                             fcnew[som] = get_issue[0]
                     if '.' in fcnew[som]:
-                        #logger.fdebug("decimal detected...adjusting.")
+                        logger.fdebug("decimal detected...adjusting.")
                         try:
                             i = float(fcnew[som])
                         except ValueError, TypeError:
                             #not numeric
-                            fcnew[som] = fcnew[som].replace(".", "")
                             #logger.fdebug("NOT NUMERIC - new word: " + str(fcnew[som]))
+                            fcnew[som] = fcnew[som].replace(".", "")
                         else:
                             #numeric
                             pass

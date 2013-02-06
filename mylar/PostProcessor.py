@@ -92,10 +92,10 @@ class PostProcessor(object):
         self._log("initiating pre script detection.", logger.DEBUG)
         self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS, logger.DEBUG)
 #        for currentScriptName in mylar.PRE_SCRIPTS:
-        currentScriptName = str(mylar.PRE_SCRIPTS).decode("string_escape")
+#        currentScriptName = str(mylar.PRE_SCRIPTS).decode("string_escape")
         self._log("pre script detected...enabling: " + str(currentScriptName), logger.DEBUG)
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(currentScriptName) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
+        script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
         self._log("cmd to be executed: " + str(script_cmd), logger.DEBUG)
 
             # use subprocess to run the command and capture output

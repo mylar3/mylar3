@@ -74,7 +74,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                 comic_list.append(comic_dict)
 
         logger.info("I've found a total of " + str(comiccnt) + " comics....analyzing now")
-
+        logger.info("comiclist: " + str(comic_list))
     myDB = db.DBConnection()
 
     #let's load in the watchlist to see if we have any matches.
@@ -125,14 +125,14 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
     watchfound = 0
 
     for i in comic_list:
-        #print i['ComicFilename']
+        print i['ComicFilename']
 
         comfilename = i['ComicFilename']
         comlocation = i['ComicLocation']
         #let's clean up the filename for matching purposes
 
         cfilename = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(comfilename))
-        #cfilename = re.sub('\s+', ' ', str(cfilename)).strip()
+        #cfilename = re.sub('\s', '_', str(cfilename))
 
         cm_cn = 0
 
@@ -154,6 +154,47 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                 if cnt == 0:
                     comic_andiss = m[cnt]
                     logger.fdebug("Comic: " + str(comic_andiss))
+                    # if it's not in the standard format this will bork.
+                    # let's try to accomodate (somehow).
+                    # first remove the extension (if any)
+                    extensions = ('cbr', 'cbz')
+                    if comic_andiss.lower().endswith(extensions):
+                        comic_andiss = comic_andiss[:-4]
+                        print ("removed extension from filename.")
+                    #now we have to break up the string regardless of formatting.
+                    #let's force the spaces.
+                    comic_andiss = re.sub('_', ' ', comic_andiss)
+                    cs = comic_andiss.split()
+                    cs_len = len(cs)
+                    cn = ''
+                    ydetected = 'no'
+                    idetected = 'no'
+                    for i in reversed(xrange(len(cs))):
+                        #start at the end.
+                        print ("word: " + str(cs[i]))
+                        if cs[i][:-2] == '19' or cs[i][:-2] == '20':
+                            print ("year detected: " + str(cs[i]))
+                            ydetected = 'yes'
+                            result_comyear = cs[i]
+                        elif '\#' in cs[i]:
+                            print ("issue detected: " + str(cs[i]))
+                            idetected = 'yes'
+                        elif cs[i].isdigit() and idetected == 'no':
+                            print ("issue detected: " + str(cs[i]))
+                            idetected = 'yes'
+                        else: cn = cn + cs[i] + " "
+                    if ydetected == 'no':
+                        #assume no year given in filename...
+                        result_comyear = "0000"
+                    print ("cm?: " + str(cn))
+                    cnsplit = cn.split()
+                    cname = ''
+                    findcn = 0
+                    while (findcn < len(cnsplit)):
+                        cname = cname + cs[findcn] + " "
+                        findcn+=1
+                    print ("assuming name is : " + str(cname))
+                    yearmatch = "True"
                 if m[cnt][:-2] == '19' or m[cnt][:-2] == '20':
                     logger.fdebug("year detected: " + str(m[cnt]))
                     result_comyear = m[cnt]
@@ -180,9 +221,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         result_comscanner = m[cnt]
             cnt+=1
 
-        if yearmatch == "false": 
-            logger.fdebug("failed to match...skipping.")  
-            break
         splitit = []
         watchcomic_split = []
         logger.fdebug("filename comic and issue: " + str(cfilename))
@@ -260,7 +298,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         #elif ':' in splitit[n] or '-' in splitit[n]:
                         #    splitrep = splitit[n].replace('-', '')
                         #    print ("non-character keyword...skipped on " + splitit[n])
-                    elif str(splitit[n].lower()).startswith('v'):
+                    elif str(splitit[n]).lower().startswith('v'):
                         logger.fdebug("possible versioning..checking")
                         #we hit a versioning # - account for it
                         if splitit[n][1:].isdigit():
@@ -344,7 +382,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             while ( n <= (len(csplit)-1) ):
                 if csplit[n].isdigit():
                     logger.fdebug("issue detected")
-                    #comiss = splitit[n]
+                    comiss = splitit[n]
+                    logger.fdebug("issue # : " + str(comiss))
                     comicNAMER = n - 1
                     com_NAME = csplit[0]
                     cmnam = 1
@@ -353,13 +392,16 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         cmnam+=1
                     logger.fdebug("comic: " + str(com_NAME))
                 n+=1
-
+            if result_comyear is None: result_comyear = '0000' #no year in filename basically.
             print ("adding " + str(com_NAME) + " to the import-queue!")
+            impid = str(com_NAME) + "-" + str(result_comyear) + "-" + str(comiss)
+            print ("impid: " + str(impid))
             import_by_comicids.append({ 
+                "impid": impid,
                 "comicname" : com_NAME,
                 "comicyear" : result_comyear,
                 "comfilename" : comfilename,
-                "comlocation" : comlocation
+                "comlocation" : comlocation.decode(mylar.SYS_ENCODING)
                                        })
 
     if len(watch_kchoice) > 0:
@@ -441,4 +483,4 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
     if len(import_by_comicids) > 0:
         import_comicids['comic_info'] = import_by_comicids
         print ("import comicids: " + str(import_by_comicids))
-        return import_comicids
+        return import_comicids, len(import_by_comicids)

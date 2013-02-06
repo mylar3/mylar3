@@ -37,7 +37,7 @@
 		<tbody>
 		%for issue in issues:
 			<tr class="gradeZ">
-				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></th>
+				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
 				<td id="comicname">${issue['ComicName']}</td>
 				<td id="issuenumber"><a href="albumPage?IssueID=${issue['IssueID']}">${issue['Issue_Number']}</a></td>
 				<td id="reldate">${issue['IssueDate']}</td>
