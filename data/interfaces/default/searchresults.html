@@ -32,7 +32,7 @@
                                         <td class="comicyear">${result['comicyear']}</a></td>
 					<td class="issues">${result['issues']}</td>
 
-					<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher']}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
+					<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher']}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
 				</tr>
 				%endfor
 			%endif

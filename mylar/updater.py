@@ -236,20 +236,21 @@ def forceRescan(ComicID):
             tmpfc = fc['comiclist'][fn]
         except IndexError:
             break
-        temploc = tmpfc['ComicFilename'].replace('_', ' ')
+        temploc= tmpfc['JusttheDigits'].replace('_', ' ')
+
+#        temploc = tmpfc['ComicFilename'].replace('_', ' ')
         temploc = re.sub('[\#\']', '', temploc)
         #logger.fdebug("temploc: " + str(temploc))
         if 'annual' not in temploc:
             #remove the extension here
             extensions = ('.cbr','.cbz')
             if temploc.lower().endswith(extensions):
-                print ("removed extension for issue:" + str(temploc))
+                #print ("removed extension for issue:" + str(temploc))
                 temploc = temploc[:-4]
             deccnt = str(temploc).count('.')
             if deccnt > 1:
-                print ("decimal counts are :" + str(deccnt))
+                #print ("decimal counts are :" + str(deccnt))
                 #if the file is formatted with '.' in place of spaces we need to adjust.
-
                 #before replacing - check to see if digits on either side of decimal and if yes, DON'T REMOVE
                 occur=1
                 prevstart = 0
@@ -262,28 +263,28 @@ def forceRescan(ComicID):
                     while start >=0 and n > 1:
                         start = temploc.find('.', start+len('.'))
                         n-=1
-                    print "occurance " + str(occur) + " of . at position: " + str(start)
+                    #print "occurance " + str(occur) + " of . at position: " + str(start)
                     if temploc[prevstart:start].isdigit():
                         if digitfound == "yes":
-                            print ("this is a decimal, assuming decimal issue.")
+                            #print ("this is a decimal, assuming decimal issue.")
                             decimalfound = "yes"
                             reconst = "." + temploc[prevstart:start] + " "
                         else:
-                            print ("digit detected.")
+                            #print ("digit detected.")
                             digitfound = "yes"
                             reconst = temploc[prevstart:start]
                     else:
                         reconst = temploc[prevstart:start] + " "
-                    print "word: " + reconst
+                    #print "word: " + reconst
                     tempreconstruct = tempreconstruct + reconst 
-                    print ("tempreconstruct is : " + tempreconstruct)
+                    #print ("tempreconstruct is : " + tempreconstruct)
                     prevstart = (start+1)
                     occur+=1
-                print "word: " + temploc[prevstart:]
+                #print "word: " + temploc[prevstart:]
                 tempreconstruct = tempreconstruct + temploc[prevstart:]
-                print ("final filename to use is : " + str(tempreconstruct))
+                #print ("final filename to use is : " + str(tempreconstruct))
                 temploc = tempreconstruct            
-            print("checking " + str(temploc))
+            #print("checking " + str(temploc))
             fcnew = shlex.split(str(temploc))            
             fcn = len(fcnew)
             n = 0
@@ -374,7 +375,7 @@ def forceRescan(ComicID):
                         #logger.fdebug("let's compare with this issue value: " + str(fcdigit))
                     else:
                         # it's a word, skip it.
-                        fcdigit = 1000000    
+                        fcdigit = 19283838380101193
                     #logger.fdebug("fcdigit: " + str(fcdigit))
                     #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):

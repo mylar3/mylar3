@@ -63,18 +63,22 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             comicsize = os.path.getsize(comicpath)
             #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
+            if modwatchcomic.lower() in subname.lower():
+                jtd_len = len(modwatchcomic)
+                justthedigits = item[jtd_len:]
+            elif altsearchcomic.lower() in subname.lower():
+                jtd_len = len(altsearchcomic)
+                justthedigits = item[jtd_len:]
             comiclist.append({
                  'ComicFilename':           item,
                  'ComicLocation':           comicpath,
-                 'ComicSize':               comicsize
+                 'ComicSize':               comicsize,
+                 'JusttheDigits':           justthedigits
                  })
             watchmatch['comiclist'] = comiclist
         else:
             pass
             #print ("directory found - ignoring")
-    
     logger.fdebug("you have a total of " + str(comiccnt) + " " + str(watchcomic) + " comics")
     watchmatch['comiccount'] = comiccnt
     return watchmatch
-
-

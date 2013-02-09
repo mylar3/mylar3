@@ -6,6 +6,7 @@ import lib.feedparser as feedparser
 #import feedparser
 import re
 import logger
+import mylar
 
 def Startit(searchName, searchIssue, searchYear):
     #searchName = "Uncanny Avengers"
@@ -21,8 +22,15 @@ def Startit(searchName, searchIssue, searchYear):
     searchIsOne = "0"+searchIssue
     searchIsTwo = "00"+searchIssue
 
+    if mylar.USE_MINSIZE:
+        size_constraints = "minsize=" + str(mylar.MINSIZE)
+    else:
+        size_constraints = "minsize=10"
 
-    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&minsize=10&dq=%s&max=25&more=1" %joinSearch)
+    if mylar.USE_MAXSIZE:
+        size_constraints = size_constraints + "&maxsize=" + str(mylar.MAXSIZE)
+
+    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + "&dq=%s&max=25&more=1" %joinSearch)
 
     totNum = len(feed.entries)
 

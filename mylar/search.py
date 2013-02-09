@@ -366,7 +366,23 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     nzbname = cleantitle
 
                     logger.fdebug("Cleantitle: " + str(cleantitle))
-                    if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"                      
+                    if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"
+#----size constraints.
+                #if it's not within size constaints - dump it now and save some time.
+#                    logger.fdebug("size : " + str(entry['size']))
+#                    if mylar.USE_MINSIZE:
+#                        conv_minsize = int(mylar.MINSIZE) * 1024 * 1024
+#                        print("comparing " + str(conv_minsize) + " .. to .. " + str(entry['size']))
+#                        if conv_minsize >= int(entry['size']):
+#                            print("Failure to meet the Minimum size threshold - skipping")
+#                            continue
+#                    if mylar.USE_MAXSIZE:
+#                         conv_maxsize = int(mylar.maxsize) * 1024 * 1024
+#                         print("comparing " + str(conv_maxsize) + " .. to .. " + str(entry['size']))
+#                         if conv_maxsize >= int(entry['size']):
+#                             print("Failure to meet the Maximium size threshold - skipping")
+#                             continue
+# -- end size constaints.
                     if done:
                         break
                 #let's narrow search down - take out year (2010), (2011), etc

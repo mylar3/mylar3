@@ -139,6 +139,10 @@ class PostProcessor(object):
             self._log("nzb folder: " + str(self.nzb_folder), logger.DEBUG)
             logger.fdebug("nzb name: " + str(self.nzb_name))
             logger.fdebug("nzb folder: " + str(self.nzb_folder))
+            # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
+            if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
+                self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+
             #lookup nzb_name in nzblog table to get issueid
 
             #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals

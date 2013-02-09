@@ -99,8 +99,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         # let's clean up the name, just in case for comparison purposes...
         watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watch['ComicName']))
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
+
+        if ' the ' in watchcomic.lower():
+            #drop the 'the' from the watchcomic title for proper comparisons.
+            watchcomic = watchcomic[-4:]
+
         alt_chk = "no" # alt-checker flag (default to no)
- 
+         
         # account for alternate names as well
         if watch['AlternateSearch'] is not None and watch['AlternateSearch'] is not 'None':
             altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watch['AlternateSearch']))
@@ -228,6 +233,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         comic_iss_b4 = re.sub('[\-\:\,]', ' ', str(comic_andiss))
         comic_iss = comic_iss_b4.replace('.',' ')
         logger.fdebug("adjusted  comic and issue: " + str(comic_iss))
+        #remove 'the' from here for proper comparisons.
+        if ' the ' in comic_iss.lower():
+            comic_iss = comic_iss[-4:]
         splitit = comic_iss.split(None)
         logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
         #bmm = re.findall('v\d', comic_iss)
@@ -277,9 +285,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
             if (splitst) != len(watchcomic_split):
                 logger.fdebug("incorrect comic lengths...not a match")
-                if str(splitit[0]).lower() == "the":
-                    logger.fdebug("THE word detected...attempting to adjust pattern matching")
-                    splitit[0] = splitit[4:]
+#                if str(splitit[0]).lower() == "the":
+#                    logger.fdebug("THE word detected...attempting to adjust pattern matching")
+#                    splitit[0] = splitit[4:]
             else:
                 logger.fdebug("length match..proceeding")
                 n = 0

@@ -34,7 +34,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version, librarysync
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version, librarysync, moveit
 #from mylar.helpers import checked, radio, today
 
 import lib.simplejson as simplejson
@@ -103,10 +103,10 @@ class WebInterface(object):
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)            
         #print ("Results: " + str(searchresults))
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None)
     searchit.exposed = True
 
-    def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None):
+    def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
         myDB = db.DBConnection()
         sresults = []
         cresults = []
@@ -177,8 +177,8 @@ class WebInterface(object):
                     #searchfix(-1).html is for misnamed comics and wrong years.
                     #searchfix-2.html is for comics that span multiple volumes.
                     return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
-        print ("imported is: " + str(imported))
-        threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported]).start()
+        #print ("imported is: " + str(imported))
+        threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
     addComic.exposed = True
 
@@ -311,14 +311,16 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            if IssueID is None: continue
+            #print ("issueID: " + str(IssueID) + "... " + str(newaction))
+            if IssueID is None or 'issue_table' in IssueID:
+                continue
             else:
                 mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
                 miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
                         logger.info(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
-                        continue
+#                        continue
                 elif action == 'Archived':
                     logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
                     #updater.forceRescan(mi['ComicID'])
@@ -326,14 +328,15 @@ class WebInterface(object):
                 elif action == 'Wanted':
                     logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
                     issuesToAdd.append(IssueID)
-
+                elif action == 'Skipped':
+                    logger.info(u"Marking " + str(IssueID) + " as Skipped")
                 controlValueDict = {"IssueID": IssueID}
                 newValueDict = {"Status": newaction}
                 myDB.upsert("issues", newValueDict, controlValueDict)
         if len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
         if len(issuesToAdd) > 0:
-            logger.debug("Marking issues: %s as Wanted" % issuesToAdd)
+            logger.debug("Marking issues: %s as Wanted" % (issuesToAdd))
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
         #if IssueID:
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % mi['ComicID'])
@@ -703,9 +706,16 @@ class WebInterface(object):
         return serve_template(templatename="importresults.html", title="Import Results", results=results)
     importResults.exposed = True
 
+    def deleteimport(self, ComicName):
+        myDB = db.DBConnection()
+        logger.info("Removing import data for Comic: " + str(ComicName))
+        myDB.action('DELETE from importresults WHERE ComicName=?', [ComicName])
+        raise cherrypy.HTTPRedirect("importResults")
+    deleteimport.exposed = True
+
     def preSearchit(self, ComicName, imp_rename, imp_move):
-        print ("imp_rename:" + str(imp_rename))
-        print ("imp_move:" + str(imp_move))
+        #print ("imp_rename:" + str(imp_rename))
+        #print ("imp_move:" + str(imp_move))
         myDB = db.DBConnection()
         results = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [ComicName])
         #if results > 0:
@@ -714,6 +724,7 @@ class WebInterface(object):
         yearRANGE = []
         yearTOP = 0
         minISSUE = 0
+        startISSUE = 10000000
         comicstoIMP = []
         for result in results:
             if result is None:
@@ -728,27 +739,66 @@ class WebInterface(object):
                         print ("adding..." + str(result['ComicYear']))
                         yearRANGE.append(result['ComicYear'])
                         yearTOP = str(result['ComicYear'])
-                if int(getiss) > (minISSUE):
+                if int(getiss) > int(minISSUE):
                     print ("issue now set to : " + str(getiss) + " ... it was : " + str(minISSUE))
                     minISSUE = str(getiss)
+                if int(getiss) < int(startISSUE):
+                    print ("issue now set to : " + str(getiss) + " ... it was : " + str(startISSUE))
+                    startISSUE = str(getiss)
         #figure out # of issues and the year range allowable
-        maxyear = int(yearTOP) - (int(minISSUE) / 12)
-        yearRANGE.append(str(maxyear))
-        print ("there is a " + str(maxyear) + " year variation based on the 12 issues/year")
+        if yearTOP > 0:
+            maxyear = int(yearTOP) - (int(minISSUE) / 12)
+            yearRANGE.append(str(maxyear))
+            print ("there is a " + str(maxyear) + " year variation based on the 12 issues/year")
+        #determine a best-guess to # of issues in series
+        #this needs to be reworked / refined ALOT more.
+        #minISSUE = highest issue #, startISSUE = lowest issue #
+        numissues = int(minISSUE) - int(startISSUE)
+        #normally minissue would work if the issue #'s started at #1.
         print ("the years involved are : " + str(yearRANGE))
-        print ("minimum issue level is : " + str(minISSUE))
+        print ("highest issue # is : " + str(minISSUE))
+        print ("lowest issue # is : " + str(startISSUE))
+        print ("approximate number of issues : " + str(numissues))
+        print ("issues present on system : " + str(len(comicstoIMP)))
+        print ("versioning checking: ")
+        cnsplit = ComicName.split()
+        cnwords = len(cnsplit)
+        cnvers = cnsplit[cnwords-1]
+        ogcname = ComicName
+        if 'v' in cnvers:
+            print ("possible versioning detected.")
+            if cnvers[1:].isdigit():
+                print (cnvers + "  - assuming versioning. Removing from initial search pattern.")
+                ComicName = ComicName[:-((len(cnvers))+1)]
+                print ("new comicname is : " + str(ComicName))
+        # we need to pass the original comicname here into the entire importer module
+        # so that we can reference the correct issues later.
+        
         mode='series'
-        sresults = mb.findComic(ComicName, mode, issue=minISSUE, limityear=yearRANGE)
+        sresults = mb.findComic(ComicName, mode, issue=numissues, limityear=yearRANGE)
         type='comic'
+
         if len(sresults) == 1:
             sr = sresults[0]
             print ("only one result...automagik-mode enabled for " + str(sr['comicid']))
-            self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported=comicstoIMP)
-            #need to move the files here.
-        if len(sresults) == 0 or len(sresults) is None:
+            resultset = 1
+#            #need to move the files here.
+        elif len(sresults) == 0 or len(sresults) is None:
             print ("no results, removing the year from the agenda and re-querying.")
-            sresults = mb.findComic(ComicName, mode, issue=minISSUE)
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported=comicstoIMP)
+            sresults = mb.findComic(ComicName, mode, issue=numissues)
+            if len(sresults) == 1:
+                print ("only one result...automagik-mode enabled for " + str(sr['comicid']))
+                resultset = 1
+            else: 
+                resultset = 0
+        else:
+            print ("returning results to screen - more than one possibility.")
+            resultset = 0
+
+        if resultset == 1:
+            self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported=comicstoIMP,ogcname=ogcname)
+        else:
+            return serve_template(templatename="searchresults.html", title='Search Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
 
     #---
@@ -777,6 +827,7 @@ class WebInterface(object):
                     "sab_pass" : mylar.SAB_PASSWORD,
                     "sab_cat" : mylar.SAB_CATEGORY,
                     "sab_priority" : mylar.SAB_PRIORITY,
+                    "sab_directory" : mylar.SAB_DIRECTORY,
                     "use_blackhole" : helpers.checked(mylar.BLACKHOLE),
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,
@@ -917,7 +968,7 @@ class WebInterface(object):
     comic_config.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
-        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
+        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
@@ -938,6 +989,7 @@ class WebInterface(object):
         mylar.SAB_APIKEY = sab_apikey
         mylar.SAB_CATEGORY = sab_category
         mylar.SAB_PRIORITY = sab_priority
+        mylar.SAB_DIRECTORY = sab_directory
         mylar.BLACKHOLE = blackhole
         mylar.BLACKHOLE_DIR = blackhole_dir
         mylar.USENET_RETENTION = usenet_retention

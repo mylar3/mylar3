@@ -23,7 +23,7 @@ import urllib
 import shutil
 
 import mylar
-from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater
+from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater, moveit
 
        
 def is_exists(comicid):
@@ -40,7 +40,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None):
+def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
 #    from mylar import cache
     
@@ -370,27 +370,16 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None):
                 text_file.write("http://www.comicvine.com/" + str(comic['ComicName']).replace(" ", "-") + "/49-" + str(comicid))
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
-    print ("imported is : " + str(imported))    
-    impres = myDB.action("SELECT * from importresults WHERE ComicName LIKE ?", [comic['ComicName']])
-    if impres is not None:
-        #print ("preparing to move " + str(len(impres)) + " files into the right directory now.")
-        for impr in impres:
-            srcimp = impr['ComicLocation']
-            dstimp = os.path.join(comlocation, impr['ComicFilename'])
-            print ("moving " + str(srcimp) + " ... to " + str(dstimp))
-            try:
-                shutil.move(srcimp, dstimp)
-            except (OSError, IOError):
-                print("Failed to move files - check directories and manually re-run.")
-        print("files moved.")           
-    #now that it's moved / renamed ... we remove it from importResults or mark as completed.
-        results = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [comic['ComicName']])
-        if results is None: pass
-        else:
-            for result in results:
-                controlValue = {"impID":    result['impid']}
-                newValue = {"Status":           "Imported" }
-                myDB.upsert("importresults", newValue, controlValue)
+
+    #move the files...if imported is not empty (meaning it's not from the mass importer.)
+    if imported is None or imported == 'None':
+        pass
+    else:
+        print ("imported length is : " + str(len(imported)))
+        print ("imported is :" + str(imported))
+        if mylar.IMP_MOVE:
+            logger.info("Mass import - Move files")
+            moveit.movefiles(comlocation,ogcname)
 
     #check for existing files...
     updater.forceRescan(comicid)
