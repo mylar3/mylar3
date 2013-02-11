@@ -285,7 +285,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 isslen == 0
                 isschk = ParseIssue
             else:
-                logger.fdebug("more than digits left - first space detected at position : " + str(isslen))
+                #logger.fdebug("more than digits left - first space detected at position : " + str(isslen))
                 #if 'isslen' exists, it means that it's an alternative cover.
                 #however, if ONLY alternate covers exist of an issue it won't work.
                 #let's use the FIRST record, and ignore all other covers for the given issue.

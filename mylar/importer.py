@@ -95,7 +95,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             return nomatch
         else:
             mismatch_com = "yes"
-            print ("gcdinfo:" + str(gcdinfo))
+            #print ("gcdinfo:" + str(gcdinfo))
 
     elif mismatch == "yes":
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()

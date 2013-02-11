@@ -224,6 +224,7 @@ def pullit():
                             if "ONE" in issue and "SHOT" in issname[n+1]: issue = "OS"
                             if cm == (issname[n]):
                                 if issname[n] == 'PI':
+                                    print ("non-comic found.")
                                     issue = 'NA'
                                     break
                                 issue = issname[n]
@@ -240,7 +241,13 @@ def pullit():
                     comicnm = issname[1]
                     n = 2
                     while (n < comicend + 1):
-                        comicnm = comicnm + " " + issname[n]
+                        #stupid - this errors out if the
+                        try:
+                            comicnm = comicnm + " " + issname[n]
+                        except IndexError:
+                            print ("went too far looking at this comic...adjusting.")
+                            comicnm = comicnm
+                            break
                         n+=1
                     #print ("Comicname: " + str(comicnm) )
                     #get remainder
@@ -260,9 +267,9 @@ def pullit():
                         n+=1
                     #print ("Comic Extra info: " + str(comicrm) )
                     if "NA" not in issue and issue != "":
-                        #print ("shipdate:" + str(shipdate))
-                        #print ("pub: " + str(pub))
-                        #print ("issue: " + str(issue))
+                        print ("shipdate:" + str(shipdate))
+                        print ("pub: " + str(pub))
+                        print ("issue: " + str(issue))
                         dupefound = "no"
                 #--start duplicate comic / issue chk
                 for excl in excludes:
@@ -431,29 +438,26 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                 comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', str(comicnm))
                                 watchcomic = re.sub(r'\s', '', watchcomic)
                                 comicnm = re.sub(r'\s', '', comicnm)
-                                modcomicnm = ''
                                 logger.fdebug("Revised_Watch: " + str(watchcomic))
                                 logger.fdebug("ComicNM: " + str(comicnm))
-                                if 'THE' in str(watchcomic):
+                                if 'THE' in str(watchcomic).upper():
+                                    modwatchcomic = re.sub('THE', '', watchcomic.upper())
                                     modcomicnm = re.sub('THE', '', comicnm)
+                                else:
+                                    modwatchcomic = watchcomic
+                                    modcomicnm = comicnm
                                 #thnx to A+X for this...
                                 if '+' in str(watchcomic):
                                     if 'plus' in str(comicnm).lower():
                                         modcomicnm = re.sub('plus', '+', comicnm)
-                                if str(comicnm) == str(watchcomic).upper() or str(modcomicnm) == str(watchcomic).upper():
+                                if str(comicnm) == str(watchcomic).upper() or str(modcomicnm) == str(modwatchcomic).upper():
                                     logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
                                     #pass
                                 elif ("ANNUAL" in week['EXTRA']):
                                     pass
                                     #print ( row[3] + " matched on ANNUAL")
                                 else:
-                                    if 'THE' in str(comicnm):
-                                        modcomicnm = re.sub('THE', '', comicnm)
-                                    #print ( row[2] + " not an EXACT match...")
                                     break
-                                #if "WOLVERINE AND X-MEN" in str(comicnm):
-                                #    comicnm = "WOLVERINE AND THE X-MEN"
-                                    #print ("changed wolvy")
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
                                     if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
                                         otot+=1
