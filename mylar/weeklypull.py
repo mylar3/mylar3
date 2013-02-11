@@ -131,11 +131,13 @@ def pullit():
                     if pulldate == shipdaterep:
                         logger.info(u"No new pull-list available - will re-check again in 24 hours.")
                         pullitcheck()
+                        mylar.PULLNEW = 'no'
                         return
                     else:
                         logger.info(u"Preparing to update to the new listing.")
                 break    
         else:
+            mylar.PULLNEW = 'yes'
             for yesyes in checkit:
                 if yesyes in i:
                     if format(str(yesyes)) == 'COMICS':
@@ -224,7 +226,6 @@ def pullit():
                             if "ONE" in issue and "SHOT" in issname[n+1]: issue = "OS"
                             if cm == (issname[n]):
                                 if issname[n] == 'PI':
-                                    print ("non-comic found.")
                                     issue = 'NA'
                                     break
                                 issue = issname[n]
@@ -241,7 +242,7 @@ def pullit():
                     comicnm = issname[1]
                     n = 2
                     while (n < comicend + 1):
-                        #stupid - this errors out if the
+                        #stupid - this errors out if the array mistakingly goes to far.
                         try:
                             comicnm = comicnm + " " + issname[n]
                         except IndexError:
@@ -267,9 +268,9 @@ def pullit():
                         n+=1
                     #print ("Comic Extra info: " + str(comicrm) )
                     if "NA" not in issue and issue != "":
-                        print ("shipdate:" + str(shipdate))
-                        print ("pub: " + str(pub))
-                        print ("issue: " + str(issue))
+                        #print ("shipdate:" + str(shipdate))
+                        #print ("pub: " + str(pub))
+                        #print ("issue: " + str(issue))
                         dupefound = "no"
                 #--start duplicate comic / issue chk
                 for excl in excludes:
