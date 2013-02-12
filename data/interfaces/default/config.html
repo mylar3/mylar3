@@ -361,6 +361,9 @@
                         <fieldset>
                                 <legend>Post-Processing</legend>
                                 <div class="row checkbox left clearfix">
+                                     <input type="checkbox" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
+                                </div>
+                                <div class="row checkbox left clearfix">
                                      <input type="checkbox" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Use Extra Script BEFORE Post-Processing</label>
                                 </div>
                                 <div class="row">
@@ -393,19 +396,19 @@
                                 </div>
                 		<div>
                                      <label>*Folder Format is used only when adding new comics*</label>
-                                 </div>
-                                                <div class="row">
+                                </div>
+                                <div class="row">
                                      <label>Folder Format</label>
                                      <input type="text" title="$Publisher, $Series, $Year" name="folder_format" value="${config['folder_format']}" size="43">
                                      <small>Use: $Publisher, $Series, $Year<br />
                                                                 E.g.: $Publisher/$Series ($Year) = DC Comics/Action Comics (2011)</small>
                                  </div>
                                  <div class="row">
-                                 <label> File Format</label>
-                                 <input type="text" name="file_format" value="${config['file_format']}" size="43">
-                                 <small>Use:  $Series, $Year, $Issue<br />
+                                    <label> File Format</label>
+                                    <input type="text" name="file_format" value="${config['file_format']}" size="43">
+                                    <small>Use:  $Series, $Year, $Issue<br />
                                                                 E.g.: $Series $Issue ($Year) = Animal Man 0 (2012) </small>
-
+                                 </div>
                       </fieldset>
                 	
     				<fieldset>
@@ -504,9 +507,6 @@
 </%def>
 
 <%def name="javascriptIncludes()">
-        <script>
-          $( document ).tooltip();
-        </script>
 	<script>
 	
 	hideServerDivs = function () {
