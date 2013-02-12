@@ -434,6 +434,14 @@ def GettheDate(parsed,PrevYRMO):
                 ParseDate = str(ParseYear) + "-" + str(pconv)
                 logger.fdebug("!success - Publication date: " + str(ParseDate))
                 break
+        # some comics are messed with pub.dates and have Spring/Summer/Fall/Winter
+        baseseasons = {'spring':'03','summer':'06','fall':'09','winter':'12'}
+        for seas in baseseasons:
+            if seas in ParseDate.lower():
+                sconv = baseseasons[seas]
+                ParseYear = re.sub('/s','',ParseDate[-5:])
+                ParseDate = str(ParseYear) + "-" + str(sconv)
+                break        
     else:
 #               #try key date
 #               subtxt1 = parsed('td')[2]
