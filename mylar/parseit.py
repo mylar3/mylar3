@@ -338,53 +338,32 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 #            else: 
 #                ParseIssue = ParseIssue + isschk_decval
 
+            datematch="false"
+
             if not any(d.get('GCDIssue', None) == str(ParseIssue) for d in gcdchoice):
                 logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
+            else:
+                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
+                #get current issue & publication date.
+                logger.fdebug("Issue #:" + str(ParseIssue))
+                logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
+                #get conflicting issue from tuple
+                for d in gcdchoice:
+                    if str(d['GCDIssue']) == str(ParseIssue):
+                       logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
+                       if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
+                           logger.fdebug("Issue #'s and dates match...skipping.")
+                           datematch="true"
+                       else:
+                           logger.fdebug("Issue#'s match but different publication dates, not skipping.")
+                           datematch="false"
+
+            if datematch == "false":
                 gcdinfo['ComicIssue'] = ParseIssue
                 #--- let's use pubdate.
                 #try publicationd date first
-                subtxt1 = parsed('td')[1]
-                ParseDate = subtxt1.findNext(text=True)
-                basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
-                pdlen = len(ParseDate)
-                pdfind = ParseDate.find(' ',2)
-                #logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
-                #logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
-                if ParseDate[pdfind+1:pdlen-1].isdigit():
-                    #assume valid date.
-                    #search for number as text, and change to numeric
-                    for numbs in basmonths:
-                        if numbs in ParseDate.lower():
-                            pconv = basmonths[numbs]
-                            ParseYear = re.sub('/s','',ParseDate[-5:])
-                            ParseDate = str(ParseYear) + "-" + str(pconv)
-                            #logger.fdebug("!success - Publication date: " + str(ParseDate))
-                            break
-                else:
-#                    #try key date
-#                    subtxt1 = parsed('td')[2]
-#                    ParseDate = subtxt1.findNext(text=True)
-#                    #logger.fdebug("no pub.date detected, attempting to use on-sale date: " + str(ParseDate))
-#                    if (ParseDate) < 7:
-#                        #logger.fdebug("Invalid on-sale date - less than 7 characters. Trying Key date")
-#                        subtxt3 = parsed('td')[0]
-#                        ParseDate = subtxt3.findNext(text=True)               
-#                        if ParseDate == ' ':
-                        #increment previous month by one and throw it in until it's populated properly.
-                     if PrevYRMO == '0000-00':
-                         ParseDate = '0000-00'
-                     else:
-                         PrevYR = str(PrevYRMO)[:4]
-                         PrevMO = str(PrevYRMO)[5:]
-                         #let's increment the month now (if it's 12th month, up the year and hit Jan.)
-                         if int(PrevMO) == 12:
-                             PrevYR = int(PrevYR) + 1
-                             PrevMO = 1
-                         else:
-                             PrevMO = int(PrevMO) + 1
-                         if int(PrevMO) < 10:
-                             PrevMO = "0" + str(PrevMO)
-                         ParseDate = str(PrevYR) + "-" + str(PrevMO)
+                ParseDate = GettheDate(parsed,PrevYRMO)                
+   
                 ParseDate = ParseDate.replace(' ','')
                 PrevYRMO = ParseDate
                 gcdinfo['ComicDate'] = ParseDate
@@ -407,13 +386,8 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 
                 gcdinfo['gcdchoice'] = gcdchoice
 
-            altcount = 0 
-            n+=1
-#           ---redundant---
-#                else:
-#                #--if 2 identical issue numbers legitimately exist, but have different
-#                #--publication dates, try to distinguish
-#                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional.")
+#            else:
+#                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
 #                #get current issue & publication date.
 #                logger.fdebug("Issue #:" + str(ParseIssue))
 #                logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
@@ -425,9 +399,9 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 #                           logger.fdebug("Issue #'s and dates match...skipping.")
 #                       else:
 #                           logger.fdebug("Issue#'s match but different publication dates, not skipping.")
-                #pass
-                #logger.fdebug("Duplicate issue detected in DB - ignoring subsequent issue # " + str(gcdinfo['ComicIssue']))
-
+             
+            altcount = 0 
+            n+=1
         i+=1
     gcdinfo['gcdvariation'] = issvariation
     if ComicID[:1] == "G":
@@ -438,6 +412,55 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
     gcdinfo['resultPublished'] = resultPublished
     return gcdinfo
         ## -- end (GCD) -- ##
+
+def GettheDate(parsed,PrevYRMO):
+    #--- let's use pubdate.
+    #try publicationd date first
+    logger.fdebug("parsed:" + str(parsed))    
+    subtxt1 = parsed('td')[1]
+    ParseDate = subtxt1.findNext(text=True)
+    basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
+    pdlen = len(ParseDate)
+    pdfind = ParseDate.find(' ',2)
+    logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
+    logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
+    if ParseDate[pdfind+1:pdlen-1].isdigit():
+        #assume valid date.
+        #search for number as text, and change to numeric
+        for numbs in basmonths:
+            if numbs in ParseDate.lower():
+                pconv = basmonths[numbs]
+                ParseYear = re.sub('/s','',ParseDate[-5:])
+                ParseDate = str(ParseYear) + "-" + str(pconv)
+                logger.fdebug("!success - Publication date: " + str(ParseDate))
+                break
+    else:
+#               #try key date
+#               subtxt1 = parsed('td')[2]
+#               ParseDate = subtxt1.findNext(text=True)
+#               #logger.fdebug("no pub.date detected, attempting to use on-sale date: " + str(ParseDate))
+#               if (ParseDate) < 7:
+#                   #logger.fdebug("Invalid on-sale date - less than 7 characters. Trying Key date")
+#                   subtxt3 = parsed('td')[0]
+#                   ParseDate = subtxt3.findNext(text=True)
+#                   if ParseDate == ' ':
+                    #increment previous month by one and throw it in until it's populated properly.
+        if PrevYRMO == '0000-00':
+            ParseDate = '0000-00'
+        else:
+            PrevYR = str(PrevYRMO)[:4]
+            PrevMO = str(PrevYRMO)[5:]
+            #let's increment the month now (if it's 12th month, up the year and hit Jan.)
+            if int(PrevMO) == 12:
+                PrevYR = int(PrevYR) + 1
+                PrevMO = 1
+            else:
+                PrevMO = int(PrevMO) + 1
+            if int(PrevMO) < 10:
+                PrevMO = "0" + str(PrevMO)
+            ParseDate = str(PrevYR) + "-" + str(PrevMO)
+            logger.fdebug("parseDAte:" + str(ParseDate))
+    return ParseDate
 
 def GCDAdd(gcdcomicid):
     serieschoice = []
