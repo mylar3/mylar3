@@ -274,9 +274,26 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             if 'Vol' in ParseIssue or '[' in ParseIssue or 'a' in ParseIssue or 'b' in ParseIssue or 'c' in ParseIssue:
                 m = re.findall('[^\[\]]+', ParseIssue)
                 # ^^ takes care of [] 
-                ParseIssue = re.sub("[^0-9]", " ", m[0])
-                # ^^ removes everything but the digits from the remaining non-brackets
-                #logger.fdebug("variant cover detected : " + str(ParseIssue))
+                # if it's a decimal - variant ...whoo-boy is messed.
+                if '.' in m[0]:
+                    dec_chk = m[0]
+                    #if it's a digit before and after decimal, assume decimal issue
+                    dec_st = dec_chk.find('.')
+                    dec_b4 = dec_chk[:dec_st]
+                    dec_ad = dec_chk[dec_st+1:]
+                    dec_ad = re.sub("\s", "", dec_ad)
+                    if dec_b4.isdigit() and dec_ad.isdigit():
+                        logger.fdebug("Alternate decimal issue...*Whew* glad I caught that")
+                        ParseIssue = dec_b4 + "." + dec_ad
+                    else:
+                        #logger.fdebug("it's a decimal, but there's no digits before or after decimal")
+                        #not a decimal issue, drop it down to the regex below.
+                        ParseIssue = re.sub("[^0-9]", " ", dec_chk)
+                else:                
+                    ParseIssue = re.sub("[^0-9]", " ", m[0])
+                    # ^^ removes everything but the digits from the remaining non-brackets
+                
+                logger.fdebug("variant cover detected : " + str(ParseIssue))
                 variant="yes"
                 altcount = 1
             isslen = ParseIssue.find(' ')
@@ -284,7 +301,9 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 #logger.fdebug("just digits left..using " + str(ParseIssue))
                 isslen == 0
                 isschk = ParseIssue
+                #logger.fdebug("setting ParseIssue to isschk: " + str(isschk))
             else:
+                #logger.fdebug("parse issue is " + str(ParseIssue))
                 #logger.fdebug("more than digits left - first space detected at position : " + str(isslen))
                 #if 'isslen' exists, it means that it's an alternative cover.
                 #however, if ONLY alternate covers exist of an issue it won't work.
@@ -298,24 +317,29 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 isschk_find = isschk.find('.')
                 isschk_b4dec = isschk[:isschk_find]
                 isschk_decval = isschk[isschk_find+1:]
+                #logger.fdebug("decimal detected for " + str(isschk))
+                #logger.fdebug("isschk_decval is " + str(isschk_decval))
+                if len(isschk_decval) == 1:
+                    ParseIssue = isschk_b4dec + "." + str(int(isschk_decval) * 10)
+
             elif '/' in isschk:
                 ParseIssue = "0.50"
                 isslen = 0
                 halfchk = "yes"
             else:
                 isschk_decval = ".00"
-
+                ParseIssue = ParseIssue + isschk_decval
             if variant == "yes":
                 #logger.fdebug("alternate cover detected - skipping/ignoring.")
                 altcount = 1
   
             # in order to get the compare right, let's decimialize the string to '.00'.
-            if halfchk == "yes": pass
-            else: 
-                ParseIssue = ParseIssue + isschk_decval
+#            if halfchk == "yes": pass
+#            else: 
+#                ParseIssue = ParseIssue + isschk_decval
 
             if not any(d.get('GCDIssue', None) == str(ParseIssue) for d in gcdchoice):
-                #logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
+                logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
                 gcdinfo['ComicIssue'] = ParseIssue
                 #--- let's use pubdate.
                 #try publicationd date first
