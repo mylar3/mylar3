@@ -108,6 +108,26 @@ class WebInterface(object):
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
         myDB = db.DBConnection()
+        print ("I'm here.")
+        if imported == "confirm":
+            # if it's coming from the importer and it's just for confirmation, record the right selection and break.
+            # if it's 'confirmed' coming in as the value for imported
+            # the ogcname will be the original comicid that is either correct/incorrect (doesn't matter which)
+            #confirmedid is the selected series (comicid) with the letter C at the beginning to denote Confirmed.
+            # then sql the original comicid which will hit on all the results for the given series.
+            # iterate through, and overwrite the existing watchmatch with the new chosen 'C' + comicid value
+            
+            confirmedid = "C" + str(comicid)
+            confirms = myDB.action("SELECT * FROM importresults WHERE WatchMatch=?", [ogcname])
+            if confirms is None:
+                print ("There are no results that match...this is an ERROR.")
+            else:
+                for confirm in confirms:
+                    controlValue = {"impID":    confirm['impID']}
+                    newValue = {"WatchMatch":   str(confirmedid)}
+                    myDB.upsert("importresults", newValue, controlValue)
+                    self.importResults()            
+            return
         sresults = []
         cresults = []
         mismatch = "no"
@@ -499,9 +519,40 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % [comicid])
     skipped2wanted.exposed = True
 
-    def ManualRename(self):
+    def manualRename(self, comicid):
+        print ("entering.")
+        if mylar.FILE_FORMAT == '':
+            print ("You haven't specified a File Format in Configuration/Advanced")
+            print ("Cannot rename files.")
+            return
+
+        myDB = db.DBConnection()
+        comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
+        comicdir = comic['ComicLocation']
+        comicname = comic['ComicName']
+        extensions = ('.cbr', '.cbz')
+        issues = myDB.action("SELECT * FROM issues WHERE ComicID=?", [comicid])
+        comfiles = []
+        for root, dirnames, filenames in os.walk(comicdir):
+            for filename in filenames:
+                if filename.lower().endswith(extensions):
+                    print ("filename being checked is : " + str(filename))
+                    for issue in issues:
+                        if issue['Location'] == filename:
+                            print ("matched " + str(filename) + " to DB file " + str(issue['Location']))
+                            renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=None)
+                            nfilename = renameiss['nfilename']
+                            srciss = os.path.join(comicdir,filename)
+                            dstiss = os.path.join(comicdir,nfilename)
+                            logger.info("Renaming " + str(filename) + " ... to " + str(nfilename))
+                            try:
+                                shutil.move(srciss, dstiss)
+                            except (OSError, IOError):
+                                logger.error("Failed to move files - check directories and manually re-run.")
+                            continue
+
         print ("hello")
-    ManualRename.exposed = True
+    manualRename.exposed = True
 
     def searchScan(self, name):
         return serve_template(templatename="searchfix.html", title="Manage", name=name)
@@ -638,6 +689,15 @@ class WebInterface(object):
         return serve_template(templatename="idirectory.html", title="Import a Directory")
     idirectory.exposed = True
 
+    def confirmResult(self,comicname,comicid):
+        #print ("here.")
+        mode='series'
+        sresults = mb.findComic(comicname, mode, None)
+        #print sresults
+        type='comic'
+        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"',searchresults=sresults, type=type, imported='confirm', ogcname=comicid)
+    confirmResult.exposed = True
+
     def comicScan(self, path, scan=0, redirect=None, autoadd=0, libraryscan=0, imp_move=0, imp_rename=0, imp_metadata=0):
         mylar.LIBRARYSCAN = libraryscan
         mylar.ADD_COMICS = autoadd
@@ -679,7 +739,8 @@ class WebInterface(object):
                                 "ComicName":        soma_sl['comicname'],
                                 "ComicFilename":    soma_sl['comfilename'],
                                 "ComicLocation":    soma_sl['comlocation'].encode('utf-8'),
-                                "ImportDate":       helpers.today()}      
+                                "ImportDate":       helpers.today(),
+                                "WatchMatch":       soma_sl['watchmatch']}      
                     myDB.upsert("importresults", newValue, controlValue)
                     sl+=1
                 # because we could be adding volumes/series that span years, we need to account for this
@@ -702,8 +763,9 @@ class WebInterface(object):
 
     def importResults(self):
         myDB = db.DBConnection()
-        results = myDB.select("SELECT * FROM importresults group by ComicName COLLATE NOCASE")
-        return serve_template(templatename="importresults.html", title="Import Results", results=results)
+        results = myDB.select("SELECT * FROM importresults WHERE WatchMatch is Null OR WatchMatch LIKE 'C%' group by ComicName COLLATE NOCASE")
+        watchresults = myDB.select("SELECT * FROM importresults WHERE WatchMatch is not Null AND WatchMatch NOT LIKE 'C%' group by ComicName COLLATE NOCASE")
+        return serve_template(templatename="importresults.html", title="Import Results", results=results, watchresults=watchresults)
     importResults.exposed = True
 
     def deleteimport(self, ComicName):
@@ -713,7 +775,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("importResults")
     deleteimport.exposed = True
 
-    def preSearchit(self, ComicName, imp_rename, imp_move):
+    def preSearchit(self, ComicName):
         #print ("imp_rename:" + str(imp_rename))
         #print ("imp_move:" + str(imp_move))
         myDB = db.DBConnection()
@@ -729,6 +791,23 @@ class WebInterface(object):
         for result in results:
             if result is None:
                 break
+            elif result['WatchMatch'].startswith('C'):
+                print ("Confirmed. ComicID already provided - initiating auto-magik mode for import.")
+                comicid = result['WatchMatch'][1:]
+                print (result['WatchMatch'] + " .to. " + str(comicid))
+                #since it's already in the watchlist, we just need to move the files and re-run the filechecker.
+                #self.refreshArtist(comicid=comicid,imported='yes')
+                if mylar.IMP_MOVE:
+                    logger.info("Mass import - Move files")
+                    comloc = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
+                    mylar.moveit.movefiles(comicid,comloc['ComicLocation'],ComicName)
+                    #check for existing files...
+                    updater.forceRescan(comicid)
+                else:
+                    print ("nothing to do if I'm not moving.")
+
+                raise cherrypy.HTTPRedirect("importResults")
+
             else:
                 comicstoIMP.append(result['ComicLocation'].decode(mylar.SYS_ENCODING, 'replace'))
                 getiss = result['impID'].rfind('-')
@@ -796,9 +875,9 @@ class WebInterface(object):
             resultset = 0
 
         if resultset == 1:
-            self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported=comicstoIMP,ogcname=ogcname)
+            self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
         else:
-            return serve_template(templatename="searchresults.html", title='Search Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported=comicstoIMP, ogcname=ogcname)
+            return serve_template(templatename="searchresults.html", title='Import Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname) #imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
 
     #---
@@ -868,6 +947,7 @@ class WebInterface(object):
                     "lowercase_filenames" : helpers.checked(mylar.LOWERCASE_FILENAMES),
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
+                    "post_processing" : helpers.checked(mylar.POST_PROCESSING),
                     "branch" : version.MYLAR_VERSION,
                     "br_type" : mylar.INSTALL_TYPE,
                     "br_version" : mylar.versioncheck.getVersion(),
@@ -971,7 +1051,7 @@ class WebInterface(object):
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -1032,6 +1112,7 @@ class WebInterface(object):
         mylar.ENABLE_EXTRA_SCRIPTS = enable_extra_scripts
         mylar.EXTRA_SCRIPTS = extra_scripts
         mylar.ENABLE_PRE_SCRIPTS = enable_pre_scripts
+        mylar.POST_PROCESSING = post_processing
         mylar.PRE_SCRIPTS = pre_scripts
         mylar.LOG_DIR = log_dir
         mylar.LOG_LEVEL = log_level

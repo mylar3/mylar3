@@ -63,6 +63,8 @@ LOG_LIST = []
 
 CACHE_DIR = None
 
+PULLNEW = None
+
 HTTP_PORT = None
 HTTP_HOST = None
 HTTP_USERNAME = None
@@ -123,6 +125,7 @@ ADD_TO_CSV = True
 SKIPPED2WANTED = False
 CVINFO = False
 LOG_LEVEL = None
+POST_PROCESSING = True
 
 SAB_HOST = None
 SAB_USERNAME = None
@@ -224,8 +227,8 @@ def initialize():
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW
                 
         if __INITIALIZED__:
             return False
@@ -305,6 +308,7 @@ def initialize():
 
         ENABLE_PRE_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_pre_scripts', 0))
         PRE_SCRIPTS = check_setting_str(CFG, 'General', 'pre_scripts', '')
+        POST_PROCESSING = bool(check_setting_int(CFG, 'General', 'post_processing', 1))
 
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
@@ -559,6 +563,7 @@ def config_write():
     new_config['General']['extra_scripts'] = EXTRA_SCRIPTS
     new_config['General']['enable_pre_scripts'] = int(ENABLE_PRE_SCRIPTS)
     new_config['General']['pre_scripts'] = PRE_SCRIPTS
+    new_config['General']['post_processing'] = POST_PROCESSING
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['sab_host'] = SAB_HOST
@@ -622,6 +627,7 @@ def start():
         
         #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
         logger.info("Checking for existance of Weekly Comic listing...")
+        PULLNEW = 'no'  #reset the indicator here.
         threading.Thread(target=weeklypull.pullit).start()
         #now the scheduler (check every 24 hours)
         SCHED.add_interval_job(weeklypull.pullit, hours=24)
@@ -651,7 +657,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
     conn.commit
     c.close
     #new
@@ -696,6 +702,11 @@ def dbcheck():
         c.execute('SELECT UseFuzzy from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
+
+    try:
+        c.execute('SELECT WatchMatch from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN WatchMatch TEXT')
 # -- not implemented just yet ;)
 
     # for metadata...

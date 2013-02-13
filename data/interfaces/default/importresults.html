@@ -13,6 +13,7 @@
 </%def>
 
 <%def name="body()">
+
 	<div id="paddingheader">
 		<h1 class="clearfix">Borg Importing Results</h1>
 	</div>
@@ -54,6 +55,9 @@
                 <input type="hidden" value="Go">
         </div>
         <table class="display" id="impresults_table">
+               <tr />
+               <tr><center><h3>To be Imported</h3></center></tr>
+                <tr><center><small>(green indicates confirmed on watchlist)</tr>
                 <thead>
                         <tr>
                                 <th id="select"></th>
@@ -67,16 +71,20 @@
                 <tbody>
                                           %if results:
                                           %for result in results:                                      
-                                        <tr>
+                                     <tr>
                                         <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" class="checkbox" /></td>
                                         <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
                                         <td id="comicissues"><title="${result['ComicYear']}">${result['ComicYear']}</td>
-                                        <td id="status">${result['Status']}</td>
-                                        <td id="importdate">${result['ImportDate']}</td>
-                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}&imp_rename=$imp_rename&imp_move=$imp_move">Import</a>]
-                                           [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
+                                        <td id="status">${result['Status']}
+                                        %if result['WatchMatch'] is not None:
+                                            <img src="interfaces/default/images/green-circle.png" height="10" width="10"/>
+                                        %endif
                                         </td>
-                                        </tr>
+                                        <td id="importdate">${result['ImportDate']}</td>
+                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}">Import</a>]
+                                        [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
+                                        </td>
+                                     </tr>
                                         <%
                                              myDB = db.DBConnection()
                                              files = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [result['ComicName']])
@@ -85,24 +93,76 @@
                                         %endfor
                                         %else:
                                         <tr>
-                                        <td colspan="5"><center><legend>There are no results to display</legend></center></td></tr>
+                                        <td colspan="6"><center><legend>There are no results to display</legend></center></td></tr>
                                        %endif
                           </tbody>
 
                           </table>
+
+        <table class="display" id="impresults_table">
+                <tr><br /></tr>
+                <tr><center><h3>Already on Watchlist</h3></center></tr>
+                <tr><center>(you need to CONFIRM the match before doing an import!)
+                <thead>
+                        <tr>
+                                <th id="select"></th>
+                                <th id="comicname">Comic Name</th>
+                                <th id="comicyear">Year</th>
+                                <th id="status">Status</th>
+                                <th id="importdate">Import Date</th>
+                                <th id="confirmed">Confirmed</th>
+                                <th id="addcomic">Options</th>
+                        </tr>
+                </thead>
+                <tbody>
+                                       %if watchresults:
+                                       %for wresult in watchresults:
+                                        <tr>
+                                        <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${wresult['ComicName']}" class="checkbox" /></td>
+                                        <td id="comicname"><a href="http://www.comicvine.com/volume/49-${wresult['WatchMatch']} title="${wresult['ComicName']}" target="_blank">${wresult['ComicName']}</td>
+                                        <td id="comicissues"><title="${wresult['ComicYear']}">${wresult['ComicYear']}</td>
+                                        <td id="status">${wresult['Status']}</td>
+                                        <td id="importdate">${wresult['ImportDate']}</td>
+                                        <td id="confirmed">
+                                         <input type="text" name="confirmed" id="confirmed" size="5">
+                                        %if wresult['WatchMatch']:
+                                         <a href="confirmResult?comicname=${wresult['ComicName']}&comicid=${wresult['WatchMatch']}">Confirm</a>
+                                        %else:
+                                          No
+                                        %endif
+                                        </td>
+                                        <td id="addcomic">[<a href="preSearchit?ComicName=${wresult['ComicName']}">Import</a>]
+                                         [<a href="deleteimport?ComicName=${wresult['ComicName']}">Remove</a>]
+                                        </td>
+                                        </tr>
+                                        <%
+                                            myDB = db.DBConnection()
+                                            files = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [wresult['ComicName']])
+
+                                         %>
+                                       %endfor
+                                       %else:
+                                        <tr>
+                                        <td colspan="100%"><center><legend>There are no results to display</legend></center></td></tr>
+                                       %endif
+                          </tbody>
+                       </table>
+
 </div>
 </form>
 </div>
 </%def>
 <%def name="javascriptIncludes()">
-	<script>
-		function initThisPage() {
-			jQuery( "#tabs" ).tabs();
-			initActions();
-		};
-		$(document).ready(function() {
-			initThisPage();
-		});
-	</script>
+
+        <script>
+                function initThisPage() {
+                        jQuery( "#tabs" ).tabs();
+                        initActions();
+                };
+                $(document).ready(function() {
+                        initThisPage();
+                });
+        </script>
+
 </%def>
 

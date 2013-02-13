@@ -305,7 +305,7 @@ def forceRescan(ComicID):
 
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                    logger.fdebug("checking word - " + str(fcnew[som]))
+                    #logger.fdebug("checking word - " + str(fcnew[som]))
                     if ".cbr" in fcnew[som].lower():
                         fcnew[som] = fcnew[som].replace(".cbr", "")
                     elif ".cbz" in fcnew[som].lower():
@@ -316,7 +316,7 @@ def forceRescan(ComicID):
                         if fcnew[som] != " ":
                             fcnew[som] = get_issue[0]
                     if '.' in fcnew[som]:
-                        logger.fdebug("decimal detected...adjusting.")
+                        #logger.fdebug("decimal detected...adjusting.")
                         try:
                             i = float(fcnew[som])
                         except ValueError, TypeError:

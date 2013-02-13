@@ -1,10 +1,10 @@
 import mylar
-from mylar import db, logger
+from mylar import db, logger, helpers
 import os
 import shutil
 
 
-def movefiles(comlocation,ogcname,imported=None):
+def movefiles(comicid,comlocation,ogcname,imported=None):
     myDB = db.DBConnection()
     print ("comlocation is : " + str(comlocation))
     print ("original comicname is : " + str(ogcname))
@@ -14,7 +14,20 @@ def movefiles(comlocation,ogcname,imported=None):
         #print ("preparing to move " + str(len(impres)) + " files into the right directory now.")
         for impr in impres:
             srcimp = impr['ComicLocation']
-            dstimp = os.path.join(comlocation, impr['ComicFilename'])
+            orig_filename = impr['ComicFilename']
+            orig_iss = impr['impID'].rfind('-')
+            orig_iss = impr['impID'][orig_iss+1:]
+            print ("Issue :" + str(orig_iss))
+            #before moving check to see if Rename to Mylar structure is enabled.
+            if mylar.IMP_RENAME:
+                print("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
+                renameit = helpers.rename_param(comicid, impr['ComicName'], orig_iss, orig_filename)
+                nfilename = renameit['nfilename']
+                dstimp = os.path.join(comlocation,nfilename)
+            else:
+                print("Renaming files not enabled, keeping original filename(s)")
+                dstimp = os.path.join(comlocation,orig_filename)
+
             logger.info("moving " + str(srcimp) + " ... to " + str(dstimp))
             try:
                 shutil.move(srcimp, dstimp)

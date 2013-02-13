@@ -48,10 +48,16 @@
 			</div>
 			<ul id="nav">
 				<li><a href="upcoming">wanted</a></li>
-				<li><a href="pullist">This Week</a></li>
-				<li><a href="manage">manage</a></li>
-				<li><a href="history">history</a></li>
-				<li><a href="logs" class="log">logs</a></li>
+				<li><a href="pullist">
+                                %if mylar.PULLNEW == 'no':
+                                  <img src="interfaces/default/images/grey-circle.png" height="10" width="10" />
+                                %else:
+                                  <img src="interfaces/default/images/green-circle.png" height="10" width="10" />
+                                %endif
+                                 &nbspThis Week</a></li>
+				<li><a href="manage">Manage</a></li>
+				<li><a href="history">History</a></li>
+				<li><a href="logs" class="log">Logs</a></li>
 				<li><a href="config" class="config"><img src="interfaces/default/images/icon_gear.png" alt="settings"/></a></li>
 			</ul>
 			<div id="searchbar">

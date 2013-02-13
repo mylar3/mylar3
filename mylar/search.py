@@ -704,7 +704,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 if mylar.SAB_CATEGORY:
                                     tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
                                     logger.fdebug("...attaching category: " + str(tmpapi))
-                                if mylar.RENAME_FILES == 1:
+                                if mylar.RENAME_FILES or mylar.POST_PROCESSING:
                                     tmpapi = tmpapi + "&script=ComicRN.py"
                                     logger.fdebug("...attaching rename script: " + str(tmpapi))
                                 #final build of send-to-SAB    

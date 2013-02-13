@@ -46,7 +46,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
     basedir = dir
 
-    watchmatch = {}
     comic_list = []
     comiccnt = 0
     extensions = ('cbr','cbz')
@@ -365,18 +364,17 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
                     #issue comparison now as well
                     logger.info(u"Found " + str(comname) + " (" + str(comyear) + ") issue: " + str(comic_iss))
-                    watchfound+=1
-#                   updater.forceRescan(ComicID=comicid)
-#                    if not any(d.get('ComicID', None) == str(comicid) for d in watch_kchoice):
-                    watch_kchoice.append({
-                       "ComicID":         str(comicid),
-                       "ComicName":       str(comname),
-                       "ComicYear":       str(comyear),
-                       "ComicIssue":      str(int(comic_iss)),
-                       "ComicLocation":   str(watch_location),
-                       "OriginalLocation" : str(comlocation),
-                       "OriginalFilename" : str(comfilename)
-                                        })
+#                    watchfound+=1
+                    watchmatch = str(comicid)
+#                    watch_kchoice.append({
+#                       "ComicID":         str(comicid),
+#                       "ComicName":       str(comname),
+#                       "ComicYear":       str(comyear),
+#                       "ComicIssue":      str(int(comic_iss)),
+#                       "ComicLocation":   str(watch_location),
+#                       "OriginalLocation" : str(comlocation),
+#                       "OriginalFilename" : str(comfilename)
+#                                        })
                     foundonwatch = "True"
                     break
                 elif int(spercent) < 80:
@@ -384,33 +382,35 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             cm_cn+=1
 
         if foundonwatch == "False":
+            watchmatch = None
         #---if it's not a match - send it to the importer.
-            n = 0
-            csplit = comic_andiss.split(None)
-            while ( n <= (len(csplit)-1) ):
-                if csplit[n].isdigit():
-                    logger.fdebug("issue detected")
-                    comiss = splitit[n]
-                    logger.fdebug("issue # : " + str(comiss))
-                    comicNAMER = n - 1
-                    com_NAME = csplit[0]
-                    cmnam = 1
-                    while (cmnam <= comicNAMER):
-                        com_NAME = str(com_NAME) + " " + str(csplit[cmnam])
-                        cmnam+=1
-                    logger.fdebug("comic: " + str(com_NAME))
-                n+=1
-            if result_comyear is None: result_comyear = '0000' #no year in filename basically.
-            print ("adding " + str(com_NAME) + " to the import-queue!")
-            impid = str(com_NAME) + "-" + str(result_comyear) + "-" + str(comiss)
-            print ("impid: " + str(impid))
-            import_by_comicids.append({ 
-                "impid": impid,
-                "comicname" : com_NAME,
-                "comicyear" : result_comyear,
-                "comfilename" : comfilename,
-                "comlocation" : comlocation.decode(mylar.SYS_ENCODING)
-                                       })
+        n = 0
+        csplit = comic_andiss.split(None)
+        while ( n <= (len(csplit)-1) ):
+            if csplit[n].isdigit():
+                logger.fdebug("issue detected")
+                comiss = splitit[n]
+                logger.fdebug("issue # : " + str(comiss))
+                comicNAMER = n - 1
+                com_NAME = csplit[0]
+                cmnam = 1
+                while (cmnam <= comicNAMER):
+                    com_NAME = str(com_NAME) + " " + str(csplit[cmnam])
+                    cmnam+=1
+                logger.fdebug("comic: " + str(com_NAME))
+            n+=1
+        if result_comyear is None: result_comyear = '0000' #no year in filename basically.
+        print ("adding " + str(com_NAME) + " to the import-queue!")
+        impid = str(com_NAME) + "-" + str(result_comyear) + "-" + str(comiss)
+        print ("impid: " + str(impid))
+        import_by_comicids.append({ 
+            "impid": impid,
+            "watchmatch": watchmatch,
+            "comicname" : com_NAME,
+            "comicyear" : result_comyear,
+            "comfilename" : comfilename,
+            "comlocation" : comlocation.decode(mylar.SYS_ENCODING)
+                                   })
 
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice

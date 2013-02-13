@@ -379,7 +379,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         print ("imported is :" + str(imported))
         if mylar.IMP_MOVE:
             logger.info("Mass import - Move files")
-            moveit.movefiles(comlocation,ogcname)
+            moveit.movefiles(comicid,comlocation,ogcname)
 
     #check for existing files...
     updater.forceRescan(comicid)
