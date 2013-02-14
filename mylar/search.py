@@ -281,7 +281,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     #print ("we need : " + str(findcomic[findcount]) + " issue: #" + str(findcomiciss[findcount]))
     # replace whitespace in comic name with %20 for api search
     cm1 = re.sub(" ", "%20", str(findcomic[findcount]))
-    cm = re.sub("\&", "%26", str(cm1))
+    #cm = re.sub("\&", "%26", str(cm1))
+    cm = re.sub("and", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
+    cm = re.sub("\&", "", str(cm))
     #print (cmi)
     if '.' in findcomiciss[findcount]:
         if len(str(isschk_b4dec)) == 3:
@@ -362,6 +364,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     logger.fdebug("Entry: " + str(thisentry))
                     cleantitle = re.sub('[_/.]', ' ', str(entry['title']))
                     cleantitle = helpers.cleanName(str(cleantitle))
+                    # this is new - if title contains a '&' in the title it will assume the filename has ended at that point
+                    # which causes false positives (ie. wolverine & the x-men becomes the x-men, which matches on x-men.
+                    # 'the' is removed for comparisons later on
+                    if '&' in cleantitle: cleantitle = re.sub('[/&]','and', cleantitle) 
 
                     nzbname = cleantitle
 
@@ -500,6 +506,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     # make sure that things like - in watchcomic are accounted for when comparing to nzb.
                     watchcomic_split = helpers.cleanName(str(findcomic[findloop]))
+                    if '&' in watchcomic_split: watchcomic_split = re.sub('[/&]','and', watchcomic_split)
                     watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
                      
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))

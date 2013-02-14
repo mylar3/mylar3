@@ -172,6 +172,7 @@ class PostProcessor(object):
             #replace spaces
             nzbname = re.sub(' ', '.', str(nzbname))
             nzbname = re.sub('[\,\:]', '', str(nzbname))
+            nzbname = re.sub('[\&]', 'and', str(nzbname))
 
             logger.fdebug("After conversions, nzbname is : " + str(nzbname))
             self._log("nzbname: " + str(nzbname), logger.DEBUG)
@@ -323,7 +324,7 @@ class PostProcessor(object):
             logger.fdebug("Original Filname: " + str(ofilename))
             logger.fdebug("Original Extension: " + str(ext))
 
-            if mylar.FILE_FORMAT == '':
+            if mylar.FILE_FORMAT == '' or not mylar.RENAME_FILES:
                 self._log("Rename Files isn't enabled...keeping original filename.", logger.DEBUG)
                 logger.fdebug("Rename Files isn't enabled - keeping original filename.")
                 #check if extension is in nzb_name - will screw up otherwise

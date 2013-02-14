@@ -416,7 +416,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 def GettheDate(parsed,PrevYRMO):
     #--- let's use pubdate.
     #try publicationd date first
-    logger.fdebug("parsed:" + str(parsed))    
+    #logger.fdebug("parsed:" + str(parsed))    
     subtxt1 = parsed('td')[1]
     ParseDate = subtxt1.findNext(text=True)
     basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
@@ -435,6 +435,7 @@ def GettheDate(parsed,PrevYRMO):
                 logger.fdebug("!success - Publication date: " + str(ParseDate))
                 break
         # some comics are messed with pub.dates and have Spring/Summer/Fall/Winter
+    else:
         baseseasons = {'spring':'03','summer':'06','fall':'09','winter':'12'}
         for seas in baseseasons:
             if seas in ParseDate.lower():
@@ -442,7 +443,6 @@ def GettheDate(parsed,PrevYRMO):
                 ParseYear = re.sub('/s','',ParseDate[-5:])
                 ParseDate = str(ParseYear) + "-" + str(sconv)
                 break        
-    else:
 #               #try key date
 #               subtxt1 = parsed('td')[2]
 #               ParseDate = subtxt1.findNext(text=True)

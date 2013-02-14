@@ -791,7 +791,13 @@ class WebInterface(object):
         for result in results:
             if result is None:
                 break
-            elif result['WatchMatch'].startswith('C'):
+
+            if result['WatchMatch']:
+                watchmatched = result['WatchMatch']
+            else:
+                watchmatched = ''
+
+            if watchmatched.startswith('C'):
                 print ("Confirmed. ComicID already provided - initiating auto-magik mode for import.")
                 comicid = result['WatchMatch'][1:]
                 print (result['WatchMatch'] + " .to. " + str(comicid))
