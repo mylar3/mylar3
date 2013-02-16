@@ -30,7 +30,6 @@ from lib.configobj import ConfigObj
 import cherrypy
 
 from mylar import versioncheck, logger, version
-from mylar.common import *
 
 FULL_PATH = None
 PROG_DIR = None
@@ -77,6 +76,7 @@ INSTALL_TYPE = None
 CURRENT_VERSION = None
 LATEST_VERSION = None
 COMMITS_BEHIND = None
+USER_AGENT = None
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -221,7 +221,7 @@ def initialize():
     
         global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
-                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, MUSIC_DIR, DESTINATION_DIR, \
+                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, MUSIC_DIR, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
@@ -429,6 +429,15 @@ def initialize():
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION = versioncheck.getVersion()
+        hash = CURRENT_VERSION[:7]
+        print ("hash is set to : " + str(hash))
+
+        if version.MYLAR_VERSION == 'master':
+            vers = 'M'
+        else:
+           vers = 'D'
+
+        USER_AGENT = 'Mylar/'+str(hash)+'('+vers+') +http://www.github.com/evilhero/mylar/'
 
         # Check for new versions
         if CHECK_GITHUB_ON_STARTUP:
@@ -707,6 +716,12 @@ def dbcheck():
         c.execute('SELECT WatchMatch from importresults')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN WatchMatch TEXT')
+
+    try:
+        c.execute('SELECT inCacheDIR from issues')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+
 # -- not implemented just yet ;)
 
     # for metadata...

@@ -327,9 +327,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 comsearch[findloop] = comsrc + "%200" + isssearch[findloop] + "%20" + str(filetype)
             elif cmloopit == 1:
                 comsearch[findloop] = comsrc + "%20" + isssearch[findloop] + "%20" + str(filetype)
-            logger.fdebug("comsearch: " + str(comsearch))
-            logger.fdebug("cmloopit: " + str(cmloopit))
-            logger.fdebug("done: " + str(done))
+            #logger.fdebug("comsearch: " + str(comsearch))
+            #logger.fdebug("cmloopit: " + str(cmloopit))
+            #logger.fdebug("done: " + str(done))
+
             if nzbprov != 'experimental':
                 if nzbprov == 'dognzb':
                     findurl = "http://dognzb.cr/api?t=search&apikey=" + str(apikey) + "&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
@@ -342,9 +343,24 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     logger.fdebug("search-url: " + str(findurl))
                 elif nzbprov == 'nzbx':
                     bb = prov_nzbx.searchit(comsearch[findloop])
-                    logger.fdebug("nzbx.co!")
                 if nzbprov != 'nzbx':
-                    bb = feedparser.parse(findurl)
+                    # Add a user-agent
+                    print ("user-agent:" + str(mylar.USER_AGENT))
+                    request = urllib2.Request(findurl)
+                    request.add_header('User Agent', str(mylar.USER_AGENT))
+                    opener = urllib2.build_opener()
+
+                    try:
+                        data = opener.open(request).read()
+                    except Exception, e:
+                        logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
+                        data = False
+
+                    if data:
+                        bb = feedparser.parse(data)
+                    else:
+                        bb = "no results"
+
             elif nzbprov == 'experimental':
                 #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
                 bb = findcomicfeed.Startit(cm, isssearch[findloop], comyear)

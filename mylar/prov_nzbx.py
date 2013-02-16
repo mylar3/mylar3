@@ -14,14 +14,17 @@ def searchit(cm):
             searchURL = 'https://nzbx.co/api/search?cat=7030&q=' + str(cm)
                 
             logger.fdebug(u'Parsing results from <a href="%s">nzbx.co</a>' % searchURL)
-            
+            request = urllib2.Request(searchURL)
+            request.add_header(mylar.USER_AGENT)
+            opener = urllib2.build_opener()
+
             try:
-                data = urllib2.urlopen(searchURL, timeout=20).read()
-            except urllib2.URLError, e:
-                logger.fdebug('Error fetching data from nzbx.co: %s' % str(e))
+                data = opener.open(request).read()
+            except Exception, e:
+                logger.warn('Error fetching data from nzbx.co : %s' % str(e))
                 data = False
                 return "no results"
-                
+           
             if data:
                 
                 d = json.loads(data)
