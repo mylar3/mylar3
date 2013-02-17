@@ -169,6 +169,10 @@ EXTRA_SCRIPTS = None
 ENABLE_PRE_SCRIPTS = 1
 PRE_SCRIPTS = None
 
+COUNT_COMICS = 0
+COUNT_ISSUES = 0
+COUNT_HAVES = 0
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -228,7 +232,7 @@ def initialize():
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS
                 
         if __INITIALIZED__:
             return False
@@ -429,8 +433,10 @@ def initialize():
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION = versioncheck.getVersion()
-        hash = CURRENT_VERSION[:7]
-        print ("hash is set to : " + str(hash))
+        if CURRENT_VERSION is not None:
+            hash = CURRENT_VERSION[:7]
+        else:
+            hash = "unknown"
 
         if version.MYLAR_VERSION == 'master':
             vers = 'M'

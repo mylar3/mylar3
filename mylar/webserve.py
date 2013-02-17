@@ -431,6 +431,17 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     unqueueissue.exposed = True
     
+    def archiveissue(self, IssueID):
+        myDB = db.DBConnection()
+        issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        logger.info(u"Marking " + issue['ComicName'] + " issue # " + issue['Issue_Number']  + " as archived...")
+        controlValueDict = {'IssueID': IssueID}
+        newValueDict = {'Status': 'Archived'}
+        myDB.upsert("issues", newValueDict, controlValueDict)
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % issue['ComicID'])
+    archiveissue.exposed = True
+
+
     def pullist(self):
         myDB = db.DBConnection()
         weeklyresults = []
@@ -661,26 +672,32 @@ class WebInterface(object):
     clearhistory.exposed = True
 
     def downloadLocal(self, IssueID):
-        print ("issueid: " + str(IssueID))
+        #print ("issueid: " + str(IssueID))
         myDB = db.DBConnection()
         issueDL = myDB.action("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
         comicid = issueDL['ComicID']
-        print ("comicid: " + str(comicid))
+        #print ("comicid: " + str(comicid))
         comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
         issueLOC = comic['ComicLocation']
-        print ("IssueLOC: " + str(issueLOC))
+        #print ("IssueLOC: " + str(issueLOC))
         issueFILE = issueDL['Location']
-        print ("IssueFILE: "+ str(issueFILE))
+        #print ("IssueFILE: "+ str(issueFILE))
         issuePATH = os.path.join(issueLOC,issueFILE)
-        print ("IssuePATH: " + str(issuePATH))
+        #print ("IssuePATH: " + str(issuePATH))
         dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
-        print ("dstPATH: " + str(dstPATH))
-        shutil.copy2(issuePATH, dstPATH)
-        print ("copied to cache...")
-        #issueURL = urllib.quote_plus(issueFILE)
-        #print ("issueURL:" + str(issueURL))
-        filepath = urllib.quote_plus(issueFILE)
-        return serve_file(filepath, "application/x-download", "attachment")
+        #print ("dstPATH: " + str(dstPATH))
+        try:
+            shutil.copy2(issuePATH, dstPATH)
+        except IOError as e:
+            logger.error("Could not copy " + str(issuePATH) + " to " + str(dstPATH) + ". Copy to Cache terminated.")
+            raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+        logger.debug("sucessfully copied to cache...Enabling Download link")
+
+        controlValueDict = {'IssueID': IssueID}
+        newValueDict = {'inCacheDIR': 'True'}
+        myDB.upsert("issues", newValueDict, controlValueDict)
+
+        #print("DB updated - Download link now enabled.")
 
     downloadLocal.exposed = True
     
@@ -811,6 +828,7 @@ class WebInterface(object):
                     updater.forceRescan(comicid)
                 else:
                     print ("nothing to do if I'm not moving.")
+                    #hit the archiver in movefiles here...
 
                 raise cherrypy.HTTPRedirect("importResults")
 
@@ -894,6 +912,16 @@ class WebInterface(object):
 
 #        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
 #        br_hist = branch_history.replace("\n", "<br />\n")
+        myDB = db.DBConnection()
+        CCOMICS = myDB.action("SELECT COUNT(*) FROM comics").fetchall()
+        CHAVES = myDB.action("SELECT COUNT(*) FROM issues WHERE Status='Downloaded' OR Status='Archived'").fetchall()
+        CISSUES = myDB.action("SELECT COUNT(*) FROM issues").fetchall()
+        COUNT_COMICS = CCOMICS[0][0]
+        COUNT_HAVES = CHAVES[0][0]
+        COUNT_ISSUES = CISSUES[0][0]
+        comicinfo = { "COUNT_COMICS" : COUNT_COMICS,
+                      "COUNT_HAVES" : COUNT_HAVES,
+                      "COUNT_ISSUES" : COUNT_ISSUES }
 
         config = { 
                     "http_host" : mylar.HTTP_HOST,
@@ -967,7 +995,7 @@ class WebInterface(object):
                     "pre_scripts" : mylar.PRE_SCRIPTS,
                     "log_dir" : mylar.LOG_DIR
                }
-        return serve_template(templatename="config.html", title="Settings", config=config)  
+        return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)  
     config.exposed = True
 
     def error_change(self, comicid, errorgcd, comicname):

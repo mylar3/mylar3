@@ -19,7 +19,7 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
             orig_iss = impr['impID'][orig_iss+1:]
             print ("Issue :" + str(orig_iss))
             #before moving check to see if Rename to Mylar structure is enabled.
-            if mylar.IMP_RENAME:
+            if mylar.IMP_RENAME and mylar.FILE_FORMAT != '':
                 print("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
                 renameit = helpers.rename_param(comicid, impr['ComicName'], orig_iss, orig_filename)
                 nfilename = renameit['nfilename']
@@ -43,3 +43,14 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
                 newValue = {"Status":           "Imported" }
                 myDB.upsert("importresults", newValue, controlValue)
     return
+
+def archivefiles(comicid,ogcname):
+    # if move files isn't enabled, let's set all found comics to Archive status :)
+    result = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
+    if result is None: pass
+    else:
+        ogdir = result['Location']
+        origdir = os.path.join(os.path.dirname(ogdir))
+
+        updater.forceRescan(comicid,archive=origdir) #send to rescanner with archive mode turned on
+

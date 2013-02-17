@@ -345,9 +345,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     bb = prov_nzbx.searchit(comsearch[findloop])
                 if nzbprov != 'nzbx':
                     # Add a user-agent
-                    print ("user-agent:" + str(mylar.USER_AGENT))
+                    #print ("user-agent:" + str(mylar.USER_AGENT))
                     request = urllib2.Request(findurl)
-                    request.add_header('User Agent', str(mylar.USER_AGENT))
+                    request.add_header('User-Agent', str(mylar.USER_AGENT))
                     opener = urllib2.build_opener()
 
                     try:

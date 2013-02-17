@@ -35,7 +35,16 @@ def dbUpdate():
     for comic in activecomics:
     
         comicid = comic[0]
-        mylar.importer.addComictoDB(comicid)
+        mismatch = "no"
+        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
+        if CV_EXcomicid is None: pass
+        else:
+            if CV_EXcomicid['variloop'] == '99':
+                mismatch = "yes"
+        if comicid[:1] == "G":
+            mylar.importer.GCDimport(comicid)
+        else: 
+            mylar.importer.addComictoDB(comicid,mismatch)
         
     logger.info('Update complete')
 
@@ -209,12 +218,15 @@ def foundsearch(ComicID, IssueID):
     logger.info(u"Updating now complete for " + str(comic['ComicName']) + " issue: " + str(issue['Issue_Number']))
     return
 
-def forceRescan(ComicID):
+def forceRescan(ComicID,archive=None):
     myDB = db.DBConnection()
     # file check to see if issue exists
     rescan = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
     logger.info(u"Now checking files for " + str(rescan['ComicName']) + " (" + str(rescan['ComicYear']) + ") in " + str(rescan['ComicLocation']) )
-    fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
+    if archive is None:
+        fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
+    else:
+        fc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
     iscnt = rescan['Total']
     havefiles = 0
     fccnt = int(fc['comiccount'])
@@ -410,6 +422,8 @@ def forceRescan(ComicID):
         #we have the # of comics, now let's update the db.
         #even if we couldn't find the physical issue, check the status.
         #if Archived, increase the 'Have' count.
+        if archive:
+            issStatus = "Archived"
         if haveissue == "no" and issuedupe == "no":
             isslocation = "None"
             if old_status == "Skipped":

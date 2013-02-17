@@ -12,7 +12,8 @@
 				<th id="publisher">Publisher</th>
 				<th id="name">Comic</th>
                                 <th id="year">Year</th>
-				<th id="issue">Latest Issue</th>
+				<th id="issue">Last Issue</th>
+                                <th id="published">Published</th>
 				<th id="have">Have</th>
                                 <th id="status">Status</th>
                                 <th id="status">Active</th>
@@ -66,7 +67,8 @@
 				<td id="publisher">${comic['ComicPublisher']}</td>
                                 <td id="name"><span title="${comic['ComicSortName']}"></span><a href="artistPage?ComicID=${comic['ComicID']}">${comic['ComicName']}</a></td>
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>                               
-				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']} (${comic['LatestDate']})</td>
+				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
+                                <td id="published">${comic['LatestDate']}</td>
 				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
 				<td id="status">
                                 %if 'present' in comic['ComicPublished'].lower():
@@ -102,7 +104,7 @@
                         {
 			        "bDestroy": true,
 			        "aoColumnDefs": [
-			          { 'bSortable': false, 'aTargets': [ 4 ] }
+			          { 'bSortable': false, 'aTargets': [ 5 ] }
 			        ],
 			        "oLanguage": {
                                         "sLengthMenu":"Show _MENU_ results per page",

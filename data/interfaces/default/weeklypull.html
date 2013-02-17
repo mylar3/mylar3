@@ -14,7 +14,7 @@
 </%def>
 
 <%def name="body()">
-        <div id="artistheader" class="clearfix">
+        <div class="clearfix">
                 <h1>Weekly Pull list for : ${pulldate}</h1>
         </div>
 
@@ -24,7 +24,7 @@
 		<thead>
 			<tr>
                                 <th id="publisher">Publisher</th>
-                                <th id="comicname">COMIC</th>
+                                <th id="comicname">Comic</th>
 				<th id="comicnumber">Number</th>
 				<th id="status">Status</th>
 			</tr>
@@ -76,9 +76,9 @@
                 $('#pull_table').dataTable (
                         {
                                 "bDestroy": true,
-                                "aoColumnDefs": [
-                                       { 'bSortable': false, 'aTargets': [ 2,3 ] }
-                                ],
+                                //"aoColumnDefs": [
+                                //       { 'bSortable': false, 'aTargets': [ 2,3 ] }
+                                //],
                                 "oLanguage": {
                                        "sLengthMenu":"Show _MENU_ issues per page",
                                        "sEmptyTable": "No issue information available",

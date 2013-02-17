@@ -15,7 +15,7 @@ def searchit(cm):
                 
             logger.fdebug(u'Parsing results from <a href="%s">nzbx.co</a>' % searchURL)
             request = urllib2.Request(searchURL)
-            request.add_header(mylar.USER_AGENT)
+            request.add_header('User-Agent', str(mylar.USER_AGENT))
             opener = urllib2.build_opener()
 
             try:

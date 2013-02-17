@@ -375,11 +375,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     if imported is None or imported == 'None':
         pass
     else:
-        print ("imported length is : " + str(len(imported)))
-        print ("imported is :" + str(imported))
         if mylar.IMP_MOVE:
             logger.info("Mass import - Move files")
             moveit.movefiles(comicid,comlocation,ogcname)
+        else:
+            logger.info("Mass import - Moving not Enabled. Setting Archived Status for import.")
+            moveit.archivefiles(comicid,ogcname)
 
     #check for existing files...
     updater.forceRescan(comicid)
