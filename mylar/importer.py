@@ -242,111 +242,111 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     #fccnt = int(fc['comiccount'])
     #logger.info(u"Found " + str(fccnt) + "/" + str(iscnt) + " issues of " + comic['ComicName'] + "...verifying")
     #fcnew = []
-
-    while (n <= iscnt):
+    if iscnt > 0: #if a series is brand new, it wont have any issues/details yet so skip this part
+        while (n <= iscnt):
         #---NEW.code
-        try:
-            firstval = issued['issuechoice'][n]
-        except IndexError:
-            break
-        cleanname = helpers.cleanName(firstval['Issue_Name'])
-        issid = str(firstval['Issue_ID'])
-        issnum = str(firstval['Issue_Number'])
-        issname = cleanname
-        if '.' in str(issnum):
-            issn_st = str(issnum).find('.')
-            issn_b4dec = str(issnum)[:issn_st]
-            #if the length of decimal is only 1 digit, assume it's a tenth
-            dec_is = str(issnum)[issn_st + 1:]
-            if len(dec_is) == 1:
-                dec_nisval = int(dec_is) * 10
-                iss_naftdec = str(dec_nisval)
-            if len(dec_is) == 2:
-                dec_nisval = int(dec_is)
-                iss_naftdec = str(dec_nisval)
-            iss_issue = issn_b4dec + "." + iss_naftdec
-            issis = (int(issn_b4dec) * 1000) + dec_nisval
-        else: issis = int(issnum) * 1000
-
-        bb = 0
-        while (bb <= iscnt):
-            try: 
-                gcdval = gcdinfo['gcdchoice'][bb]
+            try:
+                firstval = issued['issuechoice'][n]
             except IndexError:
-                #account for gcd variation here
-                if gcdinfo['gcdvariation'] == 'gcd':
-                    #print ("gcd-variation accounted for.")
-                    issdate = '0000-00-00'
-                    int_issnum =  int ( issis / 1000 )
                 break
-            if 'nn' in str(gcdval['GCDIssue']):
-                #no number detected - GN, TP or the like
-                logger.warn(u"Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
-                updater.no_searchresults(comicid)
-                return
-            elif '.' in str(gcdval['GCDIssue']):
-                #print ("g-issue:" + str(gcdval['GCDIssue']))
-                issst = str(gcdval['GCDIssue']).find('.')
-                #print ("issst:" + str(issst))
-                issb4dec = str(gcdval['GCDIssue'])[:issst]
-                #print ("issb4dec:" + str(issb4dec))
+            cleanname = helpers.cleanName(firstval['Issue_Name'])
+            issid = str(firstval['Issue_ID'])
+            issnum = str(firstval['Issue_Number'])
+            issname = cleanname
+            if '.' in str(issnum):
+                issn_st = str(issnum).find('.')
+                issn_b4dec = str(issnum)[:issn_st]
                 #if the length of decimal is only 1 digit, assume it's a tenth
-                decis = str(gcdval['GCDIssue'])[issst+1:]
-                #print ("decis:" + str(decis))
-                if len(decis) == 1:
-                    decisval = int(decis) * 10
-                    issaftdec = str(decisval)
-                if len(decis) == 2:
-                    decisval = int(decis)
-                    issaftdec = str(decisval)
-                gcd_issue = issb4dec + "." + issaftdec
-                #print ("gcd_issue:" + str(gcd_issue))
-                gcdis = (int(issb4dec) * 1000) + decisval
-            else:
-                gcdis = int(str(gcdval['GCDIssue'])) * 1000
-            if gcdis == issis:
-                issdate = str(gcdval['GCDDate'])
-                int_issnum = int( gcdis / 1000 )
-                #get the latest issue / date using the date.
-                if gcdval['GCDDate'] > latestdate:
-                    latestiss = str(issnum)
-                    latestdate = str(gcdval['GCDDate'])
+                dec_is = str(issnum)[issn_st + 1:]
+                if len(dec_is) == 1:
+                    dec_nisval = int(dec_is) * 10
+                    iss_naftdec = str(dec_nisval)
+                if len(dec_is) == 2:
+                    dec_nisval = int(dec_is)
+                    iss_naftdec = str(dec_nisval)
+                iss_issue = issn_b4dec + "." + iss_naftdec
+                issis = (int(issn_b4dec) * 1000) + dec_nisval
+            else: issis = int(issnum) * 1000
+
+            bb = 0
+            while (bb <= iscnt):
+                try: 
+                    gcdval = gcdinfo['gcdchoice'][bb]
+                except IndexError:
+                    #account for gcd variation here
+                    if gcdinfo['gcdvariation'] == 'gcd':
+                        #print ("gcd-variation accounted for.")
+                        issdate = '0000-00-00'
+                        int_issnum =  int ( issis / 1000 )
                     break
-                #bb = iscnt
-            bb+=1
-        #print("(" + str(n) + ") IssueID: " + str(issid) + " IssueNo: " + str(issnum) + " Date" + str(issdate))
-        #---END.NEW.
+                if 'nn' in str(gcdval['GCDIssue']):
+                    #no number detected - GN, TP or the like
+                    logger.warn(u"Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
+                    updater.no_searchresults(comicid)
+                    return
+                elif '.' in str(gcdval['GCDIssue']):
+                    #print ("g-issue:" + str(gcdval['GCDIssue']))
+                    issst = str(gcdval['GCDIssue']).find('.')
+                    #print ("issst:" + str(issst))
+                    issb4dec = str(gcdval['GCDIssue'])[:issst]
+                    #print ("issb4dec:" + str(issb4dec))
+                    #if the length of decimal is only 1 digit, assume it's a tenth
+                    decis = str(gcdval['GCDIssue'])[issst+1:]
+                    #print ("decis:" + str(decis))
+                    if len(decis) == 1:
+                        decisval = int(decis) * 10
+                        issaftdec = str(decisval)
+                    if len(decis) == 2:
+                        decisval = int(decis)
+                        issaftdec = str(decisval)
+                    gcd_issue = issb4dec + "." + issaftdec
+                    #print ("gcd_issue:" + str(gcd_issue))
+                    gcdis = (int(issb4dec) * 1000) + decisval
+                else:
+                    gcdis = int(str(gcdval['GCDIssue'])) * 1000
+                if gcdis == issis:
+                    issdate = str(gcdval['GCDDate'])
+                    int_issnum = int( gcdis / 1000 )
+                    #get the latest issue / date using the date.
+                    if gcdval['GCDDate'] > latestdate:
+                        latestiss = str(issnum)
+                        latestdate = str(gcdval['GCDDate'])
+                        break
+                   #bb = iscnt
+                bb+=1
+            #print("(" + str(n) + ") IssueID: " + str(issid) + " IssueNo: " + str(issnum) + " Date" + str(issdate))
+            #---END.NEW.
 
-        # check if the issue already exists
-        iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
+            # check if the issue already exists
+            iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
 
-        # Only change the status & add DateAdded if the issue is already in the database
-        if iss_exists is None:
-            newValueDict['DateAdded'] = helpers.today()
+            # Only change the status & add DateAdded if the issue is already in the database
+            if iss_exists is None:
+                newValueDict['DateAdded'] = helpers.today()
 
-        controlValueDict = {"IssueID":  issid}
-        newValueDict = {"ComicID":            comicid,
-                        "ComicName":          comic['ComicName'],
-                        "IssueName":          issname,
-                        "Issue_Number":       issnum,
-                        "IssueDate":          issdate,
-                        "Int_IssueNumber":    int_issnum
-                        }        
-        if mylar.AUTOWANT_ALL:
-            newValueDict['Status'] = "Wanted"
-        elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
-            newValueDict['Status'] = "Wanted"
-        else:
-            newValueDict['Status'] = "Skipped"
+            controlValueDict = {"IssueID":  issid}
+            newValueDict = {"ComicID":            comicid,
+                            "ComicName":          comic['ComicName'],
+                            "IssueName":          issname,
+                            "Issue_Number":       issnum,
+                            "IssueDate":          issdate,
+                            "Int_IssueNumber":    int_issnum
+                            }        
+            if mylar.AUTOWANT_ALL:
+                newValueDict['Status'] = "Wanted"
+            elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
+                newValueDict['Status'] = "Wanted"
+            else:
+                newValueDict['Status'] = "Skipped"
 
-        if iss_exists:
-            #print ("Existing status : " + str(iss_exists['Status']))
-            newValueDict['Status'] = iss_exists['Status']     
+            if iss_exists:
+                #print ("Existing status : " + str(iss_exists['Status']))
+                newValueDict['Status'] = iss_exists['Status']     
 
-        #logger.fdebug("newValueDict:" + str(newValueDict))
+            #logger.fdebug("newValueDict:" + str(newValueDict))
             
-        myDB.upsert("issues", newValueDict, controlValueDict)
-        n+=1
+            myDB.upsert("issues", newValueDict, controlValueDict)
+            n+=1
 
 #        logger.debug(u"Updating comic cache for " + comic['ComicName'])
 #        cache.getThumb(ComicID=issue['issueid'])
