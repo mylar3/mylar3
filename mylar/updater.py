@@ -93,6 +93,15 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         upco_iss = myDB.action("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID]).fetchone()
         if upco_iss > 0:
             print ("There is " + str(upco_iss[0]) + " of " + str(ComicName) + " that's not accounted for")
+            newKey = {"ComicID": ComicID}
+            newVal = {"not_updated_db": str(upco_iss[0])}
+            myDB.upsert("comics", newVal, newKey)
+        elif upco_iss <=0 and lastupdatecheck['not_updated_db']:
+            #if not_updated_db has a value, and upco_iss is > 0, let's zero it back out cause it's updated now.
+            newKey = {"ComicID": ComicID}
+            newVal - {"not_updated_db": null}
+            myDB.upsert("comics", newVal, newKey)
+
         if hours > 5:
             pullupd = "yes"
             logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")

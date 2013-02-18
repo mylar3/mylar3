@@ -979,6 +979,14 @@ class WebInterface(object):
                     "add_to_csv" : helpers.checked(mylar.ADD_TO_CSV),
                     "cvinfo" : helpers.checked(mylar.CVINFO),
                     "lowercase_filenames" : helpers.checked(mylar.LOWERCASE_FILENAMES),
+                    "prowl_enabled": helpers.checked(mylar.PROWL_ENABLED),
+                    "prowl_onsnatch": helpers.checked(mylar.PROWL_ONSNATCH),
+                    "prowl_keys": mylar.PROWL_KEYS,
+                    "prowl_priority": mylar.PROWL_PRIORITY,
+                    "nma_enabled": helpers.checked(mylar.NMA_ENABLED),
+                    "nma_apikey": mylar.NMA_APIKEY,
+                    "nma_priority": int(mylar.NMA_PRIORITY),
+                    "nma_onsnatch": helpers.checked(mylar.NMA_ONSNATCH),
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
                     "post_processing" : helpers.checked(mylar.POST_PROCESSING),
@@ -1085,6 +1093,7 @@ class WebInterface(object):
         sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
+        prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
@@ -1132,6 +1141,14 @@ class WebInterface(object):
         mylar.ADD_TO_CSV = add_to_csv
         mylar.CVINFO = cvinfo
         mylar.LOWERCASE_FILENAMES = lowercase_filenames
+        mylar.PROWL_ENABLED = prowl_enabled
+        mylar.PROWL_ONSNATCH = prowl_onsnatch
+        mylar.PROWL_KEYS = prowl_keys
+        mylar.PROWL_PRIORITY = prowl_priority
+        mylar.NMA_ENABLED = nma_enabled
+        mylar.NMA_APIKEY = nma_apikey
+        mylar.NMA_PRIORITY = nma_priority
+        mylar.NMA_ONSNATCH = nma_onsnatch
         mylar.USE_MINSIZE = use_minsize
         mylar.MINSIZE = minsize
         mylar.USE_MAXSIZE = use_maxsize

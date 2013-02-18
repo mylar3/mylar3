@@ -122,6 +122,14 @@ AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
 ADD_TO_CSV = True
+PROWL_ENABLED = True
+PROWL_PRIORITY = 1
+PROWL_KEYS = None
+PROWL_ONSNATCH = True
+NMA_ENABLED = False
+NMA_APIKEY = None
+NMA_PRIORITY = None
+NMA_ONSNATCH = None
 SKIPPED2WANTED = False
 CVINFO = False
 LOG_LEVEL = None
@@ -231,6 +239,7 @@ def initialize():
                 NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
+                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS
                 
@@ -300,6 +309,17 @@ def initialize():
         ZERO_LEVEL = bool(check_setting_int(CFG, 'General', 'zero_level', 0))
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
         LOWERCASE_FILENAMES = bool(check_setting_int(CFG, 'General', 'lowercase_filenames', 0))
+
+        PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
+        PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
+        PROWL_ONSNATCH = bool(check_setting_int(CFG, 'Prowl', 'prowl_onsnatch', 0))
+        PROWL_PRIORITY = check_setting_int(CFG, 'Prowl', 'prowl_priority', 0)
+
+        NMA_ENABLED = bool(check_setting_int(CFG, 'NMA', 'nma_enabled', 0))
+        NMA_APIKEY = check_setting_str(CFG, 'NMA', 'nma_apikey', '')
+        NMA_PRIORITY = check_setting_int(CFG, 'NMA', 'nma_priority', 0)
+        NMA_ONSNATCH = bool(check_setting_int(CFG, 'NMA', 'nma_onsnatch', 0))
+
         USE_MINSIZE = bool(check_setting_int(CFG, 'General', 'use_minsize', 0))
         MINSIZE = check_setting_str(CFG, 'General', 'minsize', '')
         USE_MAXSIZE = bool(check_setting_int(CFG, 'General', 'use_maxsize', 0))
@@ -567,6 +587,7 @@ def config_write():
     new_config['General']['zero_level'] = int(ZERO_LEVEL)
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
     new_config['General']['lowercase_filenames'] = LOWERCASE_FILENAMES
+
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
@@ -615,6 +636,18 @@ def config_write():
             flattened_newznabs.append(item)
 
     new_config['Newznab']['extra_newznabs'] = flattened_newznabs
+
+    new_config['Prowl'] = {}
+    new_config['Prowl']['prowl_enabled'] = int(PROWL_ENABLED)
+    new_config['Prowl']['prowl_keys'] = PROWL_KEYS
+    new_config['Prowl']['prowl_onsnatch'] = int(PROWL_ONSNATCH)
+    new_config['Prowl']['prowl_priority'] = int(PROWL_PRIORITY)
+
+    new_config['NMA'] = {}
+    new_config['NMA']['nma_enabled'] = int(NMA_ENABLED)
+    new_config['NMA']['nma_apikey'] = NMA_APIKEY
+    new_config['NMA']['nma_priority'] = NMA_PRIORITY
+    new_config['NMA']['nma_onsnatch'] = int(PROWL_ONSNATCH)
 
     new_config['Raw'] = {}
     new_config['Raw']['raw'] = int(RAW)
@@ -727,6 +760,14 @@ def dbcheck():
         c.execute('SELECT inCacheDIR from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+
+    #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
+    #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
+    #value in the sql so we can display it in the details screen for everyone to wonder at.
+    try:
+        c.execute('SELECT not_updated_db from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN not_updated_db TEXT')
 
 # -- not implemented just yet ;)
 

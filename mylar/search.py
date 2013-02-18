@@ -16,7 +16,7 @@
 from __future__ import division
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit, findcomicfeed, prov_nzbx
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed, prov_nzbx, notifiers
 
 nzbsu_APIkey = mylar.NZBSU_APIKEY
 dognzb_APIkey = mylar.DOGNZB_APIKEY
@@ -742,12 +742,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     return
 
                                 logger.info(u"Successfully sent nzb file to SABnzbd")
-                                #delete the .nzb now.
-                                #if mylar.PROG_DIR is not "/" and nzbprov != 'nzb.su':
-                                #    logger.fdebug("preparing to remove temporary nzb file at: " + str(savefile))
-                                #    os.remove(savefile)
-                                #    logger.info(u"Removed temporary save file")
-                            #raise an exception to break out of loop
+
+                                if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
+                                    logger.info(u"Sending Prowl notification")
+                                    prowl = notifiers.PROWL()
+                                    prowl.notify(nzbname,"Download started")
+                                if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
+                                    logger.info(u"Sending NMA notification")
+                                    nma = notifiers.NMA()
+                                    nma.notify(snatched_nzb=nzbname)
 
 
                             foundc = "yes"

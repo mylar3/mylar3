@@ -198,7 +198,7 @@
                       <legend>Usenet</legend>
                        <fieldset>
                             <div class="row checkbox">
-                                <input id="useblackhole" type="checkbox" name="blackhole" value=1 ${config['use_blackhole']} /><label>Use Black Hole</label>
+                                <input id="useblackhole" type="checkbox" onclick="initConfigCheckbox($(this));" name="blackhole" value=1 ${config['use_blackhole']} /><label>Use Black Hole</label>
                             </div>
                             <div class="config">
                                     <div class="row">
@@ -497,8 +497,68 @@
 							<label>Log Directory:</label>
 							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
 						</div>
+
 					</fieldset>
-						            	
+                                        <h2>Notifications</h2>
+                                        <fieldset>
+                                                <h3>Prowl</h3>
+                                                <div class="row checkbox">
+                                                    <input type="checkbox" name="prowl_enabled" id="prowl" value="1" ${config['prowl_enabled']} /><label>Enable Prowl Notifications</label>
+                                                 </div>
+                                                 <div id="prowloptions">
+                                                     <div class="row">
+                                                         <label>API key</label><input type="text" name="prowl_keys" value="${config['prowl_keys']}" size="50">
+                                                     </div>
+                                                        <div class="row checkbox">
+                                                             <input type="checkbox" name="prowl_onsnatch" value="1" ${config['prowl_onsnatch']} /><label>Notify on snatch?</label>
+                                                        </div>
+                                                        <div class="row">
+                                                                <label>Priority (-2,-1,0,1 or 2):</label>
+                                                                   <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
+                                                        </div>
+                                                 </div>
+                                        </fieldset>
+                     <fieldset>
+                        <h3>NotifyMyAndroid</h3>
+                        <div class="checkbox row">
+                            <input type="checkbox" name="nma_enabled" id="nma" value="1" ${config['nma_enabled']} /><label>Enable NotifyMyAndroid</label>
+                        </div>
+                        <div id="nmaoptions">
+                            <div class="row">
+                                    <div class="row checkbox">
+                                         <input type="checkbox" name="nma_onsnatch" value="1" ${config['nma_onsnatch']} /><label>Notify on snatch?</label>
+                                    </div>
+                                    <label>NotifyMyAndroid API Key</label>
+                                    <input type="text" name="nma_apikey" value="${config['nma_apikey']}" size="30">
+                                    <small>Separate multiple api keys with commas</small>
+                            </div>
+                            <div class="row">
+                            <label>Priority</label>
+                            <select name="nma_priority">
+                                        %for x in [-2,-1,0,1,2]:
+                                                <%
+                                                        if config['nma_priority'] == x:	
+                                                                nma_priority_selected = 'selected'
+                                                        else:
+                                                                nma_priority_selected = ''
+
+                                                        if x == -2:
+                                                                nma_priority_value = 'Very Low'
+                                                        elif x == -1:
+                                                                nma_priority_value = 'Moderate'
+                                                        elif x == 0:
+                                                                nma_priority_value = 'Normal'
+                                                        elif x == 1:
+                                                                nma_priority_value = 'High'
+                                                        else:
+                                                                nma_priority_value = 'Emergency'
+                                                %>
+                                <option value=${x} ${nma_priority_selected}>${nma_priority_value}</option>
+                                        %endfor
+                                </select>
+                                </div>
+                        </div>
+                     </fieldset>
                                         
             
 				</td>
@@ -539,6 +599,48 @@
 	function initThisPage() 
 	
 	{
+
+                if ($("#prowl").is(":checked"))
+                        {
+                                $("#prowloptions").show();
+                        }
+                else
+                        {
+                                $("#prowloptions").hide();
+                        }
+
+                $("#prowl").click(function(){
+                        if ($("#prowl").is(":checked"))
+                        {
+                                $("#prowloptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#prowloptions").slideUp();
+                        }
+                });
+
+                if ($("#nma").is(":checked"))
+                        {
+                                $("#nmaoptions").show();
+                        }
+                else
+                        {
+                                $("#nmaoptions").hide();
+                        }
+
+                $("#nma").click(function(){
+                        if ($("#nma").is(":checked"))
+                        {
+                                $("#nmaoptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#nmaoptions").slideUp();
+                        }
+                });
+
+
                 var deletedNewznabs = 0;
 
                 $(".remove").click(function() {
@@ -567,6 +669,7 @@
 		});
 		initActions();
                 initConfigCheckbox("#launch_browser");
+                initConfigCheckbox("#useblackhole");
                 initConfigCheckbox("#usenewznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
