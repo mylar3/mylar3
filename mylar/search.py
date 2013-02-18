@@ -645,7 +645,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     #pretty this biatch up.
                                     Bl_ComicName = re.sub('[/:/,\/]', '', str(ComicName))
                                     filenamenzb = str(re.sub(" ", ".", str(Bl_ComicName))) + "." + str(IssueNumber) + ".(" + str(comyear) + ").nzb"
-                                    urllib.urlretrieve(linkapi, str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    # Add a user-agent
+                                    request = urllib2.Request(linkapi) #(str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    request.add_header('User-Agent', str(mylar.USER_AGENT))
+                                    try: 
+                                        opener = urlretrieve(urllib2.urlopen(request), str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+                                    except Exception, e:
+                                         logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
+                                         return
                                     logger.fdebug("filename saved to your blackhole as : " + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
                                     nzbname = filenamenzb[:-4]
@@ -856,3 +863,13 @@ def searchIssueIDList(issuelist):
                     pass
                     #print ("not found!")
 
+def urlretrieve(urlfile, fpath):
+    chunk = 4096
+    f = open(fpath, "w")
+    while 1:
+        data = urlfile.read(chunk)
+        if not data:
+            print "done."
+            break
+        f.write(data)
+        print "Read %s bytes"%len(data)
