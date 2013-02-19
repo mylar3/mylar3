@@ -179,8 +179,11 @@ def pullit():
                                 issue = "NA"
                                 break
                             issue = issname[n]
-                            #print ("issue found : " + issname[n])
-                            comicend = n - 1
+                            if 'ongoing' not in issname[n-1].lower():
+                                #print ("issue found : " + issname[n])
+                                comicend = n - 1
+                            else:
+                                comicend = n - 2
                             break
                         n+=1
                     if issue == "": issue = 'NA'
