@@ -934,6 +934,7 @@ class WebInterface(object):
                     "nzb_search_interval" : mylar.SEARCH_INTERVAL,
                     "nzb_startup_search" : helpers.checked(mylar.NZB_STARTUP_SEARCH),
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
+                    "use_sabnzbd" : helpers.checked(mylar.USE_SABNZBD),
                     "sab_host" : mylar.SAB_HOST,
                     "sab_user" : mylar.SAB_USERNAME,
                     "sab_api" : mylar.SAB_APIKEY,
@@ -941,6 +942,14 @@ class WebInterface(object):
                     "sab_cat" : mylar.SAB_CATEGORY,
                     "sab_priority" : mylar.SAB_PRIORITY,
                     "sab_directory" : mylar.SAB_DIRECTORY,
+                    "use_nzbget" : helpers.checked(mylar.USE_NZBGET),
+                    "nzbget_host" : mylar.NZBGET_HOST,
+                    "nzbget_port" : mylar.NZBGET_PORT,
+                    "nzbget_user" : mylar.NZBGET_USERNAME,
+                    "nzbget_pass" : mylar.NZBGET_PASSWORD,
+                    "nzbget_cat" : mylar.NZBGET_CATEGORY,
+                    "nzbget_priority" : mylar.NZBGET_PRIORITY,
+
                     "use_blackhole" : helpers.checked(mylar.BLACKHOLE),
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,
@@ -1090,7 +1099,8 @@ class WebInterface(object):
     comic_config.exposed = True
     
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
-        sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
+        use_sabnzbd=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
+        use_nzbget=0, nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0,
@@ -1106,6 +1116,7 @@ class WebInterface(object):
         mylar.SEARCH_INTERVAL = nzb_search_interval
         mylar.NZB_STARTUP_SEARCH = nzb_startup_search
         mylar.LIBRARYSCAN_INTERVAL = libraryscan_interval
+        mylar.USE_SABNZBD = use_sabnzbd
         mylar.SAB_HOST = sab_host
         mylar.SAB_USERNAME = sab_username
         mylar.SAB_PASSWORD = sab_password      
@@ -1113,6 +1124,13 @@ class WebInterface(object):
         mylar.SAB_CATEGORY = sab_category
         mylar.SAB_PRIORITY = sab_priority
         mylar.SAB_DIRECTORY = sab_directory
+        mylar.USE_NZBGET = use_nzbget
+        mylar.NZBGET_HOST = nzbget_host
+        mylar.NZBGET_USERNAME = nzbget_username
+        mylar.NZBGET_PASSWORD = nzbget_password
+        mylar.NZBGET_PORT = nzbget_port
+        mylar.NZBGET_CATEGORY = nzbget_category
+        mylar.NZBGET_PRIORITY = nzbget_priority
         mylar.BLACKHOLE = blackhole
         mylar.BLACKHOLE_DIR = blackhole_dir
         mylar.USENET_RETENTION = usenet_retention

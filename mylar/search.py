@@ -338,7 +338,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
                     #let's make sure the host has a '/' at the end, if not add it.
-                    if host_newznab[-1] != "/": host_newznab = str(host_newznab) + "/"
+                    if host_newznab[:-1] != "/": host_newznab = str(host_newznab) + "/"
                     findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
                     logger.fdebug("search-url: " + str(findurl))
                 elif nzbprov == 'nzbx':
@@ -698,57 +698,58 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("new linkapi (this should =nzbname) :" + str(linkapi))
 
 #                               #test nzb.get
-#                               if mylar.NZBGET:                                
-#                                   from xmlrpclib import ServerProxy
-#                                   if mylar.NZBGET_HOST[:4] = 'http':
-#                                       tmpapi = "http://"
-#                                       nzbget_host = mylar.NZBGET_HOST[7]
-#                                   elif mylar.NZBGET_HOST[:5] = 'https':
-#                                       tmpapi = "https://"
-#                                       nzbget_host = mylar.NZBGET_HOST[8]
-#                                   tmpapi = tmpapi + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
-#                                   tmpapi = tmpapi + "@" + nzbget_host + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"                               
-#                                   server = ServerProxy(tmpapi)
-#                                   send_to_nzbget = server.appendurl(nzbname, mylar.NZBGET_CATEGORY, mylar.NZBGET_PRIORITY, True, str(linkapi))
-#                                   if send_to_nzbget is True:
-#                                       logger.info("Successfully sent nzb to NZBGet!")
-#                                   else:
-#                                       logger.info("Unable to send nzb to NZBGet - check your configs.")
-#                               #end nzb.get test
+                                if mylar.USE_NZBGET:                                
+                                    from xmlrpclib import ServerProxy
+                                    if mylar.NZBGET_HOST[:4] == 'http':
+                                        tmpapi = "http://"
+                                        nzbget_host = mylar.NZBGET_HOST[7]
+                                    elif mylar.NZBGET_HOST[:5] == 'https':
+                                        tmpapi = "https://"
+                                        nzbget_host = mylar.NZBGET_HOST[8]
+                                    tmpapi = tmpapi + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
+                                    tmpapi = tmpapi + "@" + nzbget_host + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"                               
+                                    server = ServerProxy(tmpapi)
+                                    send_to_nzbget = server.appendurl(nzbname, mylar.NZBGET_CATEGORY, mylar.NZBGET_PRIORITY, True, str(linkapi))
+                                    if send_to_nzbget is True:
+                                        logger.info("Successfully sent nzb to NZBGet!")
+                                    else:
+                                        logger.info("Unable to send nzb to NZBGet - check your configs.")
+#                                #end nzb.get test
 
-                                # let's build the send-to-SAB string now:
-                                tmpapi = str(mylar.SAB_HOST)
-                                logger.fdebug("send-to-SAB host string: " + str(tmpapi))
-                                # changed to just work with direct links now...
-                                SABtype = "/api?mode=addurl&name="
-                                fileURL = str(linkapi)
-                                tmpapi = tmpapi + str(SABtype)
-                                logger.fdebug("...selecting API type: " + str(tmpapi))
-                                tmpapi = tmpapi + str(fileURL)
-                                logger.fdebug("...attaching nzb provider link: " + str(tmpapi))
-                                # determine SAB priority
-                                if mylar.SAB_PRIORITY:
-                                    tmpapi = tmpapi + "&priority=" + str(sabpriority)
-                                    logger.fdebug("...setting priority: " + str(tmpapi))
-                                # if category is blank, let's adjust
-                                if mylar.SAB_CATEGORY:
-                                    tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
-                                    logger.fdebug("...attaching category: " + str(tmpapi))
-                                if mylar.RENAME_FILES or mylar.POST_PROCESSING:
-                                    tmpapi = tmpapi + "&script=ComicRN.py"
-                                    logger.fdebug("...attaching rename script: " + str(tmpapi))
-                                #final build of send-to-SAB    
-                                tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
+                                elif mylar.USE_SABNZBD:
+                                    # let's build the send-to-SAB string now:
+                                    tmpapi = str(mylar.SAB_HOST)
+                                    logger.fdebug("send-to-SAB host string: " + str(tmpapi))
+                                    # changed to just work with direct links now...
+                                    SABtype = "/api?mode=addurl&name="
+                                    fileURL = str(linkapi)
+                                    tmpapi = tmpapi + str(SABtype)
+                                    logger.fdebug("...selecting API type: " + str(tmpapi))
+                                    tmpapi = tmpapi + str(fileURL)
+                                    logger.fdebug("...attaching nzb provider link: " + str(tmpapi))
+                                    # determine SAB priority
+                                    if mylar.SAB_PRIORITY:
+                                        tmpapi = tmpapi + "&priority=" + str(sabpriority)
+                                        logger.fdebug("...setting priority: " + str(tmpapi))
+                                    # if category is blank, let's adjust
+                                    if mylar.SAB_CATEGORY:
+                                        tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
+                                        logger.fdebug("...attaching category: " + str(tmpapi))
+                                    if mylar.RENAME_FILES or mylar.POST_PROCESSING:
+                                        tmpapi = tmpapi + "&script=ComicRN.py"
+                                        logger.fdebug("...attaching rename script: " + str(tmpapi))
+                                    #final build of send-to-SAB    
+                                    tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
 
-                                logger.fdebug("Completed send-to-SAB link: " + str(tmpapi))
+                                    logger.fdebug("Completed send-to-SAB link: " + str(tmpapi))
 
-                                try:
-                                    urllib2.urlopen(tmpapi)
-                                except urllib2.URLError:
-                                    logger.error(u"Unable to send nzb file to SABnzbd")
-                                    return
-
-                                logger.info(u"Successfully sent nzb file to SABnzbd")
+                                    try:
+                                        urllib2.urlopen(tmpapi)
+                                    except urllib2.URLError:
+                                        logger.error(u"Unable to send nzb file to SABnzbd")
+                                        return
+ 
+                                    logger.info(u"Successfully sent nzb file to SABnzbd")
 
                                 if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
                                     logger.info(u"Sending Prowl notification")

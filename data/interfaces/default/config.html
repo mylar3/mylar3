@@ -146,13 +146,16 @@
         <table class="configtable" summary="Download Settings">
 	    <tr>
                 <td>
-                	<fieldset>
-                		<legend>SABnzbd</legend>
+                    <fieldset>
+                         <div class="row checkbox">
+                             <input id="use_sabnzbd" type="checkbox" onclick="initConfigCheckbox($(this))"; name="use_sabnzbd" value="1" ${config['use_sabnzbd']} /><label>SABnbzd</label>
+                         </div>
+                         <div class="config">
 	                	<div class="row">
 		                    <label>SABnzbd Host:</label>
 		                    <input type="text" name="sab_host" value="${config['sab_host']}" size="30">
 		                    <small>usually http://localhost:8080</small>
-	                    </div>
+	                        </div>
 	                   	<div class="row">
 		                    <label>SABnzbd Username</label>
 		                    <input type="text" name="sab_username" value="${config['sab_user']}" size="20">
@@ -160,6 +163,7 @@
 	                	<div class="row">
 		                    <label>SABnzbd API:</label>
 		                    <input type="text" name="sab_apikey" value="${config['sab_api']}" size="36">
+
 	                    </div>
 	                   	<div class="row">
 		                    <label>SABnzbd Password:</label>
@@ -177,20 +181,62 @@
 	                    </div>
                                               <div class="row">
                                                 <label>SAB Priority</label>
-                                                <select name="sab_priority">
-                                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
+                                            <select name="sab_priority">
+                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
                                                         <%
                                                                 if config['sab_priority'] == prio:
                                                                         outputselect = 'selected'
                                                                 else:
                                                                         outputselect = ''
                                                         %>
-                                                        <option value=${prio} ${outputselect}>${prio}</option>
+                                     <option value=${prio} ${outputselect}>${prio}</option>
                                                 %endfor
                                                 </select>
                                               </div>
 
-
+                         </div>
+                         <div class="row checkbox">
+                             <input id="use_nzbget" type="checkbox" onclick="initConfigCheckbox($(this))"; name="use_nzbget" value="1" ${config['use_nzbget']} /><label>NZBGet</label>
+                         </div>                         
+                         <div class="config">
+                                <div class="row">
+                                    <label>NZBGet Host:</label>
+                                    <input type="text" name="nzbget_host" value="${config['nzbget_host']}" size="30">
+                                    <small>usually http://localhost</small>
+                                </div>
+                                <div class="row">
+                                    <label>NZBGet Port:</label>
+                                    <input type="text" name="mzbget_port" value="${config['nzbget_port']}" size="36">
+                                </div>
+                                <div class="row">
+                                    <label>NZBGet Username:</label>
+                                    <input type="text" name="nzbget_username" value="${config['nzbget_user']}" size="20">
+                                </div>
+                                <div class="row">
+                                    <label>NZBGet Password:</label>
+                                    <input type="password" name="nzbget_password" value="${config['nzbget_pass']}" size="20">
+                            </div>
+                            <div class="row">
+                                <label>NZBGet Category:</label>
+                                <input type="text" name="nzbget_category" value="${config['nzbget_cat']}" size="20">
+                            </div>
+                                              <div class="row">
+                                                <label>NZBGet Priority</label>
+                                            <select name="nzbget_priority">
+                                %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
+                                                        <%
+                                                                if config['nzbget_priority'] == prio:
+                                                                        outputselect = 'selected'
+                                                                else:
+                                                                        outputselect = ''
+                                                        %>
+                                     <option value=${prio} ${outputselect}>${prio}</option>
+                                                %endfor
+                                                </select>
+                                              </div>
+                         
+                         </div>
+                      </div>
                     </fieldset>
                 </td>
            
@@ -669,6 +715,8 @@
 		});
 		initActions();
                 initConfigCheckbox("#launch_browser");
+                initConfigCheckbox("#use_sabnzbd");
+                initConfigCheckbox("#use_nzbget");
                 initConfigCheckbox("#useblackhole");
                 initConfigCheckbox("#usenewznab");
 		initConfigCheckbox("#usenzbsu");

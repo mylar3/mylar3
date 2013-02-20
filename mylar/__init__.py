@@ -135,6 +135,7 @@ CVINFO = False
 LOG_LEVEL = None
 POST_PROCESSING = True
 
+USE_SABNZBD = True
 SAB_HOST = None
 SAB_USERNAME = None
 SAB_PASSWORD = None
@@ -142,6 +143,14 @@ SAB_APIKEY = None
 SAB_CATEGORY = None
 SAB_PRIORITY = None
 SAB_DIRECTORY = None
+
+USE_NZBGET = False
+NZBGET_HOST = None
+NZBGET_PORT = None
+NZBGET_USERNAME = None
+NZBGET_PASSWORD = None
+NZBGET_PRIORITY = None
+NZBGET_CATEGORY = None
 
 NZBSU = False
 NZBSU_APIKEY = None
@@ -235,8 +244,8 @@ def initialize():
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, MUSIC_DIR, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
-                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
-                NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
+                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
+                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
@@ -249,6 +258,7 @@ def initialize():
         # Make sure all the config sections exist
         CheckSection('General')
         CheckSection('SABnzbd')
+        CheckSection('NZBGet')
         CheckSection('NZBsu')
         CheckSection('DOGnzb')
         CheckSection('Raw')
@@ -334,6 +344,7 @@ def initialize():
         PRE_SCRIPTS = check_setting_str(CFG, 'General', 'pre_scripts', '')
         POST_PROCESSING = bool(check_setting_int(CFG, 'General', 'post_processing', 1))
 
+        USE_SABNZBD = bool(check_setting_int(CFG, 'SABnzbd', 'use_sabnzbd', 0))
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
         SAB_PASSWORD = check_setting_str(CFG, 'SABnzbd', 'sab_password', '')
@@ -348,6 +359,15 @@ def initialize():
             elif SAB_PRIORITY == "3": SAB_PRIORITY = "High"
             elif SAB_PRIORITY == "4": SAB_PRIORITY = "Paused"
             else: SAB_PRIORITY = "Default"
+
+        USE_NZBGET = bool(check_setting_int(CFG, 'NZBGet', 'use_nzbget', 0))
+        NZBGET_HOST = check_setting_str(CFG, 'NZBGet', 'nzbget_host', '')
+        NZBGET_PORT = check_setting_str(CFG, 'NZBGet', 'nzbget_port', '')
+        NZBGET_USERNAME = check_setting_str(CFG, 'NZBGet', 'nzbget_username', '')
+        NZBGET_PASSWORD = check_setting_str(CFG, 'NZBGet', 'nzbget_password', '')
+        NZBGET_CATEGORY = check_setting_str(CFG, 'NZBGet', 'nzbget_category', '')
+        NZBGET_PRIORITY = check_setting_str(CFG, 'NZBGet', 'nzbget_priority', '')
+
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
 
@@ -601,7 +621,9 @@ def config_write():
     new_config['General']['pre_scripts'] = PRE_SCRIPTS
     new_config['General']['post_processing'] = POST_PROCESSING
 
+
     new_config['SABnzbd'] = {}
+    new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
     new_config['SABnzbd']['sab_host'] = SAB_HOST
     new_config['SABnzbd']['sab_username'] = SAB_USERNAME
     new_config['SABnzbd']['sab_password'] = SAB_PASSWORD
@@ -609,6 +631,16 @@ def config_write():
     new_config['SABnzbd']['sab_category'] = SAB_CATEGORY
     new_config['SABnzbd']['sab_priority'] = SAB_PRIORITY
     new_config['SABnzbd']['sab_directory'] = SAB_DIRECTORY
+
+    new_config['NZBGet'] = {}
+    new_config['NZBGet']['use_nzbget'] = int(USE_NZBGET)
+    new_config['NZBGet']['nzbget_host'] = NZBGET_HOST
+    new_config['NZBGet']['nzbget_port'] = NZBGET_PORT
+    new_config['NZBGet']['nzbget_username'] = NZBGET_USERNAME
+    new_config['NZBGet']['nzbget_password'] = NZBGET_PASSWORD
+    new_config['NZBGet']['nzbget_category'] = NZBGET_CATEGORY
+    new_config['NZBGet']['nzbget_priority'] = NZBGET_PRIORITY
+
 
     new_config['NZBsu'] = {}
     new_config['NZBsu']['nzbsu'] = int(NZBSU)
