@@ -44,6 +44,15 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
+        #versioning - remove it
+        subsplit = subname.split()
+        for subit in subsplit:
+            if 'v' in str(subit):
+                #print ("possible versioning detected.")
+                if subit[1:].isdigit():
+                    #print (subit + "  - assuming versioning. Removing from initial search pattern.")
+                    subname = re.sub(str(subit), '', subname)
+                
         subname = re.sub('\s+', ' ', str(subname)).strip()
         if AlternateSearch is not None:
             altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(AlternateSearch))
