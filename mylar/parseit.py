@@ -205,16 +205,24 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     logger.info("not working...aborting. Tell Evilhero.")
                     return
             parsed = soup.find("div", {"id" : "series_data"})
+            #recent structure changes - need to adjust now
             subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
             resultPublished = subtxt3.findNext(text=True).rstrip()
             #print ("pubdate:" + str(resultPublished))
-            subtxt9 = parsed.find("dd", {"id" : "series_format"})
-            resultFormat = subtxt9.findNext(text=True).rstrip()
+            parsfind = parsed.findAll("dt", {"class" : "long"})
+            seriesloop = len(parsfind)
+            resultFormat = ''
+            for pf in parsfind:
+                if 'Publishing Format:' in pf.findNext(text=True):
+                    subtxt9 = pf.find("dd", {"id" : "series_format"})
+                    resultFormat = subtxt9.findNext(text=True).rstrip()
+                    continue
             # the caveat - if a series is ongoing but only has 1 issue published at a particular point in time,
             # resultPublished will return just the date and not the word 'Present' which dictates on the main
             # page if a series is Continuing / Ended .
-            if 'ongoing series' in resultFormat.lower() and 'was' not in resultFormat.lower():
-                 resultPublished = resultPublished + " - Present"
+            if resultFormat != '':
+                if 'ongoing series' in resultFormat.lower() and 'was' not in resultFormat.lower():
+                    resultPublished = resultPublished + " - Present"
             coverst = soup.find("div", {"id" : "series_cover"})
             if coverst < 0: 
                 gcdcover = "None"
