@@ -21,6 +21,8 @@ import datetime
 import re
 import urllib
 import shutil
+import sqlite3
+import cherrypy
 
 import mylar
 from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater, moveit
@@ -87,6 +89,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # gcd will return issue details (most importantly publishing date)
     if mismatch == "no" or mismatch is None:
         gcdinfo=parseit.GCDScraper(comic['ComicName'], comic['ComicYear'], comic['ComicIssues'], comicid) 
+        #print ("gcdinfo: " + str(gcdinfo))
         mismatch_com = "no"
         if gcdinfo == "No Match":
             updater.no_searchresults(comicid)
@@ -275,7 +278,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                 except IndexError:
                     #account for gcd variation here
                     if gcdinfo['gcdvariation'] == 'gcd':
-                        #print ("gcd-variation accounted for.")
+                        #logger.fdebug("gcd-variation accounted for.")
                         issdate = '0000-00-00'
                         int_issnum =  int ( issis / 1000 )
                     break
@@ -285,14 +288,14 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     updater.no_searchresults(comicid)
                     return
                 elif '.' in str(gcdval['GCDIssue']):
-                    #print ("g-issue:" + str(gcdval['GCDIssue']))
+                    #logger.fdebug("g-issue:" + str(gcdval['GCDIssue']))
                     issst = str(gcdval['GCDIssue']).find('.')
-                    #print ("issst:" + str(issst))
+                    #logger.fdebug("issst:" + str(issst))
                     issb4dec = str(gcdval['GCDIssue'])[:issst]
-                    #print ("issb4dec:" + str(issb4dec))
+                    #logger.fdebug("issb4dec:" + str(issb4dec))
                     #if the length of decimal is only 1 digit, assume it's a tenth
                     decis = str(gcdval['GCDIssue'])[issst+1:]
-                    #print ("decis:" + str(decis))
+                    #logger.fdebug("decis:" + str(decis))
                     if len(decis) == 1:
                         decisval = int(decis) * 10
                         issaftdec = str(decisval)
@@ -300,7 +303,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                         decisval = int(decis)
                         issaftdec = str(decisval)
                     gcd_issue = issb4dec + "." + issaftdec
-                    #print ("gcd_issue:" + str(gcd_issue))
+                    #logger.fdebug("gcd_issue:" + str(gcd_issue))
                     gcdis = (int(issb4dec) * 1000) + decisval
                 else:
                     gcdis = int(str(gcdval['GCDIssue'])) * 1000
@@ -342,10 +345,14 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             if iss_exists:
                 #print ("Existing status : " + str(iss_exists['Status']))
                 newValueDict['Status'] = iss_exists['Status']     
-
-            #logger.fdebug("newValueDict:" + str(newValueDict))
             
-            myDB.upsert("issues", newValueDict, controlValueDict)
+            try:     
+                myDB.upsert("issues", newValueDict, controlValueDict)
+            except sqlite3.InterfaceError, e:
+                #raise sqlite3.InterfaceError(e)
+                logger.error("MAJOR error trying to get issue data, this is most likey a MULTI-VOLUME series and you need to use the custom_exceptions.csv file.")
+                myDB.action("DELETE FROM comics WHERE ComicID=?", [comicid])
+                return
             n+=1
 
 #        logger.debug(u"Updating comic cache for " + comic['ComicName'])

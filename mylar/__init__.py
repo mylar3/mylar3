@@ -738,6 +738,8 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
+#    c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT)')
+
     conn.commit
     c.close
     #new
@@ -789,9 +791,34 @@ def dbcheck():
         c.execute('ALTER TABLE importresults ADD COLUMN WatchMatch TEXT')
 
     try:
-        c.execute('SELECT inCacheDIR from issues')
+        c.execute('SELECT IssueCount from importresults')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+        c.execute('ALTER TABLE importresults ADD COLUMN IssueCount TEXT')
+
+    try:
+        c.execute('SELECT ComicLocation from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN ComicLocation TEXT')
+
+    try:
+        c.execute('SELECT ComicFilename from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN ComicFilename TEXT')
+
+    try:
+        c.execute('SELECT impID from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN impID TEXT')
+
+#    try:
+#        c.execute('SELECT inCacheDIR from readlist')
+#    except sqlite3.OperationalError:
+#        c.execute('ALTER TABLE readlist ADD COLUMN inCacheDIR TEXT')
+
+#    try:
+#        c.execute('SELECT Location from readlist')
+#    except sqlite3.OperationalError:
+#        c.execute('ALTER TABLE readlist ADD COLUMN Location TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
