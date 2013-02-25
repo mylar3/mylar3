@@ -771,6 +771,30 @@ div#searchbar .mini-icon {
   margin-left: 6px;
   margin-top: 6px;
 }
+.checkbox.inline {
+  padding: 0 5px;
+}
+.checkbox.inline > input {
+  margin-right: 5px;
+  margin-left: 0;
+}
+.Skipped {
+  background-color: #bedeed;
+  height: 30px;
+}
+.Downloaded {
+  background-color: #c3e3c8;
+  height: 30px;
+}
+.Archived {
+  background-color: #ffda8a;
+  height: 30px;
+}
+.Wanted {
+  background-color: #ffb0b0;
+  height: 30px;
+}
+
 .comictable legend {
   font-size: 14px
   font-weight: bold;

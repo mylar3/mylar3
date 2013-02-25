@@ -63,6 +63,7 @@
                                 <th id="select"></th>
                                 <th id="comicname">Comic Name</th>
                                 <th id="comicyear">Year</th>
+                                <th id="issues">Issues</th>
                                 <th id="status">Status</th>
                                 <th id="importdate">Import Date</th>
                                 <th id="addcomic">Options</th>
@@ -74,7 +75,8 @@
                                      <tr>
                                         <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" class="checkbox" /></td>
                                         <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
-                                        <td id="comicissues"><title="${result['ComicYear']}">${result['ComicYear']}</td>
+                                        <td id="comicyear"><title="${result['ComicYear']}">${result['ComicYear']}</td>
+                                        <td id="comicissues"><title="${result['IssueCount']}">${result['IssueCount']}</td>
                                         <td id="status">${result['Status']}
                                         %if result['WatchMatch'] is not None:
                                             <img src="interfaces/default/images/green-circle.png" height="10" width="10"/>

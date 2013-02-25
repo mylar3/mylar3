@@ -69,9 +69,33 @@ class WebInterface(object):
     def artistPage(self, ComicID):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-        issues = myDB.select('SELECT * from issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
+        issues = myDB.select('SELECT * FROM issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
+        isCounts = {}
+        isCounts[1] = 0   #1 skipped
+        isCounts[2] = 0   #2 wanted
+        isCounts[3] = 0   #3 archived
+        isCounts[4] = 0   #4 downloaded
+        isCounts[5] = 0   #5 read
+
+        for curResult in issues:
+            baseissues = {'skipped':1,'wanted':2,'archived':3,'downloaded':4}
+            for seas in baseissues:
+                if seas in curResult['Status'].lower():
+                    sconv = baseissues[seas]
+                    isCounts[sconv]+=1
+                    continue
+        print ("skipped: " + str(isCounts[1]))
+        print ("wanted: " + str(isCounts[2]))
+        print ("archived: " + str(isCounts[3]))
+        print ("downloaded: " + str(isCounts[4]))
+        isCounts = {
+                 "Skipped" : str(isCounts[1]),
+                 "Wanted" : str(isCounts[2]),
+                 "Archived" : str(isCounts[3]),
+                 "Downloaded" : str(isCounts[4])
+               }
         usethefuzzy = comic['UseFuzzy']
         skipped2wanted = "0"
         if usethefuzzy is None: usethefuzzy = "0"
@@ -82,9 +106,9 @@ class WebInterface(object):
                     "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted" : helpers.checked(skipped2wanted)
                }
-        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig)
+        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts)
     artistPage.exposed = True
-    
+
     def searchit(self, name, issue=None, mode=None):
         type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
         #mode dictates type of search:
@@ -101,14 +125,13 @@ class WebInterface(object):
         elif type == 'comic' and mode == 'want':
             searchresults = mb.findComic(name, mode, issue)
 
-        searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)            
+        searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)
         #print ("Results: " + str(searchresults))
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
         myDB = db.DBConnection()
-        print ("I'm here.")
         if imported == "confirm":
             # if it's coming from the importer and it's just for confirmation, record the right selection and break.
             # if it's 'confirmed' coming in as the value for imported
@@ -120,7 +143,7 @@ class WebInterface(object):
             confirmedid = "C" + str(comicid)
             confirms = myDB.action("SELECT * FROM importresults WHERE WatchMatch=?", [ogcname])
             if confirms is None:
-                print ("There are no results that match...this is an ERROR.")
+                logger.Error("There are no results that match...this is an ERROR.")
             else:
                 for confirm in confirms:
                     controlValue = {"impID":    confirm['impID']}
@@ -131,11 +154,11 @@ class WebInterface(object):
         sresults = []
         cresults = []
         mismatch = "no"
-        print ("comicid: " + str(comicid))
-        print ("comicname: " + str(comicname))
-        print ("comicyear: " + str(comicyear))
-        print ("comicissues: " + str(comicissues))
-        print ("comicimage: " + str(comicimage))
+        #print ("comicid: " + str(comicid))
+        #print ("comicname: " + str(comicname))
+        #print ("comicyear: " + str(comicyear))
+        #print ("comicissues: " + str(comicissues))
+        #print ("comicimage: " + str(comicimage))
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
         CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
         if CV_EXcomicid is None: # pass #
@@ -149,7 +172,7 @@ class WebInterface(object):
                 logger.info(u"I couldn't find an exact match for " + str(comicname) + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
                 i = 0
                 loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
-                print ("total count : " + str(cnt))
+                logger.info("total count : " + str(cnt))
                 while (i < cnt):
                     try:
                         stoopie = loopie['comchkchoice'][i]
@@ -643,6 +666,31 @@ class WebInterface(object):
         return serve_template(templatename="history.html", title="History", history=history)
         return page
     history.exposed = True
+
+    def readlist(self):
+        myDB = db.DBConnection()
+        readlist = myDB.select("SELECT * from readlist order by DateAdded DESC")
+        return serve_template(templatename="readlist.html", title="Readlist", readlist=readlist)
+        return page
+    readlist.exposed = True
+
+    def addtoreadlist(self, IssueID):
+        myDB = db.DBConnection()
+        readlist = myDB.action("SELECT * from issues where IssueID=?", [IssueID]).fetchone()
+        if readlist is None:
+            logger.error("Cannot locate IssueID - aborting..")
+        else:
+            logger.info("attempting to add..issueid " + readlist['IssueID'])
+            ctrlval = {"IssueID":       IssueID}
+            newval = {"DateAdded":      helpers.today(),
+                      "Status":         "added",
+                      "Issue_Number":   readlist['Issue_Number'],
+                      "ComicName":      readlist['ComicName']}
+            myDB.upsert("readlist", newval, ctrlval)
+            logger.info("Added " + str(readlist['ComicName']) + " # " + str(readlist['Issue_Number']) + " to the Reading list.")
+ 
+        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % readlist['ComicID'])
+    addtoreadlist.exposed = True
     
     def logs(self):
         if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '':
@@ -694,8 +742,9 @@ class WebInterface(object):
         logger.debug("sucessfully copied to cache...Enabling Download link")
 
         controlValueDict = {'IssueID': IssueID}
-        newValueDict = {'inCacheDIR': 'True'}
-        myDB.upsert("issues", newValueDict, controlValueDict)
+        newValueDict = {'inCacheDIR': 'True',
+                        'Location':   issueFILE}
+        myDB.upsert("readlist", newValueDict, controlValueDict)
 
         #print("DB updated - Download link now enabled.")
 
@@ -781,6 +830,16 @@ class WebInterface(object):
     def importResults(self):
         myDB = db.DBConnection()
         results = myDB.select("SELECT * FROM importresults WHERE WatchMatch is Null OR WatchMatch LIKE 'C%' group by ComicName COLLATE NOCASE")
+        #this is to get the count of issues;
+        for result in results:
+            countthis = myDB.action("SELECT count(*) FROM importresults WHERE ComicName=?", [result['ComicName']]).fetchall()
+            countit = countthis[0][0]
+            ctrlVal = {"ComicName":  result['ComicName']}
+            newVal = {"IssueCount":       countit}
+            myDB.upsert("importresults", newVal, ctrlVal)
+            logger.info("counted " + str(countit) + " issues for " + str(result['ComicName']))
+        #need to reload results now
+        results = myDB.select("SELECT * FROM importresults WHERE WatchMatch is Null OR WatchMatch LIKE 'C%' group by ComicName COLLATE NOCASE")
         watchresults = myDB.select("SELECT * FROM importresults WHERE WatchMatch is not Null AND WatchMatch NOT LIKE 'C%' group by ComicName COLLATE NOCASE")
         return serve_template(templatename="importresults.html", title="Import Results", results=results, watchresults=watchresults)
     importResults.exposed = True
@@ -853,6 +912,9 @@ class WebInterface(object):
             maxyear = int(yearTOP) - (int(minISSUE) / 12)
             yearRANGE.append(str(maxyear))
             print ("there is a " + str(maxyear) + " year variation based on the 12 issues/year")
+        else:
+            print ("no year detected in any issues...Nulling the value")
+            yearRANGE = None
         #determine a best-guess to # of issues in series
         #this needs to be reworked / refined ALOT more.
         #minISSUE = highest issue #, startISSUE = lowest issue #
@@ -865,20 +927,25 @@ class WebInterface(object):
         print ("issues present on system : " + str(len(comicstoIMP)))
         print ("versioning checking: ")
         cnsplit = ComicName.split()
-        cnwords = len(cnsplit)
-        cnvers = cnsplit[cnwords-1]
+        #cnwords = len(cnsplit)
+        #cnvers = cnsplit[cnwords-1]
         ogcname = ComicName
-        if 'v' in cnvers:
-            print ("possible versioning detected.")
-            if cnvers[1:].isdigit():
-                print (cnvers + "  - assuming versioning. Removing from initial search pattern.")
-                ComicName = ComicName[:-((len(cnvers))+1)]
-                print ("new comicname is : " + str(ComicName))
+        for splitt in cnsplit:
+            print ("split")
+            if 'v' in str(splitt):
+                print ("possible versioning detected.")
+                if splitt[1:].isdigit():
+                    print (splitt + "  - assuming versioning. Removing from initial search pattern.")
+                    ComicName = re.sub(str(splitt), '', ComicName)
+                    print ("new comicname is : " + str(ComicName))
         # we need to pass the original comicname here into the entire importer module
         # so that we can reference the correct issues later.
         
         mode='series'
-        sresults = mb.findComic(ComicName, mode, issue=numissues, limityear=yearRANGE)
+        if yearRANGE is None:
+            sresults = mb.findComic(ComicName, mode, issue=numissues)
+        else:
+            sresults = mb.findComic(ComicName, mode, issue=numissues, limityear=yearRANGE)
         type='comic'
 
         if len(sresults) == 1:
@@ -890,6 +957,7 @@ class WebInterface(object):
             print ("no results, removing the year from the agenda and re-querying.")
             sresults = mb.findComic(ComicName, mode, issue=numissues)
             if len(sresults) == 1:
+                sr = sresults[0]
                 print ("only one result...automagik-mode enabled for " + str(sr['comicid']))
                 resultset = 1
             else: 
@@ -916,12 +984,16 @@ class WebInterface(object):
         CCOMICS = myDB.action("SELECT COUNT(*) FROM comics").fetchall()
         CHAVES = myDB.action("SELECT COUNT(*) FROM issues WHERE Status='Downloaded' OR Status='Archived'").fetchall()
         CISSUES = myDB.action("SELECT COUNT(*) FROM issues").fetchall()
+        CSIZE = myDB.action("select SUM(ComicSize) from issues where Status='Downloaded' or Status='Archived'").fetchall()
         COUNT_COMICS = CCOMICS[0][0]
         COUNT_HAVES = CHAVES[0][0]
         COUNT_ISSUES = CISSUES[0][0]
+        COUNT_SIZE = helpers.human_size(CSIZE[0][0])
+
         comicinfo = { "COUNT_COMICS" : COUNT_COMICS,
                       "COUNT_HAVES" : COUNT_HAVES,
-                      "COUNT_ISSUES" : COUNT_ISSUES }
+                      "COUNT_ISSUES" : COUNT_ISSUES,
+                      "COUNT_SIZE" : COUNT_SIZE }
 
         config = { 
                     "http_host" : mylar.HTTP_HOST,
