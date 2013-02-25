@@ -149,7 +149,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         else:
             myDB.upsert("issues", values, control)
     else:
-        logger.fdebug("Issues don't match for some reason... db issue: " + str(issuechk['Issue_Number']) + " ...weekly new issue: " + str(IssueNumber))
+        logger.fdebug("Issues don't match for some reason...weekly new issue: " + str(IssueNumber))
 
 
 def weekly_update(ComicName):

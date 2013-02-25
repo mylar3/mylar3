@@ -59,7 +59,8 @@ def pullit():
                'BOOKS',
                'COLLECTIBLES',
                'MCFARLANE TOYS',
-               'New Releases']
+               'New Releases',
+               'Upcoming Releases']
 
     excludes=['2ND PTG',
               '3RD PTG',
@@ -112,11 +113,13 @@ def pullit():
         for nono in not_these:
             if nono in i:
                 #let's try and grab the date for future pull checks
-                if i.startswith('Shipping') or i.startswith('New Releases'):
+                if i.startswith('Shipping') or i.startswith('New Releases') or i.startswith('Upcoming Releases'):
                     shipdatechk = i.split()
                     if i.startswith('Shipping'):
                         shipdate = shipdatechk[1]                
                     elif i.startswith('New Releases'):
+                        shipdate = shipdatechk[3]
+                    elif i.startswith('Upcoming Releases'):
                         shipdate = shipdatechk[3]
                     sdsplit = shipdate.split('/')
                     mo = sdsplit[0]
