@@ -71,7 +71,9 @@
                                 <td id="published">${comic['LatestDate']}</td>
 				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
 				<td id="status">
-                                %if 'present' in comic['ComicPublished'].lower():
+                                %if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
+                                    Unknown 
+                                %elif 'present' in comic['ComicPublished'].lower():
                                     Continuing
                                 %else:
                                     Ended

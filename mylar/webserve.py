@@ -28,7 +28,6 @@ import time
 import threading
 import csv
 import platform
-import Queue
 import urllib
 import shutil
 
@@ -45,7 +44,7 @@ def serve_template(templatename, **kwargs):
 
     interface_dir = os.path.join(str(mylar.PROG_DIR), 'data/interfaces/')
     template_dir = os.path.join(str(interface_dir), mylar.INTERFACE)
-    
+
     _hplookup = TemplateLookup(directories=[template_dir])
     
     try:
@@ -86,10 +85,6 @@ class WebInterface(object):
                     sconv = baseissues[seas]
                     isCounts[sconv]+=1
                     continue
-        print ("skipped: " + str(isCounts[1]))
-        print ("wanted: " + str(isCounts[2]))
-        print ("archived: " + str(isCounts[3]))
-        print ("downloaded: " + str(isCounts[4]))
         isCounts = {
                  "Skipped" : str(isCounts[1]),
                  "Wanted" : str(isCounts[2]),
@@ -109,8 +104,9 @@ class WebInterface(object):
         return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts)
     artistPage.exposed = True
 
-    def searchit(self, name, issue=None, mode=None):
-        type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
+    def searchit(self, name, issue=None, mode=None, type=None):
+        if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
+        else: print (str(type) + " mode enabled.")
         #mode dictates type of search:
         # --series     ...  search for comicname displaying all results
         # --pullseries ...  search for comicname displaying a limited # of results based on issue
@@ -124,6 +120,8 @@ class WebInterface(object):
             searchresults = mb.findComic(name, mode, issue=None)
         elif type == 'comic' and mode == 'want':
             searchresults = mb.findComic(name, mode, issue)
+        elif type == 'storyarc':
+            searchresults = mb.findComic(name, mode, issue=None, storyarc='yes')
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)
         #print ("Results: " + str(searchresults))
@@ -554,10 +552,9 @@ class WebInterface(object):
     skipped2wanted.exposed = True
 
     def manualRename(self, comicid):
-        print ("entering.")
         if mylar.FILE_FORMAT == '':
-            print ("You haven't specified a File Format in Configuration/Advanced")
-            print ("Cannot rename files.")
+            logger.error("You haven't specified a File Format in Configuration/Advanced")
+            logger.error("Cannot rename files.")
             return
 
         myDB = db.DBConnection()
@@ -565,27 +562,32 @@ class WebInterface(object):
         comicdir = comic['ComicLocation']
         comicname = comic['ComicName']
         extensions = ('.cbr', '.cbz')
-        issues = myDB.action("SELECT * FROM issues WHERE ComicID=?", [comicid])
+        issues = myDB.action("SELECT * FROM issues WHERE ComicID=?", [comicid]).fetchall()
         comfiles = []
+        filefind = 0
         for root, dirnames, filenames in os.walk(comicdir):
             for filename in filenames:
                 if filename.lower().endswith(extensions):
-                    print ("filename being checked is : " + str(filename))
+                    #logger.info("filename being checked is : " + str(filename))
                     for issue in issues:
                         if issue['Location'] == filename:
-                            print ("matched " + str(filename) + " to DB file " + str(issue['Location']))
+                            #logger.error("matched " + str(filename) + " to DB file " + str(issue['Location']))
                             renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=None)
                             nfilename = renameiss['nfilename']
                             srciss = os.path.join(comicdir,filename)
                             dstiss = os.path.join(comicdir,nfilename)
-                            logger.info("Renaming " + str(filename) + " ... to " + str(nfilename))
-                            try:
-                                shutil.move(srciss, dstiss)
-                            except (OSError, IOError):
-                                logger.error("Failed to move files - check directories and manually re-run.")
-                            continue
-
-        print ("hello")
+                            if filename != nfilename:
+                                logger.info("Renaming " + str(filename) + " ... to ... " + str(nfilename))
+                                try:
+                                    shutil.move(srciss, dstiss)
+                                except (OSError, IOError):
+                                    logger.error("Failed to move files - check directories and manually re-run.")
+                                    return
+                                filefind+=1
+                            else:
+                                logger.info("Not renaming " + str(filename) + " as it is in desired format already.")
+                            #continue
+            logger.info("I have renamed " + str(filefind) + " issues of " + str(comicname))
     manualRename.exposed = True
 
     def searchScan(self, name):
@@ -1105,7 +1107,6 @@ class WebInterface(object):
 
     error_change.exposed = True
 
-    
     def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None):
         myDB = db.DBConnection()
 #--- this is for multipe search terms............

@@ -221,7 +221,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             # resultPublished will return just the date and not the word 'Present' which dictates on the main
             # page if a series is Continuing / Ended .
             if resultFormat != '':
-                if 'ongoing series' in resultFormat.lower() and 'was' not in resultFormat.lower():
+                if 'ongoing series' in resultFormat.lower() and 'was' not in resultFormat.lower() and 'present' not in resultPublished.lower():
                     resultPublished = resultPublished + " - Present"
             coverst = soup.find("div", {"id" : "series_cover"})
             if coverst < 0: 
@@ -291,7 +291,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     dec_ad = dec_chk[dec_st+1:]
                     dec_ad = re.sub("\s", "", dec_ad)
                     if dec_b4.isdigit() and dec_ad.isdigit():
-                        logger.fdebug("Alternate decimal issue...*Whew* glad I caught that")
+                        #logger.fdebug("Alternate decimal issue...*Whew* glad I caught that")
                         ParseIssue = dec_b4 + "." + dec_ad
                     else:
                         #logger.fdebug("it's a decimal, but there's no digits before or after decimal")
@@ -301,7 +301,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     ParseIssue = re.sub("[^0-9]", " ", m[0])
                     # ^^ removes everything but the digits from the remaining non-brackets
                 
-                logger.fdebug("variant cover detected : " + str(ParseIssue))
+                #logger.fdebug("variant cover detected : " + str(ParseIssue))
                 variant="yes"
                 altcount = 1
             isslen = ParseIssue.find(' ')
@@ -349,21 +349,22 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             datematch="false"
 
             if not any(d.get('GCDIssue', None) == str(ParseIssue) for d in gcdchoice):
-                logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
+                #logger.fdebug("preparing to add issue to db : " + str(ParseIssue))
+                pass
             else:
-                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
-                #get current issue & publication date.
-                logger.fdebug("Issue #:" + str(ParseIssue))
-                logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
+                #logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
+              #get current issue & publication date.
+                #logger.fdebug("Issue #:" + str(ParseIssue))
+                #logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
                 #get conflicting issue from tuple
                 for d in gcdchoice:
                     if str(d['GCDIssue']) == str(ParseIssue):
-                       logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
+                       #logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
                        if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
-                           logger.fdebug("Issue #'s and dates match...skipping.")
+                           #logger.fdebug("Issue #'s and dates match...skipping.")
                            datematch="true"
                        else:
-                           logger.fdebug("Issue#'s match but different publication dates, not skipping.")
+                           #logger.fdebug("Issue#'s match but different publication dates, not skipping.")
                            datematch="false"
 
             if datematch == "false":
@@ -430,8 +431,8 @@ def GettheDate(parsed,PrevYRMO):
     basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
     pdlen = len(ParseDate)
     pdfind = ParseDate.find(' ',2)
-    logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
-    logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
+    #logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
+    #logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
     if ParseDate[pdfind+1:pdlen-1].isdigit():
         #assume valid date.
         #search for number as text, and change to numeric
@@ -440,7 +441,7 @@ def GettheDate(parsed,PrevYRMO):
                 pconv = basmonths[numbs]
                 ParseYear = re.sub('/s','',ParseDate[-5:])
                 ParseDate = str(ParseYear) + "-" + str(pconv)
-                logger.fdebug("!success - Publication date: " + str(ParseDate))
+                #logger.fdebug("!success - Publication date: " + str(ParseDate))
                 break
         # some comics are messed with pub.dates and have Spring/Summer/Fall/Winter
     else:
@@ -475,7 +476,7 @@ def GettheDate(parsed,PrevYRMO):
             if int(PrevMO) < 10:
                 PrevMO = "0" + str(PrevMO)
             ParseDate = str(PrevYR) + "-" + str(PrevMO)
-            logger.fdebug("parseDAte:" + str(ParseDate))
+            #logger.fdebug("parseDAte:" + str(ParseDate))
     return ParseDate
 
 def GCDAdd(gcdcomicid):

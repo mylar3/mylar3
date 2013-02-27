@@ -90,16 +90,18 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
     if issuechk is None:
         logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
         # we need to either decrease the total issue count, OR indicate that an issue is upcoming.
-        upco_iss = myDB.action("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID]).fetchone()
-        if upco_iss > 0:
-            print ("There is " + str(upco_iss[0]) + " of " + str(ComicName) + " that's not accounted for")
+        upco_results = myDB.action("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID]).fetchall()
+        upco_iss = upco_results[0][0]
+        #logger.info("upco_iss: " + str(upco_iss))
+        if int(upco_iss) > 0:
+            #logger.info("There is " + str(upco_iss) + " of " + str(ComicName) + " that's not accounted for")
             newKey = {"ComicID": ComicID}
-            newVal = {"not_updated_db": str(upco_iss[0])}
+            newVal = {"not_updated_db": str(upco_iss)}
             myDB.upsert("comics", newVal, newKey)
-        elif upco_iss <=0 and lastupdatecheck['not_updated_db']:
+        elif int(upco_iss) <=0 and lastupdatechk['not_updated_db']:
             #if not_updated_db has a value, and upco_iss is > 0, let's zero it back out cause it's updated now.
             newKey = {"ComicID": ComicID}
-            newVal - {"not_updated_db": null}
+            newVal = {"not_updated_db": ""}
             myDB.upsert("comics", newVal, newKey)
 
         if hours > 5:
