@@ -137,7 +137,7 @@ def human_size(size_bytes):
 
     suffixes_table = [('bytes',0),('KB',0),('MB',1),('GB',2),('TB',2), ('PB',2)]
 
-    num = float(size_bytes)
+    num = float(0 if size_bytes is None else size_bytes)
     for suffix, precision in suffixes_table:
         if num < 1024.0:
             break
