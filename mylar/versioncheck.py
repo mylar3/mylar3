@@ -187,9 +187,9 @@ def update():
         except (IOError, URLError):
             logger.error("Unable to retrieve new version from "+tar_download_url+", can't update")
             return
-            
-        download_name = data.geturl().split('/')[-1]
-        
+
+        #try sanitizing the name here...            
+        download_name = data.geturl().split('/')[-1].split('?')[0]
         tar_download_path = os.path.join(mylar.PROG_DIR, download_name)
         
         # Save tar to disk
