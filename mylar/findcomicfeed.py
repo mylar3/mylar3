@@ -30,7 +30,10 @@ def Startit(searchName, searchIssue, searchYear):
     if mylar.USE_MAXSIZE:
         size_constraints = size_constraints + "&maxsize=" + str(mylar.MAXSIZE)
 
-    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + "&dq=%s&max=25&more=1" %joinSearch)
+    if mylar.USENET_RETENTION != None:
+        max_age = "&age=" + str(mylar.USENET_RETENTION)
+
+    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=25&more=1" %joinSearch)
 
     totNum = len(feed.entries)
 

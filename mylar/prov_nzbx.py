@@ -1,7 +1,7 @@
 import lib.simplejson as json
 import mylar
 from mylar import logger, helpers
-import urllib2
+import urllib2, datetime
 
 
 def searchit(cm):
@@ -39,18 +39,26 @@ def searchit(cm):
                             url = item['nzb']
                             title = item['name']
                             size = item['size']
+                            nzbdate = datetime.datetime.fromtimestamp(item['postdate'])
+                            nzbage = abs(( datetime.datetime.now()-nzbdate).days )
+                            if nzbage <= int(mylar.USENET_RETENTION):
+                                entries.append({
+                                        'title':   str(title),
+                                        'link':    str(url)
+                                        })
+                                #logger.fdebug('Found %s. Size: %s' % (title, helpers.bytes_to_mb(size)))
+                            else:
+                                logger.fdebug('%s outside usenet retention: %s days.' % (title, nzbage))
                             
-                            entries.append({
-                                    'title':   str(title),
-                                    'link':    str(url)
-                                    })
                             #resultlist.append((title, size, url, provider))
-                            logger.fdebug('Found %s. Size: %s' % (title, helpers.bytes_to_mb(size)))
+                            #logger.fdebug('Found %s. Size: %s' % (title, helpers.bytes_to_mb(size)))
                             
                         except Exception, e:
                             logger.error(u"An unknown error occurred trying to parse the feed: %s" % e)
 
             if len(entries) >= 1:
                 mres['entries'] = entries
+            else:
+                mres = "no results"
         return mres
 

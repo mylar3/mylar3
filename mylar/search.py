@@ -97,6 +97,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     # --------
     providercount = int(nzbp + newznabs)
     logger.fdebug("there are : " + str(providercount) + " search providers you have selected.")
+    logger.fdebug("Usenet Retetion : " + str(mylar.USENET_RETENTION) + " days")
     nzbpr = nzbp-1
     findit = 'no'
 
@@ -346,6 +347,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 if nzbprov != 'nzbx':
                     # Add a user-agent
                     #print ("user-agent:" + str(mylar.USER_AGENT))
+                    ### IF USENET_RETENTION is set, honour it
+                    ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
+                    if mylar.USENET_RETENTION != None:
+                        findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
+
                     request = urllib2.Request(findurl)
                     request.add_header('User-Agent', str(mylar.USER_AGENT))
                     opener = urllib2.build_opener()
@@ -702,12 +708,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     from xmlrpclib import ServerProxy
                                     if mylar.NZBGET_HOST[:4] == 'http':
                                         tmpapi = "http://"
-                                        nzbget_host = mylar.NZBGET_HOST[7]
+                                        nzbget_host = mylar.NZBGET_HOST[7:]
                                     elif mylar.NZBGET_HOST[:5] == 'https':
                                         tmpapi = "https://"
-                                        nzbget_host = mylar.NZBGET_HOST[8]
-                                    tmpapi = tmpapi + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
-                                    tmpapi = tmpapi + "@" + nzbget_host + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc" 
+                                        nzbget_host = mylar.NZBGET_HOST[8:]
+                                    else:
+                                        logger.error("You have an invalid nzbget hostname specified. Exiting")
+                                        return
+                                    logger.info("nzbget_host:" + str(nzbget_host))
+                                    logger.info("tmpapi:" + str(tmpapi))
+                                    tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
+                                    tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc" 
                                     server = ServerProxy(tmpapi)
                                     send_to_nzbget = server.appendurl(nzbname, mylar.NZBGET_CATEGORY, mylar.NZBGET_PRIORITY, True, str(linkapi))
                                     if send_to_nzbget is True:
