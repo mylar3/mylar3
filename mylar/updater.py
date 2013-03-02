@@ -263,16 +263,16 @@ def forceRescan(ComicID,archive=None):
 
 #        temploc = tmpfc['ComicFilename'].replace('_', ' ')
         temploc = re.sub('[\#\']', '', temploc)
-        #logger.fdebug("temploc: " + str(temploc))
+        logger.fdebug("temploc: " + str(temploc))
         if 'annual' not in temploc:
             #remove the extension here
             extensions = ('.cbr','.cbz')
             if temploc.lower().endswith(extensions):
-                #print ("removed extension for issue:" + str(temploc))
+                #logger.fdebug("removed extension for issue:" + str(temploc))
                 temploc = temploc[:-4]
             deccnt = str(temploc).count('.')
             if deccnt > 1:
-                #print ("decimal counts are :" + str(deccnt))
+                #logger.fdebug("decimal counts are :" + str(deccnt))
                 #if the file is formatted with '.' in place of spaces we need to adjust.
                 #before replacing - check to see if digits on either side of decimal and if yes, DON'T REMOVE
                 occur=1
@@ -286,28 +286,28 @@ def forceRescan(ComicID,archive=None):
                     while start >=0 and n > 1:
                         start = temploc.find('.', start+len('.'))
                         n-=1
-                    #print "occurance " + str(occur) + " of . at position: " + str(start)
+                    #logger.fdebug("occurance " + str(occur) + " of . at position: " + str(start))
                     if temploc[prevstart:start].isdigit():
                         if digitfound == "yes":
-                            #print ("this is a decimal, assuming decimal issue.")
+                            #logger.fdebug("this is a decimal, assuming decimal issue.")
                             decimalfound = "yes"
                             reconst = "." + temploc[prevstart:start] + " "
                         else:
-                            #print ("digit detected.")
+                            #logger.fdebug("digit detected.")
                             digitfound = "yes"
                             reconst = temploc[prevstart:start]
                     else:
                         reconst = temploc[prevstart:start] + " "
-                    #print "word: " + reconst
+                    #logger.fdebug("word: " + reconst)
                     tempreconstruct = tempreconstruct + reconst 
-                    #print ("tempreconstruct is : " + tempreconstruct)
+                    #logger.fdebug("tempreconstruct is : " + tempreconstruct)
                     prevstart = (start+1)
                     occur+=1
-                #print "word: " + temploc[prevstart:]
-                tempreconstruct = tempreconstruct + temploc[prevstart:]
-                #print ("final filename to use is : " + str(tempreconstruct))
+                #logger.fdebug("word: " + temploc[prevstart:])
+                tempreconstruct = tempreconstruct + " " + temploc[prevstart:]
+                #logger.fdebug("final filename to use is : " + str(tempreconstruct))
                 temploc = tempreconstruct            
-            #print("checking " + str(temploc))
+            #logger.fdebug("checking " + str(temploc))
             fcnew = shlex.split(str(temploc))            
             fcn = len(fcnew)
             n = 0
