@@ -178,11 +178,11 @@ class WebInterface(object):
                         break
                     cresults.append({
                            'ComicID'   :   stoopie['ComicID'],
-                           'ComicName' :   stoopie['ComicName'],
+                           'ComicName' :   stoopie['ComicName'].decode('utf-8', 'replace'),
                            'ComicYear' :   stoopie['ComicYear'],
                            'ComicIssues' : stoopie['ComicIssues'],
                            'ComicURL' :    stoopie['ComicURL'],
-                           'ComicPublisher' : stoopie['ComicPublisher'],
+                           'ComicPublisher' : stoopie['ComicPublisher'].decode('utf-8', 'replace'),
                            'GCDID' : stoopie['GCDID']
                            })
                     i+=1
@@ -671,10 +671,16 @@ class WebInterface(object):
 
     def readlist(self):
         myDB = db.DBConnection()
-        readlist = myDB.select("SELECT * from readlist order by DateAdded DESC")
-        return serve_template(templatename="readlist.html", title="Readlist", readlist=readlist)
+        readlist = myDB.select("SELECT * from readinglist group by StoryArcID COLLATE NOCASE")
+        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist)
         return page
     readlist.exposed = True
+
+    def detailReadlist(self,StoryArcID, StoryArcName):
+        myDB = db.DBConnection()
+        readlist = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
+        return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName)
+    detailReadlist.exposed = True
 
     def addtoreadlist(self, IssueID):
         myDB = db.DBConnection()
@@ -693,6 +699,50 @@ class WebInterface(object):
  
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % readlist['ComicID'])
     addtoreadlist.exposed = True
+
+    def importReadlist(self,filename):
+        from xml.dom.minidom import parseString, Element
+        import random
+        myDB = db.DBConnection()
+  
+        file = open(str(filename))
+        data = file.read()
+        file.close()
+
+        dom = parseString(data)
+        # of results
+        storyarc = dom.getElementsByTagName('Name')[0].firstChild.wholeText
+        tracks = dom.getElementsByTagName('Book')
+        i = 1
+        node = dom.documentElement
+        print ("there are " + str(len(tracks)) + " issues in the story-arc: " + str(storyarc))
+        #generate a random number for the ID, and tack on the total issue count to the end as a str :)
+        storyarcid = str(random.randint(1000,9999)) + str(len(tracks))
+        i = 1
+        for book_element in tracks:
+            st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
+            comicname = book_element.getAttribute('Series')
+            print ("comic: " + str(comicname))
+            comicnumber = book_element.getAttribute('Number')
+            print ("number: " + str(comicnumber))
+            comicvolume = book_element.getAttribute('Volume')
+            print ("volume: " + str(comicvolume))
+            comicyear = book_element.getAttribute('Year')
+            print ("year: " + str(comicyear))
+            CtrlVal = {"IssueArcID": st_issueid}
+            NewVals = {"StoryArcID":  storyarcid,
+                       "ComicName":   comicname,
+                       "IssueNumber": comicnumber,
+                       "SeriesYear":  comicvolume,
+                       "IssueYear":   comicyear,
+                       "StoryArc":    storyarc,
+                       "ReadingOrder": i,
+                       "TotalIssues": len(tracks)}
+            myDB.upsert("readinglist", NewVals, CtrlVal)
+            i+=1
+
+    importReadlist.exposed = True
+
     
     def logs(self):
         if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '':

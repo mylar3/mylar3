@@ -24,6 +24,7 @@ import sys
 from decimal import Decimal 
 from HTMLParser import HTMLParseError
 from time import strptime
+import mylar
 
 def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     NOWyr = datetime.date.today().year
@@ -641,11 +642,16 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
                 n_odd+=1
                 resultp = soup.findAll("tr", {"class" : "listing_odd"})[n_odd]
             rtp = resultp('a')[1]
-            resultName.append(helpers.cleanName(rtp.findNext(text=True)))
+            rtpit = rtp.findNext(text=True)
+            rtpthis = rtpit.encode('utf-8').strip()
+            resultName.append(helpers.cleanName(rtpthis))
 #            print ( "Comic Name: " + str(resultName[n]) )
 
             pub = resultp('a')[0]
-            resultPublisher.append(pub.findNext(text=True))
+            pubit = pub.findNext(text=True)
+#            pubthis = u' '.join(pubit).encode('utf-8').strip()
+            pubthis = pubit.encode('utf-8').strip()
+            resultPublisher.append(pubthis)
 #            print ( "Publisher: " + str(resultPublisher[n]) )
 
             fip = resultp('a',href=True)[1]
@@ -668,10 +674,10 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
                 #print ( str(resultID[n]) + " not in DB...adding.")
                 comchkchoice.append({
                        "ComicID":         str(comicid),
-                       "ComicName":       str(resultName[n]),
+                       "ComicName":       resultName[n],
                        "GCDID":           str(resultID[n]).split('/')[2],
                        "ComicYear" :      str(resultYear[n]),
-                       "ComicPublisher" : str(resultPublisher[n]),
+                       "ComicPublisher" : resultPublisher[n],
                        "ComicURL" :       "http://www.comics.org" + str(resultID[n]),
                        "ComicIssues" :    str(resultIssues[n])
                       })
@@ -684,7 +690,7 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     return comchoice, totalcount 
 
 def decode_html(html_string):
-    converted = UnicodeDammit(html_string, isHTML=True)
+    converted = UnicodeDammit(html_string)
     if not converted.unicode:
         raise UnicodeDecodeError(
             "Failed to detect encoding, tried [%s]",
