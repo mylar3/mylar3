@@ -106,7 +106,7 @@ class PostProcessor(object):
             out, err = p.communicate() #@UnusedVariable
             self._log(u"Script result: "+str(out), logger.DEBUG)
         except OSError, e:
-            self._log(u"Unable to run pre_script: " + str(script_cmd))
+           self._log(u"Unable to run pre_script: " + str(script_cmd))
 
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
@@ -139,25 +139,31 @@ class PostProcessor(object):
             self._log("nzb folder: " + str(self.nzb_folder), logger.DEBUG)
             logger.fdebug("nzb name: " + str(self.nzb_name))
             logger.fdebug("nzb folder: " + str(self.nzb_folder))
-            # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
-            if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
-                self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-
-            #lookup nzb_name in nzblog table to get issueid
-
-            #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
-            #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
-            querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
-            #logger.info("querysab_string:" + str(querysab))
-            file = urllib2.urlopen(querysab)
-            data = file.read()
-            file.close()
-            dom = parseString(data)
-
-            sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
-            sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
-            logger.fdebug("SAB Replace Spaces: " + str(sabreps))
-            logger.fdebug("SAB Replace Dots: " + str(sabrepd))
+            if mylar.USE_SABNZBD==0:
+                logger.fdebug("Not using SABNzbd")
+            else:
+                # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
+                if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
+                    self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+    
+                #lookup nzb_name in nzblog table to get issueid
+    
+                #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
+                #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
+                querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+                #logger.info("querysab_string:" + str(querysab))
+                file = urllib2.urlopen(querysab)
+                data = file.read()
+                file.close()
+                dom = parseString(data)
+    
+                sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
+                sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
+                logger.fdebug("SAB Replace Spaces: " + str(sabreps))
+                logger.fdebug("SAB Replace Dots: " + str(sabrepd))
+            if mylar.USE_NZBGET==1:
+                logger.fdebug("Using NZBGET")
+                logger.fdebug("NZB name as passed from NZBGet: " + self.nzb_name)
             myDB = db.DBConnection()
 
             nzbname = self.nzb_name
@@ -175,6 +181,8 @@ class PostProcessor(object):
             nzbname = re.sub('[\&]', 'and', str(nzbname))
 
             logger.fdebug("After conversions, nzbname is : " + str(nzbname))
+#            if mylar.USE_NZBGET==1:
+#                nzbname=self.nzb_name
             self._log("nzbname: " + str(nzbname), logger.DEBUG)
 
             nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
