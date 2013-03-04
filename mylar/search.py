@@ -97,7 +97,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     # --------
     providercount = int(nzbp + newznabs)
     logger.fdebug("there are : " + str(providercount) + " search providers you have selected.")
-    logger.fdebug("Usenet Retetion : " + str(mylar.USENET_RETENTION) + " days")
+    logger.fdebug("Usenet Retention : " + str(mylar.USENET_RETENTION) + " days")
     nzbpr = nzbp-1
     findit = 'no'
 
@@ -232,6 +232,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         #if sab priority isn't selected, default to Normal (0)
         sabpriority = "0"
 
+    if mylar.NZBGET_PRIORITY:
+        if mylar.NZBGET_PRIORITY == "Default": nzbgetpriority = "0"
+        elif mylar.NZBGET_PRIORITY == "Low": nzbgetpriority = "-50"
+        elif mylar.NZBGET_PRIORITY == "Normal": nzbgetpriority = "0"
+        elif mylar.NZBGET_PRIORITY == "High": nzbgetpriority = "50"
+        #there's no priority for "paused", so set "Very Low" and deal with that later...
+        elif mylar.NZBGET_PRIORITY == "Paused": nzbgetpriority = "-100"
+    else:
+        #if sab priority isn't selected, default to Normal (0)
+        nzbgetpriority = "0"
+        
     #UseFuzzy == 0: Normal 
     #UseFuzzy == 1: Remove Year
     #UseFuzzy == 2: Fuzzy Year
@@ -720,7 +731,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
                                     tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc" 
                                     server = ServerProxy(tmpapi)
-                                    send_to_nzbget = server.appendurl(nzbname, mylar.NZBGET_CATEGORY, mylar.NZBGET_PRIORITY, True, str(linkapi))
+                                    send_to_nzbget = server.appendurl(nzbname, str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
                                     if send_to_nzbget is True:
                                         logger.info("Successfully sent nzb to NZBGet!")
                                     else:
