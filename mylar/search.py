@@ -660,7 +660,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     #pretty this biatch up.
-                                    Bl_ComicName = re.sub('[/:/,\/]', '', str(ComicName))
+                                    BComicName = re.sub('[\:\,/\]', '', str(ComicName))
+                                    Bl_ComicName = re.sub('[\&]', 'and', str(BComicName))
                                     filenamenzb = str(re.sub(" ", ".", str(Bl_ComicName))) + "." + str(IssueNumber) + ".(" + str(comyear) + ").nzb"
                                     # Add a user-agent
                                     request = urllib2.Request(linkapi) #(str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
@@ -672,7 +673,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                          return
                                     logger.fdebug("filename saved to your blackhole as : " + str(filenamenzb))
                                     logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) )
-                                    nzbname = filenamenzb[:-4]
+                                    extensions = ('.cbr', '.cbz')
+
+                                    if filenamenzb.lower().endswith(extensions):
+                                        fd, ext = os.path.splitext(filenamenzb)
+                                        logger.fdebug("Removed extension from nzb: " + ext)
+                                        nzbname = re.sub(str(ext), '', str(filenamenzb))
                                     logger.fdebug("nzb name to be used for post-processing is : " + str(nzbname))
                             #end blackhole
 
@@ -726,10 +732,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     else:
                                         logger.error("You have an invalid nzbget hostname specified. Exiting")
                                         return
-                                    logger.info("nzbget_host:" + str(nzbget_host))
-                                    logger.info("tmpapi:" + str(tmpapi))
                                     tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
-                                    tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc" 
+                                    tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
                                     server = ServerProxy(tmpapi)
                                     send_to_nzbget = server.appendurl(nzbname, str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
                                     if send_to_nzbget is True:
