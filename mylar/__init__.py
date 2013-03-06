@@ -61,6 +61,7 @@ LOG_DIR = None
 LOG_LIST = []
 
 CACHE_DIR = None
+SYNO_FIX = False
 
 PULLNEW = None
 
@@ -250,7 +251,7 @@ def initialize():
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX
                 
         if __INITIALIZED__:
             return False
@@ -319,6 +320,7 @@ def initialize():
         ZERO_LEVEL = bool(check_setting_int(CFG, 'General', 'zero_level', 0))
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
         LOWERCASE_FILENAMES = bool(check_setting_int(CFG, 'General', 'lowercase_filenames', 0))
+        SYNO_FIX = bool(check_setting_int(CFG, 'General', 'syno_fix', 0))
 
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
         PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
@@ -450,7 +452,7 @@ def initialize():
         # Put the cache dir in the data dir for now
         if not CACHE_DIR:
             CACHE_DIR = os.path.join(str(DATA_DIR), 'cache')
-        logger.info("cache set to : " + str(CACHE_DIR))
+        #logger.info("cache set to : " + str(CACHE_DIR))
         if not os.path.exists(CACHE_DIR):
             try:
                os.makedirs(CACHE_DIR)
@@ -494,6 +496,22 @@ def initialize():
         else:
             LATEST_VERSION = CURRENT_VERSION
 
+        #check for syno_fix here
+        if SYNO_FIX:
+            parsepath = os.path.join(DATA_DIR, 'bs4', 'builder', '_lxml.py')
+            if os.path.isfile(parsepath):
+                print ("found bs4...renaming appropriate file.")
+                src = os.path.join(parsepath)
+                dst = os.path.join(DATA_DIR, 'bs4', 'builder', 'lxml.py')
+                try:
+                    shutil.move(src, dst)
+                except (OSError, IOError):
+                    logger.error("Unable to rename file...shutdown Mylar and go to " + src.encode('utf-8') + " and rename the _lxml.py file to lxml.py")
+                    logger.error("NOT doing this will result in errors when adding / refreshing a series")
+            else:
+                logger.info("Synology Parsing Fix already implemented. No changes required at this time.")
+
+                                    
         __INITIALIZED__ = True
         return True
 
@@ -606,7 +624,8 @@ def config_write():
     new_config['General']['replace_char'] = REPLACE_CHAR
     new_config['General']['zero_level'] = int(ZERO_LEVEL)
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
-    new_config['General']['lowercase_filenames'] = LOWERCASE_FILENAMES
+    new_config['General']['lowercase_filenames'] = int(LOWERCASE_FILENAMES)
+    new_config['General']['syno_fix'] = int(SYNO_FIX)
 
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
@@ -738,7 +757,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
 
     conn.commit
     c.close
@@ -819,6 +838,22 @@ def dbcheck():
         c.execute('SELECT Location from readlist')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN Location TEXT')
+
+    try:
+        c.execute('SELECT IssueDate from readlist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readlist ADD COLUMN IssueDate TEXT')
+
+    try:
+        c.execute('SELECT SeriesYear from readlist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readlist ADD COLUMN SeriesYear TEXT')
+
+    try:
+        c.execute('SELECT ComicID from readlist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readlist ADD COLUMN ComicID TEXT')
+
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 

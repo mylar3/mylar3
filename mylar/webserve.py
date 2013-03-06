@@ -167,7 +167,8 @@ class WebInterface(object):
                 comicimage = cvdata['ComicImage']
                 updater.no_searchresults(comicid)
                 nomatch = "true"
-                logger.info(u"I couldn't find an exact match for " + str(comicname) + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
+                u_comicname = comicname.encode('utf-8').strip()
+                logger.info("I couldn't find an exact match for " + u_comicname + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
                 i = 0
                 loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
                 logger.info("total count : " + str(cnt))
@@ -230,7 +231,7 @@ class WebInterface(object):
         #custom_exceptions in this format...
         #99, (comicid), (gcdid), none
         logger.info("saving new information into custom_exceptions.csv...")
-        except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")"
+        except_info = "none #" + comicname.decode('utf-8', 'replace') + "-(" + str(comicyear) + ")"
         except_file = os.path.join(mylar.DATA_DIR,"custom_exceptions.csv")
         if not os.path.exists(except_file):
             try:
@@ -672,7 +673,8 @@ class WebInterface(object):
     def readlist(self):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist group by StoryArcID COLLATE NOCASE")
-        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist)
+        issuelist = myDB.select("SELECT * from readlist")
+        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist, issuelist=issuelist)
         return page
     readlist.exposed = True
 
@@ -682,9 +684,45 @@ class WebInterface(object):
         return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName)
     detailReadlist.exposed = True
 
+    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None):
+        myDB = db.DBConnection()
+        if IssueID:
+            myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
+            logger.info("Removed " + str(IssueID) + " from Reading List")
+        elif StoryArcID:
+            myDB.action('DELETE from readinglist WHERE StoryArcID=?', [StoryArcID])
+            logger.info("Removed " + str(StoryArcID) + " from Story Arcs.")
+        elif IssueArcID:
+            myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
+            logger.info("Removed " + str(IssueArcID) + " from the Story Arc.")
+    removefromreadlist.exposed = True
+
+    def markasRead(self, IssueID=None, IssueArcID=None):
+        myDB = db.DBConnection()
+        if IssueID:
+            issue = myDB.action('SELECT * from readlist WHERE IssueID=?', [IssueID]).fetchone()
+            if issue['Status'] == 'Read':
+                NewVal = {"Status":  "Added"}
+            else:
+                NewVal = {"Status":    "Read"}
+            CtrlVal = {"IssueID":  IssueID}
+            myDB.upsert("readlist", NewVal, CtrlVal)
+            logger.info("Marked " + str(issue['ComicName']) + " #" + str(issue['Issue_Number']) + " as Read.")
+        elif IssueArcID:
+            issue = myDB.action('SELECT * from readinglist WHERE IssueArcID=?', [IssueArcID]).fetchone()
+            if issue['Status'] == 'Read':
+                NewVal = {"Status":    "Added"}
+            else:
+                NewVal = {"Status":    "Read"}
+            CtrlVal = {"IssueArcID":  IssueArcID}
+            myDB.upsert("readinglist", NewVal, CtrlVal)
+            logger.info("Marked " +  str(issue['ComicName']) + " #" + str(issue['IssueNumber']) + " as Read.")
+    markasRead.exposed = True
+
     def addtoreadlist(self, IssueID):
         myDB = db.DBConnection()
         readlist = myDB.action("SELECT * from issues where IssueID=?", [IssueID]).fetchone()
+        comicinfo = myDB.action("SELECT * from comics where ComicID=?", [readlist['ComicID']]).fetchone()
         if readlist is None:
             logger.error("Cannot locate IssueID - aborting..")
         else:
@@ -692,7 +730,10 @@ class WebInterface(object):
             ctrlval = {"IssueID":       IssueID}
             newval = {"DateAdded":      helpers.today(),
                       "Status":         "added",
+                      "ComicID":        readlist['ComicID'],
                       "Issue_Number":   readlist['Issue_Number'],
+                      "IssueDate":     readlist['IssueDate'],
+                      "SeriesYear":    comicinfo['ComicYear'],
                       "ComicName":      readlist['ComicName']}
             myDB.upsert("readlist", newval, ctrlval)
             logger.info("Added " + str(readlist['ComicName']) + " # " + str(readlist['Issue_Number']) + " to the Reading list.")
@@ -743,7 +784,44 @@ class WebInterface(object):
 
     importReadlist.exposed = True
 
+    #Story Arc Ascension...welcome to the next level :)
+    def ArcWatchlist(self):
+        myDB = db.DBConnection()
+        ArcWatch = myDB.select("SELECT * FROM readinglist")
+        if ArcWatch is None: logger.info("No Story Arcs to search")
+        else:
+            Comics = myDB.select("SELECT * FROM comics")
+
+            arc_match = []
+
+            for arc in ArcWatch:
+                #cycle through the story arcs here for matches on the watchlist
+                mod_arc = re.sub('[\:/,\'\/\-\&\%\$\#\@\!\*\+\.]', '', arc['ComicName'])
+                mod_arc = re.sub(r'\s', '', mod_arc)                    
+                for comic in Comics:
+                    mod_watch = re.sub('[\:\,\'\/\-\&\%\$\#\@\!\*\+\.]', '', comic['ComicName'])
+                    mod_watch = re.sub(r'\s', '', mod_watch)
+                    if mod_watch == mod_arc:
+                        #gather the matches now.
+                        arc_match.append({ 
+                            "match_name":   arc['ComicName'],
+                            "match_id":     comic['ComicID'],
+                            "match_issue":  arc['IssueNumber']})
+
+            print ("we matched on " + str(len(arc_match)) + " issues")
+
+            for m_arc in arc_match:
+                print m_arc
+                #now we cycle through the issues looking for a match.
+                issue = myDB.select("SELECT * FROM issues where ComicID=?", [m_arc['match_id']])
+                for issuechk in issue:
+                    print ("issuechk: " + str(issuechk['Issue_Number']) + "..." + str(m_arc['match_issue']))
+                    if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
+                        logger.info("we matched on " + str(issuechk['Issue_Number']) + " for " + str(m_arc['ComicName']))
+
     
+    ArcWatchlist.exposed = True
+
     def logs(self):
         if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '':
             mylar.LOG_LEVEL = 'info'
@@ -1112,6 +1190,7 @@ class WebInterface(object):
                     "add_to_csv" : helpers.checked(mylar.ADD_TO_CSV),
                     "cvinfo" : helpers.checked(mylar.CVINFO),
                     "lowercase_filenames" : helpers.checked(mylar.LOWERCASE_FILENAMES),
+                    "syno_fix" : helpers.checked(mylar.SYNO_FIX),
                     "prowl_enabled": helpers.checked(mylar.PROWL_ENABLED),
                     "prowl_onsnatch": helpers.checked(mylar.PROWL_ONSNATCH),
                     "prowl_keys": mylar.PROWL_KEYS,
@@ -1143,12 +1222,13 @@ class WebInterface(object):
         # if comicname contains a "," it will break the exceptions import.
         import urllib
         b = urllib.unquote_plus(comicname)
-        cname = b.decode("utf-8")
+#        cname = b.decode("utf-8")
+        cname = b.encode('utf-8')
         cname = re.sub("\,", "", cname)
 
         if errorgcd[:5].isdigit():
             print ("GCD-ID detected : " + str(errorgcd)[:5])
-            print ("I'm assuming you know what you're doing - going to force-match for " + cname.encode("utf-8"))
+            print ("I'm assuming you know what you're doing - going to force-match for " + cname)
             self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname)
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
@@ -1227,7 +1307,7 @@ class WebInterface(object):
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -1282,6 +1362,7 @@ class WebInterface(object):
         mylar.ADD_TO_CSV = add_to_csv
         mylar.CVINFO = cvinfo
         mylar.LOWERCASE_FILENAMES = lowercase_filenames
+        mylar.SYNO_FIX = syno_fix
         mylar.PROWL_ENABLED = prowl_enabled
         mylar.PROWL_ONSNATCH = prowl_onsnatch
         mylar.PROWL_KEYS = prowl_keys

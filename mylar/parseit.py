@@ -31,7 +31,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     if datetime.date.today().month == 12:
         NOWyr = NOWyr + 1
         logger.fdebug("We're in December, incremented search Year to increase search results: " + str(NOWyr))
-    comicnm = ComicName
+    comicnm = ComicName.encode('utf-8').strip()
     comicyr = ComicYear
     comicis = Total
     comicid = ComicID
@@ -559,17 +559,17 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     if datetime.date.today().month == 12:
         NOWyr = NOWyr + 1
         logger.fdebug("We're in December, incremented search Year to increase search results: " + str(NOWyr))
-    comicnm = ComicName
+    comicnm = ComicName.encode('utf-8').strip()
     comicyr = ComicYear
     comicis = Total
     comicid = ComicID
-    comicpub = ComicPublisher
-    print ("...comchk parser initialization...")
-    print ( "comicname: " + str(comicnm) )
-    print ( "comicyear: " + str(comicyr) )
-    print ( "comichave: " + str(comicis) )
-    print ( "comicpub: " + str(comicpub) )
-    print ( "comicid: " + str(comicid) )
+    comicpub = ComicPublisher.encode('utf-8').strip()
+    #print ("...comchk parser initialization...")
+    #print ( "comicname: " + str(comicnm) )
+    #print ( "comicyear: " + str(comicyr) )
+    #print ( "comichave: " + str(comicis) )
+    #print ( "comicpub: " + str(comicpub) )
+    #print ( "comicid: " + str(comicid) )
     # do 3 runs at the comics.org search to get the best results
     comicrun = []
     # &pub_name=DC
@@ -600,6 +600,10 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
     # lets remove extra characters
     if re.sub('[\.\,\:]', '', comicnm) != comicnm:
         comicrun.append(re.sub('[\.\,\:]', '', comicnm))
+        cruncnt+=1
+    # one more addition - if the title contains a 'the', remove it ;)
+    if comicnm.lower().startswith('the'):
+        comicrun.append(comicnm[4:].strip())
         cruncnt+=1
     totalcount = 0
     cr = 0
