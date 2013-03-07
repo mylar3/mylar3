@@ -361,3 +361,18 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                             "comicid" : comicid }
 
             return rename_this
+
+
+def apiremove(apistring, type):
+    if type == 'nzb':
+        value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=$)")
+        #match = value_regex.search(apistring)
+        apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apistring)
+    else:
+        #type = $ to denote end of string
+        #type = & to denote up until next api variable
+        value_regex = re.compile("(?<=%26i=1%26r=)(?P<value>.*?)(?=" + str(type) +")")
+        #match = value_regex.search(apistring)
+        apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apistring)        
+
+    return apiremoved

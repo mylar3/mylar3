@@ -64,14 +64,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         logger.fdebug("mylar.newznab:" + str(mylar.NEWZNAB))
         if mylar.NEWZNAB_ENABLED:
             newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
-            logger.fdebug("newznab_hosts:" + str(newznab_hosts))
+            logger.fdebug("newznab_hosts:" + str(mylar.NEWZNAB_HOST))
             logger.fdebug("newznab_enabled:" + str(mylar.NEWZNAB_ENABLED))
             newznabs = 1
         else:
             newznab_hosts = []
             logger.fdebug("initial newznab provider not enabled...checking for additional newznabs.")
 
-        logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
+        #logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
 
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
@@ -79,7 +79,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 #                nzbp+=1
                 newznab_hosts.append(newznab_host)              
                 newznabs = newznabs + 1
-                logger.fdebug("newznab hosts:" + str(newznab_host))
+                logger.fdebug("newznab host:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[2]))
 
 #        print("newznab_nzbp-1:" + str(nzbprovider(nzbp-1)))
 #        print("newznab_nzbp:" + str(nzbprovider(nzbp)))
@@ -114,7 +114,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #this is for newznab
             nzbprov = 'newznab'
             for newznab_host in newznab_hosts:
-                logger.fdebug("using newznab_host: " + str(newznab_host))
+                #logger.fdebug("using newznab_host: " + str(newznab_host[0]))
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
@@ -345,24 +345,28 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
             if nzbprov != 'experimental':
                 if nzbprov == 'dognzb':
-                    findurl = "http://dognzb.cr/api?t=search&apikey=" + str(apikey) + "&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
+                    findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzb.su':
-                    findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
+                    findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
                     #let's make sure the host has a '/' at the end, if not add it.
                     if host_newznab[:-1] != "/": host_newznab = str(host_newznab) + "/"
-                    findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&apikey=" + str(apikey) + "&o=xml&cat=7030"
-                    logger.fdebug("search-url: " + str(findurl))
+                    findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzbx':
                     bb = prov_nzbx.searchit(comsearch[findloop])
                 if nzbprov != 'nzbx':
-                    # Add a user-agent
-                    #print ("user-agent:" + str(mylar.USER_AGENT))
+                    # helper function to replace apikey here so we avoid logging it ;)
+                    findurl = findurl + "&apikey=" + str(apikey)
+                    logsearch = helpers.apiremove(str(findurl),'nzb')
+                    logger.fdebug("search-url: " + str(logsearch))
+
                     ### IF USENET_RETENTION is set, honour it
                     ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
                     if mylar.USENET_RETENTION != None:
                         findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
 
+                    # Add a user-agent
+                    #print ("user-agent:" + str(mylar.USER_AGENT))
                     request = urllib2.Request(findurl)
                     request.add_header('User-Agent', str(mylar.USER_AGENT))
                     opener = urllib2.build_opener()
@@ -650,8 +654,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 linkstart = linkstart.replace("&", "%26")
                                 linkapi = str(linkstart)
                             logger.fdebug("link given by: " + str(nzbprov))
-                            logger.fdebug("link: " + str(linkstart))
-                            logger.fdebug("linkforapi: " + str(linkapi))
+                            #logger.fdebug("link: " + str(linkstart))
+                            #logger.fdebug("linkforapi: " + str(linkapi))
                             #here we distinguish between rename and not.
                             #blackhole functinality---
                             #let's download the file to a temporary cache.
@@ -698,7 +702,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                         if e.errno != errno.EEXIST:
                                             raise
 
-                                logger.fdebug("link to retrieve via api:" + str(linkapi))
+                                logger.fdebug("link to retrieve via api:" + str(helpers.apiremove(linkapi,'$')))
 
                                 #let's change all space to decimals for simplicity
                                 nzbname = re.sub(" ", ".", str(entry['title']))
@@ -752,22 +756,23 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     tmpapi = tmpapi + str(SABtype)
                                     logger.fdebug("...selecting API type: " + str(tmpapi))
                                     tmpapi = tmpapi + str(fileURL)
-                                    logger.fdebug("...attaching nzb provider link: " + str(tmpapi))
+                                    
+                                    logger.fdebug("...attaching nzb provider link: " + str(helpers.apiremove(tmpapi,'$')))
                                     # determine SAB priority
                                     if mylar.SAB_PRIORITY:
                                         tmpapi = tmpapi + "&priority=" + str(sabpriority)
-                                        logger.fdebug("...setting priority: " + str(tmpapi))
+                                        logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi,'&')))
                                     # if category is blank, let's adjust
                                     if mylar.SAB_CATEGORY:
                                         tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
-                                        logger.fdebug("...attaching category: " + str(tmpapi))
+                                        logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi,'&')))
                                     if mylar.RENAME_FILES or mylar.POST_PROCESSING:
                                         tmpapi = tmpapi + "&script=ComicRN.py"
-                                        logger.fdebug("...attaching rename script: " + str(tmpapi))
+                                        logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi,'&')))
                                     #final build of send-to-SAB    
                                     tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
 
-                                    logger.fdebug("Completed send-to-SAB link: " + str(tmpapi))
+                                    logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
 
                                     try:
                                         urllib2.urlopen(tmpapi)
