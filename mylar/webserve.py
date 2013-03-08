@@ -225,13 +225,14 @@ class WebInterface(object):
     addComic.exposed = True
 
     def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None):
+        import unicodedata
         mismatch = "yes"
         #print ("gcdid:" + str(gcdid))
         #write it to the custom_exceptions.csv and reload it so that importer will pick it up and do it's thing :)
         #custom_exceptions in this format...
         #99, (comicid), (gcdid), none
         logger.info("saving new information into custom_exceptions.csv...")
-        except_info = "none #" + comicname.decode('utf-8', 'replace') + "-(" + str(comicyear) + ")"
+        except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")"
         except_file = os.path.join(mylar.DATA_DIR,"custom_exceptions.csv")
         if not os.path.exists(except_file):
             try:
@@ -240,9 +241,12 @@ class WebInterface(object):
             except (OSError,IOError):
                 logger.error("Could not locate " + str(except_file) + " file. Make sure it's in datadir: " + mylar.DATA_DIR + " with proper permissions.")
                 return
+        exceptln = "99," + str(comicid) + "," + str(gcdid) + "," + str(except_info)
+        exceptline = exceptln.decode('utf-8','ignore')
 
         with open(str(except_file), 'a') as f:
-            f.write('%s,%s,%s,%s\n' % ("99", str(comicid), str(gcdid), str(except_info)) )
+           #f.write('%s,%s,%s,%s\n' % ("99", comicid, gcdid, except_info)
+            f.write(exceptline.encode('ascii','replace').strip())
         logger.info("re-loading csv file so it's all nice and current.")
         mylar.csv_load()
        
@@ -316,7 +320,7 @@ class WebInterface(object):
         comic = myDB.action('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
         if comic['ComicName'] is None: ComicName = "None"
         else: ComicName = comic['ComicName']
-        logger.info(u"Deleting all traces of Comic: " + str(ComicName))
+        logger.info(u"Deleting all traces of Comic: " + ComicName))
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
@@ -588,7 +592,7 @@ class WebInterface(object):
                             else:
                                 logger.info("Not renaming " + str(filename) + " as it is in desired format already.")
                             #continue
-            logger.info("I have renamed " + str(filefind) + " issues of " + str(comicname))
+            logger.info("I have renamed " + str(filefind) + " issues of " + comicname)
     manualRename.exposed = True
 
     def searchScan(self, name):
@@ -763,7 +767,7 @@ class WebInterface(object):
         for book_element in tracks:
             st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
             comicname = book_element.getAttribute('Series')
-            print ("comic: " + str(comicname))
+            print ("comic: " + comicname)
             comicnumber = book_element.getAttribute('Number')
             print ("number: " + str(comicnumber))
             comicvolume = book_element.getAttribute('Volume')
@@ -976,7 +980,7 @@ class WebInterface(object):
 
     def deleteimport(self, ComicName):
         myDB = db.DBConnection()
-        logger.info("Removing import data for Comic: " + str(ComicName))
+        logger.info("Removing import data for Comic: " + ComicName)
         myDB.action('DELETE from importresults WHERE ComicName=?', [ComicName])
         raise cherrypy.HTTPRedirect("importResults")
     deleteimport.exposed = True
@@ -1067,7 +1071,7 @@ class WebInterface(object):
                 if splitt[1:].isdigit():
                     print (splitt + "  - assuming versioning. Removing from initial search pattern.")
                     ComicName = re.sub(str(splitt), '', ComicName)
-                    print ("new comicname is : " + str(ComicName))
+                    print ("new comicname is : " + ComicName)
         # we need to pass the original comicname here into the entire importer module
         # so that we can reference the correct issues later.
         

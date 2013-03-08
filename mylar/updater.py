@@ -88,7 +88,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
 
     issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
     if issuechk is None:
-        logger.fdebug(str(ComicName) + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
+        logger.fdebug(ComicName + " Issue: " + str(IssueNumber) + " not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.")
         # we need to either decrease the total issue count, OR indicate that an issue is upcoming.
         upco_results = myDB.action("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID]).fetchall()
         upco_iss = upco_results[0][0]
@@ -106,7 +106,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
 
         if hours > 5:
             pullupd = "yes"
-            logger.fdebug("Now Refreshing comic " + str(ComicName) + " to make sure it's up-to-date")
+            logger.fdebug("Now Refreshing comic " + ComicName + " to make sure it's up-to-date")
             if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
             else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
         else:
@@ -226,14 +226,14 @@ def foundsearch(ComicID, IssueID):
     myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
     #print ("finished updating snatched db.")
-    logger.info(u"Updating now complete for " + str(comic['ComicName']) + " issue: " + str(issue['Issue_Number']))
+    logger.info(u"Updating now complete for " + comic['ComicName'] + " issue: " + str(issue['Issue_Number']))
     return
 
 def forceRescan(ComicID,archive=None):
     myDB = db.DBConnection()
     # file check to see if issue exists
     rescan = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-    logger.info(u"Now checking files for " + str(rescan['ComicName']) + " (" + str(rescan['ComicYear']) + ") in " + str(rescan['ComicLocation']) )
+    logger.info(u"Now checking files for " + rescan['ComicName'] + " (" + str(rescan['ComicYear']) + ") in " + str(rescan['ComicLocation']) )
     if archive is None:
         fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
     else:
@@ -413,7 +413,7 @@ def forceRescan(ComicID,archive=None):
                             logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
                             issuedupe = "yes"
                             break
-                        logger.fdebug("matched...issue: " + str(rescan['ComicName']) + " --- " + str(int_iss))
+                        logger.fdebug("matched...issue: " + rescan['ComicName'] + " --- " + str(int_iss))
                         havefiles+=1
                         haveissue = "yes"
                         isslocation = str(tmpfc['ComicFilename'])

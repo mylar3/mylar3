@@ -29,7 +29,9 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
     # use AlternateSearch to check for filenames that follow that naming pattern
     # ie. Star Trek TNG Doctor Who Assimilation won't get hits as the 
     # checker looks for Star Trek TNG Doctor Who Assimilation2 (according to CV)
-
+    
+    # we need to convert to ascii, as watchcomic is utf-8 and special chars f'it up
+    u_watchcomic = watchcomic.encode('ascii', 'ignore').strip()    
     logger.fdebug("comic: " + watchcomic)
     basedir = dir
     logger.fdebug("Looking in: " + dir)
@@ -42,7 +44,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         subname = item
         #print subname
         subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watchcomic))
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', u_watchcomic)
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
         #versioning - remove it
         subsplit = subname.split()
@@ -55,7 +57,9 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                 
         subname = re.sub('\s+', ' ', str(subname)).strip()
         if AlternateSearch is not None:
-            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(AlternateSearch))
+            #same = encode.
+            u_altsearchcomic = AlternateSearch.encode('ascii', 'ignore').strip()
+            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', u_altsearchcomic)
             altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
         else:
             #create random characters so it will never match.
@@ -88,6 +92,6 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         else:
             pass
             #print ("directory found - ignoring")
-    logger.fdebug("you have a total of " + str(comiccnt) + " " + str(watchcomic) + " comics")
+    logger.fdebug("you have a total of " + str(comiccnt) + " " + watchcomic + " comics")
     watchmatch['comiccount'] = comiccnt
     return watchmatch

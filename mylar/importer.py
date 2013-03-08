@@ -119,15 +119,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # setup default location here
 
     if comlocation is None:
-        if ':' in comic['ComicName'] or '/' in comic['ComicName'] or ',' in comic['ComicName']:
-            comicdir = comic['ComicName']
+        # let's remove the non-standard characters here.
+        u_comicnm = comic['ComicName']
+        u_comicname = u_comicnm.encode('ascii', 'ignore').strip()
+        if ':' in u_comicname or '/' in u_comicname or ',' in u_comicname:
+            comicdir = u_comicname
             if ':' in comicdir:
                 comicdir = comicdir.replace(':','')
             if '/' in comicdir:
                 comicdir = comicdir.replace('/','-')
             if ',' in comicdir:
                 comicdir = comicdir.replace(',','')
-        else: comicdir = comic['ComicName']
+        else: comicdir = u_comicname
 
         series = comicdir
         publisher = comic['ComicPublisher']
@@ -197,7 +200,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     try:
         with open(str(coverfile)) as f:
             ComicImage = os.path.join('cache',str(comicid) + ".jpg")
-            logger.info(u"Sucessfully retrieved cover for " + str(comic['ComicName']))
+            logger.info(u"Sucessfully retrieved cover for " + comic['ComicName'])
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.COMIC_COVER_LOCAL:
                 comiclocal = os.path.join(str(comlocation) + "/cover.jpg")
@@ -374,7 +377,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     if mylar.CVINFO:
         if not os.path.exists(comlocation + "/cvinfo"):
             with open(comlocation + "/cvinfo","w") as text_file:
-                text_file.write("http://www.comicvine.com/" + str(comic['ComicName']).replace(" ", "-") + "/49-" + str(comicid))
+                text_file.write("http://www.comicvine.com/volume/49-" + str(comicid))
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
 
@@ -396,7 +399,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
         if mylar.AUTOWANT_UPCOMING and 'Present' in gcdinfo['resultPublished']:
-            logger.info(u"Checking this week's pullist for new issues of " + str(comic['ComicName']))
+            logger.info(u"Checking this week's pullist for new issues of " + comic['ComicName'])
             updater.newpullcheck(comic['ComicName'], comicid)
 
     #here we grab issues that have been marked as wanted above...
@@ -485,15 +488,18 @@ def GCDimport(gcomicid, pullupd=None):
     #comic book location on machine
     # setup default location here
     if comlocation is None:
-        if ':' in ComicName or '/' in ComicName or ',' in ComicName:
-            comicdir = ComicName
+        # let's remove the non-standard characters here.
+        u_comicnm = comicname
+        u_comicname = u_comicnm.encode('ascii', 'ignore').strip()
+        if ':' in u_comicname or '/' in u_comicname or ',' in u_comicname:
+            comicdir = u_comicname
             if ':' in comicdir:
                 comicdir = comicdir.replace(':','')
             if '/' in comicdir:
                 comicdir = comicdir.replace('/','-')
             if ',' in comicdir:
                 comicdir = comicdir.replace(',','')            
-        else: comicdir = ComicName
+        else: comicdir = u_comicname
 
         series = comicdir
         publisher = ComicPublisher
@@ -551,7 +557,7 @@ def GCDimport(gcomicid, pullupd=None):
     try:
         with open(str(coverfile)) as f:
             ComicImage = "cache/" + str(gcomicid) + ".jpg"
-            logger.info(u"Sucessfully retrieved cover for " + str(ComicName))
+            logger.info(u"Sucessfully retrieved cover for " + ComicName)
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
         
@@ -686,14 +692,14 @@ def GCDimport(gcomicid, pullupd=None):
     if mylar.CVINFO:
         if not os.path.exists(comlocation + "/cvinfo"):
             with open(comlocation + "/cvinfo","w") as text_file:
-                text_file.write("http://www.comicvine.com/" + str(comic['ComicName']).replace(" ", "-") + "/49-" + str(comicid))
+                text_file.write("http://www.comicvine.com/volume/49-" + str(comicid))
 
     logger.info(u"Updating complete for: " + ComicName)
 
     if pullupd is None:
         # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.AUTOWANT_UPCOMING and 'Present' in ComicPublished:
-            logger.info(u"Checking this week's pullist for new issues of " + str(ComicName))
+            logger.info(u"Checking this week's pullist for new issues of " + ComicName)
             updater.newpullcheck(comic['ComicName'], gcomicid)
 
         #here we grab issues that have been marked as wanted above...
