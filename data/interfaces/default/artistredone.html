@@ -10,7 +10,9 @@
 		<div id="subhead_menu">
                         <a id="menu_link_refresh" onclick="doAjaxCall('refreshArtist?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Refresh Comic</a>
                         <a id="menu_link_delete" href="deleteArtist?ComicID=${comic['ComicID']}">Delete Comic</a>
-                        <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
+                        %if mylar.RENAME_FILES:
+                            <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
+                        %endif
                         <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Recheck Files</a>
                         %if comic['Status'] == 'Paused':
                                 <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
@@ -125,7 +127,7 @@
                        %endif
                 	<fieldset>
 	                	<div>
-		                    <label><big>Alternate versions :</big><norm>${comic['QUALalt_vers']}</norm></label>
+		                    <label><big>Alternate versions :</big><norm>${comic['ComicVersion']}</norm></label>
 	                        </div>
 	                   	<div>
 		                    <label><big>Scanner :</big><norm>${comic['QUALscanner']}</norm></label>
@@ -197,6 +199,10 @@
                                    <label>Alternate Search Names</label>
                                    <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="60"><br/>
                                 <div class="row"><small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small></div>
+                                <div>
+                                   <label>Version Number</label>
+                                   <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20"><br/>
+                                </div>
                                 </div>
                                 <label>Year Options</label>
                                 <div class="row radio left clearfix">
@@ -284,6 +290,8 @@
                                 %elif (issue['Status'] == 'Snatched'):
                                        <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>                                    
+                                %elif (issue['Status'] == 'Downloaded'):
+                                       <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
                                 %else:
                                         <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>

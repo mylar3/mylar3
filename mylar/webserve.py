@@ -436,7 +436,8 @@ class WebInterface(object):
         SeriesYear = miy['ComicYear']
         AlternateSearch = miy['AlternateSearch']
         UseAFuzzy = miy['UseFuzzy']
-        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy)
+        ComicVersion = miy['ComicVersion']
+        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy, ComicVersion)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -1241,7 +1242,7 @@ class WebInterface(object):
 
     error_change.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None):
         myDB = db.DBConnection()
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -1289,6 +1290,15 @@ class WebInterface(object):
             newValues['UseFuzzy'] = "0"
         else:
             newValues['UseFuzzy'] = str(fuzzy_year)
+        
+        if comic_version is None:
+            newValues['ComicVersion'] = "None"
+        else:
+            if comic_version[1:].isdigit() and comic_version[:1].lower() == 'v':
+                newValues['ComicVersion'] = str(comic_version)
+            else:
+                logger.info("Invalid Versioning entered - it must be in the format of v#")
+                newValues['ComicVersion'] = "None"
 
         #force the check/creation of directory com_location here
         if os.path.isdir(str(com_location)):
