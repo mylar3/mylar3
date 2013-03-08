@@ -320,7 +320,7 @@ class WebInterface(object):
         comic = myDB.action('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
         if comic['ComicName'] is None: ComicName = "None"
         else: ComicName = comic['ComicName']
-        logger.info(u"Deleting all traces of Comic: " + ComicName))
+        logger.info(u"Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
