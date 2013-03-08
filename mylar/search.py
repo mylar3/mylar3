@@ -257,7 +257,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     comyear = str(ComicYear)
 
     #print ("-------SEARCH FOR MISSING------------------")
-    findcomic.append(str(ComicName))
+    #ComicName is unicode - let's unicode and ascii it cause we'll be comparing filenames against it.
+    u_ComicName = ComicName.encode('ascii', 'ignore').strip()
+    findcomic.append(u_ComicName)
     # this should be called elsewhere..redudant code.
     if '.' in IssueNumber:
         isschk_find = IssueNumber.find('.')

@@ -279,7 +279,8 @@ class PostProcessor(object):
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher, logger.DEBUG)
             logger.fdebug("Publisher: " + str(publisher))
-            series = comicnzb['ComicName']
+            #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
+            series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
             self._log("Series: " + series, logger.DEBUG)
             logger.fdebug("Series: " + str(series))
             seriesyear = comicnzb['ComicYear']
