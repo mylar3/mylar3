@@ -16,6 +16,7 @@
 
 import sys
 import os
+import re
 import logger
 import string
 import urllib
@@ -25,7 +26,7 @@ from bs4 import BeautifulSoup as Soup
 def getComic(comicid,type):
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     #api
-    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,start_year,last_issue,site_detail_url,image,publisher'
+    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,start_year,last_issue,site_detail_url,image,publisher,description'
 
     #import library to do http requests:
     import urllib2
@@ -90,6 +91,34 @@ def GetComicInfo(comicid,dom):
     comic['ComicName'] = comic['ComicName'].rstrip() 
     comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
+    #the description field actually holds the Volume# - so let's grab it
+    try:
+        comic['ComicDescription'] = dom.getElementsByTagName('description')[0].firstChild.wholeText
+    except:
+        comic['ComicDescription'] = 'None'
+    #extract the first 60 characters
+    comicDes = comic['ComicDescription'][:60]
+    if 'volume' in comicDes.lower():
+        #found volume - let's grab it.
+        v_find = comicDes.lower().find('volume')
+        #arbitrarily grab the next 10 chars (6 for volume + 1 for space + 3 for the actual vol #)
+        #increased to 10 to allow for text numbering (+5 max)
+        vfind = comicDes[v_find:v_find+15]
+        volconv = ''
+        basenums = {'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7','eight':'8'}
+        for nums in basenums:
+            if nums in vfind.lower():
+                sconv = basenums[nums]
+                volconv = re.sub(nums, sconv, vfind.lower())
+                break        
+        if volconv != '':
+            vfind = volconv
+
+        comic['ComicVersion'] = re.sub("[^0-9]", "", vfind)
+        logger.info("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
+    else:
+        comic['ComicVersion'] = "noversion"
+
     if vari == "yes": 
         comic['ComicIssues'] = str(cntit)
     else:
@@ -97,17 +126,18 @@ def GetComicInfo(comicid,dom):
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
     comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
 
-    comicchoice.append({
-        'ComicName':              comic['ComicName'],
-        'ComicYear':              comic['ComicYear'],
-        'Comicid':                comicid,
-        'ComicURL':               comic['ComicURL'],
-        'ComicIssues':            comic['ComicIssues'],
-        'ComicImage':             comic['ComicImage'],
-        'ComicPublisher':         comic['ComicPublisher']
-        })
+#    comicchoice.append({
+#        'ComicName':              comic['ComicName'],
+#        'ComicYear':              comic['ComicYear'],
+#        'Comicid':                comicid,
+#        'ComicURL':               comic['ComicURL'],
+#        'ComicIssues':            comic['ComicIssues'],
+#        'ComicImage':             comic['ComicImage'],
+#        'ComicVolume':            ParseVol,
+#        'ComicPublisher':         comic['ComicPublisher']
+#        })
 
-    comic['comicchoice'] = comicchoice
+#    comic['comicchoice'] = comicchoice
     return comic
 
 def GetIssuesInfo(comicid,dom):

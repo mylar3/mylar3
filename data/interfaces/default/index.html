@@ -73,7 +73,7 @@
 				<td id="status">
                                 %if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
                                     Unknown 
-                                %elif 'present' in comic['ComicPublished'].lower():
+                                %elif 'present' in comic['ComicPublished'].lower() or ( helpers.today()[:4] in comic['LatestDate']):
                                     Continuing
                                 %else:
                                     Ended

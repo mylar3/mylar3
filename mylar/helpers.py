@@ -195,19 +195,23 @@ def is_number(s):
 
 def decimal_issue(iss):
     iss_find = iss.find('.')
-    iss_b4dec = iss[:iss_find]
-    iss_decval = iss[iss_find+1:]
-    if int(iss_decval) == 0:
-        iss = iss_b4dec
-        issdec = int(iss_decval)
+    if iss_find == -1:
+        #no matches for a decimal, assume we're converting from decimal to int.
+        deciss = int(iss) * 1000
     else:
-        if len(iss_decval) == 1:
-            iss = iss_b4dec + "." + iss_decval
-            issdec = int(iss_decval) * 10
+        iss_b4dec = iss[:iss_find]
+        iss_decval = iss[iss_find+1:]
+        if int(iss_decval) == 0:
+            iss = iss_b4dec
+            issdec = int(iss_decval)
         else:
-            iss = iss_b4dec + "." + iss_decval.rstrip('0')
-            issdec = int(iss_decval.rstrip('0')) * 10
-    deciss = (int(iss_b4dec) * 1000) + issdec
+            if len(iss_decval) == 1:
+                iss = iss_b4dec + "." + iss_decval
+                issdec = int(iss_decval) * 10
+            else:
+                iss = iss_b4dec + "." + iss_decval.rstrip('0')
+                issdec = int(iss_decval.rstrip('0')) * 10
+        deciss = (int(iss_b4dec) * 1000) + issdec
     return deciss
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None):

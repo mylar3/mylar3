@@ -208,7 +208,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
 
-
+    if comic['ComicVersion'].isdigit():
+        comicVol = "v" + comic['ComicVersion']
+    else:
+        comicVol = None
 
     controlValueDict = {"ComicID":      comicid}
     newValueDict = {"ComicName":        comic['ComicName'],
@@ -216,6 +219,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     "ComicYear":        comic['ComicYear'],
                     "ComicImage":       ComicImage,
                     "Total":            comicIssues,
+                    "ComicVersion":     comicVol,
                     "ComicLocation":    comlocation,
                     "ComicPublisher":   comic['ComicPublisher'],
                     "ComicPublished":   gcdinfo['resultPublished'],

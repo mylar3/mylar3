@@ -39,7 +39,8 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     #print ( "comicyear: " + str(comicyr) )
     #print ( "comichave: " + str(comicis) )
     #print ( "comicid: " + str(comicid) )
-    comicnm = re.sub(' ', '+', comicnm)
+    comicnm_1 = re.sub('\+', '%2B', comicnm)
+    comicnm = re.sub(' ', '+', comicnm_1)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
     response = urllib2.urlopen ( input )
     soup = BeautifulSoup ( response)
@@ -48,7 +49,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
 
     cnt = int(cnt1 + cnt2)
 
-    #print (str(cnt) + " results")
+    print (str(cnt) + " results")
 
     resultName = []
     resultID = []
@@ -224,6 +225,8 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             if resultFormat != '':
                 if 'ongoing series' in resultFormat.lower() and 'was' not in resultFormat.lower() and 'present' not in resultPublished.lower():
                     resultPublished = resultPublished + " - Present"
+                if 'limited series' in resultFormat.lower() and '?' in resultPublished:
+                    resultPublished = resultPublished + " (Limited Series)"
             coverst = soup.find("div", {"id" : "series_cover"})
             if coverst < 0: 
                 gcdcover = "None"
