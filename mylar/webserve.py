@@ -232,7 +232,7 @@ class WebInterface(object):
         #custom_exceptions in this format...
         #99, (comicid), (gcdid), none
         logger.info("saving new information into custom_exceptions.csv...")
-        except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")"
+        except_info = "none #" + str(comicname) + "-(" + str(comicyear) + ")\n"
         except_file = os.path.join(mylar.DATA_DIR,"custom_exceptions.csv")
         if not os.path.exists(except_file):
             try:
@@ -809,9 +809,10 @@ class WebInterface(object):
                     if mod_watch == mod_arc:
                         #gather the matches now.
                         arc_match.append({ 
-                            "match_name":   arc['ComicName'],
-                            "match_id":     comic['ComicID'],
-                            "match_issue":  arc['IssueNumber']})
+                            "match_name":          arc['ComicName'],
+                            "match_id":            comic['ComicID'],
+                            "match_issue":         arc['IssueNumber'],
+                            "match_issuearcid":    arc['IssueArcID']})
 
             print ("we matched on " + str(len(arc_match)) + " issues")
 
@@ -822,9 +823,13 @@ class WebInterface(object):
                 for issuechk in issue:
                     print ("issuechk: " + str(issuechk['Issue_Number']) + "..." + str(m_arc['match_issue']))
                     if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
-                        logger.info("we matched on " + str(issuechk['Issue_Number']) + " for " + str(m_arc['ComicName']))
-
-    
+                        logger.info("we matched on " + str(issuechk['Issue_Number']) + " for " + str(m_arc['match_name']))
+                        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived':
+                            ctrlVal = {"IssueArcID":  match_issuearcid }
+                            newVal = {"Status":  issuechk['Status']}
+                            myDB.upsert("readinglist",newVal,ctrlVal)
+                            logger.info("Already have " + match_issuearcid)
+                            break
     ArcWatchlist.exposed = True
 
     def logs(self):
