@@ -410,8 +410,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     nzbname = cleantitle
 
+
+                    #adjust for covers only by removing them entirely...
                     logger.fdebug("Cleantitle: " + str(cleantitle))
-                    if len(re.findall('[^()]+', cleantitle)) == 1: cleantitle = "abcdefghijk 0 (1901).cbz"
+                    if len(re.findall('[^()]+', cleantitle)) == 1 or 'cover only' in cleantitle.lower(): 
+                        logger.fdebug("invalid nzb and/or cover only - skipping.")
+                        cleantitle = "abcdefghijk 0 (1901).cbz"
+                        continue
 #----size constraints.
                 #if it's not within size constaints - dump it now and save some time.
 #                    logger.fdebug("size : " + str(entry['size']))
