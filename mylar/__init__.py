@@ -704,7 +704,7 @@ def config_write():
     new_config['NMA']['nma_enabled'] = int(NMA_ENABLED)
     new_config['NMA']['nma_apikey'] = NMA_APIKEY
     new_config['NMA']['nma_priority'] = NMA_PRIORITY
-    new_config['NMA']['nma_onsnatch'] = int(PROWL_ONSNATCH)
+    new_config['NMA']['nma_onsnatch'] = int(NMA_ONSNATCH)
 
     new_config['Raw'] = {}
     new_config['Raw']['raw'] = int(RAW)
