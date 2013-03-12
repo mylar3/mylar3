@@ -472,6 +472,12 @@ def initialize():
         except Exception, e:
             logger.error("Can't connect to the database: %s" % e)
 
+        # With the addition of NZBGet, it's possible that both SAB and NZBget are unchecked initially.
+        # let's force default SAB.
+        if USE_NZBGET == 0 and USE_SABNZBD == 0 :
+            logger.info("No Download Server option given - defaulting to SABnzbd.")
+            USE_SABNZBD = 1
+
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION = versioncheck.getVersion()
