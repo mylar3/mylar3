@@ -89,7 +89,10 @@ def GetComicInfo(comicid,dom):
     #that the parser finds with name tagName:
     comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt].firstChild.wholeText
     comic['ComicName'] = comic['ComicName'].rstrip() 
-    comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
+    try:
+        comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
+    except:
+        comic['ComicYear'] = '0000'
     comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
     #the description field actually holds the Volume# - so let's grab it
     try:

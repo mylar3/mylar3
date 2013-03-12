@@ -381,7 +381,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                 #print ("watchd: " + str(watchd))
                 if watchd is None:
                     break
-                if 'Present' in watchd[4]:
+                if 'Present' in watchd[4] or (helpers.now()[:4] in watchd[4]):
                  # let's not even bother with comics that are in the Present.
                     a_list.append(watchd[1])
                     b_list.append(watchd[2])

@@ -51,7 +51,7 @@ def findComic(name, mode, issue, limityear=None):
     if any((c in chars) for c in name):
         name = '"'+name+'"'
 
-    print ("limityear: " + str(limityear))            
+    #print ("limityear: " + str(limityear))            
     if limityear is None: limityear = 'None'
 
     comicquery=name.replace(" ", "%20")

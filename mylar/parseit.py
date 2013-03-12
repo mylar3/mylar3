@@ -49,7 +49,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
 
     cnt = int(cnt1 + cnt2)
 
-    print (str(cnt) + " results")
+    #print (str(cnt) + " results")
 
     resultName = []
     resultID = []
@@ -206,6 +206,12 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 except UnicodeDecodeError:
                     logger.info("not working...aborting. Tell Evilhero.")
                     return
+            #If CV doesn't have the Series Year (Stupid)...Let's store the Comics.org stated year just in case.
+            pyearit = soup.find("div", {"class" : "item_data"})
+            pyeartxt = pyearit.find(text=re.compile(r"Series"))
+            pyearst = pyeartxt.index('Series')
+            ParseYear = pyeartxt[int(pyearst)-5:int(pyearst)]
+
             parsed = soup.find("div", {"id" : "series_data"})
             #recent structure changes - need to adjust now
             subtxt3 = parsed.find("dd", {"id" : "publication_dates"})
@@ -423,6 +429,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
         gcdinfo['totalissues'] = TotalIssues
     gcdinfo['ComicImage'] = gcdcover
     gcdinfo['resultPublished'] = resultPublished
+    gcdinfo['SeriesYear'] = ParseYear
     return gcdinfo
         ## -- end (GCD) -- ##
 

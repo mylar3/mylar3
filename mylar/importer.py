@@ -115,6 +115,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     logger.info(u"Sucessfully retrieved details for " + comic['ComicName'] )
     # print ("Series Published" + parseit.resultPublished)
 
+    #if the SeriesYear returned by CV is blank or none (0000), let's use the gcd one.
+    if comic['ComicYear'] is None or comic['ComicYear'] == '0000':
+        SeriesYear = gcdinfo['SeriesYear']
+    else:
+        SeriesYear = comic['ComicYear']
+
     #comic book location on machine
     # setup default location here
 
@@ -134,7 +140,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
         series = comicdir
         publisher = comic['ComicPublisher']
-        year = comic['ComicYear']
+        year = SeriesYear
 
         #do work to generate folder path
 
@@ -151,7 +157,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         #print helpers.replace_all(mylar.FOLDER_FORMAT, values)
 
         if mylar.FOLDER_FORMAT == '':
-            comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
+            comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + SeriesYear + ")"
         else:
             comlocation = mylar.DESTINATION_DIR + "/" + helpers.replace_all(mylar.FOLDER_FORMAT, values)
 
@@ -216,7 +222,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     controlValueDict = {"ComicID":      comicid}
     newValueDict = {"ComicName":        comic['ComicName'],
                     "ComicSortName":    sortname,
-                    "ComicYear":        comic['ComicYear'],
+                    "ComicYear":        SeriesYear,
                     "ComicImage":       ComicImage,
                     "Total":            comicIssues,
                     "ComicVersion":     comicVol,
