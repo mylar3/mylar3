@@ -907,6 +907,7 @@ class WebInterface(object):
         newValueDict = {'inCacheDIR': 'True',
                         'Location':   issueFILE}
         myDB.upsert("readlist", newValueDict, controlValueDict)
+        myDB.upsert("issues", newValueDict, controlValueDict)
 
         #print("DB updated - Download link now enabled.")
 

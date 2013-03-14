@@ -850,6 +850,11 @@ def dbcheck():
         c.execute('ALTER TABLE importresults ADD COLUMN impID TEXT')
 
     try:
+        c.execute('SELECT inCacheDir from issues')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+
+    try:
         c.execute('SELECT inCacheDIR from readlist')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN inCacheDIR TEXT')
