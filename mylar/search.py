@@ -103,8 +103,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 
     #fix for issue dates between Nov-Dec/Jan
     IssDt = str(IssueDate)[5:7]
-    if IssDt == "12" or IssDt == "11":
-         IssDateFix = "yes"
+    if IssDt == "12" or IssDt == "11" or IssDt == "01":
+         IssDateFix = IssDt
     else:
          IssDateFix = "no"
 
@@ -211,8 +211,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     elif nzbprov == 'experimental':
         apikey = 'none'
     elif nzbprov == 'newznab':
-        host_newznab = newznab_host[0]
-        apikey = newznab_host[1]
+        host_newznab = newznab_host[0].rstrip()
+        apikey = newznab_host[1].rstrip()
         logger.fdebug("using Newznab host of : " + str(host_newznab))
 
     logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + "(" + str(ComicYear) + ") using " + str(nzbprov))
@@ -296,8 +296,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     # replace whitespace in comic name with %20 for api search
     cm1 = re.sub(" ", "%20", str(findcomic[findcount]))
     #cm = re.sub("\&", "%26", str(cm1))
-    cm = re.sub("and", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
+    cm = re.sub("\\band\\b", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
     cm = re.sub("\&", "", str(cm))
+    cm = re.sub("\:", "", str(cm))
     #print (cmi)
     if '.' in findcomiciss[findcount]:
         if len(str(isschk_b4dec)) == 3:
@@ -352,8 +353,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
                     #let's make sure the host has a '/' at the end, if not add it.
-                    if host_newznab[:-1] != "/": host_newznab = str(host_newznab) + "/"
-                    findurl = str(host_newznab) + "api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
+                    if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
+                        host_newznab_fix = str(host_newznab) + "/"
+                    else: host_newznab_fix = host_newznab
+                    findurl = str(host_newznab_fix) + "api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzbx':
                     bb = prov_nzbx.searchit(comsearch[findloop])
                 if nzbprov != 'nzbx':
@@ -460,7 +463,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             comic_andiss = m[cnt]
                             logger.fdebug("Comic: " + str(comic_andiss))
                             logger.fdebug("UseFuzzy is  : " + str(UseFuzzy))
-                        if UseFuzzy == "0" or UseFuzzy == "2" or UseFuzzy is None or IssDateFix == "yes":
+                        if UseFuzzy == "0" or UseFuzzy == "2" or UseFuzzy is None or IssDateFix != "no":
                             if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
                                 logger.fdebug("year detected: " + str(m[cnt]))
                                 result_comyear = m[cnt]
@@ -481,8 +484,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                             logger.fdebug(str(comyear) + "Fuzzy logic'd the Year and year still didn't match.")
                                 #let's do this hear and save a few extra loops ;)
                                 #fix for issue dates between Nov-Dec/Jan
-                                    if IssDateFix == "yes" and UseFuzzy is not "2":
-                                        ComicYearFix = int(ComicYear) + 1
+                                    if IssDateFix != "no" and UseFuzzy is not "2":
+                                        if IssDateFix == "01": ComicYearFix = int(ComicYear) - 1
+                                        else: ComicYearFix = int(ComicYear) + 1
                                         if str(ComicYearFix) in result_comyear:
                                             logger.fdebug("further analysis reveals this was published inbetween Nov-Jan, incrementing year to " + str(ComicYearFix) + " has resulted in a match!")
                                             yearmatch = "true"
