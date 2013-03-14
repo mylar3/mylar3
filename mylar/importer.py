@@ -64,6 +64,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
+    #run the re-sortorder here in order to properly display the page
+    helpers.ComicSort(comicid)
+
     # we need to lookup the info for the requested ComicID in full now        
     comic = cv.getComic(comicid,'comic')
     #comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [comicid]).fetchone()
@@ -234,6 +237,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     
     myDB.upsert("comics", newValueDict, controlValueDict)
 
+    #re-run the re-sortorder here now that the ComicName has been written to the db.
+    helpers.ComicSort()
+
+
     issued = cv.getComic(comicid,'issue')
     logger.info(u"Sucessfully retrieved issue details for " + comic['ComicName'] )
     n = 0
@@ -317,7 +324,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                         issaftdec = str(decisval)
                     gcd_issue = issb4dec + "." + issaftdec
                     #logger.fdebug("gcd_issue:" + str(gcd_issue))
-                    gcdis = (int(issb4dec) * 1000) + decisval
+                    try:
+                        gcdis = (int(issb4dec) * 1000) + decisval
+                    except ValueError:
+                        logger.error("This has no issue #'s for me to get - Either a Graphic Novel or one-shot. This feature to allow these will be added in the near future.")
+                        updater.no_searchresults(comicid)
+                        return
                 else:
                     gcdis = int(str(gcdval['GCDIssue'])) * 1000
                 if gcdis == issis:

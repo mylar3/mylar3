@@ -175,7 +175,8 @@ def no_searchresults(ComicID):
     myDB = db.DBConnection()
     controlValue = { "ComicID":        ComicID}
     newValue = {"Status":       "Error",
-                "ComicName":    "None"}    
+                "LatestDate":   "Error",
+                "LatestIssue":  "Error"}    
     myDB.upsert("comics", newValue, controlValue)
 
 def nzblog(IssueID, NZBName):

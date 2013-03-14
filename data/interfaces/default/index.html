@@ -58,7 +58,7 @@
 				elif comic['Status'] == 'Loading':
 			        	grade = 'L'
                                 elif comic['Status'] == 'Error':
-                                        grade = 'Z'
+                                        grade = 'X'
                                 else:
                                         grade = 'A'
 				
@@ -81,9 +81,9 @@
                                 </td>
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
-                                    <img src="/images/checkmark.png" alt="Y" width="16" height="16" />
+                                    <img src="/interfaces/default/images/checkmark.png" alt="Y" width="16" height="16" />
                                 %else:
-                                    <img src="/images/cross.png" alt="N" width="16" height="16" />
+                                    <img src="/interfaces/default/images/cross.png" alt="N" width="16" height="16" />
                                 %endif
                                 </td>
                          </tr>

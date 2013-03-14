@@ -73,21 +73,24 @@ class WebInterface(object):
         #let's cheat. :)
         comicskip = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         series = {}
-        found = "no"
-        i=0
         for cskip in comicskip:
-            if i == 0: first = cskip['ComicID']
-            current = cskip['ComicID']
-            if found == "yes":
-                series['Next'] = current       
-                found == "no"
+            if cskip['ComicID'] == ComicID:
+                cursortnum = cskip['SortOrder']
+                series['Current'] = cskip['ComicID']
+                if cursortnum == 1 or cursortnum == 999:
+                    # if first record, set the Previous record to the LAST record.
+                    previous = myDB.action("SELECT ComicID from Comics order by SortOrder DESC LIMIT 1").fetchone()
+                else:
+                    previous = myDB.action("SELECT ComicID from Comics WHERE SortOrder=?", [cursortnum-1]).fetchone()
+
+                next = myDB.action("SELECT ComicID from Comics WHERE SortOrder=?", [cursortnum+1]).fetchone()
+                if next is None:
+                    # if last record, set the Next record to the FIRST record.
+                    next = myDB.action("SELECT ComicID from Comics order by ComicSortName").fetchone()
+
+                series['Previous'] = previous[0]
+                series['Next'] = next[0]
                 break
-            if current == ComicID:
-                series['Current'] = current
-                series['Previous'] = previous
-                found = "yes"
-            previous = current
-            i+=1
         
         issues = myDB.select('SELECT * FROM issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         isCounts = {}

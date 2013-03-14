@@ -729,6 +729,10 @@ def start():
         SCHED.add_interval_job(updater.dbUpdate, hours=48)
         SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
         #SCHED.add_interval_job(librarysync.libraryScan, minutes=LIBRARYSCAN_INTERVAL)
+
+        #Ordering comics here
+        logger.info("Remapping the sorting to allow for new additions.")
+        threading.Thread(target=helpers.ComicSort).start()
         
         #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
         logger.info("Checking for existance of Weekly Comic listing...")
@@ -755,7 +759,7 @@ def dbcheck():
     conn=sqlite3.connect(DB_FILE)
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
@@ -805,6 +809,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN ComicVersion TEXT')
 
+    try:
+        c.execute('SELECT SortOrder from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN SortOrder INTEGER')
 
     try:
         c.execute('SELECT ComicSize from issues')
@@ -896,7 +904,6 @@ def dbcheck():
 
     conn.commit()
     c.close()
-
 
 def csv_load():
     # for redudant module calls..include this.

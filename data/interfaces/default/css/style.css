@@ -903,6 +903,48 @@ div#artistheader h2 a {
   font-weight: bold;
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
 }
+#read_detail th#options {
+  min-width: 150px;
+  text-align: left;
+}
+#read_detail th#comicname {
+  min-width: 300px;
+  text-align: left;
+}
+#read_detail th#issue,
+#read_detail th#status {
+  min-width: 30px;
+  text-align: center;
+}
+#read_detail th#issueyear {
+  min-width: 75px;
+  text-align: center;
+}
+#read_detail td#comicname {
+  min-width: 300px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#read_detail td#status,
+#read_detail td#issue {
+  min-width: 30px;
+  text-align: left;
+  vertical-align: middle;
+}
+#read_detail td#issueyear{
+  min-width: 75px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+#read_detail td#options {
+  min-width: 150px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+
 #weekly_pull th#publisher {
   min-width: 150px;
   text-align: left;
