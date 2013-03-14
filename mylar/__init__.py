@@ -732,7 +732,7 @@ def start():
 
         #Ordering comics here
         logger.info("Remapping the sorting to allow for new additions.")
-        threading.Thread(target=helpers.ComicSort).start()
+        helpers.ComicSort()
         
         #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
         logger.info("Checking for existance of Weekly Comic listing...")
