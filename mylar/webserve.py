@@ -249,7 +249,6 @@ class WebInterface(object):
     def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None):
         import unicodedata
         mismatch = "yes"
-        #print ("gcdid:" + str(gcdid))
         #write it to the custom_exceptions.csv and reload it so that importer will pick it up and do it's thing :)
         #custom_exceptions in this format...
         #99, (comicid), (gcdid), none
@@ -268,7 +267,7 @@ class WebInterface(object):
 
         with open(str(except_file), 'a') as f:
            #f.write('%s,%s,%s,%s\n' % ("99", comicid, gcdid, except_info)
-            f.write(exceptline.encode('ascii','replace').strip())
+            f.write('%s\n' % (exceptline.encode('ascii','replace').strip()))
         logger.info("re-loading csv file so it's all nice and current.")
         mylar.csv_load()
        
@@ -1251,7 +1250,7 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)  
     config.exposed = True
 
-    def error_change(self, comicid, errorgcd, comicname):
+    def error_change(self, comicid, errorgcd, comicname, comicyear):
         # if comicname contains a "," it will break the exceptions import.
         import urllib
         b = urllib.unquote_plus(comicname)
@@ -1262,7 +1261,7 @@ class WebInterface(object):
         if errorgcd[:5].isdigit():
             print ("GCD-ID detected : " + str(errorgcd)[:5])
             print ("I'm assuming you know what you're doing - going to force-match for " + cname)
-            self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname)
+            self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname,comicyear=comicyear)
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid,'comic')
