@@ -384,7 +384,6 @@ def apiremove(apistring, type):
 def ComicSort(imported=None):
     from mylar import db, logger
     myDB = db.DBConnection()
-    comicsort = myDB.action("SELECT * FROM comics ORDER BY ComicSortName")
     if imported != None:
         #if it's an Add Series, set it to the last record for now so it doesn't throw a 500.
         cid = {"ComicID":  imported}
@@ -392,12 +391,17 @@ def ComicSort(imported=None):
         myDB.upsert("comics", val, cid)
         logger.info("New Series...Set SortOrder to last record to avoid errors for now.")
     else:    
-        i = -1
+        i = 1
+        comicsort = myDB.action("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        comicidlist = []
         for csort in comicsort:
-            cid = {"ComicID":  csort['ComicID']}
-            val = {"SortOrder": i}
-            myDB.upsert("comics", val, cid)
-            i+=1
-        logger.info("Sucessfully ordered " + str(i) + " series in your watchlist.")
+            if csort['ComicID'] is None: pass
+            if not csort['ComicID'] in comicidlist:
+                cid = {"ComicID":  csort['ComicID']}
+                val = {"SortOrder": i}
+                myDB.upsert("comics", val, cid)
+                comicidlist.append(csort['ComicID'])
+                i+=1
+        logger.info("Sucessfully ordered " + str(i-1) + " series in your watchlist.")
     return
 

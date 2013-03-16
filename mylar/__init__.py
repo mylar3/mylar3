@@ -904,7 +904,7 @@ def dbcheck():
 #        c.execute('ALTER TABLE importresults ADD COLUMN MetaData TEXT')
 
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
-    c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%'")
+    c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     logger.info(u"Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)")
 
     conn.commit()
