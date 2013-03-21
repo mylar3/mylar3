@@ -71,27 +71,33 @@ class WebInterface(object):
         if comic is None:
             raise cherrypy.HTTPRedirect("home")
         #let's cheat. :)
-        comicskip = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        #comicskip = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        skipno = len(mylar.COMICSORT['SortOrder'])
+        lastno = mylar.COMICSORT['LastOrderNo']
+        lastid = mylar.COMICSORT['LastOrderID']
         series = {}
-        for cskip in comicskip:
+        i = 0
+        while (i < skipno):
+            cskip = mylar.COMICSORT['SortOrder'][i]
             if cskip['ComicID'] == ComicID:
-                cursortnum = cskip['SortOrder']
+                cursortnum = cskip['ComicOrder']
                 series['Current'] = cskip['ComicID']
-                if cursortnum == 1 or cursortnum == 999:
+                if cursortnum == 0:
                     # if first record, set the Previous record to the LAST record.
-                    previous = myDB.action("SELECT ComicID from Comics order by SortOrder DESC LIMIT 1").fetchone()
+                    previous = lastid
                 else:
-                    previous = myDB.action("SELECT ComicID from Comics WHERE SortOrder=?", [cursortnum-1]).fetchone()
+                    previous = mylar.COMICSORT['SortOrder'][i-1]['ComicID']
 
-                next = myDB.action("SELECT ComicID from Comics WHERE SortOrder=?", [cursortnum+1]).fetchone()
-                if next is None:
-                    # if last record, set the Next record to the FIRST record.
-                    next = myDB.action("SELECT ComicID from Comics order by ComicSortName").fetchone()
-
-                series['Previous'] = previous[0]
-                series['Next'] = next[0]
+                # if last record, set the Next record to the FIRST record.
+                if cursortnum == lastno:
+                    next = mylar.COMICSORT['SortOrder'][0]['ComicID']
+                else:
+                    next = mylar.COMICSORT['SortOrder'][i+1]['ComicID']
+                series['Previous'] = previous
+                series['Next'] = next
                 break
-        
+            i+=1
+
         issues = myDB.select('SELECT * FROM issues WHERE ComicID=? order by Int_IssueNumber DESC', [ComicID])
         isCounts = {}
         isCounts[1] = 0   #1 skipped
@@ -123,7 +129,11 @@ class WebInterface(object):
                     "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted" : helpers.checked(skipped2wanted)
                }
-        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series)
+        if mylar.ANNUALS_ON:
+            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
+        else: annuals = None
+
+        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals)
     artistPage.exposed = True
 
     def searchit(self, name, issue=None, mode=None, type=None):

@@ -25,7 +25,7 @@ import sqlite3
 import cherrypy
 
 import mylar
-from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater, moveit
+from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater, moveit, comicbookdb
 
        
 def is_exists(comicid):
@@ -65,7 +65,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     myDB.upsert("comics", newValueDict, controlValueDict)
 
     #run the re-sortorder here in order to properly display the page
-    helpers.ComicSort(comicid)
+    if pullupd is None:
+        helpers.ComicSort(comicorder=mylar.COMICSORT, imported=comicid)
 
     # we need to lookup the info for the requested ComicID in full now        
     comic = cv.getComic(comicid,'comic')
@@ -124,6 +125,25 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     else:
         SeriesYear = comic['ComicYear']
 
+    #let's do the Annual check here.
+    if mylar.ANNUALS_ON:
+        annuals = comicbookdb.cbdb(comic['ComicName'], SeriesYear)
+        print ("Number of Annuals returned: " + str(annuals['totalissues']))
+        nb = 0
+        while (nb <= int(annuals['totalissues'])):
+            try:
+                annualval = annuals['annualslist'][nb]
+            except IndexError:
+                break
+            newCtrl = {"IssueID": str(annualval['AnnualIssue'] + annualval['AnnualDate'])}
+            newVals = {"Issue_Number":  annualval['AnnualIssue'],
+                       "IssueDate":     annualval['AnnualDate'],
+                       "ComicID":       comicid,
+                       "Status":        "skipped"}
+            myDB.upsert("annuals", newVals, newCtrl)
+            nb+=1
+
+    #parseit.annualCheck(gcomicid=gcdinfo['GCDComicID'], comicid=comicid, comicname=comic['ComicName'], comicyear=SeriesYear)
     #comic book location on machine
     # setup default location here
 
@@ -172,16 +192,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         if mylar.REPLACE_SPACES:
             #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
             comlocation = comlocation.replace(' ', mylar.REPLACE_CHAR)
-        #if it doesn't exist - create it (otherwise will bugger up later on)
-        if os.path.isdir(str(comlocation)):
-            logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
-        else:
-            #print ("Directory doesn't exist!")
-            try:
-                os.makedirs(str(comlocation))
-                logger.info(u"Directory successfully created at: " + str(comlocation))
-            except OSError:
-                logger.error(u"Could not create comicdir : " + str(comlocation))
+
+    #moved this out of the above loop so it will chk for existance of comlocation in case moved
+    #if it doesn't exist - create it (otherwise will bugger up later on)
+    if os.path.isdir(str(comlocation)):
+        logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
+    else:
+        #print ("Directory doesn't exist!")
+        try:
+            os.makedirs(str(comlocation))
+            logger.info(u"Directory successfully created at: " + str(comlocation))
+        except OSError:
+            logger.error(u"Could not create comicdir : " + str(comlocation))
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -202,13 +224,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         except OSError:
             logger.error('Could not create cache dir. Check permissions of cache dir: ' + str(mylar.CACHE_DIR))
 
-    coverfile = mylar.CACHE_DIR + "/" + str(comicid) + ".jpg"
+    coverfile = os.path.join(mylar.CACHE_DIR,  str(comicid) + ".jpg")
 
     #try:
     urllib.urlretrieve(str(comic['ComicImage']), str(coverfile))
     try:
         with open(str(coverfile)) as f:
             ComicImage = os.path.join('cache',str(comicid) + ".jpg")
+
+            #this is for Firefox when outside the LAN...it works, but I don't know how to implement it
+            #without breaking the normal flow for inside the LAN (above)
+            #ComicImage = "http://" + str(mylar.HTTP_HOST) + ":" + str(mylar.HTTP_PORT) + "/cache/" + str(comicid) + ".jpg"
+
             logger.info(u"Sucessfully retrieved cover for " + comic['ComicName'])
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.COMIC_COVER_LOCAL:
@@ -237,9 +264,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     
     myDB.upsert("comics", newValueDict, controlValueDict)
 
-    #re-run the re-sortorder here now that the ComicName has been written to the db.
-    helpers.ComicSort()
-
+    #comicsort here...
+    #run the re-sortorder here in order to properly display the page
+    if pullupd is None:
+        helpers.ComicSort(sequence='update')
 
     issued = cv.getComic(comicid,'issue')
     logger.info(u"Sucessfully retrieved issue details for " + comic['ComicName'] )

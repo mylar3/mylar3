@@ -381,27 +381,78 @@ def apiremove(apistring, type):
 
     return apiremoved
 
-def ComicSort(imported=None):
-    from mylar import db, logger
-    myDB = db.DBConnection()
-    if imported != None:
+#def ComicSort(imported=None):
+    #from mylar import db, logger
+    #myDB = db.DBConnection()
+    #if imported != None:
         #if it's an Add Series, set it to the last record for now so it doesn't throw a 500.
-        cid = {"ComicID":  imported}
-        val = {"SortOrder": 999}
-        myDB.upsert("comics", val, cid)
-        logger.info("New Series...Set SortOrder to last record to avoid errors for now.")
-    else:    
-        i = 1
+        #cid = {"ComicID":  imported}
+        #val = {"SortOrder": 999}
+    #    comicorder.append({
+    #         'ComicID':             imported,
+    #         'SortOrder':           999
+    #         })
+
+    #    issue['issuechoice'] = issuechoice
+
+#        myDB.upsert("comics", val, cid)
+    #    logger.info("New Series...Set SortOrder to last record to avoid errors for now.")
+    #else:    
+def ComicSort(comicorder=None,sequence=None,imported=None):
+    if sequence:
+        # if it's on startup, load the sql into a tuple for use to avoid record-locking
+        i = 0
+        import db, logger
+        myDB = db.DBConnection()
         comicsort = myDB.action("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        comicorderlist = []
+        comicorder = {}
         comicidlist = []
+        if sequence == 'update':
+            mylar.COMICSORT['SortOrder'] == None
+            mylar.COMICSORT['LastOrderNo'] = None
+            mylar.COMICSORT['LastOrderID'] = None
         for csort in comicsort:
             if csort['ComicID'] is None: pass
             if not csort['ComicID'] in comicidlist:
-                cid = {"ComicID":  csort['ComicID']}
-                val = {"SortOrder": i}
-                myDB.upsert("comics", val, cid)
+                if sequence == 'startup':
+                    comicorderlist.append({
+                         'ComicID':             csort['ComicID'],
+                         'ComicOrder':           i
+                         })
+                elif sequence == 'update':
+                    mylar.COMICSORT['SortOrder'].append({
+                         'ComicID':             csort['ComicID'],
+                         'ComicOrder':           i
+                         })
+
                 comicidlist.append(csort['ComicID'])
                 i+=1
-        logger.info("Sucessfully ordered " + str(i-1) + " series in your watchlist.")
-    return
-
+        if sequence == 'startup':
+            comicorder['SortOrder'] = comicorderlist
+            comicorder['LastOrderNo'] = i-1
+            comicorder['LastOrderID'] = comicorder['SortOrder'][i-1]['ComicID']
+            logger.info("Sucessfully ordered " + str(i-1) + " series in your watchlist.")
+            return comicorder
+        elif sequence == 'update':
+            mylar.COMICSORT['LastOrderNo'] = i-1
+            mylar.COMICSORT['LastOrderID'] = mylar.COMICSORT['SortOrder'][i-1]['ComicID']
+            return            
+    else:
+        # for new series adds, we already know the comicid, so we set the sortorder to an abnormally high #
+        # we DO NOT write to the db to avoid record-locking.
+        # if we get 2 999's we're in trouble though.
+        sortedapp = []
+        if comicorder['LastOrderNo'] == '999':
+            lastorderval = int(comicorder['LastOrderNo']) + 1
+        else:
+            lastorderval = 999
+        sortedapp.append({
+             'ComicID':             imported,
+             'ComicOrder':           lastorderval
+             })
+        mylar.COMICSORT['SortOrder'] = sortedapp
+        mylar.COMICSORT['LastOrderNo'] = lastorderval
+        mylar.COMICSORT['LastOrderID'] = imported
+        return
+        

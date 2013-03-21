@@ -191,6 +191,9 @@ COUNT_COMICS = 0
 COUNT_ISSUES = 0
 COUNT_HAVES = 0
 
+COMICSORT = None
+ANNUALS_ON = 0
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -241,9 +244,9 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
+        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
-                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, MUSIC_DIR, DESTINATION_DIR, \
+                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
@@ -251,7 +254,7 @@ def initialize():
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, ANNUALS_ON
                 
         if __INITIALIZED__:
             return False
@@ -338,6 +341,10 @@ def initialize():
         MAXSIZE = check_setting_str(CFG, 'General', 'maxsize', '')
         ADD_TO_CSV = bool(check_setting_int(CFG, 'General', 'add_to_csv', 1))
         CVINFO = bool(check_setting_int(CFG, 'General', 'cvinfo', 0))
+        ANNUALS_ON = bool(check_setting_int(CFG, 'General', 'annuals_on', 0))
+        if not ANNUALS_ON:
+            #default to off
+            ANNUALS_ON = 0
         LOG_LEVEL = check_setting_str(CFG, 'General', 'log_level', '')
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
@@ -517,6 +524,9 @@ def initialize():
             else:
                 logger.info("Synology Parsing Fix already implemented. No changes required at this time.")
 
+        #Ordering comics here
+        logger.info("Remapping the sorting to allow for new additions.")
+        COMICSORT = helpers.ComicSort(sequence='startup')
                                     
         __INITIALIZED__ = True
         return True
@@ -596,6 +606,7 @@ def config_write():
     new_config['General']['logverbose'] = int(LOGVERBOSE)
     new_config['General']['git_path'] = GIT_PATH
     new_config['General']['cache_dir'] = CACHE_DIR
+    new_config['General']['annuals_on'] = ANNUALS_ON
     
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
@@ -730,10 +741,6 @@ def start():
         SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
         #SCHED.add_interval_job(librarysync.libraryScan, minutes=LIBRARYSCAN_INTERVAL)
 
-        #Ordering comics here
-        logger.info("Remapping the sorting to allow for new additions.")
-        helpers.ComicSort()
-        
         #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
         logger.info("Checking for existance of Weekly Comic listing...")
         PULLNEW = 'no'  #reset the indicator here.
@@ -971,7 +978,7 @@ def shutdown(restart=False, update=False):
     SCHED.shutdown(wait=False)
     
     config_write()
-    
+
     if not restart and not update:
         logger.info('Mylar is shutting down...')
     if update:

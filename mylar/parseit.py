@@ -387,7 +387,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 PrevYRMO = ParseDate
                 gcdinfo['ComicDate'] = ParseDate
                 #^^ will retrieve date #
-                #logger.fdebug("adding: " + str(gcdinfo['ComicIssue']))
+                #logger.fdebug("adding: " + str(gcdinfo['ComicIssue']) + " - date: " + str(ParseDate))
                 if ComicID[:1] == "G":
                     gcdchoice.append({
                         'GCDid':                ComicID,
@@ -430,6 +430,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
     gcdinfo['ComicImage'] = gcdcover
     gcdinfo['resultPublished'] = resultPublished
     gcdinfo['SeriesYear'] = ParseYear
+    gcdinfo['GCDComicID'] = resultURL.split('/')[0]
     return gcdinfo
         ## -- end (GCD) -- ##
 
@@ -438,31 +439,39 @@ def GettheDate(parsed,PrevYRMO):
     #try publicationd date first
     #logger.fdebug("parsed:" + str(parsed))    
     subtxt1 = parsed('td')[1]
-    ParseDate = subtxt1.findNext(text=True)
+    ParseDate = subtxt1.findNext(text=True).rstrip()
+    pformat = 'pub'
+    if ParseDate is None or ParseDate == '':
+        subtxt1 = parsed('td')[2]
+        ParseDate = subtxt1.findNext(text=True)
+        pformat = 'on-sale'
+        if len(ParseDate) < 7: ParseDate = '0000-00' #invalid on-sale date format , drop it 0000-00 to avoid errors
     basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'08','september':'09','october':'10','november':'11','december':'12'}
     pdlen = len(ParseDate)
     pdfind = ParseDate.find(' ',2)
     #logger.fdebug("length: " + str(pdlen) + "....first space @ pos " + str(pdfind))
     #logger.fdebug("this should be the year: " + str(ParseDate[pdfind+1:pdlen-1]))
-    if ParseDate[pdfind+1:pdlen-1].isdigit():
-        #assume valid date.
-        #search for number as text, and change to numeric
-        for numbs in basmonths:
-            if numbs in ParseDate.lower():
-                pconv = basmonths[numbs]
-                ParseYear = re.sub('/s','',ParseDate[-5:])
-                ParseDate = str(ParseYear) + "-" + str(pconv)
-                #logger.fdebug("!success - Publication date: " + str(ParseDate))
-                break
-        # some comics are messed with pub.dates and have Spring/Summer/Fall/Winter
+    if pformat == 'on-sale': pass # date is in correct format...
     else:
-        baseseasons = {'spring':'03','summer':'06','fall':'09','winter':'12'}
-        for seas in baseseasons:
-            if seas in ParseDate.lower():
-                sconv = baseseasons[seas]
-                ParseYear = re.sub('/s','',ParseDate[-5:])
-                ParseDate = str(ParseYear) + "-" + str(sconv)
-                break        
+        if ParseDate[pdfind+1:pdlen-1].isdigit():
+            #assume valid date.
+            #search for number as text, and change to numeric
+            for numbs in basmonths:
+                if numbs in ParseDate.lower():
+                    pconv = basmonths[numbs]
+                    ParseYear = re.sub('/s','',ParseDate[-5:])
+                    ParseDate = str(ParseYear) + "-" + str(pconv)
+                    #logger.fdebug("!success - Publication date: " + str(ParseDate))
+                    break
+            # some comics are messed with pub.dates and have Spring/Summer/Fall/Winter
+        else:
+            baseseasons = {'spring':'03','summer':'06','fall':'09','winter':'12'}
+            for seas in baseseasons:
+                if seas in ParseDate.lower():
+                    sconv = baseseasons[seas]
+                    ParseYear = re.sub('/s','',ParseDate[-5:])
+                    ParseDate = str(ParseYear) + "-" + str(sconv)
+                    break        
 #               #try key date
 #               subtxt1 = parsed('td')[2]
 #               ParseDate = subtxt1.findNext(text=True)
@@ -472,22 +481,22 @@ def GettheDate(parsed,PrevYRMO):
 #                   subtxt3 = parsed('td')[0]
 #                   ParseDate = subtxt3.findNext(text=True)
 #                   if ParseDate == ' ':
-                    #increment previous month by one and throw it in until it's populated properly.
-        if PrevYRMO == '0000-00':
-            ParseDate = '0000-00'
-        else:
-            PrevYR = str(PrevYRMO)[:4]
-            PrevMO = str(PrevYRMO)[5:]
-            #let's increment the month now (if it's 12th month, up the year and hit Jan.)
-            if int(PrevMO) == 12:
-                PrevYR = int(PrevYR) + 1
-                PrevMO = 1
+            #increment previous month by one and throw it in until it's populated properly.
+            if PrevYRMO == '0000-00':
+                ParseDate = '0000-00'
             else:
-                PrevMO = int(PrevMO) + 1
-            if int(PrevMO) < 10:
-                PrevMO = "0" + str(PrevMO)
-            ParseDate = str(PrevYR) + "-" + str(PrevMO)
-            #logger.fdebug("parseDAte:" + str(ParseDate))
+                PrevYR = str(PrevYRMO)[:4]
+                PrevMO = str(PrevYRMO)[5:]
+                #let's increment the month now (if it's 12th month, up the year and hit Jan.)
+                if int(PrevMO) == 12:
+                    PrevYR = int(PrevYR) + 1
+                    PrevMO = 1
+                else:
+                    PrevMO = int(PrevMO) + 1
+                if int(PrevMO) < 10:
+                    PrevMO = "0" + str(PrevMO)
+                ParseDate = str(PrevYR) + "-" + str(PrevMO)
+                #logger.fdebug("parseDAte:" + str(ParseDate))
     return ParseDate
 
 def GCDAdd(gcdcomicid):
@@ -711,3 +720,84 @@ def decode_html(html_string):
             ', '.join(converted.triedEncodings))
     # print converted.originalEncoding
     return converted.unicode
+
+def annualCheck(gcomicid, comicid, comicname, comicyear):
+    # will only work if we already matched for gcd.
+    # search for <comicname> annual
+    # grab annual listing that hits on comicyear (seriesyear)
+    # grab results :)
+    print ("GcomicID: " + str(gcomicid))
+    print ("comicID: " + str(comicid))
+    print ("comicname: " + comicname)
+    print ("comicyear: " + str(comicyear))
+    comicnm = comicname.encode('utf-8').strip()
+    comicnm_1 = re.sub('\+', '%2B', comicnm + " annual")
+    comicnm = re.sub(' ', '+', comicnm_1)
+    input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyear) + '-01-01&end_date=' + str(comicyear) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
+
+    response = urllib2.urlopen ( input )
+    soup = BeautifulSoup ( response)
+    cnt1 = len(soup.findAll("tr", {"class" : "listing_even"}))
+    cnt2 = len(soup.findAll("tr", {"class" : "listing_odd"}))
+
+    cnt = int(cnt1 + cnt2)
+
+    print (str(cnt) + " results")
+
+    resultName = []
+    resultID = []
+    resultYear = []
+    resultIssues = []
+    resultURL = None
+    n_odd = -1
+    n_even = -1
+    n = 0
+    while ( n < cnt ):
+        if n%2==0:
+            n_even+=1
+            resultp = soup.findAll("tr", {"class" : "listing_even"})[n_even]
+        else:
+            n_odd+=1
+            resultp = soup.findAll("tr", {"class" : "listing_odd"})[n_odd]
+        rtp = resultp('a')[1]
+        rtp1 = re.sub('Annual', '', rtp)
+        resultName.append(helpers.cleanName(rtp1.findNext(text=True)))
+        print ( "Comic Name: " + str(resultName[n]) )
+        fip = resultp('a',href=True)[1]
+        resultID.append(fip['href'])
+        print ( "ID: " + str(resultID[n]) )
+
+        subtxt3 = resultp('td')[3]
+        resultYear.append(subtxt3.findNext(text=True))
+        resultYear[n] = resultYear[n].replace(' ','')
+   
+        subtxt4 = resultp('td')[4]
+        resultIssues.append(helpers.cleanName(subtxt4.findNext(text=True)))
+        resiss = resultIssues[n].find('issue')
+        resiss = int(resiss)
+        resultIssues[n] = resultIssues[n].replace('','')[:resiss]
+        resultIssues[n] = resultIssues[n].replace(' ','')
+        print ( "Year: " + str(resultYear[n]) )
+        print ( "Issues: " + str(resultIssues[n]) )
+        CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
+
+        CleanComicName = re.sub(' ', '', CleanComicName).lower()
+        CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
+        CleanResultName = re.sub(' ', '', CleanResultName).lower()
+        print ("CleanComicName: " + str(CleanComicName))
+        print ("CleanResultName: " + str(CleanResultName))
+        if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName:
+        #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower():
+            #print ("n:" + str(n) + "...matched by name to Mylar!")
+            if resultYear[n] == ComicYear or resultYear[n] == str(int(ComicYear)+1):
+                print ("n:" + str(n) + "...matched by year to Mylar!")
+                print ( "Year: " + str(resultYear[n]) )
+                TotalIssues = resultIssues[n]
+                resultURL = str(resultID[n])
+                rptxt = resultp('td')[6]
+                resultPublished = rptxt.findNext(text=True)
+                #print ("Series Published: " + str(resultPublished))
+                break
+
+        n+=1
+    return

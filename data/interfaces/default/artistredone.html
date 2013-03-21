@@ -323,7 +323,33 @@
                         </tr>
                 %endfor
                 </tbody>
-        </table>
+                </table>
+                %if annuals:
+                  <table class="display" id="issue_table">
+                   <thead>
+                        <tr>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="issuenumber">Number</th>
+                                <th id="issuename">Name</th>
+                                <th id="reldate">Date</th>
+                                <th id="status">Status</th>
+                                <th id="options">Options</th>
+                        </tr>
+                   </thead>
+                   <tbody>           
+                   %for annual in annuals:
+                            <tr>
+                                <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}"/></td>
+                                <td id="issuenumber">${annual['Issue_Number']}</td>
+                                <td id="issuename">${annual['IssueName']}</td>
+                                <td id="reldate">${annual['IssueDate']}</td>
+                                <td id="status">${annual['Status']}</td>
+                                <td id="options"></td>
+                            </tr>
+                   %endfor
+                   </tbody>
+                  </table>
+                %endif
         </div>
         </form>
    </div>
