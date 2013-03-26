@@ -469,7 +469,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         logger.info(u"Finished grabbing what I could.")
 
 
-def GCDimport(gcomicid, pullupd=None):
+def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
     # this is for importing via GCD only and not using CV.
     # used when volume spanning is discovered for a Comic (and can't be added using CV).
     # Issue Counts are wrong (and can't be added).
@@ -511,6 +511,10 @@ def GCDimport(gcomicid, pullupd=None):
         myDB.upsert("comics", newValueDict, controlValueDict)
         return
 
+    #run the re-sortorder here in order to properly display the page
+    if pullupd is None:
+        helpers.ComicSort(comicorder=mylar.COMICSORT, imported=gcomicid)
+
     if ComicName.startswith('The '):
         sortname = ComicName[4:]
     else:
@@ -539,7 +543,7 @@ def GCDimport(gcomicid, pullupd=None):
     # setup default location here
     if comlocation is None:
         # let's remove the non-standard characters here.
-        u_comicnm = comicname
+        u_comicnm = ComicName
         u_comicname = u_comicnm.encode('ascii', 'ignore').strip()
         if ':' in u_comicname or '/' in u_comicname or ',' in u_comicname:
             comicdir = u_comicname
@@ -576,16 +580,17 @@ def GCDimport(gcomicid, pullupd=None):
         if mylar.REPLACE_SPACES:
             #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
             comlocation = comlocation.replace(' ', mylar.REPLACE_CHAR)
-        #if it doesn't exist - create it (otherwise will bugger up later on)
-        if os.path.isdir(str(comlocation)):
-            logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
-        else:
-            #print ("Directory doesn't exist!")
-            try:
-                os.makedirs(str(comlocation))
-                logger.info(u"Directory successfully created at: " + str(comlocation))
-            except OSError:
-                logger.error(u"Could not create comicdir : " + str(comlocation))
+
+    #if it doesn't exist - create it (otherwise will bugger up later on)
+    if os.path.isdir(str(comlocation)):
+        logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
+    else:
+        #print ("Directory doesn't exist!")
+        try:
+            os.makedirs(str(comlocation))
+            logger.info(u"Directory successfully created at: " + str(comlocation))
+        except OSError:
+            logger.error(u"Could not create comicdir : " + str(comlocation))
 
 
     comicIssues = gcdinfo['totalissues']
@@ -601,22 +606,39 @@ def GCDimport(gcomicid, pullupd=None):
         except OSError:
             logger.error(u"Could not create cache dir : " + str(mylar.CACHE_DIR))
 
-    coverfile = mylar.CACHE_DIR + "/" + str(gcomicid) + ".jpg"
+    coverfile = os.path.join(mylar.CACHE_DIR, str(gcomicid) + ".jpg")
 
+    #try:
     urllib.urlretrieve(str(ComicImage), str(coverfile))
     try:
         with open(str(coverfile)) as f:
-            ComicImage = "cache/" + str(gcomicid) + ".jpg"
+            ComicImage = os.path.join('cache',str(gcomicid) + ".jpg")
+
+            #this is for Firefox when outside the LAN...it works, but I don't know how to implement it
+            #without breaking the normal flow for inside the LAN (above)
+            #ComicImage = "http://" + str(mylar.HTTP_HOST) + ":" + str(mylar.HTTP_PORT) + "/cache/" + str(comi$
+
             logger.info(u"Sucessfully retrieved cover for " + ComicName)
+            #if the comic cover local is checked, save a cover.jpg to the series folder.
+            if mylar.COMIC_COVER_LOCAL:
+                comiclocal = os.path.join(str(comlocation) + "/cover.jpg")
+                shutil.copy(ComicImage,comiclocal)
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
         
+    #if comic['ComicVersion'].isdigit():
+    #    comicVol = "v" + comic['ComicVersion']
+    #else:
+    #    comicVol = None
+
+
     controlValueDict = {"ComicID":      gcomicid}
     newValueDict = {"ComicName":        ComicName,
                     "ComicSortName":    sortname,
                     "ComicYear":        ComicYear,
                     "Total":            comicIssues,
                     "ComicLocation":    comlocation,
+                    #"ComicVersion":     comicVol,
                     "ComicImage":       ComicImage,
                     #"ComicPublisher":   comic['ComicPublisher'],
                     #"ComicPublished":   comicPublished,
@@ -624,6 +646,11 @@ def GCDimport(gcomicid, pullupd=None):
                     "Status":           "Loading"}
 
     myDB.upsert("comics", newValueDict, controlValueDict)
+
+    #comicsort here...
+    #run the re-sortorder here in order to properly display the page
+    if pullupd is None:
+        helpers.ComicSort(sequence='update')
 
     logger.info(u"Sucessfully retrieved issue details for " + ComicName )
     n = 0
@@ -727,8 +754,6 @@ def GCDimport(gcomicid, pullupd=None):
 #        logger.debug(u"Updating cache for: " + ComicName)
 #        cache.getThumb(ComicIDcomicid)
 
-    #check for existing files...
-    updater.forceRescan(gcomicid)
 
     controlValueStat = {"ComicID":     gcomicid}
     newValueStat = {"Status":          "Active",
@@ -745,6 +770,21 @@ def GCDimport(gcomicid, pullupd=None):
                 text_file.write("http://www.comicvine.com/volume/49-" + str(comicid))
 
     logger.info(u"Updating complete for: " + ComicName)
+
+    #move the files...if imported is not empty (meaning it's not from the mass importer.)
+    if imported is None or imported == 'None':
+        pass
+    else:
+        if mylar.IMP_MOVE:
+            logger.info("Mass import - Move files")
+            moveit.movefiles(gcomicid,comlocation,ogcname)
+        else:
+            logger.info("Mass import - Moving not Enabled. Setting Archived Status for import.")
+            moveit.archivefiles(gcomicid,ogcname)
+
+    #check for existing files...
+    updater.forceRescan(gcomicid)
+
 
     if pullupd is None:
         # lets' check the pullist for anyting at this time as well since we're here.
