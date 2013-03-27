@@ -26,7 +26,7 @@ from bs4 import BeautifulSoup as Soup
 def getComic(comicid,type):
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     #api
-    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,start_year,last_issue,site_detail_url,image,publisher,description'
+    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
 
     #import library to do http requests:
     import urllib2
