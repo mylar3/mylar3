@@ -67,22 +67,22 @@ def Startit(searchName, searchIssue, searchYear):
 	splitTitle = title.split("\"")
 
 	for subs in splitTitle:
-		logger.fdebug("looking at: " + str(subs))
+		logger.fdebug("looking at: " + subs)
 		regEx = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIssue, searchYear), subs, flags=re.IGNORECASE)
 		regExOne = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsOne, searchYear), subs, flags=re.IGNORECASE)
 		regExTwo = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsTwo, searchYear), subs, flags=re.IGNORECASE)
 
 		#print("regex: " + str(regEx))
 		if regEx or regExOne or regExTwo:
-		        logger.fdebug("name: " + str(title))
-                        logger.fdebug("sub: " + str(subs))
+		        logger.fdebug("name: " + title)
+                        logger.fdebug("sub: " + subs)
 			logger.fdebug("-----")
 			logger.fdebug("url: " + str(link))
 			logger.fdebug("-----")
 			#regList.append(title)
                         #regList.append(subs)
                         entries.append({
-                                'title':   str(subs),
+                                'title':   subs,
                                 'link':    str(link)
                                 })
               
