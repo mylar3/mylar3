@@ -179,7 +179,7 @@ class WebInterface(object):
                     controlValue = {"impID":    confirm['impID']}
                     newValue = {"WatchMatch":   str(confirmedid)}
                     myDB.upsert("importresults", newValue, controlValue)
-                    self.importResults()            
+                self.importResults()            
             return
         sresults = []
         cresults = []
@@ -219,7 +219,12 @@ class WebInterface(object):
                            'GCDID' : stoopie['GCDID']
                            })
                     i+=1
-                return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults)
+                if imported:
+                    #if it's from an import and it has to go through the UEC, return the values
+                    #to the calling function and have that return the template
+                    return cresults
+                else:
+                    return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults)
             else:
                 nomatch = "false"
                 logger.info(u"Quick match success..continuing.")  
@@ -256,7 +261,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
     addComic.exposed = True
 
-    def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None):
+    def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
         import unicodedata
         mismatch = "yes"
         #write it to the custom_exceptions.csv and reload it so that importer will pick it up and do it's thing :)
@@ -280,8 +285,10 @@ class WebInterface(object):
             f.write('%s\n' % (exceptline.encode('ascii','replace').strip()))
         logger.info("re-loading csv file so it's all nice and current.")
         mylar.csv_load()
-       
-        threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
+        if imported:
+            threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
+        else:
+            threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
     from_Exceptions.exposed = True
 
@@ -1139,7 +1146,9 @@ class WebInterface(object):
             resultset = 0
 
         if resultset == 1:
-            self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
+            cresults = self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
+            print ("ogcname -- " + str(ogcname))
+            return serve_template(templatename="searchfix.html", title="Error Check", comicname=sr['name'], comicid=sr['comicid'], comicyear=sr['comicyear'], comicimage=sr['comicimage'], comicissues=sr['issues'], cresults=cresults, imported='yes', ogcname=str(ogcname))
         else:
             return serve_template(templatename="searchresults.html", title='Import Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname) #imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
@@ -1260,7 +1269,7 @@ class WebInterface(object):
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)  
     config.exposed = True
 
-    def error_change(self, comicid, errorgcd, comicname, comicyear):
+    def error_change(self, comicid, errorgcd, comicname, comicyear, imported=None, mogcname=None):
         # if comicname contains a "," it will break the exceptions import.
         import urllib
         b = urllib.unquote_plus(comicname)
@@ -1268,10 +1277,14 @@ class WebInterface(object):
         cname = b.encode('utf-8')
         cname = re.sub("\,", "", cname)
 
+        c = urllib.unquote_plus(mogcname)
+        ogcname = c.encode('utf-8')
+
         if errorgcd[:5].isdigit():
             print ("GCD-ID detected : " + str(errorgcd)[:5])
+            print ("ogcname: " + str(ogcname))
             print ("I'm assuming you know what you're doing - going to force-match for " + cname)
-            self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname,comicyear=comicyear)
+            self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname,comicyear=comicyear,imported=imported,ogcname=ogcname)
         else:
             print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid,'comic')

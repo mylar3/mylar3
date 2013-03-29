@@ -78,6 +78,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
         pullupd = "yes"
     else:
         c_date = lastupdatechk['LastUpdated']
+        if c_date is None:
+            logger.error(lastupdatechk['ComicName'] + " failed during a previous add /refresh. Please either delete and readd the series, or try a refresh of the series.")
+            return
         c_obj_date = datetime.datetime.strptime(c_date, "%Y-%m-%d %H:%M:%S")
         n_date = datetime.datetime.now()
         absdiff = abs(n_date - c_obj_date)
@@ -488,14 +491,21 @@ def forceRescan(ComicID,archive=None):
             #temploc = re.sub('[\#\'\/\.]', '', temploc)
             #print ("comiclocation: " + str(rescan['ComicLocation']))
             #print ("downlocation: " + str(down['Location']))
-            comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
-            if os.path.exists(comicpath):
-                pass
-                #print "Issue exists - no need to change status."
-            else:
-                #print "Changing status from Downloaded to Archived - cannot locate file"
-                controlValue = {"IssueID":   down['IssueID']}
+            if down['Location'] is None:
+                logger.fdebug("location doesn't exist which means file wasn't downloaded successfully, or was moved.")
+                controlValue = {"IssueID":  down['IssueID']}
                 newValue = {"Status":    "Archived"}
-                myDB.upsert("issues", newValue, controlValue) 
+                myDB.upsert("issues", newValue, controlValue)
+                pass
+            else:
+                comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
+                if os.path.exists(comicpath):
+                    pass
+                    #print "Issue exists - no need to change status."
+                else:
+                    #print "Changing status from Downloaded to Archived - cannot locate file"
+                    controlValue = {"IssueID":   down['IssueID']}
+                    newValue = {"Status":    "Archived"}
+                    myDB.upsert("issues", newValue, controlValue) 
 
     return

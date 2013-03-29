@@ -303,6 +303,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             cleanname = helpers.cleanName(firstval['Issue_Name'])
             issid = str(firstval['Issue_ID'])
             issnum = str(firstval['Issue_Number'])
+            #print ("issnum: " + str(issnum))
             issname = cleanname
             if '.' in str(issnum):
                 issn_st = str(issnum).find('.')
@@ -317,12 +318,20 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     iss_naftdec = str(dec_nisval)
                 iss_issue = issn_b4dec + "." + iss_naftdec
                 issis = (int(issn_b4dec) * 1000) + dec_nisval
+            elif 'au' in issnum.lower():
+                print ("au detected")
+                stau = issnum.lower().find('au')
+                issnum_au = issnum[:stau] 
+                print ("issnum_au: " + str(issnum_au))
+                #account for Age of Ultron mucked up numbering
+                issis = str(int(issnum_au) * 1000) + 'AU'
             else: issis = int(issnum) * 1000
 
             bb = 0
             while (bb <= iscnt):
                 try: 
                     gcdval = gcdinfo['gcdchoice'][bb]
+                    #print ("gcdval: " + str(gcdval))
                 except IndexError:
                     #account for gcd variation here
                     if gcdinfo['gcdvariation'] == 'gcd':
@@ -335,6 +344,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     logger.warn(u"Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
                     updater.no_searchresults(comicid)
                     return
+                elif 'au' in gcdval['GCDIssue'].lower():
+                    #account for Age of Ultron mucked up numbering - this is in format of 5AU.00
+                    gstau = gcdval['GCDIssue'].lower().find('au')
+                    gcdis_au = gcdval['GCDIssue'][:gstau]
+                    gcdis = str(int(gcdis_au) * 1000) + 'AU'
                 elif '.' in str(gcdval['GCDIssue']):
                     #logger.fdebug("g-issue:" + str(gcdval['GCDIssue']))
                     issst = str(gcdval['GCDIssue']).find('.')
@@ -358,11 +372,24 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                         logger.error("This has no issue #'s for me to get - Either a Graphic Novel or one-shot. This feature to allow these will be added in the near future.")
                         updater.no_searchresults(comicid)
                         return
+                elif 'au' in gcdval['GCDIssue'].lower():
+                    #account for Age of Ultron mucked up numbering
+                    gstau = gcdval['GCDIssue'].lower().find('au')
+                    gcdis_au = gcdval['GCDIssue'][:gstau]
+                    gcdis = str(int(gcdis_au) * 1000) + 'AU'
+                    print ("gcdis : " + str(gcdis))
                 else:
                     gcdis = int(str(gcdval['GCDIssue'])) * 1000
                 if gcdis == issis:
                     issdate = str(gcdval['GCDDate'])
-                    int_issnum = int( gcdis / 1000 )
+                    if str(issis).isdigit():
+                        int_issnum = int( gcdis / 1000 )
+                    else:
+                        if 'au' in issis.lower():
+                            int_issnum = str(int(gcdis[:-2]) / 1000) + 'AU'
+                        else:
+                            logger.error("this has an alpha-numeric in the issue # which I cannot account for. Get on github and log the issue for evilhero.")
+                            return
                     #get the latest issue / date using the date.
                     if gcdval['GCDDate'] > latestdate:
                         latestiss = str(issnum)

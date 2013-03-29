@@ -227,13 +227,13 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             else:
                 iss_b4dec = issue[:iss_find]
                 iss_decval = issue[iss_find+1:]
-                if len(iss_decval) == 1:
-                    iss = str(int(iss_b4dec)) + "." + iss_decval
+                if len(str(int(iss_decval))) == 1:
+                    iss = str(int(iss_b4dec)) + "." + str(int(iss_decval)*10)
                 else:
                     if issue.endswith(".00"):
                         iss = issue
                     else:
-                        iss = str(int(iss_b4dec)) + "." + iss_decval.rstrip('0')
+                        iss = str(int(iss_b4dec)) + "." + iss_decval
             issue = iss
 
             print ("converted issue#: " + str(issue))

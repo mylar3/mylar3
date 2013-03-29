@@ -34,14 +34,14 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
             except (OSError, IOError):
                 logger.error("Failed to move files - check directories and manually re-run.")
         #print("files moved.")
-    #now that it's moved / renamed ... we remove it from importResults or mark as completed.
-        results = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
-        if results is None: pass
-        else:
-            for result in results:
-                controlValue = {"impID":    result['impid']}
-                newValue = {"Status":           "Imported" }
-                myDB.upsert("importresults", newValue, controlValue)
+        #now that it's moved / renamed ... we remove it from importResults or mark as completed.
+#        results = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
+#        if results is None: pass
+#        else:
+#            for result in results:
+            controlValue = {"impID":    impr['impid']}
+            newValue = {"Status":           "Imported" }
+            myDB.upsert("importresults", newValue, controlValue)
     return
 
 def archivefiles(comicid,ogcname):

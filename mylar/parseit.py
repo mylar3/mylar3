@@ -311,7 +311,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                     ParseIssue = re.sub("[^0-9]", " ", m[0])
                     # ^^ removes everything but the digits from the remaining non-brackets
                 
-                #logger.fdebug("variant cover detected : " + str(ParseIssue))
+                logger.fdebug("variant cover detected : " + str(ParseIssue))
                 variant="yes"
                 altcount = 1
             isslen = ParseIssue.find(' ')
@@ -363,7 +363,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
                 pass
             else:
                 #logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
-              #get current issue & publication date.
+                #get current issue & publication date.
                 #logger.fdebug("Issue #:" + str(ParseIssue))
                 #logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
                 #get conflicting issue from tuple
@@ -405,20 +405,6 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
 
                 gcdinfo['gcdchoice'] = gcdchoice
 
-#            else:
-#                logger.fdebug("2 identical issue #'s have been found...determining if it's intentional")
-#                #get current issue & publication date.
-#                logger.fdebug("Issue #:" + str(ParseIssue))
-#                logger.fdebug("IssueDate: " + str(gcdinfo['ComicDate']))
-#                #get conflicting issue from tuple
-#                for d in gcdchoice:
-#                    if str(d['GCDIssue']) == str(gcdinfo['ComicIssue']):
-#                       logger.fdebug("Issue # already in tuple - checking IssueDate:" + str(d['GCDDate']) )
-#                       if str(d['GCDDate']) == str(gcdinfo['ComicDate']):
-#                           logger.fdebug("Issue #'s and dates match...skipping.")
-#                       else:
-#                           logger.fdebug("Issue#'s match but different publication dates, not skipping.")
-             
             altcount = 0 
             n+=1
         i+=1
@@ -605,9 +591,9 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         if pb in comicpub:
             #keep publisher in url if a biggie.    
             uhuh = "yes"
-            print (" publisher match : " + str(comicpub))
+            #print (" publisher match : " + str(comicpub))
             conv_pub = comicpub.split()[0]
-            print (" converted publisher to : " + str(conv_pub))
+            #print (" converted publisher to : " + str(conv_pub))
     #1st run setup - leave it all as it is.
     comicrun.append(comicnm)
     cruncnt = 0
@@ -626,13 +612,13 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         cruncnt+=1
     totalcount = 0
     cr = 0
-    print ("cruncnt is " + str(cruncnt))
+    #print ("cruncnt is " + str(cruncnt))
     while (cr <= cruncnt):
-        print ("cr is " + str(cr))
+        #print ("cr is " + str(cr))
         comicnm = comicrun[cr]
         #leaving spaces in will screw up the search...let's take care of it
         comicnm = re.sub(' ', '+', comicnm)
-        print ("comicnm: " + str(comicnm))
+        #print ("comicnm: " + str(comicnm))
         if uhuh == "yes":
             publink = "&pub_name=" + str(conv_pub)
         if uhuh == "no":

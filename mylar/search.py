@@ -281,13 +281,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 intdec = int(isschk_decval.rstrip('0')) * 10
  
         logger.fdebug("let's search with this issue value: " + str(iss))
-    #Issue_Number = carry-over with decimals
-    #iss = clean issue number (no decimals)
-    intIss = (int(isschk_b4dec) * 1000) + intdec
-    logger.fdebug("int.issue :" + str(intIss))
-    logger.fdebug("int.issue_b4: " + str(isschk_b4dec))
-    logger.fdebug("int.issue_dec: " + str(intdec))
-    IssueNumber = iss
+        #Issue_Number = carry-over with decimals
+        #iss = clean issue number (no decimals)
+        intIss = (int(isschk_b4dec) * 1000) + intdec
+        logger.fdebug("int.issue :" + str(intIss))
+        logger.fdebug("int.issue_b4: " + str(isschk_b4dec))
+        logger.fdebug("int.issue_dec: " + str(intdec))
+        IssueNumber = iss
+    else:
+        iss = IssueNumber
+        intIss = int(iss) * 1000
+    print ("IssueNUmber:" + str(IssueNumber))
     #issue_decimal = re.compile(r'[^\d.]+')
     #issue = issue_decimal.sub('', str(IssueNumber))
     findcomiciss.append(iss)

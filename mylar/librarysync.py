@@ -96,7 +96,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
     for watch in watchlist:
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watch['ComicName']))
+        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
@@ -107,7 +107,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
          
         # account for alternate names as well
         if watch['AlternateSearch'] is not None and watch['AlternateSearch'] is not 'None':
-            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', str(watch['AlternateSearch']))
+            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['AlternateSearch']).encode('utf-8').strip()
             #altcomic = re.sub('\s+', ' ', str(altcomic)).strip()
             AltName.append(altcomic)
             alt_chk = "yes"  # alt-checker flag
@@ -135,7 +135,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         comlocation = i['ComicLocation']
         #let's clean up the filename for matching purposes
 
-        cfilename = re.sub('[\_\#\,\/\:\;\-\!\$\%\&\+\'\?\@]', ' ', str(comfilename))
+        cfilename = re.sub('[\_\#\,\/\:\;\-\!\$\%\&\+\'\?\@]', ' ', comfilename)
         #cfilename = re.sub('\s', '_', str(cfilename))
 
         cm_cn = 0
@@ -154,10 +154,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             if m[cnt] == ' ':
                 pass
             else:
-                logger.fdebug(str(cnt) + ". Bracket Word: " + str(m[cnt]))
+                logger.fdebug(str(cnt) + ". Bracket Word: " + m[cnt])
                 if cnt == 0:
                     comic_andiss = m[cnt]
-                    logger.fdebug("Comic: " + str(comic_andiss))
+                    logger.fdebug("Comic: " + comic_andiss)
                     # if it's not in the standard format this will bork.
                     # let's try to accomodate (somehow).
                     # first remove the extension (if any)
@@ -177,7 +177,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     for i in reversed(xrange(len(cs))):
                         #start at the end.
                         print ("word: " + str(cs[i]))
-                        if cs[i][:-2] == '19' or cs[i][:-2] == '20':
+                        #assume once we find issue - everything prior is the actual title
+                        #idetected = no will ignore everything so it will assume all title                            
+                        if cs[i][:-2] == '19' or cs[i][:-2] == '20' and idetected == 'no':
                             print ("year detected: " + str(cs[i]))
                             ydetected = 'yes'
                             result_comyear = cs[i]
@@ -218,17 +220,17 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         cname = cname + cs[findcn] + " "
                         findcn+=1
                     cname = cname[:len(cname)-1] # drop the end space...
-                    print ("assuming name is : " + str(cname))
+                    print ("assuming name is : " + cname)
                     com_NAME = cname
-                    print ("com_NAME : " + str(com_NAME))
+                    print ("com_NAME : " + com_NAME)
                     yearmatch = "True"
             cnt+=1
 
         splitit = []
         watchcomic_split = []
-        logger.fdebug("filename comic and issue: " + str(cfilename))
+        logger.fdebug("filename comic and issue: " + cfilename)
         #changed this from '' to ' '
-        comic_iss_b4 = re.sub('[\-\:\,]', ' ', str(com_NAME))
+        comic_iss_b4 = re.sub('[\-\:\,]', ' ', com_NAME)
         comic_iss = comic_iss_b4.replace('.',' ')
         logger.fdebug("adjusted  comic and issue: " + str(comic_iss))
         #remove 'the' from here for proper comparisons.
@@ -244,7 +246,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         while (cm_cn < watchcnt):
             #setup the watchlist
             comname = ComicName[cm_cn]
-            print ("watch_comic:" + str(comname))
+            print ("watch_comic:" + comname)
             comyear = ComicYear[cm_cn]
             compub = ComicPublisher[cm_cn]
             comtotal = ComicTotal[cm_cn]
@@ -279,7 +281,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
    # there shouldn't be an issue in the comic now, so let's just assume it's all gravy.
             splitst = len(splitit)
-            watchcomic_split = helpers.cleanName(str(comname))
+            watchcomic_split = helpers.cleanName(comname)
             watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
 
             logger.fdebug(str(splitit) + " file series word count: " + str(splitst))
@@ -366,7 +368,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     #set the year to the series we just found ;)
                     result_comyear = comyear
                     #issue comparison now as well
-                    logger.info(u"Found " + str(comname) + " (" + str(comyear) + ") issue: " + str(comiss))
+                    logger.info(u"Found " + comname + " (" + str(comyear) + ") issue: " + str(comiss))
 #                    watchfound+=1
                     watchmatch = str(comicid)
 #                    watch_kchoice.append({
@@ -405,8 +407,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 #                logger.fdebug("comic: " + str(com_NAME))
 #            n+=1
         if result_comyear is None: result_comyear = '0000' #no year in filename basically.
-        print ("adding " + str(com_NAME) + " to the import-queue!")
-        impid = str(com_NAME) + "-" + str(result_comyear) + "-" + str(comiss)
+        print ("adding " + com_NAME + " to the import-queue!")
+        impid = com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
         print ("impid: " + str(impid))
         import_by_comicids.append({ 
             "impid": impid,

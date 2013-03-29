@@ -209,27 +209,30 @@ class PostProcessor(object):
             comicid = issuenzb['ComicID']
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
-
-            iss_find = issuenum.find('.')
-            iss_b4dec = issuenum[:iss_find]
-            iss_decval = issuenum[iss_find+1:]
-            if int(iss_decval) == 0:
-                iss = iss_b4dec
-                issdec = int(iss_decval)
-                issueno = str(iss)
-                self._log("Issue Number: " + str(issueno), logger.DEBUG)
-                logger.fdebug("Issue Number: " + str(issueno))
-            else:
-                if len(iss_decval) == 1:
-                    iss = iss_b4dec + "." + iss_decval
-                    issdec = int(iss_decval) * 10
+            #new CV API - removed all decimals...here we go AGAIN!
+            if '.' in issuenum:
+                iss_find = issuenum.find('.')
+                iss_b4dec = issuenum[:iss_find]
+                iss_decval = issuenum[iss_find+1:]
+                if int(iss_decval) == 0:
+                    iss = iss_b4dec
+                    issdec = int(iss_decval)
+                    issueno = str(iss)
+                    self._log("Issue Number: " + str(issueno), logger.DEBUG)
+                    logger.fdebug("Issue Number: " + str(issueno))
                 else:
-                    iss = iss_b4dec + "." + iss_decval.rstrip('0')
-                    issdec = int(iss_decval.rstrip('0')) * 10
-                issueno = iss_b4dec
-                self._log("Issue Number: " + str(iss), logger.DEBUG)
-                logger.fdebug("Issue Number: " + str(iss))
-
+                    if len(iss_decval) == 1:
+                        iss = iss_b4dec + "." + iss_decval
+                        issdec = int(iss_decval) * 10
+                    else:
+                        iss = iss_b4dec + "." + iss_decval.rstrip('0')
+                        issdec = int(iss_decval.rstrip('0')) * 10
+                    issueno = iss_b4dec
+                    self._log("Issue Number: " + str(iss), logger.DEBUG)
+                    logger.fdebug("Issue Number: " + str(iss))
+            else:
+                iss = issuenum
+                issueno = str(iss)
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0": 
                 zeroadd = ""
@@ -243,11 +246,14 @@ class PostProcessor(object):
             if str(len(issueno)) > 1:
                 if int(issueno) < 10:
                     self._log("issue detected less than 10", logger.DEBUG)
-                    if int(iss_decval) > 0:
-                        issueno = str(iss)
-                        prettycomiss = str(zeroadd) + str(iss)
+                    if '.' in iss:
+                        if int(iss_decval) > 0:
+                            issueno = str(iss)
+                            prettycomiss = str(zeroadd) + str(iss)
+                        else:
+                            prettycomiss = str(zeroadd) + str(int(issueno))
                     else:
-                        prettycomiss = str(zeroadd) + str(int(issueno))
+                        prettycomiss = str(zeroadd) + str(iss)
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     self._log("issue detected greater than 10, but less than 100", logger.DEBUG)
@@ -255,16 +261,20 @@ class PostProcessor(object):
                         zeroadd = ""
                     else:
                         zeroadd = "0"
-                    if int(iss_decval) > 0:
-                        issueno = str(iss)
-                        prettycomiss = str(zeroadd) + str(iss)
+                    if '.' in iss:
+                        if int(iss_decval) > 0:
+                            issueno = str(iss)
+                            prettycomiss = str(zeroadd) + str(iss)
+                        else:
+                           prettycomiss = str(zeroadd) + str(int(issueno))
                     else:
-                        prettycomiss = str(zeroadd) + str(int(issueno))
+                        prettycomiss = str(zeroadd) + str(iss)
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss), logger.DEBUG)
                 else:
                     self._log("issue detected greater than 100", logger.DEBUG)
-                    if int(iss_decval) > 0:
-                        issueno = str(iss)
+                    if '.' in iss:
+                        if int(iss_decval) > 0:
+                            issueno = str(iss)
                     prettycomiss = str(issueno)
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
             else:
