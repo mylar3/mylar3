@@ -70,7 +70,7 @@ def findComic(name, mode, issue, limityear=None):
     if not totalResults:
         return False
     countResults = 0
-    while (countResults < totalResults):
+    while (countResults < int(totalResults)):
         #print ("querying " + str(countResults))
         if countResults > 0:
             #new api - have to change to page # instead of offset count
