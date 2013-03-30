@@ -224,12 +224,12 @@ class WebInterface(object):
                            'GCDID' : stoopie['GCDID']
                            })
                     i+=1
-                if imported:
+                if imported != 'None':
                     #if it's from an import and it has to go through the UEC, return the values
                     #to the calling function and have that return the template
                     return cresults
                 else:
-                    return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults)
+                    return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults,imported=None,ogcname=None)
             else:
                 nomatch = "false"
                 logger.info(u"Quick match success..continuing.")  
@@ -1282,16 +1282,19 @@ class WebInterface(object):
         cname = b.encode('utf-8')
         cname = re.sub("\,", "", cname)
 
-        c = urllib.unquote_plus(mogcname)
-        ogcname = c.encode('utf-8')
+        if mogcname != None:
+            c = urllib.unquote_plus(mogcname)
+            ogcname = c.encode('utf-8')
+        else:
+            ogcname = None
 
         if errorgcd[:5].isdigit():
-            print ("GCD-ID detected : " + str(errorgcd)[:5])
-            print ("ogcname: " + str(ogcname))
-            print ("I'm assuming you know what you're doing - going to force-match for " + cname)
+            logger.info("GCD-ID detected : " + str(errorgcd)[:5])
+            logger.info("ogcname: " + str(ogcname))
+            logger.info("I'm assuming you know what you're doing - going to force-match for " + cname)
             self.from_Exceptions(comicid=comicid,gcdid=errorgcd,comicname=cname,comicyear=comicyear,imported=imported,ogcname=ogcname)
         else:
-            print ("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
+            logger.info("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid,'comic')
             self.addComic(comicid=comicid,comicname=str(errorgcd), comicyear=Err_Info['ComicYear'], comicissues=Err_Info['ComicIssues'], comicpublisher=Err_Info['ComicPublisher'])
 
