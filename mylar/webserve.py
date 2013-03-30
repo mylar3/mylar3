@@ -76,6 +76,11 @@ class WebInterface(object):
         lastno = mylar.COMICSORT['LastOrderNo']
         lastid = mylar.COMICSORT['LastOrderID']
         series = {}
+        if skipno == 0:
+            #it's a blank db, let's just null the values and go.
+            series['Current'] = None
+            series['Previous'] = None
+            series['Next'] = None
         i = 0
         while (i < skipno):
             cskip = mylar.COMICSORT['SortOrder'][i]
