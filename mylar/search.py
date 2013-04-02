@@ -215,7 +215,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         apikey = newznab_host[1].rstrip()
         logger.fdebug("using Newznab host of : " + str(host_newznab))
 
-    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + "(" + str(ComicYear) + ") using " + str(nzbprov))
+    logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " (" + str(ComicYear) + ") using " + str(nzbprov))
 
 
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
@@ -261,13 +261,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     u_ComicName = ComicName.encode('ascii', 'ignore').strip()
     findcomic.append(u_ComicName)
     # this should be called elsewhere..redudant code.
+    issue_except = None
     if '.' in IssueNumber:
         isschk_find = IssueNumber.find('.')
         isschk_b4dec = IssueNumber[:isschk_find]
         isschk_decval = IssueNumber[isschk_find+1:]
-        logger.fdebug("IssueNumber: " + str(IssueNumber))
-        logger.fdebug("..before decimal: " + str(isschk_b4dec))
-        logger.fdebug("...after decimal: " + str(isschk_decval))
+        #logger.fdebug("IssueNumber: " + str(IssueNumber))
+        #logger.fdebug("..before decimal: " + str(isschk_b4dec))
+        #logger.fdebug("...after decimal: " + str(isschk_decval))
     #--let's make sure we don't wipe out decimal issues ;)
         if int(isschk_decval) == 0:
             iss = isschk_b4dec
@@ -284,14 +285,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         #Issue_Number = carry-over with decimals
         #iss = clean issue number (no decimals)
         intIss = (int(isschk_b4dec) * 1000) + intdec
-        logger.fdebug("int.issue :" + str(intIss))
-        logger.fdebug("int.issue_b4: " + str(isschk_b4dec))
-        logger.fdebug("int.issue_dec: " + str(intdec))
+        #logger.fdebug("int.issue :" + str(intIss))
+        #logger.fdebug("int.issue_b4: " + str(isschk_b4dec))
+        #logger.fdebug("int.issue_dec: " + str(intdec))
         IssueNumber = iss
+    elif 'au' in IssueNumber.lower():
+        iss = re.sub("[^0-9]", "", IssueNumber) # get just the digits
+        intIss = int(iss) * 1000
+        issue_except = 'AU'  # if it contains AU, mark it as an exception (future dict possibly)
     else:
         iss = IssueNumber
         intIss = int(iss) * 1000
-    print ("IssueNUmber:" + str(IssueNumber))
     #issue_decimal = re.compile(r'[^\d.]+')
     #issue = issue_decimal.sub('', str(IssueNumber))
     findcomiciss.append(iss)
@@ -335,17 +339,19 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     while (findloop < (findcount) ):
         comsrc = comsearch[findloop]
         while (cmloopit >= 1 ):
+            if issue_except is None: issue_exc = ''
+            else: issue_exc = issue_except
             if done is True:
                 logger.fdebug("we should break out now - sucessful search previous")
                 findloop == 99
                 break
                 # here we account for issue pattern variations
             if cmloopit == 3:
-                comsearch[findloop] = comsrc + "%2000" + isssearch[findloop] + "%20" + str(filetype)
+                comsearch[findloop] = comsrc + "%2000" + isssearch[findloop] + "%20" + str(issue_exc) + "%20" + str(filetype)
             elif cmloopit == 2:
-                comsearch[findloop] = comsrc + "%200" + isssearch[findloop] + "%20" + str(filetype)
+                comsearch[findloop] = comsrc + "%200" + isssearch[findloop] + "%20" + str(issue_exc) + "%20" + str(filetype)
             elif cmloopit == 1:
-                comsearch[findloop] = comsrc + "%20" + isssearch[findloop] + "%20" + str(filetype)
+                comsearch[findloop] = comsrc + "%20" + isssearch[findloop] + "%20" + str(issue_exc) + "%20" + str(filetype)
             #logger.fdebug("comsearch: " + str(comsearch))
             #logger.fdebug("cmloopit: " + str(cmloopit))
             #logger.fdebug("done: " + str(done))
@@ -522,6 +528,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     #changed this from '' to ' '
                     comic_iss_b4 = re.sub('[\-\:\,]', ' ', str(comic_andiss))
                     comic_iss = comic_iss_b4.replace('.',' ')
+                    if issue_except: comic_iss = re.sub(issue_except.lower(), '', comic_iss)
                     logger.fdebug("adjusted nzb comic and issue: " + str(comic_iss))
                     splitit = comic_iss.split(None)
                     #something happened to dognzb searches or results...added a '.' in place of spaces
@@ -644,14 +651,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("issue we are looking for is : " + str(findcomiciss[findloop]))
                         logger.fdebug("integer value of issue we are looking for : " + str(intIss))
 
+                        fnd_iss_except = None
                         #redudant code - should be called elsewhere...
                         if '.' in comic_iss:
                             comisschk_find = comic_iss.find('.')
                             comisschk_b4dec = comic_iss[:comisschk_find]
                             comisschk_decval = comic_iss[comisschk_find+1:]
-                            logger.fdebug("Found IssueNumber: " + str(comic_iss))
-                            logger.fdebug("..before decimal: " + str(comisschk_b4dec))
-                            logger.fdebug("...after decimal: " + str(comisschk_decval))
+                            #logger.fdebug("Found IssueNumber: " + str(comic_iss))
+                            #logger.fdebug("..before decimal: " + str(comisschk_b4dec))
+                            #logger.fdebug("...after decimal: " + str(comisschk_decval))
                             #--let's make sure we don't wipe out decimal issues ;)
                             if int(comisschk_decval) == 0:
                                 ciss = comisschk_b4dec
@@ -664,11 +672,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     ciss = comisschk_b4dec + "." + comisschk_decval.rstrip('0')
                                     cintdec = int(comisschk_decval.rstrip('0')) * 10
                             comintIss = (int(comisschk_b4dec) * 1000) + cintdec
+             #           elif 'au' in comic_iss.lower():
+             #               ci_rem = comic_iss.lower().find('au')
+             #               comintIss = int(comic_iss[:ci_rem]) * 1000
+             #               fnd_iss_except = 'AU'
+             #               logger.fdebug("AU issue #:" + str(comintIss))
                         else:
                             comintIss = int(comic_iss) * 1000
                         logger.fdebug("issue we found for is : " + str(comic_iss))
                         logger.fdebug("integer value of issue we are found : " + str(comintIss))
-
+                        
                         #issue comparison now as well
                         if int(intIss) == int(comintIss):
                             logger.fdebug('issues match!')

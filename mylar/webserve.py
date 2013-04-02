@@ -519,7 +519,7 @@ class WebInterface(object):
         if popit:
             w_results = myDB.select("SELECT PUBLISHER, ISSUE, COMIC, STATUS from weekly")
             for weekly in w_results:
-                if weekly['ISSUE'].isdigit():
+                if weekly['ISSUE'].isdigit() or 'au' in weekly['ISSUE'].lower():
                     weeklyresults.append({
                                            "PUBLISHER"  : weekly['PUBLISHER'],
                                            "ISSUE"      : weekly['ISSUE'],

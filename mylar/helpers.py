@@ -195,9 +195,16 @@ def is_number(s):
 
 def decimal_issue(iss):
     iss_find = iss.find('.')
+    dec_except = None
     if iss_find == -1:
         #no matches for a decimal, assume we're converting from decimal to int.
-        deciss = int(iss) * 1000
+        #match for special issues with alphanumeric numbering...
+        if 'au' in iss.lower():
+            dec_except = 'AU'
+            decex = iss.lower().find('au')
+            deciss = int(iss[:decex]) * 1000
+        else:
+            deciss = int(iss) * 1000
     else:
         iss_b4dec = iss[:iss_find]
         iss_decval = iss[iss_find+1:]
@@ -212,7 +219,7 @@ def decimal_issue(iss):
                 iss = iss_b4dec + "." + iss_decval.rstrip('0')
                 issdec = int(iss_decval.rstrip('0')) * 10
         deciss = (int(iss_b4dec) * 1000) + issdec
-    return deciss
+    return deciss, dec_except
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None):
             from mylar import db, logger

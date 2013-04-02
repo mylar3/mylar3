@@ -321,7 +321,7 @@ def forceRescan(ComicID,archive=None):
                     reiss = reissues[n]
                 except IndexError:
                     break
-                int_iss = helpers.decimal_issue(reiss['Issue_Number'])
+                int_iss, iss_except = helpers.decimal_issue(reiss['Issue_Number'])
                 issyear = reiss['IssueDate'][:4]
                 old_status = reiss['Status']
                                                 
@@ -329,6 +329,8 @@ def forceRescan(ComicID,archive=None):
 
                 #if comic in format of "SomeSeries 5(c2c)(2013).cbr" whatever...it'll die.
                 #can't distinguish the 5(c2c) to tell it's the issue #...
+                fnd_iss_except = 'None'
+                #print ("Issue, int_iss, iss_except: " + str(reiss['Issue_Number']) + "," + str(int_iss) + "," + str(iss_except))
 
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
@@ -360,6 +362,10 @@ def forceRescan(ComicID,archive=None):
                             # fcdigit = fcnew[som].lstrip('0')
                             #fcdigit = str(int(fcnew[som]))
                             fcdigit = int(fcnew[som]) * 1000
+                            if 'au' in fcnew[som+1].lower():
+                                #print ("AU detected")
+                                #if the 'AU' is in 005AU vs 005 AU it will yield different results.
+                                fnd_iss_except = 'AU'
                         else: 
                             #fcdigit = "0"
                             fcdigit = 0
@@ -407,17 +413,27 @@ def forceRescan(ComicID,archive=None):
                     #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):
                          int_iss = helpers.decimal_issue(int_iss)
-                    #logger.fdebug("this is the int issue:" + str(int_iss))
-
+                    #print("this is the int issue:" + str(int_iss))
+                    #print("this is the fcdigit:" + str(fcdigit))
                     if int(fcdigit) == int_iss:
+                        #print ("fnd_iss_except: " + str(fnd_iss_except))
+                        #print ("iss_except: " + str(iss_except))
+                        if fnd_iss_except != 'None' and iss_except == 'AU':
+                            if fnd_iss_except.lower() == iss_except.lower():
+                                logger.fdebug("matched for AU")
+                            else:
+                                #logger.fdebug("this is not an AU match..ignoring result.")
+                                break                       
+                        elif fnd_iss_except == 'None' and iss_except == 'AU':break
+                        elif fnd_iss_except == 'AU' and iss_except == 'None':break
                         #if issyear in fcnew[som+1]:
                         #    print "matched on year:" + str(issyear)
                         #issuedupechk here.
-                        if int(fcdigit) in issuedupechk:
+                        if int(fcdigit) in issuedupechk and fnd_iss_except.lower() == iss_except.lower():
                             logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
                             issuedupe = "yes"
                             break
-                        logger.fdebug("matched...issue: " + rescan['ComicName'] + " --- " + str(int_iss))
+                        #logger.fdebug("matched...issue: " + rescan['ComicName'] + "#" + str(reiss['Issue_Number']) + " --- " + str(int_iss))
                         havefiles+=1
                         haveissue = "yes"
                         isslocation = str(tmpfc['ComicFilename'])
@@ -431,6 +447,7 @@ def forceRescan(ComicID,archive=None):
                         #else:
                         # if the issue # matches, but there is no year present - still match.
                         # determine a way to match on year if present, or no year (currently).
+
                     som+=1
                 if haveissue == "yes": break
                 n+=1

@@ -210,6 +210,10 @@ class PostProcessor(object):
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
+            issue_except = 'None'
+            if 'au' in issuenum.lower():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = ' AU'
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
@@ -254,6 +258,8 @@ class PostProcessor(object):
                             prettycomiss = str(zeroadd) + str(int(issueno))
                     else:
                         prettycomiss = str(zeroadd) + str(iss)
+                    if issue_except != 'None': 
+                        prettycomiss = str(prettycomiss) + issue_except
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     self._log("issue detected greater than 10, but less than 100", logger.DEBUG)
@@ -269,6 +275,8 @@ class PostProcessor(object):
                            prettycomiss = str(zeroadd) + str(int(issueno))
                     else:
                         prettycomiss = str(zeroadd) + str(iss)
+                    if issue_except != 'None':
+                        prettycomiss = str(prettycomiss) + issue_except
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss), logger.DEBUG)
                 else:
                     self._log("issue detected greater than 100", logger.DEBUG)
@@ -276,6 +284,8 @@ class PostProcessor(object):
                         if int(iss_decval) > 0:
                             issueno = str(iss)
                     prettycomiss = str(issueno)
+                    if issue_except != 'None':
+                        prettycomiss = str(prettycomiss) + issue_except
                     self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
             else:
                 prettycomiss = str(issueno)

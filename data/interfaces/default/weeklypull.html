@@ -43,7 +43,6 @@
 			%>
 			<tr class="grade${grade}">
                                 %if pullfilter is True:
-                                    %if str(weekly['ISSUE']).isdigit() > 0:
                                         <td class="publisher">${weekly['PUBLISHER']}</td>
 				        <td class="comicname">${weekly['COMIC']}</td>
                                         <td class="comicnumber">${weekly['ISSUE']}</td>
@@ -52,7 +51,6 @@
                                              <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
                                         %endif
                                         </td>
-                                    %endif
                                 %endif
 			</tr>			
 		%endfor

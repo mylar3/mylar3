@@ -212,8 +212,10 @@ def pullit():
                     #print ("pub: " + str(pub))
                     #print ("issue: " + str(issue))
                     #--let's make sure we don't wipe out decimal issues ;)
-                    issue_decimal = re.compile(r'[^\d.]+')
-                    issue = issue_decimal.sub('', str(issue))                   
+                    if '.' in issue:
+                        issue_decimal = re.compile(r'[^\d.]+')
+                        issue = issue_decimal.sub('', str(issue))
+                    else: issue = re.sub('#','', issue)                                       
                     #issue = re.sub("\D", "", str(issue))
                     #store the previous comic/issue for comparison to filter out duplicate issues/alt covers
                     #print ("Previous Comic & Issue: " + str(prevcomic) + "--" + str(previssue))
