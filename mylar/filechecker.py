@@ -42,19 +42,29 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #print item
         #subname = os.path.join(basedir, item)
         subname = item
-        #print subname
+        #versioning - remove it
+        subsplit = subname.split()
+        volrem = None
+        for subit in subsplit:
+            #print ("subit:" + str(subit))
+            if 'v' in str(subit).lower():
+                #print ("possible versioning detected.")
+                if subit[1:].isdigit():
+                    #if in format v1, v2009 etc...
+                    #print (subit + "  - assuming versioning. Removing from initial search pattern.")
+                    subname = re.sub(str(subit), '', subname)
+                    volrem = subit
+                if subit.lower()[:3] == 'vol':
+                    #if in format vol.2013 etc
+                    #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
+                    #print ("volume detected as version #:" + str(subit))
+                    subname = re.sub(subit, '', subname)
+                    volrem = subit
+
         subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', u_watchcomic)
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
-        #versioning - remove it
-        subsplit = subname.split()
-        for subit in subsplit:
-            if 'v' in str(subit):
-                #print ("possible versioning detected.")
-                if subit[1:].isdigit():
-                    #print (subit + "  - assuming versioning. Removing from initial search pattern.")
-                    subname = re.sub(str(subit), '', subname)
-                
+
         subname = re.sub('\s+', ' ', str(subname)).strip()
         if AlternateSearch is not None:
             #same = encode.
@@ -77,10 +87,18 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
             if modwatchcomic.lower() in subname.lower():
-                jtd_len = len(modwatchcomic)
+                #remove versioning here
+                if volrem != None:
+                    jtd_len = len(modwatchcomic) + len(volrem) + 1 #1 is to account for space btwn comic and vol #
+                else:
+                    jtd_len = len(modwatchcomic)
                 justthedigits = item[jtd_len:]
             elif altsearchcomic.lower() in subname.lower():
-                jtd_len = len(altsearchcomic)
+                #remove versioning here
+                if volrem != None:
+                    jtd_len = len(altsearchcomic) + len(volrem) + 1
+                else:
+                    jtd_len = len(altsearchcomic)
                 justthedigits = item[jtd_len:]
             comiclist.append({
                  'ComicFilename':           item,

@@ -36,16 +36,39 @@ def dbUpdate():
     
         comicid = comic[0]
         mismatch = "no"
-        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
-        if CV_EXcomicid is None: pass
+        if not mylar.CV_ONLY or comicid[:1] == "G":
+            CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
+            if CV_EXcomicid is None: pass
+            else:
+                if CV_EXcomicid['variloop'] == '99':
+                    mismatch = "yes"
+            if comicid[:1] == "G":
+                mylar.importer.GCDimport(comicid)
+            else: 
+                mylar.importer.addComictoDB(comicid,mismatch)
         else:
-            if CV_EXcomicid['variloop'] == '99':
-                mismatch = "yes"
-        if comicid[:1] == "G":
-            mylar.importer.GCDimport(comicid)
-        else: 
-            mylar.importer.addComictoDB(comicid,mismatch)
-        
+            if mylar.CV_ONETIMER == 1:
+                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clean refresh.
+                issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
+                #store the issues' status for a given comicid, after deleting and readding, flip the status back to what it is currently.                
+                myDB.select('DELETE FROM issues WHERE ComicID=?', [comicid])            
+                mylar.importer.addComictoDB(comicid,mismatch)
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
+                icount = 0
+                for issue in issues:
+                    for issuenew in issues_new:
+                        if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
+                            #change the status to the previous status
+                            ctrlVAL = {'IssueID':  issue['IssueID']}
+                            newVAL = {'Status':  issue['Status']}
+                            myDB.upsert("Issues", newVAL, ctrlVAL)
+                            icount+=1
+                            break
+                logger.info("changed the status of " + str(icount) + " issues.")
+                mylar.CV_ONETIMER = 0   
+            else:
+                mylar.importer.addComictoDB(comicid,mismatch)
+        time.sleep(5) #pause for 5 secs so dont hammer CV and get 500 error
     logger.info('Update complete')
 
 
@@ -362,7 +385,7 @@ def forceRescan(ComicID,archive=None):
                             # fcdigit = fcnew[som].lstrip('0')
                             #fcdigit = str(int(fcnew[som]))
                             fcdigit = int(fcnew[som]) * 1000
-                            if 'au' in fcnew[som+1].lower():
+                            if som+1 < len(fcnew) and 'au' in fcnew[som+1].lower():
                                 #print ("AU detected")
                                 #if the 'AU' is in 005AU vs 005 AU it will yield different results.
                                 fnd_iss_except = 'AU'
@@ -406,6 +429,12 @@ def forceRescan(ComicID,archive=None):
                         #logger.fdebug("decval: " + str(isschk_decval))
                         #logger.fdebug("intdec: " + str(intdec))
                         #logger.fdebug("let's compare with this issue value: " + str(fcdigit))
+                    elif 'au' in fcnew[som].lower():
+                        austart = fcnew[som].lower().find('au')
+                        if fcnew[som][:austart].isdigit():
+                            fcdigit = int(fcnew[som][:austart]) * 1000
+                            fnd_iss_except = 'AU'
+                        #if AU is part of issue (5AU instead of 5 AU)
                     else:
                         # it's a word, skip it.
                         fcdigit = 19283838380101193
@@ -429,7 +458,10 @@ def forceRescan(ComicID,archive=None):
                         #if issyear in fcnew[som+1]:
                         #    print "matched on year:" + str(issyear)
                         #issuedupechk here.
-                        if int(fcdigit) in issuedupechk and fnd_iss_except.lower() == iss_except.lower():
+                        #print ("fcdigit:" + str(fcdigit))
+                        #print ("findiss_except:" + str(fnd_iss_except) + " = iss_except:" + str(iss_except))
+
+                        if int(fcdigit) in issuedupechk and str(fnd_iss_except) == str(iss_except):
                             logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
                             issuedupe = "yes"
                             break

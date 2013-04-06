@@ -309,7 +309,20 @@ class PostProcessor(object):
             comlocation = comicnzb['ComicLocation']
             self._log("Comic Location: " + comlocation, logger.DEBUG)
             logger.fdebug("Comic Location: " + str(comlocation))
-
+            comversion = comicnzb['ComicVersion']
+            self._log("Comic Version: " + str(comversion), logger.DEBUG)
+            logger.fdebug("Comic Version: " + str(comversion))
+            if comversion is None:
+                comversion = 'None'
+            #if comversion is None, remove it so it doesn't populate with 'None'
+            if comversion == 'None':
+                chunk_f_f = re.sub('\$VolumeN','',mylar.FILE_FORMAT)
+                chunk_f = re.compile(r'\s+')
+                chunk_file_format = chunk_f.sub(' ', chunk_f_f)
+                logger.fdebug("No version # found for series, removing from filename", logger.DEBUG)
+                logger.fdebug("new format is now: " + str(chunk_file_format), logger.DEBUG)
+            else:
+                chunk_file_format = mylar.FILE_FORMAT
             #Run Pre-script
 
             if mylar.ENABLE_PRE_SCRIPTS:
@@ -340,7 +353,8 @@ class PostProcessor(object):
                            '$series':    series.lower(),
                            '$Publisher': publisher,
                            '$publisher': publisher.lower(),
-                           '$Volume':    seriesyear
+                           '$VolumeY':   'V' + str(seriesyear),
+                           '$VolumeN':   comversion
                           }
 
             for root, dirnames, filenames in os.walk(self.nzb_folder):
@@ -362,7 +376,7 @@ class PostProcessor(object):
                 else:
                     nfilename = ofilename
             else:
-                nfilename = helpers.replace_all(mylar.FILE_FORMAT, file_values)
+                nfilename = helpers.replace_all(chunk_file_format, file_values)
                 if mylar.REPLACE_SPACES:
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)

@@ -137,6 +137,10 @@
                                   <div class="row checkbox">
                                     <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>NZB Search on startup</label>
                                   </div>
+                                  <div class="row">
+                                  <label>Search delay</label>
+                                  <input type="text" name="search_delay" value="${config['search_delay']}" size="4" />mins
+                                  </div>
                             </div>
 
       	                    </div>
@@ -487,8 +491,13 @@
                                  <div class="row">
                                     <label> File Format</label>
                                     <input type="text" name="file_format" value="${config['file_format']}" size="43">
+                                    <%
+                                         file_options = "$Series = SeriesName\n$Year = SeriesYear\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}"
+                                    %>
+                                    <a href="#" title="${file_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                     <small>Use:  $Series, $Year, $Issue<br />
                                                                 E.g.: $Series $Issue ($Year) = Animal Man 0 (2012) </small>
+                                    <small>if tag isn't available, won't create it</small>
                                  </div>
                       </fieldset>
                 	

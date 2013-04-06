@@ -194,73 +194,74 @@ class WebInterface(object):
         #print ("comicyear: " + str(comicyear))
         #print ("comicissues: " + str(comicissues))
         #print ("comicimage: " + str(comicimage))
+        if not mylar.CV_ONLY:
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
-        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
-        if CV_EXcomicid is None: # pass #
-            gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid, quickmatch="yes")
-            if gcdinfo == "No Match":
+            CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
+            if CV_EXcomicid is None: # pass #
+                gcdinfo=parseit.GCDScraper(comicname, comicyear, comicissues, comicid, quickmatch="yes")
+                if gcdinfo == "No Match":
                 #when it no matches, the image will always be blank...let's fix it.
-                cvdata = mylar.cv.getComic(comicid,'comic')
-                comicimage = cvdata['ComicImage']
-                updater.no_searchresults(comicid)
-                nomatch = "true"
-                u_comicname = comicname.encode('utf-8').strip()
-                logger.info("I couldn't find an exact match for " + u_comicname + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
-                i = 0
-                loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
-                logger.info("total count : " + str(cnt))
-                while (i < cnt):
-                    try:
-                        stoopie = loopie['comchkchoice'][i]
-                    except (IndexError, TypeError):
-                        break
-                    cresults.append({
-                           'ComicID'   :   stoopie['ComicID'],
-                           'ComicName' :   stoopie['ComicName'].decode('utf-8', 'replace'),
-                           'ComicYear' :   stoopie['ComicYear'],
-                           'ComicIssues' : stoopie['ComicIssues'],
-                           'ComicURL' :    stoopie['ComicURL'],
-                           'ComicPublisher' : stoopie['ComicPublisher'].decode('utf-8', 'replace'),
-                           'GCDID' : stoopie['GCDID']
-                           })
-                    i+=1
-                if imported != 'None':
+                    cvdata = mylar.cv.getComic(comicid,'comic')
+                    comicimage = cvdata['ComicImage']
+                    updater.no_searchresults(comicid)
+                    nomatch = "true"
+                    u_comicname = comicname.encode('utf-8').strip()
+                    logger.info("I couldn't find an exact match for " + u_comicname + " (" + str(comicyear) + ") - gathering data for Error-Checking screen (this could take a minute)..." )
+                    i = 0
+                    loopie, cnt = parseit.ComChk(comicname, comicyear, comicpublisher, comicissues, comicid)
+                    logger.info("total count : " + str(cnt))
+                    while (i < cnt):
+                        try:
+                            stoopie = loopie['comchkchoice'][i]
+                        except (IndexError, TypeError):
+                            break
+                        cresults.append({
+                               'ComicID'   :   stoopie['ComicID'],
+                               'ComicName' :   stoopie['ComicName'].decode('utf-8', 'replace'),
+                               'ComicYear' :   stoopie['ComicYear'],
+                               'ComicIssues' : stoopie['ComicIssues'],
+                               'ComicURL' :    stoopie['ComicURL'],
+                               'ComicPublisher' : stoopie['ComicPublisher'].decode('utf-8', 'replace'),
+                               'GCDID' : stoopie['GCDID']
+                               })
+                        i+=1
+                    if imported != 'None':
                     #if it's from an import and it has to go through the UEC, return the values
                     #to the calling function and have that return the template
-                    return cresults
+                        return cresults
+                    else:
+                        return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults,imported=None,ogcname=None)
                 else:
-                    return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults,imported=None,ogcname=None)
+                    nomatch = "false"
+                    logger.info(u"Quick match success..continuing.")  
             else:
-                nomatch = "false"
-                logger.info(u"Quick match success..continuing.")  
-        else:
-            if CV_EXcomicid['variloop'] == '99':
-                logger.info(u"mismatched name...autocorrecting to correct GID and auto-adding.")
-                mismatch = "yes"
-            if CV_EXcomicid['NewComicID'] == 'none':
-                logger.info(u"multi-volume series detected")         
-                testspx = CV_EXcomicid['GComicID'].split('/')
-                for exc in testspx:
-                    fakeit = parseit.GCDAdd(testspx)
-                    howmany = int(CV_EXcomicid['variloop'])
-                    t = 0
-                    while (t <= howmany):
-                        try:
-                            sres = fakeit['serieschoice'][t]
-                        except IndexError:
-                            break
-                        sresults.append({
-                               'ComicID'   :   sres['ComicID'],
-                               'ComicName' :   sres['ComicName'],
-                               'ComicYear' :   sres['ComicYear'],
-                               'ComicIssues' : sres['ComicIssues'],
-                               'ComicPublisher' : sres['ComicPublisher'],
-                               'ComicCover' :    sres['ComicCover']
-                               })
-                        t+=1
-                    #searchfix(-1).html is for misnamed comics and wrong years.
-                    #searchfix-2.html is for comics that span multiple volumes.
-                    return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
+                if CV_EXcomicid['variloop'] == '99':
+                    logger.info(u"mismatched name...autocorrecting to correct GID and auto-adding.")
+                    mismatch = "yes"
+                if CV_EXcomicid['NewComicID'] == 'none':
+                    logger.info(u"multi-volume series detected")         
+                    testspx = CV_EXcomicid['GComicID'].split('/')
+                    for exc in testspx:
+                        fakeit = parseit.GCDAdd(testspx)
+                        howmany = int(CV_EXcomicid['variloop'])
+                        t = 0
+                        while (t <= howmany):
+                            try:
+                                sres = fakeit['serieschoice'][t]
+                            except IndexError:
+                                break
+                            sresults.append({
+                                   'ComicID'   :   sres['ComicID'],
+                                   'ComicName' :   sres['ComicName'],
+                                   'ComicYear' :   sres['ComicYear'],
+                                   'ComicIssues' : sres['ComicIssues'],
+                                   'ComicPublisher' : sres['ComicPublisher'],
+                                   'ComicCover' :    sres['ComicCover']
+                                   })
+                            t+=1
+                        #searchfix(-1).html is for misnamed comics and wrong years.
+                        #searchfix-2.html is for comics that span multiple volumes.
+                        return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
         #print ("imported is: " + str(imported))
         threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
@@ -637,6 +638,7 @@ class WebInterface(object):
                                 logger.info("Not renaming " + str(filename) + " as it is in desired format already.")
                             #continue
             logger.info("I have renamed " + str(filefind) + " issues of " + comicname)
+            updater.forceRescan(comicid)
     manualRename.exposed = True
 
     def searchScan(self, name):
@@ -1192,6 +1194,7 @@ class WebInterface(object):
                     "nzb_search_interval" : mylar.SEARCH_INTERVAL,
                     "nzb_startup_search" : helpers.checked(mylar.NZB_STARTUP_SEARCH),
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
+                    "search_delay" : mylar.SEARCH_DELAY,
                     "use_sabnzbd" : helpers.checked(mylar.USE_SABNZBD),
                     "sab_host" : mylar.SAB_HOST,
                     "sab_user" : mylar.SAB_USERNAME,
@@ -1349,7 +1352,7 @@ class WebInterface(object):
         else:
             newValues['UseFuzzy'] = str(fuzzy_year)
         
-        if comic_version is None:
+        if comic_version is None or comic_version == 'None':
             newValues['ComicVersion'] = "None"
         else:
             if comic_version[1:].isdigit() and comic_version[:1].lower() == 'v':
@@ -1379,7 +1382,7 @@ class WebInterface(object):
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -1391,6 +1394,7 @@ class WebInterface(object):
         mylar.SEARCH_INTERVAL = nzb_search_interval
         mylar.NZB_STARTUP_SEARCH = nzb_startup_search
         mylar.LIBRARYSCAN_INTERVAL = libraryscan_interval
+        mylar.SEARCH_DELAY = search_delay
         mylar.USE_SABNZBD = use_sabnzbd
         mylar.SAB_HOST = sab_host
         mylar.SAB_USERNAME = sab_username
@@ -1481,6 +1485,10 @@ class WebInterface(object):
         if mylar.SEARCH_INTERVAL < 360:
             logger.info("Search interval too low. Resetting to 6 hour minimum")
             mylar.SEARCH_INTERVAL = 360
+
+        if mylar.SEARCH_DELAY < 1:
+            logger.info("Minimum search delay set for 1 minute to avoid hammering.")
+            mylar.SEARCH_DELAY = 1
 
         # Write the config
         mylar.config_write()

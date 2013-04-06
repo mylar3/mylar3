@@ -5,10 +5,9 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Mylar is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
+#  Mylar is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the 
+#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public 
+#  License for more details.
 #
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
@@ -21,12 +20,26 @@ import logger
 import string
 import urllib
 import lib.feedparser
+import mylar
 from bs4 import BeautifulSoup as Soup
 
-def getComic(comicid,type):
+def getComic(comicid,type,issueid=None):
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     #api
-    PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
+    if type == 'comic':
+        PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
+    elif type == 'issue':
+        if mylar.CV_ONLY:
+            cv_type = 'issues'
+            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
+        else:
+            cv_type = 'volume/' + str(comicid)
+            searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
+        PULLURL = 'http://api.comicvine.com/' + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset)
+    elif type == 'firstissue':
+        #this is used ONLY for CV_ONLY
+        PULLURL = 'http://api.comicvine.com/issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+
 
     #import library to do http requests:
     import urllib2
@@ -61,6 +74,7 @@ def getComic(comicid,type):
 
     if type == 'comic': return GetComicInfo(comicid,dom)
     if type == 'issue': return GetIssuesInfo(comicid,dom)
+    if type == 'firstissue': return GetFirstIssue(issueid,dom)
 
 def GetComicInfo(comicid,dom):
 
@@ -87,13 +101,13 @@ def GetComicInfo(comicid,dom):
     cntit = int(cntit)
     #retrieve the first xml tag (<tag>data</tag>)
     #that the parser finds with name tagName:
-    comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt].firstChild.wholeText
+    comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
     comic['ComicName'] = comic['ComicName'].rstrip() 
     try:
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     except:
         comic['ComicYear'] = '0000'
-    comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
+    comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText
     #the description field actually holds the Volume# - so let's grab it
     try:
         comic['ComicDescription'] = dom.getElementsByTagName('description')[0].firstChild.wholeText
@@ -116,8 +130,8 @@ def GetComicInfo(comicid,dom):
                 break        
         if volconv != '':
             vfind = volconv
-
-        comic['ComicVersion'] = re.sub("[^0-9]", "", vfind)
+        vf = re.findall('[^<>]+', vfind)
+        comic['ComicVersion'] = re.sub("[^0-9]", "", vf[0])
         logger.info("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
     else:
         comic['ComicVersion'] = "noversion"
@@ -127,8 +141,13 @@ def GetComicInfo(comicid,dom):
     else:
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
-    comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
+    comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText
 
+#    comic['LastIssue'] = dom.getElementsByTagName('last_issue')[].firstChild.wholeText
+    comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
+
+    print ("fistIss:" + str(comic['FirstIssueID']))
+#    print ("lastIss:" + str(comic['LastIssue']))
 #    comicchoice.append({
 #        'ComicName':              comic['ComicName'],
 #        'ComicYear':              comic['ComicYear'],
@@ -145,41 +164,71 @@ def GetComicInfo(comicid,dom):
 
 def GetIssuesInfo(comicid,dom):
     subtracks = dom.getElementsByTagName('issue')
-    cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
-    logger.fdebug("issues I've counted: " + str(len(subtracks)))
-    logger.fdebug("issues CV says it has: " + str(int(cntiss)))
+    if not mylar.CV_ONLY:
+        cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+        logger.fdebug("issues I've counted: " + str(len(subtracks)))
+        logger.fdebug("issues CV says it has: " + str(int(cntiss)))
 
-    if int(len(subtracks)) != int(cntiss):
-        logger.fdebug("CV's count is wrong, I counted different...going with my count for physicals" + str(len(subtracks)))
-        cntiss = len(subtracks) # assume count of issues is wrong, go with ACTUAL physical api count
-    cntiss = int(cntiss)
-    n = cntiss-1
-    
+        if int(len(subtracks)) != int(cntiss):
+            logger.fdebug("CV's count is wrong, I counted different...going with my count for physicals" + str(len(subtracks)))
+            cntiss = len(subtracks) # assume count of issues is wrong, go with ACTUAL physical api count
+        cntiss = int(cntiss)
+        n = cntiss-1
+    else:
+        n = int(len(subtracks))-1    
     issue = {}
     issuechoice = []
+    firstdate = '2099-00-00'
     for subtrack in subtracks:
-        if (dom.getElementsByTagName('name')[n].firstChild) is not None:
-            issue['Issue_Name'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
-        else:
-            issue['Issue_Name'] = 'None'
-        issue['Issue_ID'] = dom.getElementsByTagName('id')[n].firstChild.wholeText
-        try:
+        if not mylar.CV_ONLY:
+            if (dom.getElementsByTagName('name')[n].firstChild) is not None:
+                issue['Issue_Name'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
+            else:
+                issue['Issue_Name'] = 'None'
+
+            issue['Issue_ID'] = dom.getElementsByTagName('id')[n].firstChild.wholeText
             issue['Issue_Number'] = dom.getElementsByTagName('issue_number')[n].firstChild.wholeText
-
+            
             issuechoice.append({
-                 'Issue_ID':                issue['Issue_ID'],
-                 'Issue_Number':            issue['Issue_Number'],
-                 'Issue_Name':              issue['Issue_Name']
-                 })
-
-            issue['issuechoice'] = issuechoice
-        except:
-            #logger.fdebug("publisher...ignoring this.")
-            #logger.fdebug("n value: " + str(n) + " ...subtracks: " + str(len(subtracks)))
-            # in order to get ALL the issues, we need to increment the count back by 1 so it grabs the
-            # last issue
-            pass
+                'Issue_ID':                issue['Issue_ID'],
+                'Issue_Number':            issue['Issue_Number'],
+                'Issue_Name':              issue['Issue_Name']
+                })
+        else:
+            try:
+                issue['Issue_Name'] = subtrack.getElementsByTagName('name')[0].firstChild.wholeText
+            except:
+                issue['Issue_Name'] = 'None'
+            issue['Issue_ID'] = subtrack.getElementsByTagName('id')[0].firstChild.wholeText
+            try:
+                issue['CoverDate'] = subtrack.getElementsByTagName('cover_date')[0].firstChild.wholeText
+            except:
+                issue['CoverDate'] = '0000-00-00'
+            issue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
+            issuechoice.append({
+                'Issue_ID':                issue['Issue_ID'],
+                'Issue_Number':            issue['Issue_Number'],
+                'Issue_Date':              issue['CoverDate'],
+                'Issue_Name':              issue['Issue_Name']
+                })
+            if issue['CoverDate'] < firstdate and issue['CoverDate'] != '0000-00-00':
+                firstdate = issue['CoverDate']
         n-=1
 
+    issue['issuechoice'] = issuechoice
+    issue['firstdate'] = firstdate
     return issue
 
+def GetFirstIssue(issueid,dom):
+    #if the Series Year doesn't exist, get the first issue and take the date from that
+    try:
+        first_year = dom.getElementsByTagName('cover_date')[0].firstChild.wholeText
+    except:
+        first_year = '0000'
+        return first_year
+
+    the_year = first_year[:4]
+    the_month = first_year[5:7]
+    the_date = the_year + '-' + the_month
+
+    return the_year

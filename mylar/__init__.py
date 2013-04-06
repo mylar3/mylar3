@@ -78,6 +78,7 @@ CURRENT_VERSION = None
 LATEST_VERSION = None
 COMMITS_BEHIND = None
 USER_AGENT = None
+SEARCH_DELAY = 1
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -193,6 +194,8 @@ COUNT_HAVES = 0
 
 COMICSORT = None
 ANNUALS_ON = 0
+CV_ONLY = 0
+CV_ONETIMER = 0
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -253,8 +256,8 @@ def initialize():
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, ANNUALS_ON
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, \
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, ANNUALS_ON, CV_ONLY, CV_ONETIMER
                 
         if __INITIALIZED__:
             return False
@@ -324,6 +327,7 @@ def initialize():
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
         LOWERCASE_FILENAMES = bool(check_setting_int(CFG, 'General', 'lowercase_filenames', 0))
         SYNO_FIX = bool(check_setting_int(CFG, 'General', 'syno_fix', 0))
+        SEARCH_DELAY = check_setting_int(CFG, 'General', 'search_delay', 1)
 
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
         PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
@@ -345,6 +349,13 @@ def initialize():
         if not ANNUALS_ON:
             #default to off
             ANNUALS_ON = 0
+        CV_ONLY = bool(check_setting_int(CFG, 'General', 'cv_only', 0))
+        if not CV_ONLY:
+            #default to off
+            CV_ONLY = 0
+        CV_ONETIMER = bool(check_setting_int(CFG, 'General', 'cv_onetimer', 0))
+        if not CV_ONETIMER:
+            CV_ONETIMER = 0
         LOG_LEVEL = check_setting_str(CFG, 'General', 'log_level', '')
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
@@ -606,7 +617,9 @@ def config_write():
     new_config['General']['logverbose'] = int(LOGVERBOSE)
     new_config['General']['git_path'] = GIT_PATH
     new_config['General']['cache_dir'] = CACHE_DIR
-    new_config['General']['annuals_on'] = ANNUALS_ON
+    new_config['General']['annuals_on'] = int(ANNUALS_ON)
+    new_config['General']['cv_only'] = int(CV_ONLY)
+    new_config['General']['cv_onetimer'] = int(CV_ONETIMER)
     
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
@@ -643,6 +656,7 @@ def config_write():
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
     new_config['General']['lowercase_filenames'] = int(LOWERCASE_FILENAMES)
     new_config['General']['syno_fix'] = int(SYNO_FIX)
+    new_config['General']['search_delay'] = SEARCH_DELAY
 
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
@@ -775,7 +789,7 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
-
+    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT)')
     conn.commit
     c.close
     #new
@@ -885,6 +899,11 @@ def dbcheck():
         c.execute('SELECT ComicID from readlist')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN ComicID TEXT')
+
+    try:
+        c.execute('SELECT DetailURL from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN DetailURL TEXT')
 
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere

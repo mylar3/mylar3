@@ -32,7 +32,7 @@
                         %endif
                         <div class="row">
 
-                             <a href="http://comicvine.com/volume/49-${comic['ComicID']}" target="_blank">${comic['ComicName']} (${comic['ComicYear']})</a>
+                             <a href="${comic['DetailURL']}" target="_blank">${comic['ComicName']} (${comic['ComicYear']})</a>
                               %if comic['Status'] == 'Loading':
                                     <h3><i>(Comic information is currently being loaded)</i></h3>
                               %endif
@@ -344,7 +344,27 @@
                                 <td id="issuename">${annual['IssueName']}</td>
                                 <td id="reldate">${annual['IssueDate']}</td>
                                 <td id="status">${annual['Status']}</td>
-                                <td id="options"></td>
+                                %if annual['Status'] == 'Downloaded' or annual['Status'] == 'Archived':
+                                    <%Csize = mylar.helpers.human_size(annual['ComicSize'])%>
+                                    <a href="#" title="${annual['Location']} (${Csize})"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                %endif
+                                </td>
+                                <td id="options">
+                                %if annual['Status'] == 'Skipped':
+                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=want',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
+                                %elif (annual['Status'] == 'Wanted'):
+                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                %elif (annual['Status'] == 'Snatched'):
+                                       <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IsssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                %elif (annual['Status'] == 'Read'):
+                                       <a href="#" title="Add to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
+                                %else:
+                                        <a href="#" title="Retry"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Mark issue as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                %endif
+                                <a href="#"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived"/></a>
+                                </td>
+
                             </tr>
                    %endfor
                    </tbody>

@@ -386,6 +386,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     request.add_header('User-Agent', str(mylar.USER_AGENT))
                     opener = urllib2.build_opener()
 
+                    #set a delay between searches here. Default is for 30 seconds...
+                    if mylar.SEARCH_DELAY == 'None' or mylar.SEARCH_DELAY is None:
+                        pause_the_search = 1 * 60   # (it's in seconds)
+                    elif str(mylar.SEARCH_DELAY).isdigit():
+                        pause_the_search = mylar.SEARCH_DELAY * 60
+                    else:
+                        logger.info("Check Search Delay - invalid numerical given. Force-setting to 1 minute.")
+                        pause_the_search = 1 * 60
+                    time.sleep(pause_the_search)
+
                     try:
                         data = opener.open(request).read()
                     except Exception, e:
@@ -608,7 +618,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("watch comicversion is " + str(ComicVersion))
                                     fndcomicversion = str(splitit[n])
                                     logger.fdebug("version found: " + str(fndcomicversion))
-                                    if ComicVersion is not None:
+                                    if ComicVersion is not "None":
                                         F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
                                         D_ComicVersion = re.sub("[^0-9]", "", ComicVersion)
                                         if int(F_ComicVersion) == int(D_ComicVersion):
