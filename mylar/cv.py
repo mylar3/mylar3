@@ -23,47 +23,28 @@ import lib.feedparser
 import mylar
 from bs4 import BeautifulSoup as Soup
 
-def getComic(comicid,type,issueid=None):
+def pulldetails(comicid,type,issueid=None,offset=1):
+    import urllib2
+
+    #import easy to use xml parser called minidom:
+    from xml.dom.minidom import parseString
+
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
-    #api
     if type == 'comic':
         PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
-            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
+            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date&offset='
         else:
             cv_type = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
-        PULLURL = 'http://api.comicvine.com/' + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset)
+        PULLURL = 'http://api.comicvine.com/' + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
     elif type == 'firstissue':
         #this is used ONLY for CV_ONLY
         PULLURL = 'http://api.comicvine.com/issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
 
-
-    #import library to do http requests:
-    import urllib2
-
-    #import easy to use xml parser called minidom:
-    from xml.dom.minidom import parseString
-    #all these imports are standard on most modern python implementations
-
     #download the file:
-    #first we should check to see if file is in cache to save hits to api.
-    #parsing error - will investigate later...
-    cache_path='cache/'
-    #if os.path.isfile( str(cache_path) + str(comicid) + '.xml' ) == 'True':
-    #    pass
-    #else:
-    #    f = urllib2.urlopen(PULLURL)
-    #    # write api retrieval to tmp file for caching
-    #    local_file = open(str(cache_path) + str(comicid) + '.xml', 'wb')
-    #    local_file.write(f.read())
-    #    local_file.close
-    #    f.close
-
-    #file = open(str(cache_path) + str(comicid) + '.xml', 'rb')
- 
     file = urllib2.urlopen(PULLURL)
     #convert to string:
     data = file.read()
@@ -72,9 +53,40 @@ def getComic(comicid,type,issueid=None):
     #parse the xml you downloaded
     dom = parseString(data)
 
-    if type == 'comic': return GetComicInfo(comicid,dom)
-    if type == 'issue': return GetIssuesInfo(comicid,dom)
-    if type == 'firstissue': return GetFirstIssue(issueid,dom)
+    return dom
+
+
+def getComic(comicid,type,issueid=None):
+    if type == 'issue': 
+        offset = 1
+        issue = {}
+        comicResults = []
+        #let's find out how many results we get from the query...
+        searched = pulldetails(comicid,'issue',None,1)
+        if searched is None: return False
+        totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
+        logger.fdebug("there are " + str(totalResults) + " search results...")
+        if not totalResults:
+            return False
+        countResults = 0
+        while (countResults < int(totalResults)):
+            logger.fdebug("querying " + str(countResults))
+            if countResults > 0:
+                #new api - have to change to page # instead of offset count
+                offsetcount = countResults
+                searched = pulldetails(comicid,'issue',None,offsetcount)
+            comicResults = GetIssuesInfo(comicid,searched,issue)
+            #search results are limited to 100 and by pagination now...let's account for this.
+            countResults = countResults + 100
+
+        return issue
+
+    elif type == 'comic':
+        dom = pulldetails(comicid,'comic',None,1)
+        return GetComicInfo(comicid,dom)
+    elif type == 'firstissue': 
+        dom = pulldetails(comicid,'firstissue',issueid,1)
+        return GetFirstIssue(issueid,dom)
 
 def GetComicInfo(comicid,dom):
 
@@ -162,7 +174,7 @@ def GetComicInfo(comicid,dom):
 #    comic['comicchoice'] = comicchoice
     return comic
 
-def GetIssuesInfo(comicid,dom):
+def GetIssuesInfo(comicid,dom,issue):
     subtracks = dom.getElementsByTagName('issue')
     if not mylar.CV_ONLY:
         cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
@@ -176,7 +188,7 @@ def GetIssuesInfo(comicid,dom):
         n = cntiss-1
     else:
         n = int(len(subtracks))-1    
-    issue = {}
+#    issue = {}
     issuechoice = []
     firstdate = '2099-00-00'
     for subtrack in subtracks:
@@ -214,7 +226,7 @@ def GetIssuesInfo(comicid,dom):
             if issue['CoverDate'] < firstdate and issue['CoverDate'] != '0000-00-00':
                 firstdate = issue['CoverDate']
         n-=1
-
+    print issuechoice
     issue['issuechoice'] = issuechoice
     issue['firstdate'] = firstdate
     return issue

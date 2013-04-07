@@ -272,6 +272,7 @@ def forceRescan(ComicID,archive=None):
     fcnew = []
     fn = 0
     issuedupechk = []
+    issueexceptdupechk = []
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
     # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
     # the loop below won't work...let's adjust :)
@@ -347,7 +348,6 @@ def forceRescan(ComicID,archive=None):
                 int_iss, iss_except = helpers.decimal_issue(reiss['Issue_Number'])
                 issyear = reiss['IssueDate'][:4]
                 old_status = reiss['Status']
-                                                
                 #logger.fdebug("integer_issue:" + str(int_iss) + " ... status: " + str(old_status))
 
                 #if comic in format of "SomeSeries 5(c2c)(2013).cbr" whatever...it'll die.
@@ -389,6 +389,7 @@ def forceRescan(ComicID,archive=None):
                                 #print ("AU detected")
                                 #if the 'AU' is in 005AU vs 005 AU it will yield different results.
                                 fnd_iss_except = 'AU'
+                                #logger.info("AU Detected - fnd_iss_except set.")
                         else: 
                             #fcdigit = "0"
                             fcdigit = 0
@@ -434,6 +435,7 @@ def forceRescan(ComicID,archive=None):
                         if fcnew[som][:austart].isdigit():
                             fcdigit = int(fcnew[som][:austart]) * 1000
                             fnd_iss_except = 'AU'
+                            #logger.info("iss_except set to AU")
                         #if AU is part of issue (5AU instead of 5 AU)
                     else:
                         # it's a word, skip it.
@@ -442,39 +444,43 @@ def forceRescan(ComicID,archive=None):
                     #logger.fdebug("int_iss: " + str(int_iss))
                     if "." in str(int_iss):
                          int_iss = helpers.decimal_issue(int_iss)
-                    #print("this is the int issue:" + str(int_iss))
-                    #print("this is the fcdigit:" + str(fcdigit))
+                    #logger.fdebug("this is the int issue:" + str(int_iss))
+                    #logger.fdebug("this is the fcdigit:" + str(fcdigit))
                     if int(fcdigit) == int_iss:
-                        #print ("fnd_iss_except: " + str(fnd_iss_except))
-                        #print ("iss_except: " + str(iss_except))
-                        if fnd_iss_except != 'None' and iss_except == 'AU':
+                        #logger.fdebug("fnd_iss_except: " + str(fnd_iss_except))
+                        #logger.fdebug("iss_except: " + str(iss_except))
+                        if str(fnd_iss_except) != 'None' and str(iss_except) == 'AU':
                             if fnd_iss_except.lower() == iss_except.lower():
                                 logger.fdebug("matched for AU")
                             else:
-                                #logger.fdebug("this is not an AU match..ignoring result.")
+                                logger.fdebug("this is not an AU match..ignoring result.")
                                 break                       
-                        elif fnd_iss_except == 'None' and iss_except == 'AU':break
-                        elif fnd_iss_except == 'AU' and iss_except == 'None':break
+                        elif str(fnd_iss_except) == 'None' and str(iss_except) == 'AU':break
+                        elif str(fnd_iss_except) == 'AU' and str(iss_except) == 'None':break
                         #if issyear in fcnew[som+1]:
                         #    print "matched on year:" + str(issyear)
                         #issuedupechk here.
                         #print ("fcdigit:" + str(fcdigit))
                         #print ("findiss_except:" + str(fnd_iss_except) + " = iss_except:" + str(iss_except))
 
-                        if int(fcdigit) in issuedupechk and str(fnd_iss_except) == str(iss_except):
-                            logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
-                            issuedupe = "yes"
-                            break
-                        #logger.fdebug("matched...issue: " + rescan['ComicName'] + "#" + str(reiss['Issue_Number']) + " --- " + str(int_iss))
-                        havefiles+=1
-                        haveissue = "yes"
-                        isslocation = str(tmpfc['ComicFilename'])
-                        issSize = str(tmpfc['ComicSize'])
-                        logger.fdebug(".......filename: " + str(isslocation))
-                        logger.fdebug(".......filesize: " + str(tmpfc['ComicSize'])) 
-                        # to avoid duplicate issues which screws up the count...let's store the filename issues then 
-                        # compare earlier...
-                        issuedupechk.append(int(fcdigit))
+                        #if int(fcdigit) in issuedupechk and str(fnd_iss_except) not in issueexceptdupechk: #str(fnd_iss_except) == str(iss_except):
+                        for d in issuedupechk:
+                            if int(d['fcdigit']) == int(fcdigit) and d['fnd_iss_except'] == str(fnd_iss_except):
+                                logger.fdebug("duplicate issue detected - not counting this: " + str(tmpfc['ComicFilename']))
+                                issuedupe = "yes"
+                                break
+                        if issuedupe == "no":
+                            logger.fdebug("matched...issue: " + rescan['ComicName'] + "#" + str(reiss['Issue_Number']) + " --- " + str(int_iss))
+                            havefiles+=1
+                            haveissue = "yes"
+                            isslocation = str(tmpfc['ComicFilename'])
+                            issSize = str(tmpfc['ComicSize'])
+                            logger.fdebug(".......filename: " + str(isslocation))
+                            logger.fdebug(".......filesize: " + str(tmpfc['ComicSize'])) 
+                            # to avoid duplicate issues which screws up the count...let's store the filename issues then 
+                            # compare earlier...
+                            issuedupechk.append({'fcdigit': int(fcdigit),
+                                                 'fnd_iss_except': fnd_iss_except})
                         break
                         #else:
                         # if the issue # matches, but there is no year present - still match.

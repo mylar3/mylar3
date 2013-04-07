@@ -374,13 +374,37 @@ class WebInterface(object):
     def refreshArtist(self, ComicID):
         myDB = db.DBConnection()
         mismatch = "no"
-        CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
-        if CV_EXcomicid is None: pass
+        if not mylar.CV_ONLY or ComicID[:1] == "G":
+
+            CV_EXcomicid = myDB.action("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
+            if CV_EXcomicid is None: pass
+            else:
+                if CV_EXcomicid['variloop'] == '99':
+                    mismatch = "yes"
+            if ComicID[:1] == "G": threading.Thread(target=importer.GCDimport, args=[ComicID]).start()
+            else: threading.Thread(target=importer.addComictoDB, args=[ComicID,mismatch]).start()    
         else:
-            if CV_EXcomicid['variloop'] == '99':
-                mismatch = "yes"
-        if ComicID[:1] == "G": threading.Thread(target=importer.GCDimport, args=[ComicID]).start()
-        else: threading.Thread(target=importer.addComictoDB, args=[ComicID,mismatch]).start()    
+            if mylar.CV_ONETIMER == 1:
+                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
+                issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
+                myDB.select('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                mylar.importer.addComictoDB(ComicID,mismatch)
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                icount = 0
+                for issue in issues:
+                    for issuenew in issues_new:
+                        if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
+                            #change the status to the previous status
+                            ctrlVAL = {'IssueID':  issue['IssueID']}
+                            newVAL = {'Status':  issue['Status']}
+                            myDB.upsert("Issues", newVAL, ctrlVAL)
+                            icount+=1
+                            break
+                logger.info("changed the status of " + str(icount) + " issues.")
+            else:
+                mylar.importer.addComictoDB(ComicID,mismatch)
+
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
     refreshArtist.exposed=True  
 
@@ -845,33 +869,37 @@ class WebInterface(object):
             arc_match = []
 
             for arc in ArcWatch:
+                print ("arc: " + str(arc['ComicName']))
                 #cycle through the story arcs here for matches on the watchlist
                 mod_arc = re.sub('[\:/,\'\/\-\&\%\$\#\@\!\*\+\.]', '', arc['ComicName'])
                 mod_arc = re.sub(r'\s', '', mod_arc)                    
                 for comic in Comics:
+                    print ("comic: " + comic['ComicName'])
                     mod_watch = re.sub('[\:\,\'\/\-\&\%\$\#\@\!\*\+\.]', '', comic['ComicName'])
                     mod_watch = re.sub(r'\s', '', mod_watch)
-                    if mod_watch == mod_arc:
+                    if mod_watch == mod_arc and arc['SeriesYear'] == comic['SeriesYear']:
                         #gather the matches now.
                         arc_match.append({ 
                             "match_name":          arc['ComicName'],
                             "match_id":            comic['ComicID'],
                             "match_issue":         arc['IssueNumber'],
                             "match_issuearcid":    arc['IssueArcID']})
-
-            print ("we matched on " + str(len(arc_match)) + " issues")
+                        logger.fdebu("arc_Match:" + arc_match)
+            logger.fdebu("we matched on " + str(len(arc_match)) + " issues")
 
             for m_arc in arc_match:
                 print m_arc
                 #now we cycle through the issues looking for a match.
-                issue = myDB.select("SELECT * FROM issues where ComicID=?", [m_arc['match_id']])
-                for issuechk in issue:
-                    print ("issuechk: " + str(issuechk['Issue_Number']) + "..." + str(m_arc['match_issue']))
-                    if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
-                        logger.info("we matched on " + str(issuechk['Issue_Number']) + " for " + str(m_arc['match_name']))
-                        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived':
+                issue = myDB.action("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'],m_arc['match_issue']])
+                if issue is None: pass
+                else:
+                    logger.fdebug("issue: " + str(issue['Issue_Number']) + "..." + str(m_arc['match_issue']))
+#                   if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
+                    if issue['Issue_Number'] == m_arc['match_issue']:
+                        logger.fdebug("we matched on " + str(issue['Issue_Number']) + " for " + str(m_arc['match_name']))
+                        if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived':
                             ctrlVal = {"IssueArcID":  match_issuearcid }
-                            newVal = {"Status":  issuechk['Status']}
+                            newVal = {"Status":  issue['Status']}
                             myDB.upsert("readinglist",newVal,ctrlVal)
                             logger.info("Already have " + match_issuearcid)
                             break

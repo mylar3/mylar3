@@ -207,9 +207,10 @@ class PostProcessor(object):
                 #use issueid to get publisher, series, year, issue number
             issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
             comicid = issuenzb['ComicID']
-            issuenum = issuenzb['Issue_Number']
+            issuenumOG = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
+            issuenum = issuenumOG
             issue_except = 'None'
             if 'au' in issuenum.lower():
                 issuenum = re.sub("[^0-9]", "", issuenum)
@@ -416,18 +417,18 @@ class PostProcessor(object):
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
                     #force rescan of files
             updater.forceRescan(comicid)
-            logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenum) )
+            logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )
             self._log(u"Post Processing SUCCESSFULL! ", logger.DEBUG)
 
             if mylar.PROWL_ENABLED:
-                pushmessage = series + '(' + issueyear + ') - issue #' + issuenum
+                pushmessage = series + '(' + issueyear + ') - issue #' + issuenumOG
                 logger.info(u"Prowl request")
                 prowl = notifiers.PROWL()
                 prowl.notify(pushmessage,"Download and Postprocessing completed")
 
             if mylar.NMA_ENABLED:
                 nma = notifiers.NMA()
-                nma.notify(series, str(issueyear), str(issuenum))
+                nma.notify(series, str(issueyear), str(issuenumOG))
 
             # retrieve/create the corresponding comic objects
 
