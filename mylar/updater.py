@@ -48,13 +48,19 @@ def dbUpdate():
                 mylar.importer.addComictoDB(comicid,mismatch)
         else:
             if mylar.CV_ONETIMER == 1:
+                logger.fdebug("CV_OneTimer option enabled...")
+
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clean refresh.
+                logger.fdebug("Gathering the status of all issues for the series.")
                 issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
                 #store the issues' status for a given comicid, after deleting and readding, flip the status back to what it is currently.                
+                logger.fdebug("Deleting all issue data.")
                 myDB.select('DELETE FROM issues WHERE ComicID=?', [comicid])            
+                logger.fdebug("Refreshing the series and pulling in new data using only CV.")
                 mylar.importer.addComictoDB(comicid,mismatch)
                 issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
                 icount = 0
+                logger.fdebug("Attempting to put the Status' back how they were.")
                 for issue in issues:
                     for issuenew in issues_new:
                         if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
@@ -64,7 +70,7 @@ def dbUpdate():
                             myDB.upsert("Issues", newVAL, ctrlVAL)
                             icount+=1
                             break
-                logger.info("changed the status of " + str(icount) + " issues.")
+                logger.info("In converting data to CV only, I changed the status of " + str(icount) + " issues.")
                 mylar.CV_ONETIMER = 0   
             else:
                 mylar.importer.addComictoDB(comicid,mismatch)

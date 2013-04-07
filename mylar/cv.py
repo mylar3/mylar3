@@ -23,7 +23,7 @@ import lib.feedparser
 import mylar
 from bs4 import BeautifulSoup as Soup
 
-def pulldetails(comicid,type,issueid=None,offset=1):
+def pulldetails(comicid,type,issueid=None,offset=0):
     import urllib2
 
     #import easy to use xml parser called minidom:
@@ -58,11 +58,11 @@ def pulldetails(comicid,type,issueid=None,offset=1):
 
 def getComic(comicid,type,issueid=None):
     if type == 'issue': 
-        offset = 1
+        offset = 0
         issue = {}
         comicResults = []
         #let's find out how many results we get from the query...
-        searched = pulldetails(comicid,'issue',None,1)
+        searched = pulldetails(comicid,'issue',None,0)
         if searched is None: return False
         totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
         logger.fdebug("there are " + str(totalResults) + " search results...")
@@ -82,10 +82,10 @@ def getComic(comicid,type,issueid=None):
         return issue
 
     elif type == 'comic':
-        dom = pulldetails(comicid,'comic',None,1)
+        dom = pulldetails(comicid,'comic',None,0)
         return GetComicInfo(comicid,dom)
     elif type == 'firstissue': 
-        dom = pulldetails(comicid,'firstissue',issueid,1)
+        dom = pulldetails(comicid,'firstissue',issueid,0)
         return GetFirstIssue(issueid,dom)
 
 def GetComicInfo(comicid,dom):
@@ -187,7 +187,7 @@ def GetIssuesInfo(comicid,dom,issue):
         cntiss = int(cntiss)
         n = cntiss-1
     else:
-        n = int(len(subtracks))-1    
+        n = int(len(subtracks))
 #    issue = {}
     issuechoice = []
     firstdate = '2099-00-00'
@@ -226,7 +226,7 @@ def GetIssuesInfo(comicid,dom,issue):
             if issue['CoverDate'] < firstdate and issue['CoverDate'] != '0000-00-00':
                 firstdate = issue['CoverDate']
         n-=1
-    print issuechoice
+
     issue['issuechoice'] = issuechoice
     issue['firstdate'] = firstdate
     return issue

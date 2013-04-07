@@ -385,12 +385,17 @@ class WebInterface(object):
             else: threading.Thread(target=importer.addComictoDB, args=[ComicID,mismatch]).start()    
         else:
             if mylar.CV_ONETIMER == 1:
+                logger.fdebug("CV_OneTimer option enabled...")
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
+                logger.fdebug("Gathering the status of all issues for the series.")
                 issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
                 #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
+                logger.fdebug("Deleting all issue data.")
                 myDB.select('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                logger.fdebug("Refreshing the series and pulling in new data using only CV.")
                 mylar.importer.addComictoDB(ComicID,mismatch)
                 issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                logger.fdebug("Attempting to put the Status' back how they were.")
                 icount = 0
                 for issue in issues:
                     for issuenew in issues_new:
@@ -401,7 +406,7 @@ class WebInterface(object):
                             myDB.upsert("Issues", newVAL, ctrlVAL)
                             icount+=1
                             break
-                logger.info("changed the status of " + str(icount) + " issues.")
+                logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
             else:
                 mylar.importer.addComictoDB(ComicID,mismatch)
 
