@@ -305,6 +305,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     cm1 = re.sub(" ", "%20", str(findcomic[findcount]))
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
+    cm = re.sub("\\bthe\\b", "", cm.lower()) # remove 'the' from the search pattern to accomodate naming differences
     cm = re.sub("\&", "", str(cm))
     cm = re.sub("\:", "", str(cm))
     #print (cmi)
@@ -394,7 +395,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     else:
                         logger.info("Check Search Delay - invalid numerical given. Force-setting to 1 minute.")
                         pause_the_search = 1 * 60
-                    time.sleep(pause_the_search)
+
+                    #bypass for local newznabs
+                    if nzbprov == 'newznab' and 'localhost' in str(host_newznab_fix):
+                        pass
+                    else:
+                        time.sleep(pause_the_search)
 
                     try:
                         data = opener.open(request).read()
@@ -576,8 +582,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     # make sure that things like - in watchcomic are accounted for when comparing to nzb.
                     watchcomic_split = helpers.cleanName(str(findcomic[findloop]))
                     if '&' in watchcomic_split: watchcomic_split = re.sub('[/&]','and', watchcomic_split)
-                    watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
-                     
+                    watchcomic_nonsplit = re.sub('[\-\:\,\.]', ' ', watchcomic_split)
+                    watchcomic_split = watchcomic_nonsplit.split(None)
+                      
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
                     logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
                     #account for possible version inclusion here.
@@ -587,11 +594,26 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             logger.fdebug("this has a version #...let's adjust")
                             cvers = "true"
                             splitst = splitst - 1
+                    #do an initial check
+                    initialchk = 'ok'
                     if (splitst) != len(watchcomic_split):
                         logger.fdebug("incorrect comic lengths...not a match")
-                        if str(splitit[0]).lower() == "the":
-                            logger.fdebug("THE word detected...attempting to adjust pattern matching")
-                            splitit[0] = splitit[4:]
+                        if str(splitit[0]).lower() == "the" or str(watchcomic_split[0]).lower() == "the":
+                            if str(splitit[0]).lower() == "the":
+                                logger.fdebug("THE word detected...attempting to adjust pattern matching")
+                                comiciss = comiciss[4:]
+                                splitst = splitst - 1 #remove 'the' from start
+                                logger.fdebug("comic is now : " + str(comiciss))
+                            if str(watchcomic_split[0]).lower() == "the":
+                                wtstart = watchcomic_nonsplit[4:]
+                                watchcomic_split = wtstart.split(None)
+                                logger.fdebug("new watchcomic string:" + str(watchcomic_split))
+                            initialchk = 'no'
+                    else:
+                        initialchk = 'ok'
+
+                    if (splitst) != len(watchcomic_split) and initialchk == 'no':
+                        logger.fdebug("incorrect comic lengths after removal...not a match.")
                     else:
                         logger.fdebug("length match..proceeding")
                         n = 0

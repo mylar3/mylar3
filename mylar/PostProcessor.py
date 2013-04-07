@@ -319,8 +319,9 @@ class PostProcessor(object):
                 chunk_f_f = re.sub('\$VolumeN','',mylar.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                logger.fdebug("No version # found for series, removing from filename", logger.DEBUG)
-                logger.fdebug("new format is now: " + str(chunk_file_format), logger.DEBUG)
+                self._log("No version # found for series - tag will not be available for renaming.", logger.DEBUG)
+                logger.fdebug("No version # found for series, removing from filename")
+                logger.fdebug("new format is now: " + str(chunk_file_format)
             else:
                 chunk_file_format = mylar.FILE_FORMAT
             #Run Pre-script
