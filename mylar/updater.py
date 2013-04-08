@@ -86,7 +86,7 @@ def latest_update(ComicID, LatestIssue, LatestDate):
                     "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
-def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
+def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None):
     # here we add to upcoming table...
     myDB = db.DBConnection()
 
@@ -136,7 +136,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate):
             newVal = {"not_updated_db": ""}
             myDB.upsert("comics", newVal, newKey)
 
-        if hours > 5:
+        if hours > 5 or forcecheck == 'yes':
             pullupd = "yes"
             logger.fdebug("Now Refreshing comic " + ComicName + " to make sure it's up-to-date")
             if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)

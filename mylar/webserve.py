@@ -581,6 +581,15 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("pullist")
     manualpull.exposed = True
 
+    def pullrecreate(self):
+        from mylar import weeklypull
+        myDB = db.DBConnection()
+        myDB.action("DROP TABLE weekly")
+        mylar.dbcheck()
+        logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+        threading.Thread(target=weeklypull.pullit(forcecheck='yes')).start()
+        raise cherrypy.HTTPRedirect("pullist")
+    pullrecreate.exposed = True
 
     def upcoming(self):
         myDB = db.DBConnection()

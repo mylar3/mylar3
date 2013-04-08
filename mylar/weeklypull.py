@@ -29,7 +29,7 @@ import re
 import mylar 
 from mylar import db, updater, helpers, logger
 
-def pullit():
+def pullit(forcecheck=None):
     myDB = db.DBConnection()
     popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
     if popit:
@@ -330,9 +330,9 @@ def pullit():
     pullpath = str(mylar.CACHE_DIR) + "/"
     os.remove( str(pullpath) + "Clean-newreleases.txt" )
     os.remove( str(pullpath) + "newreleases.txt" )
-    pullitcheck()
+    pullitcheck(forcecheck=forcecheck)
 
-def pullitcheck(comic1off_name=None,comic1off_id=None):
+def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
     logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
     myDB = db.DBConnection()
 
@@ -493,7 +493,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None):
                                             # here we add to comics.latest
                                             updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
                                             # here we add to upcoming table...
-                                            updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate)
+                                            updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
                                             # here we update status of weekly table...
                                             updater.weekly_update(ComicName=week['COMIC'])
                                             break

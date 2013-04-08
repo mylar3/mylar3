@@ -23,7 +23,7 @@ import lib.feedparser
 import mylar
 from bs4 import BeautifulSoup as Soup
 
-def pulldetails(comicid,type,issueid=None,offset=0):
+def pulldetails(comicid,type,issueid=None,offset=1):
     import urllib2
 
     #import easy to use xml parser called minidom:
@@ -35,7 +35,7 @@ def pulldetails(comicid,type,issueid=None,offset=0):
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
-            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date&offset='
+            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
         else:
             cv_type = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
@@ -58,9 +58,12 @@ def pulldetails(comicid,type,issueid=None,offset=0):
 
 def getComic(comicid,type,issueid=None):
     if type == 'issue': 
-        offset = 0
+        offset = 1
         issue = {}
+        ndic = []
+        issuechoice = []
         comicResults = []
+        firstdate = '2099-00-00'
         #let's find out how many results we get from the query...
         searched = pulldetails(comicid,'issue',None,0)
         if searched is None: return False
@@ -75,17 +78,24 @@ def getComic(comicid,type,issueid=None):
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
                 searched = pulldetails(comicid,'issue',None,offsetcount)
-            comicResults = GetIssuesInfo(comicid,searched,issue)
+            issuechoice,tmpdate = GetIssuesInfo(comicid,searched)
+            if tmpdate < firstdate:
+                firstdate = tmpdate
+            ndic = ndic + issuechoice
             #search results are limited to 100 and by pagination now...let's account for this.
             countResults = countResults + 100
 
+        issue['issuechoice'] = ndic
+        issue['firstdate'] = firstdate
+
+        print ("issuechoice completed: " + str(issue))
         return issue
 
     elif type == 'comic':
-        dom = pulldetails(comicid,'comic',None,0)
+        dom = pulldetails(comicid,'comic',None,1)
         return GetComicInfo(comicid,dom)
     elif type == 'firstissue': 
-        dom = pulldetails(comicid,'firstissue',issueid,0)
+        dom = pulldetails(comicid,'firstissue',issueid,1)
         return GetFirstIssue(issueid,dom)
 
 def GetComicInfo(comicid,dom):
@@ -155,11 +165,9 @@ def GetComicInfo(comicid,dom):
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
     comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText
 
-#    comic['LastIssue'] = dom.getElementsByTagName('last_issue')[].firstChild.wholeText
     comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 
-    print ("fistIss:" + str(comic['FirstIssueID']))
-#    print ("lastIss:" + str(comic['LastIssue']))
+#    print ("fistIss:" + str(comic['FirstIssueID']))
 #    comicchoice.append({
 #        'ComicName':              comic['ComicName'],
 #        'ComicYear':              comic['ComicYear'],
@@ -174,7 +182,7 @@ def GetComicInfo(comicid,dom):
 #    comic['comicchoice'] = comicchoice
     return comic
 
-def GetIssuesInfo(comicid,dom,issue):
+def GetIssuesInfo(comicid,dom):
     subtracks = dom.getElementsByTagName('issue')
     if not mylar.CV_ONLY:
         cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
@@ -188,8 +196,8 @@ def GetIssuesInfo(comicid,dom,issue):
         n = cntiss-1
     else:
         n = int(len(subtracks))
-#    issue = {}
-    issuechoice = []
+    tempissue = {}
+    issuech = []
     firstdate = '2099-00-00'
     for subtrack in subtracks:
         if not mylar.CV_ONLY:
@@ -201,35 +209,35 @@ def GetIssuesInfo(comicid,dom,issue):
             issue['Issue_ID'] = dom.getElementsByTagName('id')[n].firstChild.wholeText
             issue['Issue_Number'] = dom.getElementsByTagName('issue_number')[n].firstChild.wholeText
             
-            issuechoice.append({
+            issuech.append({
                 'Issue_ID':                issue['Issue_ID'],
                 'Issue_Number':            issue['Issue_Number'],
                 'Issue_Name':              issue['Issue_Name']
                 })
         else:
             try:
-                issue['Issue_Name'] = subtrack.getElementsByTagName('name')[0].firstChild.wholeText
+                tempissue['Issue_Name'] = subtrack.getElementsByTagName('name')[0].firstChild.wholeText
             except:
-                issue['Issue_Name'] = 'None'
-            issue['Issue_ID'] = subtrack.getElementsByTagName('id')[0].firstChild.wholeText
+                tempissue['Issue_Name'] = 'None'
+            tempissue['Issue_ID'] = subtrack.getElementsByTagName('id')[0].firstChild.wholeText
             try:
-                issue['CoverDate'] = subtrack.getElementsByTagName('cover_date')[0].firstChild.wholeText
+                tempissue['CoverDate'] = subtrack.getElementsByTagName('cover_date')[0].firstChild.wholeText
             except:
-                issue['CoverDate'] = '0000-00-00'
-            issue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
-            issuechoice.append({
-                'Issue_ID':                issue['Issue_ID'],
-                'Issue_Number':            issue['Issue_Number'],
-                'Issue_Date':              issue['CoverDate'],
-                'Issue_Name':              issue['Issue_Name']
+                tempissue['CoverDate'] = '0000-00-00'
+            tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
+            issuech.append({
+                'Issue_ID':                tempissue['Issue_ID'],
+                'Issue_Number':            tempissue['Issue_Number'],
+                'Issue_Date':              tempissue['CoverDate'],
+                'Issue_Name':              tempissue['Issue_Name']
                 })
-            if issue['CoverDate'] < firstdate and issue['CoverDate'] != '0000-00-00':
-                firstdate = issue['CoverDate']
+
+            if tempissue['CoverDate'] < firstdate and tempissue['CoverDate'] != '0000-00-00':
+                firstdate = tempissue['CoverDate']
         n-=1
 
-    issue['issuechoice'] = issuechoice
-    issue['firstdate'] = firstdate
-    return issue
+    #issue['firstdate'] = firstdate
+    return issuech, firstdate
 
 def GetFirstIssue(issueid,dom):
     #if the Series Year doesn't exist, get the first issue and take the date from that
