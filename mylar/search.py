@@ -640,7 +640,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("watch comicversion is " + str(ComicVersion))
                                     fndcomicversion = str(splitit[n])
                                     logger.fdebug("version found: " + str(fndcomicversion))
-                                    if ComicVersion is not "None":
+                                    if ComicVersion != "None" and ComicVersion is not None:
                                         F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
                                         D_ComicVersion = re.sub("[^0-9]", "", ComicVersion)
                                         if int(F_ComicVersion) == int(D_ComicVersion):
@@ -779,9 +779,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     except OSError.e:
                                         if e.errno != errno.EEXIST:
                                             raise
-
                                 logger.fdebug("link to retrieve via api:" + str(helpers.apiremove(linkapi,'$')))
-
+                           
                                 #let's change all space to decimals for simplicity
                                 nzbname = re.sub(" ", ".", str(entry['title']))
                                 #gotta replace & or escape it
@@ -798,8 +797,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 #we need to change the nzbx string now to allow for the nzbname rename.
                                 if nzbprov == 'nzbx':
-                                    nzbxlink_st = linkapi.find("*|*")
-                                    linkapi = linkapi[:(nzbxlink_st + 3)] + str(nzbname)
+                                    nzbxlink_st = linkapi.find("::::")
+                                    linkapi = linkapi[:(nzbxlink_st + 4)] + str(nzbname)
                                     logger.fdebug("new linkapi (this should =nzbname) :" + str(linkapi))
 
 #                               #test nzb.get

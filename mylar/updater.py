@@ -280,12 +280,6 @@ def forceRescan(ComicID,archive=None):
     issuedupechk = []
     issueexceptdupechk = []
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
-    # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
-    # the loop below won't work...let's adjust :)
-    arcissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
-    if len(arcissues) > 0:
-        havefiles = len(arcissues)
-        logger.fdebug("Adjusting have total because of this many archive files:" + str(len(arcissues)))
     while (fn < fccnt):  
         haveissue = "no"
         issuedupe = "no"
@@ -530,21 +524,27 @@ def forceRescan(ComicID,archive=None):
         myDB.upsert("issues", newValueDict, controlValueDict)
         fn+=1
 
-    #let's update the total count of comics that was found.
-    controlValueStat = {"ComicID":     rescan['ComicID']}
-    newValueStat = {"Have":            havefiles
-                   }
 
-    myDB.upsert("comics", newValueStat, controlValueStat)
-    logger.info(u"I've found " + str(havefiles) + " / " + str(rescan['Total']) + " issues." )
+    logger.info("Total files located: " + str(havefiles))
+    foundcount = havefiles
+    arcfiles = 0
+    # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
+    # the loop below won't work...let's adjust :)
+    arcissues = myDB.action("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID]).fetchall()
+    if int(arcissues[0][0]) > 0:
+        arcfiles = arcissues[0][0]
+        havefiles = havefiles + arcfiles
+        logger.fdebug("Adjusting have total to " + str(havefiles) + " because of this many archive files:" + str(arcfiles))
+
 
     #now that we are finished...
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
-    downissues = myDB.action("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID]).fetchall()
+    downissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID])
     if downissues is None:
         pass
     else:
+        archivedissues = 0 #set this to 0 so it tallies correctly.
         for down in downissues:
             #print "downlocation:" + str(down['Location'])
             #remove special characters from 
@@ -557,6 +557,7 @@ def forceRescan(ComicID,archive=None):
                 controlValue = {"IssueID":  down['IssueID']}
                 newValue = {"Status":    "Archived"}
                 myDB.upsert("issues", newValue, controlValue)
+                archivedissues+=1
                 pass
             else:
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
@@ -567,6 +568,19 @@ def forceRescan(ComicID,archive=None):
                     #print "Changing status from Downloaded to Archived - cannot locate file"
                     controlValue = {"IssueID":   down['IssueID']}
                     newValue = {"Status":    "Archived"}
-                    myDB.upsert("issues", newValue, controlValue) 
+                    myDB.upsert("issues", newValue, controlValue)
+                    archivedissues+=1 
+        totalarc = arcfiles + archivedissues
+        havefiles = havefiles + totalarc
+        logger.fdebug("I've changed the status of " + str(archivedissues) + " issues to a status of Archived, as I now cannot locate them in the series directory.")
+
+        
+    #let's update the total count of comics that was found.
+    controlValueStat = {"ComicID":     rescan['ComicID']}
+    newValueStat = {"Have":            havefiles
+                   }
+
+    myDB.upsert("comics", newValueStat, controlValueStat)
+    logger.info(u"I've physically found " + str(foundcount) + " issues, and accounted for " + str(totalarc) + " in an Archived state. Total Issue Count: " + str(havefiles) + " / " + str(rescan['Total']))
 
     return

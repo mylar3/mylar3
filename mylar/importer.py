@@ -490,8 +490,16 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                             updater.no_searchresults(comicid)
                             return
                     else:
-                        logger.error(str(issnum) + "this has an alpha-numeric in the issue # which I cannot account for.")
-                        return
+                        try:
+                            x = float(issnum)
+                            #validity check
+                            if x < 0:
+                                logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
+                                int_issnum = str(issnum)
+                            else: raise ValueError
+                        except ValueError, e:
+                            logger.error(str(issnum) + "this has an alpha-numeric in the issue # which I cannot account for.")
+                            return    
                         #get the latest issue / date using the date.
                 if firstval['Issue_Date'] > latestdate:
                     latestiss = str(issnum)

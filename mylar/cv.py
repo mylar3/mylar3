@@ -88,7 +88,6 @@ def getComic(comicid,type,issueid=None):
         issue['issuechoice'] = ndic
         issue['firstdate'] = firstdate
 
-        print ("issuechoice completed: " + str(issue))
         return issue
 
     elif type == 'comic':
