@@ -182,7 +182,7 @@ def pullit(forcecheck=None):
                                 issue = "NA"
                                 break
                             issue = issname[n]
-                            if 'ongoing' not in issname[n-1].lower():
+                            if 'ongoing' not in issname[n-1].lower() and '(vu)' not in issname[n-1].lower():
                                 #print ("issue found : " + issname[n])
                                 comicend = n - 1
                             else:
