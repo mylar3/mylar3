@@ -87,7 +87,7 @@ def findComic(name, mode, issue, limityear=None):
                 xmlcnt = result.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
                 #here we can determine what called us, and either start gathering all issues or just limited ones.
                 #print ("n: " + str(n) + "--xmcnt" + str(xmlcnt))
-                if issue is not None:
+                if issue is not None and issue.isdigit():
                     #this gets buggered up with NEW/ONGOING series because the db hasn't been updated
                     #to reflect the proper count. Drop it by 1 to make sure.
                     limiter = int(issue) - 1
