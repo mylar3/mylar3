@@ -579,10 +579,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
     myDB.upsert("comics", newValueStat, controlValueStat)
 
-    if mylar.CVINFO:
-        if not os.path.exists(comlocation + "/cvinfo"):
-            with open(comlocation + "/cvinfo","w") as text_file:
-                text_file.write("http://www.comicvine.com/volume/49-" + str(comicid))
+    if mylar.CVINFO or (mylar.CV_ONLY and mylar.CVINFO):
+        if not os.path.exists(os.path.join(comlocation,"cvinfo")) or mylar.CV_ONETIMER:
+            with open(os.path.join(comlocation,"cvinfo"),"w") as text_file:
+                text_file.write(str(comic['ComicURL']))
   
     logger.info(u"Updating complete for: " + comic['ComicName'])
 
