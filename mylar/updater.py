@@ -386,10 +386,10 @@ def forceRescan(ComicID,archive=None):
                             #fcdigit = str(int(fcnew[som]))
                             fcdigit = int(fcnew[som]) * 1000
                             if som+1 < len(fcnew) and 'au' in fcnew[som+1].lower():
-                                #print ("AU detected")
-                                #if the 'AU' is in 005AU vs 005 AU it will yield different results.
-                                fnd_iss_except = 'AU'
-                                #logger.info("AU Detected - fnd_iss_except set.")
+                                if len(fcnew[som+1]) == 2:
+                                    #if the 'AU' is in 005AU vs 005 AU it will yield different results.
+                                    fnd_iss_except = 'AU'
+                                    #logger.info("AU Detected - fnd_iss_except set.")
                         else: 
                             #fcdigit = "0"
                             fcdigit = 0
@@ -431,12 +431,12 @@ def forceRescan(ComicID,archive=None):
                         #logger.fdebug("intdec: " + str(intdec))
                         #logger.fdebug("let's compare with this issue value: " + str(fcdigit))
                     elif 'au' in fcnew[som].lower():
+                        #if AU is part of issue (5AU instead of 5 AU)
                         austart = fcnew[som].lower().find('au')
                         if fcnew[som][:austart].isdigit():
                             fcdigit = int(fcnew[som][:austart]) * 1000
                             fnd_iss_except = 'AU'
                             #logger.info("iss_except set to AU")
-                        #if AU is part of issue (5AU instead of 5 AU)
                     else:
                         # it's a word, skip it.
                         fcdigit = 19283838380101193
@@ -447,6 +447,7 @@ def forceRescan(ComicID,archive=None):
                     #logger.fdebug("this is the int issue:" + str(int_iss))
                     #logger.fdebug("this is the fcdigit:" + str(fcdigit))
                     if int(fcdigit) == int_iss:
+                        #logger.fdebug("issue match")
                         #logger.fdebug("fnd_iss_except: " + str(fnd_iss_except))
                         #logger.fdebug("iss_except: " + str(iss_except))
                         if str(fnd_iss_except) != 'None' and str(iss_except) == 'AU':
