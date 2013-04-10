@@ -563,7 +563,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 chg_comic = chg_comic + " " + splitit[i]
                                 i+=1
                             logger.fdebug("chg_comic:" + str(chg_comic))
-                            if chg_comic.upper() == findcomic[findloop].upper():
+                            findcomic_chksplit = re.sub('[\-\:\,\.]', ' ', findcomic[findloop])
+                            if chg_comic.upper() == findcomic_chksplit.upper():
                                 logger.fdebug("series contains numerics...adjusting..")
                             else:
                                 changeup = "." + splitit[(len(splitit)-1)]
