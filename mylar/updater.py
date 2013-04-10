@@ -572,7 +572,7 @@ def forceRescan(ComicID,archive=None):
                     myDB.upsert("issues", newValue, controlValue)
                     archivedissues+=1 
         totalarc = arcfiles + archivedissues
-        havefiles = havefiles + totalarc
+        havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
         logger.fdebug("I've changed the status of " + str(archivedissues) + " issues to a status of Archived, as I now cannot locate them in the series directory.")
 
         
