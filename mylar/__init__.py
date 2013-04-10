@@ -933,6 +933,10 @@ def dbcheck():
     c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     logger.info(u"Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)")
 
+    logger.info(u"Correcting Null entries that make the main page break on startup.")
+    c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
+        
+
     conn.commit()
     c.close()
 
