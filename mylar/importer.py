@@ -460,16 +460,19 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     break
                 cleanname = helpers.cleanName(firstval['Issue_Name'])
                 issid = str(firstval['Issue_ID'])
-                issnum = str(firstval['Issue_Number'])
+                issnum = firstval['Issue_Number']
                 #print ("issnum: " + str(issnum))
                 issname = cleanname
                 issdate = str(firstval['Issue_Date'])
-                if str(issnum).isdigit():
+                if issnum.isdigit():
                     int_issnum = int( issnum )
                 else:
                     if 'au' in issnum.lower():
                         int_issnum = str(int(issnum[:-2])) + 'AU'
-                    elif '.' in str(issnum):
+                    elif u'\xbd' in issnum:
+                        issnum = .5
+                        int_issnum = .5
+                    elif '.' in issnum:
                         issst = str(issnum).find('.')
                         #logger.fdebug("issst:" + str(issst))
                         issb4dec = str(issnum)[:issst]
@@ -502,10 +505,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                             return    
                         #get the latest issue / date using the date.
                 if firstval['Issue_Date'] > latestdate:
-                    latestiss = str(issnum)
+                    latestiss = issnum
                     latestdate = str(firstval['Issue_Date'])
                 if firstval['Issue_Date'] < firstdate:
-                    firstiss = str(issnum)
+                    firstiss = issnum
                     firstdate = str(firstval['Issue_Date'])
                 # check if the issue already exists
                 iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
