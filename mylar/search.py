@@ -39,6 +39,14 @@ from datetime import datetime
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None):
     if ComicYear == None: ComicYear = '2013'
     else: ComicYear = str(ComicYear)[:4]
+
+    if IssueID is None:
+        #one-off the download.
+        print ("ComicName: " + ComicName)
+        print ("Issue: " + str(IssueNumber))        
+        print ("Year: " + str(ComicYear))
+        print ("IssueDate:" + str(IssueDate))
+
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
@@ -306,8 +314,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
     cm = re.sub("\\bthe\\b", "", cm.lower()) # remove 'the' from the search pattern to accomodate naming differences
-    cm = re.sub("\&", "", str(cm))
-    cm = re.sub("\:", "", str(cm))
+    cm = re.sub("[\&\:\?]", "", str(cm))
     #print (cmi)
     if '.' in findcomiciss[findcount]:
         if len(str(isschk_b4dec)) == 3:
@@ -415,7 +422,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
             elif nzbprov == 'experimental':
                 #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
-                bb = findcomicfeed.Startit(cm, isssearch[findloop], comyear)
+                bb = findcomicfeed.Startit(u_ComicName, isssearch[findloop], comyear, ComicVersion)
                 # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
                 cmloopit == 1
 
@@ -542,7 +549,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     watchcomic_split = []
                     logger.fdebug("original nzb comic and issue: " + str(comic_andiss)) 
                     #changed this from '' to ' '
-                    comic_iss_b4 = re.sub('[\-\:\,]', ' ', str(comic_andiss))
+                    comic_iss_b4 = re.sub('[\-\:\,\?]', ' ', str(comic_andiss))
                     comic_iss = comic_iss_b4.replace('.',' ')
                     if issue_except: comic_iss = re.sub(issue_except.lower(), '', comic_iss)
                     logger.fdebug("adjusted nzb comic and issue: " + str(comic_iss))
@@ -563,7 +570,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 chg_comic = chg_comic + " " + splitit[i]
                                 i+=1
                             logger.fdebug("chg_comic:" + str(chg_comic))
-                            findcomic_chksplit = re.sub('[\-\:\,\.]', ' ', findcomic[findloop])
+                            findcomic_chksplit = re.sub('[\-\:\,\.\?]', ' ', findcomic[findloop])
                             if chg_comic.upper() == findcomic_chksplit.upper():
                                 logger.fdebug("series contains numerics...adjusting..")
                             else:
@@ -583,7 +590,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     # make sure that things like - in watchcomic are accounted for when comparing to nzb.
                     watchcomic_split = helpers.cleanName(str(findcomic[findloop]))
                     if '&' in watchcomic_split: watchcomic_split = re.sub('[/&]','and', watchcomic_split)
-                    watchcomic_nonsplit = re.sub('[\-\:\,\.]', ' ', watchcomic_split)
+                    watchcomic_nonsplit = re.sub('[\-\:\,\.\?]', ' ', watchcomic_split)
                     watchcomic_split = watchcomic_nonsplit.split(None)
                       
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
@@ -743,7 +750,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     #pretty this biatch up.
-                                    BComicName = re.sub('[\:\,/\]', '', str(ComicName))
+                                    BComicName = re.sub('[\:\,\/\?]', '', str(ComicName))
                                     Bl_ComicName = re.sub('[\&]', 'and', str(BComicName))
                                     filenamenzb = str(re.sub(" ", ".", str(Bl_ComicName))) + "." + str(IssueNumber) + ".(" + str(comyear) + ").nzb"
                                     # Add a user-agent
@@ -786,7 +793,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 nzbname = re.sub(" ", ".", str(entry['title']))
                                 #gotta replace & or escape it
                                 nzbname = re.sub("\&", 'and', str(nzbname))
-                                nzbname = re.sub('[\,\:]', '', str(nzbname))
+                                nzbname = re.sub('[\,\:\?]', '', str(nzbname))
                                 extensions = ('.cbr', '.cbz')
 
                                 if nzbname.lower().endswith(extensions):

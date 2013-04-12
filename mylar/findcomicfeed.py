@@ -7,8 +7,10 @@ import lib.feedparser as feedparser
 import re
 import logger
 import mylar
+import unicodedata
 
-def Startit(searchName, searchIssue, searchYear):
+
+def Startit(searchName, searchIssue, searchYear, ComicVersion):
     #searchName = "Uncanny Avengers"
     #searchIssue = "01"
     #searchYear = "2012"
@@ -21,6 +23,12 @@ def Startit(searchName, searchIssue, searchYear):
     joinSearch = "+".join(splitSearch)+"+"+searchIssue
     searchIsOne = "0"+searchIssue
     searchIsTwo = "00"+searchIssue
+
+    if "-" in searchName:
+        searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
+
+    regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?')
+
 
     if mylar.USE_MINSIZE:
         size_constraints = "minsize=" + str(mylar.MINSIZE)
@@ -53,38 +61,40 @@ def Startit(searchName, searchIssue, searchYear):
 	countUp=countUp+1
 
 
-    #print(keyPair)
-    # keyPair.keys()
+    # thanks to SpammyHagar for spending the time in compiling these regEx's!
 
-    #for title, link in keyPair.items():
-    #	print(title, link)
+    regExTest=""
 
+    regEx = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
+    regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
 
+    #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
+    regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
+    regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
+    regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
+    regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
 
+    regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
     for title, link in keyPair.items():
-	#print("titlesplit: " + str(title.split("\"")))
-	splitTitle = title.split("\"")
+        #print("titlesplit: " + str(title.split("\"")))
+        splitTitle = title.split("\"")
 
-	for subs in splitTitle:
-		logger.fdebug("looking at: " + subs)
-		regEx = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIssue, searchYear), subs, flags=re.IGNORECASE)
-		regExOne = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsOne, searchYear), subs, flags=re.IGNORECASE)
-		regExTwo = re.findall("\\b%s\\b\\s*\\b%s\\b\\s*[(]\\b%s\\b[)]" %(searchName, searchIsTwo, searchYear), subs, flags=re.IGNORECASE)
+        for subs in splitTitle:
+#        print(title)
+            regExCount = 0
+            if len(subs) > 10:
+                #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
+                while regExCount < len(regexList):
+                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
+                    regExCount = regExCount +1
 
-		#print("regex: " + str(regEx))
-		if regEx or regExOne or regExTwo:
-		        logger.fdebug("name: " + title)
-                        logger.fdebug("sub: " + subs)
-			logger.fdebug("-----")
-			logger.fdebug("url: " + str(link))
-			logger.fdebug("-----")
-			#regList.append(title)
-                        #regList.append(subs)
+                    if regExTest:   
+                        logger.fdebug(title)
                         entries.append({
-                                'title':   subs,
-                                'link':    str(link)
-                                })
+                                  'title':   subs,
+                                  'link':    str(link)
+                                  })
               
     if len(entries) >= 1:
         mres['entries'] = entries
@@ -94,8 +104,3 @@ def Startit(searchName, searchIssue, searchYear):
     else:
         logger.fdebug("No Results Found")
         return "no results"
-   
-
-    #mres['entries'] = entries
-    #return mres
-

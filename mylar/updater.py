@@ -213,6 +213,12 @@ def no_searchresults(ComicID):
 
 def nzblog(IssueID, NZBName):
     myDB = db.DBConnection()
+    if IssueID is None or IssueID == 'None':
+       #if IssueID is None, it's a one-off download from the pull-list.
+       #give it a generic ID above the last one so it doesn't throw an error later.
+       if mylar.HIGHCOUNT == 0: IssueID = '900000'
+       else: IssueID = int(mylar.HIGHCOUNT) + 1
+
     controlValue = {"IssueID": IssueID}
     #print controlValue
     newValue = {"NZBName": NZBName}

@@ -177,7 +177,7 @@ class PostProcessor(object):
 
             #replace spaces
             nzbname = re.sub(' ', '.', str(nzbname))
-            nzbname = re.sub('[\,\:]', '', str(nzbname))
+            nzbname = re.sub('[\,\:\?]', '', str(nzbname))
             nzbname = re.sub('[\&]', 'and', str(nzbname))
 
             logger.fdebug("After conversions, nzbname is : " + str(nzbname))
@@ -204,8 +204,52 @@ class PostProcessor(object):
                     issueid = nzbiss['IssueID']
             else: 
                 issueid = nzbiss['IssueID']
+                print "issueid:" + str(issueid)
                 #use issueid to get publisher, series, year, issue number
             issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+            if issuenzb is None or int(issuenzb['IssueID']) >= '900000':
+                # this has no issueID, therefore it's a one-off or a manual post-proc.
+                # At this point, let's just drop it into the Comic Location folder and forget about it..
+                self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.", logger.DEBUG)
+                logger.info("One-off mode enabled for Post-Processing. Will move into Grab-bag directory.")
+                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
+                for root, dirnames, filenames in os.walk(self.nzb_folder):
+                    for filename in filenames:
+                        if filename.lower().endswith(extensions):
+                            ofilename = filename
+                            path, ext = os.path.splitext(ofilename)
+
+                if mylar.GRABBAG_DIR:
+                    grdst = mylar.GRABBAG_DIR
+                else:
+                    grdst = mylar.DESTINATION_DIR
+
+                grab_dst = os.path.join(grdst, ofilename)
+                self._log("Destination Path : " + grab_dst, logger.DEBUG)
+                grab_src = os.path.join(self.nzb_folder, ofilename)
+                self._log("Source Path : " + grab_src, logger.DEBUG)
+                logger.info("Moving " + str(ofilename) + " into grab-bag directory : " + str(grdst))
+
+                try:
+                    shutil.move(grab_src, grab_dst)
+                except (OSError, IOError):
+                    self.log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
+                    logger.debug("Failed to move directory - check directories and manually re-run.")
+                    return self.log
+                #tidyup old path
+                try:
+                    shutil.rmtree(self.nzb_folder)
+                except (OSError, IOError):
+                    self._log("Failed to remove temporary directory.", logger.DEBUG)
+                    logger.debug("Failed to remove temporary directory - check directory and manually re-run.")
+                    return self.log
+
+                logger.debug("Removed temporary directory : " + str(self.nzb_folder))
+                self._log("Removed temporary directory : " + self.nzb_folder, logger.DEBUG)
+                #delete entry from nzblog table
+                myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
+                return self.log
+
             comicid = issuenzb['ComicID']
             issuenumOG = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
@@ -382,7 +426,7 @@ class PostProcessor(object):
                 if mylar.REPLACE_SPACES:
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
-            nfilename = re.sub('[\,\:]', '', nfilename)
+            nfilename = re.sub('[\,\:\?]', '', nfilename)
             self._log("New Filename: " + nfilename, logger.DEBUG)
             logger.fdebug("New Filename: " + str(nfilename))
 
