@@ -805,8 +805,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                                 #we need to change the nzbx string now to allow for the nzbname rename.
                                 if nzbprov == 'nzbx':
-                                    nzbxlink_st = linkapi.find("::::")
-                                    linkapi = linkapi[:(nzbxlink_st + 4)] + str(nzbname)
+                                    nzbxlink_st = linkapi.find("*|*")
+                                    linkapi = linkapi[:(nzbxlink_st + 3)] + str(nzbname)
                                     logger.fdebug("new linkapi (this should =nzbname) :" + str(linkapi))
 
 #                               #test nzb.get
