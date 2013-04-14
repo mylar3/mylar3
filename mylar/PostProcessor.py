@@ -207,7 +207,13 @@ class PostProcessor(object):
                 print "issueid:" + str(issueid)
                 #use issueid to get publisher, series, year, issue number
             issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
-            if issuenzb is None or int(issuenzb['IssueID']) >= '900000':
+            if helpers.is_number(issueid):
+                sandwich = int(issuenzb['IssueID'])
+            else:
+                #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
+                #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
+                sandwich = 1
+            if issuenzb is None or sandwich >= 900000:
                 # this has no issueID, therefore it's a one-off or a manual post-proc.
                 # At this point, let's just drop it into the Comic Location folder and forget about it..
                 self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.", logger.DEBUG)
