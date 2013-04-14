@@ -41,7 +41,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
     if mylar.USENET_RETENTION != None:
         max_age = "&age=" + str(mylar.USENET_RETENTION)
 
-    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=25&more=1" %joinSearch)
+    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch)
 
     totNum = len(feed.entries)
 
@@ -88,7 +88,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
                 while regExCount < len(regexList):
                     regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
                     regExCount = regExCount +1
-
                     if regExTest:   
                         logger.fdebug(title)
                         entries.append({
