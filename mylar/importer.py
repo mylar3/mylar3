@@ -61,6 +61,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     else:
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
+        filechecker.validateAndCreateDirectory(comlocation, True)
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -214,11 +215,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
     else:
         #print ("Directory doesn't exist!")
-        try:
-            os.makedirs(str(comlocation))
-            logger.info(u"Directory successfully created at: " + str(comlocation))
-        except OSError:
-            logger.error(u"Could not create comicdir : " + str(comlocation))
+        #try:
+        #    os.makedirs(str(comlocation))
+        #    logger.info(u"Directory successfully created at: " + str(comlocation))
+        #except OSError:
+        #    logger.error(u"Could not create comicdir : " + str(comlocation))
+        filechecker.validateAndCreateDirectory(comlocation, True)
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -746,12 +748,12 @@ def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
         logger.info(u"Directory (" + str(comlocation) + ") already exists! Continuing...")
     else:
         #print ("Directory doesn't exist!")
-        try:
-            os.makedirs(str(comlocation))
-            logger.info(u"Directory successfully created at: " + str(comlocation))
-        except OSError:
-            logger.error(u"Could not create comicdir : " + str(comlocation))
-
+        #try:
+        #    os.makedirs(str(comlocation))
+        #    logger.info(u"Directory successfully created at: " + str(comlocation))
+        #except OSError:
+        #    logger.error(u"Could not create comicdir : " + str(comlocation))
+        filechecker.validateAndCreateDirectory(comlocation, True)
 
     comicIssues = gcdinfo['totalissues']
 

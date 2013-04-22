@@ -20,6 +20,7 @@ import pprint
 import subprocess
 import re
 import logger
+import mylar
 
 def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
@@ -115,3 +116,22 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
     logger.fdebug("you have a total of " + str(comiccnt) + " " + watchcomic + " comics")
     watchmatch['comiccount'] = comiccnt
     return watchmatch
+
+def validateAndCreateDirectory(dir, create=False):
+    if os.path.exists(dir):
+        logger.info("Found comic directory: " + dir)
+        return True
+    else:
+        logger.warn("Could not find comic directory: " + dir)
+        if create:
+            if dir.strip():
+                logger.info("Creating comic directory ("+str(mylar.CHMOD_DIR)+") : " + dir)
+                try:
+                    os.makedirs(dir, mode=int(mylar.CHMOD_DIR))
+                except OSError:
+                    raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
+                return True
+            else:
+                logger.warn("Provided directory is blank, aborting")
+                return False
+    return False

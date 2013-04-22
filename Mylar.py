@@ -21,7 +21,7 @@ from lib.configobj import ConfigObj
 
 import mylar
 
-from mylar import webstart, logger
+from mylar import webstart, logger, filechecker
 
 try:
     import argparse
@@ -89,11 +89,13 @@ def main():
         mylar.CONFIG_FILE = os.path.join(mylar.DATA_DIR, 'config.ini')
         
     # Try to create the DATA_DIR if it doesn't exist
-    if not os.path.exists(mylar.DATA_DIR):
-        try:
-            os.makedirs(mylar.DATA_DIR)
-        except OSError:
-            raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
+    #if not os.path.exists(mylar.DATA_DIR):
+    #    try:
+    #        os.makedirs(mylar.DATA_DIR)
+    #    except OSError:
+    #        raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
+
+    filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
     
     # Make sure the DATA_DIR is writeable
     if not os.access(mylar.DATA_DIR, os.W_OK):

@@ -164,7 +164,17 @@
                                         <input type="text" name="destination_dir" value="${config['destination_dir']}" size="50">
                                         <small>Where do you store your comics?<br/> (or where do you want me to store them)</small>
                                         <small>e.g. /Users/name/Comics or /Volumes/share/comics</small>
+                                </div>
 
+                                <div class="row">
+                                    <label>Directory CHMOD</label>
+                                    <input type="text" name="chmod_dir" value="${config['chmod_dir']}" size="50">
+                                    <small>Permissions on created/moved directories</small>
+                                </div>
+                                <div class="row">
+                                    <label>File CHMOD</label>
+                                    <input type="text" name="chmod_file" value="${config['chmod_file']}" size="50">
+                                    <small>Permissions on created/moved directories</small>
                                 </div>
 
 	                </fieldset>

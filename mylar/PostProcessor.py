@@ -27,7 +27,7 @@ import urllib2
 import sqlite3
 from xml.dom.minidom import parseString
 
-from mylar import logger, db, helpers, updater, notifiers
+from mylar import logger, db, helpers, updater, notifiers, filechecker
 
 class PostProcessor(object):
     """
@@ -437,6 +437,9 @@ class PostProcessor(object):
             logger.fdebug("New Filename: " + str(nfilename))
 
             src = os.path.join(self.nzb_folder, ofilename)
+
+            filechecker.validateAndCreateDirectory(comlocation, True)
+
             if mylar.LOWERCASE_FILENAMES:
                 dst = (comlocation + "/" + nfilename + ext).lower()
             else:

@@ -1383,6 +1383,8 @@ class WebInterface(object):
                     "newznab_enabled" : helpers.checked(mylar.NEWZNAB_ENABLED),
                     "extra_newznabs" : mylar.EXTRA_NEWZNABS,
                     "destination_dir" : mylar.DESTINATION_DIR,
+                    "chmod_dir" : mylar.CHMOD_DIR,
+                    "chmod_file" : mylar.CHMOD_FILE,
                     "replace_spaces" : helpers.checked(mylar.REPLACE_SPACES),
                     "replace_char" : mylar.REPLACE_CHAR,
                     "use_minsize" : helpers.checked(mylar.USE_MINSIZE),
@@ -1523,11 +1525,12 @@ class WebInterface(object):
             logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
         else:
             logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
-            try:
-                os.makedirs(str(com_location))
-                logger.info(u"Directory successfully created at: " + str(com_location))
-            except OSError:
-                logger.error(u"Could not create comicdir : " + str(com_location))
+            #try:
+            #    os.makedirs(str(com_location))
+            #    logger.info(u"Directory successfully created at: " + str(com_location))
+            #except OSError:
+            #    logger.error(u"Could not create comicdir : " + str(com_location))
+            filechecker.validateAndCreateDirectory(com_location, True)
 
         myDB.upsert("comics", newValues, controlValueDict)
         raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
@@ -1539,7 +1542,7 @@ class WebInterface(object):
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -1622,6 +1625,8 @@ class WebInterface(object):
         mylar.PRE_SCRIPTS = pre_scripts
         mylar.LOG_DIR = log_dir
         mylar.LOG_LEVEL = log_level
+        mylar.CHMOD_DIR = chmod_dir
+        mylar.CHMOD_FILE = chmod_file
         # Handle the variable config options. Note - keys with False values aren't getting passed
 
         mylar.EXTRA_NEWZNABS = []
@@ -1646,6 +1651,14 @@ class WebInterface(object):
         if mylar.SEARCH_DELAY < 1:
             logger.info("Minimum search delay set for 1 minute to avoid hammering.")
             mylar.SEARCH_DELAY = 1
+
+        if not helpers.is_number(mylar.CHMOD_DIR):
+            logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
+            mylar.CHMOD_DIR = '0777'
+
+        if not helpers.is_number(mylar.CHMOD_FILE):
+            logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
+            mylar.CHMOD_FILE = '0660'
 
         # Write the config
         mylar.config_write()
