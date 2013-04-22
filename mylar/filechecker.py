@@ -61,15 +61,17 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub(subit, '', subname)
                     volrem = subit
 
-        subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]',' ', str(subname))
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', u_watchcomic)
+        subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', str(subname))
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_watchcomic)
+        modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
-
+        subname = re.sub('&', ' and ', subname) 
         subname = re.sub('\s+', ' ', str(subname)).strip()
         if AlternateSearch is not None:
             #same = encode.
             u_altsearchcomic = AlternateSearch.encode('ascii', 'ignore').strip()
-            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', u_altsearchcomic)
+            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
+            altseachcomic = re.sub('&', ' and ', altsearchcomic)
             altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
         else:
             #create random characters so it will never match.

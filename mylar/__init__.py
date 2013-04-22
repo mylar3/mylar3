@@ -194,10 +194,11 @@ COUNT_HAVES = 0
 
 COMICSORT = None
 ANNUALS_ON = 0
-CV_ONLY = 0
-CV_ONETIMER = 0
+CV_ONLY = 1
+CV_ONETIMER = 1
 GRABBAG_DIR = None
 HIGHCOUNT = 0
+READ2FILENAME = 0
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -258,7 +259,7 @@ def initialize():
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, ANNUALS_ON, CV_ONLY, CV_ONETIMER
                 
         if __INITIALIZED__:
@@ -336,7 +337,7 @@ def initialize():
             GRABBAG_DIR = DESTINATION_DIR
         HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
         if not HIGHCOUNT: HIGHCOUNT = 0
-
+        READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
         PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
         PROWL_ONSNATCH = bool(check_setting_int(CFG, 'Prowl', 'prowl_onsnatch', 0))
@@ -355,15 +356,15 @@ def initialize():
         CVINFO = bool(check_setting_int(CFG, 'General', 'cvinfo', 0))
         ANNUALS_ON = bool(check_setting_int(CFG, 'General', 'annuals_on', 0))
         if not ANNUALS_ON:
-            #default to off
+            #default to on
             ANNUALS_ON = 0
-        CV_ONLY = bool(check_setting_int(CFG, 'General', 'cv_only', 0))
+        CV_ONLY = bool(check_setting_int(CFG, 'General', 'cv_only', 1))
         if not CV_ONLY:
-            #default to off
-            CV_ONLY = 0
-        CV_ONETIMER = bool(check_setting_int(CFG, 'General', 'cv_onetimer', 0))
+            #default to on
+            CV_ONLY = 1
+        CV_ONETIMER = bool(check_setting_int(CFG, 'General', 'cv_onetimer', 1))
         if not CV_ONETIMER:
-            CV_ONETIMER = 0
+            CV_ONETIMER = 1
         LOG_LEVEL = check_setting_str(CFG, 'General', 'log_level', '')
         ENABLE_EXTRA_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_extra_scripts', 0))
         EXTRA_SCRIPTS = check_setting_str(CFG, 'General', 'extra_scripts', '')
@@ -667,7 +668,7 @@ def config_write():
     new_config['General']['search_delay'] = SEARCH_DELAY
     new_config['General']['grabbag_dir'] = GRABBAG_DIR
     new_config['General']['highcount'] = HIGHCOUNT
-
+    new_config['General']['read2filename'] = int(READ2FILENAME)
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)

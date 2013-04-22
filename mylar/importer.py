@@ -608,7 +608,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
-        if mylar.AUTOWANT_UPCOMING: #and 'Present' in gcdinfo['resultPublished']:
+        if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present': #and 'Present' in gcdinfo['resultPublished']:
             logger.info(u"Checking this week's pullist for new issues of " + comic['ComicName'])
             updater.newpullcheck(comic['ComicName'], comicid)
 

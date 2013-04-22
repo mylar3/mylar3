@@ -468,7 +468,8 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     addArtists.exposed = True
     
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None):                   
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None):                   
+        print 'tada'
         now = datetime.datetime.now()
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
@@ -479,6 +480,17 @@ class WebInterface(object):
             # we can limit the search by including the issue # and searching for
             # comics that have X many issues
             raise cherrypy.HTTPRedirect("searchit?name=%s&issue=%s&mode=%s" % (ComicName, 'None', 'pullseries'))
+        elif ComicID is None and mode == 'readlist':
+            # this is for marking individual comics from a readlist to be downloaded.
+            # Because there is no associated ComicID or IssueID, follow same pattern as in 'pullwant'
+            # except we know the Year
+            if ComicYear is None: ComicYear = SeriesYear
+            logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
+            foundcom = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, IssueDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None)
+            if foundcom  == "yes":
+                logger.info(u"Downloaded " + ComicName + " #" + ComicIssue + " (" + str(ComicYear) + ")")
+            raise cherrypy.HTTPRedirect("readlist")
+
         elif ComicID is None and mode == 'pullwant':          
             #this is for marking individual comics from the pullist to be downloaded.
             #because ComicID and IssueID will both be None due to pullist, it's probably
@@ -763,17 +775,20 @@ class WebInterface(object):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist group by StoryArcID COLLATE NOCASE")
         issuelist = myDB.select("SELECT * from readlist")
-        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist, issuelist=issuelist)
+        readConfig = {
+                    "read2filename" : helpers.checked(mylar.READ2FILENAME)
+               }
+        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist, issuelist=issuelist,readConfig=readConfig)
         return page
     readlist.exposed = True
 
     def detailReadlist(self,StoryArcID, StoryArcName):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
-        return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName)
+        return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName, storyarcid=StoryArcID)
     detailReadlist.exposed = True
 
-    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None):
+    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None):
         myDB = db.DBConnection()
         if IssueID:
             myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
@@ -784,6 +799,9 @@ class WebInterface(object):
         elif IssueArcID:
             myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
             logger.info("Removed " + str(IssueArcID) + " from the Story Arc.")
+        elif AllRead:
+            myDB.action("DELETE from readlist WHERE Status='Read'")
+            logger.info("Removed All issues that have been marked as Read from Reading List")
     removefromreadlist.exposed = True
 
     def markasRead(self, IssueID=None, IssueArcID=None):
@@ -870,42 +888,78 @@ class WebInterface(object):
                        "TotalIssues": len(tracks)}
             myDB.upsert("readinglist", NewVals, CtrlVal)
             i+=1
-
+        raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarc))
     importReadlist.exposed = True
 
     #Story Arc Ascension...welcome to the next level :)
-    def ArcWatchlist(self):
+    def ArcWatchlist(self,StoryArcID=None):
         myDB = db.DBConnection()
-        ArcWatch = myDB.select("SELECT * FROM readinglist")
+        if StoryArcID:
+            ArcWatch = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=?", [StoryArcID])
+        else:
+            ArcWatch = myDB.select("SELECT * FROM readinglist")
         if ArcWatch is None: logger.info("No Story Arcs to search")
         else:
             Comics = myDB.select("SELECT * FROM comics")
 
             arc_match = []
+            wantedlist = []
+
+            showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show 
 
             for arc in ArcWatch:
-                print ("arc: " + str(arc['ComicName']))
+                logger.fdebug("arc: " + arc['storyarc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
                 #cycle through the story arcs here for matches on the watchlist
                 mod_arc = re.sub('[\:/,\'\/\-\&\%\$\#\@\!\*\+\.]', '', arc['ComicName'])
+                mod_arc = re.sub('\\bthe\\b', '', mod_arc.lower())
+                mod_arc = re.sub('\\band\\b', '', mod_arc.lower())
                 mod_arc = re.sub(r'\s', '', mod_arc)                    
+                matcheroso = "no"
                 for comic in Comics:
-                    print ("comic: " + comic['ComicName'])
+                    logger.fdebug("comic: " + comic['ComicName'])
                     mod_watch = re.sub('[\:\,\'\/\-\&\%\$\#\@\!\*\+\.]', '', comic['ComicName'])
+                    mod_watch = re.sub('\\bthe\\b', '', mod_watch.lower())
+                    mod_watch = re.sub('\\band\\b', '', mod_watch.lower())
                     mod_watch = re.sub(r'\s', '', mod_watch)
-                    if mod_watch == mod_arc and arc['SeriesYear'] == comic['SeriesYear']:
-                        #gather the matches now.
-                        arc_match.append({ 
-                            "match_name":          arc['ComicName'],
-                            "match_id":            comic['ComicID'],
-                            "match_issue":         arc['IssueNumber'],
-                            "match_issuearcid":    arc['IssueArcID']})
-                        logger.fdebu("arc_Match:" + arc_match)
-            logger.fdebu("we matched on " + str(len(arc_match)) + " issues")
+                    if mod_watch == mod_arc:# and arc['SeriesYear'] == comic['ComicYear']:
+                        logger.fdebug("intial name match - confirming issue # is present in series")
+                        if comic['ComicID'][:1] == 'G':                        
+                            # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
+                            GCDissue, whocares = helpers.decimal_issue(arc['IssueNumber'])
+                            GCDissue = int(GCDissue) / 1000
+                            logger.fdebug("issue converted to " + str(GCDissue))
+                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=?", [comic['ComicName'], str(GCDissue)]).fetchone()
+                        else:
+                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=?", [comic['ComicName'], arc['IssueNumber']]).fetchone()               
+                        if isschk is None:
+                            logger.fdebug("we matched on name, but issue " + str(arc['IssueNumber']) + " doesn't exist for " + comic['ComicName'])
+                        else:
+                            logger.fdebug("issue #: " + str(arc['IssueNumber']) + " is present!")
+                            print isschk
+                            print ("Comicname: " + arc['ComicName'])
+                            #print ("ComicID: " + str(isschk['ComicID']))
+                            print ("Issue: " + arc['IssueNumber'])
+                            print ("IssueArcID: " + arc['IssueArcID'])
+                            #gather the matches now.
+                            arc_match.append({ 
+                                "match_name":          arc['ComicName'],
+                                "match_id":            isschk['ComicID'],
+                                "match_issue":         arc['IssueNumber'],
+                                "match_issuearcid":    arc['IssueArcID'],
+                                "match_seriesyear":    comic['ComicYear']})
+                            matcheroso = "yes"
+                if matcheroso == "no":
+                    logger.fdebug("Unable to find a match for " + arc['ComicName'] + " :#" + str(arc['IssueNumber']))
+                    wantedlist.append({
+                         "ComicName":      arc['ComicName'],
+                         "IssueNumber":    arc['IssueNumber'],
+                         "IssueYear":      arc['IssueYear']})
+
+            logger.fdebug("we matched on " + str(len(arc_match)) + " issues")
 
             for m_arc in arc_match:
-                print m_arc
                 #now we cycle through the issues looking for a match.
-                issue = myDB.action("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'],m_arc['match_issue']])
+                issue = myDB.action("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'],m_arc['match_issue']]).fetchone()
                 if issue is None: pass
                 else:
                     logger.fdebug("issue: " + str(issue['Issue_Number']) + "..." + str(m_arc['match_issue']))
@@ -913,27 +967,59 @@ class WebInterface(object):
                     if issue['Issue_Number'] == m_arc['match_issue']:
                         logger.fdebug("we matched on " + str(issue['Issue_Number']) + " for " + str(m_arc['match_name']))
                         if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived':
-                            ctrlVal = {"IssueArcID":  match_issuearcid }
-                            newVal = {"Status":  issue['Status']}
+                            ctrlVal = {"IssueArcID":  m_arc['match_issuearcid'] }
+                            newVal = {"Status":   issue['Status'],
+                                      "IssueID":  issue['IssueID']}
+                            if showonreadlist:
+                                showctrlVal = {"IssueID":       issue['IssueID']}
+                                shownewVal = {"ComicName":      issue['ComicName'],
+                                              "Issue_Number":    issue['Issue_Number'],
+                                              "IssueDate":      issue['IssueDate'],
+                                              "SeriesYear":     m_arc['match_seriesyear'],
+                                              "ComicID":        m_arc['match_id']}
+                                myDB.upsert("readlist", shownewVal, showctrlVal)
+
                             myDB.upsert("readinglist",newVal,ctrlVal)
-                            logger.info("Already have " + match_issuearcid)
-                            break
+                            logger.info("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                        else:
+                            logger.fdebug("We don't have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                            ctrlVal = {"IssueArcID":  m_arc['match_issuearcid'] }
+                            newVal = {"Status":  "Wanted",
+                                      "IssueID": issue['IssueID']}
+                            myDB.upsert("readinglist",newVal,ctrlVal)
+                            logger.info("Marked " + issue['ComicName'] + " :# " + str(issue['Issue_Number']) + " as WANTED.")
+               
+
     ArcWatchlist.exposed = True
+
+    def ReadMassCopy(self, StoryArcID, StoryArcName):
+        #this copies entire story arcs into the /cache/<storyarc> folder
+        #alternatively, it will copy the issues individually directly to a 3rd party device (ie.tablet)
+
+        myDB = db.DBConnection()       
+        copylist = myDB.select("SELECT * FROM readlist WHERE StoryArcID=? AND Status='Downloaded'", [StoryArcID])
+        if copylist is None:
+            logger.fdebug("You don't have any issues from " + StoryArcName + ". Aborting Mass Copy.")
+            return
+        else:
+            dst = os.path.join(mylar.CACHE, StoryArcName)
+            for files in copylist:
+                
+                copyloc = files['Location']
+
+    ReadMassCopy.exposed = True
 
     def logs(self):
         if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '':
-            mylar.LOG_LEVEL = 'info'
+            mylar.LOG_LEVEL = 'INFO'
         return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST, log_level=mylar.LOG_LEVEL)
     logs.exposed = True
 
-    def log_change(self, **args):
-        print ("here: " + str(args))
-        for loglevel in args:
-            if loglevel is None: continue
-            else:
-                print ("changing logger to " + str(loglevel))
-                LOGGER.setLevel(loglevel)
-        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST)
+    def log_change(self, loglevel):
+        if log_level is not None:
+            print ("changing logger to " + str(log_level))
+            LOGGER.setLevel(log_level)
+        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST, log_level=log_level)
     log_change.exposed = True
     
     def clearhistory(self, type=None):
@@ -947,21 +1033,45 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("history")
     clearhistory.exposed = True
 
-    def downloadLocal(self, IssueID):
-        #print ("issueid: " + str(IssueID))
+    def downloadLocal(self, IssueID=None, IssueArcID=None, ReadOrder=None):
+        print "tada"
+        print ("issueid: " + str(IssueID))
         myDB = db.DBConnection()
-        issueDL = myDB.action("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
-        comicid = issueDL['ComicID']
-        #print ("comicid: " + str(comicid))
-        comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
-        issueLOC = comic['ComicLocation']
-        #print ("IssueLOC: " + str(issueLOC))
-        issueFILE = issueDL['Location']
-        #print ("IssueFILE: "+ str(issueFILE))
-        issuePATH = os.path.join(issueLOC,issueFILE)
-        #print ("IssuePATH: " + str(issuePATH))
-        dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
-        #print ("dstPATH: " + str(dstPATH))
+        if IssueID:
+            issueDL = myDB.action("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+            comicid = issueDL['ComicID']
+            #print ("comicid: " + str(comicid))
+            comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
+            #---issue info
+            comicname = comic['ComicName']
+            issuenum = issueDL['Issue_Number']
+            issuedate = issueDL['IssueDate']
+            seriesyear = comic['ComicYear']
+            #---
+            issueLOC = comic['ComicLocation']
+            #print ("IssueLOC: " + str(issueLOC))
+            issueFILE = issueDL['Location']
+            #print ("IssueFILE: "+ str(issueFILE))
+            issuePATH = os.path.join(issueLOC,issueFILE)
+            #print ("IssuePATH: " + str(issuePATH))
+            dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
+            #print ("dstPATH: " + str(dstPATH))
+        if IssueArcID:
+            if mylar.READ2FILENAME: 
+                #if it's coming from a StoryArc, check to see if we're appending the ReadingOrder to the filename
+                ARCissueFILE = ReadOrder + "-" + issueFILE                
+                dstPATH = os.path.join(mylar.CACHE_DIR, ARCissueFILE)        
+#            issueDL = myDB.action("SELECT * FROM readinglist WHERE IssueArcID=?", [IssueArcID]).fetchone()
+#            storyarcid = issueDL['StoryArcID']
+#            #print ("comicid: " + str(comicid))
+#            issueLOC = mylar.DESTINATION_DIR
+#            #print ("IssueLOC: " + str(issueLOC))
+#            issueFILE = issueDL['Location']
+#            #print ("IssueFILE: "+ str(issueFILE))
+#            issuePATH = os.path.join(issueLOC,issueFILE)
+#            #print ("IssuePATH: " + str(issuePATH))
+#            dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
+#            #print ("dstPATH: " + str(dstPATH))
         try:
             shutil.copy2(issuePATH, dstPATH)
         except IOError as e:
@@ -974,7 +1084,11 @@ class WebInterface(object):
                         'Location':   issueFILE}
         myDB.upsert("readlist", newValueDict, controlValueDict)
         myDB.upsert("issues", newValueDict, controlValueDict)
-
+        if IssueArcID:
+            controlValueD = {'IssueArcID':  IssueArcID}
+            newValueDict = {'inCacheDIR': 'True',
+                            'Location':   ARCissueFILE}
+            myDB.upsert("readinglist", newValueDict, controlValueD)
         #print("DB updated - Download link now enabled.")
 
     downloadLocal.exposed = True

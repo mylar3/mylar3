@@ -224,6 +224,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     com_NAME = cname
                     print ("com_NAME : " + com_NAME)
                     yearmatch = "True"
+                else:
+                    # we're assuming that the year is in brackets (and it should be damnit)
+                    if m[cnt][:-2] == '19' or m[cnt][:-2] == '20':
+                        print ("year detected: " + str(m[cnt]))
+                        ydetected = 'yes'
+                        result_comyear = m[cnt]
             cnt+=1
 
         splitit = []

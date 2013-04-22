@@ -917,7 +917,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #read_detail th#issueyear {
-  min-width: 75px;
+  min-width: 40px;
   text-align: center;
 }
 #read_detail td#comicname {
@@ -933,7 +933,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #read_detail td#issueyear{
-  min-width: 75px;
+  min-width: 40px;
   text-align: left;
   vertical-align: middle;
 }
