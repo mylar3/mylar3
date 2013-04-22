@@ -875,7 +875,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.info(u"Sending NMA notification")
                                     nma = notifiers.NMA()
                                     nma.notify(snatched_nzb=nzbname)
-
+                                if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
+                                    logger.info(u"Sending Pushover notification")
+                                    pushover = notifiers.PUSHOVER()
+                                    pushover.notify(nzbname,"Download started")
 
                             foundc = "yes"
                             done = True

@@ -126,3 +126,61 @@ class NMA:
         if not request:
             logger.warn('Error sending notification request to NotifyMyAndroid')        
         
+# 2013-04-01 Added Pushover.net notifications, based on copy of Prowl class above.
+# No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
+class PUSHOVER:
+
+    def __init__(self):
+        self.enabled = mylar.PUSHOVER_ENABLED
+        self.apikey = mylar.PUSHOVER_APIKEY
+        self.userkey = mylar.PUSHOVER_USERKEY
+        self.priority = mylar.PUSHOVER_PRIORITY
+        # other API options:
+        # self.device_id = mylar.PUSHOVER_DEVICE_ID
+        # device - option for specifying which of your registered devices Mylar should send to. No option given, it sends to all devices on Pushover (default)
+        # URL / URL_TITLE (both for use with the COPS/OPDS server I'm building maybe?)
+        # Sound - name of soundfile to override default sound choice
+    
+    # not sure if this is needed for Pushover
+    
+    #def conf(self, options):
+    # return cherrypy.config['config'].get('Pushover', options)
+
+    def notify(self, message, event):
+        if not mylar.PUSHOVER_ENABLED:
+            return
+
+        http_handler = HTTPSConnection("api.pushover.net:443")
+                                                
+        data = {'token': mylar.PUSHOVER_APIKEY,
+                'user': mylar.PUSHOVER_USERKEY,
+                'message': message.encode("utf-8"),
+                'title': event,
+                'priority': mylar.PUSHOVER_PRIORITY }
+
+        http_handler.request("POST",
+                                "/1/messages.json",
+                                body = urlencode(data),
+                                headers = {'Content-type': "application/x-www-form-urlencoded"}
+                                )
+        response = http_handler.getresponse()
+        request_status = response.status
+
+        if request_status == 200:
+                logger.info(u"Pushover notifications sent.")
+                return True
+        elif request_status == 401:
+                logger.info(u"Pushover auth failed: %s" % response.reason)
+                return False
+        else:
+                logger.info(u"Pushover notification failed.")
+                return False
+
+    def test(self, apikey, userkey, priority):
+
+        self.enabled = True
+        self.apikey = apikey
+        self.userkey = userkey
+        self.priority = priority
+
+        self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')

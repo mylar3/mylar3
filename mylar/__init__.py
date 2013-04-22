@@ -126,14 +126,19 @@ AUTOWANT_UPCOMING = True
 AUTOWANT_ALL = False
 COMIC_COVER_LOCAL = False
 ADD_TO_CSV = True
-PROWL_ENABLED = True
+PROWL_ENABLED = False
 PROWL_PRIORITY = 1
 PROWL_KEYS = None
-PROWL_ONSNATCH = True
+PROWL_ONSNATCH = False
 NMA_ENABLED = False
 NMA_APIKEY = None
 NMA_PRIORITY = None
 NMA_ONSNATCH = None
+PUSHOVER_ENABLED = False
+PUSHOVER_PRIORITY = 1
+PUSHOVER_APIKEY = None
+PUSHOVER_USERKEY = None
+PUSHOVER_ONSNATCH = False
 SKIPPED2WANTED = False
 CVINFO = False
 LOG_LEVEL = None
@@ -260,7 +265,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, \
+                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER
                 
@@ -351,6 +356,12 @@ def initialize():
         NMA_APIKEY = check_setting_str(CFG, 'NMA', 'nma_apikey', '')
         NMA_PRIORITY = check_setting_int(CFG, 'NMA', 'nma_priority', 0)
         NMA_ONSNATCH = bool(check_setting_int(CFG, 'NMA', 'nma_onsnatch', 0))
+
+        PUSHOVER_ENABLED = bool(check_setting_int(CFG, 'PUSHOVER', 'pushover_enabled', 0))
+        PUSHOVER_APIKEY = check_setting_str(CFG, 'PUSHOVER', 'pushover_apikey', '')
+        PUSHOVER_USERKEY = check_setting_str(CFG, 'PUSHOVER', 'pushover_userkey', '')
+        PUSHOVER_PRIORITY = check_setting_int(CFG, 'PUSHOVER', 'pushover_priority', 0)
+        PUSHOVER_ONSNATCH = bool(check_setting_int(CFG, 'PUSHOVER', 'pushover_onsnatch', 0))
 
         USE_MINSIZE = bool(check_setting_int(CFG, 'General', 'use_minsize', 0))
         MINSIZE = check_setting_str(CFG, 'General', 'minsize', '')
@@ -747,6 +758,13 @@ def config_write():
     new_config['NMA']['nma_apikey'] = NMA_APIKEY
     new_config['NMA']['nma_priority'] = NMA_PRIORITY
     new_config['NMA']['nma_onsnatch'] = int(NMA_ONSNATCH)
+
+    new_config['PUSHOVER'] = {}
+    new_config['PUSHOVER']['pushover_enabled'] = int(PUSHOVER_ENABLED)
+    new_config['PUSHOVER']['pushover_apikey'] = PUSHOVER_APIKEY
+    new_config['PUSHOVER']['pushover_userkey'] = PUSHOVER_USERKEY
+    new_config['PUSHOVER']['pushover_priority'] = PUSHOVER_PRIORITY
+    new_config['PUSHOVER']['pushover_onsnatch'] = int(PUSHOVER_ONSNATCH)
 
     new_config['Raw'] = {}
     new_config['Raw']['raw'] = int(RAW)

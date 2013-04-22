@@ -483,6 +483,12 @@ class PostProcessor(object):
                 nma = notifiers.NMA()
                 nma.notify(series, str(issueyear), str(issuenumOG))
 
+            if mylar.PUSHOVER_ENABLED:
+                pushmessage = series + ' (' + str(issueyear) + ') - issue #' + str(issuenumOG)
+                logger.info(u"Pushover request")
+                pushover = notifiers.PUSHOVER()
+                pushover.notify(pushmessage, "Download and Post-Processing completed")
+             
             # retrieve/create the corresponding comic objects
 
             if mylar.ENABLE_EXTRA_SCRIPTS:
