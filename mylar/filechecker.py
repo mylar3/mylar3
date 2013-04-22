@@ -21,6 +21,7 @@ import subprocess
 import re
 import logger
 import mylar
+import sys
 
 def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
@@ -127,7 +128,9 @@ def validateAndCreateDirectory(dir, create=False):
             if dir.strip():
                 logger.info("Creating comic directory ("+str(mylar.CHMOD_DIR)+") : " + dir)
                 try:
-                    os.makedirs(dir, mode=int(mylar.CHMOD_DIR))
+                    permission = int(mylar.CHMOD_DIR, 8)
+                    os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
+                    os.makedirs(str(dir), permission )
                 except OSError:
                     raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
                 return True
