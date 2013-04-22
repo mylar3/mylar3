@@ -476,7 +476,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     elif u'\xbd' in issnum:
                         issnum = .5
                         int_issnum = .5
-                    elif '.' in issnum:
+                    elif '.' in issnum or ',' in issnum:
+                        if ',' in issnum: issnum = re.sub(',','.', issnum)
                         issst = str(issnum).find('.')
                         #logger.fdebug("issst:" + str(issst))
                         issb4dec = str(issnum)[:issst]
