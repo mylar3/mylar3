@@ -62,18 +62,21 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     #print ("volume detected as version #:" + str(subit))
                     subname = re.sub(subit, '', subname)
                     volrem = subit
-
+        
         subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', str(subname))
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_watchcomic)
+        detectand = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
-        subname = re.sub('&', ' and ', subname) 
+        if '&' in subname:
+            subname = re.sub('\&', ' and ', subname) 
+            detectand = True
         subname = re.sub('\s+', ' ', str(subname)).strip()
         if AlternateSearch is not None:
             #same = encode.
             u_altsearchcomic = AlternateSearch.encode('ascii', 'ignore').strip()
             altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
-            altseachcomic = re.sub('&', ' and ', altsearchcomic)
+            altseachcomic = re.sub('\&', ' and ', altsearchcomic)
             altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
         else:
             #create random characters so it will never match.
@@ -96,14 +99,19 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     jtd_len = len(modwatchcomic) + len(volrem) + 1 #1 is to account for space btwn comic and vol #
                 else:
                     jtd_len = len(modwatchcomic)
-                justthedigits = item[jtd_len:]
+                if detectand:
+                    jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
             elif altsearchcomic.lower() in subname.lower():
                 #remove versioning here
                 if volrem != None:
                     jtd_len = len(altsearchcomic) + len(volrem) + 1
                 else:
                     jtd_len = len(altsearchcomic)
-                justthedigits = item[jtd_len:]
+                if detectand: 
+                    jtd_len = jtd_len - 2
+
+            justthedigits = item[jtd_len:]
+
             comiclist.append({
                  'ComicFilename':           item,
                  'ComicLocation':           comicpath,
