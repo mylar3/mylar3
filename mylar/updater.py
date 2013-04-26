@@ -156,6 +156,8 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
         elif issuechk['Status'] == "Downloaded":
             values = { "Status":    "Downloaded"}
             newValue['Status'] = "Downloaded"
+            #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
+
         elif issuechk['Status'] == "Wanted":
             values = { "Status":    "Wanted"}
             newValue['Status'] = "Wanted"            
@@ -177,24 +179,35 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
             logger.fdebug("...Status already Wanted .. not changing.")
         else:
             logger.fdebug("...Already have issue - keeping existing status of : " + issuechk['Status'])
-
         if issuechk is None:
             myDB.upsert("upcoming", newValue, controlValue)
         else:
             myDB.upsert("issues", values, control)
+            if issuechk['Status'] == 'Downloaded': 
+                logger.fdebug("updating Pull-list to reflect status.")
+                return issuechk['Status']
     else:
         logger.fdebug("Issues don't match for some reason...weekly new issue: " + str(IssueNumber))
 
 
-def weekly_update(ComicName):
+def weekly_update(ComicName,IssueNumber,CStatus):
     # here we update status of weekly table...
+    # added Issue to stop false hits on series' that have multiple releases in a week
+    # added CStatus to update status flags on Pullist screen
     myDB = db.DBConnection()
-    controlValue = { "COMIC":         str(ComicName)}
-    if mylar.AUTOWANT_UPCOMING:
-        newValue = {"STATUS":             "Wanted"}
-    else:
-        newValue = {"STATUS":             "Skipped"}
-    myDB.upsert("weekly", newValue, controlValue)
+    issuecheck = myDB.action("SELECT * FROM weekly WHERE COMIC=? AND ISSUE=?", [ComicName,IssueNumber]).fetchone()
+    if issuecheck is not None:
+        controlValue = { "COMIC":         str(ComicName),
+                         "ISSUE":         str(IssueNumber)}
+        if CStatus:
+            newValue = {"STATUS":             CStatus}
+        else:
+            if mylar.AUTOWANT_UPCOMING:
+                newValue = {"STATUS":             "Wanted"}
+            else:
+                newValue = {"STATUS":             "Skipped"}
+
+        myDB.upsert("weekly", newValue, controlValue)
 
 def newpullcheck(ComicName, ComicID):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
@@ -239,12 +252,6 @@ def foundsearch(ComicID, IssueID):
     issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
     CYear = issue['IssueDate'][:4]
 
-#    fc = filechecker.listFiles(comic['ComicLocation'], comic['ComicName'])
-#    HaveDict = {"ComicID": ComicID}
-#    newHave = { "Have":    fc['comiccount'] }
-#    myDB.upsert("comics", newHave, HaveDict)
-#    #---
-    issue = myDB.action('SELECT * FROM issues WHERE IssueID=? AND ComicID=?', [IssueID, ComicID]).fetchone()
     # update the status to Snatched (so it won't keep on re-downloading!)
     logger.fdebug("updating status to snatched")
     controlValue = {"IssueID":   IssueID}

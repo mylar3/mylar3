@@ -622,11 +622,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
 
             for result in results:
-                foundNZB = "none"
-                if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.SAB_HOST):
-                    foundNZB = search.searchforissue(result['IssueID'])
-                    if foundNZB == "yes":
-                        updater.foundsearch(result['ComicID'], result['IssueID'])
+                search.searchforissue(result['IssueID'])
         else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
 
         logger.info(u"Finished grabbing what I could.")

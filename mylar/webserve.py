@@ -927,6 +927,7 @@ class WebInterface(object):
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
                             GCDissue, whocares = helpers.decimal_issue(arc['IssueNumber'])
                             GCDissue = int(GCDissue) / 1000
+                            if '.' not in str(GCDissue): GCDissue = str(GCDissue) + ".00"
                             logger.fdebug("issue converted to " + str(GCDissue))
                             isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=?", [comic['ComicName'], str(GCDissue)]).fetchone()
                         else:
@@ -991,6 +992,14 @@ class WebInterface(object):
                
 
     ArcWatchlist.exposed = True
+
+    def ReadGetWanted(self, StoryArcID):
+        # this will queue up (ie. make 'Wanted') issues in a given Story Arc that are 'Not Watched'
+        myDB = db.DBConnection()
+        wantedlist = myDB.select("SELECT * FROM readlist WHERE StoryArcID=? AND Status='Not Watched'", [StoryArcID])
+        if wantedlist is not None:
+            for want in wantedlist:
+                self.queueissue(mode='readinglist', ComicName=want['ComicName'], ComicID=None, ComicYear=want['ComicYear'], ComicIssue=want['Issue_Number'], IssueID=None, SeriesYear=want['SeriesYear'])
 
     def ReadMassCopy(self, StoryArcID, StoryArcName):
         #this copies entire story arcs into the /cache/<storyarc> folder
@@ -1207,6 +1216,10 @@ class WebInterface(object):
         minISSUE = 0
         startISSUE = 10000000
         comicstoIMP = []
+
+        movealreadyonlist = "no"
+        movedata = []
+
         for result in results:
             if result is None:
                 break
@@ -1225,15 +1238,17 @@ class WebInterface(object):
                 if mylar.IMP_MOVE:
                     logger.info("Mass import - Move files")
                     comloc = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
-                    mylar.moveit.movefiles(comicid,comloc['ComicLocation'],ComicName)
-                    #check for existing files...
-                    updater.forceRescan(comicid)
+
+                    movedata_comicid = comicid
+                    movedata_comiclocation = comloc['ComicLocation']
+                    movedata_comicname = ComicName
+                    movealreadyonlist = "yes"
+                    #mylar.moveit.movefiles(comicid,comloc['ComicLocation'],ComicName)
+                    #check for existing files... (this is already called after move files in importer)
+                    #updater.forceRescan(comicid)
                 else:
                     print ("nothing to do if I'm not moving.")
-                    #hit the archiver in movefiles here...
-
-                raise cherrypy.HTTPRedirect("importResults")
-
+                    raise cherrypy.HTTPRedirect("importResults")
             else:
                 comicstoIMP.append(result['ComicLocation'].decode(mylar.SYS_ENCODING, 'replace'))
                 getiss = result['impID'].rfind('-')
@@ -1250,6 +1265,15 @@ class WebInterface(object):
                 if int(getiss) < int(startISSUE):
                     print ("issue now set to : " + str(getiss) + " ... it was : " + str(startISSUE))
                     startISSUE = str(getiss)
+     
+        #taking this outside of the transaction in an attempt to stop db locking.
+        if mylar.IMP_MOVE and movealreadyonlist == "yes":
+#             for md in movedata:
+             mylar.moveit.movefiles(movedata_comicid, movedata_comiclocation, movedata_comicname)
+             updater.forceRescan(comicid)
+
+             raise cherrypy.HTTPRedirect("importResults")
+
         #figure out # of issues and the year range allowable
         if yearTOP > 0:
             maxyear = int(yearTOP) - (int(minISSUE) / 12)

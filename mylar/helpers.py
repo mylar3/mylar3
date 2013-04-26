@@ -224,8 +224,8 @@ def decimal_issue(iss):
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None):
             from mylar import db, logger
             myDB = db.DBConnection()
-            #print ("comicid: " + str(comicid))
-            #print ("issue#: " + str(issue))
+            print ("comicid: " + str(comicid))
+            print ("issue#: " + str(issue))
             # the issue here is a non-decimalized version, we need to see if it's got a decimal and if not, add '.00'
 #            iss_find = issue.find('.')
 #            if iss_find < 0:
@@ -247,8 +247,14 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             if issueid is None:
                 chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                 if chkissue is None:
-                    logger.error("Invalid Issue_Number - please validate.")
-                    return
+                    #rechk chkissue against int value of issue #
+                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, int(issue)]).fetchone()
+                    if chkissue is None:
+                        logger.error("Invalid Issue_Number - please validate.")
+                        return
+                    else:
+                        logger.info("Int Issue_number compare found. continuing...")
+                        issueid = chkissue['IssueID']
                 else:
                     issueid = chkissue['IssueID']
 

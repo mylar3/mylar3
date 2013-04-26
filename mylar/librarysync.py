@@ -148,6 +148,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         cnt = 0
         yearmatch = "false"
         foundonwatch = "False"
+        issue = 999999
 
         while (cnt < lenm):
             if m[cnt] is None: break
@@ -212,7 +213,11 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         #assume no year given in filename...
                         result_comyear = "0000"
                     print ("cm?: " + str(cn))
-                    comiss = issue
+                    if issue is not '999999':
+                        comiss = issue
+                    else:
+                        logger.ERROR("Invalid Issue number (none present) for " + comfilename)
+                        break
                     cnsplit = cn.split()
                     cname = ''
                     findcn = 0

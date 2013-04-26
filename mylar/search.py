@@ -314,7 +314,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
     cm = re.sub("\\bthe\\b", "", cm.lower()) # remove 'the' from the search pattern to accomodate naming differences
-    cm = re.sub("[\&\:\?]", "", str(cm))
+    cm = re.sub("[\&\:\?\,\-]", "", str(cm))
     #print (cmi)
     if '.' in findcomiciss[findcount]:
         if len(str(isschk_b4dec)) == 3:
@@ -956,11 +956,12 @@ def searchforissue(issueid=None, new=False):
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.USE_SABNZBD or mylar.USE_NZBGET):
             foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion)
             if foundNZB == "yes":
-                #print ("found!")
+                logger.fdebug("I found " + result['ComicName'] + ' #:' + str(result['Issue_Number']))
                 updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'])
             else:
                 pass 
                 #print ("not found!")
+    return
 
 def searchIssueIDList(issuelist):
     myDB = db.DBConnection()

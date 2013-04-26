@@ -412,12 +412,12 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
             while (cnt > -1):
                 lines[cnt] = lines[cnt].upper()
                 #llen[cnt] = str(llen[cnt])
-                #logger.fdebug("looking for : " + str(lines[cnt]))
+                logger.fdebug("looking for : " + str(lines[cnt]))
                 sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\'\?\@]', ' ', lines[cnt])
                 sqlsearch = re.sub(r'\s', '%', sqlsearch) 
                 if 'THE' in sqlsearch: sqlsearch = re.sub('THE', '', sqlsearch)
                 if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
-                #logger.fdebug("searchsql: " + str(sqlsearch))
+                logger.fdebug("searchsql: " + str(sqlsearch))
                 weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
                 for week in weekly:
@@ -425,7 +425,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                         break
                     for nono in not_t:
                         if nono in week['PUBLISHER']:
-                            #logger.fdebug("nono present")
+                            logger.fdebug("nono present")
                             break
                         if nono in week['ISSUE']:
                             #logger.fdebug("graphic novel/tradeback detected..ignoring.")
@@ -442,8 +442,8 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
 
                                 #-NEW-
                                 # strip out all special characters and compare
-                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', unlines[cnt])
-                                comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', comicnm)
+                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\'\?\@]', '', unlines[cnt])
+                                comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\'\?\@]', '', comicnm)
                                 watchcomic = re.sub(r'\s', '', watchcomic)
                                 comicnm = re.sub(r'\s', '', comicnm)
                                 #logger.fdebug("Revised_Watch: " + watchcomic)
@@ -456,10 +456,14 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                     modcomicnm = comicnm
                                 #thnx to A+X for this...
                                 if '+' in watchcomic:
-                                    if 'plus' in comicnm.lower():
-                                        modcomicnm = re.sub('plus', '+', comicnm)
+                                    logger.fdebug("+ detected...adjusting.")
+                                    logger.fdebug("comicnm:" + comicnm)
+                                    logger.fdebug("watchcomic:" + watchcomic)
+                                    modwatchcomic = re.sub('\+', 'PLUS', modwatchcomic)
+                                    logger.fdebug("modcomicnm:" + modcomicnm)
+                                    logger.fdebug("modwatchcomic:" + modwatchcomic)
                                 if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
-                                    #logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
+                                    logger.fdebug("matched on:" + str(comicnm) + "..." + str(watchcomic).upper())
                                     pass
                                 elif ("ANNUAL" in week['EXTRA']):
                                     pass
@@ -493,9 +497,9 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                             # here we add to comics.latest
                                             updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
                                             # here we add to upcoming table...
-                                            updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
+                                            statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
                                             # here we update status of weekly table...
-                                            updater.weekly_update(ComicName=week['COMIC'])
+                                            updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=statusupdate)
                                             break
                                         break
                         break

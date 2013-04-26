@@ -65,6 +65,7 @@ class DBConnection:
                 except sqlite3.OperationalError, e:
                     if "unable to open database file" in e.message or "database is locked" in e.message:
                         logger.warn('Database Error: %s' % e)
+                        logger.warn('sqlresult: %s' %  query)
                         attempt += 1
                         time.sleep(1)
                     else:
