@@ -314,7 +314,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", str(cm1)) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
     cm = re.sub("\\bthe\\b", "", cm.lower()) # remove 'the' from the search pattern to accomodate naming differences
-    cm = re.sub("[\&\:\?\,\-]", "", str(cm))
+    cm = re.sub("[\&\:\?\,]", "", str(cm))
     #print (cmi)
     if '.' in findcomiciss[findcount]:
         if len(str(isschk_b4dec)) == 3:
