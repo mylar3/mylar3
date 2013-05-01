@@ -29,9 +29,10 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
+    print ("mylar.CVURL: " + str(mylar.CVURL))
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     if type == 'comic':
-        PULLURL='http://api.comicvine.com/volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
+        PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
@@ -39,10 +40,12 @@ def pulldetails(comicid,type,issueid=None,offset=1):
         else:
             cv_type = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description'
-        PULLURL = 'http://api.comicvine.com/' + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
+        PULLURL = mylar.CVURL + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
     elif type == 'firstissue':
         #this is used ONLY for CV_ONLY
-        PULLURL = 'http://api.comicvine.com/issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+    elif type == 'storyarc':
+       PULLURL =  mylar.CVURL + 'story_arc/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
 
     #download the file:
     file = urllib2.urlopen(PULLURL)

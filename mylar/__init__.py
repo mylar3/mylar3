@@ -206,6 +206,8 @@ CV_ONETIMER = 1
 GRABBAG_DIR = None
 HIGHCOUNT = 0
 READ2FILENAME = 0
+CVAPIFIX = 0
+CVURL = None
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -266,7 +268,7 @@ def initialize():
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, CVURL, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER
                 
         if __INITIALIZED__:
@@ -344,6 +346,9 @@ def initialize():
         if not GRABBAG_DIR:
             #default to ComicLocation
             GRABBAG_DIR = DESTINATION_DIR
+        CVAPIFIX = bool(check_setting_int(CFG, 'General', 'cvapifix', 0))
+        if CVAPIFIX is None:
+            CVAPIFIX = 0
         HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
@@ -559,6 +564,13 @@ def initialize():
             else:
                 logger.info("Synology Parsing Fix already implemented. No changes required at this time.")
 
+        #CV sometimes points to the incorrect DNS - here's the fix.
+        if CVAPIFIX == 1:
+            CVURL = 'http://beta.comicvine.com/api/'
+            logger.info("CVAPIFIX enabled: ComicVine set to beta API site")
+        else:
+            CVURL = 'http://api.comicvine.com/'
+            logger.info("CVAPIFIX disabled: Comicvine set to normal API site")
         #Ordering comics here
         logger.info("Remapping the sorting to allow for new additions.")
         COMICSORT = helpers.ComicSort(sequence='startup')
@@ -644,7 +656,7 @@ def config_write():
     new_config['General']['annuals_on'] = int(ANNUALS_ON)
     new_config['General']['cv_only'] = int(CV_ONLY)
     new_config['General']['cv_onetimer'] = int(CV_ONETIMER)
-    
+    new_config['General']['cvapifix'] = int(CVAPIFIX)    
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
     new_config['General']['check_github_interval'] = CHECK_GITHUB_INTERVAL

@@ -28,7 +28,7 @@ mb_lock = threading.Lock()
 
 
 def pullsearch(comicapi,comicquery,offset):
-    PULLURL='http://api.comicvine.com/search?api_key=' + str(comicapi) + '&resources=volume&query=' + str(comicquery) + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher&format=xml&page=' + str(offset)
+    PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + str(comicquery) + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher&format=xml&page=' + str(offset)
 
     #all these imports are standard on most modern python implementations
     #download the file:
