@@ -29,7 +29,6 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
-    print ("mylar.CVURL: " + str(mylar.CVURL))
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     if type == 'comic':
         PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
