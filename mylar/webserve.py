@@ -771,6 +771,11 @@ class WebInterface(object):
         return page
     history.exposed = True
 
+    def reOrder(request):
+        print ("I have reached the re-order!!!")
+        return serve_template(templatename="reorder.html", title="ReoRdered!", reorder=request)
+    reOrder.exposed = True
+
     def readlist(self):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist group by StoryArcID COLLATE NOCASE")
@@ -1433,6 +1438,7 @@ class WebInterface(object):
                     "cvinfo" : helpers.checked(mylar.CVINFO),
                     "lowercase_filenames" : helpers.checked(mylar.LOWERCASE_FILENAMES),
                     "syno_fix" : helpers.checked(mylar.SYNO_FIX),
+                    "cvapifix" : helpers.checked(mylar.CVAPIFIX),
                     "prowl_enabled": helpers.checked(mylar.PROWL_ENABLED),
                     "prowl_onsnatch": helpers.checked(mylar.PROWL_ONSNATCH),
                     "prowl_keys": mylar.PROWL_KEYS,
@@ -1571,7 +1577,7 @@ class WebInterface(object):
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, cvapifix=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -1628,6 +1634,7 @@ class WebInterface(object):
         mylar.CVINFO = cvinfo
         mylar.LOWERCASE_FILENAMES = lowercase_filenames
         mylar.SYNO_FIX = syno_fix
+        mylar.CVAPIFIX = cvapifix
         mylar.PROWL_ENABLED = prowl_enabled
         mylar.PROWL_ONSNATCH = prowl_onsnatch
         mylar.PROWL_KEYS = prowl_keys
