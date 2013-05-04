@@ -576,7 +576,8 @@ class WebInterface(object):
                 #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True)
+        weekfold = os.path.join(mylar.DESTINATION_DIR, pulldate['SHIPDATE'])
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold)
     pullist.exposed = True   
 
     def filterpull(self):
@@ -1123,26 +1124,48 @@ class WebInterface(object):
 
     downloadLocal.exposed = True
 
-    def MassWeeklyDownload(self):
+    def MassWeeklyDownload(self, pulldate, weekfolder=0):
+        mylar.WEEKFOLDER = int(weekfolder)
+        mylar.config_write()
+
         # this will download all downloaded comics from the weekly pull list and throw them
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
         myDB = db.DBConnection()            
+        if mylar.WEEKFOLDER:
+            desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+            if os.path.isdir(desdir):
+                logger.info(u"Directory (" + desdir + ") already exists! Continuing...")
+            else:
+                logger.info("Directory doesn't exist!")
+                try:
+                    os.makedirs(desdir)
+                    logger.info(u"Directory successfully created at: " + desdir)
+                except OSError:
+                    logger.error(u"Could not create comicdir : " + desdir)
+                    logger.error(u"Defaulting to : " + mylar.DESTINATION_DIR)
+                    desdir = mylar.DESTINATION_DIR
+
+        else:
+            desdir = mylar.GRABBAG_DIR
+        
         clist = myDB.select("SELECT * FROM Weekly WHERE Status='Downloaded'")
         if clist is None:   # nothing on the list, just go go gone
             logger.info("There aren't any issues downloaded from this week yet.")
         else:
+            iscount = 0
             for cl in clist:
-                cl['ComicID'] #downloaded & validated ComicID
                 isslist = myDB.select("SELECT * FROM Issues WHERE ComicID=? AND Status='Downloaded'", [cl['ComicID']])
                 if isslist is None: pass # no issues found for comicid - boo/boo
                 else:
                     for iss in isslist:
                         #go through issues downloaded until found one we want.
                         if iss['Issue_Number'] == cl['ISSUE']:
-                            self.downloadLocal(iss['IssueID'], dir=mylar.GRABBAG_DIR)
-                            logger.info("Copied " + iss['ComicName'] + " #" + str(iss['Issue_Number']) + " to " + dir )
+                            self.downloadLocal(iss['IssueID'], dir=desdir)
+                            logger.info("Copied " + iss['ComicName'] + " #" + str(iss['Issue_Number']) + " to " + desdir.encode('utf-8').strip() )
+                            iscount+=1
                             break
-
+            logger.info("I have copied " + str(iscount) + " issues from this Week's pullist as requested.")
+        raise cherrypy.HTTPRedirect("pullist")
     MassWeeklyDownload.exposed = True
     
     #for testing.
@@ -1433,7 +1456,6 @@ class WebInterface(object):
                     "nzbget_pass" : mylar.NZBGET_PASSWORD,
                     "nzbget_cat" : mylar.NZBGET_CATEGORY,
                     "nzbget_priority" : mylar.NZBGET_PRIORITY,
-
                     "use_blackhole" : helpers.checked(mylar.BLACKHOLE),
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,

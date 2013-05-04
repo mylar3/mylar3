@@ -208,6 +208,7 @@ HIGHCOUNT = 0
 READ2FILENAME = 0
 CVAPIFIX = 0
 CVURL = None
+WEEKFOLDER = 0
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -269,7 +270,7 @@ def initialize():
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, CVURL, CVAPIFIX, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
                 
         if __INITIALIZED__:
             return False
@@ -346,6 +347,7 @@ def initialize():
         if not GRABBAG_DIR:
             #default to ComicLocation
             GRABBAG_DIR = DESTINATION_DIR
+        WEEKFOLDER = bool(check_setting_int(CFG, 'General', 'weekfolder', 0))
         CVAPIFIX = bool(check_setting_int(CFG, 'General', 'cvapifix', 0))
         if CVAPIFIX is None:
             CVAPIFIX = 0
@@ -709,7 +711,7 @@ def config_write():
     new_config['General']['enable_pre_scripts'] = int(ENABLE_PRE_SCRIPTS)
     new_config['General']['pre_scripts'] = PRE_SCRIPTS
     new_config['General']['post_processing'] = int(POST_PROCESSING)
-
+    new_config['General']['weekfolder'] = int(WEEKFOLDER)
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)

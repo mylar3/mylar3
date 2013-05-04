@@ -1,7 +1,9 @@
 <%inherit file="base.html"/>
 <%!
-	from mylar import db
 	import mylar
+	from mylar import db
+        from mylar.helpers import checked
+
 %>
 
 <%def name="headerIncludes()">
@@ -9,7 +11,8 @@
 		<div id="subhead_menu">		
                         <a id="menu_link_refresh" href="manualpull">Refresh Pull-list</a>
                         <a id="menu_link_delete" href="pullrecreate">Recreate Pull-list</a>
-                        <a id="menu_link_refresh" href="MassWeeklyDownload">Downloaded to Dir</a>
+                        <a id="menu_link_scan" class="button">Download</a>
+                      <!--  <a id="menu_link_refresh" onclick="doAjaxCall('MassWeeklyDownload?pulldate=${pulldate}, $(this)),'table'" href="#" data-success="Now Downloading Comics to : ${mylar.GRABBAG_DIR}">Download.</a> -->
 		</div>
 	</div>	
 	<a href="home" class="back">&laquo; Back to overview</a>
@@ -18,6 +21,20 @@
 <%def name="body()">
         <div class="clearfix">
                 <h1>Weekly Pull list for : ${pulldate}</h1>
+        </div>
+
+        <div>
+          <form action="MassWeeklyDownload" method="GET" id="MassDownload">
+             <fieldset>
+                  <div class="row">
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory</label> 
+                       <small>Create ${weekfold}</small>
+                 </div>
+
+               <input type="hidden" name="pulldate" value=${pulldate}>
+               <input type="submit" style="display:none" />
+             </fieldset>
+          </form>
         </div>
 
         <div class="table_wrapper">
@@ -68,7 +85,13 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-	
+        <script type="text/javascript">
+        $("#menu_link_scan").click(function() {
+            $('#MassDownload').submit();
+            return true;
+        });
+        </script>       	
+
 	<script>
 
         function initThisPage() {
