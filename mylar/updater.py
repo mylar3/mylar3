@@ -182,15 +182,20 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
         if issuechk is None:
             myDB.upsert("upcoming", newValue, controlValue)
         else:
+            logger.fdebug("--attempt to find errant adds to Wanted list")
+            logger.fdebug("UpcomingNewValue: " + str(newValue))
+            logger.fdebug("UpcomingcontrolValue: " + str(controlValue))
             myDB.upsert("issues", values, control)
             if issuechk['Status'] == 'Downloaded': 
                 logger.fdebug("updating Pull-list to reflect status.")
-                return issuechk['Status']
+                downstats = {"Status":  issuechk['Status'],
+                             "ComicID": issuechk['ComicID']}
+                return downstats
     else:
         logger.fdebug("Issues don't match for some reason...weekly new issue: " + str(IssueNumber))
 
 
-def weekly_update(ComicName,IssueNumber,CStatus):
+def weekly_update(ComicName,IssueNumber,CStatus,CID):
     # here we update status of weekly table...
     # added Issue to stop false hits on series' that have multiple releases in a week
     # added CStatus to update status flags on Pullist screen
@@ -200,7 +205,8 @@ def weekly_update(ComicName,IssueNumber,CStatus):
         controlValue = { "COMIC":         str(ComicName),
                          "ISSUE":         str(IssueNumber)}
         if CStatus:
-            newValue = {"STATUS":             CStatus}
+            newValue = {"STATUS":             CStatus,
+                        "ComicID":            CID}
         else:
             if mylar.AUTOWANT_UPCOMING:
                 newValue = {"STATUS":             "Wanted"}

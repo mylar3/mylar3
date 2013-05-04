@@ -844,9 +844,9 @@ class WebInterface(object):
                       "Status":         "added",
                       "ComicID":        readlist['ComicID'],
                       "Issue_Number":   readlist['Issue_Number'],
-                      "IssueDate":     readlist['IssueDate'],
-                      "SeriesYear":    comicinfo['ComicYear'],
-                      "ComicName":      readlist['ComicName']}
+                      "IssueDate":      readlist['IssueDate'],
+                      "SeriesYear":     comicinfo['ComicYear'],
+                      "ComicName":      comicinfo['ComicName']}
             myDB.upsert("readlist", newval, ctrlval)
             logger.info("Added " + str(readlist['ComicName']) + " # " + str(readlist['Issue_Number']) + " to the Reading list.")
  
@@ -1047,34 +1047,44 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("history")
     clearhistory.exposed = True
 
-    def downloadLocal(self, IssueID=None, IssueArcID=None, ReadOrder=None):
-        print "tada"
-        print ("issueid: " + str(IssueID))
+    def downloadLocal(self, IssueID=None, IssueArcID=None, ReadOrder=None, dir=None):
         myDB = db.DBConnection()
-        if IssueID:
-            issueDL = myDB.action("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
-            comicid = issueDL['ComicID']
-            #print ("comicid: " + str(comicid))
-            comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
-            #---issue info
-            comicname = comic['ComicName']
-            issuenum = issueDL['Issue_Number']
-            issuedate = issueDL['IssueDate']
-            seriesyear = comic['ComicYear']
-            #---
-            issueLOC = comic['ComicLocation']
-            #print ("IssueLOC: " + str(issueLOC))
-            issueFILE = issueDL['Location']
-            #print ("IssueFILE: "+ str(issueFILE))
-            issuePATH = os.path.join(issueLOC,issueFILE)
-            #print ("IssuePATH: " + str(issuePATH))
+        issueDL = myDB.action("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+        comicid = issueDL['ComicID']
+        #print ("comicid: " + str(comicid))
+        comic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
+        #---issue info
+        comicname = comic['ComicName']
+        issuenum = issueDL['Issue_Number']
+        issuedate = issueDL['IssueDate']
+        seriesyear = comic['ComicYear']
+        #---
+        issueLOC = comic['ComicLocation']
+        #print ("IssueLOC: " + str(issueLOC))
+        issueFILE = issueDL['Location']
+        #print ("IssueFILE: "+ str(issueFILE))
+        issuePATH = os.path.join(issueLOC,issueFILE)
+        #print ("IssuePATH: " + str(issuePATH))
+
+        # if dir is None, it's a normal copy to cache kinda thing.
+        # if dir is a path, then it's coming from the pullist as the location to put all the weekly comics
+        if dir is not None:
+            dstPATH = dir
+        else:
             dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
-            #print ("dstPATH: " + str(dstPATH))
+        #print ("dstPATH: " + str(dstPATH))
+        if IssueID:
+            ISnewValueDict = {'inCacheDIR':  'True',
+                            'Location':    issueFILE}
+
         if IssueArcID:
             if mylar.READ2FILENAME: 
                 #if it's coming from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                 ARCissueFILE = ReadOrder + "-" + issueFILE                
                 dstPATH = os.path.join(mylar.CACHE_DIR, ARCissueFILE)        
+                ISnewValueDict = {'inCacheDIR': 'True',
+                                'Location':   issueFILE}
+
 #            issueDL = myDB.action("SELECT * FROM readinglist WHERE IssueArcID=?", [IssueArcID]).fetchone()
 #            storyarcid = issueDL['StoryArcID']
 #            #print ("comicid: " + str(comicid))
@@ -1086,6 +1096,7 @@ class WebInterface(object):
 #            #print ("IssuePATH: " + str(issuePATH))
 #            dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
 #            #print ("dstPATH: " + str(dstPATH))
+
         try:
             shutil.copy2(issuePATH, dstPATH)
         except IOError as e:
@@ -1094,10 +1105,15 @@ class WebInterface(object):
         logger.debug("sucessfully copied to cache...Enabling Download link")
 
         controlValueDict = {'IssueID': IssueID}
-        newValueDict = {'inCacheDIR': 'True',
-                        'Location':   issueFILE}
-        myDB.upsert("readlist", newValueDict, controlValueDict)
-        myDB.upsert("issues", newValueDict, controlValueDict)
+        RLnewValueDict = {'inCacheDIR':  'True',
+                          'Location':    issueFILE,
+                          'ComicID':     comicid,
+                          'ComicName':   comicname,
+                          'Issue_Number': issuenum,
+                          'SeriesYear':  seriesyear,
+                          'IssueDate':   issuedate}
+        myDB.upsert("readlist", RLnewValueDict, controlValueDict)
+        myDB.upsert("issues", ISnewValueDict, controlValueDict)
         if IssueArcID:
             controlValueD = {'IssueArcID':  IssueArcID}
             newValueDict = {'inCacheDIR': 'True',
@@ -1106,6 +1122,28 @@ class WebInterface(object):
         #print("DB updated - Download link now enabled.")
 
     downloadLocal.exposed = True
+
+    def MassWeeklyDownload(self):
+        # this will download all downloaded comics from the weekly pull list and throw them
+        # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
+        myDB = db.DBConnection()            
+        clist = myDB.select("SELECT * FROM Weekly WHERE Status='Downloaded'")
+        if clist is None:   # nothing on the list, just go go gone
+            logger.info("There aren't any issues downloaded from this week yet.")
+        else:
+            for cl in clist:
+                cl['ComicID'] #downloaded & validated ComicID
+                isslist = myDB.select("SELECT * FROM Issues WHERE ComicID=? AND Status='Downloaded'", [cl['ComicID']])
+                if isslist is None: pass # no issues found for comicid - boo/boo
+                else:
+                    for iss in isslist:
+                        #go through issues downloaded until found one we want.
+                        if iss['Issue_Number'] == cl['ISSUE']:
+                            self.downloadLocal(iss['IssueID'], dir=mylar.GRABBAG_DIR)
+                            logger.info("Copied " + iss['ComicName'] + " #" + str(iss['Issue_Number']) + " to " + dir )
+                            break
+
+    MassWeeklyDownload.exposed = True
     
     #for testing.
     def idirectory(self):    
@@ -1363,7 +1401,6 @@ class WebInterface(object):
         COUNT_HAVES = CHAVES[0][0]
         COUNT_ISSUES = CISSUES[0][0]
         COUNT_SIZE = helpers.human_size(CSIZE[0][0])
-
         comicinfo = { "COUNT_COMICS" : COUNT_COMICS,
                       "COUNT_HAVES" : COUNT_HAVES,
                       "COUNT_ISSUES" : COUNT_ISSUES,
