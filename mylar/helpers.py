@@ -505,3 +505,38 @@ def fullmonth(monthno):
             monthconv = basmonths[numbs]
 
     return monthconv
+
+def updateComicLocation():
+    import db, logger
+    myDB = db.DBConnection()
+    if mylar.NEWCOM_DIR is not None:
+        logger.info("Performing a one-time mass update to Comic Location")
+        #create the root dir if it doesn't exist
+        if os.path.isdir(mylar.NEWCOM_DIR):
+            logger.info(u"Directory (" + mylar.NEWCOM_DIR + ") already exists! Continuing...")
+        else:
+            logger.info("Directory doesn't exist!")
+            try:
+                os.makedirs(mylar.NEWCOM_DIR)
+                logger.info(u"Directory successfully created at: " + mylar.NEWCOM_DIR)
+            except OSError:
+                logger.error(u"Could not create comicdir : " + new_comlocation_dir)
+                return
+
+        dirlist = myDB.select("SELECT * FROM comics")
+        if dirlist is not None:
+            for dl in dirlist:
+                seriesdir = os.path.basename(os.path.normpath(dl['ComicLocation']))
+                newdir = os.path.join(mylar.NEWCOM_DIR, seriesdir)
+                ctrlVal = {"ComicID":    dl['ComicID']}
+                newVal = {"ComicLocation": newdir}
+                myDB.upsert("Comics", newVal, ctrlVal)
+                logger.fdebug("updated " + dl['ComicName'] + " to : " + newdir)
+        #set the value to 0 here so we don't keep on doing this...
+        mylar.LOCMOVE = 0
+        mylar.config_write()
+    else:
+        logger.info("No new ComicLocation path specified - not updating.")
+        #raise cherrypy.HTTPRedirect("config")
+    return
+

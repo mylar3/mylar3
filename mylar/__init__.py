@@ -209,6 +209,8 @@ READ2FILENAME = 0
 CVAPIFIX = 0
 CVURL = None
 WEEKFOLDER = 0
+LOCMOVE = 0
+NEWCOM_DIR = None
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -268,7 +270,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, \
+                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, LOCMOVE, NEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, CVURL, CVAPIFIX, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
                 
@@ -351,6 +353,10 @@ def initialize():
         CVAPIFIX = bool(check_setting_int(CFG, 'General', 'cvapifix', 0))
         if CVAPIFIX is None:
             CVAPIFIX = 0
+        LOCMOVE = bool(check_setting_int(CFG, 'General', 'locmove', 0))
+        if LOCMOVE is None:
+            LOCMOVE = 0
+        NEWCOM_DIR = check_setting_str(CFG, 'General', 'newcom_dir', '')
         HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
@@ -573,6 +579,10 @@ def initialize():
         else:
             CVURL = 'http://api.comicvine.com/'
             logger.info("CVAPIFIX disabled: Comicvine set to normal API site")
+
+        if LOCMOVE:
+            helpers.updateComicLocation()
+
         #Ordering comics here
         logger.info("Remapping the sorting to allow for new additions.")
         COMICSORT = helpers.ComicSort(sequence='startup')
@@ -712,6 +722,8 @@ def config_write():
     new_config['General']['pre_scripts'] = PRE_SCRIPTS
     new_config['General']['post_processing'] = int(POST_PROCESSING)
     new_config['General']['weekfolder'] = int(WEEKFOLDER)
+    new_config['General']['locmove'] = int(LOCMOVE)
+    new_config['General']['newcom_dir'] = NEWCOM_DIR
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
