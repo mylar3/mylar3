@@ -25,6 +25,7 @@ import urllib
 import os 
 import time 
 import re
+import datetime
 
 import mylar 
 from mylar import db, updater, helpers, logger
@@ -378,28 +379,42 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished from comics")
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate from comics")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
                 if watchd is None:
                     break
                 if 'Present' in watchd[4] or (helpers.now()[:4] in watchd[4]):
-                 # let's not even bother with comics that are in the Present.
-                    a_list.append(watchd[1])
-                    b_list.append(watchd[2])
-                    comicid.append(watchd[0])
-                    pubdate.append(watchd[4])
-                    #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
-                    #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
-                    lines.append(a_list[w].strip())
-                    unlines.append(a_list[w].strip())
-                    llen.append(a_list[w].splitlines())
-                    ccname.append(a_list[w].strip())
-                    tmpwords = a_list[w].split(None)
-                    ltmpwords = len(tmpwords)
-                    ltmp = 1
-                    w+=1
+                 # this gets buggered up when series are named the same, and one ends in the current
+                 # year, and the new series starts in the same year - ie. Avengers
+                 # lets' grab the latest issue date and see how far it is from current
+                 # anything > 45 days we'll assume it's a false match ;)
+                    #logger.fdebug("ComicName: " + watchd[1])
+                    latestdate = watchd[5]
+                    #logger.fdebug("latestdate:  " + str(latestdate))
+                    c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
+                    n_date = datetime.date.today()
+                    #logger.fdebug("c_date : " + str(c_date) + " ... n_date : " + str(n_date))
+                    recentchk = (n_date - c_date).days
+                    #logger.fdebug("recentchk: " + str(recentchk) + " days")
+                    #logger.fdebug(" ----- ")
+                    if recentchk < 45:
+                        # let's not even bother with comics that are in the Present.
+                        a_list.append(watchd[1])
+                        b_list.append(watchd[2])
+                        comicid.append(watchd[0])
+                        pubdate.append(watchd[4])
+                        #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
+                        #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
+                        lines.append(a_list[w].strip())
+                        unlines.append(a_list[w].strip())
+                        llen.append(a_list[w].splitlines())
+                        ccname.append(a_list[w].strip())
+                        tmpwords = a_list[w].split(None)
+                        ltmpwords = len(tmpwords)
+                        ltmp = 1
+                        w+=1
         cnt = int(w-1)
         cntback = int(w-1)
         kp = []

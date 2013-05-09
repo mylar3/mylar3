@@ -16,6 +16,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
     #searchYear = "2012"
     #clean up searchName due to webparse.
     searchName = searchName.replace("%20", " ")
+    if "," in searchName:
+        searchName = searchName.replace(",", "")
     logger.fdebug("name:" + str(searchName))
     logger.fdebug("issue:" + str(searchIssue))
     logger.fdebug("year:" + str(searchYear))

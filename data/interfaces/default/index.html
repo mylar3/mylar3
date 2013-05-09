@@ -1,6 +1,7 @@
 <%inherit file="base.html"/>
 <%!
 	from mylar import helpers, db
+        import datetime
 %>
 
 <%def name="body()">
@@ -74,7 +75,17 @@
                                 %if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
                                     Unknown 
                                 %elif 'present' in comic['ComicPublished'].lower() or ( helpers.today()[:4] in comic['LatestDate']):
-                                    Continuing
+                                    <%
+                                          latestdate = comic['LatestDate']
+                                          c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
+                                          n_date = datetime.date.today()
+                                          recentchk = (n_date - c_date).days
+                                          if recentchk < 45:
+                                              recentstatus = 'Continuing'
+                                          else:
+                                              recentstatus = 'Ended'
+                                     %>
+                                    ${recentstatus}
                                 %else:
                                     Ended
                                 %endif
