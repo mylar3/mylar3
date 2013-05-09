@@ -164,7 +164,11 @@ def GetComicInfo(comicid,dom):
     else:
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
-    comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText
+
+    try:
+        comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText
+    except:
+        comic['ComicPublisher'] = "Unknown"
 
     comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 

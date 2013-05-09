@@ -106,6 +106,10 @@ def findComic(name, mode, issue, limityear=None):
                             pubnames = publishers[0].getElementsByTagName('name')
                             if len(pubnames) >0:
                                 xmlpub = pubnames[0].firstChild.wholeText
+                            else:
+                                xmlpub = "Unknown"
+                        else:
+                            xmlpub = "Unknown"
                         if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
                             xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
                         else:
