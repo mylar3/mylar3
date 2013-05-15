@@ -540,3 +540,19 @@ def updateComicLocation():
         #raise cherrypy.HTTPRedirect("config")
     return
 
+def cleanhtml(raw_html):
+    #cleanr = re.compile('<.*?>')
+    #cleantext = re.sub(cleanr, '', raw_html)
+    #return cleantext
+    from bs4 import BeautifulSoup
+
+    VALID_TAGS = ['div', 'p']
+
+    soup = BeautifulSoup(raw_html)
+
+    for tag in soup.findAll('p'):
+        if tag.name not in VALID_TAGS:
+            tag.replaceWith(tag.renderContents())
+    flipflop = soup.renderContents()
+    print flipflop
+    return flipflop

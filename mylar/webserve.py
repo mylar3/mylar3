@@ -616,13 +616,15 @@ class WebInterface(object):
         mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
         #get the issue ID's
         for mvup in mvupcome:
-            myissue = myDB.action("SELECT * FROM issues WHERE Issue_Number=?", [mvup['IssueNumber']]).fetchone()
+            myissue = myDB.action("SELECT * FROM issues WHERE IssueID=?", [mvup['IssueID']]).fetchone()
+            #myissue =  myDB.action("SELECT * FROM issues WHERE Issue_Number=?", [mvup['IssueNumber']]).fetchone()
+
             if myissue is None: pass
             else:
-                #print ("ComicName: " + str(myissue['ComicName']))
-                #print ("Issue number : " + str(myissue['Issue_Number']) )
+                logger.fdebug("--Updating Status of issues table because of Upcoming status--")
+                logger.fdebug("ComicName: " + str(myissue['ComicName']))
+                logger.fdebug("Issue number : " + str(myissue['Issue_Number']) )
  
-
                 mvcontroldict = {"IssueID":    myissue['IssueID']}
                 mvvalues = {"ComicID":         myissue['ComicID'],
                             "Status":          "Wanted"}
@@ -1211,6 +1213,7 @@ class WebInterface(object):
                 soma,noids = librarysync.libraryScan()
             except Exception, e:
                 logger.error('Unable to complete the scan: %s' % e)
+                return
             if soma == "Completed":
                 print ("sucessfully completed import.")
             else:
@@ -1253,8 +1256,8 @@ class WebInterface(object):
                 # unzip -z filename.cbz < /dev/null  will remove the comment field, and thus the metadata.
 
                     
-                self.importResults()
-
+                #self.importResults()
+                raise cherrypy.HTTPRedirect("importResults")
         if redirect:
             raise cherrypy.HTTPRedirect(redirect)
         else:

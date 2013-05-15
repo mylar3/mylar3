@@ -142,12 +142,12 @@ def IssueDetails(cbdb_id):
 
     while (i < noresults):
         resultit = tableno[i]   # 7th table, 1st set of tr (which indicates an issue).
-        #print ("resultit: " + str(resultit))
+        print ("resultit: " + str(resultit))
         issuet = resultit.find("a", {"class" : "page_link" })  # gets the issue # portion
         try:
             issue = issuet.findNext(text=True)
         except:
-            #print ("blank space - skipping")
+            print ("blank space - skipping")
             i+=1
             continue
         if 'annual' not in issue.lower(): 
@@ -161,9 +161,13 @@ def IssueDetails(cbdb_id):
         #since we don't know which one contains the story arc, we need to iterate through to find it
         #we need to know story arc, because the following td is the Publication Date
         n=0
+        issuetitle = 'None'
         while (n < lengtht):
             storyt = lent[n] # 
-            #print ("storyt: " + str(storyt))
+            print ("storyt: " + str(storyt))
+            if 'issue.php' in storyt:
+                issuetitle = storyt.findNext(text=True)
+                print ("title:" + issuetitle)
             if 'storyarc.php' in storyt:
                 #print ("found storyarc")
                 storyarc = storyt.findNext(text=True)
@@ -174,15 +178,25 @@ def IssueDetails(cbdb_id):
         publen = len(pubd) # find the # of <td>'s
         pubs = pubd[publen-1] #take the last <td> which will always contain the publication date
         pdaters = pubs.findNext(text=True) #get the actual date :)
-        pubdate = re.sub("[^0-9]", "", pdaters)
+        basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'09','september':'10','october':'11','december':'12'}
+        for numbs in basmonths:
+            if numbs in pdaters.lower():
+                pconv = basmonths[numbs]
+                ParseYear = re.sub('/s','',pdaters[-5:])
+                pubdate= str(ParseYear) + "-" + str(pconv)
+                #logger.fdebug("!success - Publication date: " + str(ParseDate))
+
+        #pubdate = re.sub("[^0-9]", "", pdaters)
         print ("Issue : " + str(issue) + "  (" + str(pubdate) + ")")
-  
+        print ("Issuetitle " + str(issuetitle))
+
         annualslist.append({
-            'AnnualIssue':             str(issue),
-            'AnnualDate':              pubdate
+            'AnnualIssue':  str(issue),
+            'AnnualTitle':  issuetitle,
+            'AnnualDate':   str(pubdate)
             })
         gcount+=1 
-
+        print("annualslist appended...")
         i+=1
 
     annuals['annualslist'] = annualslist

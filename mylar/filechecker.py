@@ -41,12 +41,12 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
     comiclist = []
     comiccnt = 0
     not_these = ['\#',
-               '\,',
+               ',',
                '\/',
                '\:',
                '\;',
                '.',
-               '\-',
+               '-',
                '\!',
                '\$',
                '\%',
@@ -76,7 +76,6 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     #print (subit + "  - assuming versioning. Removing from initial search pattern.")
                     subname = re.sub(str(subit), '', subname)
                     volrem = subit
-                    #print ("removed " + str(volrem) + " from filename wording")
                 if subit.lower()[:3] == 'vol':
                     #if in format vol.2013 etc
                     #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
@@ -84,7 +83,10 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub(subit, '', subname)
                     volrem = subit
 
-        subname = re.sub('\_', ' ', subname)
+        #remove the brackets..
+        subname = re.findall('[^()]+', subname)
+        logger.fdebug("subname no brackets: " + str(subname[0]))
+        subname = re.sub('\_', ' ', subname[0])
         nonocount = 0
         for nono in not_these:
             if nono in subname:
@@ -98,7 +100,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub(str(nono), ' ', subname)
                     nonocount = nonocount + subcnt
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_watchcomic)
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
         detectand = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
@@ -117,7 +119,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
-        #logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
+        logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
         if modwatchcomic.lower() in subname.lower() or altsearchcomic.lower() in subname.lower():
             if 'annual' in subname.lower():
                 #print ("it's an annual - unsure how to proceed")
