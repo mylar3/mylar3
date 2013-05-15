@@ -156,8 +156,13 @@ class PostProcessor(object):
                 data = file.read()
                 file.close()
                 dom = parseString(data)
-    
-                sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
+
+                try:
+                    sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
+                except:
+                    errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
+                    logger.error(u"Error detected attempting to retrieve SAB data : " + errorm)
+                    return
                 sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
                 logger.fdebug("SAB Replace Spaces: " + str(sabreps))
                 logger.fdebug("SAB Replace Dots: " + str(sabrepd))
@@ -409,11 +414,17 @@ class PostProcessor(object):
                            '$VolumeN':   comversion
                           }
 
+            ofilename = None
+
             for root, dirnames, filenames in os.walk(self.nzb_folder):
                 for filename in filenames:
                     if filename.lower().endswith(extensions):
                         ofilename = filename
                         path, ext = os.path.splitext(ofilename)
+
+            if ofilename is None:
+                logger.error(u"Aborting PostProcessing - the filename doesn't exist in the location given. Make sure that " + str(self.nzb_folder) + " exists and is the correct location.")
+                return
             self._log("Original Filename: " + ofilename, logger.DEBUG)
             self._log("Original Extension: " + ext, logger.DEBUG)
             logger.fdebug("Original Filname: " + str(ofilename))
@@ -468,6 +479,8 @@ class PostProcessor(object):
             self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
+                    #update snatched table to change status to Downloaded
+            updater.foundsearch(comicid, issueid, down='True')
                     #force rescan of files
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )

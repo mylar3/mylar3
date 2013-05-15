@@ -140,7 +140,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
     #let's do the Annual check here.
     if mylar.ANNUALS_ON:
-        annuals = comicbookdb.cbdb(comic['ComicName'], SeriesYear)
+        annualcomicname = re.sub('[\,\:]', '', comic['ComicName'])
+        annuals = comicbookdb.cbdb(annualcomicname, SeriesYear)
         print ("Number of Annuals returned: " + str(annuals['totalissues']))
         nb = 0
         while (nb <= int(annuals['totalissues'])):
@@ -267,6 +268,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     else:
         comicVol = None
 
+    #for description ...
+    #Cdesc = helpers.cleanhtml(comic['ComicDescription'])
+    #cdes_find = Cdesc.find("Collected")
+    #cdes_removed = Cdesc[:cdes_find]
+    #print cdes_removed
+
     controlValueDict = {"ComicID":      comicid}
     newValueDict = {"ComicName":        comic['ComicName'],
                     "ComicSortName":    sortname,
@@ -276,6 +283,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     "ComicVersion":     comicVol,
                     "ComicLocation":    comlocation,
                     "ComicPublisher":   comic['ComicPublisher'],
+                    #"Description":      Cdesc.decode('utf-8', 'replace'),
                     "DetailURL":        comic['ComicURL'],
 #                    "ComicPublished":   gcdinfo['resultPublished'],
                     "ComicPublished":   'Unknown',
@@ -530,15 +538,17 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                                 "IssueDate":          issdate,
                                 "Int_IssueNumber":    int_issnum
                                 }
-                if mylar.AUTOWANT_ALL:
-                    newValueDict['Status'] = "Wanted"
-                elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
-                    newValueDict['Status'] = "Wanted"
-                else:
-                    newValueDict['Status'] = "Skipped"
+
                 if iss_exists:
                     #print ("Existing status : " + str(iss_exists['Status']))
                     newValueDict['Status'] = iss_exists['Status']
+                else:
+                    if mylar.AUTOWANT_ALL:
+                        newValueDict['Status'] = "Wanted"
+                    elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
+                        newValueDict['Status'] = "Wanted"
+                    else:
+                        newValueDict['Status'] = "Skipped"
 
                 try:
                     myDB.upsert("issues", newValueDict, controlValueDict)
@@ -612,20 +622,26 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
         if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present': #and 'Present' in gcdinfo['resultPublished']:
-            logger.info(u"Checking this week's pullist for new issues of " + comic['ComicName'])
-            updater.newpullcheck(comic['ComicName'], comicid)
+            print ("latestissue: #" + str(latestiss))
+            chkstats = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
+            print chkstats['Status']
+            if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
+                logger.info(u"Checking this week's pullist for new issues of " + comic['ComicName'])
+                updater.newpullcheck(comic['ComicName'], comicid)
 
-    #here we grab issues that have been marked as wanted above...
+        #here we grab issues that have been marked as wanted above...
   
-        results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])    
-        if results:
-            logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
+                results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])
+                if results:
+                    logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
+    
+                    for result in results:
+                        search.searchforissue(result['IssueID'])
+                else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
 
-            for result in results:
-                search.searchforissue(result['IssueID'])
-        else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
-
-        logger.info(u"Finished grabbing what I could.")
+                logger.info(u"Finished grabbing what I could.")
+            else:
+                logger.info(u"Already have the latest issue : #" + str(latestiss))
 
 
 def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):

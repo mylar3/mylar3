@@ -244,7 +244,7 @@ def nzblog(IssueID, NZBName):
     #print newValue
     myDB.upsert("nzblog", newValue, controlValue)
 
-def foundsearch(ComicID, IssueID):
+def foundsearch(ComicID, IssueID, down=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -258,24 +258,36 @@ def foundsearch(ComicID, IssueID):
     issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
     CYear = issue['IssueDate'][:4]
 
-    # update the status to Snatched (so it won't keep on re-downloading!)
-    logger.fdebug("updating status to snatched")
-    controlValue = {"IssueID":   IssueID}
-    newValue = {"Status":    "Snatched"}
-    myDB.upsert("issues", newValue, controlValue)
-    # update the snatched DB
-    controlValueDict = {"IssueID":  IssueID}
-    newValueDict = {"Status": "Snatched"}
-    logger.fdebug("updating snatched db.")
-    myDB.upsert("issues", newValueDict, controlValueDict)
-    snatchedupdate = {"IssueID":     IssueID}
-    newsnatchValues = {"ComicName":       comic['ComicName'],
-                       "ComicID":         ComicID,
-                       "Issue_Number":    issue['Issue_Number'],
-                       "DateAdded":       helpers.now(),
-                       "Status":          "Snatched"
-                       }
-    myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+    if down is None:
+        # update the status to Snatched (so it won't keep on re-downloading!)
+        logger.fdebug("updating status to snatched")
+        controlValue = {"IssueID":   IssueID}
+        newValue = {"Status":    "Snatched"}
+        myDB.upsert("issues", newValue, controlValue)
+
+        # update the snatched DB
+        snatchedupdate = {"IssueID":     IssueID,
+                          "Status":      "Snatched"
+                          }
+        newsnatchValues = {"ComicName":       comic['ComicName'],
+                           "ComicID":         ComicID,
+                           "Issue_Number":    issue['Issue_Number'],
+                           "DateAdded":       helpers.now(),
+                           "Status":          "Snatched"
+                           }
+        myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+    else:
+        snatchedupdate = {"IssueID":     IssueID,
+                          "Status":      "Downloaded"
+                          }
+        newsnatchValues = {"ComicName":       comic['ComicName'],
+                           "ComicID":         ComicID,
+                           "Issue_Number":    issue['Issue_Number'],
+                           "DateAdded":       helpers.now(),
+                           "Status":          "Downloaded"
+                           }
+        myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+
 
     #print ("finished updating snatched db.")
     logger.info(u"Updating now complete for " + comic['ComicName'] + " issue: " + str(issue['Issue_Number']))
