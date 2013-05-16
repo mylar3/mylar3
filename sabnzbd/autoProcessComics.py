@@ -80,4 +80,8 @@ def processEpisode(dirName, nzbName=None):
     result = urlObj.readlines()
     for line in result:
         print line
-        
+
+    if any("Post Processing SUCCESSFULL" in s for s in result):
+        return 0
+    else
+        return 1
