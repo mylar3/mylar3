@@ -83,5 +83,5 @@ def processEpisode(dirName, nzbName=None):
 
     if any("Post Processing SUCCESSFULL" in s for s in result):
         return 0
-    else
+    else:
         return 1
