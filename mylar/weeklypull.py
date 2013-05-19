@@ -37,14 +37,18 @@ def pullit(forcecheck=None):
         try:
             pull_date = myDB.action("SELECT SHIPDATE from weekly").fetchone()
             logger.info(u"Weekly pull list present - checking if it's up-to-date..")
-            pulldate = pull_date['SHIPDATE']
+            if (pull_date is None):
+                pulldate = '00000000'
+            else:
+                pulldate = pull_date['SHIPDATE']
         except (sqlite3.OperationalError, TypeError),msg:
             conn=sqlite3.connect(mylar.DB_FILE)
             c=conn.cursor()
             logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
             c.execute('DROP TABLE weekly')    
-            c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
+            c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)')
             pulldate = '00000000'
+            logger.fdebug(u"Table re-created, trying to populate")
     else:
         logger.info(u"No pullist found...I'm going to try and get a new list now.")
         pulldate = '00000000'
@@ -304,7 +308,7 @@ def pullit(forcecheck=None):
 
     cursor.executescript('drop table if exists weekly;')
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text);")
+    cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text);")
     connection.commit()
 
 
@@ -318,7 +322,8 @@ def pullit(forcecheck=None):
         if "BOOK" in row: break
         #print (row)
         try:
-            cursor.execute("INSERT INTO weekly VALUES (?,?,?,?,?,?);", row)
+            logger.debug("Row: %s" % row)
+            cursor.execute("INSERT INTO weekly VALUES (?,?,?,?,?,?,null);", row)
         except Exception, e:
             #print ("Error - invald arguments...-skipping")
             pass

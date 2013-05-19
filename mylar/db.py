@@ -69,7 +69,7 @@ class DBConnection:
                         attempt += 1
                         time.sleep(1)
                     else:
-                        logger.error('Database error: %s' % e)
+                        logger.error('Database error executing %s :: %s' % (query, e))
                         raise
                 except sqlite3.DatabaseError, e:
                     logger.error('Fatal Error executing %s :: %s' % (query, e))
