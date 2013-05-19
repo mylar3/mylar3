@@ -722,6 +722,13 @@ class WebInterface(object):
         return serve_template(templatename="managenew.html", title="Manage New Artists", newcomics=newcomics)
     manageNew.exposed = True    
 
+    def flushImports(self):
+        myDB = db.DBConnection()
+        myDB.action('DELETE * from importresults')
+        logger.info("Flushing all Import Results and clearing the tables")
+        raise cherrypy.HTTPRedirect("importResults")
+    flushImports.exposed = True
+
     def markImports(self, action=None, **args):
         myDB = db.DBConnection()
         comicstoimport = []
@@ -730,6 +737,10 @@ class WebInterface(object):
                logger.info("initiating mass import mode for " + ComicName)
                cid = ComicName.decode('utf-8', 'replace')
                comicstoimport.append(cid)
+           elif action == 'removeimport':
+               logger.info("removing " + ComicName + " from the Import list")
+               myDB.action('DELETE from importresults WHERE ComicName=?', [ComicName])
+
         if len(comicstoimport) > 0:
             logger.debug("Mass importing the following series: %s" % comicstoimport)
             threading.Thread(target=self.preSearchit, args=[None, comicstoimport, len(comicstoimport)]).start()

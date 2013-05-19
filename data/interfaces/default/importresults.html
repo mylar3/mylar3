@@ -7,7 +7,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-			<a id="menu_link_edit" href="manageComics">Some Button</a>
+                      <a id="menu_link_refresh" onclick="doAjaxCall('flushImports', $(this),'table')" data-success="Import Results Flushed">Flush all Imports</a>
 		</div>
 	</div>	
 </%def>
@@ -34,7 +34,8 @@
                                         </div>
                                         <div class="row checkbox">
                                                <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
-                                               <small>(After importing, Rename thefiles to configuration settings)</small>
+                                               <small>(After importing, Rename the files to configuration settings)</small>
+                                               <label>${mylar.FOLDER_FORMAT}/${mylar.FILE_FORMAT}</label>
                                         </div>
                                         <div class="row checkbox">
                                                <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use Existing Metadata</label>
@@ -45,12 +46,12 @@
                      </tr>
                    </table>
               </div>
-        <form action="markComics" method="get" id="markComics">
+        <form action="markImports" method="get" id="markImports">
         <div id="markcomic">
-                <select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
+                <select name="action" onChange="doAjaxCall('markImports',$(this),'table',true);" data-error="You didn't select any comics">
                         <option disabled="disabled" selected="selected">Choose...</option>
-                        <option value="pause">Start Import</option>
-                        <option value="resume">Remove</option>
+                        <option value="massimport">Start Import</option>
+                        <option value="removeimport">Remove</option>
                 </select>
                 <input type="hidden" value="Go">
         </div>
@@ -73,7 +74,7 @@
                                           %if results:
                                           %for result in results:                                      
                                      <tr>
-                                        <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" class="checkbox" /></td>
+                                        <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" value="${result['ComicName']}" class="checkbox" />
                                         <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
                                         <td id="comicyear"><title="${result['ComicYear']}">${result['ComicYear']}</td>
                                         <td id="comicissues"><title="${result['IssueCount']}">${result['IssueCount']}</td>
@@ -85,6 +86,8 @@
                                         <td id="importdate">${result['ImportDate']}</td>
                                         <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}">Import</a>]
                                         [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
+                                       <!-- [<a href="#">Rename</a>]
+                                            [<a href="#">Log</a>     -->
                                         </td>
                                      </tr>
                                         <%
@@ -98,9 +101,8 @@
                                         <td colspan="6"><center><legend>There are no results to display</legend></center></td></tr>
                                        %endif
                           </tbody>
-
                           </table>
-
+        </form>
         <table class="display" id="impresults_table">
                 <tr><br /></tr>
                 <tr><center><h3>Already on Watchlist</h3></center></tr>
