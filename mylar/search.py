@@ -68,45 +68,25 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 
     newznabs = 0
 
-    if mylar.NEWZNAB == 1:
-        logger.fdebug("mylar.newznab:" + str(mylar.NEWZNAB))
-        if mylar.NEWZNAB_ENABLED:
-            newznab_hosts = [(mylar.NEWZNAB_HOST, mylar.NEWZNAB_APIKEY, mylar.NEWZNAB_ENABLED)]
-            logger.fdebug("newznab_hosts:" + str(mylar.NEWZNAB_HOST))
-            logger.fdebug("newznab_enabled:" + str(mylar.NEWZNAB_ENABLED))
-            newznabs = 1
-        else:
-            newznab_hosts = []
-            logger.fdebug("initial newznab provider not enabled...checking for additional newznabs.")
+    newznab_hosts = []
 
-        #logger.fdebug("mylar.EXTRA_NEWZNABS:" + str(mylar.EXTRA_NEWZNABS))
+    if mylar.NEWZNAB == 1:
 
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
-#                nzbprovider.append('newznab')
-#                nzbp+=1
                 newznab_hosts.append(newznab_host)              
-                newznabs = newznabs + 1
+                nzbprovider.append('newznab')
+                newznabs+=1
                 logger.fdebug("newznab host:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[2]))
 
-#        print("newznab_nzbp-1:" + str(nzbprovider(nzbp-1)))
-#        print("newznab_nzbp:" + str(nzbprovider(nzbp)))
-        if mylar.NEWZNAB_ENABLED and 'newznab' not in nzbprovider:
-            nzbprovider.append('newznab')
-            nzbp+=1
-
-
-        #categories = "7030"
-
-        #for newznab_host in newznab_hosts:
-        #    mylar.NEWZNAB_APIKEY = newznab_host[1]
-        #    mylar.NEWZNAB_HOST = newznab_host[0]
 
     # --------
     providercount = int(nzbp + newznabs)
     logger.fdebug("there are : " + str(providercount) + " search providers you have selected.")
     logger.fdebug("Usenet Retention : " + str(mylar.USENET_RETENTION) + " days")
-    nzbpr = nzbp-1
+    nzbpr = providercount - 1
+    if nzbpr < 0: 
+        nzbpr == 0
     findit = 'no'
 
     #fix for issue dates between Nov-Dec/Jan
@@ -117,12 +97,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
          IssDateFix = "no"
 
     while (nzbpr >= 0 ):
-    
         if nzbprovider[nzbpr] == 'newznab':
         #this is for newznab
             nzbprov = 'newznab'
             for newznab_host in newznab_hosts:
-                #logger.fdebug("using newznab_host: " + str(newznab_host[0]))
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
@@ -407,6 +385,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     if nzbprov == 'newznab' and 'localhost' in str(host_newznab_fix):
                         pass
                     else:
+                        logger.fdebug("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
                         time.sleep(pause_the_search)
 
                     try:
@@ -445,6 +424,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     if '&' in cleantitle: cleantitle = re.sub('[/&]','and', cleantitle) 
 
                     nzbname = cleantitle
+
+                    # if there are no () in the string, try to add them if it looks like a year (19xx or 20xx)
+
+                    if len(re.findall('[^()]+', cleantitle)):
+                        logger.fdebug("detected invalid nzb filename - attempting to detect year to continue")
+                        cleantitle = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', cleantitle)
 
 
                     #adjust for covers only by removing them entirely...

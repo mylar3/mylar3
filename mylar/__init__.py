@@ -174,6 +174,7 @@ NEWZNAB_HOST = None
 NEWZNAB_APIKEY = None
 NEWZNAB_ENABLED = False
 EXTRA_NEWZNABS = []
+NEWZNAB_EXTRA = None
 
 RAW = False
 RAW_PROVIDER = None
@@ -211,6 +212,7 @@ CVURL = None
 WEEKFOLDER = 0
 LOCMOVE = 0
 NEWCOM_DIR = None
+OLDCONFIG_VERSION = None
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -262,13 +264,13 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, \
+        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, OLDCONFIG_VERSION, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
-                NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS,\
+                NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, LOCMOVE, NEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, CVURL, CVAPIFIX, \
@@ -295,7 +297,7 @@ def initialize():
         if HTTP_PORT < 21 or HTTP_PORT > 65535:
             HTTP_PORT = 8090
             
-#        CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
+        CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
         HTTP_HOST = check_setting_str(CFG, 'General', 'http_host', '0.0.0.0')
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
@@ -442,15 +444,23 @@ def initialize():
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
 
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
-        NEWZNAB_HOST = check_setting_str(CFG, 'Newznab', 'newznab_host', '')
-        NEWZNAB_APIKEY = check_setting_str(CFG, 'Newznab', 'newznab_apikey', '')
-        NEWZNAB_ENABLED = bool(check_setting_int(CFG, 'Newznab', 'newznab_enabled', 1))
+
+        if CONFIG_VERSION:
+            NEWZNAB_HOST = check_setting_str(CFG, 'Newznab', 'newznab_host', '')
+            NEWZNAB_APIKEY = check_setting_str(CFG, 'Newznab', 'newznab_apikey', '')
+            NEWZNAB_ENABLED = bool(check_setting_int(CFG, 'Newznab', 'newznab_enabled', 1))
 
         # Need to pack the extra newznabs back into a list of tuples
         flattened_newznabs = check_setting_str(CFG, 'Newznab', 'extra_newznabs', [], log=False)
         EXTRA_NEWZNABS = list(itertools.izip(*[itertools.islice(flattened_newznabs, i, None, 3) for i in range(3)]))
 
-        
+        #to counteract the loss of the 1st newznab entry because of a switch, let's rewrite to the tuple
+        if NEWZNAB_HOST and CONFIG_VERSION:
+            EXTRA_NEWZNABS.append((NEWZNAB_HOST, NEWZNAB_APIKEY, int(NEWZNAB_ENABLED)))
+            # Need to rewrite config here and bump up config version
+            CONFIG_VERSION = '3'
+            config_write()        
+         
         # update folder formats in the config & bump up config version
         if CONFIG_VERSION == '0':
             from mylar.helpers import replace_all
@@ -761,9 +771,7 @@ def config_write():
 
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab'] = int(NEWZNAB)
-    new_config['Newznab']['newznab_host'] = NEWZNAB_HOST
-    new_config['Newznab']['newznab_apikey'] = NEWZNAB_APIKEY
-    new_config['Newznab']['newznab_enabled'] = int(NEWZNAB_ENABLED)
+
     # Need to unpack the extra newznabs for saving in config.ini
     flattened_newznabs = []
     for newznab in EXTRA_NEWZNABS:

@@ -1704,9 +1704,9 @@ class WebInterface(object):
         mylar.RAW_GROUPS = raw_groups
         mylar.EXPERIMENTAL = experimental
         mylar.NEWZNAB = newznab
-        mylar.NEWZNAB_HOST = newznab_host
-        mylar.NEWZNAB_APIKEY = newznab_apikey
-        mylar.NEWZNAB_ENABLED = newznab_enabled
+        #mylar.NEWZNAB_HOST = newznab_host
+        #mylar.NEWZNAB_APIKEY = newznab_apikey
+        #mylar.NEWZNAB_ENABLED = newznab_enabled
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files
         mylar.RENAME_FILES = rename_files
@@ -1755,6 +1755,10 @@ class WebInterface(object):
         # Handle the variable config options. Note - keys with False values aren't getting passed
 
         mylar.EXTRA_NEWZNABS = []
+        #changing this for simplicty - adding all newznabs into extra_newznabs
+        if newznab_host is not None:
+            #this
+            mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_apikey, int(newznab_enabled)))
 
         for kwarg in kwargs:
             if kwarg.startswith('newznab_host'):
