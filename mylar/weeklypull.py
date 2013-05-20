@@ -404,7 +404,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                     recentchk = (n_date - c_date).days
                     #logger.fdebug("recentchk: " + str(recentchk) + " days")
                     #logger.fdebug(" ----- ")
-                    if recentchk < 45:
+                    if recentchk < 55:
                         # let's not even bother with comics that are in the Present.
                         a_list.append(watchd[1])
                         b_list.append(watchd[2])

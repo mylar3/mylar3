@@ -579,7 +579,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     n_date = datetime.date.today()
     recentchk = (n_date - c_date).days
     #print ("recentchk: " + str(recentchk))
-    if recentchk <= 45:
+    if recentchk <= 55:
         lastpubdate = 'Present'
     else:
         lastpubdate = str(ltmonth) + ' ' + str(ltyear)
