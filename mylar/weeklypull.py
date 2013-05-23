@@ -286,6 +286,9 @@ def pullit(forcecheck=None):
                         #print ("issue: " + str(issue))
                         dupefound = "no"
                 #--start duplicate comic / issue chk
+                # pullist has shortforms of a series' title sometimes and causes problems
+                if 'O/T' in comicnm:
+                    comicnm = re.sub('O/T', 'OF THE', comicnm)
                 for excl in excludes:
                     if excl in str(comicrm):
                         #duplicate comic / issue detected - don't add...
