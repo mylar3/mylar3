@@ -230,17 +230,27 @@ def no_searchresults(ComicID):
                 "LatestIssue":  "Error"}    
     myDB.upsert("comics", newValue, controlValue)
 
-def nzblog(IssueID, NZBName):
+def nzblog(IssueID, NZBName, SARC=None, IssueArcID=None):
     myDB = db.DBConnection()
+
+    newValue = {"NZBName":  NZBName}
+
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
        #give it a generic ID above the last one so it doesn't throw an error later.
-       if mylar.HIGHCOUNT == 0: IssueID = '900000'
-       else: IssueID = int(mylar.HIGHCOUNT) + 1
+       print "SARC detected as: " + str(SARC)
+       if mylar.HIGHCOUNT == 0:
+           IssueID = '900000'
+       else: 
+           IssueID = int(mylar.HIGHCOUNT) + 1
+       
+       if SARC:
+           IssueID = 'S' + str(IssueArcID)
+           newValue['SARC'] = SARC
 
     controlValue = {"IssueID": IssueID}
     #print controlValue
-    newValue = {"NZBName": NZBName}
+    #newValue['NZBName'] = NZBName
     #print newValue
     myDB.upsert("nzblog", newValue, controlValue)
 

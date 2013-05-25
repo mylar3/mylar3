@@ -43,7 +43,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
     not_these = ['\#',
                ',',
                '\/',
-               '\:',
+               ':',
                '\;',
                '.',
                '-',
@@ -97,8 +97,20 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub('\.', ' ', subname)
                     nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
                 else:
+                    #this is new - if it's a symbol seperated by a space on each side it drags in an extra char.
+                    x = 0
+                    fndit = 0
+                    blspc = 0
+                    while x < subcnt:
+                        fndit = subname.find(nono, fndit)
+                        #print ("space before check: " + str(subname[fndit-1:fndit]))
+                        #print ("space after check: " + str(subname[fndit+1:fndit+2]))
+                        if subname[fndit-1:fndit] == ' ' and subname[fndit+1:fndit+2] == ' ':
+                            logger.fdebug("blankspace detected before and after " + str(nono))
+                            blspc+=1
+                        x+=1
                     subname = re.sub(str(nono), ' ', subname)
-                    nonocount = nonocount + subcnt
+                    nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
         detectand = False
@@ -130,7 +142,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
             if modwatchcomic.lower() in subname.lower():
-                #print ("we should remove " + str(nonocount) + " characters")                
+                #logger.fdebug("we should remove " + str(nonocount) + " characters")                
                 #remove versioning here
                 if volrem != None:
                     jtd_len = len(modwatchcomic) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #

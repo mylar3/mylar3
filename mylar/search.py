@@ -36,7 +36,7 @@ from xml.dom.minidom import parseString
 import urllib2
 from datetime import datetime
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None):
     if ComicYear == None: ComicYear = '2013'
     else: ComicYear = str(ComicYear)[:4]
 
@@ -46,7 +46,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         print ("Issue: " + str(IssueNumber))        
         print ("Year: " + str(ComicYear))
         print ("IssueDate:" + str(IssueDate))
-
+    if SARC:
+        print ("Story-ARC issue!")
+        print ("Story-ARC: " + str(SARC))
+        print ("IssueArcID: " + str(IssueArcID))
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
@@ -101,14 +104,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         #this is for newznab
             nzbprov = 'newznab'
             for newznab_host in newznab_hosts:
-                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion)
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
                     break
                 else:
                     if AlternateSearch is not None and AlternateSearch != "None":
                         logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
-                        findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion)
+                        findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                         if findit == 'yes':
                             break
             nzbpr-=1
@@ -116,14 +119,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         elif nzbprovider[nzbpr] == 'experimental':
         #this is for experimental
             nzbprov = 'experimental'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
                 break
             else:
                 if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
-                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                     if findit == 'yes':
                         break
 
@@ -132,14 +135,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         elif nzbprovider[nzbpr] == 'nzbx':
         # this is for nzbx.co
             nzbprov = 'nzbx'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
                 break
             else:
                 if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
-                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                     if findit == 'yes':
                         break
 
@@ -148,14 +151,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         elif nzbprovider[nzbpr] == 'nzb.su':
         # this is for nzb.su
             nzbprov = 'nzb.su'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
             if findit == 'yes':
                 logger.fdebug("findit = found!")
                 break
             else:
                 if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
-                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                     if findit == 'yes':
                         break
 
@@ -166,7 +169,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         elif nzbprovider[nzbpr] == 'dognzb':
         # this is for dognzb.com
             nzbprov = 'dognzb'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
 
             if findit == 'yes':
                 logger.fdebug("findit = found!")
@@ -174,7 +177,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             else:
                 if AlternateSearch is not None and AlternateSearch != "None":
                     logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AlternateSearch) + " " + str(ComicYear))
-                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion)
+                    findit = NZB_SEARCH(AlternateSearch, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID)
                     if findit == 'yes':
                         break
 
@@ -186,7 +189,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         if findit == 'yes': return findit
     return findit
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None):
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None):
 
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
@@ -879,7 +882,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         if foundc == "yes":
             foundcomic.append("yes")
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-            updater.nzblog(IssueID, nzbname)
+            updater.nzblog(IssueID, nzbname, SARC, IssueArcID)
             nzbpr == 0
             #break
             return foundc
@@ -895,6 +898,8 @@ def searchforissue(issueid=None, new=False):
     myDB = db.DBConnection()
 
     if not issueid:
+
+        logger.info(u"Initiating NZB Search scan at requested interval of " + str(mylar.SEARCH_INTERVAL) + " minutes.")
 
         myDB = db.DBConnection()
 
@@ -916,7 +921,7 @@ def searchforissue(issueid=None, new=False):
                 ComicYear = str(result['IssueDate'])[:4]
 
             if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.USE_SABNZBD or mylar.USE_NZBGET):
-                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion)
+                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None)
                     if foundNZB == "yes": 
                         #print ("found!")
                         updater.foundsearch(result['ComicID'], result['IssueID'])

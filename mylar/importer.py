@@ -179,9 +179,17 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         else: comicdir = u_comicname
 
         series = comicdir
-        publisher = comic['ComicPublisher']
+        publisher = re.sub('!','',comic['ComicPublisher']) # thanks Boom!
         year = SeriesYear
-
+        comversion = comic['ComicVersion']
+        if comversion is None:
+            comversion = 'None'
+        #if comversion is None, remove it so it doesn't populate with 'None'
+        if comversion == 'None':
+            chunk_f_f = re.sub('\$VolumeN','',mylar.FILE_FORMAT)
+            chunk_f = re.compile(r'\s+')
+            mylar.FILE_FORMAT = chunk_f.sub(' ', chunk_f_f)
+         
         #do work to generate folder path
 
         values = {'$Series':        series,
@@ -189,8 +197,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                   '$Year':          year,
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
-                  '$Volume':        year
+                  '$VolumeY':       'V' + str(year),
+                  '$VolumeN':       comversion
                   }
+
+
 
         #print mylar.FOLDER_FORMAT
         #print 'working dir:'

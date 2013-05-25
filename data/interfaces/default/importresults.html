@@ -86,8 +86,10 @@
                                         <td id="importdate">${result['ImportDate']}</td>
                                         <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}">Import</a>]
                                         [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
-                                       <!-- [<a href="#">Rename</a>]
-                                            [<a href="#">Log</a>     -->
+                                        <!-- [<a href="#">Rename</a>] -->
+                                        %if result['implog'] is not None:
+                                             [<a class="showlog" href="importLog?ComicName=${result['ComicName']}">Log</a>]
+                                        %endif
                                         </td>
                                      </tr>
                                         <%
@@ -156,6 +158,25 @@
 </div>
 </%def>
 <%def name="javascriptIncludes()">
+
+<script type="text/javascript">
+    $('.showlog').click(function (event) {
+        var width = 575,
+                height = 400,
+                left = ($(window).width() - width) / 2,
+                top = ($(window).height() - height) / 2,
+                url = this.href,
+                opts = 'status=1' +
+                        ',width=' + width +
+                        ',height=' + height +
+                        ',top=' + top +
+                        ',left=' + left;
+
+        window.open(url, 'twitte', opts);
+
+        return false;
+    });
+</script>
 
         <script>
                 function initThisPage() {

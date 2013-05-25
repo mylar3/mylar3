@@ -520,18 +520,47 @@ def updateComicLocation():
                 os.makedirs(mylar.NEWCOM_DIR)
                 logger.info(u"Directory successfully created at: " + mylar.NEWCOM_DIR)
             except OSError:
-                logger.error(u"Could not create comicdir : " + new_comlocation_dir)
+                logger.error(u"Could not create comicdir : " + mylar.NEWCOM_DIR)
                 return
 
         dirlist = myDB.select("SELECT * FROM comics")
+
         if dirlist is not None:
             for dl in dirlist:
-                seriesdir = os.path.basename(os.path.normpath(dl['ComicLocation']))
-                newdir = os.path.join(mylar.NEWCOM_DIR, seriesdir)
+                
+                comversion = dl['ComicVersion']                
+                if comversion is None:
+                    comversion = 'None'
+                #if comversion is None, remove it so it doesn't populate with 'None'
+                if comversion == 'None':
+                    chunk_f_f = re.sub('\$VolumeN','',mylar.FOLDER_FORMAT)
+                    chunk_f = re.compile(r'\s+')
+                    folderformat = chunk_f.sub(' ', chunk_f_f)
+                else:
+                    folderformat = mylar.FOLDER_FORMAT
+
+                values = {'$Series':        dl['ComicName'],
+                          '$Publisher':     re.sub('!','',dl['ComicPublisher']),
+                          '$Year':          dl['ComicYear'],
+                          '$series':        dl['ComicName'].lower(),
+                          '$publisher':     re.sub('!','',dl['ComicPublisher']).lower(),
+                          '$VolumeY':       'V' + str(dl['ComicYear']),
+                          '$VolumeN':       comversion
+                          }
+                if mylar.FFTONEWCOM_DIR:
+                    #if this is enabled (1) it will apply the Folder_Format to all the new dirs
+                    if mylar.FOLDER_FORMAT == '':
+                        comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
+                    else:
+                        first = replace_all(folderformat, values)                    
+                        comlocation = os.path.join(mylar.NEWCOM_DIR,first)
+                else:
+                    comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
+
                 ctrlVal = {"ComicID":    dl['ComicID']}
-                newVal = {"ComicLocation": newdir}
+                newVal = {"ComicLocation": comlocation}
                 myDB.upsert("Comics", newVal, ctrlVal)
-                logger.fdebug("updated " + dl['ComicName'] + " to : " + newdir)
+                logger.fdebug("updated " + dl['ComicName'] + " to : " + comlocation)
         #set the value to 0 here so we don't keep on doing this...
         mylar.LOCMOVE = 0
         mylar.config_write()

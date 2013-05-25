@@ -207,11 +207,13 @@ CV_ONETIMER = 1
 GRABBAG_DIR = None
 HIGHCOUNT = 0
 READ2FILENAME = 0
+STORYARCDIR = 0
 CVAPIFIX = 0
 CVURL = None
 WEEKFOLDER = 0
 LOCMOVE = 0
 NEWCOM_DIR = None
+FFTONEWCOM_DIR = 0
 OLDCONFIG_VERSION = None
 
 def CheckSection(sec):
@@ -272,8 +274,8 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
-                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, LOCMOVE, NEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, CVURL, CVAPIFIX, \
+                PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
                 
         if __INITIALIZED__:
@@ -359,9 +361,13 @@ def initialize():
         if LOCMOVE is None:
             LOCMOVE = 0
         NEWCOM_DIR = check_setting_str(CFG, 'General', 'newcom_dir', '')
+        FFTONEWCOM_DIR = bool(check_setting_int(CFG, 'General', 'fftonewcom_dir', 0))
+        if FFTONEWCOM_DIR is None:
+            FFTONEWCOM_DIR = 0
         HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
+        STORYARCDIR = bool(check_setting_int(CFG, 'General', 'storyarcdir', 0))
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
         PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
         PROWL_ONSNATCH = bool(check_setting_int(CFG, 'Prowl', 'prowl_onsnatch', 0))
@@ -719,6 +725,7 @@ def config_write():
     new_config['General']['grabbag_dir'] = GRABBAG_DIR
     new_config['General']['highcount'] = HIGHCOUNT
     new_config['General']['read2filename'] = int(READ2FILENAME)
+    new_config['General']['storyarcdir'] = int(STORYARCDIR)
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
@@ -734,6 +741,7 @@ def config_write():
     new_config['General']['weekfolder'] = int(WEEKFOLDER)
     new_config['General']['locmove'] = int(LOCMOVE)
     new_config['General']['newcom_dir'] = NEWCOM_DIR
+    new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
@@ -852,7 +860,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
@@ -977,6 +985,17 @@ def dbcheck():
         c.execute('SELECT ComicID from weekly')
     except:
         c.execute('ALTER TABLE weekly ADD COLUMN ComicID TEXT')
+
+    try:
+        c.execute('SELECT implog from importresults')
+    except:
+        c.execute('ALTER TABLE importresults ADD COLUMN implog TEXT')
+
+    try:
+        c.execute('SELECT SARC from nzblog')
+    except:
+        c.execute('ALTER TABLE nzblog ADD COLUMN SARC TEXT')
+
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
