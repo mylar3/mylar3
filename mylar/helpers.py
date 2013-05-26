@@ -553,7 +553,11 @@ def updateComicLocation():
                         comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
                     else:
                         first = replace_all(folderformat, values)                    
+                        if mylar.REPLACE_SPACES:
+                            #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
+                            first = first.replace(' ', mylar.REPLACE_CHAR)
                         comlocation = os.path.join(mylar.NEWCOM_DIR,first)
+
                 else:
                     comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
 

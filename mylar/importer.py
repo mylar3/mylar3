@@ -62,6 +62,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
         filechecker.validateAndCreateDirectory(comlocation, True)
+        oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -274,10 +275,13 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
 
-    if comic['ComicVersion'].isdigit():
-        comicVol = "v" + comic['ComicVersion']
+    if oldcomversion is None:
+        if comic['ComicVersion'].isdigit():
+            comicVol = "v" + comic['ComicVersion']
+        else:
+            comicVol = None
     else:
-        comicVol = None
+        comicVol = oldcomversion
 
     #for description ...
     #Cdesc = helpers.cleanhtml(comic['ComicDescription'])
