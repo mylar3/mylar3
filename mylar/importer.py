@@ -58,6 +58,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
         comlocation = None
+        oldcomversion = None
     else:
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
