@@ -27,6 +27,7 @@ import urllib2
 import sqlite3
 from xml.dom.minidom import parseString
 
+
 from mylar import logger, db, helpers, updater, notifiers, filechecker
 
 class PostProcessor(object):
@@ -171,146 +172,288 @@ class PostProcessor(object):
                 logger.fdebug("NZB name as passed from NZBGet: " + self.nzb_name)
             myDB = db.DBConnection()
 
-            nzbname = self.nzb_name
-            #remove extensions from nzb_name if they somehow got through (Experimental most likely)
-            extensions = ('.cbr', '.cbz')
-
-            if nzbname.lower().endswith(extensions):
-                fd, ext = os.path.splitext(nzbname)
-                self._log("Removed extension from nzb: " + ext, logger.DEBUG)
-                nzbname = re.sub(str(ext), '', str(nzbname))
-
-            #replace spaces
-            nzbname = re.sub(' ', '.', str(nzbname))
-            nzbname = re.sub('[\,\:\?]', '', str(nzbname))
-            nzbname = re.sub('[\&]', 'and', str(nzbname))
-
-            logger.fdebug("After conversions, nzbname is : " + str(nzbname))
-#            if mylar.USE_NZBGET==1:
-#                nzbname=self.nzb_name
-            self._log("nzbname: " + str(nzbname), logger.DEBUG)
-
-            nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
-
-            if nzbiss is None:
-                self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
-                logger.fdebug("Failure - could not locate nzbfile initially.")
-                # if failed on spaces, change it all to decimals and try again.
-                nzbname = re.sub('_', '.', str(nzbname))
-                self._log("trying again with this nzbname: " + str(nzbname), logger.DEBUG)
-                logger.fdebug("trying again with nzbname of : " + str(nzbname))
-                nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
-                if nzbiss is None:
-                    logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
+            if self.nzb_name == 'Manual Run':
+                print ("manual run initiated")
+                #Manual postprocessing on a folder.
+                #use the nzb_folder to determine every file
+                #walk the dir,
+                #once a series name and issue are matched,
+                #write the series/issue/filename to a tuple
+                #when all done, iterate over the tuple until completion...
+                comicseries = myDB.action("SELECT * FROM comics")
+                manual_list = []
+                if comicseries is None: 
+                    logger.error(u"No Series in Watchlist - aborting Manual Post Processing. Maybe you should be running Import?")
                     return
                 else:
-                    self._log("I corrected and found the nzb as : " + str(nzbname))
-                    logger.fdebug("auto-corrected and found the nzb as : " + str(nzbname))
-                    issueid = nzbiss['IssueID']
-            else: 
-                issueid = nzbiss['IssueID']
-                logger.fdebug("issueid:" + str(issueid))
-                sarc = nzbiss['SARC']
-                #use issueid to get publisher, series, year, issue number
-            issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
-            if issuenzb is not None:
-                if helpers.is_number(issueid):
-                    sandwich = int(issuenzb['IssueID'])
-            else:
-                #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
-                #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
-                if 'S' in issueid:
-                    sandwich = issueid
-                elif 'G' in issueid: 
-                    sandwich = 1
-            if helpers.is_number(sandwich):
-                if sandwich < 900000:
-                    # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
-                    pass
-            else:
-                if issuenzb is None or 'S' in sandwich or int(sandwich) >= 900000:
-                    # this has no issueID, therefore it's a one-off or a manual post-proc.
-                    # At this point, let's just drop it into the Comic Location folder and forget about it..
-                    if 'S' in sandwich:
-                        self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
-                        logger.info("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
-                        if mylar.STORYARCDIR:
-                            storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
-                            self._log("StoryArc Directory set to : " + storyarcd, logger.DEBUG)
+                    ccnt=0
+                    nm=0
+                    for cs in comicseries:
+                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'])
+                        if watchmatch is None:
+                            nm+=1
+                            pass
                         else:
+                            fn = 0
+                            fccnt = int(watchmatch['comiccount'])
+                            while (fn < fccnt):
+                                try:
+                                    tmpfc = watchmatch['comiclist'][fn]
+                                except IndexError:
+                                    break
+                                temploc= tmpfc['JusttheDigits'].replace('_', ' ')
+                                temploc = re.sub('[\#\']', '', temploc)
+                                logger.fdebug("temploc: " + str(temploc))
+
+                                ww = shlex.split(temploc)
+                                lnw = len(ww)
+                                wdc = 0
+                                while (wdc < lnw):
+                                    #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
+                                    if ".cbr" in ww[wdc].lower():
+                                        ww[wdc] = ww[wdc].replace(".cbr", "")
+                                    elif ".cbz" in ww[wdc].lower():
+                                        ww[wdc] = ww[wdc].replace(".cbz", "")
+                                    if "(c2c)" in ww[wdc].lower():
+                                        ww[wdc] = ww[wdc].replace("(c2c)", " ")
+                                        get_issue = shlex.split(str(ww[wdc]))
+                                        if ww[wdc] != " ":
+                                            ww[wdc] = get_issue[0]
+
+                                    if '.' in ww[wdc]:
+                                    #logger.fdebug("decimal detected...adjusting.")
+                                        try:
+                                            i = float(ww[wdc])
+                                        except ValueError, TypeError:
+                                        #not numeric
+                                        #logger.fdebug("NOT NUMERIC - new word: " + str(ww[wdc]))
+                                            ww[wdc] = ww[wdc].replace(".", "")
+                                    else:
+                                        #numeric
+                                        pass
+
+                                    if ww[wdc].isdigit():
+                                        if int(ww[wdc]) > 0:
+                                            if wdc+1 < len(ww) and 'au' in ww[wdc+1].lower():
+                                                if len(ww[wdc+1]) == 2:
+                                                #if the 'AU' is in 005AU vs 005 AU it will yield different results.
+                                                    ww[wdc] = ww[wdc] + 'AU'
+                                                    ww[wdc+1] = '93939999919190933'
+                                                    logger.info("AU Detected seperate from issue - combining and continuing")
+
+                                    fcdigit = helpers.issuedigits(ww[wdc])
+                                    if 'annual' in self.nzb_name.lower():
+                                        logger.info("annual detected.")
+                                        annchk = "yes"
+                                        issuechk = myDB.action("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
+                                    else:
+                                        issuechk = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
+
+                                    if issuechk is None:
+                                        logger.info("No corresponding issue # found for " + str(cs['ComicID']))
+                                    else:
+                                        logger.info("Found matching issue # " + str(fcdigit) + " for ComicID: " + str(cs['ComicID']) + " / IssueID: " + str(issuechk['IssueID']))
+                                        manual_list.append({"ComicLocation":   tmpfc['ComicLocation'],
+                                                            "ComicID":         cs['ComicID'],
+                                                            "IssueID":         issuechk['IssueID'],
+                                                            "IssueNumber":     issuechk['Issue_Number'],
+                                                            "ComicName":       cs['ComicName']})
+                                        ccnt+=1
+                                        print manual_list
+                                    wdc+=1
+                                fn+=1
+                    print("There are " + str(len(manual_list)) + " files found that match on your watchlist, " + str(nm) + " do not match anything and will be ignored.")    
+                
+
+            else:
+                nzbname = self.nzb_name
+                #remove extensions from nzb_name if they somehow got through (Experimental most likely)
+                extensions = ('.cbr', '.cbz')
+
+                if nzbname.lower().endswith(extensions):
+                    fd, ext = os.path.splitext(nzbname)
+                    self._log("Removed extension from nzb: " + ext, logger.DEBUG)
+                    nzbname = re.sub(str(ext), '', str(nzbname))
+
+                #replace spaces
+                nzbname = re.sub(' ', '.', str(nzbname))
+                nzbname = re.sub('[\,\:\?]', '', str(nzbname))
+                nzbname = re.sub('[\&]', 'and', str(nzbname))
+
+                logger.fdebug("After conversions, nzbname is : " + str(nzbname))
+#                if mylar.USE_NZBGET==1:
+#                    nzbname=self.nzb_name
+                self._log("nzbname: " + str(nzbname), logger.DEBUG)
+   
+                nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+
+                if nzbiss is None:
+                    self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
+                    logger.fdebug("Failure - could not locate nzbfile initially.")
+                    # if failed on spaces, change it all to decimals and try again.
+                    nzbname = re.sub('_', '.', str(nzbname))
+                    self._log("trying again with this nzbname: " + str(nzbname), logger.DEBUG)
+                    logger.fdebug("trying again with nzbname of : " + str(nzbname))
+                    nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                    if nzbiss is None:
+                        logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
+                        return
+                    else:
+                        self._log("I corrected and found the nzb as : " + str(nzbname))
+                        logger.fdebug("auto-corrected and found the nzb as : " + str(nzbname))
+                        issueid = nzbiss['IssueID']
+                else: 
+                    issueid = nzbiss['IssueID']
+                    logger.fdebug("issueid:" + str(issueid))
+                    sarc = nzbiss['SARC']
+                    #use issueid to get publisher, series, year, issue number
+                annchk = "no"
+                if 'annual' in nzbname.lower():
+                    logger.info("annual detected.")
+                    annchk = "yes"
+                    issuenzb = myDB.action("SELECT * from annuals WHERE IssueID=?", [issueid]).fetchone()
+                else:
+                    issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+                if issuenzb is not None:
+                    if helpers.is_number(issueid):
+                        sandwich = int(issuenzb['IssueID'])
+                else:
+                    #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
+                    #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
+                    if 'S' in issueid:
+                        sandwich = issueid
+                    elif 'G' in issueid or '-' in issueid: 
+                        sandwich = 1
+                if helpers.is_number(sandwich):
+                    if sandwich < 900000:
+                        # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
+                        pass
+                else:
+                    if issuenzb is None or 'S' in sandwich or int(sandwich) >= 900000:
+                        # this has no issueID, therefore it's a one-off or a manual post-proc.
+                        # At this point, let's just drop it into the Comic Location folder and forget about it..
+                        if 'S' in sandwich:
+                            self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
+                            logger.info("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
+                            if mylar.STORYARCDIR:
+                                storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
+                                self._log("StoryArc Directory set to : " + storyarcd, logger.DEBUG)
+                            else:
+                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
+   
+                        else:
+                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.", logger.DEBUG)
+                            logger.info("One-off mode enabled for Post-Processing. Will move into Grab-bag directory.")
                             self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
 
-                    else:
-                        self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.", logger.DEBUG)
-                        logger.info("One-off mode enabled for Post-Processing. Will move into Grab-bag directory.")
-                        self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
-
-                    for root, dirnames, filenames in os.walk(self.nzb_folder):
-                        for filename in filenames:
-                            if filename.lower().endswith(extensions):
-                                ofilename = filename
-                                path, ext = os.path.splitext(ofilename)
+                        for root, dirnames, filenames in os.walk(self.nzb_folder):
+                            for filename in filenames:
+                                if filename.lower().endswith(extensions):
+                                    ofilename = filename
+                                    path, ext = os.path.splitext(ofilename)
       
-                    if 'S' in sandwich:
-                        if mylar.STORYARCDIR:
-                            grdst = storyarcd
+                        if 'S' in sandwich:
+                            if mylar.STORYARCDIR:
+                                grdst = storyarcd
+                            else:
+                                grdst = mylar.DESTINATION_DIR
                         else:
-                            grdst = mylar.DESTINATION_DIR
-                    else:
-                        if mylar.GRABBAG_DIR:
-                            grdst = mylar.GRABBAG_DIR
-                        else:
-                            grdst = mylar.DESTINATION_DIR
-
-                    filechecker.validateAndCreateDirectory(grdst, True)
+                            if mylar.GRABBAG_DIR:
+                                grdst = mylar.GRABBAG_DIR
+                            else:
+                                grdst = mylar.DESTINATION_DIR
+   
+                        filechecker.validateAndCreateDirectory(grdst, True)
     
-                    grab_dst = os.path.join(grdst, ofilename)
-                    self._log("Destination Path : " + grab_dst, logger.DEBUG)
-                    logger.info("Destination Path : " + grab_dst)
-                    grab_src = os.path.join(self.nzb_folder, ofilename)
-                    self._log("Source Path : " + grab_src, logger.DEBUG)
-                    logger.info("Source Path : " + grab_src)
+                        if 'S' in sandwich:
+                            #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
+                            if mylar.READ2FILENAME:
+                                issuearcid = re.sub('S', '', issueid)
+                                arcdata = myDB.action("SELECT * FROM readinglist WHERE IssueARCID=?",[issuearcid]).fetchone()
+                                if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
+                                elif int(arcdata['ReadingOrder']) > 10 and int(arcdata['ReadingOrder']) < 99: readord = "0" + str(arcdata['ReadingOrder'])
+                                else: readord = str(arcdata['ReadingOrder'])
+                                dfilename = str(readord) + "-" + ofilename
+                            else:
+                                dfilename = ofilename
+                            grab_dst = os.path.join(grdst, dfilename)
+                        else:
+                            grab_dst = os.path.join(grdst, ofilename)
 
-                    logger.info("Moving " + str(ofilename) + " into directory : " + str(grdst))
+                        self._log("Destination Path : " + grab_dst, logger.DEBUG)
+                        logger.info("Destination Path : " + grab_dst)
+                        grab_src = os.path.join(self.nzb_folder, ofilename)
+                        self._log("Source Path : " + grab_src, logger.DEBUG)
+                        logger.info("Source Path : " + grab_src)
 
-                    try:
-                        shutil.move(grab_src, grab_dst)
-                    except (OSError, IOError):
-                        self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
-                        logger.debug("Failed to move directory - check directories and manually re-run.")
-                        return
-                    #tidyup old path
-                    try:
-                        shutil.rmtree(self.nzb_folder)
-                    except (OSError, IOError):
-                        self._log("Failed to remove temporary directory.", logger.DEBUG)
-                        logger.debug("Failed to remove temporary directory - check directory and manually re-run.")
-                        return
+                        logger.info("Moving " + str(ofilename) + " into directory : " + str(grdst))
 
-                    logger.debug("Removed temporary directory : " + str(self.nzb_folder))
-                    self._log("Removed temporary directory : " + self.nzb_folder, logger.DEBUG)
-                    #delete entry from nzblog table
-                    myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
+                        try:
+                            shutil.move(grab_src, grab_dst)
+                        except (OSError, IOError):
+                            self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
+                            logger.debug("Failed to move directory - check directories and manually re-run.")
+                            return
+                        #tidyup old path
+                        try:
+                            shutil.rmtree(self.nzb_folder)
+                        except (OSError, IOError):
+                            self._log("Failed to remove temporary directory.", logger.DEBUG)
+                            logger.debug("Failed to remove temporary directory - check directory and manually re-run.")
+                            return
 
-                    if 'S' in issueid:
-                        issuearcid = re.sub('S', '', issueid)
-                        logger.info("IssueArcID is : " + str(issuearcid))
-                        ctrlVal = {"IssueArcID":  issuearcid}
-                        newVal = {"Status":    "Downloaded",
-                                  "Location":  grab_dst }
-                        myDB.upsert("readinglist",newVal,ctrlVal)
-                        logger.info("updated status to Downloaded")
-                    return self.log
+                        logger.debug("Removed temporary directory : " + str(self.nzb_folder))
+                        self._log("Removed temporary directory : " + self.nzb_folder, logger.DEBUG)
+                        #delete entry from nzblog table
+                        myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
-            comicid = issuenzb['ComicID']
-            issuenumOG = issuenzb['Issue_Number']
+                        if 'S' in issueid:
+                            issuearcid = re.sub('S', '', issueid)
+                            logger.info("IssueArcID is : " + str(issuearcid))
+                            ctrlVal = {"IssueArcID":  issuearcid}
+                            newVal = {"Status":    "Downloaded",
+                                      "Location":  grab_dst }
+                            myDB.upsert("readinglist",newVal,ctrlVal)
+                            logger.info("updated status to Downloaded")
+                        return self.log
+
+
+                comicid = issuenzb['ComicID']
+                issuenumOG = issuenzb['Issue_Number']
+
+            if self.nzb_name == 'Manual Run':
+                #loop through the hits here.
+                if len(manual_list) == '0':
+                    logger.info("No hits ... breakout.")
+                    return
+
+                for ml in manual_list:
+                    comicid = ml['ComicID']
+                    issueid = ml['IssueID']
+                    issuenumOG = ml['IssueNumber']
+                    self.Process_next(comicid,issueid,issuenumOG,ml)
+            else:
+                return self.Process_next(comicid,issueid,issuenumOG)
+
+    def Process_next(self,comicid,issueid,issuenumOG,ml=None):
+            annchk = "no"
+            extensions = ('.cbr', '.cbz')
+            myDB = db.DBConnection()
+            comicnzb = myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+            issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+            if issuenzb is None:
+                issuenzb = myDB.action("SELECT * from annuals WHERE issueid=?", [issueid]).fetchone()
+                annchk = "yes"
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
-            issuenum = issuenumOG
+            issuenum = issuenzb['Issue_Number']
             issue_except = 'None'
             if 'au' in issuenum.lower():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = ' AU'
+            elif 'ai' in issuenum.lower():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = ' AI'
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
@@ -388,11 +531,14 @@ class PostProcessor(object):
                 prettycomiss = str(issueno)
                 self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss), logger.DEBUG)
 
+            if annchk == "yes":
+                prettycomiss = "Annual " + str(prettycomiss)
+
             logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
             self._log("Issue Year: " + str(issueyear), logger.DEBUG)
             logger.fdebug("Issue Year : " + str(issueyear))
-            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+#            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher, logger.DEBUG)
             logger.fdebug("Publisher: " + str(publisher))
@@ -421,6 +567,25 @@ class PostProcessor(object):
                 logger.fdebug("new format is now: " + str(chunk_file_format))
             else:
                 chunk_file_format = mylar.FILE_FORMAT
+
+            ofilename = None
+
+            #tag the meta.
+            if mylar.ENABLE_META:
+                self._log("Metatagging enabled - proceeding...")
+                logger.fdebug("Metatagging enabled - proceeding...")
+                import cmtagmylar
+                if ml is None:
+                    pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid)
+                else:
+                    pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, manual="yes", filename=ml['ComicLocation'])
+                if pcheck == "fail":
+                    self._log("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
+                    logger.fdebug("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
+                else:
+                    otofilename = pcheck
+                    self._log("Sucessfully wrote metadata to .cbz - Continuing..")
+                    logger.fdebug("Sucessfully wrote metadata to .cbz (" + otofilename + ") - Continuing..")
             #Run Pre-script
 
             if mylar.ENABLE_PRE_SCRIPTS:
@@ -455,13 +620,22 @@ class PostProcessor(object):
                            '$VolumeN':   comversion
                           }
 
-            ofilename = None
 
-            for root, dirnames, filenames in os.walk(self.nzb_folder):
-                for filename in filenames:
-                    if filename.lower().endswith(extensions):
-                        ofilename = filename
-                        path, ext = os.path.splitext(ofilename)
+            #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
+            if ml is None:
+
+                for root, dirnames, filenames in os.walk(self.nzb_folder):
+                    for filename in filenames:
+                        if filename.lower().endswith(extensions):
+                            ofilename = filename
+                            path, ext = os.path.splitext(ofilename)
+            else:
+                print "otofilename:" + str(otofilename)
+                odir, ofilename = os.path.split(otofilename)
+                print "ofilename: " + str(ofilename)
+                path, ext = os.path.splitext(ofilename)
+                print "path: " + str(path)
+                print "ext:" + str(ext)
 
             if ofilename is None:
                 logger.error(u"Aborting PostProcessing - the filename doesn't exist in the location given. Make sure that " + str(self.nzb_folder) + " exists and is the correct location.")
@@ -501,27 +675,54 @@ class PostProcessor(object):
             logger.fdebug("Source: " + str(src))
             logger.fdebug("Destination: " + str(dst))
 
-            os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
-            src = os.path.join(self.nzb_folder, str(nfilename + ext))
-            try:
-                shutil.move(src, dst)
-            except (OSError, IOError):
-                self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
-                self._log("Post-Processing ABORTED.", logger.DEBUG)
-                return
-            #tidyup old path
-            try:
-                shutil.rmtree(self.nzb_folder)
-            except (OSError, IOError):
-                self._log("Failed to remove temporary directory - check directory and manually re-run.", logger.DEBUG)
-                self._log("Post-Processing ABORTED.", logger.DEBUG)
-                return
+            if ml is None:
+                #non-manual run moving/deleting...
+                os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+                src = os.path.join(self.nzb_folder, str(nfilename + ext))
+                try:
+                    shutil.move(src, dst)
+                except (OSError, IOError):
+                    self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
+                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    return
+                #tidyup old path
+                try:
+                    shutil.rmtree(self.nzb_folder)
+                except (OSError, IOError):
+                    self._log("Failed to remove temporary directory - check directory and manually re-run.", logger.DEBUG)
+                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    return
 
-            self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
+                self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
+            else:
+                #Manual Run, this is the portion.
+                logger.fdebug("Renaming " + os.path.join(self.nzb_folder, str(ofilename)) + " ..to.. " + os.path.join(self.nzb_folder,str(nfilename + ext)))
+                os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+                src = os.path.join(self.nzb_folder, str(nfilename + ext))
+                logger.fdebug("Moving " + src + " ... to ... " + dst)
+                try:
+                    shutil.move(src, dst)
+                except (OSError, IOError):
+                    self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
+                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    return
+                #tidyup old path
+                try:
+                    os.remove(os.path.join(self.nzb_folder, str(ofilename)))
+                    logger.fdebug("Deleting : " + os.path.join(self.nzb_folder, str(ofilename)))
+                except (OSError, IOError):
+                    self._log("Failed to remove temporary directory - check directory and manually re-run.", logger.DEBUG)
+                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    return
+                self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
+
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
                     #update snatched table to change status to Downloaded
-            updater.foundsearch(comicid, issueid, down='True')
+            if annchk == "no":
+                updater.foundsearch(comicid, issueid, down='True')
+            else:
+                updater.foundsearch(comicid, issueid, mode='want_ann', down='True')
                     #force rescan of files
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )

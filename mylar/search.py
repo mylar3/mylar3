@@ -36,9 +36,16 @@ from xml.dom.minidom import parseString
 import urllib2
 from datetime import datetime
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None):
     if ComicYear == None: ComicYear = '2013'
     else: ComicYear = str(ComicYear)[:4]
+
+    if mode == 'want_ann':
+        logger.info("Annual issue search detected. Appending to issue #")
+        #anything for mode other than None indicates an annual.
+        ComicName = ComicName + " annual"
+        if AlternateSearch is not None and AlternateSearch != "None":
+            AlternateSearch = AlternateSearch + " annual"
 
     if IssueID is None:
         #one-off the download.
@@ -251,7 +258,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     findcomic.append(u_ComicName)
     # this should be called elsewhere..redudant code.
     issue_except = None
-    if '.' in IssueNumber:
+    if '.' in IssueNumber and IssueNumber[IssueNumber.find('.'):].isdigit():
         isschk_find = IssueNumber.find('.')
         isschk_b4dec = IssueNumber[:isschk_find]
         isschk_decval = IssueNumber[isschk_find+1:]
@@ -282,6 +289,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         iss = re.sub("[^0-9]", "", IssueNumber) # get just the digits
         intIss = int(iss) * 1000
         issue_except = 'AU'  # if it contains AU, mark it as an exception (future dict possibly)
+    elif 'ai' in IssueNumber.lower():
+        iss = re.sub("[^0-9]", "", IssueNumber) # get just the digits
+        intIss = int(iss) * 1000
+        issue_except = 'AI'  # if it contains AI, mark it as an exception (future dict possibly)
     else:
         iss = IssueNumber
         intIss = int(iss) * 1000
@@ -385,11 +396,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         pause_the_search = 1 * 60
 
                     #bypass for local newznabs
-                    if nzbprov == 'newznab' and 'localhost' in str(host_newznab_fix):
-                        pass
-                    else:
-                        logger.fdebug("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
-                        time.sleep(pause_the_search)
+                    if nzbprov == 'newznab':
+                        if host_newznab_fix[:3] == '10.' or host_newznab_fix[:4] == '172.' or host_newznab_fix[:4] == '192.' or 'localhost' in str(host_newznab_fix):
+                            pass
+                        else:
+                            logger.fdebug("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
+                            time.sleep(pause_the_search)
 
                     try:
                         data = opener.open(request).read()
@@ -559,6 +571,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 i+=1
                             logger.fdebug("chg_comic:" + str(chg_comic))
                             findcomic_chksplit = re.sub('[\-\:\,\.\?]', ' ', findcomic[findloop])
+                            chg_comic = re.sub('[\s]', '', chg_comic)
+                            findcomic_chksplit = re.sub('[\s]', '', findcomic_chksplit)
+                            print chg_comic.upper()
+                            print findcomic_chksplit.upper()
                             if chg_comic.upper() == findcomic_chksplit.upper():
                                 logger.fdebug("series contains numerics...adjusting..")
                             else:
@@ -583,10 +599,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                       
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
                     logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
-                    #account for possible version inclusion here.
+                    #account for possible version inclusion here and annual inclusions.
                     cvers = "false"
+                    annualize = "false"
+                    if 'annual' in ComicName.lower():
+                        logger.fdebug("IssueID of : " + str(IssueID) + " - This is an annual...let's adjust.")
+                        annualize = "true"
+                        splitst = splitst - 1
                     for tstsplit in splitit:
-                        if 'v' in tstsplit and tstsplit[1:].isdigit():
+                        if 'v' in tstsplit.lower() and tstsplit[1:].isdigit():
                             logger.fdebug("this has a version #...let's adjust")
                             cvers = "true"
                             splitst = splitst - 1
@@ -597,9 +618,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         if str(splitit[0]).lower() == "the" or str(watchcomic_split[0]).lower() == "the":
                             if str(splitit[0]).lower() == "the":
                                 logger.fdebug("THE word detected...attempting to adjust pattern matching")
-                                comiciss = comiciss[4:]
+                                print comic_iss
+                                print comic_iss[4:]
+                                splitit = comic_iss[4:].split(None)
+                                #splitit = splitit[4:]
                                 splitst = splitst - 1 #remove 'the' from start
-                                logger.fdebug("comic is now : " + str(comiciss))
+                                logger.fdebug("comic is now : " + str(comic_iss[4:]))
                             if str(watchcomic_split[0]).lower() == "the":
                                 wtstart = watchcomic_nonsplit[4:]
                                 watchcomic_split = wtstart.split(None)
@@ -713,7 +737,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         #issue comparison now as well
                         if int(intIss) == int(comintIss):
                             logger.fdebug('issues match!')
-                            logger.info(u"Found " + str(ComicName) + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(nzbprov) )
+                            logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(nzbprov) )
                         ## -- inherit issue. Comic year is non-standard. nzb year is the year
                         ## -- comic was printed, not the start year of the comic series and
                         ## -- thus the deciding component if matches are correct or not
@@ -882,7 +906,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         if foundc == "yes":
             foundcomic.append("yes")
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-            updater.nzblog(IssueID, nzbname, SARC, IssueArcID)
+            updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID)
             nzbpr == 0
             #break
             return foundc
@@ -890,7 +914,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             foundcomic.append("no")
             logger.fdebug("couldn't find a matching comic")
             if IssDateFix == "no":
-                logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + str(ComicName) + "(" + str(comyear) + "). Status kept as wanted." )
+                logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + ComicName + "(" + str(comyear) + "). Status kept as wanted." )
                 break
     return foundc
 

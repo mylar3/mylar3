@@ -28,7 +28,8 @@ mb_lock = threading.Lock()
 
 
 def pullsearch(comicapi,comicquery,offset):
-    PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + str(comicquery) + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher&format=xml&page=' + str(offset)
+    u_comicquery = comicquery.encode('utf-8').strip()
+    PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
 
     #all these imports are standard on most modern python implementations
     #download the file:
@@ -114,6 +115,11 @@ def findComic(name, mode, issue, limityear=None):
                             xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
                         else:
                             xmlimage = "cache/blankcover.jpg"            
+
+                        try:
+                            xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText
+                        except:
+                            xmldesc = "None"
                         comiclist.append({
                                 'name':             xmlTag,
                                 'comicyear':             xmlYr,
@@ -121,7 +127,8 @@ def findComic(name, mode, issue, limityear=None):
                                 'url':                 xmlurl,
                                 'issues':            xmlcnt,
                                 'comicimage':          xmlimage,
-                                'publisher':            xmlpub
+                                'publisher':            xmlpub,
+                                'description':          xmldesc
                                 })
                     else:
                         print ("year: " + str(xmlYr) + " -  contraint not met. Has to be within " + str(limityear)) 
@@ -130,4 +137,3 @@ def findComic(name, mode, issue, limityear=None):
         countResults = countResults + 100
    
     return comiclist
-        

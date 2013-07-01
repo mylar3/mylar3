@@ -1,0 +1,171 @@
+<%inherit file="base.html"/>
+<%!
+        import os
+        import mylar
+	from mylar import helpers, db
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+			<a id="menu_link_delete" href="#">Sync</a>
+			<a id="menu_link_delete" href="#" onclick="doAjaxCall('removefromreadlist?AllRead=1',$(this),'table')" data-success="All Read Records Removed">Remove Read</a>
+			<a id="menu_link_delete" href="#">Force New Check</a>
+                        <a id="menu_link_refresh" href="#">Clear File Cache</a>
+                        <a id="menu_link_refresh" href="#">Import Story Arc File</a> 
+		</div>
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Reading List"/>Reading List Management</h1>
+	</div>
+        <div id="tabs">
+            <ul>
+                 <li><a href="#tabs-1">Issue Reading List</a></li>
+                 <li><a href="#tabs-2">Story Arcs</a></li>
+            </ul>
+            <div id="tabs-1">
+                    <table class="configtable" id="read_detail">
+                             <fieldset>
+                                        <center><legend>Individual Reading Lists</legend>
+                                        <strong>(Watchlist)</strong>
+                                        <p>Your watchlisted series' that you have issues marked as wanting to add
+                                        to the Reading List go here.<br/></p></center>
+                             </fieldset>
+                    <thead>
+                        <tr>
+                                <th id="comicname">ComicName</th>
+                                <th id="issue">Issue</th>
+                                <th id="issueyear">Issue Date</th>
+                                <th id="status">Status</th>
+                                <th id="options">Options</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                         %for issue in issuelist:
+                              <tr>
+                                <td id="comicname"><a href="artistPage?ComicID=${issue['ComicID']}">${issue['ComicName']} (${issue['SeriesYear']})</td>
+                                <td id="issue">${issue['Issue_Number']}</td>
+                                <td id="issueyear">${issue['IssueDate']}</td>
+                                <td id="status">${issue['Status']}</td>
+                                <td id="options">
+                                      %if issue['inCacheDIR']:
+                                             <%
+                                                    try:
+                                                        with open(os.path.join(mylar.CACHE_DIR,issue['Location'])) as f:
+                                                            linky = issue['Location']
+                                                    except IOError as e:
+                                                        linky = None
+
+                                              %>
+                                              %if linky:
+                                                  <a href="cache/${linky}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" /></a>
+                                              %endif
+                                      %else:
+                                          <a onclick="doAjaxCall('downloadLocal?IssueID=${issue['IssueID']}', $(this), 'table')" ><img src="interfaces/default/images/copy_icon.png" height="25" width="25" title="Copy issue to local cache (ready for download)" /></a>
+                                      %endif
+                                          <a onclick="doAjaxCall('removefromreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="Sucessfully removed ${issue['ComicName']} #${issue['Issue_Number']} from Reading List"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" title="Remove from Reading List" /></a>
+                                          <a onclick="doAjaxCall('markasRead?IssueID=${issue['IssueID']}', $(this),'table')" data-success="Marked ${issue['ComicName']} ${issue['Issue_Number']} as Read."><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" title="Mark as Read" /></a>
+                                </td>
+                              </tr>
+                         %endfor
+                    </tbody>
+                    </table>
+            </div>
+            <div id="tabs-2">
+              <table class="configtable">
+               <tr>
+                <form action="searchit" method="get">
+                    <input type="hidden" name="type" value="storyarc">
+                    <input type="text" value="" placeholder="Search" onfocus="if(this.value==this.defaultValue)  this.value='';" name="name" />
+                    <span class="mini-icon"></span>
+                    <input type="submit" value="Search"/>
+                </form>
+                <tr>
+                <form action="importReadlist" method="get">
+                     <div class="row" style="float:right">
+                        <label for="">File to import</label>
+                        <input type="text" value="Enter a filename to import" onfocus="if
+                        (this.value==this.defaultValue) this.value='';" name="filename" size="70" />
+                        <input type="submit" value="Import">
+                     </div>
+                 </form>
+                 </tr>
+                 <tr>
+                 <form action="readOptions" method="get">
+                     <div class="row">
+                         <label>Options</label><br/>
+                         <input type="checkbox" /><label>Arcs in Grabbag Directory?</label><br/>
+                         <input type="checkbox" name="storyarcdir" value="1" ${readConfig['storyarcdir']} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label><br/>
+                         <input type="checkbox" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/> 
+                         <input type="checkbox" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading # to filename</label>
+                        
+                     </div>
+                 </form>
+                </tr>
+                </tr>
+                </table>
+                   <table class="configtable" id="artist_table">
+                      <thead>
+                            <tr>
+                                <th id="storyarc">Story Arc</th>
+                                <th id="issue">Issues</th>
+                                <th id="have">Status</th>
+                                <th id="action">Options</th>
+                            </tr>
+                     </thead>
+                     <tbody>
+                         %for item in readlist:
+                                 <%
+                                         myDB = db.DBConnection()
+                                         totalcnt = myDB.action("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=?", [item['StoryArcID']]).fetchall()
+                                         totalarc = totalcnt[0][0]
+                                         havecnt = myDB.action("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=? AND Status='Downloaded' or Status='Archived'", [item['StoryArcID']]).fetchall()
+                                         havearc = havecnt[0][0]
+                                         if not havearc:
+                                                 havearc = 0
+                                         try:
+                                                 percent = (havearc *100.0)/totalarc
+                                                 if percent > 100:
+                                                         percent = 100
+                                         except (ZeroDivisionError, TypeError):
+                                                 percent = 0
+                                                 totalarc = '?'
+                                  %>
+
+                            <tr>
+                                <td id="storyarc"><a href="detailReadlist?StoryArcID=${item['StoryArcID']}&StoryArcName=${item['StoryArc']}">${item['StoryArc']}</a></td>
+                                <td id="issue">${item['TotalIssues']}</td>
+                                <td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havearc}/${totalarc}</div></div></div></td>
+                                <td id="action">
+                                   <a title="Remove from Reading List" onclick="doAjaxCall('removefromreadlist?StoryArcID=${item['StoryArcID']}',$(this),'table')" data-success="Sucessfully removed ${item['StoryArc']} from list."><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                </td>
+                            </tr>
+                         %endfor
+                     </tbody>
+                   </table>
+            </div>
+        </div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+	<script>
+	function initThisPage() {
+                jQuery( "#tabs" ).tabs();
+	}
+	$(document).ready(function() {
+		initThisPage();
+		initActions();
+	});
+        $(window).load(function(){
+                initFancybox();
+        });
+	</script>
+</%def>

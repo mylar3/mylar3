@@ -88,12 +88,29 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         logger.fdebug("subname no brackets: " + str(subname[0]))
         subname = re.sub('\_', ' ', subname[0])
         nonocount = 0
+        charpos = 0
+        detneg = "no"
         for nono in not_these:
             if nono in subname:
                 subcnt = subname.count(nono)
+                charpos = indices(subname,nono) # will return a list of char positions in subname
+                #print "charpos: " + str(charpos)
+                if nono == '-':
+                    i=0
+                    while (i < len(charpos)):
+                        for i,j in enumerate(charpos):
+                            #print i,j
+                            if subname[j+1:j+2].isdigit():
+                                logger.fdebug("possible negative issue detected.")
+                                nonocount = nonocount + subcnt - 1
+                                detneg = "yes"                                
+                        i+=1
+                    if detneg == "no": 
+                        subname = re.sub(str(nono), ' ', subname)
+                        nonocount = nonocount + subcnt
                 #logger.fdebug(str(nono) + " detected " + str(subcnt) + " times.")
                 # segment '.' having a . by itself will denote the entire string which we don't want
-                if nono == '.':
+                elif nono == '.':
                     subname = re.sub('\.', ' ', subname)
                     nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
                 else:
@@ -133,33 +150,64 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #    subname = subname.replace('_', ' ')
         logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
         if modwatchcomic.lower() in subname.lower() or altsearchcomic.lower() in subname.lower():
-            if 'annual' in subname.lower():
-                #print ("it's an annual - unsure how to proceed")
-                continue
             comicpath = os.path.join(basedir, item)
             logger.fdebug( modwatchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)
             #print ("Comicsize:" + str(comicsize))
             comiccnt+=1
-            if modwatchcomic.lower() in subname.lower():
-                #logger.fdebug("we should remove " + str(nonocount) + " characters")                
-                #remove versioning here
-                if volrem != None:
-                    jtd_len = len(modwatchcomic) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #
-                else:
-                    jtd_len = len(modwatchcomic) + nonocount
-                if detectand:
-                    jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
-            elif altsearchcomic.lower() in subname.lower():
-                #remove versioning here
-                if volrem != None:
-                    jtd_len = len(altsearchcomic) + len(volrem) + nonocount + 1
-                else:
-                    jtd_len = len(altsearchcomic) + nonocount
-                if detectand: 
-                    jtd_len = jtd_len - 2
+
+            stann = 0
+            if 'annual' in subname.lower():
+                logger.fdebug("Annual detected - proceeding")
+                jtd_len = subname.lower().find('annual')
+            else:
+                if modwatchcomic.lower() in subname.lower():
+                    logger.fdebug("we should remove " + str(nonocount) + " characters")                
+
+                    findtitlepos = subname.find('-')
+                    if charpos != 0:
+                        logger.fdebug("detected " + str(len(charpos)) + " special characters")
+                        i=0
+                        while (i < len(charpos)):
+                            for i,j in enumerate(charpos):
+                                print i,j
+                                print subname
+                                print "digitchk: " + str(subname[j:])
+                                if j >= len(subname):
+                                    logger.fdebug("end reached. ignoring remainder.")
+                                    break
+                                elif subname[j:] == '-':
+                                    if i <= len(subname) and subname[i+1].isdigit():
+                                        logger.fdebug("negative issue detected.")
+                                        #detneg = "yes"
+                                elif j > findtitlepos:
+                                    logger.fdebug("special character appears outside of title - ignoring @ position: " + str(charpos[i]))
+                                    nonocount-=1
+                            i+=1
+
+                    #remove versioning here
+                    if volrem != None:
+                        jtd_len = len(modwatchcomic) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #
+                    else:
+                        jtd_len = len(modwatchcomic) + nonocount
+                    if detectand:
+                        jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
+                elif altsearchcomic.lower() in subname.lower():
+                    #remove versioning here
+                    if volrem != None:
+                        jtd_len = len(altsearchcomic) + len(volrem) + nonocount + 1
+                    else:
+                        jtd_len = len(altsearchcomic) + nonocount
+                    if detectand: 
+                        jtd_len = jtd_len - 2
 
             justthedigits = item[jtd_len:]
+
+            #remove the title if it appears
+            findtitle = justthedigits.find('-')
+            if findtitle > 0 and detneg == "no":
+                justthedigits = justthedigits[:findtitle]
+                logger.fdebug("removed title from name - is now : " + str(justthedigits))
 
             comiclist.append({
                  'ComicFilename':           item,
@@ -195,3 +243,8 @@ def validateAndCreateDirectory(dir, create=False):
                 logger.warn("Provided directory is blank, aborting")
                 return False
     return False
+
+
+def indices(string, char):
+    return [ i for i,c in enumerate(string) if c == char ]
+

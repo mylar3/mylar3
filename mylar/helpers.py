@@ -539,7 +539,23 @@ def updateComicLocation():
                 else:
                     folderformat = mylar.FOLDER_FORMAT
 
-                values = {'$Series':        dl['ComicName'],
+                #remove all 'bad' characters from the Series Name in order to create directories.
+                u_comicnm = dl['ComicName']
+                u_comicname = u_comicnm.encode('ascii', 'ignore').strip()
+                if ':' in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+                    comicdir = u_comicname
+                if ':' in comicdir:
+                    comicdir = comicdir.replace(':','')
+                if '/' in comicdir:
+                    comicdir = comicdir.replace('/','-')
+                if ',' in comicdir:
+                    comicdir = comicdir.replace(',','')
+                if '?' in comicdir:
+                    comicdir = comicdir.replace('?','')
+                else: comicdir = u_comicname
+
+
+                values = {'$Series':        comicdir,
                           '$Publisher':     re.sub('!','',dl['ComicPublisher']),
                           '$Year':          dl['ComicYear'],
                           '$series':        dl['ComicName'].lower(),
@@ -547,10 +563,11 @@ def updateComicLocation():
                           '$VolumeY':       'V' + str(dl['ComicYear']),
                           '$VolumeN':       comversion
                           }
+
                 if mylar.FFTONEWCOM_DIR:
                     #if this is enabled (1) it will apply the Folder_Format to all the new dirs
                     if mylar.FOLDER_FORMAT == '':
-                        comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
+                        comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, comicdir)
                     else:
                         first = replace_all(folderformat, values)                    
                         if mylar.REPLACE_SPACES:
@@ -559,7 +576,7 @@ def updateComicLocation():
                         comlocation = os.path.join(mylar.NEWCOM_DIR,first)
 
                 else:
-                    comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation'])
+                    comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, comicdir)
 
                 ctrlVal = {"ComicID":    dl['ComicID']}
                 newVal = {"ComicLocation": comlocation}
@@ -589,3 +606,64 @@ def cleanhtml(raw_html):
     flipflop = soup.renderContents()
     print flipflop
     return flipflop
+
+
+def issuedigits(issnum):
+    import db, logger
+    #print "issnum : " + str(issnum)
+    if issnum.isdigit():
+        int_issnum = int( issnum ) * 1000
+    else:
+        if 'au' in issnum.lower() and issnum[:1].isdigit():
+            int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
+        elif 'ai' in issnum.lower() and issnum[:1].isdigit():
+            int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+        elif u'\xbd' in issnum:
+            issnum = .5
+            int_issnum = int(issnum) * 1000
+        elif '.' in issnum or ',' in issnum:
+            if ',' in issnum: issnum = re.sub(',','.', issnum)
+            issst = str(issnum).find('.')
+            issb4dec = str(issnum)[:issst]
+            decis = str(issnum)[issst+1:]
+            if len(decis) == 1:
+                decisval = int(decis) * 10
+                issaftdec = str(decisval)
+            if len(decis) == 2:
+                decisval = int(decis)
+                issaftdec = str(decisval)
+            try:
+                int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 100)
+            except ValueError:
+                logger.error("This has no issue #'s for me to get - Either a Graphic Novel or one-shot.")
+                int_issnum = 999999999999999
+        else:
+            try:
+                x = float(issnum)
+                #validity check
+                if x < 0:
+                    #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
+                    int_issnum = (int(x)*1000) - 1
+                else: raise ValueError
+            except ValueError, e:
+                #logger.error(str(issnum) + "this has an alpha-numeric in the issue # which I cannot account for.")
+                int_issnum = 999999999999999
+    return int_issnum
+
+
+def checkthepub(ComicID):
+    import db, logger
+    myDB = db.DBConnection()
+    publishers = ['marvel', 'dc', 'darkhorse']
+    pubchk = myDB.action("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+    if pubchk is None:
+        logger.fdebug("No publisher information found to aid in determining series..defaulting to base check of 555 days.")
+        return mylar.BIGGIE_PUB
+    else:
+        for publish in publishers:
+            if publish in str(pubchk['ComicPublisher']).lower():
+                logger.fdebug("Biggie publisher detected - " + str(pubchk['ComicPublisher']))
+                return mylar.BIGGIE_PUB
+
+        logger.fdebug("Indie publisher detected - " + str(pubchk['ComicPublisher']))
+        return mylar.INDIE_PUB

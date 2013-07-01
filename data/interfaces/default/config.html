@@ -162,7 +162,7 @@
 	                    </div>
                                <legend>Comic Location</legend>
                                 <div>
-                                   <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Automatic folder creation happens BENEATH this path</small>
+                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Automatic folder creation happens BENEATH this path</small>
                                 </div>
                                 <div class="row">
                                         <label>Comic Location Path</label>
@@ -467,6 +467,21 @@
                                       <small>enter in the absolute path to the script</small>
                                 </div>                           
                 	</fieldset>
+                        <fieldset>
+                                <legend>Metadata Tagging</legend>
+                                <div class="row checkbox left clearfix">
+                                     <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
+                                     <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>You need to have ComicTagger and configparser installed</small>
+                                </div>
+                                <div class="config">
+                                        <div class="row">
+                                                <label>ComicTagger Path</label>
+                                                <input type="text" name="cmtagger_path" value="${config['cmtagger_path']}" size="30" />
+                                                <small>If left blank, will assume it's in root of mylar</small>
+                                        </div>
+                                </div>
+                        </fieldset>
+
                </td>
             </tr>
 		</table>
@@ -522,7 +537,7 @@
                                                 </select>
                                                 </div>
                                                 <div class="row checkbox">
-                                                   <input id="zero_level" type="checkbox" onclick="initConfigCheckbox($(this));" name="zero_level" value="1" ${config['zero_level']} /><label>Zero level Suppression</label>
+                                                  <input id="zero_level" type="checkbox" onclick="initConfigCheckbox($(this));" name="zero_level" value="1" ${config['zero_level']} /><label>Zero level Suppression</label>
                                                 </div>
                                                 <div class="row">
                                                 <label>Format</label>
@@ -802,6 +817,7 @@
                 initConfigCheckbox("#replace_spaces");
                 initConfigCheckbox("#use_minsize");
                 initConfigCheckbox("#use_maxsize");
+                initConfigCheckbox("#enable_meta");
                 initConfigCheckbox("#zero_level");
 	}
 	$(document).ready(function() {

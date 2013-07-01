@@ -216,6 +216,12 @@ NEWCOM_DIR = None
 FFTONEWCOM_DIR = 0
 OLDCONFIG_VERSION = None
 
+INDIE_PUB = 75
+BIGGIE_PUB = 55
+
+ENABLE_META = 0
+CMTAGGER_PATH = None
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -274,6 +280,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
+                ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
@@ -408,6 +415,12 @@ def initialize():
         ENABLE_PRE_SCRIPTS = bool(check_setting_int(CFG, 'General', 'enable_pre_scripts', 0))
         PRE_SCRIPTS = check_setting_str(CFG, 'General', 'pre_scripts', '')
         POST_PROCESSING = bool(check_setting_int(CFG, 'General', 'post_processing', 1))
+
+        ENABLE_META = bool(check_setting_int(CFG, 'General', 'enable_meta', 0))
+        CMTAGGER_PATH = check_setting_str(CFG, 'General', 'cmtagger_path', '')
+
+        INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
+        BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
 
         USE_SABNZBD = bool(check_setting_int(CFG, 'SABnzbd', 'use_sabnzbd', 0))
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
@@ -742,6 +755,10 @@ def config_write():
     new_config['General']['locmove'] = int(LOCMOVE)
     new_config['General']['newcom_dir'] = NEWCOM_DIR
     new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
+    new_config['General']['enable_meta'] = int(ENABLE_META)
+    new_config['General']['cmtagger_path'] = CMTAGGER_PATH
+    new_config['General']['indie_pub'] = INDIE_PUB
+    new_config['General']['biggie_pub'] = BIGGIE_PUB
 
     new_config['SABnzbd'] = {}
     new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
@@ -865,7 +882,7 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT)')
     conn.commit
     c.close
     #new
@@ -996,6 +1013,20 @@ def dbcheck():
     except:
         c.execute('ALTER TABLE nzblog ADD COLUMN SARC TEXT')
 
+    try:
+        c.execute('SELECT Location from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN Location TEXT')
+
+    try:
+        c.execute('SELECT ComicSize from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN ComicSize TEXT')
+
+    try:
+        c.execute('SELECT Int_IssueNumber from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN Int_IssueNumber INT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 

@@ -161,21 +161,42 @@ table#artist_table td#have { vertical-align: middle; }
 
 div#paddingheader { padding-top: 48px; font-size: 24px; font-weight: bold; text-align: center; }
 div#nopaddingheader { font-size: 24px; font-weight: bold; text-align: center; }
-table#issue_table { background-color: white; }
+table#issue_table { background-color: grey; width: 100%; padding: 10px; }
 
 table#issue_table th#select { vertical-align: middle; text-align: left; min-width: 10px; }
+table#issue_table th#int_issuenumber { text-align: left; min-width: 0px }
 table#issue_table th#issuenumber { text-align: left; min-width: 20px; }
 table#issue_table th#issuename { text-align: center; min-width: 200px; }
-table#issue_table th#reldate { text-align: center; min-width: 20px; }
-table#issue_table th#status { text-align: center; min-width: 20px; }
-table#issue_table th#type { text-align: center; min-width: 20px; }
+table#issue_table th#reldate { text-align: center; min-width: 10px; }
+table#issue_table th#status { text-align: center; min-width: 10px; }
+table#issue_table th#options { text-align: center; min-width: 20px; }
 
 table#issue_table td#select { vertical-align: middle; text-align: left; }
+table#issue_table td#int_issuenumber { vertical-align: middle; text-align: left; }
 table#issue_table td#issuenumber { vertical-align: middle; text-align: left; }
 table#issue_table td#issuename { vertical-align: middle; text-align: center; font-size: 9px; }
 table#issue_table td#reldate { vertical-align: middle; text-align: center; }
 table#issue_table td#status { vertical-align: middle; text-align: center; font-size: 13px; }
-table#issue_table td#type { vertical-align: middle; text-align: center; }
+table#issue_table td#options { vertical-align: middle; text-align: center; }
+
+table#annual_table { background-color: white; width: 100%; padding: 10px; }
+
+table#annual_table th#select { vertical-align: middle; text-align: left; min-width: 10px; }
+table#annual_table th#int_issuenumber { text-align: left; min-width: 0px }
+table#annual_table th#issuenumber { text-align: left; min-width: 20px; }
+table#annual_table th#issuename { text-align: center; min-width: 200px; }
+table#annual_table th#reldate { text-align: center; min-width: 10px; }
+table#annual_table th#status { text-align: center; min-width: 10px; }
+table#annual_table th#options { text-align: center; min-width: 20px; }
+
+table#annual_table td#select { vertical-align: middle; text-align: left; }
+table#annual_table td#int_issuenumber { vertical-align: middle; text-align: left; }
+table#annual_table td#issuenumber { vertical-align: middle; text-align: left; }
+table#annual_table td#issuename { vertical-align: middle; text-align: center; font-size: 9px; }
+table#annual_table td#reldate { vertical-align: middle; text-align: center; }
+table#annual_table td#status { vertical-align: middle; text-align: center; font-size: 13px; }
+table#annual_table td#options { vertical-align: middle; text-align: center; }
+
 
 img.albumArt { float: left; padding-right: 5px; }
 div#albumheader { padding-top: 48px; height: 200px; }
