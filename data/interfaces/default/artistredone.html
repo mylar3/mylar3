@@ -62,7 +62,7 @@
                           <img src="${comic['ComicImage']}" alt="" height="400" width="263" />
                        </div>
                    </fieldset>
-                     </td>
+                 </td>
                  <td width="100%" padding="10">
                        %if comic['ComicPublisher'] == 'DC Comics':
                         <img src="interfaces/default/images/publisherlogos/logo-dccomics.png" align="right" alt="DC" height="50" width="50" />
@@ -131,7 +131,13 @@
                                 </div>
                                 <div>
                                    <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
-                                </div>                         </fieldset>
+                                </div>
+                                <div>
+                                   <label><big>Description:</big></label><br/>
+                              <!-- <norm>${comic['Description']}</norm> -->
+                                </div>
+                         </fieldset>
+
             	</td>
             </tr>
         </table>
@@ -252,6 +258,19 @@
             </table>
            </div>
  </div>
+
+      %if annuals: 
+
+        <div id="itabs">
+                <ul>
+                            <li><a href="#itabs-1">I</a></li>
+                            <li><a href="#itabs-2">A</a></li>
+                            <li><a href="#itabs-3">S</a></li>
+                </ul>
+      %endif
+
+
+
    <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;">
     <div style="padding-bottom: 5px;">
         <label for="Wanted" class="checkbox inline Wanted"><input type="checkbox" id="Wanted" checked="checked" /> Wanted: <b>${isCounts['Wanted']}</b></label>
@@ -261,7 +280,10 @@
     </div>
    </div>
 
- <div class="table_wrapper">
+   %if annuals: 
+       <div id="itabs-1">
+   %endif
+     <div class="table_wrapper">
         <form action="markissues" method="get" id="markissues">
         <div id="markissue">Mark selected issues as
                 <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
@@ -280,6 +302,7 @@
                 <thead>
                         <tr>
                                 <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="int_issuenumber">IntIssNum</th>
                                 <th id="issuenumber">Number</th>
                                 <th id="issuename">Name</th>
                                 <th id="reldate">Date</th>
@@ -306,6 +329,7 @@
                         <tr class="${issue['Status']} grade${grade}">
 
                                 <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" value="${issue['IssueID']}"/></td>
+                                <td id="int_issuenumber">${issue['Int_IssueNumber']}</td>
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
                                 <td id="issuename">${issue['IssueName']}</td>
                                 <td id="reldate">${issue['IssueDate']}</td>
@@ -351,9 +375,24 @@
                         </tr>
                 %endfor
                 </tbody>
-                </table>
-                %if annuals:
-                  <table class="display" id="issue_table">
+                </table> 
+             </form>
+             </div>
+           %if annuals:
+             </div>
+             <div id="itabs-2">
+
+              <table id="annual_table" class="display">
+
+           <!--   <div class="ui-widget">
+                    <label for="annseries">Series: </label>
+                      <input id="annseries" />
+                  </div>
+                  <div class="ui-widget" style="margin-top: 2em; font-family: Arial;">
+                    Result:
+                    <div id="log" style="height: 200px; width: 300px; overflow: auto;" class="ui-widget-content"></div>
+                  </div>
+           -->
                    <thead>
                         <tr>
                                 <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
@@ -366,12 +405,28 @@
                    </thead>
                    <tbody>           
                    %for annual in annuals:
+                        <%
+                                if annual['Status'] == 'Skipped':
+                                        grade = 'Z'
+                                elif annual['Status'] == 'Wanted':
+                                        grade = 'X'
+                                elif annual['Status'] == 'Snatched':
+                                        grade = 'C'
+                                elif annual['Status'] == 'Downloaded':
+                                        grade = 'A'
+                                elif annual['Status'] == 'Archived':
+                                        grade = 'A'
+                                else:
+                                        grade = 'A'
+                        %>
+                        <tr class="${annual['Status']} grade${grade}">
+
                             <tr>
                                 <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}"/></td>
                                 <td id="issuenumber">${annual['Issue_Number']}</td>
                                 <td id="issuename">${annual['IssueName']}</td>
                                 <td id="reldate">${annual['IssueDate']}</td>
-                                <td id="status">${annual['Status']}</td>
+                                <td id="status">${annual['Status']}
                                 %if annual['Status'] == 'Downloaded' or annual['Status'] == 'Archived':
                                     <%Csize = mylar.helpers.human_size(annual['ComicSize'])%>
                                     <a href="#" title="${annual['Location']} (${Csize})"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
@@ -379,7 +434,7 @@
                                 </td>
                                 <td id="options">
                                 %if annual['Status'] == 'Skipped':
-                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=want',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=want_ann',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                 %elif (annual['Status'] == 'Wanted'):
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                 %elif (annual['Status'] == 'Snatched'):
@@ -397,10 +452,9 @@
                    %endfor
                    </tbody>
                   </table>
-                %endif
-        </div>
-        </form>
-   </div>
+               </div>
+            </div>
+             %endif
 </%def>
 
 <%def name="headIncludes()">
@@ -414,8 +468,63 @@
 
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.min.js"></script>
-        <script>
+        <style>
+        .ui-autocomplete-loading {
+          background: white url('interfaces/default/images/loader_black.gif') right center no-repeat;
+        }
+        #annseries{ width: 25em; }
+        </style>
 
+        <script>
+        $(function() {
+          function log( message ) {
+            $( "<div>" ).text( message ).prependTo( "#log" );
+            $( "#log" ).scrollTop( 0 );
+          }
+
+          $( "#annseries" ).autocomplete({
+            source: function( request, response ) {
+              $.ajax({
+                url: "http://api.comicvine.com/search?",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: {
+                  resources: "volume",
+                  format: "json",
+                  api_key: "583939a3df0a25fc4e8b7a29934a13078002dc27",
+                  query: request.term
+                },
+                success: function( data ) {
+                  alert("success");
+                  response( $.map( data.results, function( item ) {
+                    return {
+                      label: item.name + (item.id),
+                      value: item.name
+                    }
+                  }));
+                },
+                error: function( data ) {
+                    alert("error");
+                }
+              });
+            },
+            minLength: 2,
+            select: function( event, ui ) {
+              log( ui.item ?
+                "Selected: " + ui.item.label :
+                "Nothing selected, input was " + this.value);
+            },
+            open: function() {
+              $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
+            },
+            close: function() {
+              $( this ).removeClass( "ui-corner-top" ).addClass( "ui-corner-all" );
+            }
+          });
+        });
+        </script>
+
+        <script>
         // show/hide different types of rows when the checkboxes are changed
         $("#checkboxControls input").change(function(e){
             var whichClass = $(this).attr('id')
@@ -473,6 +582,7 @@
 
                 $(function() {
                         $( "#tabs" ).tabs();
+                        $( "#itabs" ).tabs();
                 });
                 initActions();
 
@@ -480,7 +590,10 @@
                         {
                                "bDestroy": true,
                                "aoColumnDefs": [
-                                    { 'bSortable': false, 'aTargets': [ 0, 2 ] }
+                                    { 'bSortable': false, 'aTargets': [ 0, 3 ] },
+                                    { 'bVisible': false, 'aTargets': [1] },
+                                    { 'sType': 'numeric', 'aTargets': [1] },
+                                    { 'iDataSort': [1], 'aTargets': [2] }
                                ],
                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
                                "oLanguage": {
@@ -492,13 +605,15 @@
                                        "sSearch": ""},
                                "bStateSave": true,
                                "iDisplayLength": 25,
+<!--                               "sDom": '<"top"lf<"clear">p>rt<"clear"<"F"ip>>', -->
+<!--                               "sDom": '<"H"lfr>t<"F"ip>',  -->
                                "sPaginationType": "full_numbers",
-                               "aaSorting": [[1, 'desc'],[3,'desc']]
+                               "aaSorting": [[2, 'desc'],[4,'desc']]
                         });
-                        resetFilters("issues");
+                        resetFilters("issue");
                         setTimeout(function(){
                             initFancybox();
-                        },1500)
+                        },1500);
         }
 
         $(document).ready(function() {
