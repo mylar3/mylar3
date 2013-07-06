@@ -18,9 +18,24 @@
 	<div id="paddingheader">
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_history.png" alt="History"/>History</h1>
 	</div>
+
+        <form action="markissues" method="get" id="markissues">
+        <div id="markissue">Mark selected issues as
+                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
+                        <option disabled="disabled" selected="selected">Choose...</option>
+                        <option value="Retry">Retry</option>
+                        <option value="Clear">Clear</option>
+                </select>
+                selected issues
+                <input type="hidden" value="Go">
+        </div>
+
+     <div class="table_wrapper" id="history_table_wrapper">
+
 	<table class="display" id="history_table">
 		<thead>
 			<tr>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
 				<th id="dateadded">Date Added</th>
 				<th id="filename">Comic Name</th>
                                 <th id="issue">Issue</th>
@@ -42,6 +57,7 @@
 					
 			%>
 			<tr class="grade${grade}">
+                                <td id="select"><input type="checkbox" name="${item['IssueID']}" class="checkbox" /></td>
 				<td id="dateadded">${item['DateAdded']}</td>
 				<td id="filename">${item['ComicName']}</td>
                                 <td id="issue">${item['Issue_Number']}</td>
@@ -51,6 +67,9 @@
 		%endfor
 		</tbody>
 	</table>
+      </div>
+
+        </form>
 </%def>
 
 <%def name="headIncludes()">

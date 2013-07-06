@@ -442,7 +442,7 @@ class WebInterface(object):
             newaction = action
         for IssueID in args:
             #print ("issueID: " + str(IssueID) + "... " + str(newaction))
-            if IssueID is None or 'issue_table' in IssueID:
+            if IssueID is None or 'issue_table' in IssueID or 'history_table' in IssueID:
                 continue
             else:
                 mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
@@ -455,11 +455,14 @@ class WebInterface(object):
                     logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
-                elif action == 'Wanted':
+                elif action == 'Wanted' or action == 'Retry':
+                    if action == 'Retry': newaction = 'Wanted'
                     logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
                     issuesToAdd.append(IssueID)
                 elif action == 'Skipped':
                     logger.info(u"Marking " + str(IssueID) + " as Skipped")
+                elif action == 'Clear':
+                    myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
                 controlValueDict = {"IssueID": IssueID}
                 newValueDict = {"Status": newaction}
                 myDB.upsert("issues", newValueDict, controlValueDict)

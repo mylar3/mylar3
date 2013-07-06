@@ -40,7 +40,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
     watchmatch = {}
     comiclist = []
     comiccnt = 0
-    not_these = ['\#',
+    not_these = ['#',
                ',',
                '\/',
                ':',
@@ -181,8 +181,14 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                                         logger.fdebug("negative issue detected.")
                                         #detneg = "yes"
                                 elif j > findtitlepos:
-                                    logger.fdebug("special character appears outside of title - ignoring @ position: " + str(charpos[i]))
-                                    nonocount-=1
+                                    if subname[j:] == '#':
+                                        if subname[i+1].isdigit():
+                                            logger.fdebug("# detected denoting issue#, ignoring.")
+                                        else: 
+                                            nonocount-=1
+                                    else:
+                                        logger.fdebug("special character appears outside of title - ignoring @ position: " + str(charpos[i]))
+                                        nonocount-=1
                             i+=1
 
                     #remove versioning here

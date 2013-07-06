@@ -255,7 +255,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         # let's remove the non-standard characters here.
         u_comicnm = comic['ComicName']
         u_comicname = u_comicnm.encode('ascii', 'ignore').strip()
-        dirbad = [':',',','/','?','!'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+        dirbad = [':',',','/','?','!','\''] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
         comicdir = u_comicname
         for dbd in dirbad:
             if dbd in u_comicname:

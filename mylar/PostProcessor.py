@@ -574,11 +574,19 @@ class PostProcessor(object):
             if mylar.ENABLE_META:
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug("Metatagging enabled - proceeding...")
-                import cmtagmylar
-                if ml is None:
-                    pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid)
-                else:
-                    pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, manual="yes", filename=ml['ComicLocation'])
+                pcheck = "pass"
+                try:
+                    import cmtagmylar
+                    if ml is None:
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid)
+                    else:
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, manual="yes", filename=ml['ComicLocation'])
+
+                except ImportError:
+                    logger.fdebug("comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/")
+                    logger.fdebug("continuing with PostProcessing, but I'm not using metadata.")
+                    pcheck = "fail"
+                
                 if pcheck == "fail":
                     self._log("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
                     logger.fdebug("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
