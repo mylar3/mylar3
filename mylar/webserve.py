@@ -65,7 +65,7 @@ class WebInterface(object):
         return serve_template(templatename="index.html", title="Home", comics=comics)
     home.exposed = True
 
-    def artistPage(self, ComicID):
+    def comicDetails(self, ComicID):
         myDB = db.DBConnection()
         comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         if comic is None:
@@ -137,9 +137,9 @@ class WebInterface(object):
         if mylar.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
         else: annuals = None
-
-        return serve_template(templatename="artistredone.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals)
-    artistPage.exposed = True
+        print "blah"
+        return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals)
+    comicDetails.exposed = True
 
     def searchit(self, name, issue=None, mode=None, type=None):
         if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
@@ -264,8 +264,42 @@ class WebInterface(object):
                         return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
         #print ("imported is: " + str(imported))
         threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
+
+    def wanted_Export(self):
+        import unicodedata
+        myDB = db.DBConnection()
+        wantlist = myDB.action("SELECT * FROM issues WHERE Status='Wanted' AND ComicName NOT NULL")
+        if wantlist is None:
+            logger.info("There aren't any issues marked as Wanted. Aborting Export.")
+            return
+        #write it a wanted_list.csv
+        logger.info("gathered data - writing to csv...")
+        except_file = os.path.join(mylar.DATA_DIR,"wanted_list.csv")
+        if os.path.exists(except_file):
+            try:
+                 os.remove(except_file)
+            except (OSError,IOError):
+                pass
+
+        wcount=0
+
+        with open(str(except_file), 'w+') as f:
+            headrow = "SeriesName,SeriesYear,IssueNumber,IssueDate,ComicID,IssueID"
+            headerline = headrow.decode('utf-8','ignore')
+            f.write('%s\n' % (headerline.encode('ascii','replace').strip()))
+            for want in wantlist:
+                wantcomic = myDB.action("SELECT * FROM comics WHERE ComicID=?", [want['ComicID']]).fetchone()
+                exceptln = wantcomic['ComicName'].encode('ascii', 'replace') + "," + str(wantcomic['ComicYear']) + "," + str(want['Issue_Number']) + "," + str(want['IssueDate']) + "," + str(want['ComicID']) + "," + str(want['IssueID'])
+                logger.fdebug(exceptln)
+                wcount+=1
+                f.write('%s\n' % (exceptln.encode('ascii','replace').strip()))
+
+        logger.info("Successfully wrote to csv file " + str(wcount) + " entries from your Wanted list.")
+
+        raise cherrypy.HTTPRedirect("home")
+    wanted_Export.exposed = True
 
     def from_Exceptions(self, comicid, gcdid, comicname=None, comicyear=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
         import unicodedata
@@ -295,7 +329,7 @@ class WebInterface(object):
             threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
         else:
             threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     from_Exceptions.exposed = True
 
     def GCDaddComic(self, comicid, comicname=None, comicyear=None, comicissues=None, comiccover=None, comicpublisher=None):
@@ -327,7 +361,7 @@ class WebInterface(object):
                         'Total' : comicissues }
         myDB.upsert("comics", newValueDict, controlValueDict)
         threading.Thread(target=importer.GCDimport, args=[gcomicid]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % gcomicid)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % gcomicid)
     GCDaddComic.exposed = True
 
     def post_process(self, nzb_name, nzb_folder):
@@ -338,7 +372,7 @@ class WebInterface(object):
         return result
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
         #return serve_template(templatename="postprocess.html", title="postprocess")
-        #raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     post_process.exposed = True
 
     def pauseArtist(self, ComicID):
@@ -347,7 +381,7 @@ class WebInterface(object):
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Paused'}
         myDB.upsert("comics", newValueDict, controlValueDict)
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     pauseArtist.exposed = True
     
     def resumeArtist(self, ComicID):
@@ -356,7 +390,7 @@ class WebInterface(object):
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Active'}
         myDB.upsert("comics", newValueDict, controlValueDict)
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     resumeArtist.exposed = True
     
     def deleteArtist(self, ComicID):
@@ -411,7 +445,7 @@ class WebInterface(object):
             else:
                 mylar.importer.addComictoDB(ComicID,mismatch)
 
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     refreshArtist.exposed=True  
 
     def editIssue(self, ComicID):
@@ -419,7 +453,7 @@ class WebInterface(object):
         comic = myDB.action('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
         title = 'Now Editing ' + comic['ComicName']
         return serve_template(templatename="editcomic.html", title=title, comic=comic)
-        #raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" & ComicID)   
+        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" & ComicID)   
     editIssue.exposed=True
  
     #def chkTorrents(self, ComicName, pickfeed):
@@ -466,13 +500,14 @@ class WebInterface(object):
                 controlValueDict = {"IssueID": IssueID}
                 newValueDict = {"Status": newaction}
                 myDB.upsert("issues", newValueDict, controlValueDict)
+                print "updated...to " + str(newaction)
         if len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
         if len(issuesToAdd) > 0:
             logger.debug("Marking issues: %s as Wanted" % (issuesToAdd))
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
         #if IssueID:
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % mi['ComicID'])
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % mi['ComicID'])
         #else:
         #    raise cherrypy.HTTPRedirect("upcoming")
     markissues.exposed = True
@@ -560,14 +595,14 @@ class WebInterface(object):
         AlternateSearch = miy['AlternateSearch']
         UseAFuzzy = miy['UseFuzzy']
         ComicVersion = miy['ComicVersion']
-        foundcom = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode)
+        foundcom, nzb_pr = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
                 logger.info("passing to updater.")
-                return updater.foundsearch(ComicID, IssueID, mode) 
+                return updater.foundsearch(ComicID, IssueID, mode)
         if ComicID:
-            raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+            raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
         else:
             raise cherrypy.HTTPRedirect(redirect)
     queueissue.exposed = True
@@ -579,7 +614,7 @@ class WebInterface(object):
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Skipped'}
         myDB.upsert("issues", newValueDict, controlValueDict)
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     unqueueissue.exposed = True
     
     def archiveissue(self, IssueID):
@@ -589,7 +624,7 @@ class WebInterface(object):
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Archived'}
         myDB.upsert("issues", newValueDict, controlValueDict)
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % issue['ComicID'])
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % issue['ComicID'])
     archiveissue.exposed = True
 
 
@@ -690,7 +725,7 @@ class WebInterface(object):
         if len(issuestowanted) > 0 :
             logger.info("Marking issues: %s as Wanted" % issuesnumwant)
             threading.Thread(target=search.searchIssueIDList, args=[issuestowanted]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % [comicid])
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
     skipped2wanted.exposed = True
 
     def manualRename(self, comicid):
@@ -826,7 +861,7 @@ class WebInterface(object):
 
     def forceRescan(self, ComicID):
         threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     forceRescan.exposed = True
     
     def checkGithub(self):
@@ -926,7 +961,7 @@ class WebInterface(object):
             myDB.upsert("readlist", newval, ctrlval)
             logger.info("Added " + str(readlist['ComicName']) + " # " + str(readlist['Issue_Number']) + " to the Reading list.")
  
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % readlist['ComicID'])
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % readlist['ComicID'])
     addtoreadlist.exposed = True
 
     def importReadlist(self,filename):
@@ -1259,7 +1294,7 @@ class WebInterface(object):
             shutil.copy2(issuePATH, dstPATH)
         except IOError as e:
             logger.error("Could not copy " + str(issuePATH) + " to " + str(dstPATH) + ". Copy to Cache terminated.")
-            raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % comicid)
+            raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
         logger.debug("sucessfully copied to cache...Enabling Download link")
 
         controlValueDict = {'IssueID': IssueID}
@@ -1638,6 +1673,7 @@ class WebInterface(object):
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
                     "use_newznab" : helpers.checked(mylar.NEWZNAB),
                     "newznab_host" : mylar.NEWZNAB_HOST,
+                    "newznab_name" : mylar.NEWZNAB_NAME,
                     "newznab_api" : mylar.NEWZNAB_APIKEY,
                     "newznab_enabled" : helpers.checked(mylar.NEWZNAB_ENABLED),
                     "extra_newznabs" : mylar.EXTRA_NEWZNABS,
@@ -1800,7 +1836,7 @@ class WebInterface(object):
             filechecker.validateAndCreateDirectory(com_location, True)
 
         myDB.upsert("comics", newValues, controlValueDict)
-        raise cherrypy.HTTPRedirect("artistPage?ComicID=%s" % ComicID)
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     comic_config.exposed = True
 
     def readOptions(self, read2filename, storyarcdir):
@@ -1822,7 +1858,7 @@ class WebInterface(object):
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         use_sabnzbd=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
         use_nzbget=0, nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None,
-        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_apikey=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
         enable_meta=0, cmtagger_path=None, 
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None,

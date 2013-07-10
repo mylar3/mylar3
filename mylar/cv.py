@@ -265,5 +265,5 @@ def drophtml(html):
     soup = BeautifulSoup(html)
 
     text_parts = soup.findAll(text=True)
-    print ''.join(text_parts)
+    #print ''.join(text_parts)
     return ''.join(text_parts)

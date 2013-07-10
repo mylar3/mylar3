@@ -593,7 +593,7 @@ class PostProcessor(object):
                 else:
                     otofilename = pcheck
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
-                    logger.fdebug("Sucessfully wrote metadata to .cbz (" + otofilename + ") - Continuing..")
+                    logger.fdebug("Sucessfully wrote metadata to .cbz (" + str(otofilename) + ") - Continuing..")
             #Run Pre-script
 
             if mylar.ENABLE_PRE_SCRIPTS:

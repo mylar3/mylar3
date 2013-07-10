@@ -176,7 +176,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             #print "annualyear: " + str(annualval['AnnualYear'])
         logger.fdebug("annualyear:" + str(annualyear))
         sresults = mb.findComic(annComicName, mode, issue=None)
-        #logger.fdebug("sresults : " + str(sresults))
+        logger.fdebug("sresults : " + str(sresults))
 
         type='comic'
 
@@ -577,20 +577,20 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             #---NEW.code
                 try:
                     firstval = issued['issuechoice'][n]
-                    print firstval
+                    #print firstval
                 except IndexError:
                     break
                 cleanname = helpers.cleanName(firstval['Issue_Name'])
                 issid = str(firstval['Issue_ID'])
                 issnum = firstval['Issue_Number']
-                print ("issnum: " + str(issnum))
+                #print ("issnum: " + str(issnum))
                 issname = cleanname
                 issdate = str(firstval['Issue_Date'])
                 if issnum.isdigit():
                     int_issnum = int( issnum ) * 1000
                 else:
                     if 'a.i.' in issnum.lower(): issnum = re.sub('\.', '', issnum)
-                    print str(issnum)
+                    #print str(issnum)
                     if 'au' in issnum.lower():
                         int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
                     elif 'ai' in issnum.lower():
@@ -656,10 +656,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                                 }
 
                 if iss_exists:
-                    print ("Existing status : " + str(iss_exists['Status']))
+                    #print ("Existing status : " + str(iss_exists['Status']))
                     newValueDict['Status'] = iss_exists['Status']
                 else:
-                    print "issue doesn't exist in db."
+                    #print "issue doesn't exist in db."
                     if mylar.AUTOWANT_ALL:
                         newValueDict['Status'] = "Wanted"
                     elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:

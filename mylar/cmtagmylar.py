@@ -33,14 +33,14 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     if platform.system() == "Windows":
         (x, y) = platform.architecture()
         if x == "64bit":
-            comictagger_cmd = "C:\Program Files (x86)\ComicTagger\comictagger.exe"
+            comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
       # http://www.win-rar.com/download.html
         else:
-            comictagger_cmd = "C:\Program Files\ComicTagger\comictagger.exe"
+            comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
         unrar_cmd =       "C:\Program Files\WinRAR\UnRAR.exe"
     
     elif platform.system() == "Darwin":  #Mac OS X
-        comictagger_cmd = "/Applications/ComicTagger.app/Contents/MacOS/ComicTagger"
+        comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH)
         unrar_cmd =       "/usr/local/bin/unrar"
     
     else:

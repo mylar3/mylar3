@@ -38,7 +38,7 @@
 		%for issue in issues:
 			<tr class="gradeZ">
 				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
-				<td id="comicname"><a href="artistPage?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
+				<td id="comicname"><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
 				<td id="issuenumber"><a href="albumPage?IssueID=${issue['IssueID']}">${issue['Issue_Number']}</a></td>
 				<td id="reldate">${issue['IssueDate']}</td>
 			</tr>
@@ -64,7 +64,7 @@
 		<tbody>
 		%for upcome in upcoming:
 			<tr class="gradeZ">
-				<td id="comicname"><a href="artistPage?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
+				<td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
 				<td id="issuenumber"><a href="albumPage?IssueID=${upcome['ComicID']}">${upcome['IssueNumber']}</a></td>
 				<td id="reldate">${upcome['IssueDate']}</td>
 				<td id="status">${upcome['Status']}</td>

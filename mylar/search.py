@@ -85,7 +85,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
                 newznab_hosts.append(newznab_host)              
-                nzbprovider.append('newznab')
+                if newznab_host[3] is None: 
+                    nzbprovider.append('newznab')
+                else:
+                    nzbprovider.append(newznab_host[3])
                 newznabs+=1
                 logger.fdebug("newznab host:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[2]))
 
@@ -193,8 +196,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         if nzbpr >= 0 and findit != 'yes':
             logger.info(u"More than one search provider given - trying next one.")
         # ----
-        if findit == 'yes': return findit
-    return findit
+        if findit == 'yes': return findit, nzbprov
+    return findit, nzbprov
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None):
 

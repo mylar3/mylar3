@@ -275,7 +275,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None):
     #print newValue
     myDB.upsert("nzblog", newValue, controlValue)
 
-def foundsearch(ComicID, IssueID, mode=None, down=None):
+def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -305,8 +305,9 @@ def foundsearch(ComicID, IssueID, mode=None, down=None):
 
         # update the snatched DB
         snatchedupdate = {"IssueID":     IssueID,
-                          "Status":      "Snatched"
-                          }
+                          "Status":      "Snatched"}#,
+#                          "Provider":    Provider
+#                          }
         if mode == 'want_ann':
             IssueNum = "Annual " + issue['Issue_Number']
         else:
@@ -326,8 +327,9 @@ def foundsearch(ComicID, IssueID, mode=None, down=None):
             IssueNum = issue['Issue_Number']
 
         snatchedupdate = {"IssueID":     IssueID,
-                          "Status":      "Downloaded"
-                          }
+                          "Status":      "Downloaded"}#,
+#                          "Provider":    Provider
+#                          }
         newsnatchValues = {"ComicName":       comic['ComicName'],
                            "ComicID":         ComicID,
                            "Issue_Number":    IssueNum,
@@ -468,8 +470,8 @@ def forceRescan(ComicID,archive=None):
 
 
                     if som+1 < len(fcnew) and len(fcnew[som+1]) == 2:
-                        print "fcnew[som+1]: " + str(fcnew[som+1])
-                        print "fcnew[som]: " + str(fcnew[som])
+                        #print "fcnew[som+1]: " + str(fcnew[som+1])
+                        #print "fcnew[som]: " + str(fcnew[som])
                         if 'au' in fcnew[som+1].lower():
                             #if the 'AU' is in 005AU vs 005 AU it will yield different results.
                             fcnew[som] = fcnew[som] + 'AU'

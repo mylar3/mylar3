@@ -67,7 +67,7 @@
 			<tr class="grade${grade}">
 				<td id="select"><input type="checkbox" name="${comic['ComicID']}" class="checkbox" /></td>
 				<td id="albumart"><div><img src="${comic['ComicImage']}" height="75" width="50"></div></td>
-				<td id="name"><span title="${comic['ComicSortName']}"></span><a href="artistPage?ComicID=${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a></td>
+				<td id="name"><span title="${comic['ComicSortName']}"></span><a href="comicDetails?ComicID=${comic['ComicID']}">${comic['ComicName']} (${comic['ComicYear']})</a></td>
 				<td id="status">${comic['Status']}</td>	
 				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
                                 <td id="publisher">${comic['ComicPublisher']}</td>

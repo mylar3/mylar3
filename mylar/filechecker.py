@@ -170,9 +170,9 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                         i=0
                         while (i < len(charpos)):
                             for i,j in enumerate(charpos):
-                                print i,j
-                                print subname
-                                print "digitchk: " + str(subname[j:])
+                                #print i,j
+                                #print subname
+                                #print "digitchk: " + str(subname[j:])
                                 if j >= len(subname):
                                     logger.fdebug("end reached. ignoring remainder.")
                                     break
