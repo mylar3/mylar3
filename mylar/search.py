@@ -437,10 +437,29 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             else:
                 for entry in bb['entries']:
                     logger.fdebug("checking search result: " + str(entry['title']))
-                    tmpsz = entry.enclosures[0]
-                    comsize_b = tmpsz['length']
-                    comsize_m = helpers.human_size(comsize_b)
-                    logger.fdebug("size given as: " + str(comsize_m))
+                    if nzbprov != "experimental":
+                        #Experimental already has size constraints done.
+                        tmpsz = entry.enclosures[0]
+                        comsize_b = tmpsz['length']
+                        comsize_m = helpers.human_size(comsize_b)
+                        logger.fdebug("size given as: " + str(comsize_m))
+#----size constraints.
+                        #if it's not within size constaints - dump it now and save some time.
+                        logger.fdebug("size : " + str(comsize_m))
+                        if mylar.USE_MINSIZE:
+                            conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
+                            logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
+                            if int(conv_minsize) > int(comsize_b):
+                                logger.fdebug("Failure to meet the Minimum size threshold - skipping")
+                                continue
+                        if mylar.USE_MAXSIZE:
+                            conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
+                            logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
+                            if int(comsize_b) > int(conv_maxsize):
+                                logger.fdebug("Failure to meet the Maximium size threshold - skipping")
+                                continue
+
+# -- end size constaints.
 
                     thisentry = str(entry['title'])
                     logger.fdebug("Entry: " + str(thisentry))
@@ -466,23 +485,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("invalid nzb and/or cover only - skipping.")
                         cleantitle = "abcdefghijk 0 (1901).cbz"
                         continue
-#----size constraints.
-                    #if it's not within size constaints - dump it now and save some time.
-                    logger.fdebug("size : " + str(comsize_m))
-                    if mylar.USE_MINSIZE:
-                        conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
-                        logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
-                        if int(conv_minsize) > int(comsize_b):
-                            logger.fdebug("Failure to meet the Minimum size threshold - skipping")
-                            continue
-                    if mylar.USE_MAXSIZE:
-                        conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
-                        logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
-                        if int(comsize_b) > int(conv_maxsize):
-                            logger.fdebug("Failure to meet the Maximium size threshold - skipping")
-                            continue
 
-# -- end size constaints.
                     if done:
                         break
                 #let's narrow search down - take out year (2010), (2011), etc
