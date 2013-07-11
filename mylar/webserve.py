@@ -728,6 +728,14 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
     skipped2wanted.exposed = True
 
+    def annualDelete(self, comicid):
+        myDB = db.DBConnection()
+        myDB.action("DELETE FROM annuals WHERE ComicID=?", [comicid])
+        logger.fdebug("Deleted all annuals from DB for ComicID of " + str(comicid))
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
+
+    annualDelete.exposed = True
+
     def manualRename(self, comicid):
         if mylar.FILE_FORMAT == '':
             logger.error("You haven't specified a File Format in Configuration/Advanced")

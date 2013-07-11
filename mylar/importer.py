@@ -187,7 +187,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             num_res = 0
             while (num_res < len(sresults)):
                 sr = sresults[num_res]
-                if 'paperback' in sr['description'] or 'collecting' in sr['description']:
+                #logger.fdebug("description:" + sr['description'])
+                if 'paperback' in sr['description'] or 'collecting' in sr['description'] or 'reprints' in sr['description'] or 'collected' in sr['description']:
                     logger.fdebug("tradeback/collected edition detected - skipping " + str(sr['comicid']))
                 else:
                     if comicid in sr['description']:

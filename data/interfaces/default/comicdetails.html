@@ -19,7 +19,9 @@
                         %else:
                                 <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} paused">Pause Comic</a>
                         %endif
-
+                        %if annuals:
+                                <a id="menu_link_delete" href="annualDelete?comicid=${comic['ComicID']}">Delete Annuals</a>
+                        %endif
 		</div>
 	</div>
 </%def>

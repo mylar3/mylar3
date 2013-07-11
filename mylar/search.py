@@ -85,10 +85,15 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[2] == '1' or newznab_host[2] == 1:
                 newznab_hosts.append(newznab_host)              
-                if newznab_host[3] is None: 
+                try:
+                    if newznab_host[3] is None:
+                        nzbprovider.append('newznab')
+                    else:
+                        nzbprovider.append(newznab_host[3])
+                except:
                     nzbprovider.append('newznab')
-                else:
-                    nzbprovider.append(newznab_host[3])
+                    logger.error("newznab name not given for " + str(newznab_host[0]) + ". Defaulting name to newznab.")
+
                 newznabs+=1
                 logger.fdebug("newznab host:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[2]))
 
@@ -432,6 +437,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             else:
                 for entry in bb['entries']:
                     logger.fdebug("checking search result: " + str(entry['title']))
+                    tmpsz = entry.enclosures[0]
+                    comsize_b = tmpsz['length']
+                    comsize_m = helpers.human_size(comsize_b)
+                    logger.fdebug("size given as: " + str(comsize_m))
+
                     thisentry = str(entry['title'])
                     logger.fdebug("Entry: " + str(thisentry))
                     cleantitle = re.sub('[_/.]', ' ', str(entry['title']))
@@ -457,20 +467,21 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         cleantitle = "abcdefghijk 0 (1901).cbz"
                         continue
 #----size constraints.
-                #if it's not within size constaints - dump it now and save some time.
-#                    logger.fdebug("size : " + str(entry['size']))
-#                    if mylar.USE_MINSIZE:
-#                        conv_minsize = int(mylar.MINSIZE) * 1024 * 1024
-#                        print("comparing " + str(conv_minsize) + " .. to .. " + str(entry['size']))
-#                        if conv_minsize >= int(entry['size']):
-#                            print("Failure to meet the Minimum size threshold - skipping")
-#                            continue
-#                    if mylar.USE_MAXSIZE:
-#                         conv_maxsize = int(mylar.maxsize) * 1024 * 1024
-#                         print("comparing " + str(conv_maxsize) + " .. to .. " + str(entry['size']))
-#                         if conv_maxsize >= int(entry['size']):
-#                             print("Failure to meet the Maximium size threshold - skipping")
-#                             continue
+                    #if it's not within size constaints - dump it now and save some time.
+                    logger.fdebug("size : " + str(comsize_m))
+                    if mylar.USE_MINSIZE:
+                        conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
+                        logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
+                        if int(conv_minsize) > int(comsize_b):
+                            logger.fdebug("Failure to meet the Minimum size threshold - skipping")
+                            continue
+                    if mylar.USE_MAXSIZE:
+                        conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
+                        logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
+                        if int(comsize_b) > int(conv_maxsize):
+                            logger.fdebug("Failure to meet the Maximium size threshold - skipping")
+                            continue
+
 # -- end size constaints.
                     if done:
                         break
