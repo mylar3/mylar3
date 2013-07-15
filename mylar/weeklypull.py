@@ -78,6 +78,7 @@ def pullit(forcecheck=None):
     # this checks for the following lists
     # first need to only look for checkit variables
     checkit=['COMICS',
+             'COMIC & GRAPHIC NOVELS',
              'IDW PUBLISHING',
              'MAGAZINES',
              'MERCHANDISE']
@@ -168,9 +169,13 @@ def pullit(forcecheck=None):
                                     flagged = "yes"                    
                                     break
                     else:
-                        pub = format(str(yesyes))
-                        #print (pub)
-                        break
+                        if i.find("COMIC") < 1 and "GRAPHIC NOVELS" in i:
+                            pub = "COMICS"
+                            break
+                        else:
+                            pub = format(str(yesyes))
+                            #print (pub)
+                            break
                     if flagged == "no": 
                         break
             else:
