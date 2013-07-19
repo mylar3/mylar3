@@ -368,7 +368,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 if nzbprov == 'dognzb':
                     findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'nzb.su':
-                    findurl = "http://www.nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
+                    findurl = "https://nzb.su/api?t=search&q=" + str(comsearch[findloop]) + "&o=xml&cat=7030"
                 elif nzbprov == 'newznab':
                     #let's make sure the host has a '/' at the end, if not add it.
                     if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
@@ -635,12 +635,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         if str(splitit[0]).lower() == "the" or str(watchcomic_split[0]).lower() == "the":
                             if str(splitit[0]).lower() == "the":
                                 logger.fdebug("THE word detected...attempting to adjust pattern matching")
-                                print comic_iss
-                                print comic_iss[4:]
-                                splitit = comic_iss[4:].split(None)
+                                #print comic_iss
+                                #print comic_iss[4:]
+                                splitit = comic_iss_b4[4:].split(None)
                                 #splitit = splitit[4:]
                                 splitst = splitst - 1 #remove 'the' from start
-                                logger.fdebug("comic is now : " + str(comic_iss[4:]))
+                                logger.fdebug("comic is now : " + str(comic_iss_b4[4:]))
                             if str(watchcomic_split[0]).lower() == "the":
                                 wtstart = watchcomic_nonsplit[4:]
                                 watchcomic_split = wtstart.split(None)
@@ -709,7 +709,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("scount:" + str(wordcnt))
                         totalcnt = int(splitst)
                         logger.fdebug("splitit-len:" + str(totalcnt))
-                        spercent = (wordcnt/totalcnt) * 100
+                        try:
+                            spercent = (wordcnt/totalcnt) * 100
+                        except ZeroDivisionError:
+                            spercent = 0
                         logger.fdebug("we got " + str(spercent) + " percent.")
                         if int(spercent) >= 80:
                             logger.fdebug("it's a go captain... - we matched " + str(spercent) + "%!")
@@ -945,7 +948,10 @@ def searchforissue(issueid=None, new=False):
         myDB = db.DBConnection()
 
         results = myDB.select('SELECT * from issues WHERE Status="Wanted"')
-       
+
+        # annuals include here...
+        #results += myDB.select('SELECT * from annuals WHERE Status="Wanted"')
+
         new = True
 
         for result in results:
@@ -957,20 +963,24 @@ def searchforissue(issueid=None, new=False):
             UseFuzzy = comic['UseFuzzy']
             ComicVersion = comic['ComicVersion']
             if result['IssueDate'] == None: 
-                ComicYear = comic['ComicYear']
+                IssueYear = comic['ComicYear']
             else: 
-                ComicYear = str(result['IssueDate'])[:4]
+                IssueYear = str(result['IssueDate'])[:4]
 
             if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.USE_SABNZBD or mylar.USE_NZBGET):
-                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None)
+                    foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode)
                     if foundNZB == "yes": 
                         #print ("found!")
-                        updater.foundsearch(result['ComicID'], result['IssueID'])
+                        updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode)
                     else:
                         pass 
                         #print ("not found!")
     else:
         result = myDB.action('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+        mode = 'want'
+        if result is None:
+            result = myDB.action('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+            mode = 'want_ann'
         ComicID = result['ComicID']
         comic = myDB.action('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
         SeriesYear = comic['ComicYear']
@@ -985,10 +995,10 @@ def searchforissue(issueid=None, new=False):
 
         foundNZB = "none"
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.USE_SABNZBD or mylar.USE_NZBGET):
-            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion)
+            foundNZB = search_init(result['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], IssueDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, mode=mode)
             if foundNZB == "yes":
                 logger.fdebug("I found " + result['ComicName'] + ' #:' + str(result['Issue_Number']))
-                updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'])
+                updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'], mode=mode)
             else:
                 pass 
                 #print ("not found!")
@@ -998,6 +1008,10 @@ def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
     for issueid in issuelist:
         issue = myDB.action('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
+        mode = 'want'
+        if issue is None:
+            issue = myDB.action('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
+            mode = 'want_ann'
         comic = myDB.action('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
         print ("Checking for issue: " + str(issue['Issue_Number']))
         foundNZB = "none"
@@ -1006,14 +1020,14 @@ def searchIssueIDList(issuelist):
         UseFuzzy = comic['UseFuzzy']
         ComicVersion = comic['ComicVersion']
         if issue['IssueDate'] == None:
-            ComicYear = comic['ComicYear']
+            IssueYear = comic['ComicYear']
         else:
-            ComicYear = str(issue['IssueDate'])[:4]
+            IssueYear = str(issue['IssueDate'])[:4]
         if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.NZBX) and (mylar.USE_SABNZBD or mylar.USE_NZBGET):
-                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(ComicYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion)
+                foundNZB = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], issue['IssueDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, mode=mode)
                 if foundNZB == "yes":
                     #print ("found!")
-                    updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'])
+                    updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode)
                 else:
                     pass
                     #print ("not found!")
