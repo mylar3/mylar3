@@ -180,7 +180,25 @@
 		                    <label><big>Quality :</big><norm>${comic['QUALquality']}</norm></label>
                                 </div>
                                 <div>
-                                    <label><big>Alternate Search Names :</big><norm>${comic['AlternateSearch']}</norm></label>
+                                    <label><big>Alternate Search Names :</big>
+                                <%
+                                    import re
+                                    AS_Alternate = []
+                                    if comic['AlternateSearch'] is None:
+                                        AS_Alternate.append("None")
+                                    else:
+                                        chkthealt = comic['AlternateSearch'].split('##')
+                                        if chkthealt == 0:
+                                            AS_Alternate.append(comic['AlternateSearch'])
+                                        for calt in chkthealt:
+                                            AS_Alternate.append(re.sub('##','',calt))
+                                %>
+                                <UL><UL>
+                                  %for AS in AS_Alternate:
+                                     <LI><norm>${AS}</norm>
+                                  %endfor
+                                </UL></UL>
+                                </label>
                                 </div>
                                 <%
                                     if comic['UseFuzzy'] == "0" or comic['UseFuzzy'] is None:
@@ -238,12 +256,13 @@
                                 </div>
                                 <div>
                                    <label>Alternate Search Names</label>
-                                   <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="60"><br/>
+                                   <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="60">
+                                   <a href="#" title="Seperate multiple entries with ##"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                 <div class="row"><small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small></div>
+                                </div>
                                 <div>
                                    <label>Version Number</label>
                                    <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20"><br/>
-                                </div>
                                 </div>
                                 <label>Year Options</label>
                                 <div class="row radio left clearfix">
@@ -267,6 +286,7 @@
         <label for="Archived" class="checkbox inline Archived"><input type="checkbox" id="Archived" checked="checked" /> Archived: <b>${isCounts['Archived']}</b></label>
         <label for="Downloaded" class="checkbox inline Downloaded"><input type="checkbox" id="Downloaded" checked="checked" /> Downloaded: <b>${isCounts['Downloaded']}</b></label>
         <label for="Skipped" class="checkbox inline Skipped"><input type="checkbox" id="Skipped" checked="checked" /> Skipped: <b>${isCounts['Skipped']}</b></label>
+        <label for="Ignored" class="checkbox inline Ignored"><input type="checkbox" id="Ignored" checked="checked" /> Ignored: <b>${isCounts['Ignored']}</b></label>
     </div>
    </div>
 
@@ -314,6 +334,8 @@
                                         grade = 'A'
                                 elif issue['Status'] == 'Archived':
                                         grade = 'A'
+                                elif issue['Status'] == 'Ignored':
+                                        grade = 'A'
                                 else:
                                         grade = 'A'
                         %>
@@ -331,7 +353,7 @@
                                 %endif
                                 </td>
                                 <td id="options">
-                                %if issue['Status'] == 'Skipped':
+                                %if issue['Status'] == 'Skipped' or issue['Status'] == 'Ignored':
                                         <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                 %elif (issue['Status'] == 'Wanted'):
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
@@ -358,8 +380,8 @@
                                       %endif
                                        <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
                                 %else:
-                                        <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
-                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                 %endif
                                 <a href="#" onclick="doAjaxCall('archiveissue?IssueID=${issue['IssueID']}',$(this),'table')"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived"></a>
                                 </td>
@@ -367,13 +389,13 @@
                 %endfor
               </tbody>
               </table>
-            </form>
+             </form>
              </div>
             %if annuals:
           <h1>Annuals</h1>
 
         <form action="markissues" method="get" id="markissues">
-        <div id="markissue">Mark selected issues as
+        <div id="markissue">Mark selected annuals as
                 <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
@@ -381,7 +403,7 @@
                         <option value="Downloaded">Downloaded</option>
                         <option value="Archived">Archived</option>
                 </select>
-                selected issues
+                selected annuals
                 <input type="hidden" value="Go">
         </div>
 
@@ -446,19 +468,12 @@
                                 %endif
                                 </td>
                                 <td id="aoptions">
-                                %if annual['Status'] == 'Skipped':
-                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=want_ann',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
-                                %elif (annual['Status'] == 'Wanted'):
+                                   <% amode = 'want_ann' %>
+                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=${amode}',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
-                                %elif (annual['Status'] == 'Snatched'):
-                                       <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IsssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
-                                %elif (annual['Status'] == 'Read'):
-                                       <a href="#" title="Add to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
-                                %else:
-                                        <a href="#" title="Retry"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
-                                        <a href="#" title="Mark issue as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
-                                %endif
-                                <a href="#"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived"/></a>
+                                        <a href="#" title="Add to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Retry" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&mode=${amode}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}'"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Archive" onclick="doAjaxCall('archiveissue?IssueID=${annual['IssueID']}',$(this),'table')"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived" ><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived"/></a>
                                 </td>
 
                             </tr>
@@ -467,14 +482,14 @@
                   </table>
                 </form>
             %endif
-
+ 
 </%def>
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/default/css/data_table.css">
 
         %if comic['Status'] == 'Loading':
-        <meta http-equiv="refresh" content="60">
+        <meta http-equiv="refresh" content="10">
         %endif
 </%def>
 
@@ -637,8 +652,8 @@
         }
 
         $(document).ready(function() {
-                $('#issue_table').dataTable();
-                $('#annual_table').dataTable();
+                $("issue_table").dataTable();
+                $("annual_table").dataTable();
                 initThisPage();
         }); 
       </script>

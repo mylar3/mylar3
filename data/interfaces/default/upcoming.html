@@ -38,8 +38,16 @@
 		%for issue in issues:
 			<tr class="gradeZ">
 				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
-				<td id="comicname"><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
-				<td id="issuenumber"><a href="albumPage?IssueID=${issue['IssueID']}">${issue['Issue_Number']}</a></td>
+				<td id="comicname"><a href="comicDetails?ComicID=${issue['ComicID']}">
+                                <%
+                                      if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
+                                          adjcomicname = issue['ComicName'] + ' Annual'
+                                      else:
+                                          adjcomicname = issue['ComicName']
+                                      endif
+                                %>
+                                ${adjcomicname}</a></td>
+				<td id="issuenumber">${issue['Issue_Number']}</td>
 				<td id="reldate">${issue['IssueDate']}</td>
 			</tr>
 		%endfor
@@ -64,8 +72,8 @@
 		<tbody>
 		%for upcome in upcoming:
 			<tr class="gradeZ">
-				<td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
-				<td id="issuenumber"><a href="albumPage?IssueID=${upcome['ComicID']}">${upcome['IssueNumber']}</a></td>
+				<td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['DisplayComicName']}</a></td>
+				<td id="issuenumber">${upcome['IssueNumber']}</td>
 				<td id="reldate">${upcome['IssueDate']}</td>
 				<td id="status">${upcome['Status']}</td>
 			</tr>

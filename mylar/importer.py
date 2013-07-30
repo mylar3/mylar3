@@ -218,6 +218,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                                            "IssueDate":       issdate,
                                            "IssueName":       issname,
                                            "ComicID":         comicid,
+                                           "ComicName":       comic['ComicName'],
                                            "Status":         "Skipped"}
                                 myDB.upsert("annuals", newVals, newCtrl)
                                 n+=1
@@ -356,7 +357,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     urllib.urlretrieve(str(comic['ComicImage']), str(coverfile))
     try:
         with open(str(coverfile)) as f:
-            ComicImage = os.path.join('cache',str(comicid) + ".jpg")
+            PRComicImage = os.path.join('cache',str(comicid) + ".jpg")
+            ComicImage = helpers.replacetheslash(PRComicImage)
 
             #this is for Firefox when outside the LAN...it works, but I don't know how to implement it
             #without breaking the normal flow for inside the LAN (above)
@@ -740,9 +742,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
         if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present': #and 'Present' in gcdinfo['resultPublished']:
-            print ("latestissue: #" + str(latestiss))
+            logger.fdebug("latestissue: #" + str(latestiss))
             chkstats = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
-            print chkstats['Status']
+            logger.fdebug(chkstats['Status'])
             if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
                 logger.info(u"Checking this week's pullist for new issues of " + comic['ComicName'])
                 updater.newpullcheck(comic['ComicName'], comicid)
@@ -754,8 +756,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     logger.info(u"Attempting to grab wanted issues for : "  + comic['ComicName'])
     
                     for result in results:
-                        print "Searching for : " + str(result['Issue_Number'])
-                        print "Status of : " + str(result['Status'])
+                        logger.fdebug("Searching for : " + str(result['Issue_Number']))
+                        logger.fdebug("Status of : " + str(result['Status']))
                         search.searchforissue(result['IssueID'])
                 else: logger.info(u"No issues marked as wanted for " + comic['ComicName'])
 

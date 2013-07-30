@@ -17,6 +17,7 @@ import time
 from operator import itemgetter
 import datetime
 import re
+import platform
 import itertools
 import os
 import mylar
@@ -239,7 +240,7 @@ def decimal_issue(iss):
     return deciss, dec_except
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None):
-            from mylar import db, logger
+            import db, logger
             myDB = db.DBConnection()
             print ("comicid: " + str(comicid))
             print ("issue#: " + str(issue))
@@ -684,3 +685,53 @@ def checkthepub(ComicID):
 
         logger.fdebug("Indie publisher detected - " + str(pubchk['ComicPublisher']))
         return mylar.INDIE_PUB
+
+def annual_update():
+    import db, logger
+    myDB = db.DBConnection()
+    annuallist = myDB.action('SELECT * FROM annuals')
+    if annuallist is None:
+        logger.info("no annuals to update.")
+        return
+
+    cnames = []
+    #populate the ComicName field with the corresponding series name from the comics table.
+    for ann in annuallist:
+        coms = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ann['ComicID']]).fetchone()
+        cnames.append({'ComicID':     ann['ComicID'],
+                       'ComicName':   coms['ComicName']
+                      })
+
+    #write in a seperate loop to avoid db locks
+    i=0
+    for cns in cnames:
+        ctrlVal = {"ComicID":      cns['ComicID']}
+        newVal = {"ComicName":     cns['ComicName']}
+        myDB.upsert("annuals", newVal, ctrlVal)
+        i+=1
+
+    logger.info(str(i) + " series have been updated in the annuals table.")
+    return 
+
+def replacetheslash(data):
+    import logger
+    # this is necessary for the cache directory to display properly in IE/FF.
+    # os.path.join will pipe in the '\' in windows, which won't resolve 
+    # when viewing through cherrypy - so convert it and viola.    
+    if platform.system() == "Windows":
+        slashreplaced = replace.data('\\', '/')
+    else:
+        slashreplaced = data
+    return slashreplaced
+
+def urlretrieve(urlfile, fpath):
+    chunk = 4096
+    f = open(fpath, "w")
+    while 1:
+        data = urlfile.read(chunk)
+        if not data:
+            print "done."
+            break
+        f.write(data)
+        print "Read %s bytes"%len(data)
+

@@ -70,7 +70,7 @@
 
                         %>
 
-                         <tr id="li_${item['ReadingOrder']}" class="grade${grade}">
+                         <tr id="${item['ReadingOrder']}" class="grade${grade}">
                                 <td id="readingorder">${item['ReadingOrder']}</td>
                                 <td id="storyarc">${item['StoryArc']}</td>
                                 <td id="comicname">${item['ComicName']} (${item['SeriesYear']})</td>
@@ -111,8 +111,10 @@
 			"aaSorting": []
 
                 }).rowReordering({
-                                    sURL:"/reOrder",
-                                    sRequestType: "GET"
+                                    sAjax: "reOrder",
+                                    fnAlert: function(text){
+                                           alert("Order cannot be changed.\n" + text);
+                                    }
                                   });
 		resetFilters("item");
 	}

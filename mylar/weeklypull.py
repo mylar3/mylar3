@@ -457,6 +457,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                 sqlsearch = re.sub("\\bTHE\\b", '', sqlsearch)
                 if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
                 sqlsearch = re.sub(r'\s', '%', sqlsearch)
+                sqlsearch = sqlsearch + '%'
                 logger.fdebug("searchsql: " + sqlsearch)
                 weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
@@ -505,6 +506,10 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                     #logger.fdebug("modcomicnm:" + modcomicnm)
                                     #logger.fdebug("modwatchcomic:" + modwatchcomic)
 
+                                #annuals!
+                                if 'ANNUAL' in comicnm.upper(): 
+                                    modcomicnm = re.sub("\\bANNUAL\\b", "", modcomicnm.upper())
+
                                 watchcomic = re.sub(r'\s', '', watchcomic)
                                 comicnm = re.sub(r'\s', '', comicnm)
                                 modwatchcomic = re.sub(r'\s', '', modwatchcomic)
@@ -514,9 +519,9 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                 if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
                                     logger.fdebug("matched on:" + comicnm + "..." + watchcomic.upper())
                                     pass
-                                elif ("ANNUAL" in week['EXTRA']):
-                                    pass
-                                    #print ( row[3] + " matched on ANNUAL")
+#                                elif ("ANNUAL" in week['EXTRA']):
+#                                    pass
+#                                    print ( row[3] + " matched on ANNUAL")
                                 else:
                                     break
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
@@ -529,9 +534,11 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                             #kp.append(row[0])
                                             #ki.append(row[1])
                                             #kc.append(comicnm)
-                                            if ("ANNUAL" in week['EXTRA']):
+                                            if "ANNUAL" in comicnm.upper():
                                                 watchfndextra.append("annual")
+                                                ComicName = str(unlines[cnt]) + " Annual"
                                             else:
+                                                ComicName = str(unlines[cnt])
                                                 watchfndextra.append("none")
                                             watchfnd.append(comicnm)
                                             watchfndiss.append(week['ISSUE'])
@@ -541,7 +548,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                             else:
                                                 ComicIssue = str(watchfndiss[tot -1])
                                             ComicDate = str(week['SHIPDATE'])
-                                            ComicName = str(unlines[cnt])
+                                            #ComicName = str(unlines[cnt])
                                             logger.fdebug("Watchlist hit for : " + ComicName + " ISSUE: " + str(watchfndiss[tot -1]))
                                             # here we add to comics.latest
                                             updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)

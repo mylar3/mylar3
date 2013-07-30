@@ -7,6 +7,7 @@ import sys
 import glob
 import platform
 import shutil
+import time
 import zipfile
 import subprocess
 import mylar
@@ -14,36 +15,42 @@ import mylar
 from mylar import logger
 
 def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
-    #print "manual:" + manual
-    #print "filename: " + filename
     logger.fdebug("dirName:" + dirName)
-    #print "issueid:" + issueid
 
     ## Set the directory in which comictagger and other external commands are located - IMPORTANT - ##
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
-
-    #check for dependencies here - configparser
-    try:
-        import configparser
-    except ImportError:
-        logger.fdebug("configparser not found on system. Please install manually in order to write metadata")
-        logger.fdebug("continuing with PostProcessing, but I'm not using metadata.")
-        return "fail"
 
     if platform.system() == "Windows":
         (x, y) = platform.architecture()
         if x == "64bit":
             comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
-      # http://www.win-rar.com/download.html
         else:
             comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
         unrar_cmd =       "C:\Program Files\WinRAR\UnRAR.exe"
+
+      # test for UnRAR
+        if not os.path.isfile(unrar_cmd):
+            unrar_cmd = "C:\Program Files (x86)\WinRAR\UnRAR.exe"
+            if not os.path.isfile(unrar_cmd):
+                logger.fdebug("Unable to locate UnRAR.exe - make sure it's installed.")
+                logger.fdebug("Aborting meta-tagging.")
+                return "fail"
+
     
     elif platform.system() == "Darwin":  #Mac OS X
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH)
         unrar_cmd =       "/usr/local/bin/unrar"
     
     else:
+        #for the 'nix
+        #check for dependencies here - configparser
+        try:
+            import configparser
+        except ImportError:
+            logger.fdebug("configparser not found on system. Please install manually in order to write metadata")
+            logger.fdebug("continuing with PostProcessing, but I'm not using metadata.")
+            return "fail"
+
         #set this to the lib path (ie. '<root of mylar>/lib')
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
         unrar_cmd =       "/usr/bin/unrar"
@@ -179,15 +186,16 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             if filename.endswith('.cbz'):
                 f = os.path.join( comicpath, filename )
 
-                try:
-                    rar_test_cmd_output = "is not RAR archive" #default, in case of error
-                    rar_test_cmd_output = subprocess.check_output( [ unrar_cmd, "t", f ] )
-                except:
-                    pass
-                if not "is not RAR archive" in rar_test_cmd_output:
-                    base = os.path.splitext( f )[0]
-                    shutil.move( f, base + ".cbr" )
-                    logger.fdebug("{0}: renaming {1} to be a cbr".format( scriptname, os.path.basename( f ) ))
+                if os.path.isfile( f ):
+                    try:
+                        rar_test_cmd_output = "is not RAR archive" #default, in case of error
+                        rar_test_cmd_output = subprocess.check_output( [ unrar_cmd, "t", f ] )
+                    except:
+                        pass
+                    if not "is not RAR archive" in rar_test_cmd_output:
+                        base = os.path.splitext( f )[0]
+                        shutil.move( f, base + ".cbr" )
+                        logger.fdebug("{0}: renaming {1} to be a cbr".format( scriptname, os.path.basename( f ) ))
 
         # Now rename all CBR files to RAR
         if filename.endswith('.cbr'):
@@ -219,7 +227,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             ## Changes zip to cbz
 
             f = os.path.join( comicpath, os.path.splitext(filename)[0] + ".zip" )
-            print f
+            print "zipfile" + f
             try:
                 with open(f): pass
             except:
@@ -231,7 +239,12 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         else:
             nfilename = filename
 
-        file_dir, file_n = os.path.split(nfilename)
+        if os.path.isfile( nfilename):
+            file_dir, file_n = os.path.split(nfilename)
+        else:
+            #remove the IssueID from the path
+            file_dir = re.sub(issueid, '', comicpath)
+            file_n = os.path.split(nfilename)[1]
         logger.fdebug("converted directory: " + str(file_dir))
         logger.fdebug("converted filename: " + str(file_n))
         logger.fdebug("destination path: " + os.path.join(dirName,file_n))
@@ -249,7 +262,19 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             logger.fdebug("Unable to move - file already exists.")
         else:
             shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
-            shutil.rmtree( comicpath )
+            logger.fdebug("Sucessfully moved file from temporary path.")
+            i = 0
+
+            while i < 10:
+                try:
+                    shutil.rmtree( comicpath )
+                except:
+                    time.sleep(.1)
+                else:
+                    return os.path.join(os.path.abspath(dirName), file_n)
+                i+=1
+
+            logger.fdebug("Failed to remove temporary path : " + str(comicpath))
 
         return os.path.join(os.path.abspath(dirName),file_n)
 

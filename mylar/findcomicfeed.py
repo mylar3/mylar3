@@ -81,7 +81,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
     except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
 
     for title, link in keyPair.items():
-        logger.fdebug("titlesplit: " + str(title.split("\"")))
+        #logger.fdebug("titlesplit: " + str(title.split("\"")))
         splitTitle = title.split("\"")
 
         for subs in splitTitle:

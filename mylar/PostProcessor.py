@@ -307,17 +307,21 @@ class PostProcessor(object):
                     logger.fdebug("issueid:" + str(issueid))
                     sarc = nzbiss['SARC']
                     #use issueid to get publisher, series, year, issue number
+
                 annchk = "no"
                 if 'annual' in nzbname.lower():
                     logger.info("annual detected.")
                     annchk = "yes"
-                    issuenzb = myDB.action("SELECT * from annuals WHERE IssueID=?", [issueid]).fetchone()
+                    issuenzb = myDB.action("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
                 else:
-                    issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+                    issuenzb = myDB.action("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+
                 if issuenzb is not None:
+                    logger.info("issuenzb found.")
                     if helpers.is_number(issueid):
                         sandwich = int(issuenzb['IssueID'])
                 else:
+                    logger.info("issuenzb not found.")
                     #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
                     #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
                     if 'S' in issueid:
@@ -418,8 +422,8 @@ class PostProcessor(object):
                         return self.log
 
 
-                comicid = issuenzb['ComicID']
-                issuenumOG = issuenzb['Issue_Number']
+            comicid = issuenzb['ComicID']
+            issuenumOG = issuenzb['Issue_Number']
 
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
@@ -440,10 +444,15 @@ class PostProcessor(object):
             extensions = ('.cbr', '.cbz')
             myDB = db.DBConnection()
             comicnzb = myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
-            issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+            issuenzb = myDB.action("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
+            print "issueid: " + str(issueid)
+            print "issuenumOG: " + str(issuenumOG)
             if issuenzb is None:
-                issuenzb = myDB.action("SELECT * from annuals WHERE issueid=?", [issueid]).fetchone()
+                print "chk1"
+                issuenzb = myDB.action("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
+                print "chk2"
                 annchk = "yes"
+            print issuenzb
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
@@ -533,7 +542,7 @@ class PostProcessor(object):
 
             if annchk == "yes":
                 prettycomiss = "Annual " + str(prettycomiss)
-
+                self._log("Annual detected.")
             logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
             self._log("Issue Year: " + str(issueyear), logger.DEBUG)

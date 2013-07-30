@@ -57,6 +57,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
 
 
     for item in os.listdir(basedir):
+        if item == 'cover.jpg' or item == 'cvinfo': continue
         #print item
         #subname = os.path.join(basedir, item)
         subname = item
@@ -104,6 +105,8 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                                 logger.fdebug("possible negative issue detected.")
                                 nonocount = nonocount + subcnt - 1
                                 detneg = "yes"                                
+                            if '-' in watchcomic and i < len(watchcomic):
+                                logger.fdebug("- appears in series title.")
                         i+=1
                     if detneg == "no": 
                         subname = re.sub(str(nono), ' ', subname)
@@ -131,25 +134,42 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
         modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
         detectand = False
+        detectthe = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
+        if ' the ' in modwatchcomic.lower():
+            modwatchcomic = re.sub("\\bthe\\b", "", modwatchcomic.lower())
+            logger.fdebug("new modwatchcomic: " + str(modwatchcomic))
+            detectthe = True
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
         if '&' in subname:
             subname = re.sub('\&', ' and ', subname) 
             detectand = True
+        if ' the ' in subname.lower():
+            subname = re.sub("\\bthe\\b", "", subname.lower())
+            detectthe = True
         subname = re.sub('\s+', ' ', str(subname)).strip()
+
+        AS_Alt = []
         if AlternateSearch is not None:
-            #same = encode.
-            u_altsearchcomic = AlternateSearch.encode('ascii', 'ignore').strip()
-            altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
-            altseachcomic = re.sub('\&', ' and ', altsearchcomic)
-            altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
+            chkthealt = AlternateSearch.split('##')
+            if chkthealt == 0:
+                AS_Alternate = AlternateSearch
+            for calt in chkthealt:
+                AS_Alternate = re.sub('##','',calt)
+                #same = encode.
+                u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
+                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
+                altseachcomic = re.sub('\&', ' and ', altsearchcomic)
+                altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
+                AS_Alt.append(altsearchcomic)
         else:
             #create random characters so it will never match.
             altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
+            AS_Alt.append(altsearchcomic)
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
         logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
-        if modwatchcomic.lower() in subname.lower() or altsearchcomic.lower() in subname.lower():
+        if modwatchcomic.lower() in subname.lower() or any(x in subname.lower() for x in AS_Alt):#altsearchcomic.lower() in subname.lower():
             comicpath = os.path.join(basedir, item)
             logger.fdebug( modwatchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)
@@ -160,52 +180,55 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             if 'annual' in subname.lower():
                 logger.fdebug("Annual detected - proceeding")
                 jtd_len = subname.lower().find('annual')
+                cchk = modwatchcomic
             else:
                 if modwatchcomic.lower() in subname.lower():
-                    logger.fdebug("we should remove " + str(nonocount) + " characters")                
+                    cchk = modwatchcomic
+                else:
+                    cchk_ls = [x for x in AS_Alt if x in subname.lower()]
+                    cchk = cchk_ls[0]
+                    #print "something: " + str(cchk)
 
-                    findtitlepos = subname.find('-')
-                    if charpos != 0:
-                        logger.fdebug("detected " + str(len(charpos)) + " special characters")
-                        i=0
-                        while (i < len(charpos)):
-                            for i,j in enumerate(charpos):
-                                #print i,j
-                                #print subname
-                                #print "digitchk: " + str(subname[j:])
-                                if j >= len(subname):
-                                    logger.fdebug("end reached. ignoring remainder.")
-                                    break
-                                elif subname[j:] == '-':
-                                    if i <= len(subname) and subname[i+1].isdigit():
-                                        logger.fdebug("negative issue detected.")
-                                        #detneg = "yes"
-                                elif j > findtitlepos:
-                                    if subname[j:] == '#':
-                                        if subname[i+1].isdigit():
-                                            logger.fdebug("# detected denoting issue#, ignoring.")
-                                        else: 
-                                            nonocount-=1
-                                    else:
-                                        logger.fdebug("special character appears outside of title - ignoring @ position: " + str(charpos[i]))
+                logger.fdebug("we should remove " + str(nonocount) + " characters")                
+
+                findtitlepos = subname.find('-')
+                if charpos != 0:
+                    logger.fdebug("detected " + str(len(charpos)) + " special characters")
+                    i=0
+                    while (i < len(charpos)):
+                        for i,j in enumerate(charpos):
+                            #print i,j
+                            #print subname
+                            #print "digitchk: " + str(subname[j:])
+                            if j >= len(subname):
+                                logger.fdebug("end reached. ignoring remainder.")
+                                break
+                            elif subname[j:] == '-':
+                                if i <= len(subname) and subname[i+1].isdigit():
+                                    logger.fdebug("negative issue detected.")
+                                    #detneg = "yes"
+                            elif j > findtitlepos:
+                                if subname[j:] == '#':
+                                   if subname[i+1].isdigit():
+                                        logger.fdebug("# detected denoting issue#, ignoring.")
+                                   else: 
                                         nonocount-=1
-                            i+=1
+                                elif '-' in watchcomic and i < len(watchcomic):
+                                   logger.fdebug("- appears in series title, ignoring.")
+                                else:                             
+                                   logger.fdebug("special character appears outside of title - ignoring @ position: " + str(charpos[i]))
+                                   nonocount-=1
+                        i+=1
 
-                    #remove versioning here
-                    if volrem != None:
-                        jtd_len = len(modwatchcomic) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #
-                    else:
-                        jtd_len = len(modwatchcomic) + nonocount
-                    if detectand:
-                        jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
-                elif altsearchcomic.lower() in subname.lower():
-                    #remove versioning here
-                    if volrem != None:
-                        jtd_len = len(altsearchcomic) + len(volrem) + nonocount + 1
-                    else:
-                        jtd_len = len(altsearchcomic) + nonocount
-                    if detectand: 
-                        jtd_len = jtd_len - 2
+            #remove versioning here
+            if volrem != None:
+                jtd_len = len(cchk) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #
+            else:
+                jtd_len = len(cchk) + nonocount
+            if detectand:
+                jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
+            if detectthe:
+                jtd_len = jtd_len - 3  # char subsitiution diff between 'the' and '' = 3 chars
 
             justthedigits = item[jtd_len:]
 

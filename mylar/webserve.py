@@ -109,10 +109,11 @@ class WebInterface(object):
         isCounts[2] = 0   #2 wanted
         isCounts[3] = 0   #3 archived
         isCounts[4] = 0   #4 downloaded
-        isCounts[5] = 0   #5 read
+        isCounts[5] = 0   #5 ignored
+        #isCounts[6] = 0   #6 read 
 
         for curResult in issues:
-            baseissues = {'skipped':1,'wanted':2,'archived':3,'downloaded':4}
+            baseissues = {'skipped':1,'wanted':2,'archived':3,'downloaded':4,'ignored':5}
             for seas in baseissues:
                 if seas in curResult['Status'].lower():
                     sconv = baseissues[seas]
@@ -122,7 +123,8 @@ class WebInterface(object):
                  "Skipped" : str(isCounts[1]),
                  "Wanted" : str(isCounts[2]),
                  "Archived" : str(isCounts[3]),
-                 "Downloaded" : str(isCounts[4])
+                 "Downloaded" : str(isCounts[4]),
+                 "Ignored" : str(isCounts[5])
                }
         usethefuzzy = comic['UseFuzzy']
         skipped2wanted = "0"
@@ -137,7 +139,6 @@ class WebInterface(object):
         if mylar.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
         else: annuals = None
-        print "blah"
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals)
     comicDetails.exposed = True
 
@@ -424,21 +425,37 @@ class WebInterface(object):
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
                 logger.fdebug("Gathering the status of all issues for the series.")
                 issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                if mylar.ANNUALS_ON:
+                    issues += myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                 #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
                 logger.fdebug("Deleting all issue data.")
                 myDB.select('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                myDB.select('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
                 mylar.importer.addComictoDB(ComicID,mismatch)
-                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])            
+                annuals = []
+                ann_list = []
+                if mylar.ANNUALS_ON:
+                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                    ann_list += annuals_list
+                    issues_new += annuals_list
+
                 logger.fdebug("Attempting to put the Status' back how they were.")
                 icount = 0
                 for issue in issues:
                     for issuenew in issues_new:
                         if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
+                            #if the status is now Downloaded, keep status.
+                            if issuenew['Status'] == 'Downloaded': break
                             #change the status to the previous status
                             ctrlVAL = {'IssueID':  issue['IssueID']}
                             newVAL = {'Status':  issue['Status']}
-                            myDB.upsert("Issues", newVAL, ctrlVAL)
+                            if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
+                                logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
+                                myDB.upsert("Annuals", newVAL, ctrlVAL)
+                            else:
+                                myDB.upsert("Issues", newVAL, ctrlVAL)
                             icount+=1
                             break
                 logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
@@ -480,6 +497,11 @@ class WebInterface(object):
                 continue
             else:
                 mi = myDB.action("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
+                annchk = 'no'
+                if mi is None:
+                    if mylar.ANNUALS_ON:
+                        mi = myDB.action("SELECT * FROM annuals WHERE IssueID=?",[IssueID]).fetchone()
+                        annchk = 'yes'
                 miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
@@ -499,8 +521,11 @@ class WebInterface(object):
                     myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
                 controlValueDict = {"IssueID": IssueID}
                 newValueDict = {"Status": newaction}
-                myDB.upsert("issues", newValueDict, controlValueDict)
-                print "updated...to " + str(newaction)
+                if annchk == 'yes':
+                    myDB.upsert("annuals", newValueDict, controlValueDict)           
+                else:
+                    myDB.upsert("issues", newValueDict, controlValueDict)
+                logger.fdebug("updated...to " + str(newaction))
         if len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
         if len(issuesToAdd) > 0:
@@ -610,20 +635,36 @@ class WebInterface(object):
     def unqueueissue(self, IssueID, ComicID):
         myDB = db.DBConnection()
         issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        annchk = 'no'
+        if issue is None:
+            if mylar.ANNUALS_ON:
+                issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                annchk = 'yes'
         logger.info(u"Marking " + issue['ComicName'] + " issue # " + issue['Issue_Number']  + " as skipped...")
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Skipped'}
-        myDB.upsert("issues", newValueDict, controlValueDict)
+        if annchk == 'yes':
+            myDB.upsert("annuals", newValueDict, controlValueDict)
+        else:
+            myDB.upsert("issues", newValueDict, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     unqueueissue.exposed = True
     
     def archiveissue(self, IssueID):
         myDB = db.DBConnection()
         issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        annchk = 'no'
+        if issue is None:
+            if mylar.ANNUALS_ON:
+                issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                annchk = 'yes'
         logger.info(u"Marking " + issue['ComicName'] + " issue # " + issue['Issue_Number']  + " as archived...")
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Archived'}
-        myDB.upsert("issues", newValueDict, controlValueDict)
+        if annchk == 'yes':
+            myDB.upsert("annuals", newValueDict, controlValueDict)
+        else:
+            myDB.upsert("issues", newValueDict, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % issue['ComicID'])
     archiveissue.exposed = True
 
@@ -683,6 +724,15 @@ class WebInterface(object):
         #upcoming = myDB.select("SELECT * from issues WHERE ReleaseDate > date('now') order by ReleaseDate DESC")
         upcoming = myDB.select("SELECT * from upcoming WHERE IssueDate > date('now') AND IssueID is NULL order by IssueDate DESC")
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
+        ann_list = []
+
+        if mylar.ANNUALS_ON:
+            #let's add the annuals to the wanted table so people can see them
+            #ComicName wasn't present in db initially - added on startup chk now.
+            annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted'")
+            ann_list += annuals_list
+            issues += annuals_list
+
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
         #gather the list...
         mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
@@ -706,7 +756,7 @@ class WebInterface(object):
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'],mvup['IssueNumber']])                                
 
 
-        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues)
+        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list)
     upcoming.exposed = True
 
     def skipped2wanted(self, comicid):
@@ -886,13 +936,13 @@ class WebInterface(object):
     history.exposed = True
 
     def reOrder(request):
-        print ("I have reached the re-order!!!")
-        return serve_template(templatename="reorder.html", title="ReoRdered!", reorder=request)
+        return request
+#        return serve_template(templatename="reorder.html", title="ReoRdered!", reorder=request)
     reOrder.exposed = True
 
     def readlist(self):
         myDB = db.DBConnection()
-        readlist = myDB.select("SELECT * from readinglist group by StoryArcID COLLATE NOCASE")
+        readlist = myDB.select("SELECT * from readinglist WHERE ComicName is not Null group by StoryArcID COLLATE NOCASE")
         issuelist = myDB.select("SELECT * from readlist")
         readConfig = {
                     "read2filename" : helpers.checked(mylar.READ2FILENAME),
@@ -976,8 +1026,8 @@ class WebInterface(object):
         from xml.dom.minidom import parseString, Element
         import random
         myDB = db.DBConnection()
-  
-        file = open(str(filename))
+
+        file = open(filename)
         data = file.read()
         file.close()
 
@@ -1472,8 +1522,8 @@ class WebInterface(object):
 
     def preSearchit(self, ComicName, comiclist=None, mimp=0):
         implog = ''
-        implog = implog + "imp_rename:" + str(imp_rename) + "\n"
-        implog = implog + "imp_move:" + str(imp_move) + "\n"
+        implog = implog + "imp_rename:" + str(mylar.IMP_RENAME) + "\n"
+        implog = implog + "imp_move:" + str(mylar.IMP_MOVE) + "\n"
         if mimp == 0:
             comiclist = []
             comiclist.append(ComicName) 
@@ -1685,6 +1735,21 @@ class WebInterface(object):
                     "newznab_api" : mylar.NEWZNAB_APIKEY,
                     "newznab_enabled" : helpers.checked(mylar.NEWZNAB_ENABLED),
                     "extra_newznabs" : mylar.EXTRA_NEWZNABS,
+                    "enable_rss" : helpers.checked(mylar.ENABLE_RSS),
+                    "rss_checkinterval" : mylar.RSS_CHECKINTERVAL,
+                    "enable_torrents" : helpers.checked(mylar.ENABLE_TORRENTS),
+                    "torrent_local" : helpers.checked(mylar.TORRENT_LOCAL),
+                    "local_watchdir" : mylar.LOCAL_WATCHDIR,
+                    "torrent_seedbox" : helpers.checked(mylar.TORRENT_SEEDBOX),
+                    "seedbox_watchdir" : mylar.SEEDBOX_WATCHDIR,
+                    "seedbox_host" : mylar.SEEDBOX_HOST,
+                    "seedbox_port" : mylar.SEEDBOX_PORT,
+                    "seedbox_user" : mylar.SEEDBOX_USER,
+                    "seedbox_pass" : mylar.SEEDBOX_PASS,
+                    "enable_torrent_search" : helpers.checked(mylar.ENABLE_TORRENT_SEARCH),
+                    "enable_kat" : helpers.checked(mylar.ENABLE_KAT),
+                    "enable_cbt" : helpers.checked(mylar.ENABLE_CBT),
+                    "cbt_passkey" : mylar.CBT_PASSKEY,
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "chmod_dir" : mylar.CHMOD_DIR,
                     "chmod_file" : mylar.CHMOD_FILE,
@@ -1777,6 +1842,28 @@ class WebInterface(object):
         myDB = db.DBConnection()
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
+        ffs_alt = []
+        if '##' in alt_search:
+            ffs = alt_search.find('##')
+            ffs_alt.append(alt_search[:ffs])
+            ffs_alt_st = str(ffs_alt[0])
+            print ("ffs_alt: " + str(ffs_alt[0]))
+
+        ffs_test = alt_search.split('##')
+        if len(ffs_test) > 0:
+            print("ffs_test names: " + str(len(ffs_test)))
+            ffs_count = len(ffs_test)
+            n=1
+            while (n < ffs_count):
+                ffs_alt.append(ffs_test[n])
+                print("adding : " + str(ffs_test[n]))
+               #print("ffs_alt : " + str(ffs_alt))
+                ffs_alt_st = str(ffs_alt_st) + "..." + str(ffs_test[n])
+                n+=1
+            asearch = ffs_alt
+        else:
+            asearch = alt_search
+
 #        ffs_alt = []
 #        if '+' in alt_search:
             #find first +
@@ -1868,7 +1955,8 @@ class WebInterface(object):
         use_nzbget=0, nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None,
         usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
-        enable_meta=0, cmtagger_path=None, 
+        enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None,
+        enable_torrents=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, cvapifix=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
@@ -1916,6 +2004,21 @@ class WebInterface(object):
         #mylar.NEWZNAB_HOST = newznab_host
         #mylar.NEWZNAB_APIKEY = newznab_apikey
         #mylar.NEWZNAB_ENABLED = newznab_enabled
+        mylar.ENABLE_RSS = int(enable_rss)
+        mylar.RSS_CHECKINTERVAL = rss_checkinterval
+        mylar.ENABLE_TORRENTS = int(enable_torrents)
+        mylar.TORRENT_LOCAL = int(torrent_local)
+        mylar.LOCAL_WATCHDIR = local_watchdir
+        mylar.TORRENT_SEEDBOX = int(torrent_seedbox)
+        mylar.SEEDBOX_WATCHDIR = seedbox_watchdir
+        mylar.SEEDBOX_HOST = seedbox_host
+        mylar.SEEDBOX_PORT = seedbox_port
+        mylar.SEEDBOX_USER = seedbox_user
+        mylar.SEEDBOX_PASS = seedbox_pass
+        mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
+        mylar.ENABLE_KAT = int(enable_kat)
+        mylar.ENABLE_CBT = int(enable_cbt)
+        mylar.CBT_PASSKEY = cbt_passkey
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files
         mylar.RENAME_FILES = rename_files
@@ -1969,11 +2072,12 @@ class WebInterface(object):
         #changing this for simplicty - adding all newznabs into extra_newznabs
         if newznab_host is not None:
             #this
-            mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_apikey, int(newznab_enabled)))
+            mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_apikey, int(newznab_enabled), newznab_name))
 
         for kwarg in kwargs:
-            if kwarg.startswith('newznab_host'):
+            if kwarg.startswith('newznab_name'):
                 newznab_number = kwarg[12:]
+                newznab_name = kwargs['newznab_name' + newznab_number]
                 newznab_host = kwargs['newznab_host' + newznab_number]
                 newznab_api = kwargs['newznab_api' + newznab_number]
                 try:
@@ -1981,7 +2085,7 @@ class WebInterface(object):
                 except KeyError:
                     newznab_enabled = 0
 
-                mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_api, newznab_enabled))
+                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_api, newznab_enabled))
 
         # Sanity checking
         if mylar.SEARCH_INTERVAL < 360:
@@ -1991,6 +2095,10 @@ class WebInterface(object):
         if mylar.SEARCH_DELAY < 1:
             logger.info("Minimum search delay set for 1 minute to avoid hammering.")
             mylar.SEARCH_DELAY = 1
+
+        if mylar.RSS_CHECKINTERVAL < 20:
+            logger.info("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
+            mylar.RSS_CHECKINTERVAL = 20
 
         if not helpers.is_number(mylar.CHMOD_DIR):
             logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")

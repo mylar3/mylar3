@@ -9,21 +9,23 @@
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_logs.png" alt="Logs"/>Logs</h1>
 	</div>
 	<table class="display" id="log_table">
-                                                <div class="row">
+                <form action="log_change" method="GET">
+                                            <div class="row">
                                                         <label>Interface</label>
-                                                        <select name="interface" onchange="doAjaxCall('log_change')">
-                                                        %for interface in ['Info', 'Warning', 'Debug']:
+                                                        <select name="loglevel">
+                                                        %for loglevel in ['Info', 'Warning', 'Debug']:
                                                                 <%
-                                                                        if interface == mylar.INTERFACE:
+                                                                        if loglevel == mylar.LOG_LEVEL:
                                                                                 selected = 'selected="selected"'
                                                                         else:
                                                                                 selected = ''
                                                                 %>
-                                        <option value="${interface}" ${selected}>${interface}</option>
+                                                        <option value="${loglevel}" ${selected}>${loglevel}</option>
                                                         %endfor
                                                         </select>
-                                                </div>
-
+                                              </div>
+                 </form>
+            <input type="submit" value="Go"/>
 		<thead>
 			<tr>
 				<th id="timestamp">Timestamp</th>

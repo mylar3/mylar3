@@ -61,7 +61,11 @@
 				<td id="dateadded">${item['DateAdded']}</td>
 				<td id="filename">${item['ComicName']}</td>
                                 <td id="issue">${item['Issue_Number']}</td>
-				<td id="status">${item['Status']}</td>
+				<td id="status">${item['Status']}
+                                %if item['Provider'] == 'ComicBT' or item['Provider'] == 'KAT':
+                                    <img src="interfaces/default/images/torrent-icon.png" height="20" width="20" title="${item['Provider']}" />
+                                %endif
+                                </td>
 				<td id="action">[<a href="#" onclick="doAjaxCall('queueissue?IssueID=${item['IssueID']}&ComicName=${item['ComicName']}&ComicID=${item['ComicID']}&ComicIssue=${item['Issue_Number']}&mode=want&redirect=history', $(this),'table')"  data-success="Retrying download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
 			</tr>
 		%endfor

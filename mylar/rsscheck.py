@@ -1,0 +1,519 @@
+#!/usr/bin/python
+
+import os, sys
+import re
+import lib.feedparser as feedparser
+import feedparser
+import urllib2
+import ftpsshup
+import datetime
+
+import mylar
+from mylar import db, logger, ftpsshup, helpers
+
+def tehMain():
+    logger.info("RSS Feed Check was last run at : " + str(mylar.RSS_LASTRUN))
+    firstrun = "no"
+    #check the last run of rss to make sure it's not hammering.
+    if mylar.RSS_LASTRUN is None or mylar.RSS_LASTRUN == '' or mylar.RSS_LASTRUN == '0':
+        logger.info("RSS Feed Check First Ever Run.")
+        firstrun = "yes"
+        mins = 0
+    else:
+        c_obj_date = datetime.datetime.strptime(mylar.RSS_LASTRUN, "%Y-%m-%d %H:%M:%S")
+        n_date = datetime.datetime.now()
+        absdiff = abs(n_date - c_obj_date)
+        mins = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0  #3600 is for hours.
+
+    if firstrun == "no" and mins < int(mylar.RSS_CHECKINTERVAL):
+        logger.fdebug("RSS Check has taken place less than the threshold - not initiating at this time.")
+        return
+
+    mylar.RSS_LASTRUN = helpers.now()
+    logger.fdebug("Updating RSS Run time to : " + str(mylar.RSS_LASTRUN))
+    mylar.config_write()
+
+    #function for looping through nzbs/torrent feeds
+    if mylar.ENABLE_TORRENTS:
+        logger.fdebug("[RSS] Initiating Torrent RSS Check.")
+        if mylar.ENABLE_KAT:
+            logger.fdebug("[RSS] Initiating Torrent RSS Feed Check on KAT.")
+            torrents(pickfeed='3')
+        if mylar.ENABLE_CBT:
+            logger.fdebug("[RSS] Initiating Torrent RSS Feed Check on CBT.")
+            torrents(pickfeed='1')
+            torrents(pickfeed='4')
+    logger.fdebug("[RSS] Initiating RSS Feed Check for NZB Providers.")
+    nzbs()    
+    logger.fdebug("[RSS] RSS Feed Check/Update Complete")
+    logger.fdebug("[RSS] Watchlist Check for new Releases")
+    #if mylar.ENABLE_TORRENTS:
+    #    if mylar.ENABLE_KAT:
+    #        search.searchforissue(rsscheck='yes')
+    #    if mylar.ENABLE_CBT:    
+    mylar.search.searchforissue(rsscheck='yes')
+    #nzbcheck here
+    #nzbs(rsscheck='yes')
+    logger.fdebug("[RSS] Watchlist Check complete.")
+    return
+
+def torrents(pickfeed=None):
+    if pickfeed is None:
+        pickfeed = 1
+    #else:
+    #    print "pickfeed is " + str(pickfeed)
+    passkey = mylar.CBT_PASSKEY 
+    if pickfeed == "1":      # comicbt rss feed based on followlist
+        feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
+    elif pickfeed == "2":    # kat.ph search
+        feed = "http://kat.ph/usearch/" + str(seriesname) + "%20category%3Acomics%20seeds%3A1/?rss=1"
+    elif pickfeed == "3":    # kat.ph rss feed
+        feed = "http://kat.ph/usearch/category%3Acomics%20seeds%3A1/?rss=1"
+    elif pickfeed == "4":    #comicbt follow link
+        feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
+    elif pickfeed == "5":    # comicbt series link
+#       seriespage = "http://comicbt.com/series.php?passkey=" + str(passkey)
+        feed = "http://comicbt.com/rss.php?action=series&series=" + str(seriesno) + "&passkey=" + str(passkey)
+    else:
+        logger.error("invalid pickfeed denoted...")
+        return
+    logger.fdebug("feed #" + str(pickfeed) + " chosen: " + str(feed))
+    title = []
+    link = []
+    description = []
+    seriestitle = []
+
+    if pickfeed == "5": # we need to get the series # first
+        seriesSearch(seriespage, seriesname)
+    feedme = feedparser.parse(feed)
+    i = 0
+
+    feeddata = []
+
+    myDB = db.DBConnection()
+
+    for entry in feedme['entries']:
+        if pickfeed == "2" or pickfeed == "3":
+            tmpsz = feedme.entries[i].enclosures[0]
+            feeddata.append({
+                           'Site':     'KAT',
+                           'Title':    feedme.entries[i].title,
+                           'Link':     tmpsz['url'],
+                           'Pubdate':  feedme.entries[i].updated,
+                           'Size':     tmpsz['length']
+                           })
+
+            #print ("Site: KAT")
+            #print ("Title: " + str(feeddata[i]['Title']))
+            #print ("Link: " + str(feeddata[i]['Link']))
+            #print ("pubdate: " + str(feeddata[i]['Pubdate']))
+
+        elif pickfeed == "1" or pickfeed == "4":
+#            tmpsz = feedme.entries[i].enclosures[0]
+            feeddata.append({
+                           'Site':     'comicBT',
+                           'Title':    feedme.entries[i].title, 
+                           'Link':     feedme.entries[i].link,
+                           'Pubdate':  feedme.entries[i].updated
+#                          'Size':     tmpsz['length']
+                           })
+            #print ("Site: ComicBT")
+            #print ("Title: " + str(feeddata[i]['Title']))
+            #print ("Link: " + str(feeddata[i]['Link']))
+            #print ("pubdate: " + str(feeddata[i]['Pubdate']))
+        i+=1
+    logger.fdebug("there were " + str(i) + " results..")
+    rssdbupdate(feeddata,i,'torrent')
+    return
+
+def nzbs(provider=None):
+    nzbprovider = []
+    nzbp = 0
+    if mylar.NZBSU == 1:
+        nzbprovider.append('nzb.su')
+        nzbp+=1
+    if mylar.DOGNZB == 1:
+        nzbprovider.append('dognzb')
+        nzbp+=1
+    # --------
+    #  Xperimental
+    if mylar.EXPERIMENTAL == 1:
+        nzbprovider.append('experimental')
+        nzbp+=1
+
+    newznabs = 0
+
+    newznab_hosts = []
+
+    if mylar.NEWZNAB == 1:
+
+        for newznab_host in mylar.EXTRA_NEWZNABS:
+            if newznab_host[3] == '1' or newznab_host[3] == 1:
+                newznab_hosts.append(newznab_host)
+                nzbprovider.append('newznab')
+                newznabs+=1
+                logger.fdebug("newznab name:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[3]))
+
+    # --------
+    providercount = int(nzbp + newznabs)
+    logger.fdebug("there are : " + str(providercount) + " RSS search providers you have enabled.")
+    nzbpr = providercount - 1
+    if nzbpr < 0:
+        nzbpr == 0
+
+    feeddata = []
+    feedthis = []
+    ft = 0
+    totNum = 0
+    nonexp = "no"
+   
+    while (nzbpr >= 0 ):
+        if nzbprovider[nzbpr] == 'experimental':
+            feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=50&more=1")
+
+            totNum = len(feed.entries)
+            site = 'experimental'
+            keyPair = {}
+            regList = []
+            entries = []
+            mres = {}
+            countUp = 0
+
+            i = 0
+            for entry in feed['entries']:
+                tmpsz = feed.entries[i].enclosures[0]
+                feeddata.append({
+                               'Site':     site,
+                               'Title':    feed.entries[i].title,
+                               'Link':     feed.entries[i].link,
+                               'Pubdate':  feed.entries[i].updated,
+                               'Size':     tmpsz['length']
+                               })
+#                print ("Site:" + str(site))
+#                print ("Title:" + str(feed.entries[i].title))
+#                print ("Link:" + str(feed.entries[i].link))
+#                print ("Pubdate:" + str(feed.entries[i].updated))
+#                print ("Size:" + str(tmpsz['length']))
+                i+=1
+            logger.info(str(i) + " results from Experimental feed indexed.")
+        else:
+            if nzbprovider[nzbpr] == 'newznab':
+                for newznab_host in newznab_hosts:
+                    feed = newznab_host[1].rstrip() + "/rss?t=7030&dl=1&i=1&r=" + newznab_host[2].rstrip()
+                    feedme = feedparser.parse(feed)
+                    site = newznab_host[0].rstrip()
+                    feedthis.append({"feed":     feedme,
+                                     "site":     site})
+                    totNum+=len(feedme.entries)
+                    ft+=1
+                    nonexp = "yes"
+            elif nzbprovider[nzbpr] == 'nzb.su':
+                feed = 'http://nzb.su/rss?t=7030&dl=1&i=1&r=' + mylar.NZBSU_APIKEY
+                feedme = feedparser.parse(feed)
+                site = nzbprovider[nzbpr]
+                feedthis.append({"feed":   feedme,
+                                 "site":   site })
+                totNum+=len(feedme.entries)
+                ft+=1
+                nonexp = "yes"
+            elif nzbprovider[nzbpr] == 'dognzb':
+                feed = 'http://dognzb.cr/rss?t=7030&dl=1&i=1&r=' + mylar.DOGNZB_APIKEY
+                feedme = feedparser.parser(feed)
+                site = nzbprovider[nzbpr]
+                ft+=1
+                nonexp = "yes"
+                feedthis.append({"feed":   feedme,
+                                 "site":   site })
+                totNum+=len(feedme.entries)
+
+        nzbpr-=1
+
+    i = 0
+    if nonexp == "yes":
+        #print str(ft) + " sites checked. There are " + str(totNum) + " entries to be updated."
+        #print feedme
+        #i = 0
+
+        for ft in feedthis:
+            site = ft['site']
+            #print str(site) + " now being updated..."
+            for entry in ft['feed'].entries:
+                #print "entry: " + str(entry)
+                tmpsz = entry.enclosures[0]
+                feeddata.append({
+                           'Site':     site,
+                           'Title':    entry.title,
+                           'Link':     entry.link,
+                           'Pubdate':  entry.updated,
+                           'Size':     tmpsz['length']
+                           })
+
+#               print ("Site: " + str(feeddata[i]['Site']))
+#               print ("Title: " + str(feeddata[i]['Title']))
+#               print ("Link: " + str(feeddata[i]['Link']))
+#               print ("pubdate: " + str(feeddata[i]['Pubdate']))
+#               print ("size: " + str(feeddata[i]['Size']))
+                i+=1
+            logger.info(str(site) + " : " + str(i) + " entries indexed.")
+
+    rssdbupdate(feeddata,i,'usenet')
+    return
+
+def rssdbupdate(feeddata,i,type):
+    rsschktime = 15
+    myDB = db.DBConnection()
+
+    #let's add the entries into the db so as to save on searches
+    #also to build up the ID's ;)
+    x = 1
+    while x <= i:
+        try:
+            dataval = feeddata[x]
+        except IndexError:
+            logger.fdebug("reached the end of populating. Exiting the process.")
+            break
+        #print "populating : " + str(dataval)
+        #remove passkey so it doesn't end up in db
+        if type == 'torrent':
+            newlink = dataval['Link'][:(dataval['Link'].find('&passkey'))]
+            newVal = {"Link":      newlink,
+                      "Pubdate":   dataval['Pubdate'],
+                      "Site":      dataval['Site']}
+        else:
+            newlink = dataval['Link']
+            newVal = {"Link":      newlink,
+                      "Pubdate":   dataval['Pubdate'],
+                      "Site":      dataval['Site'],
+                      "Size":      dataval['Size']}
+
+        ctrlVal = {"Title":    dataval['Title']}
+
+        myDB.upsert("rssdb", newVal,ctrlVal)
+
+        x+=1
+
+    logger.fdebug("Completed adding new data to RSS DB. Next add in " + str(mylar.RSS_CHECKINTERVAL) + " minutes")
+    return
+
+def torrentdbsearch(seriesname,issue,comicid=None):
+    myDB = db.DBConnection()
+    seriesname_alt = None
+    if comicid is None or comicid == 'None':
+        pass
+    else:
+        snm = myDB.action("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
+        if snm is None:
+            logger.fdebug("Invalid ComicID of " + str(comicid) + ". Aborting search.")
+            return
+        else:
+            seriesname = snm['ComicName']
+            seriesname_alt = snm['AlternateSearch']
+
+
+    tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\s]', '%',seriesname)
+    formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
+    tsearch = tsearch_seriesname + "%"
+    #print tsearch
+    if mylar.ENABLE_CBT:
+        tresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [tsearch])
+    if mylar.ENABLE_KAT:
+        tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [tsearch])
+    if tresults is None:
+        logger.fdebug("torrent search returned no results for " + seriesname)
+        if seriesname_alt is None:
+            logger.fdebug("no Alternate name given. Aborting search.")
+            return "no results"
+        else:
+            chkthealt = seriesname_alt.split('##')
+            if chkthealt == 0:
+                AS_Alternate = AlternateSearch
+            for calt in chkthealt:
+                AS_Alternate = re.sub('##','',calt)
+                if mylar.ENABLE_CBT:
+                    tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [AS_Alternate])
+                if mylar.ENABLE_KAT:
+                    tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [AS_Alternate])
+            if tresults is None:
+                logger.fdebug("torrent alternate name search returned no results.")
+                return "no results"
+    extensions = ('cbr', 'cbz')
+    tortheinfo = []
+    torinfo = {}
+
+    for tor in tresults:
+        torsplit = tor['Title'].split('/')
+        #print tor['Title']
+        #print ("there are " + str(len(torsplit)) + " sections in this title")
+        i=0
+        #0 holds the title/issue and format-type.
+        while (i < len(torsplit)):
+            #print "section(" + str(i) + "): " + str(torsplit[i])
+            i+=1
+        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-]', '',torsplit[0]).lower()
+        formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
+        #print (str(len(formatrem_torsplit)) + " - formatrem_torsplit : " + formatrem_torsplit.lower())
+        #print (str(len(formatrem_seriesname)) + " - formatrem_seriesname :" + formatrem_seriesname.lower())
+        if formatrem_seriesname.lower() in formatrem_torsplit.lower():
+            logger.fdebug("matched to : " + tor['Title'])
+            logger.fdebug("matched on series title: " + seriesname)
+            titleend = formatrem_torsplit[len(formatrem_seriesname):]
+            titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
+
+            titleend = re.sub('cbr', '', str(titleend)) #remove extensions
+            logger.fdebug("titleend: " + str(titleend))
+            sptitle = titleend.split()
+            extra = ''
+            for sp in sptitle:
+                if 'v' in sp.lower() and sp[2:].isdigit():
+                    volumeadd = sp
+                elif 'vol' in sp.lower() and sp[3:].isdigit():
+                    volumeadd = sp
+                if sp.isdigit():
+                    #print("issue # detected : " + str(issue))
+                    if int(issue) == int(sp):
+                        logger.fdebug("Issue matched for : " + str(issue))
+                        #the title on CBT has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
+                        ctitle = tor['Title'].find('cbr')
+                        if ctitle == 0:
+                            ctitle = tor['Title'].find('cbz')
+                        if ctitle == 0:
+                            logger.fdebug("cannot determine title properly - ignoring for now.")
+                            continue
+                        cttitle = tor['Title'][:ctitle]
+                        #print("change title to : " + str(cttitle))
+
+                        if extra == '':
+                            tortheinfo.append({
+                                          'title':   cttitle, #tor['Title'],
+                                          'link':    tor['Link'],
+                                          'pubdate': tor['Pubdate'],
+                                          'site':    tor['Site'],
+                                          'length':    tor['Size']
+                                          })
+                            continue
+                            #torsend2client(formatrem_seriesname,tor['Link'])
+                        else:
+                            logger.fdebug("extra info given as :" + str(extra))
+                            logger.fdebug("extra information confirmed as a match")
+                            logger.fdebug("queuing link: " + str(tor['Link']))
+                            tortheinfo.append({
+                                          'title':   cttitle, #tor['Title'],
+                                          'link':    tor['Link'],
+                                          'pubdate': tor['Pubdate'],
+                                          'site':    tor['Site'],
+                                          'length':    tor['Size']
+                                          })
+                            logger.fdebug("entered info.")
+                            continue
+                            #torsend2client(formatrem_seriesname,tor['Link'])
+                    else:
+                        logger.fdebug("invalid issue#: " + str(sp))
+                        #extra = str(extra) + " " + str(sp) 
+                else:
+                    logger.fdebug("word detected - assuming continuation of title: " + str(sp))
+                    extra = str(extra) + " " + str(sp)
+
+    torinfo['entries'] = tortheinfo
+
+    return torinfo
+
+def nzbdbsearch(seriesname,issue,comicid=None):
+    myDB = db.DBConnection()
+    seriesname_alt = None
+    if comicid is None or comicid == 'None':
+        pass
+    else:
+        snm = myDB.action("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
+        if snm is None:
+            logger.info("Invalid ComicID of " + str(comicid) + ". Aborting search.")
+            return
+        else:
+            seriesname = snm['ComicName']
+            seriesname_alt = snm['AlternateSearch']
+
+
+    nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\s]', '%',seriesname)
+    formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    nsearch = nsearch_seriesname + "%"
+    nresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'comicBT' AND Site != 'KAT'", [nsearch])
+    if nresults is None:
+        logger.fdebug("nzb search returned no results for " + seriesname)
+        if seriesname_alt is None:
+            logger.fdebug("no nzb Alternate name given. Aborting search.")
+            return "no results"
+        else:
+            chkthealt = seriesname_alt.split('##')
+            if chkthealt == 0:
+                AS_Alternate = AlternateSearch
+            for calt in chkthealt:
+                AS_Alternate = re.sub('##','',calt)
+                nresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'comicBT' AND Site != 'KAT'", [AS_Alternate])
+            if nresults is None:
+                logger.fdebug("nzb alternate name search returned no results.")
+                return "no results"
+
+    nzbtheinfo = []
+    nzbinfo = {}
+
+    for nzb in nresults:
+        # no need to parse here, just compile and throw it back ....
+        nzbtheinfo.append({
+                         'title':   nzb['Title'],
+                         'link':    nzb['Link'],
+                         'pubdate': nzb['Pubdate'],
+                         'site':    nzb['Site'],
+                         'length':    nzb['Size']
+                         })
+        logger.fdebug("entered info for " + nzb['Title'])
+
+    nzbinfo['entries'] = nzbtheinfo
+    return nzbinfo
+             
+def torsend2client(seriesname, linkit, site):
+    logger.info("matched on " + str(seriesname))
+    filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    if site == 'ComicBT':
+        logger.info(linkit)
+        linkit = str(linkit) + '&passkey=' + str(mylar.CBT_PASSKEY)
+
+    if linkit[-7:] != "torrent":
+        filename += ".torrent"
+
+    request = urllib2.Request(linkit)
+    request.add_header('User-Agent', str(mylar.USER_AGENT))
+    if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
+        filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
+        logger.fdebug("filename for torrent set to : " + filepath)
+    elif mylar.TORRENT_SEEDBOX and mylar.SEEDBOX_WATCHDIR is not None:
+        filepath = os.path.join(mylar.CACHE_DIR, filename)
+        logger.fdebug("filename for torrent set to : " + filepath)
+    else:
+        logger.error("No Local Watch Directory or Seedbox Watch Directory specified. Set it and try again.")
+        return "fail"
+
+    try:
+        opener = helpers.urlretrieve(urllib2.urlopen(request), filepath)
+    except Exception, e:
+        logger.warn('Error fetching data from %s: %s' % (site, e))
+        return "fail"
+
+    logger.fdebug("torrent file saved as : " + str(filepath))
+    if mylar.TORRENT_LOCAL:
+        return "pass"
+    #remote_file = urllib2.urlopen(linkit)
+    #if linkit[-7:] != "torrent":
+    #    filename += ".torrent"
+
+    #local_file = open('%s' % (os.path.join(mylar.CACHE_DIR,filename)), 'w')
+    #local_file.write(remote_file.read())
+    #local_file.close()
+    #remote_file.close()
+    elif mylar.TORRENT_SEEDBOX:
+        tssh = ftpsshup.putfile(filepath,filename)
+        return tssh
+
+if __name__ == '__main__':
+    #torrents(sys.argv[1])
+    #torrentdbsearch(sys.argv[1], sys.argv[2], sys.argv[3])
+    nzbs(sys.argv[1])
