@@ -719,7 +719,7 @@ def replacetheslash(data):
     # os.path.join will pipe in the '\' in windows, which won't resolve 
     # when viewing through cherrypy - so convert it and viola.    
     if platform.system() == "Windows":
-        slashreplaced = replace.data('\\', '/')
+        slashreplaced = data.replace('\\', '/')
     else:
         slashreplaced = data
     return slashreplaced

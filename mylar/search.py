@@ -227,6 +227,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
                                 logger.fdebug("Found via API Alternate Naming.")
                                 break
             else:
+                newznab_host = None
                 nzbprov = nzbprovider[nzbpr]
                 if searchmode == 'rss':
                     if mylar.ENABLE_RSS:
