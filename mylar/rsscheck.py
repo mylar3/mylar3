@@ -3,7 +3,6 @@
 import os, sys
 import re
 import lib.feedparser as feedparser
-import feedparser
 import urllib2
 import ftpsshup
 import datetime
