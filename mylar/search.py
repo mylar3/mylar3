@@ -772,7 +772,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     if 'annual' in ComicName.lower():
                         logger.fdebug("IssueID of : " + str(IssueID) + " - This is an annual...let's adjust.")
                         annualize = "true"
-                        splitst = splitst - 1
+                        #splitst = splitst - 1
                     for tstsplit in splitit:
                         if 'v' in tstsplit.lower() and tstsplit[1:].isdigit():
                             logger.fdebug("this has a version #...let's adjust")
@@ -808,6 +808,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     else:
                         initialchk = 'ok'
 
+                    logger.fdebug("splitst : " + str(splitst))
+                    logger.fdebug("len-watchcomic : " + str(len(watchcomic_split)))
                     if (splitst) != len(watchcomic_split) and initialchk == 'no':
                         logger.fdebug("incorrect comic lengths after removal...not a match.")
                     else:
