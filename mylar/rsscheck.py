@@ -217,7 +217,7 @@ def nzbs(provider=None):
                 nonexp = "yes"
             elif nzbprovider[nzbpr] == 'dognzb':
                 feed = 'http://dognzb.cr/rss?t=7030&dl=1&i=1&r=' + mylar.DOGNZB_APIKEY
-                feedme = feedparser.parser(feed)
+                feedme = feedparser.parse(feed)
                 site = nzbprovider[nzbpr]
                 ft+=1
                 nonexp = "yes"

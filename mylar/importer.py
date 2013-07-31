@@ -305,9 +305,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         #print helpers.replace_all(mylar.FOLDER_FORMAT, values)
 
         if mylar.FOLDER_FORMAT == '':
-            comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + SeriesYear + ")"
+            comlocation = os.path.join(mylar.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
         else:
-            comlocation = mylar.DESTINATION_DIR + "/" + helpers.replace_all(mylar.FOLDER_FORMAT, values)
+            comlocation = os.path.join(mylar.DESTINATION_DIR, helpers.replace_all(mylar.FOLDER_FORMAT, values))
 
 
         #comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
@@ -367,7 +367,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             logger.info(u"Sucessfully retrieved cover for " + comic['ComicName'])
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.COMIC_COVER_LOCAL:
-                comiclocal = os.path.join(str(comlocation) + "/cover.jpg")
+                comiclocal = os.path.join(str(comlocation),'cover.jpg')
                 shutil.copy(ComicImage,comiclocal)
     except IOError as e:
         logger.error(u"Unable to save cover locally at this time.")
@@ -596,8 +596,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     #print str(issnum)
                     if 'au' in issnum.lower():
                         int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-                    elif 'ai' in issnum.lower():
-                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+#                    elif 'ai' in issnum.lower():
+#                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+#                        print "ai:"  + str(int_issnum)
                     elif u'\xbd' in issnum:
                         issnum = .5
                         int_issnum = int(issnum) * 1000
@@ -618,7 +619,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                             issaftdec = str(decisval)
                         try:
 #                            int_issnum = str(issnum)
-                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 100)
+                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                         except ValueError:
                             logger.error("This has no issue #'s for me to get - Either a Graphic Novel or one-shot.")
                             updater.no_searchresults(comicid)
@@ -633,8 +634,29 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                                 int_issnum = (int(x)*1000) - 1
                             else: raise ValueError
                         except ValueError, e:
-                            logger.error(str(issnum) + " this has an alpha-numeric in the issue # which I cannot account for.")
-                            return    
+                            x = 0
+                            tstord = 0
+                            issno = 0
+                            while (x < len(issnum)):
+                                if issnum[x].isalpha():
+                                    #take first occurance of alpha in string and carry it through
+                                    tstord = issnum[x:]
+                                    issno = issnum[:x]
+                                    break
+                                x+=1
+                            if tstord is not None and issno is not None:
+                                logger.fdebug("tstord: " + str(tstord))
+                                a = 0
+                                ordtot = 0
+                                while (a < len(tstord)):
+                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                                    a+=1
+                                logger.fdebug("issno: " + str(issno))
+                                int_issnum = (int(issno) * 1000) + ordtot
+                                logger.fdebug("intissnum : " + str(int_issnum))
+                            else:
+                                logger.error(str(issnum) + " this has an alpha-numeric in the issue # which I cannot account for.")
+                                return    
                         #get the latest issue / date using the date.
                 if firstval['Issue_Date'] > latestdate:
                     latestiss = issnum

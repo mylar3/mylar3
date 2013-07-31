@@ -149,6 +149,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
     if 'annual' in ComicName.lower():
         if mylar.ANNUALS_ON:
             issuechk = myDB.action("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
+        else:
+            logger.fdebug("Annual detected, but annuals not enabled. Ignoring result.")
+            return
     else:
         issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
 

@@ -651,7 +651,7 @@ def issuedigits(issnum):
                 decisval = int(decis)
                 issaftdec = str(decisval)
             try:
-                int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 100)
+                int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
             except ValueError:
                 logger.error("This has no issue #'s for me to get - Either a Graphic Novel or one-shot.")
                 int_issnum = 999999999999999
@@ -664,8 +664,30 @@ def issuedigits(issnum):
                     int_issnum = (int(x)*1000) - 1
                 else: raise ValueError
             except ValueError, e:
-                #logger.error(str(issnum) + "this has an alpha-numeric in the issue # which I cannot account for.")
-                int_issnum = 999999999999999
+                #this will account for any alpha in a issue#, so long as it doesn't have decimals.
+                x = 0
+                tstord = 0
+                issno = 0
+                while (x < len(issnum)):
+                    if issnum[x].isalpha():
+                    #take first occurance of alpha in string and carry it through
+                        tstord = issnum[x:]
+                        issno = issnum[:x]
+                        break
+                    x+=1
+                if tstord is not None and issno is not None:
+                    logger.fdebug("tstord: " + str(tstord))
+                    a = 0
+                    ordtot = 0
+                    while (a < len(tstord)):
+                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                        a+=1
+                    logger.fdebug("issno: " + str(issno))
+                    int_issnum = (int(issno) * 1000) + ordtot
+                    logger.fdebug("intissnum : " + str(int_issnum))
+                else:
+                    logger.error(str(issnum) + "this has an alpha-numeric in the issue # which I cannot account for.")
+                    int_issnum = 999999999999999
     return int_issnum
 
 
