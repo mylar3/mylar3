@@ -635,13 +635,13 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                             else: raise ValueError
                         except ValueError, e:
                             x = 0
-                            tstord = 0
-                            issno = 0
+                            tstord = None
+                            issno = None
                             while (x < len(issnum)):
                                 if issnum[x].isalpha():
                                     #take first occurance of alpha in string and carry it through
-                                    tstord = issnum[x:]
-                                    issno = issnum[:x]
+                                    tstord = issnum[x:].rstrip()
+                                    issno = issnum[:x].rstrip()
                                     break
                                 x+=1
                             if tstord is not None and issno is not None:
