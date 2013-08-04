@@ -375,6 +375,10 @@
                                     <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['use_nzbsu']} /><legend>NZB.SU</legend>
                 		</div>
                 		<div class="config">
+                                        <div class="row">
+                                            <label>NZB.SU UID</label>
+                                            <input type="text" name="nzbsu_uid" value="${config['nzbsu_uid']}" size="15" >
+                                        </div>
 	                		<div class="row">
 	                		 	<label>NZB.SU API</label>
                                                 <input type="text" name="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
@@ -387,6 +391,10 @@
                                      <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><legend>DOGNZB</legend>
                                 </div>
                                 <div class="config">
+                                        <div class="row">
+                                            <label>DOGNZB UID</label>
+                                            <input type="text" name="dognzb_uid" value="${config['dognzb_uid']}" size="15">
+                                        </div>
                                         <div class="row">
                                                 <label>DOGNZB API</label>
                                                 <input type="text" name="dognzb_apikey" value="${config['dognzb_api']}" size="36">
@@ -437,7 +445,7 @@
                                     %>
                                     %for newznab in config['extra_newznabs']:
                                         <%
-                                            if newznab[3] == '1' or newznab[3] == 1:
+                                            if newznab[4] == '1' or newznab[4] == 1:
                                                 newznab_enabled = "checked"
                                             else:
                                                 newznab_enabled = ""
@@ -454,6 +462,10 @@
                                             <div class="row">
                                                 <label>Newznab API</label>
                                                 <input type="text" name="newznab_api${newznab_number}" value="${newznab[2]}" size="36">
+                                            </div>
+                                            <div class="row">
+                                                <label>Newznab UID</label>
+                                                <input type="text" name="newznab_uid${newznab_number}" value="${newznab[3]}" size="15">
                                             </div>
                                             <div class="row checkbox">
                                                 <input id="newznab_enabled" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
@@ -862,7 +874,7 @@
 
                 $("#add_newznab").click(function() {
                     var intId = $("#newznab_providers > div").size() + deletedNewznabs + 1;
-                    var formfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" name=\"newznab_host" + intId + "\" size=\"30\"></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var formfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" name=\"newznab_host" + intId + "\" size=\"30\"></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
                     var removeButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     removeButton.click(function() {
                         $(this).parent().remove();

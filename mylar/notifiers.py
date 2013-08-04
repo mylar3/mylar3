@@ -106,14 +106,14 @@ class NMA:
         
         return response     
         
-    def notify(self, ComicName=None, Year=None, Issue=None, snatched_nzb=None):
+    def notify(self, ComicName=None, Year=None, Issue=None, snatched_nzb=None, sent_to=None):
     
         apikey = self.apikey
         priority = self.priority
         
         if snatched_nzb:
             event = snatched_nzb + " snatched!"
-            description = "Mylar has snatched: " + snatched_nzb + " and has sent it to SABnzbd+"
+            description = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
         else:
             event = ComicName + ' (' + Year + ') - Issue #' + Issue + ' complete!'
             description = "Mylar has downloaded and postprocessed: " + ComicName + ' (' + Year + ') #' + Issue

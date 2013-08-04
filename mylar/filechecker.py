@@ -114,8 +114,20 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                 #logger.fdebug(str(nono) + " detected " + str(subcnt) + " times.")
                 # segment '.' having a . by itself will denote the entire string which we don't want
                 elif nono == '.':
-                    subname = re.sub('\.', ' ', subname)
-                    nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
+                    x = 0
+                    fndit = 0
+                    dcspace = 0
+                    while x < subcnt:
+                        fndit = subname.find(nono, fndit)
+                        if subname[fndit-1:fndit].isdigit() and subname[fndit+1:fndit+2].isdigit():
+                            logger.fdebug("decimal issue detected.")
+                            dcspace+=1
+                        x+=1
+                    if dcspace == 1:
+                        nonocount = nonocount + subcnt + dcspace                    
+                    else:
+                        subname = re.sub('\.', ' ', subname)
+                        nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
                 else:
                     #this is new - if it's a symbol seperated by a space on each side it drags in an extra char.
                     x = 0

@@ -398,7 +398,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     #"Description":      Cdesc.decode('utf-8', 'replace'),
                     "DetailURL":        comic['ComicURL'],
 #                    "ComicPublished":   gcdinfo['resultPublished'],
-                    "ComicPublished":   'Unknown',
+                    "ComicPublished":   "Unknown",
                     "DateAdded":        helpers.today(),
                     "Status":           "Loading"}
     

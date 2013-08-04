@@ -417,7 +417,7 @@ def forceRescan(ComicID,archive=None):
                 logger.fdebug("removed extension for issue:" + str(temploc))
                 temploc = temploc[:-4]
             deccnt = str(temploc).count('.')
-            if deccnt > 0:
+            if deccnt > 1:
                 #logger.fdebug("decimal counts are :" + str(deccnt))
                 #if the file is formatted with '.' in place of spaces we need to adjust.
                 #before replacing - check to see if digits on either side of decimal and if yes, DON'T REMOVE
@@ -435,23 +435,23 @@ def forceRescan(ComicID,archive=None):
                     #logger.fdebug("occurance " + str(occur) + " of . at position: " + str(start))
                     if temploc[prevstart:start].isdigit():
                         if digitfound == "yes":
-                            #logger.fdebug("this is a decimal, assuming decimal issue.")
+                            logger.fdebug("this is a decimal, assuming decimal issue.")
                             decimalfound = "yes"
                             reconst = "." + temploc[prevstart:start] + " "
                         else:
-                            #logger.fdebug("digit detected.")
+                            logger.fdebug("digit detected.")
                             digitfound = "yes"
                             reconst = temploc[prevstart:start]
                     else:
                         reconst = temploc[prevstart:start] + " "
-                    #logger.fdebug("word: " + reconst)
+                    logger.fdebug("word: " + reconst)
                     tempreconstruct = tempreconstruct + reconst 
-                    #logger.fdebug("tempreconstruct is : " + tempreconstruct)
+                    logger.fdebug("tempreconstruct is : " + tempreconstruct)
                     prevstart = (start+1)
                     occur+=1
-                #logger.fdebug("word: " + temploc[prevstart:])
+                logger.fdebug("word: " + temploc[prevstart:])
                 tempreconstruct = tempreconstruct + " " + temploc[prevstart:]
-                #logger.fdebug("final filename to use is : " + str(tempreconstruct))
+                logger.fdebug("final filename to use is : " + str(tempreconstruct))
                 temploc = tempreconstruct            
             #logger.fdebug("checking " + str(temploc))
             #fcnew_b4 = shlex.split(str(temploc))            
@@ -478,6 +478,7 @@ def forceRescan(ComicID,archive=None):
                 fnd_iss_except = 'None'
                 #print ("Issue, int_iss, iss_except: " + str(reiss['Issue_Number']) + "," + str(int_iss) + "," + str(iss_except))
 
+
                 while (som < fcn):
                     #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
                     #logger.fdebug("checking word - " + str(fcnew[som]))
@@ -490,18 +491,6 @@ def forceRescan(ComicID,archive=None):
                         get_issue = shlex.split(str(fcnew[som]))
                         if fcnew[som] != " ":
                             fcnew[som] = get_issue[0]
-
-                    if '.' in fcnew[som]:
-                        #logger.fdebug("decimal detected...adjusting.")
-                        try:
-                            i = float(fcnew[som])
-                        except ValueError, TypeError:
-                            #not numeric
-                            #logger.fdebug("NOT NUMERIC - new word: " + str(fcnew[som]))
-                            fcnew[som] = fcnew[som].replace(".", "")
-                        else:
-                            #numeric
-                            pass
 
 
                     if som+1 < len(fcnew) and len(fcnew[som+1]) == 2:
@@ -520,9 +509,8 @@ def forceRescan(ComicID,archive=None):
 
                     #sometimes scanners refuse to use spaces between () and lump the issue right at the start
                     #mylar assumes it's all one word in this case..let's dump the brackets.
-                    fcredone = re.findall('[^\()]+', fcnew[som])
                     
-                    fcdigit = helpers.issuedigits(fcredone[0])
+                    fcdigit = helpers.issuedigits(fcnew[som])
 
                     logger.fdebug("fcdigit: " + str(fcdigit))
                     logger.fdebug("int_iss: " + str(int_iss))
@@ -656,6 +644,8 @@ def forceRescan(ComicID,archive=None):
                     issStatus = "Wanted"
                 elif old_status == "Ignored":
                     issStatus = "Ignored"
+                elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
+                    issStatus = "Snatched"
                 else:
                     issStatus = "Skipped"
 

@@ -620,7 +620,7 @@ class WebInterface(object):
         AlternateSearch = miy['AlternateSearch']
         UseAFuzzy = miy['UseFuzzy']
         ComicVersion = miy['ComicVersion']
-        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode)
+        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, issues['IssueDate'], IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -1724,8 +1724,10 @@ class WebInterface(object):
                     "blackhole_dir" : mylar.BLACKHOLE_DIR,
                     "usenet_retention" : mylar.USENET_RETENTION,
                     "use_nzbsu" : helpers.checked(mylar.NZBSU),
+                    "nzbsu_uid" : mylar.NZBSU_UID,
                     "nzbsu_api" : mylar.NZBSU_APIKEY,
                     "use_dognzb" : helpers.checked(mylar.DOGNZB),
+                    "dognzb_uid" : mylar.DOGNZB_UID, 
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
                     "use_nzbx" : helpers.checked(mylar.NZBX),
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
@@ -1733,6 +1735,7 @@ class WebInterface(object):
                     "newznab_host" : mylar.NEWZNAB_HOST,
                     "newznab_name" : mylar.NEWZNAB_NAME,
                     "newznab_api" : mylar.NEWZNAB_APIKEY,
+                    "newznab_uid" : mylar.NEWZNAB_UID,
                     "newznab_enabled" : helpers.checked(mylar.NEWZNAB_ENABLED),
                     "extra_newznabs" : mylar.EXTRA_NEWZNABS,
                     "enable_rss" : helpers.checked(mylar.ENABLE_RSS),
@@ -1953,7 +1956,7 @@ class WebInterface(object):
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         use_sabnzbd=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole=0, blackhole_dir=None,
         use_nzbget=0, nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None,
-        usenet_retention=None, nzbsu=0, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
         enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None,
         enable_torrents=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
@@ -1990,8 +1993,10 @@ class WebInterface(object):
         mylar.BLACKHOLE_DIR = blackhole_dir
         mylar.USENET_RETENTION = usenet_retention
         mylar.NZBSU = nzbsu
+        mylar.NZBSU_UID = nzbsu_uid
         mylar.NZBSU_APIKEY = nzbsu_apikey
         mylar.DOGNZB = dognzb
+        mylar.DOGNZB_UID = dognzb_uid
         mylar.DOGNZB_APIKEY = dognzb_apikey
         mylar.NZBX = nzbx
         mylar.RAW = raw
@@ -2072,7 +2077,7 @@ class WebInterface(object):
         #changing this for simplicty - adding all newznabs into extra_newznabs
         if newznab_host is not None:
             #this
-            mylar.EXTRA_NEWZNABS.append((newznab_host, newznab_apikey, int(newznab_enabled), newznab_name))
+            mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_apikey, newznab_uid, int(newznab_enabled)))
 
         for kwarg in kwargs:
             if kwarg.startswith('newznab_name'):
@@ -2080,12 +2085,13 @@ class WebInterface(object):
                 newznab_name = kwargs['newznab_name' + newznab_number]
                 newznab_host = kwargs['newznab_host' + newznab_number]
                 newznab_api = kwargs['newznab_api' + newznab_number]
+                newznab_uid = kwargs['newznab_uid' + newznab_number]
                 try:
                     newznab_enabled = int(kwargs['newznab_enabled' + newznab_number])
                 except KeyError:
                     newznab_enabled = 0
 
-                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_api, newznab_enabled))
+                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_api, newznab_uid, newznab_enabled))
 
         # Sanity checking
         if mylar.SEARCH_INTERVAL < 360:

@@ -147,11 +147,11 @@ def nzbs(provider=None):
     if mylar.NEWZNAB == 1:
 
         for newznab_host in mylar.EXTRA_NEWZNABS:
-            if newznab_host[3] == '1' or newznab_host[3] == 1:
+            if newznab_host[4] == '1' or newznab_host[4] == 1:
                 newznab_hosts.append(newznab_host)
                 nzbprovider.append('newznab')
                 newznabs+=1
-                logger.fdebug("newznab name:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[3]))
+                logger.fdebug("newznab name:" + str(newznab_host[0]) + " - enabled: " + str(newznab_host[4]))
 
     # --------
     providercount = int(nzbp + newznabs)
@@ -195,10 +195,15 @@ def nzbs(provider=None):
 #                print ("Size:" + str(tmpsz['length']))
                 i+=1
             logger.info(str(i) + " results from Experimental feed indexed.")
+            nzbpr-=1
         else:
             if nzbprovider[nzbpr] == 'newznab':
                 for newznab_host in newznab_hosts:
-                    feed = newznab_host[1].rstrip() + "/rss?t=7030&dl=1&i=1&r=" + newznab_host[2].rstrip()
+                    if newznab_host[3] is None:
+                        newznabuid = '1'
+                    else:
+                        newznabuid = newznab_host[3]
+                    feed = newznab_host[1].rstrip() + '/rss?t=7030&dl=1&i=' + str(newznabuid) + '&r=' + newznab_host[2].rstrip()
                     feedme = feedparser.parse(feed)
                     site = newznab_host[0].rstrip()
                     feedthis.append({"feed":     feedme,
@@ -206,8 +211,11 @@ def nzbs(provider=None):
                     totNum+=len(feedme.entries)
                     ft+=1
                     nonexp = "yes"
+                    nzbpr-=1
             elif nzbprovider[nzbpr] == 'nzb.su':
-                feed = 'http://nzb.su/rss?t=7030&dl=1&i=1&r=' + mylar.NZBSU_APIKEY
+                if mylar.NZBSU_UID is None:
+                    mylar.NZBSU_UID = '1'
+                feed = 'http://nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY
                 feedme = feedparser.parse(feed)
                 site = nzbprovider[nzbpr]
                 feedthis.append({"feed":   feedme,
@@ -215,8 +223,11 @@ def nzbs(provider=None):
                 totNum+=len(feedme.entries)
                 ft+=1
                 nonexp = "yes"
+                nzbpr-=1
             elif nzbprovider[nzbpr] == 'dognzb':
-                feed = 'http://dognzb.cr/rss?t=7030&dl=1&i=1&r=' + mylar.DOGNZB_APIKEY
+                if mylar.DOGNZB_UID is None:
+                    mylar.DOGNZB_UID = '1'
+                feed = 'http://dognzb.cr/rss?t=7030&dl=1&i=' + mylar.DOGNZB_UID + '&r=' + mylar.DOGNZB_APIKEY
                 feedme = feedparser.parse(feed)
                 site = nzbprovider[nzbpr]
                 ft+=1
@@ -224,8 +235,7 @@ def nzbs(provider=None):
                 feedthis.append({"feed":   feedme,
                                  "site":   site })
                 totNum+=len(feedme.entries)
-
-        nzbpr-=1
+                nzbpr-=1
 
     i = 0
     if nonexp == "yes":
@@ -349,7 +359,7 @@ def torrentdbsearch(seriesname,issue,comicid=None):
         while (i < len(torsplit)):
             #print "section(" + str(i) + "): " + str(torsplit[i])
             i+=1
-        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-]', '',torsplit[0]).lower()
+        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',torsplit[0]).lower()
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
         #print (str(len(formatrem_torsplit)) + " - formatrem_torsplit : " + formatrem_torsplit.lower())
         #print (str(len(formatrem_seriesname)) + " - formatrem_seriesname :" + formatrem_seriesname.lower())
@@ -363,55 +373,54 @@ def torrentdbsearch(seriesname,issue,comicid=None):
             logger.fdebug("titleend: " + str(titleend))
             sptitle = titleend.split()
             extra = ''
-            for sp in sptitle:
-                if 'v' in sp.lower() and sp[2:].isdigit():
-                    volumeadd = sp
-                elif 'vol' in sp.lower() and sp[3:].isdigit():
-                    volumeadd = sp
-                if sp.isdigit():
-                    #print("issue # detected : " + str(issue))
-                    if int(issue) == int(sp):
-                        logger.fdebug("Issue matched for : " + str(issue))
-                        #the title on CBT has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
-                        ctitle = tor['Title'].find('cbr')
-                        if ctitle == 0:
-                            ctitle = tor['Title'].find('cbz')
-                        if ctitle == 0:
-                            logger.fdebug("cannot determine title properly - ignoring for now.")
-                            continue
-                        cttitle = tor['Title'][:ctitle]
-                        #print("change title to : " + str(cttitle))
-
-                        if extra == '':
-                            tortheinfo.append({
-                                          'title':   cttitle, #tor['Title'],
-                                          'link':    tor['Link'],
-                                          'pubdate': tor['Pubdate'],
-                                          'site':    tor['Site'],
-                                          'length':    tor['Size']
-                                          })
-                            continue
+#            for sp in sptitle:
+#                if 'v' in sp.lower() and sp[1:].isdigit():
+#                    volumeadd = sp
+#                elif 'vol' in sp.lower() and sp[3:].isdigit():
+#                    volumeadd = sp
+#                #if sp.isdigit():
+#                    #print("issue # detected : " + str(issue))
+#                elif helpers.issuedigits(issue.rstrip()) == helpers.issuedigits(sp.rstrip()):
+#                    logger.fdebug("Issue matched for : " + str(issue))
+                    #the title on CBT has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
+            ctitle = tor['Title'].find('cbr')
+            if ctitle == 0:
+                ctitle = tor['Title'].find('cbz')
+            if ctitle == 0:
+                logger.fdebug("cannot determine title properly - ignoring for now.")
+                continue
+            cttitle = tor['Title'][:ctitle]
+#           #print("change title to : " + str(cttitle))
+#           if extra == '':
+            tortheinfo.append({
+                          'title':   cttitle, #tor['Title'],
+                          'link':    tor['Link'],
+                          'pubdate': tor['Pubdate'],
+                          'site':    tor['Site'],
+                          'length':  tor['Size']
+                          })
+#                    continue
+#                        #torsend2client(formatrem_seriesname,tor['Link'])
+#                    else:
+#                        logger.fdebug("extra info given as :" + str(extra))
+#                        logger.fdebug("extra information confirmed as a match")
+#                        logger.fdebug("queuing link: " + str(tor['Link']))
+#                        tortheinfo.append({
+#                                      'title':   cttitle, #tor['Title'],
+#                                      'link':    tor['Link'],
+#                                      'pubdate': tor['Pubdate'],
+#                                      'site':    tor['Site'],
+#                                      'length':    tor['Size']
+#                                      })
+#                        logger.fdebug("entered info.")
+#                        continue
                             #torsend2client(formatrem_seriesname,tor['Link'])
-                        else:
-                            logger.fdebug("extra info given as :" + str(extra))
-                            logger.fdebug("extra information confirmed as a match")
-                            logger.fdebug("queuing link: " + str(tor['Link']))
-                            tortheinfo.append({
-                                          'title':   cttitle, #tor['Title'],
-                                          'link':    tor['Link'],
-                                          'pubdate': tor['Pubdate'],
-                                          'site':    tor['Site'],
-                                          'length':    tor['Size']
-                                          })
-                            logger.fdebug("entered info.")
-                            continue
-                            #torsend2client(formatrem_seriesname,tor['Link'])
-                    else:
-                        logger.fdebug("invalid issue#: " + str(sp))
-                        #extra = str(extra) + " " + str(sp) 
-                else:
-                    logger.fdebug("word detected - assuming continuation of title: " + str(sp))
-                    extra = str(extra) + " " + str(sp)
+                #else:
+                #    logger.fdebug("invalid issue#: " + str(sp))
+                #    #extra = str(extra) + " " + str(sp) 
+#                else:
+#                    logger.fdebug("word detected - assuming continuation of title: " + str(sp))
+#                    extra = str(extra) + " " + str(sp)
 
     torinfo['entries'] = tortheinfo
 

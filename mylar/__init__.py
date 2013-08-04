@@ -163,9 +163,11 @@ NZBGET_PRIORITY = None
 NZBGET_CATEGORY = None
 
 NZBSU = False
+NZBSU_UID = None
 NZBSU_APIKEY = None
 
 DOGNZB = False
+DOGNZB_UID = None
 DOGNZB_APIKEY = None
 
 NZBX = False
@@ -174,6 +176,7 @@ NEWZNAB = False
 NEWZNAB_NAME = None
 NEWZNAB_HOST = None
 NEWZNAB_APIKEY = None
+NEWZNAB_UID = None
 NEWZNAB_ENABLED = False
 EXTRA_NEWZNABS = []
 NEWZNAB_EXTRA = None
@@ -300,8 +303,8 @@ def initialize():
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
-                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, NZBX,\
-                NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
+                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, NZBX,\
+                NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
                 ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, \
                 ENABLE_TORRENTS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
@@ -493,9 +496,11 @@ def initialize():
         NZBGET_PRIORITY = check_setting_str(CFG, 'NZBGet', 'nzbget_priority', '')
 
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
+        NZBSU_UID = check_setting_str(CFG, 'NZBsu', 'nzbsu_uid', '')
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
 
         DOGNZB = bool(check_setting_int(CFG, 'DOGnzb', 'dognzb', 0))
+        DOGNZB_UID = check_setting_str(CFG, 'DOGnzb', 'dognzb_uid', '')
         DOGNZB_APIKEY = check_setting_str(CFG, 'DOGnzb', 'dognzb_apikey', '')
 
         NZBX = bool(check_setting_int(CFG, 'nzbx', 'nzbx', 0))
@@ -513,9 +518,13 @@ def initialize():
         if CONFIG_VERSION:
             NEWZNAB_HOST = check_setting_str(CFG, 'Newznab', 'newznab_host', '')
             NEWZNAB_APIKEY = check_setting_str(CFG, 'Newznab', 'newznab_apikey', '')
+            NEWZNAB_UID = 1
             NEWZNAB_ENABLED = bool(check_setting_int(CFG, 'Newznab', 'newznab_enabled', 1))
             NEWZNAB_NAME = NEWZNAB_HOST
         if CONFIG_VERSION == '4':
+            NEWZNAB_NAME = check_setting_str(CFG, 'Newznab', 'newznab_name', '')
+        elif CONFIG_VERSION == '5':
+            NEWZNAB_UID = check_setting_str(CFG, 'Newznab', 'newznab_uid', '')
             NEWZNAB_NAME = check_setting_str(CFG, 'Newznab', 'newznab_name', '')
 
         # this gets nasty
@@ -527,28 +536,33 @@ def initialize():
         flattened_newznabs = check_setting_str(CFG, 'Newznab', 'extra_newznabs', [], log=False)
         if CONFIG_VERSION == '4':
             EN_NUM = 4   #EN_NUM is the number of iterations of itertools to use
+        elif CONFIG_VERSION == '5':
+            EN_NUM = 5   #addition of Newznab UID
         else:
             EN_NUM = 3   
 
         EXTRA_NEWZNABS = list(itertools.izip(*[itertools.islice(flattened_newznabs, i, None, EN_NUM) for i in range(EN_NUM)]))
 
         #if ConfigV3 add the nzb_name to it..
-        if CONFIG_VERSION != '4':
+        if CONFIG_VERSION != '5':   #just bump it up to V5 and throw in the UID too.
             ENABS = []
             for en in EXTRA_NEWZNABS:
                 #set newznabname to newznab address initially so doesn't bomb.
-                ENABS.append((en[0], en[0], en[1], en[2]))
+                if CONFIG_VERSION == '4':
+                    ENABS.append((en[0], en[1], en[2], '1', en[3]))
+                else:
+                    ENABS.append((en[0], en[0], en[2], en[3]))
             #now we hammer the EXTRA_NEWZNABS with the corrected version
             EXTRA_NEWZNABS = ENABS
             #update the configV and write the config.
-            CONFIG_VERSION = '4'
+            CONFIG_VERSION = '5'
             config_write()
-
+        
         #to counteract the loss of the 1st newznab entry because of a switch, let's rewrite to the tuple
         if NEWZNAB_HOST and CONFIG_VERSION:
-            EXTRA_NEWZNABS.append((NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, int(NEWZNAB_ENABLED)))
+            EXTRA_NEWZNABS.append((NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, int(NEWZNAB_ENABLED)))
             # Need to rewrite config here and bump up config version
-            CONFIG_VERSION = '4'
+            CONFIG_VERSION = '5'
             config_write()        
          
         # update folder formats in the config & bump up config version
@@ -875,10 +889,12 @@ def config_write():
 
     new_config['NZBsu'] = {}
     new_config['NZBsu']['nzbsu'] = int(NZBSU)
+    new_config['NZBsu']['nzbsu_uid'] = NZBSU_UID
     new_config['NZBsu']['nzbsu_apikey'] = NZBSU_APIKEY
 
     new_config['DOGnzb'] = {}
     new_config['DOGnzb']['dognzb'] = int(DOGNZB)
+    new_config['DOGnzb']['dognzb_uid'] = DOGNZB_UID
     new_config['DOGnzb']['dognzb_apikey'] = DOGNZB_APIKEY
 
     new_config['nzbx'] = {}
@@ -941,10 +957,11 @@ def start():
         SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
 
         #initiate startup rss feeds for torrents/nzbs here...
-        SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
+        if ENABLE_RSS:
+            SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
 
-        logger.info("Initiating startup-RSS feed checks.")
-        rsscheck.tehMain()
+            logger.info("Initiating startup-RSS feed checks.")
+            rsscheck.tehMain()
         
         #SCHED.add_interval_job(librarysync.libraryScan, minutes=LIBRARYSCAN_INTERVAL)
 

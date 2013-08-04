@@ -10,6 +10,7 @@ import shutil
 import time
 import zipfile
 import subprocess
+from subprocess import CalledProcessError, check_output
 import mylar
 
 from mylar import logger
@@ -38,7 +39,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
 
     
     elif platform.system() == "Darwin":  #Mac OS X
-        comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH)
+        comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
         unrar_cmd =       "/usr/local/bin/unrar"
     
     else:
@@ -141,7 +142,17 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                 os.chdir( unrar_folder )
 
                 # Extract and zip up
-                subprocess.Popen( [ unrar_cmd, "x", f ] ).communicate()
+                try:
+                    output = check_output( [ unrar_cmd, "x", f ] ) 
+                #subprocess.Popen( [ unrar_cmd, "x", f ] ).communicate()
+                except CalledProcessError as e:
+                    if e.returncode == 3:
+                        logger.fdebug("[Unrar Error 3] - Broken Archive.")
+                    elif e.returncode == 1:
+                        logger.fdebug("[Unrar Error 1] - No files to extract.")
+                    logger.fdebug("Marking this as an incomplete download.")
+                    return "unrar error"
+
                 shutil.make_archive( basename, "zip", unrar_folder )
 
                 # get out of unrar folder and clean up
@@ -217,7 +228,17 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             # Extract and zip up
             logger.fdebug("{0}: Comicpath is " + os.path.join(comicpath,basename))
             logger.fdebug("{0}: Unrar is " + unrar_folder )
-            subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
+            try:
+               # subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
+                output = check_output( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] )
+            except CalledProcessError as e:
+                if e.returncode == 3:
+                    logger.fdebug("[Unrar Error 3] - Broken Archive.")
+                elif e.returncode == 1:
+                    logger.fdebug("[Unrar Error 1] - No files to extract.")
+                logger.fdebug("Marking this as an incomplete download.")
+                return "unrar error"
+
             shutil.make_archive( basename, "zip", unrar_folder )
 
             # get out of unrar folder and clean up

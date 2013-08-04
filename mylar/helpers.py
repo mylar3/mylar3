@@ -640,6 +640,7 @@ def issuedigits(issnum):
             issnum = .5
             int_issnum = int(issnum) * 1000
         elif '.' in issnum or ',' in issnum:
+            logger.fdebug("decimal detected.")
             if ',' in issnum: issnum = re.sub(',','.', issnum)
             issst = str(issnum).find('.')
             issb4dec = str(issnum)[:issst]
@@ -680,7 +681,10 @@ def issuedigits(issnum):
                     a = 0
                     ordtot = 0
                     while (a < len(tstord)):
-                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                        try:
+                            ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                        except ValueError:
+                            break
                         a+=1
                     logger.fdebug("issno: " + str(issno))
                     int_issnum = (int(issno) * 1000) + ordtot
@@ -736,7 +740,6 @@ def annual_update():
     return 
 
 def replacetheslash(data):
-    import logger
     # this is necessary for the cache directory to display properly in IE/FF.
     # os.path.join will pipe in the '\' in windows, which won't resolve 
     # when viewing through cherrypy - so convert it and viola.    

@@ -599,6 +599,10 @@ class PostProcessor(object):
                 if pcheck == "fail":
                     self._log("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
                     logger.fdebug("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
+                elif pcheck == "unrar error":
+                    self._log("This is a corrupt archive - whether CRC errors or it's incomplete. Marking as BAD, and retrying a different copy.")
+                    logger.error("This is a corrupt archive - whether CRC errors or it's incomplete. Marking as BAD, and retrying a different copy.")
+                    return self.log
                 else:
                     otofilename = pcheck
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
