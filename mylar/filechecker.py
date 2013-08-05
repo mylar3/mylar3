@@ -55,6 +55,11 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                '\?',
                '\@']
 
+    issue_exceptions = ['AU',
+                      'AI', 
+                      'A',
+                      'B',
+                      'C']
 
     for item in os.listdir(basedir):
         if item == 'cover.jpg' or item == 'cvinfo': continue
@@ -109,7 +114,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                                 logger.fdebug("- appears in series title.")
                         i+=1
                     if detneg == "no": 
-                        subname = re.sub(str(nono), ' ', subname)
+                        subname = re.sub(str(nono), '', subname)
                         nonocount = nonocount + subcnt
                 #logger.fdebug(str(nono) + " detected " + str(subcnt) + " times.")
                 # segment '.' having a . by itself will denote the entire string which we don't want
@@ -144,7 +149,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub(str(nono), ' ', subname)
                     nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', u_watchcomic)
         detectand = False
         detectthe = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
@@ -234,21 +239,49 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
 
             #remove versioning here
             if volrem != None:
-                jtd_len = len(cchk) + len(volrem) + nonocount + 1 #1 is to account for space btwn comic and vol #
+                jtd_len = len(cchk)# + len(volrem)# + nonocount + 1 #1 is to account for space btwn comic and vol #
             else:
-                jtd_len = len(cchk) + nonocount
-            if detectand:
-                jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
-            if detectthe:
-                jtd_len = jtd_len - 3  # char subsitiution diff between 'the' and '' = 3 chars
+                jtd_len = len(cchk)# + nonocount
 
-            justthedigits = item[jtd_len:]
+            logger.fdebug("nonocount [" + str(nonocount) + "] cchk [" + cchk + "] length [" + str(len(cchk)) + "]")
+
+            #if detectand:
+            #    jtd_len = jtd_len - 2 # char substitution diff between & and 'and' = 2 chars
+            #if detectthe:
+            #    jtd_len = jtd_len - 3  # char subsitiution diff between 'the' and '' = 3 chars
+
+            #justthedigits = item[jtd_len:]
+
+            logger.fdebug("final jtd_len to prune [" + str(jtd_len) + "]")
+            logger.fdebug("before title removed from FILENAME [" + str(item) + "]")
+            logger.fdebug("after title removed from FILENAME [" + str(item[jtd_len:]) + "]")
+            logger.fdebug("creating just the digits using SUBNAME, pruning first [" + str(jtd_len) + "] chars from [" + subname + "]")
+
+            justthedigits = subname[jtd_len:].strip()
+
+            logger.fdebug("after title removed from SUBNAME [" + justthedigits + "]")
 
             #remove the title if it appears
-            findtitle = justthedigits.find('-')
-            if findtitle > 0 and detneg == "no":
-                justthedigits = justthedigits[:findtitle]
-                logger.fdebug("removed title from name - is now : " + str(justthedigits))
+            #findtitle = justthedigits.find('-')
+            #if findtitle > 0 and detneg == "no":
+            #    justthedigits = justthedigits[:findtitle]
+            #    logger.fdebug("removed title from name - is now : " + str(justthedigits))
+
+            tmpthedigits = justthedigits
+            justthedigits = justthedigits.split(' ', 1)[0]
+
+            #if the issue has an alphanumeric (issue_exceptions, join it and push it through)
+            try:
+                if tmpthedigits.split(' ', 1)[1] is not None:
+                    for issexcept in issue_exceptions:
+                        if issexcept in tmpthedigits.split(' ', 1)[1]:
+                            justthedigits += tmpthedigits.split(' ', 1)[1]
+                            break
+            except:
+                pass
+
+            logger.fdebug("final justthedigits [" + justthedigits + "]")
+
 
             comiclist.append({
                  'ComicFilename':           item,
