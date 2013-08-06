@@ -20,6 +20,7 @@ import urllib2
 import shlex
 import re 
 import os
+import itertools
 
 import mylar
 from mylar import db, logger, helpers, filechecker
@@ -399,7 +400,7 @@ def forceRescan(ComicID,archive=None):
     issueexceptdupechk = []
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
     issID_to_ignore = []
-
+    issID_to_ignore.append(str(ComicID))
     while (fn < fccnt):  
         haveissue = "no"
         issuedupe = "no"
@@ -514,8 +515,8 @@ def forceRescan(ComicID,archive=None):
                     
                     fcdigit = helpers.issuedigits(fcnew[som])
 
-                    logger.fdebug("fcdigit: " + str(fcdigit))
-                    logger.fdebug("int_iss: " + str(int_iss))
+                    #logger.fdebug("fcdigit: " + str(fcdigit))
+                    #logger.fdebug("int_iss: " + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         logger.fdebug("issue match - fcdigit: " + str(fcdigit) + " ... int_iss: " + str(int_iss))
@@ -660,7 +661,8 @@ def forceRescan(ComicID,archive=None):
                                 "ComicSize":          issSize,
                                 "Status":             issStatus
                                 }
-                issID_to_ignore.append(iss_id)
+
+                issID_to_ignore.append(str(iss_id))
 
             if 'annual' in temploc.lower():
                 myDB.upsert("annuals", newValueDict, controlValueDict)
@@ -669,13 +671,12 @@ def forceRescan(ComicID,archive=None):
         fn+=1
 
     logger.fdebug("IssueID's to ignore: " + str(issID_to_ignore))
+
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
-    tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?']*len(issID_to_ignore)))
-    args = [ComicID, issID_to_ignore]
-
-#    chkthis = myDB.action(tmpsql, args).fetchall()
-    chkthis = None
+    tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?']*(len(issID_to_ignore)-1)))
+    chkthis = myDB.action(tmpsql, issID_to_ignore).fetchall()
+#    chkthis = None
     if chkthis is None: 
         pass
     else:
@@ -713,7 +714,7 @@ def forceRescan(ComicID,archive=None):
             newStatusValue = {"Status": ui['Status']}
             myDB.upsert("issues", newStatusValue, controlValueDict)
             i+=1
-        logger.info("updated " + str(i) + " issues that weren't found.")
+        logger.info("Updated the status of " + str(i) + " issues for " + rescan['ComicName'] + " (" + str(rescan['ComicYear']) + ") that weren't found.")
 
     logger.info("Total files located: " + str(havefiles))
     foundcount = havefiles

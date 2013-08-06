@@ -175,8 +175,8 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                 AS_Alternate = re.sub('##','',calt)
                 #same = encode.
                 u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
-                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
-                altseachcomic = re.sub('\&', ' and ', altsearchcomic)
+                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', '', u_altsearchcomic)
+                altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
                 altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
                 AS_Alt.append(altsearchcomic)
         else:
@@ -186,7 +186,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
         logger.fdebug("watchcomic:" + str(modwatchcomic) + " ..comparing to found file: " + str(subname))
-        if modwatchcomic.lower() in subname.lower() or any(x in subname.lower() for x in AS_Alt):#altsearchcomic.lower() in subname.lower():
+        if modwatchcomic.lower() in subname.lower() or any(x.lower() in subname.lower() for x in AS_Alt):#altsearchcomic.lower() in subname.lower():
             comicpath = os.path.join(basedir, item)
             logger.fdebug( modwatchcomic + " - watchlist match on : " + comicpath)
             comicsize = os.path.getsize(comicpath)
@@ -202,7 +202,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                 if modwatchcomic.lower() in subname.lower():
                     cchk = modwatchcomic
                 else:
-                    cchk_ls = [x for x in AS_Alt if x in subname.lower()]
+                    cchk_ls = [x for x in AS_Alt if x.lower() in subname.lower()]
                     cchk = cchk_ls[0]
                     #print "something: " + str(cchk)
 
