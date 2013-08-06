@@ -549,9 +549,9 @@ def initialize():
             for en in EXTRA_NEWZNABS:
                 #set newznabname to newznab address initially so doesn't bomb.
                 if CONFIG_VERSION == '4':
-                    ENABS.append((en[0], en[1], en[2], '1', en[3]))
+                    ENABS.append((en[0], en[1], en[2], '1', en[3]))  #0=name,1=host,2=api,3=enabled/disabled
                 else:
-                    ENABS.append((en[0], en[0], en[2], en[3]))
+                    ENABS.append((en[0], en[0], en[1], '1', en[2]))  #0=host,1=api,2=enabled/disabled
             #now we hammer the EXTRA_NEWZNABS with the corrected version
             EXTRA_NEWZNABS = ENABS
             #update the configV and write the config.

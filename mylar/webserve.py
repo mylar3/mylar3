@@ -407,6 +407,16 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     deleteArtist.exposed = True
     
+    def wipenzblog(self, ComicID=None):
+        logger.fdebug("Wiping NZBLOG in it's entirety. You should NOT be downloading while doing this or else you'll lose the log for the download.")
+        myDB = db.DBConnection()
+        if ComicID is None:
+            myDB.action('DROP table nzblog')
+            logger.fdebug("Deleted nzblog table.")
+            myDB.action('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT)')
+            logger.fdebug("Re-created nzblog table.")
+    wipenzblog.exposed = True
+
     def refreshArtist(self, ComicID):
         myDB = db.DBConnection()
         mismatch = "no"

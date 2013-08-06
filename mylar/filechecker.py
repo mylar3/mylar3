@@ -271,14 +271,23 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             justthedigits = justthedigits.split(' ', 1)[0]
 
             #if the issue has an alphanumeric (issue_exceptions, join it and push it through)
-            try:
-                if tmpthedigits.split(' ', 1)[1] is not None:
-                    for issexcept in issue_exceptions:
-                        if issexcept in tmpthedigits.split(' ', 1)[1]:
-                            justthedigits += tmpthedigits.split(' ', 1)[1]
-                            break
-            except:
-                pass
+            logger.fdebug("JUSTTHEDIGITS [" + justthedigits + "]" )
+            if justthedigits.lower() == 'annual':
+                logger.fdebug("ANNUAL ["  + tmpthedigits.split(' ', 1)[1] + "]")
+                justthedigits += ' ' + tmpthedigits.split(' ', 1)[1]
+
+            else:
+                
+                try:
+                    if tmpthedigits.split(' ', 1)[1] is not None:
+                        poss_alpha = tmpthedigits.split(' ', 1)[1]
+                        for issexcept in issue_exceptions:
+                            if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
+                                justthedigits += poss_alpha
+                                logger.fdebug("ALPHANUMERIC EXCEPTION. COMBINING : [" + justthedigits + "]")
+                                break
+                except:
+                    pass
 
             logger.fdebug("final justthedigits [" + justthedigits + "]")
 

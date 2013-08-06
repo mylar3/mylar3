@@ -398,6 +398,8 @@ def forceRescan(ComicID,archive=None):
     annualdupechk = []
     issueexceptdupechk = []
     reissues = myDB.action('SELECT * FROM issues WHERE ComicID=?', [ComicID]).fetchall()
+    issID_to_ignore = []
+
     while (fn < fccnt):  
         haveissue = "no"
         issuedupe = "no"
@@ -587,7 +589,7 @@ def forceRescan(ComicID,archive=None):
                         if fcnew[som+1].isdigit():
                             ann_iss = fcnew[som+1]
                             logger.fdebug("Annual # " + str(ann_iss) + " detected.")
-                            fcdigit = int(ann_iss) * 1000
+                            fcdigit = helpers.issuedigits(ann_iss)
                     logger.fdebug("fcdigit:" + str(fcdigit))
                     logger.fdebug("int_iss:" + str(int_iss))
                     if int(fcdigit) == int_iss:
@@ -618,38 +620,39 @@ def forceRescan(ComicID,archive=None):
             #we have the # of comics, now let's update the db.
             #even if we couldn't find the physical issue, check the status.
             if 'annual' in temploc.lower():
-                logger.fdebug("issueID to write to db:" + str(reann['IssueID']))
-                controlValueDict = {"IssueID": str(reann['IssueID'])}
+                iss_id = reann['IssueID']
             else:
-                logger.fdebug("issueID to write to db:" + str(reiss['IssueID']))
-                controlValueDict = {"IssueID": reiss['IssueID']}
+                iss_id = reiss['IssueID']
+
+            logger.fdebug("issueID to write to db:" + str(iss_id))
+            controlValueDict = {"IssueID": iss_id}
 
             #if Archived, increase the 'Have' count.
             if archive:
                 issStatus = "Archived"
-            if haveissue == "no" and issuedupe == "no":
-                isslocation = "None"
-                if old_status == "Skipped":
-                    if mylar.AUTOWANT_ALL:
-                        issStatus = "Wanted"
-                    else:
-                        issStatus = "Skipped"
-                elif old_status == "Archived":
-                    havefiles+=1
-                    issStatus = "Archived"
-                elif old_status == "Downloaded":
-                    issStatus = "Archived"
-                    havefiles+=1
-                elif old_status == "Wanted":
-                    issStatus = "Wanted"
-                elif old_status == "Ignored":
-                    issStatus = "Ignored"
-                elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
-                    issStatus = "Snatched"
-                else:
-                    issStatus = "Skipped"
-
-                newValueDict = {"Status":    issStatus }
+#            if haveissue == "no" and issuedupe == "no":
+#                isslocation = "None"
+#                if old_status == "Skipped":
+#                    if mylar.AUTOWANT_ALL:
+#                        issStatus = "Wanted"
+#                    else:
+#                        issStatus = "Skipped"
+#                elif old_status == "Archived":
+#                    havefiles+=1
+#                    issStatus = "Archived"
+#                elif old_status == "Downloaded":
+#                    issStatus = "Archived"
+#                    havefiles+=1
+#                elif old_status == "Wanted":
+#                    issStatus = "Wanted"
+#                elif old_status == "Ignored":
+#                    issStatus = "Ignored"
+#                elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
+#                    issStatus = "Snatched"
+#                else:
+#                    issStatus = "Skipped"
+#
+#                newValueDict = {"Status":    issStatus }
 
             elif haveissue == "yes":
                 issStatus = "Downloaded"
@@ -657,12 +660,60 @@ def forceRescan(ComicID,archive=None):
                                 "ComicSize":          issSize,
                                 "Status":             issStatus
                                 }
+                issID_to_ignore.append(iss_id)
+
             if 'annual' in temploc.lower():
                 myDB.upsert("annuals", newValueDict, controlValueDict)
             else:
                 myDB.upsert("issues", newValueDict, controlValueDict)
         fn+=1
 
+    logger.fdebug("IssueID's to ignore: " + str(issID_to_ignore))
+    #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
+    update_iss = []
+    tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?']*len(issID_to_ignore)))
+    args = [ComicID, issID_to_ignore]
+
+#    chkthis = myDB.action(tmpsql, args).fetchall()
+    chkthis = None
+    if chkthis is None: 
+        pass
+    else:
+        for chk in chkthis:
+            old_status = chk['Status']
+            logger.fdebug("old_status:" + str(old_status))
+            if old_status == "Skipped":
+                if mylar.AUTOWANT_ALL:
+                    issStatus = "Wanted"
+                else:
+                    issStatus = "Skipped"
+            elif old_status == "Archived":
+                issStatus = "Archived"
+            elif old_status == "Downloaded":
+                issStatus = "Archived"
+            elif old_status == "Wanted":
+                issStatus = "Wanted"
+            elif old_status == "Ignored":
+                issStatus = "Ignored"
+            elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
+                issStatus = "Snatched"
+            else:
+                issStatus = "Skipped"
+
+            logger.fdebug("new status: " + str(issStatus))
+
+            update_iss.append({"IssueID": chk['IssueID'],
+                               "Status":  issStatus})
+    
+    if len(update_iss) > 0:
+        i = 0
+        #do it like this to avoid DB locks...
+        for ui in update_iss:
+            controlValueDict = {"IssueID": ui['IssueID']}
+            newStatusValue = {"Status": ui['Status']}
+            myDB.upsert("issues", newStatusValue, controlValueDict)
+            i+=1
+        logger.info("updated " + str(i) + " issues that weren't found.")
 
     logger.info("Total files located: " + str(havefiles))
     foundcount = havefiles
