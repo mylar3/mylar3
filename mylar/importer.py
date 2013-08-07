@@ -602,6 +602,12 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     elif u'\xbd' in issnum:
                         issnum = .5
                         int_issnum = int(issnum) * 1000
+                    elif u'\xbc' in issnum:
+                        issnum = .25
+                        int_issnum = int(issnum) * 1000
+                    elif u'\xbe' in issnum:
+                        issnum = .75
+                        int_issnum = int(issnum) * 1000
                     elif '.' in issnum or ',' in issnum:
                         if ',' in issnum: issnum = re.sub(',','.', issnum)
                         issst = str(issnum).find('.')

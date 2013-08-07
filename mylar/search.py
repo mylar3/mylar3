@@ -67,7 +67,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             torprovider.append('cbt')        
             torp+=1
             #print torprovider[0]
-
+        elif mylar.ENABLE_KAT:
+            torprovider.append('kat')
+            torp+=1
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
@@ -132,35 +134,47 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         if torprovider[torpr] == 'cbt':
             # ComicBT
             torprov = 'ComicBT'
-            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-            if findit == 'yes':
-                logger.fdebug("findit = found!")
-                break
-            else:
-                if AlternateSearch is not None and AlternateSearch != "None":
-                    chkthealt = AlternateSearch.split('##')
-                    if chkthealt == 0:
-                        AS_Alternate = AlternateSearch
-                    loopit = len(chkthealt)
-                    for calt in chkthealt:
-                        AS_Alternate = re.sub('##','',calt)
-                        logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                        findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                        if findit == 'yes':
-                            break
+        elif torprovider[torpr] == 'kat':
+            torprov = 'KAT'
 
-            torpr-=1
+        findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+        if findit == 'yes':
+            logger.fdebug("findit = found!")
+            break
+        else:
+            if AlternateSearch is not None and AlternateSearch != "None":
+                chkthealt = AlternateSearch.split('##')
+                if chkthealt == 0:
+                    AS_Alternate = AlternateSearch
+                loopit = len(chkthealt)
+                for calt in chkthealt:
+                    AS_Alternate = re.sub('##','',calt)
+                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                    findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                    if findit == 'yes':
+                        break
+
+        torpr-=1
     
     if findit == 'yes': return findit, torprov        
 
     searchcnt = 0
     nzbprov = None
-    if rsscheck:
-        searchcnt = 1  # rss-only 
-    else:
-        searchcnt = 2  # rss first, then api on non-matches
 
     i = 1
+
+    if rsscheck:
+        if mylar.ENABLE_RSS:
+            searchcnt = 1  # rss-only 
+        else:
+            searchcnt = 0  # if it's not enabled, don't even bother.
+    else:
+        if mylar.ENABLE_RSS:
+            searchcnt = 2 # rss first, then api on non-matches
+        else:
+            searchcnt = 2  #set the searchcnt to 2 (api)
+            i = 2          #start the counter at api, so it will exit without running RSS
+
     nzbsrchproviders = nzbpr
 
     while ( i <= searchcnt ):
@@ -477,7 +491,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     bb = rsscheck.torrentdbsearch(cmname,isssearch,ComicID)
                     rss = "yes"
                     if bb is not None: logger.fdebug("results: " + str(bb))
-
+                elif nzbprov == 'KAT':
+                    cmname = re.sub("%20", " ", str(comsrc))
+                    logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(isssearch))
+                    bb = rsscheck.torrents(pickfeed='2',seriesname=cmname,issue=isssearch)
+                    rss = "no"
+                    if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
                     if nzbprov == 'dognzb':
                         findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
@@ -557,6 +576,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             #Experimental already has size constraints done.
                             if nzbprov == 'ComicBT':
                                 comsize_b = 0   #CBT rss doesn't have sizes
+                            elif nzbprov == 'KAT':
+                                comsize_b = entry['length']
                             else:
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']

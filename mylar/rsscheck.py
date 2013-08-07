@@ -56,16 +56,23 @@ def tehMain():
     logger.fdebug("[RSS] Watchlist Check complete.")
     return
 
-def torrents(pickfeed=None):
+def torrents(pickfeed=None,seriesname=None,issue=None):
     if pickfeed is None:
         pickfeed = 1
     #else:
     #    print "pickfeed is " + str(pickfeed)
     passkey = mylar.CBT_PASSKEY 
+    srchterm = None
+
+    if seriesname:
+        srchterm = re.sub(' ', '%20', seriesname)
+    if issue:
+        srchterm += ' ' + str(issue)
+
     if pickfeed == "1":      # comicbt rss feed based on followlist
         feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
-    elif pickfeed == "2":    # kat.ph search
-        feed = "http://kat.ph/usearch/" + str(seriesname) + "%20category%3Acomics%20seeds%3A1/?rss=1"
+    elif pickfeed == "2" and srchterm is not None:    # kat.ph search
+        feed = "http://kat.ph/usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "3":    # kat.ph rss feed
         feed = "http://kat.ph/usearch/category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "4":    #comicbt follow link
@@ -90,9 +97,11 @@ def torrents(pickfeed=None):
     feeddata = []
 
     myDB = db.DBConnection()
+    torthekat = []
+    katinfo = {}
 
     for entry in feedme['entries']:
-        if pickfeed == "2" or pickfeed == "3":
+        if pickfeed == "3":
             tmpsz = feedme.entries[i].enclosures[0]
             feeddata.append({
                            'Site':     'KAT',
@@ -102,10 +111,20 @@ def torrents(pickfeed=None):
                            'Size':     tmpsz['length']
                            })
 
-            #print ("Site: KAT")
-            #print ("Title: " + str(feeddata[i]['Title']))
-            #print ("Link: " + str(feeddata[i]['Link']))
-            #print ("pubdate: " + str(feeddata[i]['Pubdate']))
+        elif pickfeed == "2":
+            tmpsz = feedme.entries[i].enclosures[0]
+            torthekat.append({
+                          'title':   feedme.entries[i].title,
+                          'link':    tmpsz['url'],
+                          'pubdate': feedme.entries[i].updated,
+                          'site':    'KAT',
+                          'length':  tmpsz['length']
+                          })
+            print ("Site: KAT")
+            print ("Title: " + str(feedme.entries[i].title))
+            print ("Link: " + str(tmpsz['url']))
+            print ("pubdate: " + str(feedme.entries[i].updated))
+            print ("size: " + str(tmpsz['length']))
 
         elif pickfeed == "1" or pickfeed == "4":
 #            tmpsz = feedme.entries[i].enclosures[0]
@@ -122,7 +141,11 @@ def torrents(pickfeed=None):
             #print ("pubdate: " + str(feeddata[i]['Pubdate']))
         i+=1
     logger.fdebug("there were " + str(i) + " results..")
-    rssdbupdate(feeddata,i,'torrent')
+    if not seriesname:
+        rssdbupdate(feeddata,i,'torrent')
+    else:
+        katinfo['entries'] = torthekat
+        return katinfo
     return
 
 def nzbs(provider=None):

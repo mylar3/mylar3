@@ -67,7 +67,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #subname = os.path.join(basedir, item)
         subname = item
         #versioning - remove it
-        subsplit = subname.split()
+        subsplit = subname.split('_')
         volrem = None
         for subit in subsplit:
             #print ("subit:" + str(subit))
@@ -90,9 +90,10 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     volrem = subit
 
         #remove the brackets..
-        subname = re.findall('[^()]+', subname)
-        logger.fdebug("subname no brackets: " + str(subname[0]))
-        subname = re.sub('\_', ' ', subname[0])
+        subnm = re.findall('[^()]+', subname)
+        subname = subnm[0]
+        logger.fdebug("subname no brackets: " + str(subname))
+        subname = re.sub('\_', ' ', subname)
         nonocount = 0
         charpos = 0
         detneg = "no"
