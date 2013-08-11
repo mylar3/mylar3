@@ -1,6 +1,8 @@
 Mylar is an automated Comic Book (cbr/cbz) downloader program heavily-based on the Headphones template and logic (which is also based on Sick-Beard).
 
-Yes, it does work for the most part but it is the pure definition of an 'Alpha Release'.
+Yes, it does work, yes there are still bugs, and for that reson I still consider it the definition of an 'Alpha Release'.
+
+This application requires a version of the 2.7.x Python branch for the best results. 3.x is not supported.
 
 To start it, type in 'python Mylar.py' from within the root of the mylar directory. Adding a --help option to the command will give a list of available options.
 
@@ -10,12 +12,14 @@ Here are some helpful hints hopefully:
 - Add a comic (series) using the Search button, or using the Pullist. 
 - Make sure you specify Comic Location as well as your SABnzbd settings in the Configuration!
  (Mylar auto-creates the Comic Series directories under the Comic Location. The directory is displayed on the Comic Detail page).
-- If you make any Configuration changes, shutdown Mylar and restart it or else errors will occur - this is a current bug.
+- If you make any Configuration changes, shutdown Mylar and restart it or else errors will occur - this is an outstanding bug.
 - You need to specify a search-provider in order to get the downloads to send to SABnzbd. If you don't have either listed, choose Experimental!
 - In the Configuration section, if you enable 'Automatically Mark Upcoming Issues as Wanted' it will mark any NEW comic from the pullist that is on your 'watchlist' as wanted.
 - There are times when adding a comic it will fail with an 'Error', submit a bug and it will be checked out (usually an easy fix).
+- For the most up-to-date build, use the Development build. Master doesn't get updated as frequently (> month), and Development is usually fairly stable.
 
-The 2 features below are extremely new and users may encounter some problems until bugs are squashed.
+The Mylar Forums are now online: http://forum.mylarcomics.com   (it's new - don't be scared to post)
+
 Please submit issues via git for any outstanding problems that need attention.
 
 Post-Processing
@@ -29,10 +33,10 @@ Post-Processing
 
 Renaming
 - You can now specify Folder / File Formats.
-- Folder Format - if left blank, it will default to just using the default Comic Directory (and creating subdirectories beneath in the format of ComicName-Year)
+- Folder Format - if left blank, it will default to just using the default Comic Directory [ and creating subdirectories beneath in the format of ComicName-(Year) ]
   You can do multi-levels as well - so you could do $Publisher/$Series/$Year to have it setup like DC Comics/Batman/2011 (as an example)
 - File Format - if left blank, Mylar will use the original file and not rename at all. This includes replacing spaces, and zero suppression (both renaming features).
-
+- Folder Format IS used on every Add Series / Refresh Series request. Enabling Renaming has no bearing on this, so make sure if you're not using the default, that it's what you want.
 
 
 Please help make it better, by sending in your bug reports / enhancement requests or just say what's working for you.
@@ -52,3 +56,6 @@ The Pull page ...
 
 The Config screen ...
 ![preview thumb](http://i.imgur.com/nQjIN.png)
+
+
+reddit nick is evil-hero

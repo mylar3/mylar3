@@ -196,10 +196,11 @@ class PostProcessor(object):
                         else:
                             fn = 0
                             fccnt = int(watchmatch['comiccount'])
+                            if len(watchmatch) == 1: continue
                             while (fn < fccnt):
                                 try:
                                     tmpfc = watchmatch['comiclist'][fn]
-                                except IndexError:
+                                except IndexError,KeyError:
                                     break
                                 temploc= tmpfc['JusttheDigits'].replace('_', ' ')
                                 temploc = re.sub('[\#\']', '', temploc)
@@ -422,9 +423,6 @@ class PostProcessor(object):
                         return self.log
 
 
-            comicid = issuenzb['ComicID']
-            issuenumOG = issuenzb['Issue_Number']
-
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
                 if len(manual_list) == '0':
@@ -437,6 +435,8 @@ class PostProcessor(object):
                     issuenumOG = ml['IssueNumber']
                     self.Process_next(comicid,issueid,issuenumOG,ml)
             else:
+                comicid = issuenzb['ComicID']
+                issuenumOG = issuenzb['Issue_Number']
                 return self.Process_next(comicid,issueid,issuenumOG)
 
     def Process_next(self,comicid,issueid,issuenumOG,ml=None):

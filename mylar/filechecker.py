@@ -27,7 +27,9 @@ def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
     pass
 
-def listFiles(dir,watchcomic,AlternateSearch=None):
+def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
+    manual = "yes"
+
     # use AlternateSearch to check for filenames that follow that naming pattern
     # ie. Star Trek TNG Doctor Who Assimilation won't get hits as the 
     # checker looks for Star Trek TNG Doctor Who Assimilation2 (according to CV)
@@ -67,25 +69,22 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
         #subname = os.path.join(basedir, item)
         subname = item
         #versioning - remove it
-        subsplit = subname.split('_')
+        subsplit = subname.replace('_', ' ').split()
         volrem = None
         for subit in subsplit:
-            #print ("subit:" + str(subit))
-            if 'v' in str(subit).lower():
-                #print ("possible versioning detected.")
+            if subit[0].lower() == 'v':
                 vfull = 0
                 if subit[1:].isdigit():
                     #if in format v1, v2009 etc...
                     if len(subit) > 3:
                         # if it's greater than 3 in length, then the format is Vyyyy
                         vfull = 1 # add on 1 character length to account for extra space
-                    #print (subit + "  - assuming versioning. Removing from initial search pattern.")
-                    subname = re.sub(str(subit), '', subname)
+                    subname = re.sub(subit, '', subname)
                     volrem = subit
-                if subit.lower()[:3] == 'vol':
+                elif subit.lower()[:3] == 'vol':
                     #if in format vol.2013 etc
                     #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
-                    #print ("volume detected as version #:" + str(subit))
+                    logger.fdebug("volume indicator detected as version #:" + str(subit))
                     subname = re.sub(subit, '', subname)
                     volrem = subit
 
@@ -115,7 +114,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                                 logger.fdebug("- appears in series title.")
                         i+=1
                     if detneg == "no": 
-                        subname = re.sub(str(nono), '', subname)
+                        subname = re.sub(str(nono), ' ', subname)
                         nonocount = nonocount + subcnt
                 #logger.fdebug(str(nono) + " detected " + str(subcnt) + " times.")
                 # segment '.' having a . by itself will denote the entire string which we don't want
@@ -150,7 +149,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
                     subname = re.sub(str(nono), ' ', subname)
                     nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', u_watchcomic)
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
         detectand = False
         detectthe = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
@@ -292,6 +291,63 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
 
             logger.fdebug("final justthedigits [" + justthedigits + "]")
 
+            if manual == "yes":
+                #this is needed for Manual Run to determine matches
+                #without this Batman will match on Batman Incorporated, and Batman and Robin, etc..
+                logger.fdebug("modwatchcomic = " + modwatchcomic.lower())
+                logger.fdebug("subname = " + subname.lower())
+
+                #tmpitem = item[:jtd_len]
+                # if it's an alphanumeric with a space, rejoin, so we can remove it cleanly just below this.
+                substring_removal = None
+                poss_alpha = subname.split(' ')[-1:]
+                logger.fdebug("poss_alpha: " + str(poss_alpha))
+                logger.fdebug("lenalpha: " + str(len(''.join(poss_alpha))))
+                for issexcept in issue_exceptions:
+                    if issexcept.lower()in str(poss_alpha).lower() and len(''.join(poss_alpha)) <= len(issexcept):
+                        #get the last 2 words so that we can remove them cleanly
+                        substring_removal = ' '.join(subname.split(' ')[-2:])
+                        substring_join = ''.join(subname.split(' ')[-2:])
+                        logger.fdebug("substring_removal: " + str(substring_removal))
+                        logger.fdebug("substring_join: "+ str(substring_join))
+                        break
+
+                if substring_removal is not None:
+                    sub_removed = subname.replace('_', ' ').replace(substring_removal, substring_join)
+                else:
+                    sub_removed = subname.replace('_', ' ')
+                logger.fdebug("sub_removed: " + str(sub_removed))
+                split_sub = sub_removed.rsplit(' ',1)[0].split(' ')  #removes last word (assuming it's the issue#)
+                split_mod = modwatchcomic.replace('_', ' ').split()   #batman
+                logger.fdebug("split_sub: " + str(split_sub))
+                logger.fdebug("split_mod: " + str(split_mod))
+
+                x = len(split_sub)-1
+                scnt = 0
+                if x > len(split_mod)-1:
+                    logger.fdebug("number of words don't match...aborting.")
+                else:
+                    while ( x > -1 ):
+                        print str(split_mod[x]) + " comparing to " + str(split_mod[x])
+                        if str(split_sub[x]).lower() == str(split_mod[x]).lower():
+                            scnt+=1
+                            logger.fdebug("word match exact. " + str(scnt) + "/" + str(len(split_mod)))
+                        x-=1
+
+                wordcnt = int(scnt)
+                logger.fdebug("scnt:" + str(scnt))
+                totalcnt = int(len(split_mod))
+                logger.fdebug("split_mod length:" + str(totalcnt))
+                try:
+                    spercent = (wordcnt/totalcnt) * 100
+                except ZeroDivisionError:
+                    spercent = 0
+                logger.fdebug("we got " + str(spercent) + " percent.")
+                if int(spercent) >= 80:
+                    logger.fdebug("this should be considered an exact match.")
+                else:
+                    logger.fdebug("failure - not an exact match.")
+                    continue
 
             comiclist.append({
                  'ComicFilename':           item,
@@ -305,6 +361,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None):
             #print ("directory found - ignoring")
     logger.fdebug("you have a total of " + str(comiccnt) + " " + watchcomic + " comics")
     watchmatch['comiccount'] = comiccnt
+    print watchmatch
     return watchmatch
 
 def validateAndCreateDirectory(dir, create=False):

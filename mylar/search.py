@@ -469,32 +469,37 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 comsearch = comsrc + "%20" + str(isssearch) + "%20" + str(filetype)
                 issdig = ''
 
+            mod_isssearch = str(issdig) + str(isssearch)
+
+
             #--- this is basically for RSS Feeds ---
             if RSS == "yes":
-                if nzbprov == 'ComicBT':
+                if nzbprov == 'ComicBT' or nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to [ComicBT] RSS for " + str(cmname) + " : " + str(isssearch))
-                    bb = rsscheck.torrentdbsearch(cmname,isssearch,ComicID)
+                    logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + str(cmname) + " : " + str(mod_isssearch))
+                    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID,nzbprov)
                     rss = "yes"
                     if bb is not None: logger.fdebug("bb results: " + str(bb))
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to RSS for " + str(cmname) + " : " + str(isssearch))
-                    bb = rsscheck.nzbdbsearch(cmname,isssearch,ComicID)
+                    logger.fdebug("Sending request to RSS for " + str(cmname) + " : " + str(mod_isssearch))
+                    bb = rsscheck.nzbdbsearch(cmname,mod_isssearch,ComicID)
                     rss = "yes"
                     if bb is not None: logger.fdebug("bb results: " +  str(bb))
+            #this is the API calls
             else:
-                #CBT is redudant now - just getting it ready for when it's not redudant :)
+                #CBT is redudant now since only RSS works 
+                # - just getting it ready for when it's not redudant :)
                 if nzbprov == 'ComicBT':
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to [ComicBT] RSS for " + str(cmname) + " : " + str(isssearch))
-                    bb = rsscheck.torrentdbsearch(cmname,isssearch,ComicID)
+                    logger.fdebug("Sending request to [ComicBT] RSS for " + str(cmname) + " : " + str(mod_isssearch))
+                    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID)
                     rss = "yes"
                     if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(isssearch))
-                    bb = rsscheck.torrents(pickfeed='2',seriesname=cmname,issue=isssearch)
+                    logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
+                    bb = rsscheck.torrents(pickfeed='2',seriesname=cmname,issue=mod_isssearch)
                     rss = "no"
                     if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
@@ -907,8 +912,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("vers4vol: " + str(vers4vol))
                                     if vers4year is not "no" or vers4vol is not "no":
 
-                                        if ComicVersion:# is not "None" and ComicVersion is not None:
+                                        if ComicVersion: #is not "None" and ComicVersion is not None:
                                             D_ComicVersion = re.sub("[^0-9]", "", ComicVersion)
+                                            if D_ComicVersion == '':
+                                                D_ComicVersion = 0
                                         else:
                                             D_ComicVersion = 0
 
@@ -1022,7 +1029,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("nzb name to be used for post-processing is : " + str(nzbname))
                                     sent_to = "your Blackhole Directory"
                             #end blackhole
-                            elif nzbprov == 'ComicBT':
+                            elif nzbprov == 'ComicBT' or nzbprov == 'KAT':
                                 logger.fdebug("sending .torrent to watchdir.")
                                 logger.fdebug("ComicName:" + ComicName)
                                 logger.fdebug("link:" + entry['link'])

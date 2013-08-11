@@ -120,11 +120,11 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
                           'site':    'KAT',
                           'length':  tmpsz['length']
                           })
-            print ("Site: KAT")
-            print ("Title: " + str(feedme.entries[i].title))
-            print ("Link: " + str(tmpsz['url']))
-            print ("pubdate: " + str(feedme.entries[i].updated))
-            print ("size: " + str(tmpsz['length']))
+            #print ("Site: KAT")
+            #print ("Title: " + str(feedme.entries[i].title))
+            #print ("Link: " + str(tmpsz['url']))
+            #print ("pubdate: " + str(feedme.entries[i].updated))
+            #print ("size: " + str(tmpsz['length']))
 
         elif pickfeed == "1" or pickfeed == "4":
 #            tmpsz = feedme.entries[i].enclosures[0]
@@ -330,9 +330,11 @@ def rssdbupdate(feeddata,i,type):
 def torrentdbsearch(seriesname,issue,comicid=None):
     myDB = db.DBConnection()
     seriesname_alt = None
+    #print "seriesname:" + str(seriesname)
     if comicid is None or comicid == 'None':
         pass
     else:
+        #print ("ComicID: " + str(comicid))
         snm = myDB.action("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
         if snm is None:
             logger.fdebug("Invalid ComicID of " + str(comicid) + ". Aborting search.")
@@ -342,33 +344,46 @@ def torrentdbsearch(seriesname,issue,comicid=None):
             seriesname_alt = snm['AlternateSearch']
 
 
-    tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\s]', '%',seriesname)
+    tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\.\s]', '%',seriesname)
     formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
     if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
     tsearch = tsearch_seriesname + "%"
     #print tsearch
+    AS_Alt = []
+    tresults = []
+
     if mylar.ENABLE_CBT:
-        tresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [tsearch])
+        tresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [tsearch]).fetchall()
     if mylar.ENABLE_KAT:
-        tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [tsearch])
-    if tresults is None:
-        logger.fdebug("torrent search returned no results for " + seriesname)
-        if seriesname_alt is None:
+        tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [tsearch]).fetchall()
+
+    #print "seriesname_alt:" + str(seriesname_alt)
+    if seriesname_alt is None or seriesname_alt == 'None':
+        if tresults is None:
             logger.fdebug("no Alternate name given. Aborting search.")
             return "no results"
-        else:
-            chkthealt = seriesname_alt.split('##')
-            if chkthealt == 0:
-                AS_Alternate = AlternateSearch
-            for calt in chkthealt:
-                AS_Alternate = re.sub('##','',calt)
-                if mylar.ENABLE_CBT:
-                    tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [AS_Alternate])
-                if mylar.ENABLE_KAT:
-                    tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [AS_Alternate])
-            if tresults is None:
-                logger.fdebug("torrent alternate name search returned no results.")
-                return "no results"
+    else:
+        chkthealt = seriesname_alt.split('##')
+        if chkthealt == 0:
+            AS_Alternate = seriesname_alt
+            AS_Alt.append(seriesname_alt)
+        for calt in chkthealt:
+            AS_Alter = re.sub('##','',calt)
+            u_altsearchcomic = AS_Alter.encode('ascii', 'ignore').strip()
+            AS_Alternate = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', '%', u_altsearchcomic)
+            AS_Alt.append(AS_Alternate)
+            AS_Alternate += '%'
+
+            if mylar.ENABLE_CBT:
+                #print "AS_Alternate:" + str(AS_Alternate)
+                tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [AS_Alternate]).fetchall()
+            if mylar.ENABLE_KAT:
+                tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [AS_Alternate]).fetchall()
+
+    if tresults is None:
+        logger.fdebug("torrent search returned no results for " + seriesname)
+        return "no results"
+
     extensions = ('cbr', 'cbz')
     tortheinfo = []
     torinfo = {}
@@ -386,7 +401,7 @@ def torrentdbsearch(seriesname,issue,comicid=None):
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
         #print (str(len(formatrem_torsplit)) + " - formatrem_torsplit : " + formatrem_torsplit.lower())
         #print (str(len(formatrem_seriesname)) + " - formatrem_seriesname :" + formatrem_seriesname.lower())
-        if formatrem_seriesname.lower() in formatrem_torsplit.lower():
+        if formatrem_seriesname.lower() in formatrem_torsplit.lower() or any(x.lower() in formatrem_torsplit.lower() for x in AS_Alt):
             logger.fdebug("matched to : " + tor['Title'])
             logger.fdebug("matched on series title: " + seriesname)
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
@@ -405,7 +420,7 @@ def torrentdbsearch(seriesname,issue,comicid=None):
 #                    #print("issue # detected : " + str(issue))
 #                elif helpers.issuedigits(issue.rstrip()) == helpers.issuedigits(sp.rstrip()):
 #                    logger.fdebug("Issue matched for : " + str(issue))
-                    #the title on CBT has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
+            #the title on CBT has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
             ctitle = tor['Title'].find('cbr')
             if ctitle == 0:
                 ctitle = tor['Title'].find('cbz')
@@ -413,7 +428,7 @@ def torrentdbsearch(seriesname,issue,comicid=None):
                 logger.fdebug("cannot determine title properly - ignoring for now.")
                 continue
             cttitle = tor['Title'][:ctitle]
-#           #print("change title to : " + str(cttitle))
+            #print("change title to : " + str(cttitle))
 #           if extra == '':
             tortheinfo.append({
                           'title':   cttitle, #tor['Title'],

@@ -629,33 +629,10 @@ def forceRescan(ComicID,archive=None):
             controlValueDict = {"IssueID": iss_id}
 
             #if Archived, increase the 'Have' count.
-            if archive:
-                issStatus = "Archived"
-#            if haveissue == "no" and issuedupe == "no":
-#                isslocation = "None"
-#                if old_status == "Skipped":
-#                    if mylar.AUTOWANT_ALL:
-#                        issStatus = "Wanted"
-#                    else:
-#                        issStatus = "Skipped"
-#                elif old_status == "Archived":
-#                    havefiles+=1
-#                    issStatus = "Archived"
-#                elif old_status == "Downloaded":
-#                    issStatus = "Archived"
-#                    havefiles+=1
-#                elif old_status == "Wanted":
-#                    issStatus = "Wanted"
-#                elif old_status == "Ignored":
-#                    issStatus = "Ignored"
-#                elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
-#                    issStatus = "Snatched"
-#                else:
-#                    issStatus = "Skipped"
-#
-#                newValueDict = {"Status":    issStatus }
+            #if archive:
+            #    issStatus = "Archived"
 
-            elif haveissue == "yes":
+            if haveissue == "yes":
                 issStatus = "Downloaded"
                 newValueDict = {"Location":           isslocation,
                                 "ComicSize":          issSize,
@@ -664,10 +641,10 @@ def forceRescan(ComicID,archive=None):
 
                 issID_to_ignore.append(str(iss_id))
 
-            if 'annual' in temploc.lower():
-                myDB.upsert("annuals", newValueDict, controlValueDict)
-            else:
-                myDB.upsert("issues", newValueDict, controlValueDict)
+                if 'annual' in temploc.lower():
+                    myDB.upsert("annuals", newValueDict, controlValueDict)
+                else:
+                    myDB.upsert("issues", newValueDict, controlValueDict)
         fn+=1
 
     logger.fdebug("IssueID's to ignore: " + str(issID_to_ignore))
