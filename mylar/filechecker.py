@@ -28,7 +28,7 @@ def file2comicmatch(watchmatch):
     pass
 
 def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
-    manual = "yes"
+    manual = "no"
 
     # use AlternateSearch to check for filenames that follow that naming pattern
     # ie. Star Trek TNG Doctor Who Assimilation won't get hits as the 
@@ -361,7 +361,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             #print ("directory found - ignoring")
     logger.fdebug("you have a total of " + str(comiccnt) + " " + watchcomic + " comics")
     watchmatch['comiccount'] = comiccnt
-    print watchmatch
+    #print watchmatch
     return watchmatch
 
 def validateAndCreateDirectory(dir, create=False):
