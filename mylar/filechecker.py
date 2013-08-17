@@ -28,7 +28,6 @@ def file2comicmatch(watchmatch):
     pass
 
 def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
-    manual = "no"
 
     # use AlternateSearch to check for filenames that follow that naming pattern
     # ie. Star Trek TNG Doctor Who Assimilation won't get hits as the 

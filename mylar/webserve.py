@@ -370,10 +370,12 @@ class WebInterface(object):
         PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder)
         result = PostProcess.Process()
         #result = post_results.replace("\n","<br />\n")
-        return result
+        if nzb_name == 'Manual Run' or nzb_name == 'Manual+Run':
+            raise cherrypy.HTTPRedirect("home")
+        else:
+            return result
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
         #return serve_template(templatename="postprocess.html", title="postprocess")
-        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     post_process.exposed = True
 
     def pauseArtist(self, ComicID):

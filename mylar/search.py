@@ -491,11 +491,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 #CBT is redudant now since only RSS works 
                 # - just getting it ready for when it's not redudant :)
                 if nzbprov == 'ComicBT':
-                    cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to [ComicBT] RSS for " + str(cmname) + " : " + str(mod_isssearch))
-                    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID)
-                    rss = "yes"
-                    if bb is not None: logger.fdebug("results: " + str(bb))
+                #    cmname = re.sub("%20", " ", str(comsrc))
+                #    logger.fdebug("Sending request to [ComicBT] RSS for " + str(cmname) + " : " + str(mod_isssearch))
+                #    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID)
+                #    rss = "yes"
+                #    if bb is not None: logger.fdebug("results: " + str(bb))
+                    bb = "no results"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
@@ -808,8 +809,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             logger.fdebug("invalid naming format of nzb detected - cannot properly determine issue") 
                             continue
                         else:
-                            comic_iss = tmpiss
-                            splitst = len(splitit) - 1
+                            if a_issno == '' and alphas is not None:
+                                #if there' a space between the issue & alpha, join them.
+                                comic_iss = splitit[(len(splitit)-2)] + splitit[(len(splitit)-1)]
+                                splitst = len(splitit) - 2
+                            else:
+                                comic_iss = tmpiss
+                                splitst = len(splitit) - 1
                     logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
                     #bmm = re.findall('v\d', comic_iss)
                     #if len(bmm) > 0: splitst = len(splitit) - 2

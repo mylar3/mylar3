@@ -189,7 +189,7 @@ class PostProcessor(object):
                     ccnt=0
                     nm=0
                     for cs in comicseries:
-                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'])
+                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual="yes")
                         if watchmatch is None:
                             nm+=1
                             pass
@@ -434,6 +434,7 @@ class PostProcessor(object):
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
                     self.Process_next(comicid,issueid,issuenumOG,ml)
+                return
             else:
                 comicid = issuenzb['ComicID']
                 issuenumOG = issuenzb['Issue_Number']
@@ -724,18 +725,19 @@ class PostProcessor(object):
                 try:
                     shutil.move(src, dst)
                 except (OSError, IOError):
-                    self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
-                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    logger.fdebug("Failed to move directory - check directories and manually re-run.")
+                    logger.fdebug("Post-Processing ABORTED.")
                     return
+                logger.fdebug("Successfully moved to : " + dst)
                 #tidyup old path
-                try:
-                    os.remove(os.path.join(self.nzb_folder, str(ofilename)))
-                    logger.fdebug("Deleting : " + os.path.join(self.nzb_folder, str(ofilename)))
-                except (OSError, IOError):
-                    self._log("Failed to remove temporary directory - check directory and manually re-run.", logger.DEBUG)
-                    self._log("Post-Processing ABORTED.", logger.DEBUG)
-                    return
-                self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
+                #try:
+                #    os.remove(os.path.join(self.nzb_folder, str(ofilename)))
+                #    logger.fdebug("Deleting : " + os.path.join(self.nzb_folder, str(ofilename)))
+                #except (OSError, IOError):
+                #    logger.fdebug("Failed to remove temporary directory - check directory and manually re-run.")
+                #    logger.fdebug("Post-Processing ABORTED.")
+                #    return
+                #logger.fdebug("Removed temporary directory : " + str(self.nzb_folder))
 
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -748,22 +750,24 @@ class PostProcessor(object):
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )
             self._log(u"Post Processing SUCCESSFULL! ", logger.DEBUG)
+            if ml is not None: 
+                return
+            else:
+                if mylar.PROWL_ENABLED:
+                    pushmessage = series + '(' + issueyear + ') - issue #' + issuenumOG
+                    logger.info(u"Prowl request")
+                    prowl = notifiers.PROWL()
+                    prowl.notify(pushmessage,"Download and Postprocessing completed")
+    
+                if mylar.NMA_ENABLED:
+                    nma = notifiers.NMA()
+                    nma.notify(series, str(issueyear), str(issuenumOG))
 
-            if mylar.PROWL_ENABLED:
-                pushmessage = series + '(' + issueyear + ') - issue #' + issuenumOG
-                logger.info(u"Prowl request")
-                prowl = notifiers.PROWL()
-                prowl.notify(pushmessage,"Download and Postprocessing completed")
-
-            if mylar.NMA_ENABLED:
-                nma = notifiers.NMA()
-                nma.notify(series, str(issueyear), str(issuenumOG))
-
-            if mylar.PUSHOVER_ENABLED:
-                pushmessage = series + ' (' + str(issueyear) + ') - issue #' + str(issuenumOG)
-                logger.info(u"Pushover request")
-                pushover = notifiers.PUSHOVER()
-                pushover.notify(pushmessage, "Download and Post-Processing completed")
+                if mylar.PUSHOVER_ENABLED:
+                    pushmessage = series + ' (' + str(issueyear) + ') - issue #' + str(issuenumOG)
+                    logger.info(u"Pushover request")
+                    pushover = notifiers.PUSHOVER()
+                    pushover.notify(pushmessage, "Download and Post-Processing completed")
              
             # retrieve/create the corresponding comic objects
 
