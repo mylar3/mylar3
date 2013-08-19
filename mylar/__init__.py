@@ -23,6 +23,8 @@ import sqlite3
 import itertools
 import csv
 import shutil
+import platform
+import locale
 
 from lib.apscheduler.scheduler import Scheduler
 from lib.configobj import ConfigObj
@@ -38,6 +40,8 @@ ARGS = None
 SIGNAL = None
 
 SYS_ENCODING = None
+OS_DETECT = platform.system()
+OS_LANG, OS_ENCODING = locale.getdefaultlocale()
 
 VERBOSE = 1
 DAEMON = False
@@ -298,7 +302,7 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, OLDCONFIG_VERSION, \
+        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
                 HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
@@ -630,7 +634,7 @@ def initialize():
 
         # Sanity check for search interval. Set it to at least 6 hours
         if SEARCH_INTERVAL < 360:
-            logger.info("Search interval too low. Resetting to 6 hour minimum")
+            logger.info('Search interval too low. Resetting to 6 hour minimum')
             SEARCH_INTERVAL = 360
 
 
@@ -639,12 +643,12 @@ def initialize():
         try:
             dbcheck()
         except Exception, e:
-            logger.error("Can't connect to the database: %s" % e)
+            logger.error('Cannot connect to the database: %s' % e)
 
         # With the addition of NZBGet, it's possible that both SAB and NZBget are unchecked initially.
         # let's force default SAB.
         if USE_NZBGET == 0 and USE_SABNZBD == 0 :
-            logger.info("No Download Server option given - defaulting to SABnzbd.")
+            logger.info('No Download Server option given - defaulting to SABnzbd.')
             USE_SABNZBD = 1
 
         # Get the currently installed version - returns None, 'win32' or the git hash
@@ -681,24 +685,28 @@ def initialize():
                 try:
                     shutil.move(src, dst)
                 except (OSError, IOError):
-                    logger.error("Unable to rename file...shutdown Mylar and go to " + src.encode('utf-8') + " and rename the _lxml.py file to lxml.py")
-                    logger.error("NOT doing this will result in errors when adding / refreshing a series")
+                    logger.error('Unable to rename file...shutdown Mylar and go to ' + src.encode('utf-8') + ' and rename the _lxml.py file to lxml.py')
+                    logger.error('NOT doing this will result in errors when adding / refreshing a series')
             else:
-                logger.info("Synology Parsing Fix already implemented. No changes required at this time.")
+                logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
         #CV sometimes points to the incorrect DNS - here's the fix.
         if CVAPIFIX == 1:
             CVURL = 'http://beta.comicvine.com/api/'
-            logger.info("CVAPIFIX enabled: ComicVine set to beta API site")
+            logger.info('CVAPIFIX enabled: ComicVine set to beta API site')
         else:
             CVURL = 'http://api.comicvine.com/'
-            logger.info("CVAPIFIX disabled: Comicvine set to normal API site")
+            logger.info('CVAPIFIX disabled: Comicvine set to normal API site')
 
         if LOCMOVE:
             helpers.updateComicLocation()
 
+        #logger.fdebug('platform detected as : ' + OS_DETECT)
+        #logger.fdebug('language detected as : ' + OS_LANG)
+        #logger.fdebug('encoding detected as : ' + OS_ENCODING)
+
         #Ordering comics here
-        logger.info("Remapping the sorting to allow for new additions.")
+        logger.info('Remapping the sorting to allow for new additions.')
         COMICSORT = helpers.ComicSort(sequence='startup')
                                     
         __INITIALIZED__ = True
@@ -766,6 +774,7 @@ def launch_browser(host, port, root):
 def config_write():
     new_config = ConfigObj()
     new_config.filename = CONFIG_FILE
+    new_config.encoding = 'UTF8'
     new_config['General'] = {}
     new_config['General']['config_version'] = CONFIG_VERSION
     new_config['General']['http_port'] = HTTP_PORT
@@ -960,13 +969,13 @@ def start():
         if ENABLE_RSS:
             SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
 
-            logger.info("Initiating startup-RSS feed checks.")
+            logger.info('Initiating startup-RSS feed checks.')
             rsscheck.tehMain()
         
         #SCHED.add_interval_job(librarysync.libraryScan, minutes=LIBRARYSCAN_INTERVAL)
 
         #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
-        logger.info("Checking for existance of Weekly Comic listing...")
+        logger.info('Checking for existance of Weekly Comic listing...')
         PULLNEW = 'no'  #reset the indicator here.
         threading.Thread(target=weeklypull.pullit).start()
         #now the scheduler (check every 24 hours)
@@ -990,7 +999,7 @@ def dbcheck():
     conn=sqlite3.connect(DB_FILE)
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, ForceContinuing INTEGER)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
@@ -1169,6 +1178,12 @@ def dbcheck():
     except:
         c.execute('ALTER TABLE upcoming ADD COLUMN DisplayComicName TEXT')
 
+    try:
+        c.execute('SELECT ForceContinuing from comics')
+    except:
+        c.execute('ALTER TABLE comics ADD COLUMN ForceContinuing INTEGER')
+
+
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
@@ -1195,9 +1210,9 @@ def dbcheck():
 
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
     c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
-    logger.info(u"Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)")
+    logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
 
-    logger.info(u"Correcting Null entries that make the main page break on startup.")
+    logger.info('Correcting Null entries that make the main page break on startup.')
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
         
 
@@ -1228,21 +1243,21 @@ def csv_load():
                 csvfile = open(str(EXCEPTIONS_FILE), "rb")
             except (OSError,IOError):
                 if i == 1:
-                    logger.info("No Custom Exceptions found - Using base exceptions only. Creating blank custom_exceptions for your personal use.")
+                    logger.info('No Custom Exceptions found - Using base exceptions only. Creating blank custom_exceptions for your personal use.')
                     try:
                         shutil.copy(os.path.join(DATA_DIR,"custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
                     except (OSError,IOError):
-                        logger.error("Cannot create custom_exceptions.csv in " + str(DATA_DIR) + ". Make sure _sample.csv is present and/or check permissions.")
+                        logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure _sample.csv is present and/or check permissions.')
                         return  
                 else:
-                    logger.error("Could not locate " + str(EXCEPTIONS[i]) + " file. Make sure it's in datadir: " + DATA_DIR)
+                    logger.error('Could not locate ' + str(EXCEPTIONS[i]) + ' file. Make sure it is in datadir: ' + DATA_DIR)
                 break
         else:
             csvfile = open(str(EXCEPTIONS_FILE), "rb")
         if i == 0:
-            logger.info(u"Populating Base Exception listings into Mylar....")
+            logger.info('Populating Base Exception listings into Mylar....')
         elif i == 1:
-            logger.info(u"Populating Custom Exception listings into Mylar....")
+            logger.info('Populating Custom Exception listings into Mylar....')
 
         creader = csv.reader(csvfile, delimiter=',')
 

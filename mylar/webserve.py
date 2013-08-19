@@ -129,12 +129,15 @@ class WebInterface(object):
         usethefuzzy = comic['UseFuzzy']
         skipped2wanted = "0"
         if usethefuzzy is None: usethefuzzy = "0"
+        force_continuing = comic['ForceContinuing']
+        if force_continuing is None: force_continuing = 0
         comicConfig = {
                     "comiclocation" : mylar.COMIC_LOCATION,
                     "fuzzy_year0" : helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1" : helpers.radio(int(usethefuzzy), 1),
                     "fuzzy_year2" : helpers.radio(int(usethefuzzy), 2),
-                    "skipped2wanted" : helpers.checked(skipped2wanted)
+                    "skipped2wanted" : helpers.checked(skipped2wanted),
+                    "force_continuing" : helpers.checked(force_continuing)
                }
         if mylar.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
@@ -1853,7 +1856,7 @@ class WebInterface(object):
 
     error_change.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None):
         myDB = db.DBConnection()
 #--- this is for multipe search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -1932,6 +1935,11 @@ class WebInterface(object):
             else:
                 logger.info("Invalid Versioning entered - it must be in the format of v#")
                 newValues['ComicVersion'] = "None"
+
+        if force_continuing is None:
+            newValues['ForceContinuing'] = 0
+        else:
+            newValues['ForceContinuing'] = 1
 
         #force the check/creation of directory com_location here
         if os.path.isdir(str(com_location)):

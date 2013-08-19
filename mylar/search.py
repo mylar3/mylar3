@@ -446,7 +446,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     # if issue is '011' instead of '11' in nzb search results, will not have same
     # results. '011' will return different than '11', as will '009' and '09'.
 
-    while (findloop < (findcount) ):
+    while (findloop < findcount ):
         comsrc = comsearch
         while (cmloopit >= 1 ):
             #if issue_except is None: issue_exc = ''
@@ -473,17 +473,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
 
             #--- this is basically for RSS Feeds ---
-            if RSS == "yes":
+            logger.fdebug('RSS Check: ' + str(RSS))
+            logger.fdebug('nzbprov: ' + str(nzbprov))
+            logger.fdebug('comicid: ' + str(ComicID))
+            if RSS == "yes" or nzbprov == 'ComicBT':
                 if nzbprov == 'ComicBT' or nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + str(cmname) + " : " + str(mod_isssearch))
-                    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID,nzbprov)
+                    logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + str(findcomic) + " : " + str(mod_isssearch))
+                    bb = rsscheck.torrentdbsearch(findcomic,mod_isssearch,ComicID,nzbprov)
                     rss = "yes"
                     if bb is not None: logger.fdebug("bb results: " + str(bb))
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to RSS for " + str(cmname) + " : " + str(mod_isssearch))
-                    bb = rsscheck.nzbdbsearch(cmname,mod_isssearch,ComicID)
+                    logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch))
+                    bb = rsscheck.nzbdbsearch(findcomic,mod_isssearch,ComicID,nzbprov)
                     rss = "yes"
                     if bb is not None: logger.fdebug("bb results: " +  str(bb))
             #this is the API calls

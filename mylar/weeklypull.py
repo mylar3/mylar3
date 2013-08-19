@@ -392,13 +392,13 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate from comics")
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing from comics")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
                 if watchd is None:
                     break
-                if 'Present' in watchd[4] or (helpers.now()[:4] in watchd[4]):
+                if 'Present' in watchd[4] or (helpers.now()[:4] in watchd[4]) or watchd[6] == 1:
                  # this gets buggered up when series are named the same, and one ends in the current
                  # year, and the new series starts in the same year - ie. Avengers
                  # lets' grab the latest issue date and see how far it is from current
@@ -419,7 +419,9 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                     chklimit = helpers.checkthepub(watchd[0])
                     logger.fdebug("Check date limit set to : " + str(chklimit))
                     logger.fdebug(" ----- ")
-                    if recentchk < int(chklimit):
+                    if recentchk < int(chklimit) or watchd[6] == 1:
+                        if watchd[6] == 1:
+                            logger.fdebug('Forcing Continuing Series enabled for series...')
                         # let's not even bother with comics that are in the Present.
                         a_list.append(watchd[1])
                         b_list.append(watchd[2])
