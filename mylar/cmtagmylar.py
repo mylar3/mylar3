@@ -4,6 +4,7 @@
 
 import os
 import sys
+import re
 import glob
 import platform
 import shutil
@@ -16,7 +17,7 @@ import mylar
 from mylar import logger
 
 def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
-    logger.fdebug("dirName:" + dirName)
+    logger.fdebug('dirName:' + dirName)
 
     ## Set the directory in which comictagger and other external commands are located - IMPORTANT - ##
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
@@ -33,8 +34,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         if not os.path.isfile(unrar_cmd):
             unrar_cmd = "C:\Program Files (x86)\WinRAR\UnRAR.exe"
             if not os.path.isfile(unrar_cmd):
-                logger.fdebug("Unable to locate UnRAR.exe - make sure it's installed.")
-                logger.fdebug("Aborting meta-tagging.")
+                logger.fdebug('Unable to locate UnRAR.exe - make sure it is installed.')
+                logger.fdebug('Aborting meta-tagging.')
                 return "fail"
 
     
@@ -48,8 +49,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         try:
             import configparser
         except ImportError:
-            logger.fdebug("configparser not found on system. Please install manually in order to write metadata")
-            logger.fdebug("continuing with PostProcessing, but I'm not using metadata.")
+            logger.fdebug('configparser not found on system. Please install manually in order to write metadata')
+            logger.fdebug('continuing with PostProcessing, but I am not using metadata.')
             return "fail"
 
         #set this to the lib path (ie. '<root of mylar>/lib')
@@ -64,9 +65,9 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     file_conversion = True
     file_extension_fixing = True
     if not os.path.exists( unrar_cmd ):
-        logger.fdebug("WARNING:  can't find the unrar command.")
-        logger.fdebug("File conversion and extension fixing not available")
-        logger.fdebug("You probably need to edit this script, or install the missing tool, or both!")
+        logger.fdebug('WARNING:  cannot find the unrar command.')
+        logger.fdebug('File conversion and extension fixing not available')
+        logger.fdebug('You probably need to edit this script, or install the missing tool, or both!')
         file_conversion = False
         file_extension_fixing = False
 
@@ -81,13 +82,13 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         comicpath = os.path.join( downloadpath, issueid )
     unrar_folder = os.path.join( comicpath , "unrard" )
 
-    logger.fdebug("---directory settings.")
-    logger.fdebug("scriptname : " + scriptname)
-    logger.fdebug("downloadpath : " + downloadpath)
-    logger.fdebug("sabnzbdscriptpath : " + sabnzbdscriptpath)
-    logger.fdebug("comicpath : " + comicpath)
-    logger.fdebug("unrar_folder : " + unrar_folder)
-    logger.fdebug("Running the Post-SabNZBd/Mylar script")
+    logger.fdebug('---directory settings.')
+    logger.fdebug('scriptname : ' + scriptname)
+    logger.fdebug('downloadpath : ' + downloadpath)
+    logger.fdebug('sabnzbdscriptpath : ' + sabnzbdscriptpath)
+    logger.fdebug('comicpath : ' + comicpath)
+    logger.fdebug('unrar_folder : ' + unrar_folder)
+    logger.fdebug('Running the Post-SabNZBd/Mylar script')
 
     if os.path.exists( comicpath ):
         shutil.rmtree( comicpath )
@@ -108,7 +109,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             if zipfile.is_zipfile( f ):        
                 base = os.path.splitext( f )[0]
                 shutil.move( f, base + ".cbz" )
-                logger.fdebug("{0}: renaming {1} to be a cbz".format( scriptname, os.path.basename( f ) ))
+                logger.fdebug('{0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
 
         if file_extension_fixing:
             cbz_list = glob.glob( os.path.join( comicpath, "*.cbz" ) )
@@ -121,7 +122,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                 if not "is not RAR archive" in rar_test_cmd_output:
                     base = os.path.splitext( f )[0]
                     shutil.move( f, base + ".cbr" )
-                    logger.fdebug("{0}: renaming {1} to be a cbr".format( scriptname, os.path.basename( f ) ))
+                    logger.fdebug('{0}: renaming {1} to be a cbr'.format( scriptname, os.path.basename( f ) ))
   
         # Now rename all CBR files to RAR
         cbr_list = glob.glob( os.path.join( comicpath, "*.cbr" ) )
@@ -133,7 +134,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         if file_conversion:
             rar_list = glob.glob( os.path.join( comicpath, "*.rar" ) )
             for f in rar_list:
-                logger.fdebug("{0}: converting {1} to be zip format".format( scriptname, os.path.basename( f ) ))
+                logger.fdebug('{0}: converting {1} to be zip format'.format( scriptname, os.path.basename( f ) ))
                 basename = os.path.splitext( f )[0]
                 zipname = basename + ".cbz"
 
@@ -147,10 +148,10 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                 #subprocess.Popen( [ unrar_cmd, "x", f ] ).communicate()
                 except CalledProcessError as e:
                     if e.returncode == 3:
-                        logger.fdebug("[Unrar Error 3] - Broken Archive.")
+                        logger.fdebug('[Unrar Error 3] - Broken Archive.')
                     elif e.returncode == 1:
-                        logger.fdebug("[Unrar Error 1] - No files to extract.")
-                    logger.fdebug("Marking this as an incomplete download.")
+                        logger.fdebug('[Unrar Error 1] - No files to extract.')
+                    logger.fdebug('Marking this as an incomplete download.')
                     return "unrar error"
 
                 shutil.make_archive( basename, "zip", unrar_folder )
@@ -191,7 +192,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                 print base
                 print f
                 shutil.move( f, base + ".cbz" )
-                logger.fdebug("{0}: renaming {1} to be a cbz".format( scriptname, os.path.basename( f ) ))
+                logger.fdebug('{0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
 
         if file_extension_fixing:
             if filename.endswith('.cbz'):
@@ -206,7 +207,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                     if not "is not RAR archive" in rar_test_cmd_output:
                         base = os.path.splitext( f )[0]
                         shutil.move( f, base + ".cbr" )
-                        logger.fdebug("{0}: renaming {1} to be a cbr".format( scriptname, os.path.basename( f ) ))
+                        logger.fdebug('{0}: renaming {1} to be a cbr'.format( scriptname, os.path.basename( f ) ))
 
         # Now rename all CBR files to RAR
         if filename.endswith('.cbr'):
@@ -214,63 +215,65 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             base = os.path.splitext( f )[0]
             shutil.move( f, base + ".rar" )
 
-        ## Changes any cbr files to cbz files for insertion of metadata ##
-        if file_conversion:
-            f = os.path.join( comicpath, filename )
-            logger.fdebug("{0}: converting {1} to be zip format".format( scriptname, os.path.basename( f ) ))
-            basename = os.path.splitext( f )[0]
-            zipname = basename + ".cbz"
+            ## Changes any cbr files to cbz files for insertion of metadata ##
+            if file_conversion:
+                f = os.path.join( comicpath, filename )
+                logger.fdebug('{0}: converting {1} to be zip format'.format( scriptname, os.path.basename( f ) ))
+                basename = os.path.splitext( f )[0]
+                zipname = basename + ".cbz"
 
-            # Move into the folder where we will be unrar-ing things
-            os.makedirs( unrar_folder )
-            os.chdir( unrar_folder )
+                # Move into the folder where we will be unrar-ing things
+                os.makedirs( unrar_folder )
+                os.chdir( unrar_folder )
 
-            # Extract and zip up
-            logger.fdebug("{0}: Comicpath is " + os.path.join(comicpath,basename))
-            logger.fdebug("{0}: Unrar is " + unrar_folder )
-            try:
-               # subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
-                output = check_output( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] )
-            except CalledProcessError as e:
-                if e.returncode == 3:
-                    logger.fdebug("[Unrar Error 3] - Broken Archive.")
-                elif e.returncode == 1:
-                    logger.fdebug("[Unrar Error 1] - No files to extract.")
-                logger.fdebug("Marking this as an incomplete download.")
-                return "unrar error"
+                # Extract and zip up
+                logger.fdebug('{0}: Comicpath is ' + os.path.join(comicpath,basename))
+                logger.fdebug('{0}: Unrar is ' + unrar_folder )
+                try:
+                    #subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
+                    output = check_output( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] )
+                except CalledProcessError as e:
+                    if e.returncode == 3:
+                        logger.fdebug('[Unrar Error 3] - Broken Archive.')
+                    elif e.returncode == 1:
+                       logger.fdebug('[Unrar Error 1] - No files to extract.')
+                    logger.fdebug('Marking this as an incomplete download.')
+                    return "unrar error"
 
-            shutil.make_archive( basename, "zip", unrar_folder )
+                shutil.make_archive( basename, "zip", unrar_folder )
 
-            # get out of unrar folder and clean up
-            os.chdir( comicpath )
-            shutil.rmtree( unrar_folder )
+                # get out of unrar folder and clean up
+                os.chdir( comicpath )
+                shutil.rmtree( unrar_folder )
 
-            ## Changes zip to cbz
-
-            f = os.path.join( comicpath, os.path.splitext(filename)[0] + ".zip" )
-            print "zipfile" + f
-            try:
-                with open(f): pass
-            except:
-                logger.fdebug("No zip file present")
-                return "fail"         
-            base = os.path.splitext( f )[0]
-            shutil.move( f, base + ".cbz" )
-            nfilename = base + ".cbz"
+                ## Changes zip to cbz
+   
+                f = os.path.join( comicpath, os.path.splitext(filename)[0] + ".zip" )
+                print "zipfile" + f
+                try:
+                     with open(f): pass
+                except:
+                    logger.fdebug('No zip file present')
+                    return "fail"         
+                base = os.path.splitext( f )[0]
+                shutil.move( f, base + ".cbz" )
+                nfilename = base + ".cbz"
         else:
+            logger.fdebug('filename:' + filename)
             nfilename = filename
 
-        if os.path.isfile( nfilename):
+        if os.path.isfile( nfilename ):
+            logger.fdebug('file exists in given location already.')
             file_dir, file_n = os.path.split(nfilename)
         else:
             #remove the IssueID from the path
             file_dir = re.sub(issueid, '', comicpath)
             file_n = os.path.split(nfilename)[1]
-        logger.fdebug("converted directory: " + str(file_dir))
-        logger.fdebug("converted filename: " + str(file_n))
-        logger.fdebug("destination path: " + os.path.join(dirName,file_n))
-        logger.fdebug("dirName: " + dirName)
-        logger.fdebug("absDirName: " + os.path.abspath(dirName))
+        logger.fdebug('converted directory: ' + str(file_dir))
+        logger.fdebug('converted filename: ' + str(file_n))
+        logger.fdebug('destination path: ' + os.path.join(dirName,file_n))
+        logger.fdebug('dirName: ' + dirName)
+        logger.fdebug('absDirName: ' + os.path.abspath(dirName))
         ## Tag each CBZ, and move it back to original directory ##
         if issueid is None:
             subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
@@ -280,10 +283,11 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
 
         if os.path.exists(os.path.join(os.path.abspath(dirName),file_n)):
-            logger.fdebug("Unable to move - file already exists.")
+            logger.fdebug('Unable to move - file already exists.')
         else:
-            shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
-            logger.fdebug("Sucessfully moved file from temporary path.")
+            shutil.move( os.path.join(comicpath, nfilename), os.path.join(os.path.abspath(dirName),file_n))
+            #shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
+            logger.fdebug('Sucessfully moved file from temporary path.')
             i = 0
 
             while i < 10:
@@ -295,7 +299,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                     return os.path.join(os.path.abspath(dirName), file_n)
                 i+=1
 
-            logger.fdebug("Failed to remove temporary path : " + str(comicpath))
+            logger.fdebug('Failed to remove temporary path : ' + str(comicpath))
 
         return os.path.join(os.path.abspath(dirName),file_n)
 

@@ -89,6 +89,11 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
 
         #remove the brackets..
         subnm = re.findall('[^()]+', subname)
+        if len(subnm):
+            logger.fdebug("detected invalid filename - attempting to detect year to continue")
+            subname = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
+            subnm = re.findall('[^()]+', subname)
+
         subname = subnm[0]
         logger.fdebug('subname no brackets: ' + str(subname))
         subname = re.sub('\_', ' ', subname)
@@ -269,12 +274,18 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             tmpthedigits = justthedigits
             justthedigits = justthedigits.split(' ', 1)[0]
 
+ 
             #if the issue has an alphanumeric (issue_exceptions, join it and push it through)
             logger.fdebug('JUSTTHEDIGITS [' + justthedigits + ']' )
+            if justthedigits.isdigit():
+                digitsvalid = "true"
+            else:
+                digitsvalid = "false"
+
             if justthedigits.lower() == 'annual':
                 logger.fdebug('ANNUAL ['  + tmpthedigits.split(' ', 1)[1] + ']')
                 justthedigits += ' ' + tmpthedigits.split(' ', 1)[1]
-
+                digitsvalid = "true"
             else:
                 
                 try:
@@ -284,17 +295,59 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
                             if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
                                 justthedigits += poss_alpha
                                 logger.fdebug('ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
+                                digitsvalid = "true"
                                 break
                 except:
                     pass
 
             logger.fdebug('final justthedigits [' + justthedigits + ']')
+            if digitsvalid == "false": 
+                logger.fdebug('Issue number not properly detected...ignoring.')
+                continue            
+            
 
-            if manual == "yes":
+            if manual is not None:
                 #this is needed for Manual Run to determine matches
                 #without this Batman will match on Batman Incorporated, and Batman and Robin, etc..
                 logger.fdebug('modwatchcomic = ' + modwatchcomic.lower())
                 logger.fdebug('subname = ' + subname.lower())
+                comyear = manual['SeriesYear']
+                issuetotal = manual['Total']
+                logger.fdebug('SeriesYear: ' + str(comyear))
+                logger.fdebug('IssueTotal: ' + str(issuetotal))
+
+                #set the issue/year threshold here.
+                #  2013 - (24issues/12) = 2011.
+                minyear = int(comyear) - (int(issuetotal) / 12)
+                
+                #subnm defined at being of module.
+                len_sm = len(subnm)
+
+                #print ("there are " + str(lenm) + " words.")
+                cnt = 0
+                yearmatch = "false"
+
+                while (cnt < len_sm):
+                    if subnm[cnt] is None: break
+                    if subnm[cnt] == ' ':
+                        pass
+                    else:
+                        logger.fdebug(str(cnt) + ". Bracket Word: " + str(subnm[cnt]))
+
+                    if subnm[cnt][:-2] == '19' or subnm[cnt][:-2] == '20':
+                        logger.fdebug("year detected: " + str(subnm[cnt]))
+                        result_comyear = subnm[cnt]
+                        if int(result_comyear) >= int(minyear):
+                            logger.fdebug(str(result_comyear) + ' is within the series range of ' + str(minyear) + '-' + str(comyear))
+                            yearmatch = "true"
+                            break
+                        else:
+                            logger.fdebug(str(result_comyear) + ' - not right - year not within series range of ' + str(minyear) + '-' + str(comyear))
+                            yearmatch = "false"
+                            break
+                    cnt+=1
+
+                if yearmatch == "false": continue
 
                 #tmpitem = item[:jtd_len]
                 # if it's an alphanumeric with a space, rejoin, so we can remove it cleanly just below this.

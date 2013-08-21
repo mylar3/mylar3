@@ -643,7 +643,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         #this handles when there is NO YEAR present in the title, otherwise versioning is way below.
                         ctchk = cleantitle.split()
                         for ct in ctchk:
-                            if 'v' in ct.lower() and ct[1:].isdigit():
+                            if ct.lower().startswith('v') and ct[1:].isdigit():
                                 logger.fdebug("possible versioning..checking")
                                 #we hit a versioning # - account for it
                                 if ct[1:].isdigit():
@@ -653,14 +653,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                         #cleantitle = re.sub(ct, "(" + str(vers4year) + ")", cleantitle)
                                         #logger.fdebug("volumized cleantitle : " + cleantitle)
                                         break
-                                    elif len(ct[1:]) == 1:  #v2
-                                        logger.fdebug("Version detected as " + str(ct))
-                                        vers4vol = str(ct)
-                                        break
                                     else:
-                                        logger.fdebug("error - unknown length for : " + str(ct))
-                                        cleantitle = "abcdefghijk 0 (1901).cbz"
-                                        break
+                                        if len(ct) < 4:
+                                            logger.fdebug("Version detected as " + str(ct))
+                                            vers4vol = str(ct)
+                                            break
+                                logger.fdebug("false version detection..ignoring.")
+
                         if vers4year == "no" and vers4vol == "no":
                             # if there are no () in the string, try to add them if it looks like a year (19xx or 20xx)
                             if len(re.findall('[^()]+', cleantitle)):
@@ -725,7 +724,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                             yearmatch = "true"                                       
                                         else:
                                             logger.fdebug(str(comyear) + "Fuzzy logic'd the Year and year still didn't match.")
-                                #let's do this hear and save a few extra loops ;)
+                                #let's do this here and save a few extra loops ;)
                                 #fix for issue dates between Nov-Dec/Jan
                                     if IssDateFix != "no" and UseFuzzy is not "2":
                                         if IssDateFix == "01": ComicYearFix = int(ComicYear) - 1
@@ -842,7 +841,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         #splitst = splitst - 1
 
                     for tstsplit in splitit:
-                        if 'v' in tstsplit.lower() and tstsplit[1:].isdigit():
+                        if tstsplit.lower().startswith('v') and tstsplit[1:].isdigit():
                             logger.fdebug("this has a version #...let's adjust")
                             if len(tstsplit[1:]) == 4:  #v2013
                                 logger.fdebug("Version detected as " + str(tstsplit))
@@ -850,8 +849,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             elif len(tstsplit[1:]) == 1:  #v2
                                 logger.fdebug("Version detected as " + str(tstsplit))
                                 vers4vol = str(tstsplit)
+                            elif tstsplit[1:].isdigit() and len(tstsplit) < 4:
+                                logger.fdebug('Version detected as ' +str(tstsplit))
+                                vers4vol = str(tstsplit)
                             else:
                                 logger.fdebug("error - unknown length for : " + str(tstsplit))
+                            logger.fdebug("volume detection commencing - adjusting length.")
                             cvers = "true"
                             splitst = splitst - 1
                             break

@@ -188,8 +188,11 @@ class PostProcessor(object):
                 else:
                     ccnt=0
                     nm=0
+                    watchvals = {}
                     for cs in comicseries:
-                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual="yes")
+                        watchvals = {"SeriesYear":   cs['ComicYear'],
+                                     "Total":        cs['Total']}
+                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual=watchvals)
                         if watchmatch is None:
                             nm+=1
                             pass
