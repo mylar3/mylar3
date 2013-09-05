@@ -505,7 +505,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
                     bb = rsscheck.torrents(pickfeed='2',seriesname=cmname,issue=mod_isssearch)
                     rss = "no"
-                    if bb is not None: logger.fdebug("results: " + str(bb))
+                    #if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
                     if nzbprov == 'dognzb':
                         findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
@@ -1115,7 +1115,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
                                     tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
                                     server = ServerProxy(tmpapi)
-                                    send_to_nzbget = server.appendurl(nzbname, str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
+                                    send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
                                     sent_to = "NZBGet"
                                     if send_to_nzbget is True:
                                         logger.info("Successfully sent nzb to NZBGet!")

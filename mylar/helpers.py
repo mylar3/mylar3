@@ -675,11 +675,19 @@ def issuedigits(issnum):
                 x = 0
                 tstord = None
                 issno = None
+                invchk = "false"
                 while (x < len(issnum)):
                     if issnum[x].isalpha():
                     #take first occurance of alpha in string and carry it through
                         tstord = issnum[x:].rstrip()
                         issno = issnum[:x].rstrip()
+                        try:
+                            isschk = float(issno)
+                        except ValueError, e:
+                            logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
+                            issno = None
+                            tstord = None
+                            invchk = "true"
                         break
                     x+=1
                 if tstord is not None and issno is not None:
@@ -695,6 +703,9 @@ def issuedigits(issnum):
                     logger.fdebug('issno: ' + str(issno))
                     int_issnum = (int(issno) * 1000) + ordtot
                     logger.fdebug('intissnum : ' + str(int_issnum))
+                elif invchk == "true":
+                    logger.fdebug('this does not have an issue # that I can parse properly.')
+                    int_issnum = 999999999999999
                 else:
                     logger.error(str(issnum) + 'this has an alpha-numeric in the issue # which I cannot account for.')
                     int_issnum = 999999999999999

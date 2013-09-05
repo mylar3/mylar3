@@ -280,7 +280,12 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             if justthedigits.isdigit():
                 digitsvalid = "true"
             else:
-                digitsvalid = "false"
+                if '.' in justthedigits:
+                    logger.fdebug("decimals")
+                    digitsvalid = "true"
+                else:
+                    logger.fdebug("no decimals")
+                    digitsvalid = "false"
 
             if justthedigits.lower() == 'annual':
                 logger.fdebug('ANNUAL ['  + tmpthedigits.split(' ', 1)[1] + ']')
@@ -291,6 +296,10 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
                 try:
                     if tmpthedigits.split(' ', 1)[1] is not None:
                         poss_alpha = tmpthedigits.split(' ', 1)[1]
+                        if poss_alpha.isdigit():
+                            logger.fdebug("decimal issue detected (filename space seperate most likely '.')")
+                            digitsvalid = "true"
+                            justthedigits += '.' + poss_alpha
                         for issexcept in issue_exceptions:
                             if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
                                 justthedigits += poss_alpha

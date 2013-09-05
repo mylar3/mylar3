@@ -73,7 +73,7 @@ def dbUpdate(ComicIDList=None):
                 annuals = []
                 ann_list = []
                 if mylar.ANNUALS_ON:
-                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [comicid])
                     ann_list += annuals_list
                     issues_new += annuals_list
 
@@ -202,6 +202,10 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"
         #was in wrong place :(
+    else:
+        logger.fdebug('Issues do not match for some reason...weekly new issue: ' + str(IssueNumber))
+        return
+
     if mylar.AUTOWANT_UPCOMING:
         #for issues not in db - to be added to Upcoming table.
         if issuechk is None:
@@ -216,36 +220,37 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
             logger.fdebug('...Status already Wanted .. not changing.')
         else:
             logger.fdebug('...Already have issue - keeping existing status of : ' + issuechk['Status'])
-        if issuechk is None:
-            myDB.upsert("upcoming", newValue, controlValue)
-        else:
-            logger.fdebug('--attempt to find errant adds to Wanted list')
-            logger.fdebug('UpcomingNewValue: ' + str(newValue))
-            logger.fdebug('UpcomingcontrolValue: ' + str(controlValue))
-            if issuechk['IssueDate'] == '0000-00-00' and newValue['IssueDate'] != '0000-00-00':
-                logger.fdebug('Found a 0000-00-00 issue - force updating series to try and get it proper.')
-                dateVal = {"IssueDate":        newValue['IssueDate'],
-                           "ComicName":        issuechk['ComicName'],
-                           "Status":           newValue['Status'],
-                           "IssueNumber":      issuechk['Issue_Number']}
-                logger.fdebug('updating date in upcoming table to : ' + str(newValue['IssueDate']))
-                logger.fdebug('ComicID:' + str(controlValue))
-                myDB.upsert("upcoming", dateVal, controlValue)
-                logger.fdebug('Temporarily putting the Issue Date for ' + str(issuechk['Issue_Number']) + ' to ' + str(newValue['IssueDate']))
-                values = {"IssueDate":  newValue['IssueDate']}
-                #if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd='yes')
-                #else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd='yes')
-            if 'annual' in ComicName.lower():
-                myDB.upsert("annuals", values, control)
-            else:
-                myDB.upsert("issues", values, control)
-            if issuechk['Status'] == 'Downloaded': 
-                logger.fdebug('updating Pull-list to reflect status.')
-                downstats = {"Status":  issuechk['Status'],
-                             "ComicID": issuechk['ComicID']}
-                return downstats
+
+    if issuechk is None:
+        myDB.upsert("upcoming", newValue, controlValue)
     else:
-        logger.fdebug('Issues do not match for some reason...weekly new issue: ' + str(IssueNumber))
+        logger.fdebug('--attempt to find errant adds to Wanted list')
+        logger.fdebug('UpcomingNewValue: ' + str(newValue))
+        logger.fdebug('UpcomingcontrolValue: ' + str(controlValue))
+        if issuechk['IssueDate'] == '0000-00-00' and newValue['IssueDate'] != '0000-00-00':
+            logger.fdebug('Found a 0000-00-00 issue - force updating series to try and get it proper.')
+            dateVal = {"IssueDate":        newValue['IssueDate'],
+                       "ComicName":        issuechk['ComicName'],
+                       "Status":           newValue['Status'],
+                       "IssueNumber":      issuechk['Issue_Number']}
+            logger.fdebug('updating date in upcoming table to : ' + str(newValue['IssueDate']))
+            logger.fdebug('ComicID:' + str(controlValue))
+            myDB.upsert("upcoming", dateVal, controlValue)
+            logger.fdebug('Temporarily putting the Issue Date for ' + str(issuechk['Issue_Number']) + ' to ' + str(newValue['IssueDate']))
+            values = {"IssueDate":  newValue['IssueDate']}
+            #if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd='yes')
+            #else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd='yes')
+
+        if 'annual' in ComicName.lower():
+            myDB.upsert("annuals", values, control)
+        else:
+            myDB.upsert("issues", values, control)
+
+        if issuechk['Status'] == 'Downloaded': 
+            logger.fdebug('updating Pull-list to reflect status.')
+            downstats = {"Status":  issuechk['Status'],
+                         "ComicID": issuechk['ComicID']}
+            return downstats
 
 
 def weekly_update(ComicName,IssueNumber,CStatus,CID):
@@ -419,43 +424,43 @@ def forceRescan(ComicID,archive=None):
             if temploc.lower().endswith(extensions):
                 logger.fdebug('removed extension for issue: ' + str(temploc))
                 temploc = temploc[:-4]
-            deccnt = str(temploc).count('.')
-            if deccnt > 1:
+#            deccnt = str(temploc).count('.')
+#            if deccnt > 1:
                 #logger.fdebug('decimal counts are :' + str(deccnt))
                 #if the file is formatted with '.' in place of spaces we need to adjust.
                 #before replacing - check to see if digits on either side of decimal and if yes, DON'T REMOVE
-                occur=1
-                prevstart = 0
-                digitfound = "no"
-                decimalfound = "no"
-                tempreconstruct = ''
-                while (occur <= deccnt):
-                    n = occur
-                    start = temploc.find('.')
-                    while start >=0 and n > 1:
-                        start = temploc.find('.', start+len('.'))
-                        n-=1
-                    #logger.fdebug('occurance ' + str(occur) + ' of . at position: ' + str(start))
-                    if temploc[prevstart:start].isdigit():
-                        if digitfound == "yes":
-                            #logger.fdebug('this is a decimal, assuming decimal issue.')
-                            decimalfound = "yes"
-                            reconst = "." + temploc[prevstart:start] + " "
-                        else:
-                            #logger.fdebug('digit detected.')
-                            digitfound = "yes"
-                            reconst = temploc[prevstart:start]
-                    else:
-                        reconst = temploc[prevstart:start] + " "
-                    #logger.fdebug('word: ' + reconst)
-                    tempreconstruct = tempreconstruct + reconst 
-                    #logger.fdebug('tempreconstruct is : ' + tempreconstruct)
-                    prevstart = (start+1)
-                    occur+=1
-                #logger.fdebug('word: ' + temploc[prevstart:])
-                tempreconstruct = tempreconstruct + " " + temploc[prevstart:]
-                #logger.fdebug('final filename to use is : ' + str(tempreconstruct))
-                temploc = tempreconstruct            
+#                occur=1
+#                prevstart = 0
+#                digitfound = "no"
+#                decimalfound = "no"
+#                tempreconstruct = ''
+#                while (occur <= deccnt):
+#                    n = occur
+#                    start = temploc.find('.')
+#                    while start >=0 and n > 1:
+#                        start = temploc.find('.', start+len('.'))
+#                        n-=1
+#                    #logger.fdebug('occurance ' + str(occur) + ' of . at position: ' + str(start))
+#                    if temploc[prevstart:start].isdigit():
+#                        if digitfound == "yes":
+#                            #logger.fdebug('this is a decimal, assuming decimal issue.')
+#                            decimalfound = "yes"
+#                            reconst = "." + temploc[prevstart:start] + " "
+#                        else:
+#                            #logger.fdebug('digit detected.')
+#                            digitfound = "yes"
+#                            reconst = temploc[prevstart:start]
+#                    else:
+#                        reconst = temploc[prevstart:start] + " "
+#                    #logger.fdebug('word: ' + reconst)
+#                    tempreconstruct = tempreconstruct + reconst 
+#                    #logger.fdebug('tempreconstruct is : ' + tempreconstruct)
+#                    prevstart = (start+1)
+#                    occur+=1
+#                #logger.fdebug('word: ' + temploc[prevstart:])
+#                tempreconstruct = tempreconstruct + " " + temploc[prevstart:]
+#                #logger.fdebug('final filename to use is : ' + str(tempreconstruct))
+#                temploc = tempreconstruct            
             #logger.fdebug("checking " + str(temploc))
             #fcnew_b4 = shlex.split(str(temploc))            
             fcnew_af = re.findall('[^\()]+', temploc)
@@ -515,8 +520,8 @@ def forceRescan(ComicID,archive=None):
                     
                     fcdigit = helpers.issuedigits(fcnew[som])
 
-                    #logger.fdebug("fcdigit: " + str(fcdigit))
-                    #logger.fdebug("int_iss: " + str(int_iss))
+                    logger.fdebug("fcdigit: " + str(fcdigit))
+                    logger.fdebug("int_iss: " + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         logger.fdebug('issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))

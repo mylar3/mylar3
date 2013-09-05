@@ -6,6 +6,8 @@ import lib.feedparser as feedparser
 import urllib2
 import ftpsshup
 import datetime
+import gzip
+from StringIO import StringIO
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers
@@ -83,7 +85,7 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     else:
         logger.error('invalid pickfeed denoted...')
         return
-    logger.fdebug('feed #' + str(pickfeed) + ' chosen: ' + str(feed))
+
     title = []
     link = []
     description = []
@@ -330,7 +332,6 @@ def rssdbupdate(feeddata,i,type):
 def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     myDB = db.DBConnection()
     seriesname_alt = None
-    print "seriesname:" + str(seriesname)
     if comicid is None or comicid == 'None':
         pass
     else:
@@ -376,7 +377,13 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             AS_Altrem = re.sub("\\bthe\\b", "", AS_Altrem.lower())
 
             AS_Alternate = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\&\?\@\s]', '%', AS_Altrem)
-            AS_Alt.append(AS_Alternate)
+
+            AS_Altrem_mod = re.sub('[\&]', ' ', AS_Altrem)
+            AS_formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',AS_Altrem_mod)
+            AS_formatrem_seriesname = re.sub('\s+', ' ', AS_formatrem_seriesname)
+            if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
+            AS_Alt.append(AS_formatrem_seriesname)
+
             AS_Alternate += '%'
 
             if mylar.ENABLE_CBT:
@@ -543,11 +550,9 @@ def torsend2client(seriesname, linkit, site):
         logger.info(linkit)
         linkit = str(linkit) + '&passkey=' + str(mylar.CBT_PASSKEY)
 
-    if linkit[-7:] != "torrent":
+    if linkit[-7:] != "torrent" and site != "KAT":
         filename += ".torrent"
 
-    request = urllib2.Request(linkit)
-    request.add_header('User-Agent', str(mylar.USER_AGENT))
     if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
         filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
@@ -559,12 +564,33 @@ def torsend2client(seriesname, linkit, site):
         return "fail"
 
     try:
-        opener = helpers.urlretrieve(urllib2.urlopen(request), filepath)
+        request = urllib2.Request(linkit)
+        #request.add_header('User-Agent', str(mylar.USER_AGENT))
+        request.add_header('Accept-encoding', 'gzip')
+
+        if site == 'KAT':
+            request.add_header('Referer', 'http://kat.ph/')
+
+
+#        response = helpers.urlretrieve(urllib2.urlopen(request), filepath)
+        response = urllib2.urlopen(request)
+
+        if response.info().get('Content-Encoding') == 'gzip':
+            buf = StringIO(response.read())
+            f = gzip.GzipFile(fileobj=buf)
+            torrent = f.read()
+        else:
+            torrent = response.read()
+
     except Exception, e:
         logger.warn('Error fetching data from %s: %s' % (site, e))
         return "fail"
 
-    logger.fdebug('torrent file saved as : ' + str(filepath))
+    with open(filepath, 'w') as the_file:
+        the_file.write(torrent)
+
+    logger.info("saved.")
+    #logger.fdebug('torrent file saved as : ' + str(filepath))
     if mylar.TORRENT_LOCAL:
         return "pass"
     #remote_file = urllib2.urlopen(linkit)
@@ -578,6 +604,7 @@ def torsend2client(seriesname, linkit, site):
     elif mylar.TORRENT_SEEDBOX:
         tssh = ftpsshup.putfile(filepath,filename)
         return tssh
+
 
 if __name__ == '__main__':
     #torrents(sys.argv[1])
