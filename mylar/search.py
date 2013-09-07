@@ -1015,7 +1015,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             #blackhole functinality---
                             #let's download the file to a temporary cache.
                             sent_to = None
-                            if mylar.BLACKHOLE:
+                            if mylar.BLACKHOLE and nzbprov != 'ComicBT' and nzbprov != 'KAT':
                                 logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
                                 if os.path.exists(mylar.BLACKHOLE_DIR):
                                     #pretty this biatch up.
@@ -1172,6 +1172,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.info(u"Sending Pushover notification")
                                 pushover = notifiers.PUSHOVER()
                                 pushover.notify(nzbname,"Download started using " + sent_to)
+                            if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
+                                logger.info(u"Sending Boxcar notification")
+                                boxcar = notifiers.BOXCAR()
+                                boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to)
 
                             foundc = "yes"
                             done = True

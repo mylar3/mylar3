@@ -80,6 +80,8 @@
                                 <td id="action">
                                  %if item['Status'] is None or item['Status'] == None:
                                      <a href="queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${item['IssueYear']}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
+                                 %elif item['Status'] == 'Snatched':
+                                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${item['IssueYEAR']}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                                  %endif
                                 </td>
                          </tr>

@@ -312,7 +312,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None):
     #print newValue
     myDB.upsert("nzblog", newValue, controlValue)
 
-def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None):
+def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -320,47 +320,82 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None):
     # series directory, it just scans for the issue it just downloaded and
     # and change the status to Snatched accordingly. It is not to increment the have count
     # at this stage as it's not downloaded - just the .nzb has been snatched and sent to SAB.
+    myDB = db.DBConnection()
+
     logger.info('comicid: ' + str(ComicID))
     logger.info('issueid: ' + str(IssueID))
-    myDB = db.DBConnection()
-    comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-    if mode == 'want_ann':
-        issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+    if mode != 'story_arc':
+        comic = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        ComicName = comic['ComicName']
+        if mode == 'want_ann':
+            issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+        else:
+            issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        CYear = issue['IssueDate'][:4]
+
     else:
-        issue = myDB.action('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
-    CYear = issue['IssueDate'][:4]
+        issue = myDB.action('SELECT * FROM readinglist WHERE IssueArcID=?', [IssueArcID]).fetchone()
+        ComicName = issue['ComicName']
+        CYear = issue['IssueYEAR']
 
     if down is None:
         # update the status to Snatched (so it won't keep on re-downloading!)
         logger.fdebug('updating status to snatched')
         logger.fdebug('provider is ' + provider)
-        controlValue = {"IssueID":   IssueID}
         newValue = {"Status":    "Snatched"}
-        if mode == 'want_ann':
-            myDB.upsert("annuals", newValue, controlValue)
-        else:
-            myDB.upsert("issues", newValue, controlValue)
+        if mode == 'story_arc':
+            cValue = {"IssueArcID": IssueArcID}
+            snatchedupdate = {"IssueArcID": IssueArcID}
+            myDB.upsert("readinglist", newValue, cValue)
+            # update the snatched DB
+            snatchedupdate = {"IssueID":     IssueArcID,
+                              "Status":      "Snatched",
+                              "Provider":    provider
+                              }
 
-        # update the snatched DB
-        snatchedupdate = {"IssueID":     IssueID,
-                          "Status":      "Snatched",
-                          "Provider":    provider
-                          }
-        if mode == 'want_ann':
-            IssueNum = "Annual " + issue['Issue_Number']
         else:
-            IssueNum = issue['Issue_Number']
+            if mode == 'want_ann':
+                controlValue = {"IssueID":   IssueID}
+                myDB.upsert("annuals", newValue, controlValue)
+            else:
+                controlValue = {"IssueID":   IssueID}
+                myDB.upsert("issues", newValue, controlValue)
 
-        newsnatchValues = {"ComicName":       comic['ComicName'],
-                           "ComicID":         ComicID,
-                           "Issue_Number":    IssueNum,
-                           "DateAdded":       helpers.now(),
-                           "Status":          "Snatched"
-                           }
+            # update the snatched DB
+            snatchedupdate = {"IssueID":     IssueID,
+                              "Status":      "Snatched",
+                              "Provider":    provider
+                              }
+
+        if mode == 'story_arc':
+            IssueNum = issue['IssueNumber']
+            newsnatchValues = {"ComicName":       ComicName,
+                               "ComicID":         'None',
+                               "Issue_Number":    IssueNum,
+                               "DateAdded":       helpers.now(),
+                               "Status":          "Snatched"
+                               }
+        else:
+            if mode == 'want_ann':
+                IssueNum = "Annual " + issue['Issue_Number']
+            else:
+                IssueNum = issue['Issue_Number']
+
+            newsnatchValues = {"ComicName":       ComicName,
+                               "ComicID":         ComicID,
+                               "Issue_Number":    IssueNum,
+                               "DateAdded":       helpers.now(),
+                               "Status":          "Snatched"
+                               }
         myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+        logger.info("updated the snatched.")
     else:
+        logger.info("updating the downloaded.")
         if mode == 'want_ann':
             IssueNum = "Annual " + issue['Issue_Number']
+        elif mode == 'story_arc':
+            IssueNum = issue['IssueNumber']
+            IssueID = IssueArcID
         else:
             IssueNum = issue['Issue_Number']
 
@@ -368,7 +403,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None):
                           "Status":      "Downloaded",
                           "Provider":    provider
                           }
-        newsnatchValues = {"ComicName":       comic['ComicName'],
+        newsnatchValues = {"ComicName":       ComicName,
                            "ComicID":         ComicID,
                            "Issue_Number":    IssueNum,
                            "DateAdded":       helpers.now(),
@@ -376,13 +411,19 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None):
                            }
         myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
-        controlValue = {"IssueID":   IssueID}
-        newValue = {"Status":    "Downloaded"}
+        if mode == 'story_arc':
+            cValue = {"IssueArcID":   IssueArcID}
+            nValue = {"Status":       "Downloaded"}
+            myDB.upsert("readinglist", nValue, cValue)
 
-        myDB.upsert("issues", newValue, controlValue)
+        else:
+            controlValue = {"IssueID":   IssueID}
+            newValue = {"Status":    "Downloaded"}
+
+            myDB.upsert("issues", newValue, controlValue)
 
     #print ("finished updating snatched db.")
-    logger.info('Updating now complete for ' + comic['ComicName'] + ' issue: ' + str(IssueNum))
+    logger.info('Updating now complete for ' + ComicName + ' issue: ' + str(IssueNum))
     return
 
 def forceRescan(ComicID,archive=None):

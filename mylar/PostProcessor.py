@@ -771,6 +771,11 @@ class PostProcessor(object):
                     logger.info(u"Pushover request")
                     pushover = notifiers.PUSHOVER()
                     pushover.notify(pushmessage, "Download and Post-Processing completed")
+
+                if mylar.BOXCAR_ENABLED:
+                    boxcar = notifiers.BOXCAR()
+                    boxcar.notify(series, str(issueyear), str(issuenumOG))
+
              
             # retrieve/create the corresponding comic objects
 

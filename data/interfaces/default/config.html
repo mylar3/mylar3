@@ -707,13 +707,13 @@
                      <fieldset>
                         <h3>NotifyMyAndroid</h3>
                         <div class="checkbox row">
-                            <input type="checkbox" name="nma_enabled" id="nma" value="1" ${config['nma_enabled']} /><label>Enable NotifyMyAndroid</label>
+<input type="checkbox" name="nma_enabled" id="nma" value="1" ${config['nma_enabled']} /><label>Enable NotifyMyAndroid</label>
                         </div>
                         <div id="nmaoptions">
                             <div class="row">
                                     <div class="row checkbox">
-                                         <input type="checkbox" name="nma_onsnatch" value="1" ${config['nma_onsnatch']} /><label>Notify on snatch?</label>
-                                    </div>
+     <input type="checkbox" name="nma_onsnatch" value="1" ${config['nma_onsnatch']} /><label>Notify on snatch?</label>
+                                   </div>
                                     <label>NotifyMyAndroid API Key</label>
                                     <input type="text" name="nma_apikey" value="${config['nma_apikey']}" size="30">
                                     <small>Separate multiple api keys with commas</small>
@@ -767,8 +767,23 @@
                                                    </div>
                                                  </div>
                                         </fieldset>            
-				</td>
-			</tr>
+                     <fieldset>
+                        <h3>Boxcar.IO</h3>
+                        <div class="checkbox row">
+                           <input type="checkbox" name="boxcar_enabled" id="boxcar" value="1" ${config['boxcar_enabled']} /><label>Enable Boxcar.IO</label>
+                        </div>
+                        <div id="boxcaroptions">
+                            <div class="row">
+                                    <div class="row checkbox">
+                                            <input type="checkbox" name="boxcar_onsnatch" value="1" ${config['boxcar_onsnatch']} /><label>Notify on snatch?</label>
+                                    </div>
+                                    <label>Boxcar Username (email)</label>
+                                    <input type="text" name="boxcar_username" value="${config['boxcar_username']}" size="30">
+                            </div>
+                        </div>
+                     </fieldset>
+	       </td>
+             </tr>
         </table>
     </div>	
         <input type="button" value="Save Changes" onclick="doAjaxCall('configUpdate',$(this),'tabs',true);return false;" data-success="Changes saved successfully">
@@ -865,6 +880,27 @@
                                 $("#pushoveroptions").slideUp();
                         }
                 });
+
+                if ($("#boxcar").is(":checked"))
+                        {
+                                $("#boxcaroptions").show();
+                        }
+                else
+                        {
+                                $("#boxcaroptions").hide();
+                        }
+
+                $("#boxcar").click(function(){
+                        if ($("#boxcar").is(":checked"))
+                        {
+                                $("#boxcaroptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#boxcaroptions").slideUp();
+                        }
+                });
+
 
                 var deletedNewznabs = 0;
 

@@ -1128,21 +1128,21 @@ class WebInterface(object):
                             #use series year to break it down further.
                             if int(comic['ComicYear']) != int(arc['SeriesYear']):
                                 logger.fdebug("Series years are different - discarding match. " + str(comic['ComicYear']) + " != " + str(arc['SeriesYear']))
-                                break
-                            logger.fdebug("issue #: " + str(arc['IssueNumber']) + " is present!")
-                            print isschk
-                            print ("Comicname: " + arc['ComicName'])
-                            #print ("ComicID: " + str(isschk['ComicID']))
-                            print ("Issue: " + arc['IssueNumber'])
-                            print ("IssueArcID: " + arc['IssueArcID'])
-                            #gather the matches now.
-                            arc_match.append({ 
-                                "match_name":          arc['ComicName'],
-                                "match_id":            isschk['ComicID'],
-                                "match_issue":         arc['IssueNumber'],
-                                "match_issuearcid":    arc['IssueArcID'],
-                                "match_seriesyear":    comic['ComicYear']})
-                            matcheroso = "yes"
+                            else:
+                                logger.fdebug("issue #: " + str(arc['IssueNumber']) + " is present!")
+                                print isschk
+                                print ("Comicname: " + arc['ComicName'])
+                                #print ("ComicID: " + str(isschk['ComicID']))
+                                print ("Issue: " + arc['IssueNumber'])
+                                print ("IssueArcID: " + arc['IssueArcID'])
+                                #gather the matches now.
+                                arc_match.append({ 
+                                    "match_name":          arc['ComicName'],
+                                    "match_id":            isschk['ComicID'],
+                                    "match_issue":         arc['IssueNumber'],
+                                    "match_issuearcid":    arc['IssueArcID'],
+                                    "match_seriesyear":    comic['ComicYear']})
+                                matcheroso = "yes"
                 if matcheroso == "no":
                     logger.fdebug("Unable to find a match for " + arc['ComicName'] + " :#" + str(arc['IssueNumber']))
                     wantedlist.append({
@@ -1161,7 +1161,7 @@ class WebInterface(object):
 #                   if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
                     if issue['Issue_Number'] == m_arc['match_issue']:
                         logger.fdebug("we matched on " + str(issue['Issue_Number']) + " for " + str(m_arc['match_name']))
-                        if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived':
+                        if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived' or issue['Status'] == 'Snatched':
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid'] }
                             newVal = {"Status":   issue['Status'],
                                       "IssueID":  issue['IssueID']}
@@ -1191,6 +1191,7 @@ class WebInterface(object):
         # this will queue up (ie. make 'Wanted') issues in a given Story Arc that are 'Not Watched'
         print StoryArcID
         stupdate = []
+        mode = 'story_arc'
         myDB = db.DBConnection()
         wantedlist = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND Status is Null", [StoryArcID])
         if wantedlist is not None:
@@ -1201,18 +1202,25 @@ class WebInterface(object):
                 IssueArcID = want['IssueArcID']
                 if issuechk is None:
                     # none means it's not a 'watched' series
+                    s_comicid = None
+                    s_issueid = None
                     logger.fdebug("-- NOT a watched series queue.")
                     logger.fdebug(want['ComicName'] + " -- #" + str(want['IssueNumber']))
                     logger.info(u"Story Arc : " + str(SARC) + " queueing selected issue...")
                     logger.info(u"IssueArcID : " + str(IssueArcID))
-                    foundcom = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], IssueDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], IssueDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID, mode=None, rsscheck=None, ComicID=None)
                 else:
                     # it's a watched series
+                    s_comicid = issuechk['ComicID']
+                    s_issueid = issuechk['IssueID']
                     logger.fdebug("-- watched series queue.")
                     logger.fdebug(issuechk['ComicName'] + " -- #" + str(issuechk['Issue_Number']))
-                    foundcom = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], IssueDate=None, IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], IssueDate=None, IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+
                 if foundcom == "yes":
                     print "sucessfully found."
+                    #update the status - this is necessary for torrents as they are in 'snatched' status.
+                    updater.foundsearch(s_comicid, s_issueid, mode=mode, provider=prov, SARC=SARC, IssueArcID=IssueArcID)
                 else:
                     print "not sucessfully found."
                     stupdate.append({"Status":     "Wanted",
@@ -1222,31 +1230,36 @@ class WebInterface(object):
         watchlistchk = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND Status='Wanted'", [StoryArcID])
         if watchlistchk is not None:
             for watchchk in watchlistchk:
-                print "Watchlist hit - " + str(watchchk)
+                print "Watchlist hit - " + str(watchchk['ComicName'])
                 issuechk = myDB.action("SELECT * FROM issues WHERE IssueID=?", [watchchk['IssueArcID']]).fetchone()
                 SARC = watchchk['StoryArc']
                 IssueArcID = watchchk['IssueArcID']
                 if issuechk is None:
                     # none means it's not a 'watched' series
+                    s_comicid = None
+                    s_issueid = None
                     logger.fdebug("-- NOT a watched series queue.")
-                    logger.fdebug(watchchk['ComicName'] + " -- #" + str(want['IssueNumber']))
+                    logger.fdebug(watchchk['ComicName'] + " -- #" + str(watchchk['IssueNumber']))
                     logger.info(u"Story Arc : " + str(SARC) + " queueing selected issue...")
                     logger.info(u"IssueArcID : " + str(IssueArcID))
-                    foundcom = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], IssueDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=watchchk['IssueYEAR'], SeriesYear=watchchk['SeriesYear'], IssueDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID, mode=None, rsscheck=None, ComicID=None)
                 else:
                     # it's a watched series
+                    s_comicid = issuechk['ComicID']
+                    s_issueid = issuechk['IssueID']
                     logger.fdebug("-- watched series queue.")
                     logger.fdebug(issuechk['ComicName'] + " -- #" + str(issuechk['Issue_Number']))
-                    foundcom = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], IssueDate=None, IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom,prov = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], IssueDate=None, IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID, mode=None, rsscheck=None, ComicID=None)
                 if foundcom == "yes":
                     print "sucessfully found."
+                    updater.foundsearch(s_comicid, s_issueid, mode=mode, provider=prov, SARC=SARC, IssueArcID=IssueArcID)
                 else:
                     print "Watchlist issue not sucessfully found."
                     print "issuearcid: " + str(IssueArcID)
-                    print "issueid: " + str(IssueID)
+                    print "issueid: " + str(s_issueid)
                     stupdate.append({"Status":     "Wanted",
                                      "IssueArcID": IssueArcID,
-                                     "IssueID":    issuechk['IssueID']})
+                                     "IssueID":    s_issueid})
 
         if len(stupdate) > 0:
             print str(len(stupdate)) + " issues need to get updated to Wanted Status"
@@ -1809,6 +1822,9 @@ class WebInterface(object):
                     "pushover_apikey": mylar.PUSHOVER_APIKEY,
                     "pushover_userkey": mylar.PUSHOVER_USERKEY,
                     "pushover_priority": mylar.PUSHOVER_PRIORITY,
+                    "boxcar_enabled": helpers.checked(mylar.BOXCAR_ENABLED),
+                    "boxcar_username": mylar.BOXCAR_USERNAME,
+                    "boxcar_onsnatch": helpers.checked(mylar.BOXCAR_ONSNATCH),
                     "enable_extra_scripts" : helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts" : mylar.EXTRA_SCRIPTS,
                     "post_processing" : helpers.checked(mylar.POST_PROCESSING),
@@ -1980,7 +1996,7 @@ class WebInterface(object):
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
         enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None,
         enable_torrents=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
-        prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None,
+        prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_username=None, boxcar_onsnatch=0,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, cvapifix=0,
         destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
         mylar.HTTP_HOST = http_host
@@ -2069,6 +2085,9 @@ class WebInterface(object):
         mylar.PUSHOVER_USERKEY = pushover_userkey
         mylar.PUSHOVER_PRIORITY = pushover_priority
         mylar.PUSHOVER_ONSNATCH = pushover_onsnatch
+        mylar.BOXCAR_ENABLED = boxcar_enabled
+        mylar.BOXCAR_USERNAME = boxcar_username
+        mylar.BOXCAR_ONSNATCH = boxcar_onsnatch
         mylar.USE_MINSIZE = use_minsize
         mylar.MINSIZE = minsize
         mylar.USE_MAXSIZE = use_maxsize
