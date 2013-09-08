@@ -867,7 +867,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 #                        if str(splitit[0]).lower() == "the" or str(watchcomic_split[0]).lower() == "the":
 #                            if str(splitit[0]).lower() == "the":
                         for tstsplit in splitit:
-                            if tstsplit.lower == 'the':
+                            if tstsplit.lower() == 'the':
                                 logger.fdebug("THE word detected in found comic...attempting to adjust pattern matching")
                                 #print comic_iss_b4
                                 #print comic_iss_b4[4:]

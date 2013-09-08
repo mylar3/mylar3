@@ -26,15 +26,23 @@
                                 myDB = db.DBConnection()
                                 issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
                                 wantedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
+                                anwantedc = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
+                                annual = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
                                 archedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Archived'", [comic['ComicID']]).fetchone()
-                                totaltracks = comic['Total']
+                                annualcount = annual[0]
+                                if not annualcount:
+                                    annualcount = 0
+                                totaltracks = comic['Total'] + annualcount
                                 havetracks = comic['Have']
                                 wants = wantedc[0]
+                                anns = anwantedc[0]
                                 arcs = archedc[0]
                                 if not havetracks:
                                         havetracks = 0
                                 if not wants:
                                     wants = 0
+                                if not anns:
+                                    anns = 0
                                 if not arcs:
                                     arcs = 0
                                 try:
@@ -74,6 +82,8 @@
 				<td id="status">
                                 %if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
                                     Unknown 
+                                %elif comic['ForceContinuing'] == 1:
+                                    Continuing
                                 %elif 'present' in comic['ComicPublished'].lower() or ( helpers.today()[:4] in comic['LatestDate']):
                                     <%
                                           latestdate = comic['LatestDate']
