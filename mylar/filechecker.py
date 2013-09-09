@@ -67,6 +67,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
         #print item
         #subname = os.path.join(basedir, item)
         subname = item
+
         #versioning - remove it
         subsplit = subname.replace('_', ' ').split()
         volrem = None
@@ -261,9 +262,9 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             logger.fdebug('after title removed from FILENAME [' + str(item[jtd_len:]) + ']')
             logger.fdebug('creating just the digits using SUBNAME, pruning first [' + str(jtd_len) + '] chars from [' + subname + ']')
 
-            justthedigits = subname[jtd_len:].strip()
+            justthedigits_1 = subname[jtd_len:].strip()
 
-            logger.fdebug('after title removed from SUBNAME [' + justthedigits + ']')
+            logger.fdebug('after title removed from SUBNAME [' + justthedigits_1 + ']')
 
             #remove the title if it appears
             #findtitle = justthedigits.find('-')
@@ -271,43 +272,68 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             #    justthedigits = justthedigits[:findtitle]
             #    logger.fdebug("removed title from name - is now : " + str(justthedigits))
 
-            tmpthedigits = justthedigits
-            justthedigits = justthedigits.split(' ', 1)[0]
+            justthedigits = justthedigits_1.split(' ', 1)[0]
 
- 
+            try:
+                tmpthedigits = justthedigits_1.split(' ', 1)[1]
+                logger.fdebug('If the series has a decimal, this should be a number [' + tmpthedigits + ']')
+                if 'cbr' in tmpthedigits.lower() or 'cbz' in tmpthedigits.lower():
+                    tmpthedigits = tmpthedigits[:-3].strip()
+                    logger.fdebug('Removed extension - now we should just have a number [' + tmpthedigits + ']')
+                poss_alpha = tmpthedigits
+                if poss_alpha.isdigit():
+                    digitsvalid = "true"
+                    if justthedigits.lower() == 'annual':
+                        logger.fdebug('ANNUAL DETECTED ['  + poss_alpha + ']')
+                        justthedigits += ' ' + poss_alpha
+                        digitsvalid = "true"
+                    else:
+                        justthedigits += '.' + poss_alpha
+                        logger.fdebug('DECIMAL ISSUE DETECTED [' + justthedigits + ']')
+                else:
+                    for issexcept in issue_exceptions:
+                        if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
+                            justthedigits += poss_alpha
+                            logger.fdebug('ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
+                            digitsvalid = "true"
+                            break
+            except:
+                tmpthedigits = None
+
+#            justthedigits = justthedigits.split(' ', 1)[0]
+
             #if the issue has an alphanumeric (issue_exceptions, join it and push it through)
             logger.fdebug('JUSTTHEDIGITS [' + justthedigits + ']' )
             if justthedigits.isdigit():
                 digitsvalid = "true"
-            else:
-                if '.' in justthedigits:
-                    logger.fdebug("decimals")
-                    digitsvalid = "true"
-                else:
-                    logger.fdebug("no decimals")
-                    digitsvalid = "false"
+#            else:
+#                if '.' in justthedigits:
+#                    logger.fdebug('DECIMAL ISSUE DETECTED')
+#                    digitsvalid = "true"
+#                else:
+#                    logger.fdebug('NO DECIMALS DETECTED')
+#                    digitsvalid = "false"
 
-            if justthedigits.lower() == 'annual':
-                logger.fdebug('ANNUAL ['  + tmpthedigits.split(' ', 1)[1] + ']')
-                justthedigits += ' ' + tmpthedigits.split(' ', 1)[1]
-                digitsvalid = "true"
-            else:
-                
-                try:
-                    if tmpthedigits.split(' ', 1)[1] is not None:
-                        poss_alpha = tmpthedigits.split(' ', 1)[1]
-                        if poss_alpha.isdigit():
-                            logger.fdebug("decimal issue detected (filename space seperate most likely '.')")
-                            digitsvalid = "true"
-                            justthedigits += '.' + poss_alpha
-                        for issexcept in issue_exceptions:
-                            if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
-                                justthedigits += poss_alpha
-                                logger.fdebug('ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
-                                digitsvalid = "true"
-                                break
-                except:
-                    pass
+#            if justthedigits.lower() == 'annual':
+#                logger.fdebug('ANNUAL ['  + tmpthedigits.split(' ', 1)[1] + ']')
+#                justthedigits += ' ' + tmpthedigits.split(' ', 1)[1]
+#                digitsvalid = "true"
+#            else:               
+#                try:
+#                    if tmpthedigits.isdigit(): #.split(' ', 1)[1] is not None:
+#                        poss_alpha = tmpthedigits#.split(' ', 1)[1]
+#                        if poss_alpha.isdigit():
+#                            digitsvalid = "true"
+#                            justthedigits += '.' + poss_alpha
+#                            logger.fdebug('DECIMAL ISSUE DETECTED [' + justthedigits + ']')
+#                        for issexcept in issue_exceptions:
+#                            if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
+#                                justthedigits += poss_alpha
+#                                logger.fdebug('ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
+#                                digitsvalid = "true"
+#                                break
+#                except:
+#                    pass
 
             logger.fdebug('final justthedigits [' + justthedigits + ']')
             if digitsvalid == "false": 
@@ -318,6 +344,10 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
             if manual is not None:
                 #this is needed for Manual Run to determine matches
                 #without this Batman will match on Batman Incorporated, and Batman and Robin, etc..
+
+                # in case it matches on an Alternate Search pattern, set modwatchcomic to the cchk value
+                modwatchcomic = cchk
+                logger.fdebug('cchk = ' + cchk.lower())
                 logger.fdebug('modwatchcomic = ' + modwatchcomic.lower())
                 logger.fdebug('subname = ' + subname.lower())
                 comyear = manual['SeriesYear']
@@ -389,7 +419,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None):
                     logger.fdebug('number of words do not match...aborting.')
                 else:
                     while ( x > -1 ):
-                        print str(split_mod[x]) + ' comparing to ' + str(split_mod[x])
+                        print str(split_sub[x]) + ' comparing to ' + str(split_mod[x])
                         if str(split_sub[x]).lower() == str(split_mod[x]).lower():
                             scnt+=1
                             logger.fdebug('word match exact. ' + str(scnt) + '/' + str(len(split_mod)))

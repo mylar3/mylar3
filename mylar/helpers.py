@@ -646,7 +646,7 @@ def issuedigits(issnum):
             issnum = .75
             int_issnum = int(issnum) * 1000
         elif '.' in issnum or ',' in issnum:
-            logger.fdebug('decimal detected.')
+            #logger.fdebug('decimal detected.')
             if ',' in issnum: issnum = re.sub(',','.', issnum)
             issst = str(issnum).find('.')
             issb4dec = str(issnum)[:issst]

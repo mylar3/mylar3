@@ -213,7 +213,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         if filename.endswith('.cbr'):
             f = os.path.join( comicpath, filename)
             base = os.path.splitext( f )[0]
-            shutil.move( f, base + ".rar" )
+            baserar = base + ".rar"
+            shutil.move( f, baserar )
 
             ## Changes any cbr files to cbz files for insertion of metadata ##
             if file_conversion:
@@ -227,11 +228,11 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
                 os.chdir( unrar_folder )
 
                 # Extract and zip up
-                logger.fdebug('{0}: Comicpath is ' + os.path.join(comicpath,basename))
+                logger.fdebug('{0}: Comicpath is ' + baserar) #os.path.join(comicpath,basename))
                 logger.fdebug('{0}: Unrar is ' + unrar_folder )
                 try:
                     #subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
-                    output = check_output( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] )
+                    output = check_output( [ unrar_cmd, "x", baserar ] ) #os.path.join(comicpath,basename) ] )
                 except CalledProcessError as e:
                     if e.returncode == 3:
                         logger.fdebug('[Unrar Error 3] - Broken Archive.')

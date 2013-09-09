@@ -437,6 +437,11 @@ def forceRescan(ComicID,archive=None):
         fc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
     iscnt = rescan['Total']
     havefiles = 0
+    if mylar.ANNUALS_ON:
+        an_cnt = myDB.action("SELECT COUNT(*) FROM annuals WHERE ComicID=?", [ComicID]).fetchall()
+        anncnt = an_cnt[0][0]
+    else:
+        anncnt = 0
     fccnt = int(fc['comiccount'])
     issnum = 1
     fcnew = []
@@ -561,8 +566,8 @@ def forceRescan(ComicID,archive=None):
                     
                     fcdigit = helpers.issuedigits(fcnew[som])
 
-                    logger.fdebug("fcdigit: " + str(fcdigit))
-                    logger.fdebug("int_iss: " + str(int_iss))
+                    #logger.fdebug("fcdigit: " + str(fcdigit))
+                    #logger.fdebug("int_iss: " + str(int_iss))
 
                     if int(fcdigit) == int_iss:
                         logger.fdebug('issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
@@ -605,10 +610,8 @@ def forceRescan(ComicID,archive=None):
             # annual inclusion here.
             #logger.fdebug("checking " + str(temploc))
             reannuals = myDB.action('SELECT * FROM annuals WHERE ComicID=?', [ComicID]).fetchall()
-            an_cnt = myDB.action("SELECT COUNT(*) FROM issues WHERE ComicID=?", [ComicID]).fetchall()
             fcnew = shlex.split(str(temploc))
             fcn = len(fcnew)
-            anncnt = an_cnt[0][0]
             n = 0
             while (n < anncnt):
                 som = 0
@@ -801,7 +804,9 @@ def forceRescan(ComicID,archive=None):
     newValueStat = {"Have":            havefiles
                    }
 
+    combined_total = rescan['Total'] + anncnt
+
     myDB.upsert("comics", newValueStat, controlValueStat)
-    logger.info('I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state. Total Issue Count: ' + str(havefiles) + ' / ' + str(rescan['Total']))
+    logger.info('I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state. Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total))
 
     return
