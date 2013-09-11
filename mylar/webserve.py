@@ -691,7 +691,14 @@ class WebInterface(object):
         if popit:
             w_results = myDB.select("SELECT PUBLISHER, ISSUE, COMIC, STATUS from weekly")
             for weekly in w_results:
-                if weekly['ISSUE'].isdigit() or 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower():
+                x = None
+                try:
+                    x = float(weekly['ISSUE'])
+                except ValueError, e:
+                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower():
+                        x = weekly['ISSUE']            
+
+                if x is not None:
                     weeklyresults.append({
                                            "PUBLISHER"  : weekly['PUBLISHER'],
                                            "ISSUE"      : weekly['ISSUE'],
@@ -1137,12 +1144,15 @@ class WebInterface(object):
                                 print ("IssueArcID: " + arc['IssueArcID'])
                                 #gather the matches now.
                                 arc_match.append({ 
+                                    "match_storyarc":      arc['storyarc'],
                                     "match_name":          arc['ComicName'],
                                     "match_id":            isschk['ComicID'],
                                     "match_issue":         arc['IssueNumber'],
                                     "match_issuearcid":    arc['IssueArcID'],
-                                    "match_seriesyear":    comic['ComicYear']})
+                                    "match_seriesyear":    comic['ComicYear'],
+                                    "match_filedirectory": comic['ComicLocation']})
                                 matcheroso = "yes"
+                                break
                 if matcheroso == "no":
                     logger.fdebug("Unable to find a match for " + arc['ComicName'] + " :#" + str(arc['IssueNumber']))
                     wantedlist.append({
@@ -1176,6 +1186,21 @@ class WebInterface(object):
 
                             myDB.upsert("readinglist",newVal,ctrlVal)
                             logger.info("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                            if issue['Status'] == 'Downloaded':
+                                logger.fdebug('attempting to copy into StoryArc directory')
+                                #copy into StoryArc directory...
+                                issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
+                                logger.fdebug('issloc set to  : ' + issloc)
+                                if os.path.isfile(issloc):
+                                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', m_arc['match_storyarc'])
+                                    if not os.path.isfile(dstloc):
+                                        logger.fdebug('copying ' + issloc + ' to ' + dstloc)
+                                        shutil.copy(issloc, dstloc)
+                                    else:
+                                        logger.fdebug('destination file exists: ' + dstloc)
+                                else:
+                                    logger.fdebug('source file does not exist: ' + issloc)
+
                         else:
                             logger.fdebug("We don't have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid'] }
