@@ -191,6 +191,8 @@ class PostProcessor(object):
                     watchvals = {}
                     for cs in comicseries:
                         watchvals = {"SeriesYear":   cs['ComicYear'],
+                                     "LatestDate":   cs['LatestDate'],
+                                     "ComicVersion": cs['ComicVersion'],
                                      "Total":        cs['Total']}
                         watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual=watchvals)
                         if watchmatch is None:
@@ -377,7 +379,9 @@ class PostProcessor(object):
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.READ2FILENAME:
                                 issuearcid = re.sub('S', '', issueid)
-                                arcdata = myDB.action("SELECT * FROM readinglist WHERE IssueARCID=?",[issuearcid]).fetchone()
+                                logger.fdebug('issuearcid:' + str(issuearcid))
+                                arcdata = myDB.action("SELECT * FROM readinglist WHERE IssueArcID=?",[issuearcid]).fetchone()
+                                logger.fdebug('readingorder#: ' + str(arcdata['ReadingOrder']))
                                 if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                                 elif int(arcdata['ReadingOrder']) > 10 and int(arcdata['ReadingOrder']) < 99: readord = "0" + str(arcdata['ReadingOrder'])
                                 else: readord = str(arcdata['ReadingOrder'])

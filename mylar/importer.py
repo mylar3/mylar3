@@ -312,7 +312,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
         #comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
         if mylar.DESTINATION_DIR == "":
-            logger.error('There is no general directory specified - please specify in Config/Post-Processing.')
+            logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
             return
         if mylar.REPLACE_SPACES:
             #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
@@ -608,6 +608,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                     elif u'\xbe' in issnum:
                         issnum = .75
                         int_issnum = int(issnum) * 1000
+                    elif u'\u221e' in issnum:
+                        #issnum = utf-8 will encode the infinity symbol without any help
+                        int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
                     elif '.' in issnum or ',' in issnum:
                         if ',' in issnum: issnum = re.sub(',','.', issnum)
                         issst = str(issnum).find('.')

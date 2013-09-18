@@ -1125,23 +1125,25 @@ class WebInterface(object):
                             GCDissue = int(GCDissue) / 1000
                             if '.' not in str(GCDissue): GCDissue = str(GCDissue) + ".00"
                             logger.fdebug("issue converted to " + str(GCDissue))
-                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=?", [comic['ComicName'], str(GCDissue)]).fetchone()
+                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=? AND ComicID=?", [comic['ComicName'], str(GCDissue), comic['ComicID']]).fetchone()
                         else:
-                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=?", [comic['ComicName'], arc['IssueNumber']]).fetchone()               
+                            isschk = myDB.action("SELECT * FROM issues WHERE ComicName=? AND Issue_Number=? AND ComicID=?", [comic['ComicName'], arc['IssueNumber'], comic['ComicID']]).fetchone()               
                         if isschk is None:
                             logger.fdebug("we matched on name, but issue " + str(arc['IssueNumber']) + " doesn't exist for " + comic['ComicName'])
                         else:
                             #this gets ugly - if the name matches and the issue, it could still be wrong series
                             #use series year to break it down further.
+                            logger.fdebug('COMIC-comicyear: ' + str(int(comic['ComicYear'])))
+                            logger.fdebug('ARC-seriesyear: ' + str(int(arc['SeriesYear'])))
                             if int(comic['ComicYear']) != int(arc['SeriesYear']):
                                 logger.fdebug("Series years are different - discarding match. " + str(comic['ComicYear']) + " != " + str(arc['SeriesYear']))
                             else:
                                 logger.fdebug("issue #: " + str(arc['IssueNumber']) + " is present!")
-                                print isschk
-                                print ("Comicname: " + arc['ComicName'])
-                                #print ("ComicID: " + str(isschk['ComicID']))
-                                print ("Issue: " + arc['IssueNumber'])
-                                print ("IssueArcID: " + arc['IssueArcID'])
+                                logger.fdebug('isschk: ' + str(isschk))
+                                logger.fdebug("Comicname: " + arc['ComicName'])
+                                logger.fdebug("ComicID: " + str(isschk['ComicID']))
+                                logger.fdebug("Issue: " + str(arc['IssueNumber']))
+                                logger.fdebug("IssueArcID: " + str(arc['IssueArcID']))
                                 #gather the matches now.
                                 arc_match.append({ 
                                     "match_storyarc":      arc['storyarc'],
@@ -1150,6 +1152,7 @@ class WebInterface(object):
                                     "match_issue":         arc['IssueNumber'],
                                     "match_issuearcid":    arc['IssueArcID'],
                                     "match_seriesyear":    comic['ComicYear'],
+                                    "match_readingorder":  arc['ReadingOrder'],
                                     "match_filedirectory": comic['ComicLocation']})
                                 matcheroso = "yes"
                                 break
@@ -1159,6 +1162,36 @@ class WebInterface(object):
                          "ComicName":      arc['ComicName'],
                          "IssueNumber":    arc['IssueNumber'],
                          "IssueYear":      arc['IssueYear']})
+
+                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['storyarc'])
+                    logger.fdebug('destination location set to  : ' + dstloc)
+                    filechk = filechecker.listFiles(dstloc, arc['ComicName'], sarc='true')
+                    fn = 0
+                    fccnt = filechk['comiccount']
+                    while (fn < fccnt):
+                        haveissue = "no"
+                        issuedupe = "no"
+                        try:
+                            tmpfc = filechk['comiclist'][fn]
+                        except IndexError:
+                             break
+                        temploc = tmpfc['JusttheDigits'].replace('_', ' ')
+                        fcdigit = helpers.issuedigits(arc['IssueNumber'])
+                        int_iss = helpers.issuedigits(temploc)
+                        if int_iss == fcdigit:
+                            logger.fdebug(arc['ComicName'] + ' Issue #' + arc['IssueNumber'] + ' already present in StoryArc directory.')
+                            #update readinglist db to reflect status.
+                            if mylar.READ2FILENAME:
+                                readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
+                                dfilename = str(readorder) + "-" + tmpfc['ComicFilename']
+                            else:
+                                dfilename = tmpfc['ComicFilename']
+
+                            newVal = {"Status": "Downloaded",
+                                      "Location": dfilename} #tmpfc['ComicFilename']}
+                            ctrlVal = {"IssueArcID":  arc['IssueArcID'] }
+                            myDB.upsert("readinglist",newVal,ctrlVal)                            
+                        fn+=1
 
             logger.fdebug("we matched on " + str(len(arc_match)) + " issues")
 
@@ -1187,13 +1220,23 @@ class WebInterface(object):
                             myDB.upsert("readinglist",newVal,ctrlVal)
                             logger.info("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
                             if issue['Status'] == 'Downloaded':
+                                issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
+                                logger.fdebug('source location set to  : ' + issloc)
+                                dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', m_arc['match_storyarc'])
+                                logger.fdebug('destination location set to  : ' + dstloc)
+
                                 logger.fdebug('attempting to copy into StoryArc directory')
                                 #copy into StoryArc directory...
-                                issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
-                                logger.fdebug('issloc set to  : ' + issloc)
                                 if os.path.isfile(issloc):
-                                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', m_arc['match_storyarc'])
                                     if not os.path.isfile(dstloc):
+                                        if mylar.READ2FILENAME:
+                                            readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
+                                            dfilename = str(readorder) + "-" + issue['Location']
+                                        else:
+                                            dfilename = issue['Location']
+
+                                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', m_arc['match_storyarc'], dfilename)
+
                                         logger.fdebug('copying ' + issloc + ' to ' + dstloc)
                                         shutil.copy(issloc, dstloc)
                                     else:
@@ -2182,6 +2225,9 @@ class WebInterface(object):
             if mylar.CMTAGGER_PATH is None or mylar.CMTAGGER_PATH == '':
                 logger.info("ComicTagger Path not set - defaulting to Mylar Program Directory : " + mylar.PROG_DIR)
                 mylar.CMTAGGER_PATH = mylar.PROG_DIR
+            if 'comictagger.exe' in mylar.CMTAGGER_PATH.lower() or 'comictagger.py' in mylar.CMTAGGER_PATH.lower():
+                mylar.CMTAGGER_PATH = re.sub(os.path.basename(mylar.CMTAGGER_PATH), '', mylar.CMTAGGER_PATH) 
+                logger.fdebug("Removed application name from ComicTagger path")
 
         # Write the config
         mylar.config_write()

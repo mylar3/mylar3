@@ -645,6 +645,9 @@ def issuedigits(issnum):
         elif u'\xbe' in issnum:
             issnum = .75
             int_issnum = int(issnum) * 1000
+        elif u'\u221e' in issnum:
+            #issnum = utf-8 will encode the infinity symbol without any help
+            int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
         elif '.' in issnum or ',' in issnum:
             #logger.fdebug('decimal detected.')
             if ',' in issnum: issnum = re.sub(',','.', issnum)
@@ -660,7 +663,7 @@ def issuedigits(issnum):
             try:
                 int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
             except ValueError:
-                logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                 int_issnum = 999999999999999
         else:
             try:
@@ -777,3 +780,11 @@ def urlretrieve(urlfile, fpath):
         f.write(data)
         print "Read %s bytes"%len(data)
 
+def renamefile_readingorder(readorder):
+    import logger
+    logger.fdebug('readingorder#: ' + str(readorder))
+    if int(readorder) < 10: readord = "00" + str(readorder)
+    elif int(readorder) > 10 and int(readorder) < 99: readord = "0" + str(readorder)
+    else: readord = str(readorder)
+
+    return readord
