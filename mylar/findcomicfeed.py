@@ -31,6 +31,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
 
     regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?')
 
+    
+    #logger.fdebug('searchName:' + searchName)
+    #logger.fdebug('regexName:' + regexName)
 
     if mylar.USE_MINSIZE:
         size_constraints = "minsize=" + str(mylar.MINSIZE)
@@ -43,51 +46,58 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
     if mylar.USENET_RETENTION != None:
         max_age = "&age=" + str(mylar.USENET_RETENTION)
 
-    feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch)
+    feeds = []
+    feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
+    if mylar.ALTEXPERIMENTAL:
+        feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
 
-    totNum = len(feed.entries)
-
-    keyPair = {}
-    regList = []
     entries = []
     mres = {}
-    countUp = 0
+    tallycount = 0
 
-    logger.fdebug(str(totNum) + " results")
+    for feed in feeds:
+        totNum = len(feed.entries)
+        tallycount += len(feed.entries)
 
-    while countUp < totNum:
- 	urlParse = feed.entries[countUp].enclosures[0]
-	#keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
-	keyPair[feed.entries[countUp].title] = urlParse["href"]
+        keyPair = {}
+        regList = []
+        countUp = 0
 
-	countUp=countUp+1
+        logger.fdebug(str(totNum) + " results")
+
+        while countUp < totNum:
+     	    urlParse = feed.entries[countUp].enclosures[0]
+	    #keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
+	    keyPair[feed.entries[countUp].title] = urlParse["href"]
+
+    	    countUp=countUp+1
 
 
-    # thanks to SpammyHagar for spending the time in compiling these regEx's!
+        # thanks to SpammyHagar for spending the time in compiling these regEx's!
 
-    regExTest=""
+        regExTest=""
 
-    regEx = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
-    regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
+        regEx = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
+        regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
 
-    #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
-    regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
-    regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
-    regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
-    regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
+        #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
+        regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
+        regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
+        regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
+        regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
 
-    regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
+        regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
-    except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
+        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
 
-    for title, link in keyPair.items():
-        #logger.fdebug("titlesplit: " + str(title.split("\"")))
-        splitTitle = title.split("\"")
+        for title, link in keyPair.items():
+            #logger.fdebug("titlesplit: " + str(title.split("\"")))
+            splitTitle = title.split("\"")
 
-        for subs in splitTitle:
-            logger.fdebug(subs)
-            regExCount = 0
-            if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
+            for subs in splitTitle:
+                logger.fdebug(subs)
+                regExCount = 0
+                if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
 #                while regExCount < len(regexList):
 #                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
@@ -98,13 +108,14 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
 #                                  'title':   subs,
 #                                  'link':    str(link)
 #                                  })
-                entries.append({
-                          'title':   subs,
-                          'link':    str(link)
-                          })
+                    entries.append({
+                              'title':   subs,
+                              'link':    str(link)
+                              })
 
               
-    if len(entries) >= 1:
+#    if len(entries) >= 1:
+    if tallycount >= 1:
         mres['entries'] = entries
         return mres 
 #       print("Title: "+regList[0])

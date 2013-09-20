@@ -196,6 +196,7 @@ RAW_PASSWORD = None
 RAW_GROUPS = None
 
 EXPERIMENTAL = False
+ALTEXPERIMENTAL = False
 
 COMIC_LOCATION = None
 QUAL_ALTVERS = None
@@ -313,7 +314,7 @@ def initialize():
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
-                RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, \
+                RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
                 ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, \
                 ENABLE_TORRENTS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, ENABLE_CBT, CBT_PASSKEY, \
@@ -525,7 +526,7 @@ def initialize():
         RAW_GROUPS = check_setting_str(CFG, 'Raw', 'raw_groups', '')
 
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
-
+        ALTEXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'altexperimental', 1))
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
 
         if CONFIG_VERSION:
@@ -920,6 +921,7 @@ def config_write():
 
     new_config['Experimental'] = {}
     new_config['Experimental']['experimental'] = int(EXPERIMENTAL)
+    new_config['Experimental']['altexperimental'] = int(ALTEXPERIMENTAL)
 
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab'] = int(NEWZNAB)
