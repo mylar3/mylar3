@@ -58,4 +58,3 @@ The Config screen ...
 ![preview thumb](http://i.imgur.com/nQjIN.png)
 
 
-reddit nick is evil-hero
