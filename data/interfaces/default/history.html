@@ -63,7 +63,7 @@
 				<td id="filename">${item['ComicName']}</td>
                                 <td id="issue">${item['Issue_Number']}</td>
 				<td id="status">${item['Status']}
-                                %if item['Provider'] == 'ComicBT' or item['Provider'] == 'KAT':
+                                %if item['Provider'] == 'CBT' or item['Provider'] == 'KAT':
                                     <img src="interfaces/default/images/torrent-icon.png" height="20" width="20" title="${item['Provider']}" />
                                 %endif
                                 </td>
