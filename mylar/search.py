@@ -130,30 +130,81 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
     else:
          IssDateFix = "no"
 
-    while (torpr >=0 ):
-        if torprovider[torpr] == 'cbt':
-            torprov = 'CBT'
-        elif torprovider[torpr] == 'kat':
-            torprov = 'KAT'
+    searchcnt = 0
+    i = 1
 
-        findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-        if findit == 'yes':
-            logger.fdebug("findit = found!")
-            break
+    if rsscheck:
+        if mylar.ENABLE_RSS:
+            searchcnt = 1  # rss-only
         else:
-            if AlternateSearch is not None and AlternateSearch != "None":
-                chkthealt = AlternateSearch.split('##')
-                if chkthealt == 0:
-                    AS_Alternate = AlternateSearch
-                loopit = len(chkthealt)
-                for calt in chkthealt:
-                    AS_Alternate = re.sub('##','',calt)
-                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                    findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                    if findit == 'yes':
-                        break
+            searchcnt = 0  # if it's not enabled, don't even bother.
+    else:
+        if mylar.ENABLE_RSS:
+            searchcnt = 2 # rss first, then api on non-matches
+        else:
+            searchcnt = 2  #set the searchcnt to 2 (api)
+            i = 2          #start the counter at api, so it will exit without running RSS
 
-        torpr-=1
+    while ( i <= searchcnt ):
+        #searchmodes:
+        # rss - will run through the built-cached db of entries
+        # api - will run through the providers via api (or non-api in the case of Experimental)
+        # the trick is if the search is done during an rss compare, it needs to exit when done.
+        # otherwise, the order of operations is rss feed check first, followed by api on non-results.
+
+        if i == 1: searchmode = 'rss'  #order of ops - this will be used first.
+        elif i == 2: searchmode = 'api'
+
+        logger.fdebug("Initiating Search via : " + str(searchmode))
+
+        torprtmp = torpr
+
+        while (torprtmp >=0 ):
+            if torprovider[torprtmp] == 'cbt':
+                # CBT
+                torprov = 'CBT'
+            elif torprovider[torprtmp] == 'kat':
+                torprov = 'KAT'
+
+            if mylar.ENABLE_RSS:
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
+                if findit == 'yes':
+                    logger.fdebug("findit = found!")
+                    break
+                else:
+                    if AlternateSearch is not None and AlternateSearch != "None":
+                        chkthealt = AlternateSearch.split('##')
+                        if chkthealt == 0:
+                            AS_Alternate = AlternateSearch
+                        loopit = len(chkthealt)
+                        for calt in chkthealt:
+                            AS_Alternate = re.sub('##','',calt)
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
+                            if findit == 'yes':
+                                break
+
+            else:
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                if findit == 'yes':
+                    logger.fdebug("findit = found!")
+                    break
+                else:
+                    if AlternateSearch is not None and AlternateSearch != "None":
+                        chkthealt = AlternateSearch.split('##')
+                        if chkthealt == 0:
+                            AS_Alternate = AlternateSearch
+                        loopit = len(chkthealt)
+                        for calt in chkthealt:
+                            AS_Alternate = re.sub('##','',calt)
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                            if findit == 'yes':
+                                break
+
+            torprtmp-=1
+
+        i+=1
     
     if findit == 'yes': return findit, torprov        
 

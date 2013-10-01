@@ -178,22 +178,27 @@ def IssueDetails(cbdb_id):
         publen = len(pubd) # find the # of <td>'s
         pubs = pubd[publen-1] #take the last <td> which will always contain the publication date
         pdaters = pubs.findNext(text=True) #get the actual date :)
-        basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'09','september':'10','october':'11','december':'12'}
+        basmonths = {'january':'01','february':'02','march':'03','april':'04','may':'05','june':'06','july':'07','august':'09','september':'10','october':'11','december':'12','annual':''}
         for numbs in basmonths:
             if numbs in pdaters.lower():
                 pconv = basmonths[numbs]
                 ParseYear = re.sub('/s','',pdaters[-5:])
-                pubdate= str(ParseYear) + "-" + str(pconv)
+                if basmonths[numbs] == '':
+                    pubdate = str(ParseYear)
+                else:
+                    pubdate= str(ParseYear) + "-" + str(pconv)
                 #logger.fdebug("!success - Publication date: " + str(ParseDate))
 
         #pubdate = re.sub("[^0-9]", "", pdaters)
-        print ("Issue : " + str(issue) + "  (" + str(pubdate) + ")")
+        issuetmp = re.sub("[^0-9]", '', issue)
+        print ("Issue : " + str(issuetmp) + "  (" + str(pubdate) + ")")
         print ("Issuetitle " + str(issuetitle))
 
         annualslist.append({
-            'AnnualIssue':  str(issue),
+            'AnnualIssue':  issuetmp.strip(),
             'AnnualTitle':  issuetitle,
-            'AnnualDate':   str(pubdate)
+            'AnnualDate':   pubdate.strip(),
+            'AnnualYear':   ParseYear.strip()
             })
         gcount+=1 
         print("annualslist appended...")

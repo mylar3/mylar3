@@ -485,6 +485,27 @@
                                 </div>
                         </fieldset>
 
+                        <fieldset>
+                                 <div id="newznab providers">
+                                    <%
+                                        order_number = 1
+                                    %>
+
+                                     %for p_order in config['provider_order']:
+                                        <div class="config" id="p_order${order_number}">
+                                            <div class="row">
+                                               <label>${p_order[0]}</label>
+                                               <label>${p_order[1]}</label>
+                                            </div>
+                                        <div>                                        
+                                       <%
+                                            order_number += 1
+                                       %>
+    
+                                     %endfor
+                               </div>
+                        </fieldset>
+
                 </td>
 
             </tr>

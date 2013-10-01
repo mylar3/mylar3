@@ -32,9 +32,11 @@
                          <small>Arcs in StoryArc Directory: <% sdir = os.path.join(mylar.DESTINATION_DIR, "StoryArcs") %>${sdir}</small><br/>
                          <input type="checkbox" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
                          <input type="checkbox" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading# to filename</label><br/>
+                         <label>Enforce Renaming/MetaTagging options (if enabled)</label>
+                         <label>Copy watchlisted issues to StoryArc Directory</label>
                      </div>
                    </fieldset>
-                         </div>
+                         <div>
                             <input type="submit" value="Update"/>
                          </div>
                  </form>

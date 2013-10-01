@@ -170,6 +170,8 @@ NZBGET_PASSWORD = None
 NZBGET_PRIORITY = None
 NZBGET_CATEGORY = None
 
+PROVIDER_ORDER = None
+
 NZBSU = False
 NZBSU_UID = None
 NZBSU_APIKEY = None
@@ -315,7 +317,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, \
+                ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
                 ENABLE_TORRENTS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, ENABLE_CBT, CBT_PASSKEY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_USERNAME, BOXCAR_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
@@ -509,15 +511,27 @@ def initialize():
         NZBGET_CATEGORY = check_setting_str(CFG, 'NZBGet', 'nzbget_category', '')
         NZBGET_PRIORITY = check_setting_str(CFG, 'NZBGet', 'nzbget_priority', '')
 
+        PR_NUM = 0  # provider counter here (used for provider orders)
+        PR = []
+
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
         NZBSU_UID = check_setting_str(CFG, 'NZBsu', 'nzbsu_uid', '')
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
+        if NZBSU:
+            PR.append('nzbsu')
+            PR_NUM +=1
 
         DOGNZB = bool(check_setting_int(CFG, 'DOGnzb', 'dognzb', 0))
         DOGNZB_UID = check_setting_str(CFG, 'DOGnzb', 'dognzb_uid', '')
         DOGNZB_APIKEY = check_setting_str(CFG, 'DOGnzb', 'dognzb_apikey', '')
+        if DOGNZB:
+            PR.append('dognzb')
+            PR_NUM +=1
 
         NZBX = bool(check_setting_int(CFG, 'nzbx', 'nzbx', 0))
+        if NZBX:
+            PR.append('nzbx')
+            PR_NUM +=1
 
         RAW = bool(check_setting_int(CFG, 'Raw', 'raw', 0))
         RAW_PROVIDER = check_setting_str(CFG, 'Raw', 'raw_provider', '')
@@ -527,6 +541,12 @@ def initialize():
 
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
         ALTEXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'altexperimental', 1))
+        if EXPERIMENTAL: 
+            PR.append('Experimental')
+            PR_NUM +=1
+
+        print 'PR_NUM::' + str(PR_NUM)
+
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
 
         if CONFIG_VERSION:
@@ -575,10 +595,38 @@ def initialize():
         #to counteract the loss of the 1st newznab entry because of a switch, let's rewrite to the tuple
         if NEWZNAB_HOST and CONFIG_VERSION:
             EXTRA_NEWZNABS.append((NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, int(NEWZNAB_ENABLED)))
+            PR_NUM +=1
             # Need to rewrite config here and bump up config version
             CONFIG_VERSION = '5'
             config_write()        
-         
+
+        print 'PR_NUM:' + str(PR_NUM)
+        for ens in EXTRA_NEWZNABS:
+            print ens[0]
+            print 'enabled:' + str(ens[4])
+            if ens[4] == '1': # if newznabs are enabled
+                PR.append(ens[0])
+                PR_NUM +=1
+
+
+        print('Provider Number count: ' + str(PR_NUM))
+
+        flattened_provider_order = check_setting_str(CFG, 'General', 'provider_order', [], log=False)
+        PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flattened_provider_order, i, None, 2) for i in range(2)]))
+
+        if len(flattened_provider_order) == 0:       
+            #priority provider sequence in order#, ProviderName
+            print('creating provider sequence order now...')
+            TMPPR_NUM = 0
+            PROV_ORDER = []
+            while TMPPR_NUM < PR_NUM :
+                PROV_ORDER.append((TMPPR_NUM, PR[TMPPR_NUM]))
+                TMPPR_NUM +=1
+            PROVIDER_ORDER = PROV_ORDER
+
+        print 'Provider Order is:' + str(PROVIDER_ORDER)
+        config_write()
+
         # update folder formats in the config & bump up config version
         if CONFIG_VERSION == '0':
             from mylar.helpers import replace_all
@@ -868,6 +916,14 @@ def config_write():
     new_config['General']['enable_rss'] = int(ENABLE_RSS)
     new_config['General']['rss_checkinterval'] = RSS_CHECKINTERVAL
     new_config['General']['rss_lastrun'] = RSS_LASTRUN
+
+    # Need to unpack the extra newznabs for saving in config.ini
+    flattened_providers = []
+    for prov_order in PROVIDER_ORDER:
+        for item in prov_order:
+            flattened_providers.append(item)
+
+    new_config['General']['provider_order'] = flattened_providers
 
     new_config['Torrents'] = {}
     new_config['Torrents']['enable_torrents'] = int(ENABLE_TORRENTS)

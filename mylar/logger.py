@@ -16,6 +16,7 @@
 import os
 import threading
 import logging
+import unicodedata  # for non-english locales
 from logging import handlers
 
 import mylar
@@ -72,7 +73,11 @@ class RotatingLogger(object):
         threadname = threading.currentThread().getName()
         
         if level != 'DEBUG':
-            mylar.LOG_LIST.insert(0, (helpers.now(), message, level, threadname))
+            if mylar.OS_DETECT == "Windows" and mylar.OS_ENCODING is not "utf-8":
+                tmpthedate = unicodedata.normalize('NFKD', helpers.now().decode(mylar.OS_ENCODING, "replace"))
+            else:
+                tmpthedate = helpers.now()
+            mylar.LOG_LIST.insert(0, (tmpthedate, message, level, threadname))
         
         message = threadname + ' : ' + message
 

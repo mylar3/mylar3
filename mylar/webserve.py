@@ -1836,6 +1836,7 @@ class WebInterface(object):
                     "extra_newznabs" : mylar.EXTRA_NEWZNABS,
                     "enable_rss" : helpers.checked(mylar.ENABLE_RSS),
                     "rss_checkinterval" : mylar.RSS_CHECKINTERVAL,
+                    "provider_order" : mylar.PROVIDER_ORDER,
                     "enable_torrents" : helpers.checked(mylar.ENABLE_TORRENTS),
                     "torrent_local" : helpers.checked(mylar.TORRENT_LOCAL),
                     "local_watchdir" : mylar.LOCAL_WATCHDIR,

@@ -71,15 +71,15 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     if issue:
         srchterm += ' ' + str(issue)
 
-    if pickfeed == "1":      # comicbt rss feed based on followlist
+    if pickfeed == "1":      # cbt rss feed based on followlist
         feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
     elif pickfeed == "2" and srchterm is not None:    # kat.ph search
         feed = "http://kat.ph/usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "3":    # kat.ph rss feed
         feed = "http://kat.ph/usearch/category%3Acomics%20seeds%3A1/?rss=1"
-    elif pickfeed == "4":    #comicbt follow link
+    elif pickfeed == "4":    #cbt follow link
         feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
-    elif pickfeed == "5":    # comicbt series link
+    elif pickfeed == "5":    # cbt series link
 #       seriespage = "http://comicbt.com/series.php?passkey=" + str(passkey)
         feed = "http://comicbt.com/rss.php?action=series&series=" + str(seriesno) + "&passkey=" + str(passkey)
     else:
@@ -93,11 +93,12 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
 
     if pickfeed == "5": # we need to get the series # first
         seriesSearch(seriespage, seriesname)
+
     feedme = feedparser.parse(feed)
+    
     i = 0
 
     feeddata = []
-
     myDB = db.DBConnection()
     torthekat = []
     katinfo = {}
@@ -131,18 +132,19 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         elif pickfeed == "1" or pickfeed == "4":
 #            tmpsz = feedme.entries[i].enclosures[0]
             feeddata.append({
-                           'Site':     'comicBT',
+                           'Site':     'CBT',
                            'Title':    feedme.entries[i].title, 
                            'Link':     feedme.entries[i].link,
                            'Pubdate':  feedme.entries[i].updated
 #                          'Size':     tmpsz['length']
                            })
-            #print ("Site: ComicBT")
+            #print ("Site: CBT")
             #print ("Title: " + str(feeddata[i]['Title']))
             #print ("Link: " + str(feeddata[i]['Link']))
             #print ("pubdate: " + str(feeddata[i]['Pubdate']))
         i+=1
     logger.fdebug('there were ' + str(i) + ' results..')
+
     if not seriesname:
         rssdbupdate(feeddata,i,'torrent')
     else:
@@ -356,7 +358,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     tresults = []
 
     if mylar.ENABLE_CBT:
-        tresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [tsearch]).fetchall()
+        tresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='CBT'", [tsearch]).fetchall()
     if mylar.ENABLE_KAT:
         tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [tsearch]).fetchall()
 
@@ -388,7 +390,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 
             if mylar.ENABLE_CBT:
                 #print "AS_Alternate:" + str(AS_Alternate)
-                tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='comicBT'", [AS_Alternate]).fetchall()
+                tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='CBT'", [AS_Alternate]).fetchall()
             if mylar.ENABLE_KAT:
                 tresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site='KAT'", [AS_Alternate]).fetchall()
 
@@ -509,7 +511,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\s]', '%',seriesname)
     formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
     nsearch = nsearch_seriesname + "%"
-    nresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'comicBT' AND Site != 'KAT'", [nsearch])
+    nresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'CBT' AND Site != 'KAT'", [nsearch])
     if nresults is None:
         logger.fdebug('nzb search returned no results for ' + seriesname)
         if seriesname_alt is None:
@@ -521,7 +523,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
                 AS_Alternate = AlternateSearch
             for calt in chkthealt:
                 AS_Alternate = re.sub('##','',calt)
-                nresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'comicBT' AND Site != 'KAT'", [AS_Alternate])
+                nresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'CBT' AND Site != 'KAT'", [AS_Alternate])
             if nresults is None:
                 logger.fdebug('nzb alternate name search returned no results.')
                 return "no results"
@@ -546,7 +548,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 def torsend2client(seriesname, linkit, site):
     logger.info('matched on ' + str(seriesname))
     filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
-    if site == 'ComicBT':
+    if site == 'CBT':
         logger.info(linkit)
         linkit = str(linkit) + '&passkey=' + str(mylar.CBT_PASSKEY)
 
