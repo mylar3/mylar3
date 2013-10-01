@@ -545,7 +545,7 @@ def initialize():
             PR.append('Experimental')
             PR_NUM +=1
 
-        print 'PR_NUM::' + str(PR_NUM)
+        #print 'PR_NUM::' + str(PR_NUM)
 
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
 
@@ -600,23 +600,23 @@ def initialize():
             CONFIG_VERSION = '5'
             config_write()        
 
-        print 'PR_NUM:' + str(PR_NUM)
+        #print 'PR_NUM:' + str(PR_NUM)
         for ens in EXTRA_NEWZNABS:
-            print ens[0]
-            print 'enabled:' + str(ens[4])
+            #print ens[0]
+            #print 'enabled:' + str(ens[4])
             if ens[4] == '1': # if newznabs are enabled
                 PR.append(ens[0])
                 PR_NUM +=1
 
 
-        print('Provider Number count: ' + str(PR_NUM))
+        #print('Provider Number count: ' + str(PR_NUM))
 
         flattened_provider_order = check_setting_str(CFG, 'General', 'provider_order', [], log=False)
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flattened_provider_order, i, None, 2) for i in range(2)]))
 
         if len(flattened_provider_order) == 0:       
             #priority provider sequence in order#, ProviderName
-            print('creating provider sequence order now...')
+            #print('creating provider sequence order now...')
             TMPPR_NUM = 0
             PROV_ORDER = []
             while TMPPR_NUM < PR_NUM :
@@ -624,7 +624,7 @@ def initialize():
                 TMPPR_NUM +=1
             PROVIDER_ORDER = PROV_ORDER
 
-        print 'Provider Order is:' + str(PROVIDER_ORDER)
+        #print 'Provider Order is:' + str(PROVIDER_ORDER)
         config_write()
 
         # update folder formats in the config & bump up config version
