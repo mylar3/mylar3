@@ -106,10 +106,7 @@ LIBRARYSCAN_INTERVAL = 300
 DOWNLOAD_SCAN_INTERVAL = 5
 INTERFACE = None
 
-PREFERRED_QUALITY = None
-PREFERRED_CBR = None
-PREFERRED_CBZ = None
-PREFERRED_WE = None
+PREFERRED_QUALITY = 0
 CORRECT_METADATA = False
 MOVE_FILES = False
 RENAME_FILES = False
@@ -381,7 +378,7 @@ def initialize():
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
         COMIC_COVER_LOCAL = bool(check_setting_int(CFG, 'General', 'comic_cover_local', 0))
-        PREFERRED_QUALITY = bool(check_setting_int(CFG, 'General', 'preferred_quality', 0))
+        PREFERRED_QUALITY = check_setting_int(CFG, 'General', 'preferred_quality', 0)
         CORRECT_METADATA = bool(check_setting_int(CFG, 'General', 'correct_metadata', 0))
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
         RENAME_FILES = bool(check_setting_int(CFG, 'General', 'rename_files', 0))
