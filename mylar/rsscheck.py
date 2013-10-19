@@ -69,14 +69,25 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     if seriesname:
         srchterm = re.sub(' ', '%20', seriesname)
     if issue:
-        srchterm += ' ' + str(issue)
+        srchterm += '%20' + str(issue)
+
+    if mylar.KAT_PROXY:
+        if mylar.KAT_PROXY.endswith('/'):
+            kat_url = mylar.KAT_PROXY
+        else:
+            kat_url = mylar.KAT_PROXY + '/'
+    else:
+        kat_url = 'http://kat.ph/'
+
 
     if pickfeed == "1":      # cbt rss feed based on followlist
         feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
     elif pickfeed == "2" and srchterm is not None:    # kat.ph search
-        feed = "http://kat.ph/usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
+        logger.info('PF2 - kat url set to: ' + kat_url)
+        feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "3":    # kat.ph rss feed
-        feed = "http://kat.ph/usearch/category%3Acomics%20seeds%3A1/?rss=1"
+        logger.info('PF3 - kat url set to: ' + kat_url)
+        feed = kat_url + "usearch/category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "4":    #cbt follow link
         feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
     elif pickfeed == "5":    # cbt series link
@@ -117,12 +128,13 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         elif pickfeed == "2":
             tmpsz = feedme.entries[i].enclosures[0]
             torthekat.append({
-                          'title':   feedme.entries[i].title,
-                          'link':    tmpsz['url'],
-                          'pubdate': feedme.entries[i].updated,
-                          'site':    'KAT',
-                          'length':  tmpsz['length']
-                          })
+                           'site':     'KAT',
+                           'title':    feedme.entries[i].title,
+                           'link':     tmpsz['url'],
+                           'pubdate':  feedme.entries[i].updated,
+                           'length':     tmpsz['length']
+                           })
+
             #print ("Site: KAT")
             #print ("Title: " + str(feedme.entries[i].title))
             #print ("Link: " + str(tmpsz['url']))
@@ -545,14 +557,15 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     nzbinfo['entries'] = nzbtheinfo
     return nzbinfo
              
-def torsend2client(seriesname, linkit, site):
+def torsend2client(seriesname, issue, seriesyear, linkit, site):
     logger.info('matched on ' + str(seriesname))
     filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    filename += "_" + str(issue) + "_" + str(seriesyear)
     if site == 'CBT':
         logger.info(linkit)
         linkit = str(linkit) + '&passkey=' + str(mylar.CBT_PASSKEY)
 
-    if linkit[-7:] != "torrent" and site != "KAT":
+    if linkit[-7:] != "torrent": # and site != "KAT":
         filename += ".torrent"
 
     if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
@@ -571,7 +584,10 @@ def torsend2client(seriesname, linkit, site):
         request.add_header('Accept-encoding', 'gzip')
 
         if site == 'KAT':
-            request.add_header('Referer', 'http://kat.ph/')
+            stfind = linkit.find('?')
+            kat_referrer = linkit[:stfind]
+            request.add_header('Referer', kat_referrer)
+            logger.fdebug('KAT Referer set to :' + kat_referrer)
 
 
 #        response = helpers.urlretrieve(urllib2.urlopen(request), filepath)
@@ -588,7 +604,7 @@ def torsend2client(seriesname, linkit, site):
         logger.warn('Error fetching data from %s: %s' % (site, e))
         return "fail"
 
-    with open(filepath, 'w') as the_file:
+    with open(filepath, 'wb') as the_file:
         the_file.write(torrent)
 
     logger.info("saved.")

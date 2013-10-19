@@ -198,6 +198,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
         elif issuechk['Status'] == "Wanted":
             values = { "Status":    "Wanted"}
             newValue['Status'] = "Wanted"            
+        elif issuechk['Status'] == "Archived":
+            values = { "Status":    "Archived"}
+            newValue['Status'] = "Archived"
         else:
             values = { "Status":    "Skipped"}
             newValue['Status'] = "Skipped"
@@ -246,7 +249,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None)
         else:
             myDB.upsert("issues", values, control)
 
-        if issuechk['Status'] == 'Downloaded': 
+        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived': 
             logger.fdebug('updating Pull-list to reflect status.')
             downstats = {"Status":  issuechk['Status'],
                          "ComicID": issuechk['ComicID']}

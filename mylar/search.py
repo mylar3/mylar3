@@ -166,7 +166,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
             elif torprovider[torprtmp] == 'kat':
                 torprov = 'KAT'
 
-            if mylar.ENABLE_RSS:
+            if searchmode == 'rss':
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
@@ -757,8 +757,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 yearmatch = "true"
                         elif UseFuzzy == "0" or UseFuzzy == "2" or UseFuzzy is None or IssDateFix != "no":
                             if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
-                                logger.fdebug("year detected: " + str(m[cnt]))
+                                logger.fdebug('year detected: ' + str(m[cnt]))
                                 result_comyear = m[cnt]
+                                logger.fdebug('year looking for: ' + str(comyear))
                                 if str(comyear) in result_comyear:
                                     logger.fdebug(str(comyear) + " - right years match baby!")
                                     yearmatch = "true"
@@ -1105,7 +1106,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 nzbname = re.sub('[\,\:\?]', '', str(nzbname))
                                 if nzbname.lower().endswith('.torrent'):
                                     nzbname = re.sub('.torrent', '', nzbname)
-                                rcheck = rsscheck.torsend2client(ComicName, entry['link'], nzbprov)
+                                rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, entry['link'], nzbprov)
                                 if rcheck == "fail":
                                     logger.error("Unable to send torrent - check logs and settings.")
                                     return

@@ -32,12 +32,27 @@ DESC=mylar
 RUN_AS=
 
 PID_FILE=/var/run/mylar.pid
+PID_PATH=`dirname $PID_FILE`
 
 ############### END EDIT ME ##################
 
 test -x $DAEMON || exit 0
 
 set -e
+
+# Create PID if missing and remove stale PID file
+if [ ! =d $PID_PATH ]; then
+    mkdir -p $PID_PATH
+    chown $RUN_AS $PID_PATH
+fi
+
+if [ -e $PID_FILE ]; then
+    PID=`cat $PID_FILE`
+    if ! kill -0 $PID > /dev/null 2>&1; then
+        echo "Removing stale $PID_FILE"
+        rm $PID_FILE
+    fi
+fi
 
 case "$1" in
   start)
