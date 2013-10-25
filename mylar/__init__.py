@@ -917,10 +917,13 @@ def config_write():
     new_config['General']['rss_lastrun'] = RSS_LASTRUN
 
     # Need to unpack the extra newznabs for saving in config.ini
-    flattened_providers = []
-    for prov_order in PROVIDER_ORDER:
-        for item in prov_order:
-            flattened_providers.append(item)
+    if PROVIDER_ORDER is None:
+        flattened_providers = None
+    else:
+        flattened_providers = []
+        for prov_order in PROVIDER_ORDER:
+            for item in prov_order:
+                flattened_providers.append(item)
 
     new_config['General']['provider_order'] = flattened_providers
 

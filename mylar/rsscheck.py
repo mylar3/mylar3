@@ -83,10 +83,8 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     if pickfeed == "1":      # cbt rss feed based on followlist
         feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
     elif pickfeed == "2" and srchterm is not None:    # kat.ph search
-        logger.info('PF2 - kat url set to: ' + kat_url)
         feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "3":    # kat.ph rss feed
-        logger.info('PF3 - kat url set to: ' + kat_url)
         feed = kat_url + "usearch/category%3Acomics%20seeds%3A1/?rss=1"
     elif pickfeed == "4":    #cbt follow link
         feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
