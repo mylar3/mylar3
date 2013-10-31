@@ -238,9 +238,16 @@ def nzbs(provider=None):
                 for newznab_host in newznab_hosts:
                     if newznab_host[3] is None:
                         newznabuid = '1'
+                        newznabcat = '7030'
                     else:
-                        newznabuid = newznab_host[3]
-                    feed = newznab_host[1].rstrip() + '/rss?t=7030&dl=1&i=' + str(newznabuid) + '&r=' + newznab_host[2].rstrip()
+                        if '#' not in newznab_host[3]:
+                            newznabuid = newznab_host[3]
+                            newznabcat = '7030'
+                        else:
+                            newzst = newznab_host[3].find('#')
+                            newznabuid = newznab_host[3][:newzst]
+                            newznabcat = newznab_host[3][newzst+1:]
+                    feed = newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&r=' + newznab_host[2].rstrip()
                     feedme = feedparser.parse(feed)
                     site = newznab_host[0].rstrip()
                     feedthis.append({"feed":     feedme,

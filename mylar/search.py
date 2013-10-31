@@ -155,6 +155,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         if i == 1: searchmode = 'rss'  #order of ops - this will be used first.
         elif i == 2: searchmode = 'api'
 
+        if findit == 'yes': 
+            logger.fdebug('Found result on first run, exiting search module now.')
+            break
+
         logger.fdebug("Initiating Search via : " + str(searchmode))
 
         torprtmp = torpr
@@ -365,6 +369,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
         name_newznab = newznab_host[0].rstrip()
         host_newznab = newznab_host[1].rstrip()
         apikey = newznab_host[2].rstrip()
+        if '#' in newznab_host[3].rstrip():
+            catstart = newznab_host[3].find('#')
+            category_newznab = newznab_host[3][catstart+1:]
+            logger.fdebug('non-default Newznab category set to :' + str(category_newznab))
+        else:
+            category_newznab = '7030'
         logger.fdebug("using Newznab host of : " + str(name_newznab))
 
     if RSS == "yes":
@@ -566,7 +576,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
                             host_newznab_fix = str(host_newznab) + "/"
                         else: host_newznab_fix = host_newznab
-                        findurl = str(host_newznab_fix) + "api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
+                        findurl = str(host_newznab_fix) + "api?t=search&q=" + str(comsearch) + "&o=xml&cat=" + str(category_newznab)
                     elif nzbprov == 'nzbx':
                         bb = prov_nzbx.searchit(comsearch)
                     if nzbprov != 'nzbx':
