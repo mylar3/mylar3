@@ -346,8 +346,11 @@ def pullit(forcecheck=None):
     os.remove( str(pullpath) + "newreleases.txt" )
     pullitcheck(forcecheck=forcecheck)
 
-def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
-    logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
+def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepull=None):
+    if futurepull is None:
+        logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
+    else:
+        logger.info('Checking the Future Releases list for upcoming comics I am watching for...')
     myDB = db.DBConnection()
 
     not_t = ['TP',
@@ -461,7 +464,10 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                 sqlsearch = re.sub(r'\s', '%', sqlsearch)
                 sqlsearch = sqlsearch + '%'
                 logger.fdebug("searchsql: " + sqlsearch)
-                weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
+                if futurepull is None:
+                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
+                else:
+                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM future WHERE COMIC LIKE (?)', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
                 for week in weekly:
                     if week == None:
@@ -552,10 +558,16 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                             ComicDate = str(week['SHIPDATE'])
                                             #ComicName = str(unlines[cnt])
                                             logger.fdebug("Watchlist hit for : " + ComicName + " ISSUE: " + str(watchfndiss[tot -1]))
-                                            # here we add to comics.latest
-                                            updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
-                                            # here we add to upcoming table...
-                                            statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
+
+                                            if futurepull is None:
+                                               # here we add to comics.latest
+                                                updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
+                                                # here we add to upcoming table...
+                                                statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
+                                            else:
+                                                # here we add to upcoming table...
+                                                statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes')
+
                                             # here we update status of weekly table...
                                             if statusupdate is not None:
                                                 cstatus = statusupdate['Status']
@@ -563,7 +575,13 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None):
                                             else:
                                                 cstatus = None
                                                 cstatusid = None
-                                            updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid)
+                                            #set the variable fp to denote updating the futurepull list ONLY
+                                            if futurepull is None: 
+                                                fp = None
+                                            else: 
+                                                cstatusid = ComicID
+                                                fp = "yes"
+                                            updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid, futurepull=fp)
                                             break
                                         break
                         break

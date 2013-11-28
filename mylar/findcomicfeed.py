@@ -93,6 +93,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
         for title, link in keyPair.items():
             #logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
+            noYear = 'False'
 
             for subs in splitTitle:
                 logger.fdebug(subs)
@@ -108,11 +109,23 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
 #                                  'title':   subs,
 #                                  'link':    str(link)
 #                                  })
-                    entries.append({
-                              'title':   subs,
-                              'link':    str(link)
-                              })
+                    if searchYear not in subs:
+                        noYear = 'True'
+                        noYearline = subs
 
+                    if searchYear in subs and noYear == 'True':
+                        #this would occur on the next check in the line, if year exists and
+                        #the noYear check in the first check came back valid append it
+                        subs = noYearline + ' (' + searchYear + ')'                  
+                        noYear = 'False'
+
+                    if noYear == 'False':
+                        
+                        entries.append({
+                                  'title':   subs,
+                                  'link':    str(link)
+                                  })
+                        break  # break out so we don't write more shit.
               
 #    if len(entries) >= 1:
     if tallycount >= 1:

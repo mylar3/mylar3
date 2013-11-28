@@ -697,7 +697,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("Ignoring title as Cover Only detected.")
                         cleantitle = "abcdefghijk 0 (1901).cbz"
                         continue
-                        
+
+                    if ComicVersion:
+                       ComVersChk = re.sub("[^0-9]", "", ComicVersion)
+                       if ComVersChk == '':
+                            ComVersChk = 0
+                    else:
+                       ComVersChk = 0
+                     
                     if len(re.findall('[^()]+', cleantitle)) == 1 or 'cover only' in cleantitle.lower(): 
                         #some sites don't have (2013) or whatever..just v2 / v2013. Let's adjust:
                         #this handles when there is NO YEAR present in the title, otherwise versioning is way below.
@@ -721,15 +728,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 logger.fdebug("false version detection..ignoring.")
 
                         if vers4year == "no" and vers4vol == "no":
-                            # if there are no () in the string, try to add them if it looks like a year (19xx or 20xx)
-                            if len(re.findall('[^()]+', cleantitle)):
-                                logger.fdebug("detected invalid nzb filename - attempting to detect year to continue")
-                                cleantitle = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', cleantitle)
-                                continue
-                            else:
-                                logger.fdebug("invalid nzb and/or cover only - skipping.")
-                                cleantitle = "abcdefghijk 0 (1901).cbz"
-                                continue
+                            # if the series is a v1, let's remove the requirements for year and volume label
+                            if ComVersChk != 0:
+                                # if there are no () in the string, try to add them if it looks like a year (19xx or 20xx)
+                                if len(re.findall('[^()]+', cleantitle)):
+                                    logger.fdebug("detected invalid nzb filename - attempting to detect year to continue")
+                                    cleantitle = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', cleantitle)
+                                    continue
+                                else:
+                                    logger.fdebug("invalid nzb and/or cover only - skipping.")
+                                    cleantitle = "abcdefghijk 0 (1901).cbz"
+                                    continue
 
                     #adjust for covers only by removing them entirely...
                     logger.fdebug("Cleantitle: " + str(cleantitle))
@@ -762,8 +771,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             comic_andiss = m[cnt]
                             logger.fdebug("Comic: " + str(comic_andiss))
                             logger.fdebug("UseFuzzy is  : " + str(UseFuzzy))
+                            logger.fdebug('ComVersChk : ' + str(ComVersChk))
                             if vers4vol != "no" or vers4year != "no":
                                 logger.fdebug("Year not given properly formatted but Version detected.Bypassing Year Match.")
+                                yearmatch = "true"
+                            elif ComVersChk == 0:
+                                logger.fdebug("Series version detected as V1 (only series in existance with that title). Bypassing Year/Volume check")
                                 yearmatch = "true"
                         elif UseFuzzy == "0" or UseFuzzy == "2" or UseFuzzy is None or IssDateFix != "no":
                             if m[cnt][:-2] == '19' or m[cnt][:-2] == '20': 
@@ -985,12 +998,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                     logger.fdebug("vers4vol: " + str(vers4vol))
                                     if vers4year is not "no" or vers4vol is not "no":
 
-                                        if ComicVersion: #is not "None" and ComicVersion is not None:
-                                            D_ComicVersion = re.sub("[^0-9]", "", ComicVersion)
-                                            if D_ComicVersion == '':
-                                                D_ComicVersion = 0
+                                        #if the volume is None, assume it's a V1 to increase % hits
+                                        if ComVersChk == 0:
+                                            D_ComicVersion = 1
                                         else:
-                                            D_ComicVersion = 0
+                                            D_ComicVersion = ComVersChk
 
                                         F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
                                         S_ComicVersion = str(SeriesYear)

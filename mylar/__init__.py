@@ -104,6 +104,7 @@ SEARCH_INTERVAL = 360
 NZB_STARTUP_SEARCH = False
 LIBRARYSCAN_INTERVAL = 300
 DOWNLOAD_SCAN_INTERVAL = 5
+CHECK_FOLDER = None
 INTERFACE = None
 
 PREFERRED_QUALITY = 0
@@ -319,7 +320,7 @@ def initialize():
                 ENABLE_TORRENTS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_USERNAME, BOXCAR_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
                 
         if __INITIALIZED__:
@@ -375,6 +376,7 @@ def initialize():
         IMP_RENAME = bool(check_setting_int(CFG, 'General', 'imp_rename', 0))
         IMP_METADATA = bool(check_setting_int(CFG, 'General', 'imp_metadata', 0))
         DOWNLOAD_SCAN_INTERVAL = check_setting_int(CFG, 'General', 'download_scan_interval', 5)
+        CHECK_FOLDER = check_setting_str(CFG, 'General', 'check_folder', '')
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
@@ -867,6 +869,7 @@ def config_write():
     new_config['General']['imp_rename'] = int(IMP_RENAME)
     new_config['General']['imp_metadata'] = int(IMP_METADATA)
     new_config['General']['download_scan_interval'] = DOWNLOAD_SCAN_INTERVAL
+    new_config['General']['check_folder'] = CHECK_FOLDER
     new_config['General']['interface'] = INTERFACE
     new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
     new_config['General']['autowant_upcoming'] = int(AUTOWANT_UPCOMING)
@@ -1036,10 +1039,12 @@ def start():
         # Start our scheduled background tasks
         #from mylar import updater, searcher, librarysync, postprocessor
 
-        from mylar import updater, search, weeklypull
+        from mylar import updater, search, weeklypull, PostProcessor
 
         SCHED.add_interval_job(updater.dbUpdate, hours=48)
         SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
+
+        helpers.latestdate_fix()
 
         #initiate startup rss feeds for torrents/nzbs here...
         if ENABLE_RSS:
@@ -1064,7 +1069,11 @@ def start():
         if CHECK_GITHUB:
             SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
         
-        #SCHED.add_interval_job(postprocessor.checkFolder, minutes=DOWNLOAD_SCAN_INTERVAL)
+        #run checkFolder every X minutes (basically Manual Run Post-Processing)
+        logger.info('CHECK_FOLDER SET TO: ' + str(CHECK_FOLDER))
+        if CHECK_FOLDER:
+            logger.info('Setting monitor on folder : ' + str(CHECK_FOLDER))
+            SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
 
         SCHED.start()
         
@@ -1087,7 +1096,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
-
+    c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
     conn.commit
     c.close
     #new

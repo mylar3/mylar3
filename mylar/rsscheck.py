@@ -12,11 +12,11 @@ from StringIO import StringIO
 import mylar
 from mylar import db, logger, ftpsshup, helpers
 
-def tehMain():
+def tehMain(forcerss=None):
     logger.info('RSS Feed Check was last run at : ' + str(mylar.RSS_LASTRUN))
     firstrun = "no"
     #check the last run of rss to make sure it's not hammering.
-    if mylar.RSS_LASTRUN is None or mylar.RSS_LASTRUN == '' or mylar.RSS_LASTRUN == '0':
+    if mylar.RSS_LASTRUN is None or mylar.RSS_LASTRUN == '' or mylar.RSS_LASTRUN == '0' or forcerss == True:
         logger.info('RSS Feed Check First Ever Run.')
         firstrun = "yes"
         mins = 0
@@ -426,8 +426,15 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         i=0
         #0 holds the title/issue and format-type.
         while (i < len(torsplit)):
+            #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.
             logger.fdebug('section(' + str(i) + '): ' + str(torsplit[i]))
+            if i == 0: 
+                rebuiltline = str(torsplit[i])
+            else:
+                rebuiltline = rebuiltline + ' (' + str(torsplit[i]) + ')'
             i+=1
+
+        logger.fdebug('rebuiltline is :' + str(rebuiltline))
 
         seriesname_mod = seriesname
         foundname_mod = torsplit[0]
@@ -439,10 +446,13 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         seriesname_mod = re.sub('[\&]', ' ', seriesname_mod)
         foundname_mod = re.sub('[\&]', ' ', foundname_mod)
 
-        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname_mod)
+        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.]', '',seriesname_mod)
+        formatrem_seriesname = re.sub('[\/]', '-', formatrem_seriesname)
         formatrem_seriesname = re.sub('\s+', ' ', formatrem_seriesname)
         if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
-        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',foundname_mod)
+
+        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.]', '',foundname_mod)
+        formatrem_torsplit = re.sub('[\/]', '-', formatrem_torsplit)
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
         logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())
         logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())
@@ -565,6 +575,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 def torsend2client(seriesname, issue, seriesyear, linkit, site):
     logger.info('matched on ' + str(seriesname))
     filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    filename = re.sub(' ', '_', filename)
     filename += "_" + str(issue) + "_" + str(seriesyear)
     if site == 'CBT':
         logger.info(linkit)

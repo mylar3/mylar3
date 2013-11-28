@@ -239,6 +239,9 @@
                                                 %endfor
                                                 </select>
                                               </div>
+                         <div class="row">
+                            <a href="#" style="float:right" type="button" onclick="doAjaxCall('SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
+                         </div>
 
                          </div>
                          <div class="row checkbox">
@@ -368,6 +371,7 @@
                           <div class="config">
                             <label>RSS Inteval Feed Check</label>
                             <input type="text" name="rss_checkinterval" value="${config['rss_checkinterval']}" size="6" /><small>(Mins)</small>
+                            <a href="#" style="float:right" type="button" onclick="doAjaxCall('force_rss',$(this))" data-success="RSS Force now running" data-error="Error trying to retrieve RSS Feeds"><span class="ui-icon ui-icon-extlink"></span>Force RSS</a>
                           </div>
                         </fieldset>
                 	<fieldset>

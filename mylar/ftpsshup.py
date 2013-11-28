@@ -45,7 +45,23 @@ def putfile(localpath,file):    #localpath=full path to .torrent (including file
             logger.fdebug('Skipping file at this time.')
             return "fail"
 
-    sftp.put(localpath, rempath)
+    sendcheck = False
+    
+    while sendcheck == False:
+        try:
+            sftp.put(localpath, rempath)
+            sendcheck = True
+        except Exception, e:
+            logger.fdebug('ERROR Sending torrent to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
+            logger.fdebug('Forcibly closing connection and attempting to reconnect')
+            sftp.close()
+            transport.close()
+            #reload the transport here cause it locked up previously.
+            transport = paramiko.Transport((host, port))
+            transport.connect(username = username, password = password)
+            sftp = paramiko.SFTPClient.from_transport(transport)
+            logger.fdebug('sucessfully reconnected via sftp - attempting to resend.')
+            #return "fail"
 
     sftp.close()
     transport.close()

@@ -15,7 +15,7 @@
 <%def name="body()">
 
 	<div id="paddingheader">
-		<h1 class="clearfix">Borg Importing Results</h1>
+		<h1 class="clearfix">Ultron Import Results</h1>
 	</div>
 	<div id="tabs">
 		<ul>
@@ -25,7 +25,9 @@
 
                    <table>
                     <tr>
-                          <fieldset>
+                       <span style="position:right">
+                           <img src="interfaces/default/images/ultron.png" style="float:right" height="125" width="125" />                     
+                           <fieldset>
                               <div class="row checkbox">
                                    <input type="checkbox" name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Auto-add new series</label>
                                         </div>
@@ -43,6 +45,7 @@
                                         </div>
 
                                 </fieldset>
+                         </span>
                      </tr>
                    </table>
               </div>

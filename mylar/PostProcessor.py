@@ -141,7 +141,9 @@ class PostProcessor(object):
             logger.fdebug("nzb name: " + str(self.nzb_name))
             logger.fdebug("nzb folder: " + str(self.nzb_folder))
             if mylar.USE_SABNZBD==0:
-                logger.fdebug("Not using SABNzbd")
+                logger.fdebug("Not using SABnzbd")
+            elif mylar.USE_SABNZBD != 0 and self.nzb_name == 'Manual Run':
+                logger.fdebug('Not using SABnzbd : Manual Run')
             else:
                 # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                 if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
@@ -197,7 +199,7 @@ class PostProcessor(object):
                         watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual=watchvals)
                         if watchmatch is None:
                             nm+=1
-                            pass
+                            continue
                         else:
                             fn = 0
                             fccnt = int(watchmatch['comiccount'])
@@ -659,6 +661,7 @@ class PostProcessor(object):
                             ofilename = filename
                             path, ext = os.path.splitext(ofilename)
             else:
+                otofilename = ml['ComicLocation']
                 print "otofilename:" + str(otofilename)
                 odir, ofilename = os.path.split(otofilename)
                 print "ofilename: " + str(ofilename)

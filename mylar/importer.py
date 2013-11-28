@@ -20,6 +20,7 @@ import shlex
 import datetime
 import re
 import urllib
+import urllib2
 import shutil
 import sqlite3
 import cherrypy
@@ -42,7 +43,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
+def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,calledfrom=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
 #    from mylar import cache
     
@@ -353,24 +354,43 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
 
     coverfile = os.path.join(mylar.CACHE_DIR,  str(comicid) + ".jpg")
 
-    #try:
-    urllib.urlretrieve(str(comic['ComicImage']), str(coverfile))
+    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retreive properly.
+    #thisci = urllib.quote_plus(str(comic['ComicImage']))
+
+    #urllib.urlretrieve(str(thisci), str(coverfile))
+    
     try:
-        with open(str(coverfile)) as f:
-            PRComicImage = os.path.join('cache',str(comicid) + ".jpg")
-            ComicImage = helpers.replacetheslash(PRComicImage)
+        cimage = re.sub('[\+]','%20', comic['ComicImage'])
+        request = urllib2.Request(cimage)#, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+        #request.add_header('User-Agent', str(mylar.USER_AGENT))
+
+        response = urllib2.urlopen(request)
+
+        com_image = response.read()
+
+        with open(coverfile, 'wb') as the_file:
+            the_file.write(com_image)
+
+        logger.info('Successfully retrieved cover for ' + comic['ComicName'])
+
+    except Exception, e:
+        logger.warn('[%s] Error fetching data using : %s' % (e, comic['ComicImage']))
+
+
+    PRComicImage = os.path.join('cache',str(comicid) + ".jpg")
+    ComicImage = helpers.replacetheslash(PRComicImage)
 
             #this is for Firefox when outside the LAN...it works, but I don't know how to implement it
             #without breaking the normal flow for inside the LAN (above)
             #ComicImage = "http://" + str(mylar.HTTP_HOST) + ":" + str(mylar.HTTP_PORT) + "/cache/" + str(comicid) + ".jpg"
 
-            logger.info('Sucessfully retrieved cover for ' + comic['ComicName'])
-            #if the comic cover local is checked, save a cover.jpg to the series folder.
-            if mylar.COMIC_COVER_LOCAL:
-                comiclocal = os.path.join(comlocation,'cover.jpg')
-                shutil.copy(ComicImage,comiclocal)
-    except IOError as e:
-        logger.error('Unable to save cover locally at this time.')
+    #if the comic cover local is checked, save a cover.jpg to the series folder.
+    if mylar.COMIC_COVER_LOCAL:
+        try:
+            comiclocal = os.path.join(comlocation,'cover.jpg')
+            shutil.copy(ComicImage,comiclocal)
+        except IOError as e:
+            logger.error('Unable to save cover into series directory at this time.')
 
     if oldcomversion is None:
         if comic['ComicVersion'].isdigit():
@@ -419,6 +439,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
     issnum = []
     issname = []
     issdate = []
+    issuedata = []
     int_issnum = []
     #let's start issue #'s at 0 -- thanks to DC for the new 52 reboot! :)
     latestiss = "0"
@@ -678,48 +699,71 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
                                 logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
                                 return    
                         #get the latest issue / date using the date.
+                logger.info('latest date: ' + str(latestdate))
+                logger.info('first date: ' + str(firstdate))
+                logger.info('issue date: ' + str(firstval['Issue_Date']))
                 if firstval['Issue_Date'] > latestdate:
                     latestiss = issnum
                     latestdate = str(firstval['Issue_Date'])
                 if firstval['Issue_Date'] < firstdate:
                     firstiss = issnum
                     firstdate = str(firstval['Issue_Date'])
-                # check if the issue already exists
-                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
+#                # check if the issue already exists
+#                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
 
-                # Only change the status & add DateAdded if the issue is already in the database
-                if iss_exists is None:
-                    newValueDict['DateAdded'] = helpers.today()
+#                # Only change the status & add DateAdded if the issue is already in the database
+#                if iss_exists is None:
+#                    newValueDict['DateAdded'] = helpers.today()
 
-                controlValueDict = {"IssueID":  issid}
-                newValueDict = {"ComicID":            comicid,
-                                "ComicName":          comic['ComicName'],
-                                "IssueName":          issname,
-                                "Issue_Number":       issnum,
-                                "IssueDate":          issdate,
-                                "Int_IssueNumber":    int_issnum
-                                }
+#                controlValueDict = {"IssueID":  issid}
+#                newValueDict = {"ComicID":            comicid,
+#                                "ComicName":          comic['ComicName'],
+#                                "IssueName":          issname,
+#                                "Issue_Number":       issnum,
+#                                "IssueDate":          issdate,
+#                                "Int_IssueNumber":    int_issnum
+#                                }
 
-                if iss_exists:
-                    #print ("Existing status : " + str(iss_exists['Status']))
-                    newValueDict['Status'] = iss_exists['Status']
-                else:
-                    #print "issue doesn't exist in db."
-                    if mylar.AUTOWANT_ALL:
-                        newValueDict['Status'] = "Wanted"
-                    elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
-                        newValueDict['Status'] = "Wanted"
-                    else:
-                        newValueDict['Status'] = "Skipped"
+                issuedata.append({"ComicID":            comicid,
+                                  "IssueID":            issid,
+                                  "ComicName":          comic['ComicName'],
+                                  "IssueName":          issname,
+                                  "Issue_Number":       issnum,
+                                  "IssueDate":          issdate,
+                                  "Int_IssueNumber":    int_issnum})
 
-                try:
-                    myDB.upsert("issues", newValueDict, controlValueDict)
-                except sqlite3.InterfaceError, e:
-                    #raise sqlite3.InterfaceError(e)
-                    logger.error('Something went wrong - I cannot add the issue information into my DB.')
-                    myDB.action("DELETE FROM comics WHERE ComicID=?", [comicid])
-                    return
+                #logger.info('issuedata: ' + str(issuedata))
+
+#                if iss_exists:
+#                    print ("Existing status : " + str(iss_exists['Status']))
+#                    newValueDict['Status'] = iss_exists['Status']
+#                else:
+#                    print "issue doesn't exist in db."
+#                    if mylar.AUTOWANT_ALL:
+#                        newValueDict['Status'] = "Wanted"
+#                    elif issdate > helpers.today() and mylar.AUTOWANT_UPCOMING:
+#                        newValueDict['Status'] = "Wanted"
+#                    else:
+#                        newValueDict['Status'] = "Skipped"
+
+#                try:
+#                    myDB.upsert("issues", newValueDict, controlValueDict)
+#                except sqlite3.InterfaceError, e:
+#                    #raise sqlite3.InterfaceError(e)
+#                    logger.error('Something went wrong - I cannot add the issue information into my DB.')
+#                    myDB.action("DELETE FROM comics WHERE ComicID=?", [comicid])
+#                    return
+
                 n+=1
+
+    if len(issuedata) > 1 and not calledfrom  == 'dbupdate':  
+        logger.fdebug('initiating issue updating - info & status')
+        issue_collection(issuedata,nostatus='False')
+    else:
+        logger.fdebug('initiating issue updating - just the info')
+        issue_collection(issuedata,nostatus='True')
+
+    #issue_collection(issuedata,nostatus='False')
 
     #figure publish dates here...
     styear = str(SeriesYear)
@@ -777,8 +821,16 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
             logger.info('Mass import - Moving not Enabled. Setting Archived Status for import.')
             moveit.archivefiles(comicid,ogcname)
 
+    if calledfrom == 'dbupdate':
+        logger.info('returning to dbupdate module')
+        return
+
     #check for existing files...
+    statbefore = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
+    logger.info('status before chk :' + statbefore['Status'])    
     updater.forceRescan(comicid)
+    statafter = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
+    logger.info('status after chk :' + statafter['Status'])
 
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
@@ -786,8 +838,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None):
         if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
             chkstats = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
-            logger.fdebug(chkstats['Status'])
-            if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
+            logger.fdebug('latestissue status: ' + chkstats['Status'])
+            if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted': # or chkstats['Status'] == 'Snatched':
                 logger.info('Checking this week pullist for new issues of ' + comic['ComicName'])
                 updater.newpullcheck(comic['ComicName'], comicid)
 
@@ -1146,4 +1198,56 @@ def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
         else: logger.info(u"No issues marked as wanted for " + ComicName)
 
         logger.info(u"Finished grabbing what I could.")
+
+
+def issue_collection(issuedata,nostatus):
+    myDB = db.DBConnection()
+
+    logger.info('issue collection...')
+    if issuedata:    
+        logger.info('issuedata exists')
+        for issue in issuedata:
+
+
+            controlValueDict = {"IssueID":  issue['IssueID']}
+            newValueDict = {"ComicID":            issue['ComicID'],
+                            "ComicName":          issue['ComicName'],
+                            "IssueName":          issue['IssueName'],
+                            "Issue_Number":       issue['Issue_Number'],
+                            "IssueDate":          issue['IssueDate'],
+                            "Int_IssueNumber":    issue['Int_IssueNumber']
+                            }
+
+
+            if nostatus == 'False':
+                logger.info('issue')
+                # check if the issue already exists
+                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issue['IssueID']]).fetchone()
+
+                # Only change the status & add DateAdded if the issue is already in the database
+                if iss_exists is None:
+                    newValueDict['DateAdded'] = helpers.today()
+                    print "issue doesn't exist in db."
+                    if mylar.AUTOWANT_ALL:
+                        newValueDict['Status'] = "Wanted"
+                    elif issue['IssueDate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
+                        newValueDict['Status'] = "Wanted"
+                    else:
+                        newValueDict['Status'] = "Skipped"
+
+                else:
+                    print ("Existing status : " + str(iss_exists['Status']))
+                    newValueDict['Status'] = iss_exists['Status']
+
+            else:
+                print ("Not changing the status at this time - reverting to previous module after to re-append existing status")
+                newValueDict['Status'] = "Skipped"
+
+            try:
+                myDB.upsert("issues", newValueDict, controlValueDict)
+            except sqlite3.InterfaceError, e:
+                #raise sqlite3.InterfaceError(e)
+                logger.error('Something went wrong - I cannot add the issue information into my DB.')
+                myDB.action("DELETE FROM comics WHERE ComicID=?", [issue['ComicID']])
+                return
 

@@ -26,16 +26,24 @@
                                 myDB = db.DBConnection()
                                 issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
                                 wantedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
-                                anwantedc = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
-                                annual = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
+                                if annuals_on:
+                                    anwantedc = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
+                                    annual = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
+                                else:
+                                    anwantedc = 0
+                                    annual = 0
                                 archedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Archived'", [comic['ComicID']]).fetchone()
-                                annualcount = annual[0]
-                                if not annualcount:
+                                if annuals_on:
+                                    annualcount = annual[0]
+                                    if not annualcount:
+                                        annualcount = 0
+                                    anns = anwantedc[0]
+                                else:
                                     annualcount = 0
+                                    anns = 0
                                 totaltracks = comic['Total'] + annualcount
                                 havetracks = comic['Have']
                                 wants = wantedc[0]
-                                anns = anwantedc[0]
                                 arcs = archedc[0]
                                 if not havetracks:
                                         havetracks = 0

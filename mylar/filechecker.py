@@ -88,14 +88,55 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                     subname = re.sub(subit, '', subname)
                     volrem = subit
 
+        #check if a year is present in series title (ie. spider-man 2099)
+        numberinseries = 'False'
+
+        for i in watchcomic.split():
+            if ('20' in i or '19' in i):
+                if i.isdigit():
+                    numberinseries = 'True'
+                else:
+                    find20 = i.find('20')
+                    if find20:
+                        stf = i[find20:4].strip()
+                    find19 = i.find('19')
+                    if find19:
+                        stf = i[find19:4].strip()
+                    logger.fdebug('stf is : ' + str(stf))
+                    if stf.isdigit():
+                        numberinseries = 'True'
+ 
+        logger.fdebug('numberinseries: ' + numberinseries)
+
         #remove the brackets..
         subnm = re.findall('[^()]+', subname)
-        if len(subnm):
-            logger.fdebug("detected invalid filename - attempting to detect year to continue")
-            subname = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
-            subnm = re.findall('[^()]+', subname)
+        logger.fdebug('subnm len : ' + str(len(subnm)))
+        if len(subnm) == 1:
+            logger.fdebug(str(len(subnm)) + ': detected invalid filename - attempting to detect year to continue')
+            #if the series has digits this f's it up.
+            if numberinseries == 'True':
+                #we need to remove the series from the subname and then search the remainder.
+                watchname = re.sub('[-\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
+                logger.fdebug('watch-cleaned: ' + str(watchname))
+                subthis = re.sub('.cbr', '', subname)
+                subthis = re.sub('.cbz', '', subthis)
+                subthis = re.sub('[-\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
+                logger.fdebug('sub-cleaned: ' + str(subthis))
+                subthis = subthis[len(watchname):]  #remove watchcomic
+                #we need to now check the remainder of the string for digits assuming it's a possible year
+                logger.fdebug('new subname: ' + str(subthis))
+                subname = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subthis)
+                subname = watchcomic + subname
+                subnm = re.findall('[^()]+', subname)
+            else:
+                subname = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
+                subnm = re.findall('[^()]+', subname)
 
         subname = subnm[0]
+
+        if len(subnm):
+            # if it still has no year (brackets), check setting and either assume no year needed.
+            subname = subname                
         logger.fdebug('subname no brackets: ' + str(subname))
         subname = re.sub('\_', ' ', subname)
         nonocount = 0
@@ -180,7 +221,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                 AS_Alternate = re.sub('##','',calt)
                 #same = encode.
                 u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
-                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', '', u_altsearchcomic)
+                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
                 altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
                 altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
                 AS_Alt.append(altsearchcomic)
@@ -349,6 +390,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
             logger.fdebug('final justthedigits [' + justthedigits + ']')
             if digitsvalid == "false": 
                 logger.fdebug('Issue number not properly detected...ignoring.')
+                comiccnt -=1  # remove the entry from the list count as it was incorrrectly tallied.
                 continue            
             
 

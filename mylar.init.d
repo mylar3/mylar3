@@ -41,7 +41,7 @@ test -x $DAEMON || exit 0
 set -e
 
 # Create PID if missing and remove stale PID file
-if [ ! =d $PID_PATH ]; then
+if [ ! -d $PID_PATH ]; then
     mkdir -p $PID_PATH
     chown $RUN_AS $PID_PATH
 fi
