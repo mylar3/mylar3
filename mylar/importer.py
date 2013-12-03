@@ -698,16 +698,17 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                             else:
                                 logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
                                 return    
-                        #get the latest issue / date using the date.
-                logger.info('latest date: ' + str(latestdate))
-                logger.info('first date: ' + str(firstdate))
-                logger.info('issue date: ' + str(firstval['Issue_Date']))
+                #get the latest issue / date using the date.
+                #logger.info('latest date: ' + str(latestdate))
+                #logger.info('first date: ' + str(firstdate))
+                #logger.info('issue date: ' + str(firstval['Issue_Date']))
                 if firstval['Issue_Date'] > latestdate:
                     latestiss = issnum
                     latestdate = str(firstval['Issue_Date'])
                 if firstval['Issue_Date'] < firstdate:
                     firstiss = issnum
                     firstdate = str(firstval['Issue_Date'])
+#--moved to lower function.
 #                # check if the issue already exists
 #                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
 
@@ -733,7 +734,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                                   "Int_IssueNumber":    int_issnum})
 
                 #logger.info('issuedata: ' + str(issuedata))
-
+#--moved to lower function
 #                if iss_exists:
 #                    print ("Existing status : " + str(iss_exists['Status']))
 #                    newValueDict['Status'] = iss_exists['Status']
@@ -762,8 +763,6 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     else:
         logger.fdebug('initiating issue updating - just the info')
         issue_collection(issuedata,nostatus='True')
-
-    #issue_collection(issuedata,nostatus='False')
 
     #figure publish dates here...
     styear = str(SeriesYear)
@@ -827,10 +826,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
 
     #check for existing files...
     statbefore = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
-    logger.info('status before chk :' + statbefore['Status'])    
+    logger.fdebug('issue: ' + str(latestiss) + ' status before chk :' + statbefore['Status'])    
     updater.forceRescan(comicid)
     statafter = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
-    logger.info('status after chk :' + statafter['Status'])
+    logger.fdebug('issue: ' + str(latestiss) + ' status after chk :' + statafter['Status'])
 
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
@@ -1205,7 +1204,7 @@ def issue_collection(issuedata,nostatus):
 
     logger.info('issue collection...')
     if issuedata:    
-        logger.info('issuedata exists')
+        #logger.info('issuedata exists')
         for issue in issuedata:
 
 
@@ -1220,14 +1219,14 @@ def issue_collection(issuedata,nostatus):
 
 
             if nostatus == 'False':
-                logger.info('issue')
+                #logger.info('issue')
                 # check if the issue already exists
                 iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issue['IssueID']]).fetchone()
 
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
                     newValueDict['DateAdded'] = helpers.today()
-                    print "issue doesn't exist in db."
+                    #print "issue doesn't exist in db."
                     if mylar.AUTOWANT_ALL:
                         newValueDict['Status'] = "Wanted"
                     elif issue['IssueDate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
@@ -1236,11 +1235,11 @@ def issue_collection(issuedata,nostatus):
                         newValueDict['Status'] = "Skipped"
 
                 else:
-                    print ("Existing status : " + str(iss_exists['Status']))
+                    #print ("Existing status : " + str(iss_exists['Status']))
                     newValueDict['Status'] = iss_exists['Status']
 
             else:
-                print ("Not changing the status at this time - reverting to previous module after to re-append existing status")
+                #print ("Not changing the status at this time - reverting to previous module after to re-append existing status")
                 newValueDict['Status'] = "Skipped"
 
             try:
