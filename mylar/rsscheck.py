@@ -221,7 +221,7 @@ def nzbs(provider=None):
                 feeddata.append({
                                'Site':     site,
                                'Title':    feed.entries[i].title,
-                               'Link':     feed.entries[i].link,
+                               'Link':     tmpsz['url'],  #feed.entries[i].link,
                                'Pubdate':  feed.entries[i].updated,
                                'Size':     tmpsz['length']
                                })
@@ -520,7 +520,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 
     return torinfo
 
-def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
+def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,ComicVersion=None):
     myDB = db.DBConnection()
     seriesname_alt = None
     if comicid is None or comicid == 'None':
@@ -535,10 +535,10 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             seriesname_alt = snm['AlternateSearch']
 
 
-    nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\s]', '%',seriesname)
+    nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%',seriesname)
     formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
-    nsearch = nsearch_seriesname + "%"
-    nresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'CBT' AND Site != 'KAT'", [nsearch])
+    nsearch = '%' + nsearch_seriesname + "%"
+    nresults = myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [nsearch,nzbprov])
     if nresults is None:
         logger.fdebug('nzb search returned no results for ' + seriesname)
         if seriesname_alt is None:
@@ -550,7 +550,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
                 AS_Alternate = AlternateSearch
             for calt in chkthealt:
                 AS_Alternate = re.sub('##','',calt)
-                nresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site != 'CBT' AND Site != 'KAT'", [AS_Alternate])
+                nresults += myDB.action("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [AS_Alternate,nzbprov])
             if nresults is None:
                 logger.fdebug('nzb alternate name search returned no results.')
                 return "no results"
@@ -558,16 +558,61 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     nzbtheinfo = []
     nzbinfo = {}
 
-    for nzb in nresults:
-        # no need to parse here, just compile and throw it back ....
-        nzbtheinfo.append({
-                         'title':   nzb['Title'],
-                         'link':    nzb['Link'],
-                         'pubdate': nzb['Pubdate'],
-                         'site':    nzb['Site'],
-                         'length':    nzb['Size']
-                         })
-        logger.fdebug("entered info for " + nzb['Title'])
+    if nzbprov == 'experimental':
+        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
+
+        if ComicVersion:
+            ComVersChk = re.sub("[^0-9]", "", ComicVersion)
+            if ComVersChk == '':
+                ComVersChk = 0
+            else:
+                ComVersChk = 0
+        else:
+            ComVersChk = 0
+
+        for results in nresults:
+            title = results['Title']
+            #logger.fdebug("titlesplit: " + str(title.split("\"")))
+            splitTitle = title.split("\"")
+            noYear = 'False'
+
+            for subs in splitTitle:
+                #logger.fdebug(subs)
+                if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
+                    if ComVersChk == 0:
+                        noYear = 'False'
+
+                    if ComVersChk != 0 and searchYear not in subs:
+                        noYear = 'True'
+                        noYearline = subs
+
+                    if searchYear in subs and noYear == 'True':
+                        #this would occur on the next check in the line, if year exists and
+                        #the noYear check in the first check came back valid append it
+                        subs = noYearline + ' (' + searchYear + ')'
+                        noYear = 'False'
+
+                    if noYear == 'False':
+
+                        nzbtheinfo.append({
+                                  'title':   subs,
+                                  'link':    re.sub('\/release\/', '/download/', results['Link']),
+                                  'pubdate': str(results['PubDate']),
+                                  'site':    str(results['Site']),
+                                  'length':  str(results['Size'])})
+
+    else:
+        for nzb in nresults:
+            # no need to parse here, just compile and throw it back ....
+            nzbtheinfo.append({
+                             'title':   nzb['Title'],
+                             'link':    nzb['Link'],
+                             'pubdate': nzb['Pubdate'],
+                             'site':    nzb['Site'],
+                             'length':    nzb['Size']
+                             })
+            logger.fdebug("entered info for " + nzb['Title'])
+
 
     nzbinfo['entries'] = nzbtheinfo
     return nzbinfo

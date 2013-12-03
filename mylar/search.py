@@ -545,8 +545,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     if bb is not None: logger.fdebug("bb results: " + str(bb))
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
-                    logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch))
-                    bb = rsscheck.nzbdbsearch(findcomic,mod_isssearch,ComicID,nzbprov)
+                    logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch) + " (" + str(ComicYear) + ")")
+                    bb = rsscheck.nzbdbsearch(findcomic,mod_isssearch,ComicID,nzbprov,ComicYear,ComicVersion)
                     rss = "yes"
                     if bb is not None: logger.fdebug("bb results: " +  str(bb))
             #this is the API calls
