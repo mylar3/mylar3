@@ -392,9 +392,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
         except IOError as e:
             logger.error('Unable to save cover into series directory at this time.')
 
-    if oldcomversion is None:
+    if oldcomversion is None or oldcomversion == "None":
+        logger.info('previous version detected as None - seeing if update required')
         if comic['ComicVersion'].isdigit():
             comicVol = "v" + comic['ComicVersion']
+            logger.info('updated version to :' + str(comicVol))
         else:
             comicVol = None
     else:

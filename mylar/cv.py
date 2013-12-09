@@ -154,8 +154,13 @@ def GetComicInfo(comicid,dom):
                 break        
         if volconv != '':
             vfind = volconv
+        if '(' in vfind:
+            #bracket detected in versioning'
+            vfindit = re.findall('[^()]+', vfind)
+            vfind = vfindit[0]
         vf = re.findall('[^<>]+', vfind)
         comic['ComicVersion'] = re.sub("[^0-9]", "", vf[0])
+    
         logger.info("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
     else:
         comic['ComicVersion'] = "noversion"

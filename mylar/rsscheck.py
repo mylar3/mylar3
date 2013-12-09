@@ -446,12 +446,12 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         seriesname_mod = re.sub('[\&]', ' ', seriesname_mod)
         foundname_mod = re.sub('[\&]', ' ', foundname_mod)
 
-        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.]', '',seriesname_mod)
+        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.\-]', '',seriesname_mod)
         formatrem_seriesname = re.sub('[\/]', '-', formatrem_seriesname)
         formatrem_seriesname = re.sub('\s+', ' ', formatrem_seriesname)
         if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
 
-        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.]', '',foundname_mod)
+        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.\-]', '',foundname_mod)
         formatrem_torsplit = re.sub('[\/]', '-', formatrem_torsplit)
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
         logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())

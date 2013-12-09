@@ -125,7 +125,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 
     #fix for issue dates between Nov-Dec/Jan
     IssDt = str(IssueDate)[5:7]
-    if IssDt == "12" or IssDt == "11" or IssDt == "01":
+    if IssDt == "12" or IssDt == "11" or IssDt == "01" or IssDt == "02":
          IssDateFix = IssDt
     else:
          IssDateFix = "no"
@@ -625,7 +625,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                 elif nzbprov == 'experimental':
                     #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
-                    bb = findcomicfeed.Startit(u_ComicName, isssearch, comyear, ComicVersion)
+                    bb = findcomicfeed.Startit(u_ComicName, isssearch, comyear, ComicVersion, IssDateFix)
                     # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
                     cmloopit == 1
 
@@ -700,7 +700,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     if ComicVersion:
                        ComVersChk = re.sub("[^0-9]", "", ComicVersion)
-                       if ComVersChk == '':
+                       if ComVersChk == '' or ComVersChk == '1':
                             ComVersChk = 0
                     else:
                        ComVersChk = 0
@@ -801,7 +801,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #let's do this here and save a few extra loops ;)
                                 #fix for issue dates between Nov-Dec/Jan
                                     if IssDateFix != "no" and UseFuzzy is not "2":
-                                        if IssDateFix == "01": ComicYearFix = int(ComicYear) - 1
+                                        if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = int(ComicYear) - 1
                                         else: ComicYearFix = int(ComicYear) + 1
                                         if str(ComicYearFix) in result_comyear:
                                             logger.fdebug("further analysis reveals this was published inbetween Nov-Jan, incrementing year to " + str(ComicYearFix) + " has resulted in a match!")

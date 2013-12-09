@@ -10,7 +10,7 @@ import mylar
 import unicodedata
 
 
-def Startit(searchName, searchIssue, searchYear, ComicVersion):
+def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     #searchName = "Uncanny Avengers"
     #searchIssue = "01"
     #searchYear = "2012"
@@ -109,11 +109,17 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion):
 #                                  'title':   subs,
 #                                  'link':    str(link)
 #                                  })
-                    if searchYear not in subs:
+                    if IssDateFix != "no":
+                        if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
+                        else: ComicYearFix = str(int(searchYear) + 1)
+                    else:
+                        ComicYearFix = searchYear
+
+                    if searchYear not in subs and ComicYearFix not in subs:
                         noYear = 'True'
                         noYearline = subs
 
-                    if searchYear in subs and noYear == 'True':
+                    if (searchYear in subs or ComicYearFix in subs) and noYear == 'True':
                         #this would occur on the next check in the line, if year exists and
                         #the noYear check in the first check came back valid append it
                         subs = noYearline + ' (' + searchYear + ')'                  

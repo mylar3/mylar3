@@ -701,31 +701,41 @@ def forceRescan(ComicID,archive=None):
         else:
             #we have the # of comics, now let's update the db.
             #even if we couldn't find the physical issue, check the status.
-            if 'annual' in temploc.lower():
-                iss_id = reann['IssueID']
-            else:
-                iss_id = reiss['IssueID']
-
-            logger.fdebug('issueID to write to db:' + str(iss_id))
-            controlValueDict = {"IssueID": iss_id}
-
-            #if Archived, increase the 'Have' count.
-            #if archive:
-            #    issStatus = "Archived"
-
-            if haveissue == "yes":
-                issStatus = "Downloaded"
-                newValueDict = {"Location":           isslocation,
-                                "ComicSize":          issSize,
-                                "Status":             issStatus
-                                }
-
-                issID_to_ignore.append(str(iss_id))
-
+            #-- if annuals aren't enabled, this will bugger out.
+            writeit = True
+            if mylar.ANNUALS_ON:
                 if 'annual' in temploc.lower():
-                    myDB.upsert("annuals", newValueDict, controlValueDict)
+                    iss_id = reann['IssueID']
                 else:
-                    myDB.upsert("issues", newValueDict, controlValueDict)
+                    iss_id = reiss['IssueID']
+            else:
+                if 'annual' in temploc.lower():
+                    logger.fdebug('Annual support not enabled, but annual issue present within directory. Ignoring annual.')
+                    writeit = False
+                else:
+                    iss_id = reiss['IssueID']
+
+            if writeit == True:
+                logger.fdebug('issueID to write to db:' + str(iss_id))
+                controlValueDict = {"IssueID": iss_id}
+
+                #if Archived, increase the 'Have' count.
+                #if archive:
+                #    issStatus = "Archived"
+  
+                if haveissue == "yes":
+                    issStatus = "Downloaded"
+                    newValueDict = {"Location":           isslocation,
+                                    "ComicSize":          issSize,
+                                    "Status":             issStatus
+                                    }
+
+                    issID_to_ignore.append(str(iss_id))
+   
+                    if 'annual' in temploc.lower():
+                        myDB.upsert("annuals", newValueDict, controlValueDict)
+                    else:
+                        myDB.upsert("issues", newValueDict, controlValueDict)
         fn+=1
 
     logger.fdebug('IssueID to ignore: ' + str(issID_to_ignore))

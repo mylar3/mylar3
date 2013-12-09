@@ -8,6 +8,7 @@ import re
 import os
 import sqlite3
 import datetime
+import unicodedata
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
@@ -28,9 +29,18 @@ def solicit(month, year):
     mnloop = 0
     upcoming = []
 
-    while (mnloop < 5):
+    publishers = {'DC Comics':'DC Comics', 'Marvel':'Marvel Comics', 'Image':'Image Comics', 'IDW':'IDW Publishing', 'Dark Horse':'Dark Horse Comics'}
 
-        pagelinks = "http://www.comicbookresources.com/tag/solicits" + str(month) + str(year)    
+    while (mnloop < 5):
+        if year == 2014:
+            if len(str(month)) == 1:
+                month_string = '0' + str(month)
+            else:
+                month_string = str(month)
+            datestring = str(year) + str(month_string)
+        else:
+            datestring = str(month) + str(year)
+        pagelinks = "http://www.comicbookresources.com/tag/solicits" + str(datestring)
         pageresponse = urllib2.urlopen ( pagelinks )
         soup = BeautifulSoup (pageresponse)
         cntlinks = soup.findAll('h3')
@@ -48,9 +58,12 @@ def solicit(month, year):
             if "/?page=article&amp;id=" in str(headt):
                 #print ("titlet: " + str(headt))
                 headName = headt.findNext(text=True)
-                if ('Marvel' and 'DC' and 'Image' not in headName) and ('Solicitations' in headName):
+                if ('Marvel' and 'DC' and 'Image' not in headName) and ('Solicitations' in headName or 'Solicits' in headName):
                     pubstart = headName.find('Solicitations')
-                    publish.append( headName[:pubstart].strip() )
+                    for pub in publishers:
+                        if pub in headName[:pubstart]:                   
+                            publish.append(publishers[pub])
+                            #publish.append( headName[:pubstart].strip() )
                     abc = headt.findAll('a', href=True)[0]
                     ID_som = abc['href']  #first instance will have the right link...
                     resultURL.append( ID_som )
@@ -148,9 +161,10 @@ def populate(link,publisher,shipdate):
         #print ("titlet: " + str(titlet))
         if "/news/preview2.php" in str(titlet):
             tempName = titlet.findNext(text=True)
-            if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'subscription variant' not in tempName.lower():
+            if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'for $1' not in tempName.lower() and 'subscription variant' not in tempName.lower():
                 #print publisher + ' found upcoming'
                 if '#' in tempName:
+                    #tempName = tempName.replace(u'.',u"'")
                     tempName = tempName.encode('ascii', 'replace')    #.decode('utf-8')
                     if '???' in tempName:
                         tempName = tempName.replace('???', ' ')
