@@ -465,27 +465,28 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     #determine the amount of loops here
     i = 0
     c_alpha = None
+    dsp_c_alpha = None
     c_number = None
     c_num_a4 = None
     while i < len(findcomiciss):
-        #print findcomiciss[i]
         #take first occurance of alpha in string and carry it through
         if findcomiciss[i].isalpha():
-            #print 'alpha detected'
             c_alpha = findcomiciss[i:].rstrip()
             c_number = findcomiciss[:i].rstrip()
             break
         elif '.' in findcomiciss[i]:
-            #print 'decimal detected'
             c_number = findcomiciss[:i].rstrip()
             c_num_a4 = findcomiciss[i+1:].rstrip()
-            if c_num_a4.isalpha():
-                c_alpha = c_num_a4
+            #if decimal seperates numeric from alpha (ie - 7.INH)
+            #don't give calpha a value or else will seperate with a space further down
+            #assign it to dsp_c_alpha so that it can be displayed for debugging.
+            if not c_num_a4.isdigit():
+                dsp_c_alpha = c_num_a4
             else:
-                c_number = str(cnumber) + str(c_num_a4)
+                c_number = str(c_number) + '.' + str(c_num_a4)
             break
         i+=1
-    logger.fdebug("calpha/cnumber: " + str(c_alpha) + " / " + str(c_number))
+    logger.fdebug("calpha/cnumber: " + str(dsp_c_alpha) + " / " + str(c_number))
 
     if c_number is None:  
         c_number = findcomiciss # if it's None, means no special alphas or decimals
