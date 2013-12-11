@@ -622,6 +622,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
 #                    elif 'ai' in issnum.lower():
 #                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
 #                        print "ai:"  + str(int_issnum)
+                    elif 'inh' in issnum.lower():
+                        int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
                     elif u'\xbd' in issnum:
                         issnum = .5
                         int_issnum = int(issnum) * 1000
@@ -646,8 +648,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                         if len(decis) == 1:
                             decisval = int(decis) * 10
                             issaftdec = str(decisval)
-                        if len(decis) == 2:
+                        elif len(decis) == 2:
                             decisval = int(decis)
+                            issaftdec = str(decisval)
+                        else:
+                            decisval = decis
                             issaftdec = str(decisval)
                         try:
 #                            int_issnum = str(issnum)

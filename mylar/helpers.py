@@ -636,6 +636,8 @@ def issuedigits(issnum):
             int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
         elif 'ai' in issnum.lower() and issnum[:1].isdigit():
             int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+        elif 'inh' in issnum.lower():
+            int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
         elif u'\xbd' in issnum:
             issnum = .5
             int_issnum = int(issnum) * 1000

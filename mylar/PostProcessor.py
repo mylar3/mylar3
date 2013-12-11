@@ -589,6 +589,10 @@ class PostProcessor(object):
 
             ofilename = None
 
+            #if meta-tagging is not enabled, we need to declare the check as being fail
+            #if meta-tagging is enabled, it gets changed just below to a default of pass
+            pcheck = "fail"
+
             #tag the meta.
             if mylar.ENABLE_META:
                 self._log("Metatagging enabled - proceeding...")
@@ -661,7 +665,8 @@ class PostProcessor(object):
                             ofilename = filename
                             path, ext = os.path.splitext(ofilename)
             else:
-                otofilename = ml['ComicLocation']
+                if pcheck == "fail":
+                    otofilename = ml['ComicLocation']
                 print "otofilename:" + str(otofilename)
                 odir, ofilename = os.path.split(otofilename)
                 print "ofilename: " + str(ofilename)

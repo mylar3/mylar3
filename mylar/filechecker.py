@@ -323,6 +323,20 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
 
             digitsvalid = "false"
 
+            for jdc in list(justthedigits):
+                #logger.fdebug('jdc:' + str(jdc))
+                if not jdc.isdigit():
+                    #logger.fdebug('alpha')
+                    jdc_start = justthedigits.find(jdc)
+                    alpha_isschk = justthedigits[jdc_start:]
+                    #logger.fdebug('alpha_isschk:' + str(alpha_isschk))
+                    for issexcept in issue_exceptions:
+                        if issexcept.lower() in alpha_isschk.lower() and len(alpha_isschk) <= len(issexcept):
+                            logger.fdebug('ALPHANUMERIC EXCEPTION : [' + justthedigits + ']')
+                            digitsvalid = "true"
+                            break
+                if digitsvalid == "true": break
+
             try:
                 tmpthedigits = justthedigits_1.split(' ', 1)[1]
                 logger.fdebug('If the series has a decimal, this should be a number [' + tmpthedigits + ']')

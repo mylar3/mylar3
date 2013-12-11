@@ -468,14 +468,21 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
     c_number = None
     c_num_a4 = None
     while i < len(findcomiciss):
+        #print findcomiciss[i]
         #take first occurance of alpha in string and carry it through
         if findcomiciss[i].isalpha():
+            #print 'alpha detected'
             c_alpha = findcomiciss[i:].rstrip()
             c_number = findcomiciss[:i].rstrip()
             break
         elif '.' in findcomiciss[i]:
-            c_number = findcomiciss[i:].rstrip()
-            c_num_a4 = findcomiciss[:i+1].rstrip()
+            #print 'decimal detected'
+            c_number = findcomiciss[:i].rstrip()
+            c_num_a4 = findcomiciss[i+1:].rstrip()
+            if c_num_a4.isalpha():
+                c_alpha = c_num_a4
+            else:
+                c_number = str(cnumber) + str(c_num_a4)
             break
         i+=1
     logger.fdebug("calpha/cnumber: " + str(c_alpha) + " / " + str(c_number))

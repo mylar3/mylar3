@@ -111,6 +111,12 @@ def pullit(forcecheck=None):
     newfl = mylar.CACHE_DIR + "/Clean-newreleases.txt"
     newtxtfile = open(newfl, 'wb')
 
+    if check(newrl, 'Service Unavailable'):
+        logger.info('Retrieval site is offline at the moment.Aborting pull-list update amd will try again later.')
+        pullitcheck(forcecheck=forcecheck)
+    else:
+        pass
+
     for i in open(newrl):
         if not i.strip():
             continue
@@ -182,7 +188,7 @@ def pullit(forcecheck=None):
                 dupefound = "no"
                 if '#' in i:
                     issname = i.split()
-                    #print (issname)
+                    print (issname)
                     issnamec = len(issname)
                     n = 0
                     while (n < issnamec):
@@ -222,10 +228,11 @@ def pullit(forcecheck=None):
                     #print ("pub: " + str(pub))
                     #print ("issue: " + str(issue))
                     #--let's make sure we don't wipe out decimal issues ;)
-                    if '.' in issue:
-                        issue_decimal = re.compile(r'[^\d.]+')
-                        issue = issue_decimal.sub('', str(issue))
-                    else: issue = re.sub('#','', issue)                                       
+#                    if '.' in issue:
+#                        issue_decimal = re.compile(r'[^\d.]+')
+#                        issue = issue_decimal.sub('', str(issue))
+#                    else: issue = re.sub('#','', issue)                                       
+                    issue = re.sub('#','', issue)
                     #issue = re.sub("\D", "", str(issue))
                     #store the previous comic/issue for comparison to filter out duplicate issues/alt covers
                     #print ("Previous Comic & Issue: " + str(prevcomic) + "--" + str(previssue))
@@ -234,7 +241,7 @@ def pullit(forcecheck=None):
                     #if it doesn't have a '#' in the line, then we know it's either
                     #a special edition of some kind, or a non-comic
                     issname = i.split()
-                    #print (issname)
+                    print (issname)
                     issnamec = len(issname)
                     n = 1
                     issue = ''
@@ -593,3 +600,8 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
         logger.info(u"Finished checking for comics on my watchlist.")
     #con.close()
     return
+
+
+def check(fname, txt):
+    with open(fname) as dataf:
+        return any(txt in line for line in dataf)
