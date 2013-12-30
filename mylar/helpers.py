@@ -638,6 +638,8 @@ def issuedigits(issnum):
             int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
         elif 'inh' in issnum.lower():
             int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
+        elif 'now' in issnum.lower():
+            int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
         elif u'\xbd' in issnum:
             issnum = .5
             int_issnum = int(issnum) * 1000
@@ -659,7 +661,7 @@ def issuedigits(issnum):
             if len(decis) == 1:
                 decisval = int(decis) * 10
                 issaftdec = str(decisval)
-            if len(decis) == 2:
+            if len(decis) >= 2:
                 decisval = int(decis)
                 issaftdec = str(decisval)
             try:

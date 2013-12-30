@@ -57,6 +57,8 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                '\@']
 
     issue_exceptions = ['AU',
+                      '.INH',
+                      '.NOW',
                       'AI', 
                       'A',
                       'B',
@@ -320,7 +322,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
             #    logger.fdebug("removed title from name - is now : " + str(justthedigits))
 
             justthedigits = justthedigits_1.split(' ', 1)[0]
-
+            
             digitsvalid = "false"
 
             for jdc in list(justthedigits):
@@ -354,8 +356,14 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                         logger.fdebug('DECIMAL ISSUE DETECTED [' + justthedigits + ']')
                 else:
                     for issexcept in issue_exceptions:
+                        decimalexcept = False
+                        if '.' in issexcept:
+                            decimalexcept = True
+                            issexcept = issexcept[1:] #remove the '.' from comparison...
                         if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
-                            justthedigits += poss_alpha
+                            if decimalexcept:
+                                issexcept = '.' + issexcept
+                            justthedigits += issexcept #poss_alpha
                             logger.fdebug('ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
                             digitsvalid = "true"
                             break

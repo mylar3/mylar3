@@ -41,6 +41,8 @@ def solicit(month, year):
         else:
             datestring = str(month) + str(year)
         pagelinks = "http://www.comicbookresources.com/tag/solicits" + str(datestring)
+        logger.info('datestring:' + datestring)
+        logger.info('checking:' + pagelinks)
         pageresponse = urllib2.urlopen ( pagelinks )
         soup = BeautifulSoup (pageresponse)
         cntlinks = soup.findAll('h3')
@@ -155,11 +157,26 @@ def populate(link,publisher,shipdate):
     resultURL = []
     matched = "no"
     upcome = []
+    get_next = False
+    prev_chk = False
 
     while (i < lenabc):
         titlet = abc[i] #iterate through the p pulling out only results. 
         #print ("titlet: " + str(titlet))
-        if "/news/preview2.php" in str(titlet):
+        if "/prev_img.php?pid" in str(titlet):
+            #solicits in 03-2014 have seperated <p> tags, so we need to take the subsequent <p>, not the initial.
+            get_next = True
+            i+=1
+            continue
+        elif "/news/preview2.php" in str(titlet):
+            prev_chk = True
+            get_next = False
+        elif get_next == True:
+            prev_chk = True
+        else:
+            prev_chk = False
+            get_next = False
+        if prev_chk == True:
             tempName = titlet.findNext(text=True)
             if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'for $1' not in tempName.lower() and 'subscription variant' not in tempName.lower():
                 #print publisher + ' found upcoming'
@@ -234,7 +251,8 @@ def populate(link,publisher,shipdate):
                         #print ('issue#: ' + re.sub('#', '', issue))
                         #print ('extra info: ' + exinfo)
                 else:
-                    print ('no issue # to retrieve.')
+                    pass
+                    #print ('no issue # to retrieve.')
         i+=1
     return upcome
     #end.

@@ -1013,7 +1013,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                             D_ComicVersion = ComVersChk
 
                                         F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
-                                        S_ComicVersion = str(SeriesYear)
+                                        #if this is a one-off, SeriesYear will be None and cause errors.
+                                        if SeriesYear is None:
+                                            S_ComicVersion = 0
+                                        else:
+                                            S_ComicVersion = str(SeriesYear)
                                         logger.fdebug("FCVersion: " + str(F_ComicVersion))
                                         logger.fdebug("DCVersion: " + str(D_ComicVersion))
                                         logger.fdebug("SCVersion: " + str(S_ComicVersion))
@@ -1068,8 +1072,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         logger.fdebug("integer value of issue we are looking for : " + str(intIss))
 
                         fnd_iss_except = None
-                        comintIss = helpers.issuedigits(comic_iss)
                         logger.fdebug("issue we found for is : " + str(comic_iss))
+                        comintIss = helpers.issuedigits(comic_iss)
                         logger.fdebug("integer value of issue we are found : " + str(comintIss))
                         
                         #issue comparison now as well
