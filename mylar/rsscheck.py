@@ -428,10 +428,16 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         while (i < len(torsplit)):
             #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.
             logger.fdebug('section(' + str(i) + '): ' + str(torsplit[i]))
+            #remove extensions
+            titletemp = torsplit[i]
+            titletemp = re.sub('cbr', '', str(titletemp))
+            titletemp = re.sub('cbz', '', str(titletemp))
+            titletemp = re.sub('none', '', str(titletemp))
+          
             if i == 0: 
-                rebuiltline = str(torsplit[i])
+                rebuiltline = str(titletemp)
             else:
-                rebuiltline = rebuiltline + ' (' + str(torsplit[i]) + ')'
+                rebuiltline = rebuiltline + ' (' + str(titletemp) + ')'
             i+=1
 
         logger.fdebug('rebuiltline is :' + str(rebuiltline))
@@ -462,9 +468,12 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             logger.fdebug('matched on series title: ' + seriesname)
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
             titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
-
-            titleend = re.sub('cbr', '', str(titleend)) #remove extensions
+            #remove extensions
+            titleend = re.sub('cbr', '', str(titleend))
+            titleend = re.sub('cbz', '', str(titleend))
+            titleend = re.sub('none', '', str(titleend))
             logger.fdebug('titleend: ' + str(titleend))
+
             sptitle = titleend.split()
             extra = ''
 #            for sp in sptitle:
@@ -480,14 +489,16 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             ctitle = tor['Title'].find('cbr')
             if ctitle == 0:
                 ctitle = tor['Title'].find('cbz')
-            if ctitle == 0:
-                logger.fdebug('cannot determine title properly - ignoring for now.')
-                continue
+                if ctitle == 0:
+                    ctitle = tor['Title'].find('none')
+                    if ctitle == 0:               
+                        logger.fdebug('cannot determine title properly - ignoring for now.')
+                        continue
             cttitle = tor['Title'][:ctitle]
             #print("change title to : " + str(cttitle))
 #           if extra == '':
             tortheinfo.append({
-                          'title':   cttitle, #tor['Title'],
+                          'title':   rebuiltline, #cttitle,
                           'link':    tor['Link'],
                           'pubdate': tor['Pubdate'],
                           'site':    tor['Site'],

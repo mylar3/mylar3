@@ -144,6 +144,7 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
         nonocount = 0
         charpos = 0
         detneg = "no"
+        leavehyphen = False
         for nono in not_these:
             if nono in subname:
                 subcnt = subname.count(nono)
@@ -158,10 +159,11 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                                 logger.fdebug('possible negative issue detected.')
                                 nonocount = nonocount + subcnt - 1
                                 detneg = "yes"                                
-                            if '-' in watchcomic and i < len(watchcomic):
+                            elif '-' in watchcomic and i < len(watchcomic):
                                 logger.fdebug('- appears in series title.')
+                                leavehyphen = True
                         i+=1
-                    if detneg == "no": 
+                    if detneg == "no" or leavehyphen == False: 
                         subname = re.sub(str(nono), ' ', subname)
                         nonocount = nonocount + subcnt
                 #logger.fdebug(str(nono) + " detected " + str(subcnt) + " times.")
@@ -197,7 +199,12 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
                     subname = re.sub(str(nono), ' ', subname)
                     nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
-        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', u_watchcomic)
+
+        modwatchcomic = re.sub('[\_\#\,\/\:\;\.\!\$\%\'\?\@\-]', ' ', u_watchcomic)
+        #if leavehyphen == False:
+        #    logger.fdebug('removing hyphen for comparisons')
+        #    modwatchcomic = re.sub('-', ' ', modwatchcomic)
+        #    subname = re.sub('-', ' ', subname)
         detectand = False
         detectthe = False
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
@@ -513,6 +520,10 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
 
                 if yearmatch == "false": continue
 
+                if 'annual' in subname.lower():
+                    subname = re.sub('annual', '', subname.lower())
+                    subname = re.sub('\s+', ' ', subname)
+
                 #tmpitem = item[:jtd_len]
                 # if it's an alphanumeric with a space, rejoin, so we can remove it cleanly just below this.
                 substring_removal = None
@@ -575,9 +586,9 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
         else:
             pass
             #print ("directory found - ignoring")
+
     logger.fdebug('you have a total of ' + str(comiccnt) + ' ' + watchcomic + ' comics')
     watchmatch['comiccount'] = comiccnt
-    #print watchmatch
     return watchmatch
 
 def validateAndCreateDirectory(dir, create=False):

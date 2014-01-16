@@ -33,6 +33,7 @@ import sys
 import getopt
 import re
 import time
+import urlparse
 from xml.dom.minidom import parseString
 import urllib2
 from datetime import datetime
@@ -389,6 +390,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
             tmpprov = nzbprov
     logger.info(u"Shhh be very quiet...I'm looking for " + ComicName + " issue: " + str(IssueNumber) + " (" + str(ComicYear) + ") using " + str(tmpprov))
 
+    #load in do not download db here for given series
+    #myDB = db.DBConnection()
+    #nodown = myDB.action('SELECT * FROM nzblog')
 
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
@@ -681,12 +685,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                     thisentry = entry['title']
                     logger.fdebug("Entry: " + thisentry)
-                    cleantitle = re.sub('[_/.]', ' ', entry['title'])
+                    cleantitle = re.sub('[\_\.]', ' ', entry['title'])
                     cleantitle = helpers.cleanName(cleantitle)
                     # this is new - if title contains a '&' in the title it will assume the filename has ended at that point
                     # which causes false positives (ie. wolverine & the x-men becomes the x-men, which matches on x-men.
                     # 'the' is removed for comparisons later on
-                    if '&' in cleantitle: cleantitle = re.sub('[/&]','and', cleantitle) 
+                    if '&' in cleantitle: cleantitle = re.sub('[\&]','and', cleantitle) 
 
                     nzbname = cleantitle
 
@@ -737,16 +741,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                         if vers4year == "no" and vers4vol == "no":
                             # if the series is a v1, let's remove the requirements for year and volume label
-                            if ComVersChk != 0:
+                            # even if it's a v1, the nzbname might not contain a valid year format (20xx) or v3,
+                            # and since it's already known that there is no (year) or vYEAR given
+                            # let's push it through (and edit out the following if constraint)...
+
+                            #if ComVersChk != 0:
                                 # if there are no () in the string, try to add them if it looks like a year (19xx or 20xx)
-                                if len(re.findall('[^()]+', cleantitle)):
-                                    logger.fdebug("detected invalid nzb filename - attempting to detect year to continue")
-                                    cleantitle = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', cleantitle)
-                                    continue
-                                else:
-                                    logger.fdebug("invalid nzb and/or cover only - skipping.")
-                                    cleantitle = "abcdefghijk 0 (1901).cbz"
-                                    continue
+                            if len(re.findall('[^()]+', cleantitle)):
+                                logger.fdebug("detected invalid nzb filename - attempting to detect year to continue")
+                                cleantitle = re.sub('(.*)\s+(19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', cleantitle)
+                                continue
+                            else:
+                                logger.fdebug("invalid nzb and/or cover only - skipping.")
+                                cleantitle = "abcdefghijk 0 (1901).cbz"
+                                continue
 
                     #adjust for covers only by removing them entirely...
                     logger.fdebug("Cleantitle: " + str(cleantitle))
@@ -1078,6 +1086,32 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                         
                         #issue comparison now as well
                         if int(intIss) == int(comintIss):
+                            #check if nzb is in do not download list ;)
+                            if nzbprov == 'experimental':
+                                #id is located after the /download/ portion
+                                url_parts = urlparse.urlparse(entry['link'])
+                                path_parts = url_parts[2].rpartition('/')
+                                nzbtempid = path_parts[0].rpartition('/')
+                                nzblen = len(nzbtempid)
+                                nzbid = nzbtempid[nzblen-1]
+                            elif nzbprov == 'CBT':
+                                url_parts = urlparse.urlparse(entry['link'])
+                                nzbtemp = url_parts[4] # get the query paramater string
+                                nzbtemp = re.sub('torrent=', '', nzbtemp).rstrip()
+                                nzbid = re.sub('.torrent', '', nzbtemp).rstrip()
+                            elif nzbprov == 'KAT':
+                                url_parts = urllib.parse.urlparse(entry['link'])
+                                path_parts = url_parts[2].rpartition('/')
+                                nzbtempid = pathparts[2]
+                                nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
+                            elif nzbprov == 'nzb.su':
+                                pass
+                            elif nzbprov == 'dognzb':
+                                pass
+                            elif nzbprov == 'newznab':
+                                #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
+                                nzbid = os.path.splitext(entry['link'])[0].rsplit('/', 1)[1]
+                                
                             logger.fdebug('issues match!')
                             logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(tmpprov) )
                         ## -- inherit issue. Comic year is non-standard. nzb year is the year

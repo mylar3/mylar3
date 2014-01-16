@@ -1,0 +1,22 @@
+#--------------------------------------------
+# This is a substitutes file for the weekly pull list
+# (Thanks to IanHub for this)
+# --- 
+# What this does is it will abbreviations for series on the weekly pull list
+# with the full series title, so that Mylar can match it up properly against ComicVine.
+# This is due to the pull-list having abbreviations in some titles, and
+# ComicVine not using the same abbreviations.
+# ---- 
+# To use this you have to first either rename this file to substitutes.csv
+# Make sure it's in the the same directory as the Mylar.py file (root directory).
+#
+# Within the csv, you can add text in the format of:
+# pull-list text|replacement text
+# 
+# ie. GFT|GRIMM FAIRY TALES PRESENTS
+#--------------------------------------------
+GFT GRIMM FAIRY TALES|GRIMM FAIRY TALES PRESENTS
+GFT|GRIMM FAIRY TALES PRESENTS
+HELLRAISER|CLIVE BARKER'S HELLRAISER
+BTVS SEASON 9|BUFFY THE VAMPIRE SLAYER SEASON NINE
+SUPURBIA|GRACE RANDOLPH'S SUPURBIA

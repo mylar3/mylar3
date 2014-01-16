@@ -56,6 +56,27 @@ def pullit(forcecheck=None):
     PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
     #PULLURL = 'http://www.previewsworld.com/Archive/GetFile/1/1/71/994/081512.txt'
 
+    #Prepare the Substitute name switch for pulllist to comic vine conversion
+    substitutes = os.path.join(mylar.DATA_DIR,"substitutes.csv")
+    if not os.path.exists(substitutes):
+        logger.debug('no substitues.csv file located - not performing substitutions on weekly pull list')
+        substitute_check = False
+    else:
+        substitute_check = True
+        #shortrep is the name to be replaced, longrep the replacement
+        shortrep=[]
+        longrep=[]
+        #open the file data
+        with open(substitutes) as f:
+            reader = csv.reader(f, delimiter='|')
+            for row in reader:
+                if not row.startswith('#'): 
+                    logger.debug ("Substitutes file read : "+str(row))
+                    shortrep.append(row[0])
+                    longrep.append(row[1])
+
+        f.close()
+
     not_these=['PREVIEWS',
                'Shipping',
                'Every Wednesday',
@@ -188,7 +209,7 @@ def pullit(forcecheck=None):
                 dupefound = "no"
                 if '#' in i:
                     issname = i.split()
-                    print (issname)
+                    #print (issname)
                     issnamec = len(issname)
                     n = 0
                     while (n < issnamec):
@@ -241,7 +262,7 @@ def pullit(forcecheck=None):
                     #if it doesn't have a '#' in the line, then we know it's either
                     #a special edition of some kind, or a non-comic
                     issname = i.split()
-                    print (issname)
+                    #print (issname)
                     issnamec = len(issname)
                     n = 1
                     issue = ''
@@ -301,6 +322,16 @@ def pullit(forcecheck=None):
                 # pullist has shortforms of a series' title sometimes and causes problems
                 if 'O/T' in comicnm:
                     comicnm = re.sub('O/T', 'OF THE', comicnm)
+
+                if substitute_check == True:
+                    #Step through the list - storing an index
+                    for repindex,repcheck in enumerate(shortrep):
+                        if len(comicnm)>= len(shortrep):
+                            #if the leftmost chars match the short text then replace them with the long text
+                            if comicnm[:len(repcheck)]==repcheck:
+                                logger.info("Switch worked on "+comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
+                                comicnm = re.sub(repcheck, longrep[repindex], comicnm)
+
                 for excl in excludes:
                     if excl in str(comicrm):
                         #duplicate comic / issue detected - don't add...

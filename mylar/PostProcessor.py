@@ -175,7 +175,7 @@ class PostProcessor(object):
             myDB = db.DBConnection()
 
             if self.nzb_name == 'Manual Run':
-                print ("manual run initiated")
+                logger.fdebug ("manual run initiated")
                 #Manual postprocessing on a folder.
                 #use the nzb_folder to determine every file
                 #walk the dir,
@@ -197,7 +197,7 @@ class PostProcessor(object):
                                      "ComicVersion": cs['ComicVersion'],
                                      "Total":        cs['Total']}
                         watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual=watchvals)
-                        if watchmatch is None:
+                        if watchmatch['comiccount'] == 0: # is None:
                             nm+=1
                             continue
                         else:
@@ -267,10 +267,10 @@ class PostProcessor(object):
                                                             "IssueNumber":     issuechk['Issue_Number'],
                                                             "ComicName":       cs['ComicName']})
                                         ccnt+=1
-                                        print manual_list
+                                        #print manual_list
                                     wdc+=1
                                 fn+=1
-                    print("There are " + str(len(manual_list)) + " files found that match on your watchlist, " + str(nm) + " do not match anything and will be ignored.")    
+                    logger.fdebug("There are " + str(len(manual_list)) + " files found that match on your watchlist, " + str(nm) + " do not match anything and will be ignored.")    
                 
 
             else:
@@ -455,14 +455,11 @@ class PostProcessor(object):
             myDB = db.DBConnection()
             comicnzb = myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             issuenzb = myDB.action("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
-            print "issueid: " + str(issueid)
-            print "issuenumOG: " + str(issuenumOG)
+            logger.fdebug('issueid: ' + str(issueid))
+            logger.fdebug('issuenumOG: ' + str(issuenumOG))
             if issuenzb is None:
-                print "chk1"
                 issuenzb = myDB.action("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
-                print "chk2"
                 annchk = "yes"
-            print issuenzb
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
@@ -551,7 +548,6 @@ class PostProcessor(object):
                 self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss), logger.DEBUG)
 
             if annchk == "yes":
-                prettycomiss = "Annual " + str(prettycomiss)
                 self._log("Annual detected.")
             logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
@@ -586,6 +582,22 @@ class PostProcessor(object):
                 logger.fdebug("new format is now: " + str(chunk_file_format))
             else:
                 chunk_file_format = mylar.FILE_FORMAT
+
+            if annchk == "no":
+                chunk_f_f = re.sub('\$Annual','',chunk_file_format)
+                chunk_f = re.compile(r'\s+')
+                chunk_file_format = chunk_f.sub(' ', chunk_f_f)
+                logger.fdebug('not an annual - removing from filename paramaters')
+                logger.fdebug('new format: ' + str(chunk_file_format))
+
+            else:
+                logger.fdebug('chunk_file_format is: ' + str(chunk_file_format))
+                if '$Annual' not in chunk_file_format:
+                #if it's an annual, but $Annual isn't specified in file_format, we need to
+                #force it in there, by default in the format of $Annual $Issue
+                    prettycomiss = "Annual " + str(prettycomiss)
+                    logger.fdebug('prettycomiss: ' + str(prettycomiss))
+
 
             ofilename = None
 
@@ -652,7 +664,8 @@ class PostProcessor(object):
                            '$Publisher': publisher,
                            '$publisher': publisher.lower(),
                            '$VolumeY':   'V' + str(seriesyear),
-                           '$VolumeN':   comversion
+                           '$VolumeN':   comversion,
+                           '$Annual':    'Annual'
                           }
 
 
@@ -667,12 +680,12 @@ class PostProcessor(object):
             else:
                 if pcheck == "fail":
                     otofilename = ml['ComicLocation']
-                print "otofilename:" + str(otofilename)
+                logger.fdebug('otofilename:' + str(otofilename))
                 odir, ofilename = os.path.split(otofilename)
-                print "ofilename: " + str(ofilename)
+                logger.fdebug('ofilename: ' + str(ofilename))
                 path, ext = os.path.splitext(ofilename)
-                print "path: " + str(path)
-                print "ext:" + str(ext)
+                logger.fdebug('path: ' + str(path))
+                logger.fdebug('ext:' + str(ext))
 
             if ofilename is None:
                 logger.error(u"Aborting PostProcessing - the filename doesn't exist in the location given. Make sure that " + str(self.nzb_folder) + " exists and is the correct location.")
@@ -696,6 +709,7 @@ class PostProcessor(object):
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?]', '', nfilename)
+            nfilename = re.sub('[\/]', '-', nfilename)
             self._log("New Filename: " + nfilename, logger.DEBUG)
             logger.fdebug("New Filename: " + str(nfilename))
 
@@ -714,6 +728,9 @@ class PostProcessor(object):
 
             if ml is None:
                 #non-manual run moving/deleting...
+                logger.fdebug('self.nzb_folder: ' + self.nzb_folder)
+                logger.fdebug('ofilename:' + str(ofilename))
+                logger.fdebug('nfilename:' + str(nfilename + ext))
                 os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
                 src = os.path.join(self.nzb_folder, str(nfilename + ext))
                 try:

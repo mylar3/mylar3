@@ -296,7 +296,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
                   '$VolumeY':       'V' + str(year),
-                  '$VolumeN':       comversion
+                  '$VolumeN':       comversion,
+                  '$Annual':        'Annual'
                   }
 
 

@@ -138,9 +138,30 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         cfilename = re.sub('[\_\#\,\/\:\;\-\!\$\%\&\+\'\?\@]', ' ', comfilename)
         #cfilename = re.sub('\s', '_', str(cfilename))
 
+        #versioning - remove it
+        subsplit = cfilename.replace('_', ' ').split()
+        volno = None
+        volyr = None
+        for subit in subsplit:
+            if subit[0].lower() == 'v':
+                vfull = 0
+                if subit[1:].isdigit():
+                    #if in format v1, v2009 etc...
+                    if len(subit) > 3:
+                        # if it's greater than 3 in length, then the format is Vyyyy
+                        vfull = 1 # add on 1 character length to account for extra space
+                    cfilename = re.sub(subit, '', cfilename)
+                    volno = re.sub("[^0-9]", " ", subit)
+                elif subit.lower()[:3] == 'vol':
+                    #if in format vol.2013 etc
+                    #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
+                    logger.fdebug('volume indicator detected as version #:' + str(subit))
+                    cfilename = re.sub(subit, '', cfilename)
+                    volyr = re.sub("[^0-9]", " ", subit)
+
         cm_cn = 0
 
-        #we need to track the counter to make sure we are comparing the right array parts  
+        #we need to track the counter to make sure we are comparing the right array parts
         #this takes care of the brackets :)
         m = re.findall('[^()]+', cfilename)
         lenm = len(m)
@@ -149,6 +170,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         yearmatch = "false"
         foundonwatch = "False"
         issue = 999999
+
 
         while (cnt < lenm):
             if m[cnt] is None: break
@@ -239,11 +261,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
         splitit = []
         watchcomic_split = []
-        logger.fdebug("filename comic and issue: " + cfilename)
+        logger.fdebug("filename comic and issue: " + comic_andiss)
+
         #changed this from '' to ' '
-        comic_iss_b4 = re.sub('[\-\:\,]', ' ', com_NAME)
+        comic_iss_b4 = re.sub('[\-\:\,]', ' ', comic_andiss)
         comic_iss = comic_iss_b4.replace('.',' ')
-        logger.fdebug("adjusted  comic and issue: " + str(comic_iss))
+        comic_iss = re.sub('[\s+]', ' ', comic_iss).strip()
+        logger.fdebug("adjusted comic and issue: " + str(comic_iss))
         #remove 'the' from here for proper comparisons.
         if ' the ' in comic_iss.lower():
             comic_iss = comic_iss[-4:]
@@ -417,7 +441,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 #                    cmnam+=1
 #                logger.fdebug("comic: " + str(com_NAME))
 #            n+=1
-        if result_comyear is None: result_comyear = '0000' #no year in filename basically.
+        if volyr is None:
+            if result_comyear is None: 
+                result_comyear = '0000' #no year in filename basically.
+        else:
+            if result_comyear is None:
+                result_comyear = volyr
+
         print ("adding " + com_NAME + " to the import-queue!")
         impid = com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
         print ("impid: " + str(impid))

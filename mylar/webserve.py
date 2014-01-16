@@ -859,7 +859,46 @@ class WebInterface(object):
     def upcoming(self):
         myDB = db.DBConnection()
         #upcoming = myDB.select("SELECT * from issues WHERE ReleaseDate > date('now') order by ReleaseDate DESC")
-        upcoming = myDB.select("SELECT * from upcoming WHERE IssueDate > date('now') AND IssueID is NULL order by IssueDate DESC")
+        upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueID is NULL order by IssueDate DESC")
+        upcoming = []
+        for upc in upcomingdata:
+            if len(upc['IssueDate']) <= 7 :
+                #if it's less than or equal 7, then it's a future-pull so let's check the date and display
+                #tmpdate = datetime.datetime.com
+                tmpdatethis = upc['IssueDate']
+                if tmpdatethis[:2] == '20':
+                    tmpdate = tmpdatethis #in correct format of yyyymm
+                else:
+                    findst = tmpdatethis.find('-')  #find the '-'
+                    tmpdate = tmpdatethis[findst+1:] + tmpdatethis[:findst] #rebuild in format of yyyymm
+                timenow = datetime.datetime.now().strftime('%Y%m')
+                logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+                if int(tmpdate) >= int(timenow):
+                    if upc['Status'] == 'Wanted':
+                        upcoming.append({"ComicName":    upc['ComicName'],
+                                         "IssueNumber":  upc['IssueNumber'],
+                                         "IssueDate":    upc['IssueDate'],
+                                         "ComicID":      upc['ComicID'],
+                                         "IssueID":      upc['IssueID'],
+                                         "Status":       upc['Status'],
+                                         "DisplayComicName": upc['DisplayComicName']})
+            else:
+                #if it's greater than 7 it's a full date, and shouldn't be displayed ;)
+                timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
+                tmpdate = re.sub("[^0-9]", "", upc['IssueDate'])  #convert date to numerics only (should be in yyyymmdd)
+
+                logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+
+                if int(tmpdate) >= int(timenow):
+                    if upc['Status'] == 'Wanted':
+                        upcoming.append({"ComicName":    upc['ComicName'],
+                                         "IssueNumber":  upc['IssueNumber'],
+                                         "IssueDate":    upc['IssueDate'],
+                                         "ComicID":      upc['ComicID'],
+                                         "IssueID":      upc['IssueID'],
+                                         "Status":       upc['Status'],
+                                         "DisplayComicName": upc['DisplayComicName']})
+
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
         ann_list = []
 
@@ -940,6 +979,8 @@ class WebInterface(object):
         comicname = comic['ComicName']
         extensions = ('.cbr', '.cbz')
         issues = myDB.action("SELECT * FROM issues WHERE ComicID=?", [comicid]).fetchall()
+        if mylar.ANNUALS_ON:
+            issues += myDB.action("SELECT * FROM annuals WHERE ComicID=?", [comicid]).fetchall()
         comfiles = []
         filefind = 0
         for root, dirnames, filenames in os.walk(comicdir):
@@ -949,7 +990,11 @@ class WebInterface(object):
                     for issue in issues:
                         if issue['Location'] == filename:
                             #logger.error("matched " + str(filename) + " to DB file " + str(issue['Location']))
-                            renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=None)
+                            if 'annual' in issue['Location'].lower():
+                                annualize = 'yes'
+                            else:
+                                annualize = None
+                            renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=None, annualize=annualize)
                             nfilename = renameiss['nfilename']
                             srciss = os.path.join(comicdir,filename)
                             if mylar.LOWERCASE_FILENAMES:
@@ -1901,14 +1946,58 @@ class WebInterface(object):
                 return serve_template(templatename="searchresults.html", title='Import Results for: "' + ComicName + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname) #imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
 
+    def pretty_git(self, br_history):
+        #in order to 'prettify' the history log for display, we need to break it down so it's line by line.
+        br_split = br_history.split("\n")  #split it on each commit 
+        for br in br_split:
+            br_commit_st = br.find('-')  #first - will represent end of commit numeric
+            br_commit = br[:br_commit_st].strip()
+            br_time_en = br.replace('-', 'XXX', 1).find('-')  #2nd - is end of time datestamp
+            br_time = br[br_commit_st+1:br_time_en].strip()
+            print 'COMMIT:' + str(br_commit)
+            print 'TIME:' + str(br_time)
+            commit_split = br.split() #split it by space to break it further down..
+            tag_chk = False
+            statline = ''
+            commit = []
+            for cs in commit_split:
+                if tag_chk == True:
+                    if 'FIX:' in cs or 'IMP:' in cs:
+                        commit.append({"commit":    br_commit,
+                                       "time":      br_time,
+                                       "stat":      tag_status,
+                                       "line":      statline})
+                        print commit
+                        tag_chk == False
+                        statline = ''
+                    else:
+                        statline += str(cs) + ' '   
+                else:
+                    if 'FIX:' in cs:
+                        tag_status = 'FIX'
+                        tag_chk = True
+                        print 'status: ' + str(tag_status)
+                    elif 'IMP:' in cs:
+                        tag_status = 'IMPROVEMENT'
+                        tag_chk = True
+                        print 'status: ' + str(tag_status)
+
+    pretty_git.exposed = True
     #---
     def config(self):
     
         interface_dir = os.path.join(mylar.PROG_DIR, 'data/interfaces/')
         interface_list = [ name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name)) ]
-
+#----
+# to be implemented in the future.
 #        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
-#        br_hist = branch_history.replace("\n", "<br />\n")
+#        #here we pass the branch_history to the pretty_git module to break it down
+#        if branch_history: 
+#            self.pretty_git(branch_history)
+#            br_hist = branch_history.replace("\n", "<br />\n")
+#        else:
+#            br_hist = err
+#----
         myDB = db.DBConnection()
         CCOMICS = myDB.action("SELECT COUNT(*) FROM comics").fetchall()
         CHAVES = myDB.action("SELECT COUNT(*) FROM issues WHERE Status='Downloaded' OR Status='Archived'").fetchall()
@@ -2040,7 +2129,8 @@ class WebInterface(object):
                     "prog_dir" : mylar.PROG_DIR,
                     "cache_dir" : mylar.CACHE_DIR,
                     "config_file" : mylar.CONFIG_FILE,
-#                    "branch_history" : br_hist
+                    "branch_history" : 'None',
+#                    "branch_history" : br_hist,
                     "enable_pre_scripts" : helpers.checked(mylar.ENABLE_PRE_SCRIPTS),
                     "pre_scripts" : mylar.PRE_SCRIPTS,
                     "log_dir" : mylar.LOG_DIR
@@ -2354,6 +2444,10 @@ class WebInterface(object):
         if not helpers.is_number(mylar.CHMOD_FILE):
             logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
             mylar.CHMOD_FILE = '0660'
+
+        if mylar.SAB_HOST.endswith('/'):
+            logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
+            mylar.SAB_HOST = mylar.SAB_HOST[:-1]
 
         if mylar.ENABLE_META:
             if mylar.CMTAGGER_PATH is None or mylar.CMTAGGER_PATH == '':

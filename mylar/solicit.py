@@ -80,7 +80,7 @@ def solicit(month, year):
 
         loopthis = (cnt-1)
         #this loops through each 'found' solicit page 
-        shipdate = str(month) + '-' + str(year)
+        shipdate = str(month_string) + '-' + str(year)
         while ( loopthis >= 0 ):
             upcoming += populate(resultURL[loopthis], publish[loopthis], shipdate)
             loopthis -=1
@@ -178,7 +178,7 @@ def populate(link,publisher,shipdate):
             get_next = False
         if prev_chk == True:
             tempName = titlet.findNext(text=True)
-            if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'for $1' not in tempName.lower() and 'subscription variant' not in tempName.lower():
+            if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'for $1' not in tempName.lower() and 'subscription variant' not in tempName.lower() and 'poster' not in tempName.lower():
                 #print publisher + ' found upcoming'
                 if '#' in tempName:
                     #tempName = tempName.replace(u'.',u"'")

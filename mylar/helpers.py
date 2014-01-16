@@ -239,7 +239,7 @@ def decimal_issue(iss):
         deciss = (int(iss_b4dec) * 1000) + issdec
     return deciss, dec_except
 
-def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None):
+def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None):
             import db, logger
             myDB = db.DBConnection()
             logger.fdebug('comicid: ' + str(comicid))
@@ -262,22 +262,40 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #            issue = iss
 
 #            print ("converted issue#: " + str(issue))
+            logger.fdebug('issueid:' + str(issueid))
+
             if issueid is None:
-                chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                logger.fdebug('annualize is ' + str(annualize))
+                if annualize is None:
+                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                else:
+                    chkissue = myDB.action("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
-                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, int(issue)]).fetchone()
+                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                     if chkissue is None:
-                        logger.error('Invalid Issue_Number - please validate.')
-                        return
+                        if chkissue is None:
+                            logger.error('Invalid Issue_Number - please validate.')
+                            return
                     else:
                         logger.info('Int Issue_number compare found. continuing...')
-                        issueid = chkissue['IssueID']
+                        issueid = chkissue['IssueID']                       
                 else:
                     issueid = chkissue['IssueID']
 
             #use issueid to get publisher, series, year, issue number
-            issuenzb = myDB.action("SELECT * from issues WHERE issueid=?", [issueid]).fetchone()
+            logger.fdebug('issueid is now : ' + str(issueid))
+            issuenzb = myDB.action("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
+            if issuenzb is None:
+                logger.fdebug('not an issue, checking against annuals')
+                issuenzb = myDB.action("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
+                if issuenzb is None:
+                    logger.fdebug('Unable to rename - cannot locate issue id within db')
+                    return
+                else:
+                    annualize = True
+            logger.fdebug('blah')
             #comicid = issuenzb['ComicID']
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
@@ -306,6 +324,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             else:
                 iss = issuenum
                 issueno = str(iss)
+            logger.fdebug('iss:' + str(iss))
+            logger.fdebug('issueno:' + str(issueno))
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0":
                 zeroadd = ""
@@ -381,9 +401,24 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug('No version # found for series, removing from filename')
-                print ("new format: " + str(chunk_file_format))
+                logger.fdebug("new format: " + str(chunk_file_format))
             else:
                 chunk_file_format = mylar.FILE_FORMAT
+
+            if annualize is None:
+                chunk_f_f = re.sub('\$Annual','',chunk_file_format)
+                chunk_f = re.compile(r'\s+')
+                chunk_file_format = chunk_f.sub(' ', chunk_f_f)
+                logger.fdebug('not an annual - removing from filename paramaters')
+                logger.fdebug('new format: ' + str(chunk_file_format))
+
+            else:
+                logger.fdebug('chunk_file_format is: ' + str(chunk_file_format))
+                if '$Annual' not in chunk_file_format:
+                #if it's an annual, but $annual isn't specified in file_format, we need to
+                #force it in there, by default in the format of $Annual $Issue
+                    prettycomiss = "Annual " + str(prettycomiss)
+                    logger.fdebug('prettycomiss: ' + str(prettycomiss))
 
             file_values = {'$Series':    series,
                            '$Issue':     prettycomiss,
@@ -392,7 +427,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                            '$Publisher': publisher,
                            '$publisher': publisher.lower(),
                            '$VolumeY':   'V' + str(seriesyear),
-                           '$VolumeN':   comversion
+                           '$VolumeN':   comversion,
+                           '$Annual':    'Annual'
                           }
 
             extensions = ('.cbr', '.cbz')
