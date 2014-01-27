@@ -645,6 +645,7 @@ def forceRescan(ComicID,archive=None):
             fcnew = shlex.split(str(temploc))
             fcn = len(fcnew)
             n = 0
+            reann = None
             while (n < anncnt):
                 som = 0
                 try:
@@ -705,7 +706,11 @@ def forceRescan(ComicID,archive=None):
             writeit = True
             if mylar.ANNUALS_ON:
                 if 'annual' in temploc.lower():
-                    iss_id = reann['IssueID']
+                    if reann is None:
+                        logger.fdebug('Annual present in location, but series does not have any annuals attached to it - Ignoring')
+                        writeit = False
+                    else:
+                        iss_id = reann['IssueID']
                 else:
                     iss_id = reiss['IssueID']
             else:

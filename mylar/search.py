@@ -124,6 +124,16 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
         nzbpr == 0
     findit = 'no'
 
+    #provider order sequencing here.
+    #prov_order = []
+
+    #if len(mylar.PROVIDER_ORDER) > 0:
+    #    for pr_order in mylar.PROVIDER_ORDER:
+    #        prov_order.append(pr_order[1])
+    #        logger.fdebug('sequence is now to start with ' + pr_order[1] + ' at spot #' + str(pr_order[0]))
+
+    # end provider order sequencing
+
     #fix for issue dates between Nov-Dec/Jan
     IssDt = str(IssueDate)[5:7]
     if IssDt == "12" or IssDt == "11" or IssDt == "01" or IssDt == "02":
@@ -530,7 +540,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 # here we account for issue pattern variations
             if seperatealpha == "yes":
                 isssearch = str(c_number) + "%20" + str(c_alpha)
-
+               
             if cmloopit == 3:
                 comsearch = comsrc + "%2000" + str(isssearch) + "%20" + str(filetype)
                 issdig = '00'
@@ -542,7 +552,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                 issdig = ''
 
             mod_isssearch = str(issdig) + str(isssearch)
-
 
             #--- this is basically for RSS Feeds ---
             logger.fdebug('RSS Check: ' + str(RSS))
@@ -618,8 +627,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             pause_the_search = 1 * 60
 
                         #bypass for local newznabs
-                        if nzbprov == 'newznab' and (host_newznab_fix[:3] == '10.' or host_newznab_fix[:4] == '172.' or host_newznab_fix[:4] == '192.' or 'localhost' in str(host_newznab_fix)):
-                                pass
+                        #remove the protocol string (http/https)
+                        if host_newznab_fix.startswith('http'):
+                            hnc = host_newznab_fix.replace('http://', '')
+                        elif host_newznab_fix.startswith('https'):
+                            hnc = host_newznab_fix.replace('https://', '')
+                        else:
+                            hnc = host_newznab_fix
+                        if nzbprov == 'newznab' and (hnc[:3] == '10.' or hnc[:4] == '172.' or hnc[:4] == '192.' or hnc.startswith('localhost')):
+                            pass
                         else:
                             logger.info("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
                             time.sleep(pause_the_search)
@@ -902,8 +918,18 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             continue
                         else:
                             if a_issno == '' and alphas is not None:
+                                #print 'issno & alphas blank'
+                                #print 'splitit: ' + splitit[(len(splitit)-2)]
+                                #print 'splitit: ' + splitit[(len(splitit)-1)]
                                 #if there' a space between the issue & alpha, join them.
-                                comic_iss = splitit[(len(splitit)-2)] + splitit[(len(splitit)-1)]
+                                findstart = thisentry.find(splitit[(len(splitit)-1)])
+                                #print 'thisentry : ' + thisentry
+                                #print 'decimal location : ' + str(findstart)
+                                if thisentry[findstart-1] == '.':
+                                    comic_iss = splitit[(len(splitit)-2)] + '.' + splitit[(len(splitit)-1)]
+                                else:
+                                    comic_iss = splitit[(len(splitit)-2)] + splitit[(len(splitit)-1)]
+                                logger.fdebug('comic_iss is : ' + str(comic_iss))
                                 splitst = len(splitit) - 2
                             else:
                                 comic_iss = tmpiss
@@ -1100,7 +1126,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 nzbtemp = re.sub('torrent=', '', nzbtemp).rstrip()
                                 nzbid = re.sub('.torrent', '', nzbtemp).rstrip()
                             elif nzbprov == 'KAT':
-                                url_parts = urllib.parse.urlparse(entry['link'])
+                                url_parts = urlparse.urlparse(entry['link'])
                                 path_parts = url_parts[2].rpartition('/')
                                 nzbtempid = pathparts[2]
                                 nzbid = re.sub('.torrent', '', nzbtempid).rstrip()

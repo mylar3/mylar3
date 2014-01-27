@@ -673,9 +673,22 @@ def issuedigits(issnum):
         elif 'ai' in issnum.lower() and issnum[:1].isdigit():
             int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
         elif 'inh' in issnum.lower():
-            int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
+            remdec = issnum.find('.')  #find the decimal position.
+            if remdec == -1:
+                #if no decimal, it's all one string
+                #remove the last 3 characters from the issue # (INH)
+                int_issnum = (int(issnum[:-3]) * 1000) + ord('i') + ord('n') + ord('h')
+            else:
+                int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
         elif 'now' in issnum.lower():
-            int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+            if '!' in issnum: issnum = re.sub('\!', '', issnum)
+            remdec = issnum.find('.')  #find the decimal position.
+            if remdec == -1:
+                #if no decimal, it's all one string 
+                #remove the last 3 characters from the issue # (NOW)
+                int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
+            else:
+                int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
         elif u'\xbd' in issnum:
             issnum = .5
             int_issnum = int(issnum) * 1000

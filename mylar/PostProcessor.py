@@ -464,12 +464,21 @@ class PostProcessor(object):
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
             issue_except = 'None'
-            if 'au' in issuenum.lower():
+
+            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = ' AU'
-            elif 'ai' in issuenum.lower():
+            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = ' AI'
+            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = '.INH'
+            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
+                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
+                issuenum = re.sub("[^0-9]", "", issuenum)
+                issue_except = '.NOW'
+
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
@@ -493,6 +502,7 @@ class PostProcessor(object):
             else:
                 iss = issuenum
                 issueno = str(iss)
+
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0": 
                 zeroadd = ""
