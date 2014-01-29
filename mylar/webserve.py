@@ -275,6 +275,14 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
 
+    def addbyid(self,comicid):
+        mismatch = "no"
+        logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
+        if comicid.startswith('4050-'): comicid = re.sub('4050-','', comicid)
+        importer.addComictoDB(comicid,mismatch)
+        raise cherrypy.HTTPRedirect("home")
+    addbyid.exposed = True
+
     def wanted_Export(self):
         import unicodedata
         myDB = db.DBConnection()
@@ -773,6 +781,21 @@ class WebInterface(object):
     def futurepulllist(self):
         myDB = db.DBConnection()
         futureresults = []
+        watchresults = []
+        popthis = myDB.select("SELECT * FROM sqlite_master WHERE name='futureupcoming' and type='table'")
+        if popthis:
+            l_results = myDB.select("SELECT * FROM futureupcoming WHERE Status='Wanted'")
+            for lres in l_results:
+                watchresults.append({
+                                      "ComicName":   lres['ComicName'],
+                                      "IssueNumber": lres['IssueNumber'], 
+                                      "ComicID":     lres['ComicID'],
+                                      "IssueDate":   lres['IssueDate'],
+                                      "Publisher":   lres['Publisher'],
+                                      "Status":      lres['Status']
+                                    })
+            logger.fdebug('There are ' + str(len(watchresults)) + ' issues that you are watching for but are not on your watchlist yet.')
+
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='future' and type='table'")
         if popit:
             f_results = myDB.select("SELECT SHIPDATE, PUBLISHER, ISSUE, COMIC, EXTRA, STATUS, ComicID, FutureID from future")
@@ -793,13 +816,24 @@ class WebInterface(object):
                         future_extra = re.sub('[\(\)]', '', future['EXTRA'])
 
                 if x is not None:
+                    #here we check the status to make sure it's ok since we loaded all the Watch For earlier.
+                    chkstatus = future['STATUS']
+
+                    for wr in watchresults:
+                        if wr['ComicName'] == future['COMIC'] and wr['IssueNumber'] == future['ISSUE']:
+                            logger.info('matched on Name: ' + wr['ComicName'] + ' to ' + future['COMIC'])
+                            logger.info('matched on Issue: #' + wr['IssueNumber'] + ' to #' + future['ISSUE'])
+                            logger.info('matched on ID: ' + str(wr['ComicID']) + ' to ' + str(future['ComicID']))
+                            chkstatus = wr['Status']
+                            break
+                            
                     futureresults.append({
                                            "SHIPDATE"   : future['SHIPDATE'],
                                            "PUBLISHER"  : future['PUBLISHER'],
                                            "ISSUE"      : future['ISSUE'],
                                            "COMIC"      : future['COMIC'],
                                            "EXTRA"      : future_extra,
-                                           "STATUS"     : future['STATUS'],
+                                           "STATUS"     : chkstatus,
                                            "COMICID"    : future['ComicID'],
                                            "FUTUREID"   : future['FutureID']
                                          })
@@ -812,12 +846,12 @@ class WebInterface(object):
     futurepulllist.exposed = True
 
     def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, FutureID):
-        logger.info('Adding ' + ComicName + ' # ' + str(Issue) + ' to future upcoming watchlist')
         myDB = db.DBConnection()
         chkfuture = myDB.action('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=?', [ComicName, Issue]).fetchone()
         if chkfuture is not None:
             logger.info('Already on Future Upcoming list - not adding at this time.')
             return
+        logger.info('Adding ' + ComicName + ' # ' + str(Issue) + ' to future upcoming watchlist')
         newCtrl = {"ComicName":       ComicName,
                    "IssueNumber":       Issue,
                    "Publisher":   Publisher}
@@ -872,7 +906,7 @@ class WebInterface(object):
                     findst = tmpdatethis.find('-')  #find the '-'
                     tmpdate = tmpdatethis[findst+1:] + tmpdatethis[:findst] #rebuild in format of yyyymm
                 timenow = datetime.datetime.now().strftime('%Y%m')
-                logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+                #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
                 if int(tmpdate) >= int(timenow):
                     if upc['Status'] == 'Wanted':
                         upcoming.append({"ComicName":    upc['ComicName'],
@@ -922,9 +956,21 @@ class WebInterface(object):
                 logger.fdebug("--Updating Status of issues table because of Upcoming status--")
                 logger.fdebug("ComicName: " + str(myissue['ComicName']))
                 logger.fdebug("Issue number : " + str(myissue['Issue_Number']) )
+
+                #sometimes the preview list has differeing issue#'s than comicvine
+                #ie. preview list has 22.NOW, whereas comicvine has 22
+                #this will never match, so we need to build in some exception catching to catch
+                #these, store both values, and be able to search for both if need be.
+                #this is a direct string compare, we may have to drop down to integer compare though at some point
+                if myissue['Issue_Number'] == mvup['IssueNumber']:
+                    altissue = None
+                else:
+                    # we store the upcoming db value, since we already have the comicvine issue
+                    altissue = mvup['IssueNumber']
  
                 mvcontroldict = {"IssueID":    myissue['IssueID']}
                 mvvalues = {"ComicID":         myissue['ComicID'],
+                            "AltIssueNumber":  altissue,
                             "Status":          "Wanted"}
                 myDB.upsert("issues", mvvalues, mvcontroldict)
 

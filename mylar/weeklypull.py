@@ -70,11 +70,10 @@ def pullit(forcecheck=None):
         with open(substitutes) as f:
             reader = csv.reader(f, delimiter='|')
             for row in reader:
-                if not row.startswith('#'): 
-                    logger.debug ("Substitutes file read : "+str(row))
+                if not row[0].startswith('#'): 
+                    logger.fdebug("Substitutes file read : "+str(row))
                     shortrep.append(row[0])
                     longrep.append(row[1])
-
         f.close()
 
     not_these=['PREVIEWS',
@@ -326,7 +325,7 @@ def pullit(forcecheck=None):
                 if substitute_check == True:
                     #Step through the list - storing an index
                     for repindex,repcheck in enumerate(shortrep):
-                        if len(comicnm)>= len(shortrep):
+                        if len(comicnm) >= len(repcheck):
                             #if the leftmost chars match the short text then replace them with the long text
                             if comicnm[:len(repcheck)]==repcheck:
                                 logger.info("Switch worked on "+comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))

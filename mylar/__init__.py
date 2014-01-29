@@ -515,6 +515,15 @@ def initialize():
         PR_NUM = 0  # provider counter here (used for provider orders)
         PR = []
 
+        #add torrents to provider counter.
+        if ENABLE_CBT:
+            PR.append('cbt')
+            PR_NUM +=1
+        if ENABLE_KAT:
+            PR.append('kat')
+            PR_NUM +=1
+
+
         NZBSU = bool(check_setting_int(CFG, 'NZBsu', 'nzbsu', 0))
         NZBSU_UID = check_setting_str(CFG, 'NZBsu', 'nzbsu_uid', '')
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
@@ -546,7 +555,7 @@ def initialize():
             PR.append('Experimental')
             PR_NUM +=1
 
-        #print 'PR_NUM::' + str(PR_NUM)
+        print 'PR_NUM::' + str(PR_NUM)
 
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
 
@@ -625,7 +634,8 @@ def initialize():
                 TMPPR_NUM +=1
             PROVIDER_ORDER = PROV_ORDER
 
-        #print 'Provider Order is:' + str(PROVIDER_ORDER)
+        #this isn't ready for primetime just yet...
+        #logger.info('Provider Order is:' + str(PROVIDER_ORDER))
         config_write()
 
         # update folder formats in the config & bump up config version
@@ -1085,7 +1095,7 @@ def dbcheck():
     c=conn.cursor()
 
     c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, ForceContinuing INTEGER)')
-    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT)')
@@ -1268,6 +1278,10 @@ def dbcheck():
     except:
         c.execute('ALTER TABLE comics ADD COLUMN ForceContinuing INTEGER')
 
+    try:
+        c.execute('SELECT AltIssueNumber from issues')
+    except:
+        c.execute('ALTER TABLE issues ADD COLUMN AltIssueNumber TEXT')
 
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
