@@ -17,7 +17,7 @@ from __future__ import with_statement
 
 import time
 import threading
-import urllib2
+import urllib, urllib2
 from xml.dom.minidom import parseString, Element
 
 import mylar
@@ -28,14 +28,14 @@ mb_lock = threading.Lock()
 
 
 def pullsearch(comicapi,comicquery,offset):
-    u_comicquery = comicquery.encode('utf-8').strip()
+    u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
-
     #all these imports are standard on most modern python implementations
     #download the file:
     try:
         file = urllib2.urlopen(PULLURL)
     except urllib2.HTTPError, err:
+        logger.error('err : ' + str(err))
         logger.error("There was a major problem retrieving data from ComicVine - on their end. You'll have to try again later most likely.")
         return        
     #convert to string:
@@ -59,7 +59,8 @@ def findComic(name, mode, issue, limityear=None):
     #print ("limityear: " + str(limityear))            
     if limityear is None: limityear = 'None'
 
-    comicquery=name.replace(" ", "%20")
+    #comicquery=name.replace(" ", "%20")
+    comicquery=name.replace(" ", " AND ")
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     offset = 1
 

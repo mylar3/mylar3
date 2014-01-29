@@ -263,7 +263,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         else:
             myDB.upsert("issues", values, control)
 
-        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived': 
+        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived' or issuechk['Status'] == 'Snatched': 
             logger.fdebug('updating Pull-list to reflect status.')
             downstats = {"Status":  issuechk['Status'],
                          "ComicID": issuechk['ComicID']}

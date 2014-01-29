@@ -31,7 +31,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
 
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     if type == 'comic':
-        PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
+        PULLURL= mylar.CVURL + 'volume/4050-' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue'
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
