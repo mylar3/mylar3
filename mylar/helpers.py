@@ -665,7 +665,7 @@ def cleanhtml(raw_html):
 def issuedigits(issnum):
     import db, logger
     #print "issnum : " + str(issnum)
-    if issnum.isdigit():
+    if str(issnum).isdigit():
         int_issnum = int( issnum ) * 1000
     else:
         if 'au' in issnum.lower() and issnum[:1].isdigit():

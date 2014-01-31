@@ -271,7 +271,7 @@ def nzbs(provider=None):
             elif nzbprovider[nzbpr] == 'dognzb':
                 if mylar.DOGNZB_UID is None:
                     mylar.DOGNZB_UID = '1'
-                feed = 'http://dognzb.cr/rss?t=7030&dl=1&i=' + mylar.DOGNZB_UID + '&r=' + mylar.DOGNZB_APIKEY
+                feed = 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030'
                 feedme = feedparser.parse(feed)
                 site = nzbprovider[nzbpr]
                 ft+=1

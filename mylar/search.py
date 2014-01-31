@@ -39,7 +39,7 @@ import urllib2
 from datetime import datetime
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None):
-    if ComicYear == None: ComicYear = '2013'
+    if ComicYear == None: ComicYear = '2014'
     else: ComicYear = str(ComicYear)[:4]
 
     if mode == 'want_ann':
@@ -134,9 +134,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, IssueDate, IssueI
 
     # end provider order sequencing
 
-    #fix for issue dates between Nov-Dec/Jan
+    #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
     IssDt = str(IssueDate)[5:7]
-    if IssDt == "12" or IssDt == "11" or IssDt == "01" or IssDt == "02":
+    if IssDt == "12" or IssDt == "11" or IssDt == "01" or IssDt == "02" or IssDt == "03":
          IssDateFix = IssDt
     else:
          IssDateFix = "no"
@@ -628,15 +628,19 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
 
                         #bypass for local newznabs
                         #remove the protocol string (http/https)
-                        if host_newznab_fix.startswith('http'):
-                            hnc = host_newznab_fix.replace('http://', '')
-                        elif host_newznab_fix.startswith('https'):
-                            hnc = host_newznab_fix.replace('https://', '')
-                        else:
-                            hnc = host_newznab_fix
-                        if nzbprov == 'newznab' and (hnc[:3] == '10.' or hnc[:4] == '172.' or hnc[:4] == '192.' or hnc.startswith('localhost')):
-                            pass
-                        else:
+                        localbypass = False
+                        if nzbprov == 'newznab':
+                            if host_newznab_fix.startswith('http'):
+                                hnc = host_newznab_fix.replace('http://', '')
+                            elif host_newznab_fix.startswith('https'):
+                                hnc = host_newznab_fix.replace('https://', '')
+                            else:
+                                hnc = host_newznab_fix
+
+                            if hnc[:3] == '10.' or hnc[:4] == '172.' or hnc[:4] == '192.' or hnc.startswith('localhost'):
+                                localbypass = True
+
+                        if localbypass == False:
                             logger.info("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
                             time.sleep(pause_the_search)
 
@@ -833,7 +837,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                                 #let's do this here and save a few extra loops ;)
                                 #fix for issue dates between Nov-Dec/Jan
                                     if IssDateFix != "no" and UseFuzzy is not "2":
-                                        if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = int(ComicYear) - 1
+                                        if IssDateFix == "01" or IssDateFix == "02" or IssDateFix == "03": ComicYearFix = int(ComicYear) - 1
                                         else: ComicYearFix = int(ComicYear) + 1
                                         if str(ComicYearFix) in result_comyear:
                                             logger.fdebug("further analysis reveals this was published inbetween Nov-Jan, incrementing year to " + str(ComicYearFix) + " has resulted in a match!")
@@ -1128,7 +1132,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                             elif nzbprov == 'KAT':
                                 url_parts = urlparse.urlparse(entry['link'])
                                 path_parts = url_parts[2].rpartition('/')
-                                nzbtempid = pathparts[2]
+                                nzbtempid = path_parts[2]
                                 nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
                             elif nzbprov == 'nzb.su':
                                 pass

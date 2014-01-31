@@ -755,7 +755,7 @@ def forceRescan(ComicID,archive=None):
     else:
         for chk in chkthis:
             old_status = chk['Status']
-            logger.fdebug('old_status:' + str(old_status))
+            #logger.fdebug('old_status:' + str(old_status))
             if old_status == "Skipped":
                 if mylar.AUTOWANT_ALL:
                     issStatus = "Wanted"
@@ -774,7 +774,7 @@ def forceRescan(ComicID,archive=None):
             else:
                 issStatus = "Skipped"
 
-            logger.fdebug("new status: " + str(issStatus))
+            #logger.fdebug("new status: " + str(issStatus))
 
             update_iss.append({"IssueID": chk['IssueID'],
                                "Status":  issStatus})

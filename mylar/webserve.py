@@ -279,7 +279,11 @@ class WebInterface(object):
         mismatch = "no"
         logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
         if comicid.startswith('4050-'): comicid = re.sub('4050-','', comicid)
-        importer.addComictoDB(comicid,mismatch)
+        comicname, year = importer.addComictoDB(comicid,mismatch)
+        if comicname is None: 
+            logger.error('There was an error during the add, check the mylar.log file for futher details.')
+        else:
+            logger.info('Sucessfully added ' + comicname + ' (' + str(year) + ') to your watchlist')
         raise cherrypy.HTTPRedirect("home")
     addbyid.exposed = True
 
@@ -1904,10 +1908,13 @@ class WebInterface(object):
                             implog = implog + "adding..." + str(result['ComicYear']) + "\n"
                             yearRANGE.append(result['ComicYear'])
                             yearTOP = str(result['ComicYear'])
-                    if int(getiss) > int(minISSUE):
+                    getiss_num = helpers.issuedigits(getiss)
+                    miniss_num = helpers.issuedigits(minISSUE)
+                    startiss_num = helpers.issuedigits(startISSUE)
+                    if int(getiss_num) > int(miniss_num):
                         implog = implog + "issue now set to : " + str(getiss) + " ... it was : " + str(minISSUE) + "\n"
                         minISSUE = str(getiss)
-                    if int(getiss) < int(startISSUE):
+                    if int(getiss_num) < int(startiss_num):
                         implog = implog + "issue now set to : " + str(getiss) + " ... it was : " + str(startISSUE) + "\n"
                         startISSUE = str(getiss)
      

@@ -868,6 +868,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             else:
                 logger.info('Already have the latest issue : #' + str(latestiss))
 
+    if calledfrom == 'addbyid':
+        return comic['ComicName'], SeriesYear
 
 def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
     # this is for importing via GCD only and not using CV.
