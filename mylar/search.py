@@ -19,9 +19,6 @@ from __future__ import division
 import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, prov_nzbx, notifiers, rsscheck
 
-nzbsu_APIkey = mylar.NZBSU_APIKEY
-dognzb_APIkey = mylar.DOGNZB_APIKEY
-
 LOG = mylar.LOG_DIR
 
 import lib.feedparser as feedparser
@@ -589,9 +586,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, nzbprov, nzbpr, Is
                     #if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
                     if nzbprov == 'dognzb':
-                        findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
+                        findurl = "http://dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030&apikey=" + str(mylar.DOGNZB_APIKEY)
                     elif nzbprov == 'nzb.su':
-                        findurl = "https://nzb.su/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
+                        findurl = "https://nzb.su/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030&apikey=" + str(mylar.NZBSU_APIKEY)
                     elif nzbprov == 'newznab':
                         #let's make sure the host has a '/' at the end, if not add it.
                         if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':

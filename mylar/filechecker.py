@@ -392,26 +392,29 @@ def listFiles(dir,watchcomic,AlternateSearch=None,manual=None,sarc=None):
 
             #if the issue has an alphanumeric (issue_exceptions, join it and push it through)
             logger.fdebug('JUSTTHEDIGITS [' + justthedigits + ']' )
-            if justthedigits.isdigit():
-                digitsvalid = "true"
+            if digitsvalid == "true":
+                pass
             else:
-                if '.' in justthedigits:
-                    tmpdec = justthedigits.find('.')
-                    b4dec = justthedigits[:tmpdec]
-                    a4dec = justthedigits[tmpdec+1:]
-                    if a4dec.isdigit() and b4dec.isdigit():
-                        logger.fdebug('DECIMAL ISSUE DETECTED')
-                        digitsvalid = "true"
+                if justthedigits.isdigit():
+                    digitsvalid = "true"
                 else:
-                    try:
-                        x = float(justthedigits)
-                        #validity check
-                        if x < 0:
-                            logger.info("I've encountered a negative issue #: " + str(justthedigits) + ". Trying to accomodate.")
+                    if '.' in justthedigits:
+                        tmpdec = justthedigits.find('.')
+                        b4dec = justthedigits[:tmpdec]
+                        a4dec = justthedigits[tmpdec+1:]
+                        if a4dec.isdigit() and b4dec.isdigit():
+                            logger.fdebug('DECIMAL ISSUE DETECTED')
                             digitsvalid = "true"
-                        else: raise ValueError
-                    except ValueError, e:
-                            logger.info('Cannot determine issue number from given issue #: ' + str(justthedigits))
+                    else:
+                        try:
+                            x = float(justthedigits)
+                            #validity check
+                            if x < 0:
+                                logger.info("I've encountered a negative issue #: " + str(justthedigits) + ". Trying to accomodate.")
+                                digitsvalid = "true"
+                            else: raise ValueError
+                        except ValueError, e:
+                                logger.info('Cannot determine issue number from given issue #: ' + str(justthedigits))
 
 
 #                else:

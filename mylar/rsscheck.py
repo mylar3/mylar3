@@ -289,23 +289,36 @@ def nzbs(provider=None):
 
         for ft in feedthis:
             site = ft['site']
-            #print str(site) + " now being updated..."
+            logger.fdebug(str(site) + " now being updated...")
             for entry in ft['feed'].entries:
-                #print "entry: " + str(entry)
-                tmpsz = entry.enclosures[0]
-                feeddata.append({
-                           'Site':     site,
-                           'Title':    entry.title,
-                           'Link':     entry.link,
-                           'Pubdate':  entry.updated,
-                           'Size':     tmpsz['length']
-                           })
+                if site == 'dognzb':
+                    #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
+                    if entry.attrib.get('name') == 'size':
+                        tmpsz = entry.attrib.get('value')
+                    feeddata.append({
+                               'Site':     site,
+                               'Title':    ft['feed'].entries[i].title,
+                               'Link':     ft['feed'].entries[i].link,
+                               'Pubdate':  ft['feed'].entries[i].updated,
+                               'Size':     tmpsz
+                               })
+                else:
+                    #this should work for all newznabs (nzb.su included)
+                    #only difference is the size of the file between this and above (which is probably the same)
+                    tmpsz = ft['feed'].entries[i].enclosures[0]
+                    feeddata.append({
+                               'Site':     site,
+                               'Title':    ft['feed'].entries[i].title,
+                               'Link':     ft['feed'].entries[i].link,
+                               'Pubdate':  ft['feed'].entries[i].updated,
+                               'Size':     tmpsz['length']
+                               })
 
-#               print ("Site: " + str(feeddata[i]['Site']))
-#               print ("Title: " + str(feeddata[i]['Title']))
-#               print ("Link: " + str(feeddata[i]['Link']))
-#               print ("pubdate: " + str(feeddata[i]['Pubdate']))
-#               print ("size: " + str(feeddata[i]['Size']))
+                #logger.fdebug("Site: " + str(feeddata[i]['Site']))
+                #logger.fdebug("Title: " + str(feeddata[i]['Title']))
+                #logger.fdebug("Link: " + str(feeddata[i]['Link']))
+                #logger.fdebug("pubdate: " + str(feeddata[i]['Pubdate']))
+                #logger.fdebug("size: " + str(feeddata[i]['Size']))
                 i+=1
             logger.info(str(site) + ' : ' + str(i) + ' entries indexed.')
 
