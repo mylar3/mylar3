@@ -117,6 +117,11 @@ def solicit(month, year):
     connection = sqlite3.connect(str(mylardb))
     cursor = connection.cursor()
 
+    # we should extract the issues that are being watched, but no data is available yet ('Watch For' status)
+    # once we get the data, store it, wipe the existing table, retrieve the new data, populate the data into 
+    # the table, recheck the series against the current watchlist and then restore the Watch For data.
+
+
     cursor.executescript('drop table if exists future;')
 
     cursor.execute("CREATE TABLE IF NOT EXISTS future (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, FutureID text, ComicID text);")

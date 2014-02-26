@@ -137,6 +137,20 @@
             		 </fieldset>
             	</td>
                 <td>          
+                         <fieldset>
+                                <legend>API</legend>
+                                <div class="row checkbox">
+                                    <input id="api_enabled" type="checkbox" onclick="initConfigCheckbox($(this));" name="api_enabled" value="1" ${config['api_enabled']} /><label>Enable API</label>
+                                </div>
+                                <div class="apioptions">
+                                  <div Class="row">
+                                    <label>API key</label>
+                                    <input type="text" name="api_key" id="api_key" value="${config['api_key']}" size="20">
+                                    <input type="button" value="Generate" id="generate_api">
+                                    <small>Current API key: <strong>${config['api_key']}</strong></small>
+                                  </div>
+                                </div>
+                         </fieldset>
                     <fieldset>
                     	<legend>Interval</legend>
 	                    <div class="row">
@@ -195,11 +209,11 @@
         <table class="configtable" summary="Download Settings">
 	    <tr>
                 <td>
-                    <fieldset>
-                         <div class="row checkbox">
-                             <input id="use_sabnzbd" type="checkbox" onclick="initConfigCheckbox($(this))"; name="use_sabnzbd" value="1" ${config['use_sabnzbd']} /><label>SABnbzd</label>
-                         </div>
-                         <div class="config">
+                       <fieldset>
+                         <legend>Usenet</legend>
+                            <input type="radio" name="nzb_downloader" id="nzb_downloader_sabnzbd" value="0" ${config['nzb_downloader_sabnzbd']}>Sabnzbd <input type="radio" name="nzb_downloader" id="nzb_downloader_nzbget" value="1" ${config['nzb_downloader_nzbget']}> NZBget <input type="radio" name="nzb_downloader" id="nzb_downloader_blackhole" value="2" ${config['nzb_downloader_blackhole']}>Black Hole
+                       </fieldset>
+                       <fieldset id="sabnzbd_options">
 	                	<div class="row">
 		                    <label>SABnzbd Host:</label>
 		                    <input type="text" name="sab_host" value="${config['sab_host']}" size="30">
@@ -208,27 +222,27 @@
 	                   	<div class="row">
 		                    <label>SABnzbd Username</label>
 		                    <input type="text" name="sab_username" value="${config['sab_user']}" size="20">
-	                    </div>	               
+    	                        </div>	               
 	                	<div class="row">
 		                    <label>SABnzbd API:</label>
 		                    <input type="text" name="sab_apikey" value="${config['sab_api']}" size="36">
 
-	                    </div>
+	                        </div>
 	                   	<div class="row">
 		                    <label>SABnzbd Password:</label>
 		                    <input type="password" name="sab_password" value="${config['sab_pass']}" size="20">
-	                    </div>
-                            <div class="row">
+	                        </div>
+                                <div class="row">
                                     <label>SABnzbd Download Directory</label>
                                     <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36" />
                                     <small>Where your SAB downloads go... (optional)</small>
-                            </div>
+                                </div>
 
-	                    <div class="row">
+	                        <div class="row">
 	                        <label>SABnzbd Category:</label>
-	                        <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
-	                    </div>
-                                              <div class="row">
+	                            <input type="text" name="sab_category" value="${config['sab_cat']}" size="20">
+	                        </div>
+                                <div class="row">
                                                 <label>SAB Priority</label>
                                             <select name="sab_priority">
                                 %for prio in ['Default', 'Low', 'Normal', 'High', 'Paused']:
@@ -241,16 +255,13 @@
                                      <option value=${prio} ${outputselect}>${prio}</option>
                                                 %endfor
                                                 </select>
-                                              </div>
-                         <div class="row">
-                            <a href="#" style="float:right" type="button" onclick="doAjaxCall('SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
-                         </div>
+                                </div>
+                                <div class="row">
+                                     <a href="#" style="float:right" type="button" onclick="doAjaxCall('SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
+                                </div>
 
-                         </div>
-                         <div class="row checkbox">
-                             <input id="use_nzbget" type="checkbox" onclick="initConfigCheckbox($(this))"; name="use_nzbget" value="1" ${config['use_nzbget']} /><label>NZBGet</label>
-                         </div>                         
-                         <div class="config">
+                       </fieldset>
+                       <fieldset id="nzbget_options">
                                 <div class="row">
                                     <label>NZBGet Host:</label>
                                     <input type="text" name="nzbget_host" value="${config['nzbget_host']}" size="30">
@@ -268,6 +279,11 @@
                                     <label>NZBGet Password:</label>
                                     <input type="password" name="nzbget_password" value="${config['nzbget_pass']}" size="20">
                             </div>
+                                <div class="row">
+                                    <label>NZBGet Download Directory</label>
+                                    <input type="text" name="nzbget_directory" value="${config['nzbget_directory']}" size="36" />
+                                    <small>Where your NZBGet downloads go... (optional)</small>
+                                </div>
                             <div class="row">
                                 <label>NZBGet Category:</label>
                                 <input type="text" name="nzbget_category" value="${config['nzbget_cat']}" size="20">
@@ -287,32 +303,23 @@
                                                 </select>
                                               </div>
                          
-                         </div>
-                      </div>
-                    </fieldset>
-                </td>
-           
-                <td>
-                      <legend>Usenet</legend>
-                       <fieldset>
-                            <div class="row checkbox">
-                                <input id="useblackhole" type="checkbox" onclick="initConfigCheckbox($(this));" name="blackhole" value=1 ${config['use_blackhole']} /><label>Use Black Hole</label>
-                            </div>
-                            <div class="config">
+                         </fieldset>
+                         <fieldset id="blackhole_options">
                                     <div class="row">
                                         <label>Black Hole Directory</label>
                                             <input type="text" name="blackhole_dir" value="${config['blackhole_dir']}" size="30">
                                         <small>Folder your Download program watches for NZBs</small>
                                     </div>
-                            </div>
-                       </fieldset>
-                        <fieldset>
+                          </fieldset>
+                          <fieldset id="general_nzb_options">           
                             <div class="checkbox row">
                                 <label>Usenet Retention (in days)</label>
-                                <input type="text" name="usenet_retention" value="${config['usenet_retention']}" size$
+                                <input type="text" name="usenet_retention" value="${config['usenet_retention']}" size="10">
                             </div>
                          </fieldset>
 
+                   </td>
+                   <td>
                       <legend>Torrents</legend>
                        <fieldset>
                             <div class="row checkbox">
@@ -354,10 +361,9 @@
                                                 <input type="text" name="seedbox_watchdir" value="${config['seedbox_watchdir']}" size="30"><br/>
                                                <small>Folder path your torrent seedbox client watches</small>
                                            </div>
-                                    </div>
+                                       </div>
                               </div>
                        </fieldset>
-
                 </td>
             </tr>            
     
@@ -624,7 +630,7 @@
                                     <label> File Format</label>
                                     <input type="text" name="file_format" value="${config['file_format']}" size="43">
                                     <%
-                                         file_options = "$Series = SeriesName\n$Year = SeriesYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}"
+                                         file_options = "$Series = SeriesName\n$Year = SeriesYear\n$Annual = Annual (word)\n$Issue = IssueNumber\n$VolumeY = V{SeriesYear}\n$VolumeN = V{Volume#}\n$month = publication month number\n$monthname = publication month name"
                                     %>
                                     <a href="#" title="${file_options}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                     <small>Use:  $Series, $Year, $Issue<br />
@@ -849,6 +855,26 @@
 	
 	{
 
+                if ($("#api_enabled").is(":checked"))
+                        {
+                                $("#apioptions").show();
+                        }
+                else
+                        {
+                                $("#apioptions").hide();
+                        }
+
+                $("#api_enabled").click(function(){
+                        if ($("#api_enabled").is(":checked"))
+                        {
+                                $("#apioptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#apioptions").slideUp();
+                        }
+                });
+
                 if ($("#prowl").is(":checked"))
                         {
                                 $("#prowloptions").show();
@@ -927,8 +953,38 @@
                         {
                                 $("#boxcaroptions").slideUp();
                         }
+
+                if ($("#nzb_downloader_sabnzbd").is(":checked"))
+                        {
+                                $("#sabnzbd_options").show();
+                                $("#nzbget_options,#blackhole_options").hide();
+                        }
+                if ($("#nzb_downloader_nzbget").is(":checked"))
+                        {
+                                $("#sabnzbd_options,#blackhole_options").hide();
+                                $("#nzbget_options").show();
+                        }
+                if ($("#nzb_downloader_blackhole").is(":checked"))
+                        {
+                                $("#sabnzbd_options,#nzbget_options").hide();
+                                $("#blackhole_options").show();
+                        }
                 });
 
+                $('input[type=radio]').change(function(){
+                        if ($("#nzb_downloader_sabnzbd").is(":checked"))
+                        {
+                                $("#nzbget_options,#blackhole_options").fadeOut("fast", function() { $("#sabnzbd_options").fadeIn() });
+                        }
+                        if ($("#nzb_downloader_nzbget").is(":checked"))
+                        {
+                                $("#sabnzbd_options,#blackhole_options").fadeOut("fast", function() { $("#nzbget_options").fadeIn() });
+                        }
+                        if ($("#nzb_downloader_blackhole").is(":checked"))
+                        {
+                                $("#sabnzbd_options,#nzbget_options").fadeOut("fast", function() { $("#blackhole_options").fadeIn() });
+                        }
+                });
 
                 var deletedNewznabs = 0;
 
@@ -937,6 +993,17 @@
                     deletedNewznabs = deletedNewznabs + 1;
                 });
 
+                $('#api_key').click(function(){ $('#api_key').select() });
+                $("#generate_api").click(function(){
+                    $.get('generateAPI',
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#api_key').val(data);
+                    });
+                });
 
 
                 $("#add_newznab").click(function() {
@@ -958,9 +1025,7 @@
 		});
 		initActions();
                 initConfigCheckbox("#launch_browser");
-                initConfigCheckbox("#use_sabnzbd");
-                initConfigCheckbox("#use_nzbget");
-                initConfigCheckbox("#useblackhole");
+                initConfigCheckbox("#enable_api");
                 initConfigCheckbox("#usenewznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");

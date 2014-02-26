@@ -382,6 +382,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
+            month = issuenzb['IssueDate'][5:7].replace('-','').strip()
+            month_name = fullmonth(month)
             logger.fdebug('Issue Year : ' + str(issueyear))
             comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
@@ -428,6 +430,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                            '$publisher': publisher.lower(),
                            '$VolumeY':   'V' + str(seriesyear),
                            '$VolumeN':   comversion,
+                           '$monthname': monthname,
+                           '$month':     month,
                            '$Annual':    'Annual'
                           }
 
@@ -886,3 +890,34 @@ def checkFolder():
     result = PostProcess.Process()
     logger.info('Finished checking for newly snatched downloads')
 
+def LoadAlternateSearchNames(seriesname_alt, comicid):
+    import logger    
+    #seriesname_alt = db.comics['AlternateSearch']
+    AS_Alt = []
+    Alternate_Names = {}
+    alt_count = 0
+
+    logger.fdebug('seriesname_alt:' + str(seriesname_alt))
+    if seriesname_alt is None or seriesname_alt == 'None':
+        logger.fdebug('no Alternate name given. Aborting search.')
+        return "no results"
+    else:
+        chkthealt = seriesname_alt.split('##')
+        if chkthealt == 0:
+            AS_Alternate = seriesname_alt
+            AS_Alt.append(seriesname_alt)
+        for calt in chkthealt:
+            AS_Alter = re.sub('##','',calt)
+            u_altsearchcomic = AS_Alter.encode('ascii', 'ignore').strip()
+            AS_formatrem_seriesname = re.sub('\s+', ' ', u_altsearchcomic)
+            if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
+
+            AS_Alt.append({"AlternateName": AS_formatrem_seriesname})
+            alt_count+=1
+
+        Alternate_Names['AlternateName'] = AS_Alt
+        Alternate_Names['ComicID'] = comicid
+        Alternate_Names['Count'] = alt_count
+        logger.info('AlternateNames returned:' + str(Alternate_Names))
+
+        return Alternate_Names

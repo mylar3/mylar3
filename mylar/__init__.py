@@ -54,6 +54,7 @@ __INITIALIZED__ = False
 started = False
 
 DATA_DIR = None
+DBLOCK = False
 
 CONFIG_FILE = None
 CFG = None
@@ -74,6 +75,8 @@ HTTP_HOST = None
 HTTP_USERNAME = None
 HTTP_PASSWORD = None
 HTTP_ROOT = None
+API_ENABLED = False
+API_KEY = None
 LAUNCH_BROWSER = False
 LOGVERBOSE = 1
 GIT_PATH = None
@@ -111,8 +114,6 @@ PREFERRED_QUALITY = 0
 CORRECT_METADATA = False
 MOVE_FILES = False
 RENAME_FILES = False
-BLACKHOLE = False
-BLACKHOLE_DIR = None
 FOLDER_FORMAT = None
 FILE_FORMAT = None
 REPLACE_SPACES = False
@@ -151,7 +152,9 @@ CVINFO = False
 LOG_LEVEL = None
 POST_PROCESSING = 1
 
-USE_SABNZBD = True
+NZB_DOWNLOADER = None  #0 = sabnzbd, #1 = nzbget, #2 = blackhole
+
+USE_SABNZBD = False
 SAB_HOST = None
 SAB_USERNAME = None
 SAB_PASSWORD = None
@@ -167,6 +170,10 @@ NZBGET_USERNAME = None
 NZBGET_PASSWORD = None
 NZBGET_PRIORITY = None
 NZBGET_CATEGORY = None
+NZBGET_DIRECTORY = None
+
+USE_BLACKHOLE = False
+BLACKHOLE_DIR = None
 
 PROVIDER_ORDER = None
 
@@ -309,11 +316,11 @@ def initialize():
     with INIT_LOCK:
     
         global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
-                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, LAUNCH_BROWSER, GIT_PATH, \
+                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
-                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
-                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, NZBX,\
+                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
+                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, NZBX,\
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
                 ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
@@ -350,6 +357,8 @@ def initialize():
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
         HTTP_ROOT = check_setting_str(CFG, 'General', 'http_root', '/')
+        API_ENABLED = bool(check_setting_int(CFG, 'General', 'api_enabled', 0))
+        API_KEY = check_setting_str(CFG, 'General', 'api_key', '') 
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
         LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 1))
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
@@ -387,7 +396,7 @@ def initialize():
         RENAME_FILES = bool(check_setting_int(CFG, 'General', 'rename_files', 0))
         FOLDER_FORMAT = check_setting_str(CFG, 'General', 'folder_format', '$Series ($Year)')
         FILE_FORMAT = check_setting_str(CFG, 'General', 'file_format', '$Series $Issue ($Year)')
-        BLACKHOLE = bool(check_setting_int(CFG, 'General', 'blackhole', 0))
+        USE_BLACKHOLE = bool(check_setting_int(CFG, 'General', 'use_blackhole', 0))
         BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
         REPLACE_SPACES = bool(check_setting_int(CFG, 'General', 'replace_spaces', 0))
         REPLACE_CHAR = check_setting_str(CFG, 'General', 'replace_char', '')
@@ -488,7 +497,13 @@ def initialize():
         ENABLE_CBT = bool(check_setting_int(CFG, 'Torrents', 'enable_cbt', 0))
         CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '')
 
-        USE_SABNZBD = bool(check_setting_int(CFG, 'SABnzbd', 'use_sabnzbd', 0))
+        #this needs to have it's own category - for now General will do.
+        NZB_DOWNLOADER = check_setting_int(CFG, 'General', 'nzb_downloader', 0)
+        #legacy support of older config - reload into old values for consistency.
+        if NZB_DOWNLOADER == 0: USE_SABNZBD = True
+        elif NZB_DOWNLOADER == 1: USE_NZBGET = True
+        elif NZB_DOWNLOADER == 2: USE_BLACKHOLE = True
+        #USE_SABNZBD = bool(check_setting_int(CFG, 'SABnzbd', 'use_sabnzbd', 0))
         SAB_HOST = check_setting_str(CFG, 'SABnzbd', 'sab_host', '')
         SAB_USERNAME = check_setting_str(CFG, 'SABnzbd', 'sab_username', '')
         SAB_PASSWORD = check_setting_str(CFG, 'SABnzbd', 'sab_password', '')
@@ -504,13 +519,17 @@ def initialize():
             elif SAB_PRIORITY == "4": SAB_PRIORITY = "Paused"
             else: SAB_PRIORITY = "Default"
 
-        USE_NZBGET = bool(check_setting_int(CFG, 'NZBGet', 'use_nzbget', 0))
+        #USE_NZBGET = bool(check_setting_int(CFG, 'NZBGet', 'use_nzbget', 0))
         NZBGET_HOST = check_setting_str(CFG, 'NZBGet', 'nzbget_host', '')
         NZBGET_PORT = check_setting_str(CFG, 'NZBGet', 'nzbget_port', '')
         NZBGET_USERNAME = check_setting_str(CFG, 'NZBGet', 'nzbget_username', '')
         NZBGET_PASSWORD = check_setting_str(CFG, 'NZBGet', 'nzbget_password', '')
         NZBGET_CATEGORY = check_setting_str(CFG, 'NZBGet', 'nzbget_category', '')
         NZBGET_PRIORITY = check_setting_str(CFG, 'NZBGet', 'nzbget_priority', '')
+        NZBGET_DIRECTORY = check_setting_str(CFG, 'NZBGet', 'nzbget_directory', '')
+
+        #USE_BLACKHOLE = bool(check_setting_int(CFG, 'General', 'use_blackhole', 0))
+        BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
 
         PR_NUM = 0  # provider counter here (used for provider orders)
         PR = []
@@ -716,9 +735,15 @@ def initialize():
 
         # With the addition of NZBGet, it's possible that both SAB and NZBget are unchecked initially.
         # let's force default SAB.
-        if USE_NZBGET == 0 and USE_SABNZBD == 0 :
-            logger.info('No Download Server option given - defaulting to SABnzbd.')
-            USE_SABNZBD = 1
+        #if NZB_DOWNLOADER == None:
+        #    logger.info('No Download Option selected - default to SABnzbd.')
+        #    NZB_DOWNLOADER = 0
+        #    USE_SABNZBD = 1
+        #else:
+        #    logger.info('nzb_downloader is set to : ' + str(NZB_DOWNLOADER))
+        #if USE_NZBGET == 0 and USE_SABNZBD == 0 :
+        #    logger.info('No Download Server option given - defaulting to SABnzbd.')
+        #    USE_SABNZBD = 1
 
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
@@ -851,6 +876,8 @@ def config_write():
     new_config['General']['http_username'] = HTTP_USERNAME
     new_config['General']['http_password'] = HTTP_PASSWORD
     new_config['General']['http_root'] = HTTP_ROOT
+    new_config['General']['api_enabled'] = int(API_ENABLED)
+    new_config['General']['api_key'] = API_KEY   
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
     new_config['General']['log_dir'] = LOG_DIR
     new_config['General']['logverbose'] = int(LOGVERBOSE)
@@ -890,7 +917,7 @@ def config_write():
     new_config['General']['rename_files'] = int(RENAME_FILES)
     new_config['General']['folder_format'] = FOLDER_FORMAT
     new_config['General']['file_format'] = FILE_FORMAT
-    new_config['General']['blackhole'] = int(BLACKHOLE)
+    #new_config['General']['use_blackhole'] = int(USE_BLACKHOLE)
     new_config['General']['blackhole_dir'] = BLACKHOLE_DIR
     new_config['General']['replace_spaces'] = int(REPLACE_SPACES)
     new_config['General']['replace_char'] = REPLACE_CHAR
@@ -939,6 +966,7 @@ def config_write():
                 flattened_providers.append(item)
 
     new_config['General']['provider_order'] = flattened_providers
+    new_config['General']['nzb_downloader'] = NZB_DOWNLOADER
 
     new_config['Torrents'] = {}
     new_config['Torrents']['enable_torrents'] = int(ENABLE_TORRENTS)
@@ -957,9 +985,8 @@ def config_write():
     new_config['Torrents']['enable_cbt'] = int(ENABLE_CBT)
     new_config['Torrents']['cbt_passkey'] = CBT_PASSKEY
 
-
     new_config['SABnzbd'] = {}
-    new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
+    #new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
     new_config['SABnzbd']['sab_host'] = SAB_HOST
     new_config['SABnzbd']['sab_username'] = SAB_USERNAME
     new_config['SABnzbd']['sab_password'] = SAB_PASSWORD
@@ -969,14 +996,14 @@ def config_write():
     new_config['SABnzbd']['sab_directory'] = SAB_DIRECTORY
 
     new_config['NZBGet'] = {}
-    new_config['NZBGet']['use_nzbget'] = int(USE_NZBGET)
+    #new_config['NZBGet']['use_nzbget'] = int(USE_NZBGET)
     new_config['NZBGet']['nzbget_host'] = NZBGET_HOST
     new_config['NZBGet']['nzbget_port'] = NZBGET_PORT
     new_config['NZBGet']['nzbget_username'] = NZBGET_USERNAME
     new_config['NZBGet']['nzbget_password'] = NZBGET_PASSWORD
     new_config['NZBGet']['nzbget_category'] = NZBGET_CATEGORY
     new_config['NZBGet']['nzbget_priority'] = NZBGET_PRIORITY
-
+    new_config['NZBGet']['nzbget_directory'] = NZBGET_DIRECTORY
 
     new_config['NZBsu'] = {}
     new_config['NZBsu']['nzbsu'] = int(NZBSU)
@@ -1104,7 +1131,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
     conn.commit
@@ -1283,6 +1310,20 @@ def dbcheck():
     except:
         c.execute('ALTER TABLE issues ADD COLUMN AltIssueNumber TEXT')
 
+    try:
+        c.execute('SELECT ReleaseDate from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN ReleaseDate TEXT')
+
+    try:
+        c.execute('SELECT ReleaseComicID from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN ReleaseComicID TEXT')
+
+    try:
+        c.execute('SELECT ReleaseComicName from annuals')
+    except:
+        c.execute('ALTER TABLE annuals ADD COLUMN ReleaseComicName TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
@@ -1309,6 +1350,7 @@ def dbcheck():
 
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
     c.execute("DELETE from COMICS WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
+    c.execute("DELETE from ISSUES WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
 
     logger.info('Correcting Null entries that make the main page break on startup.')

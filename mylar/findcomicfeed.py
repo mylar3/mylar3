@@ -59,7 +59,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         totNum = len(feed.entries)
         tallycount += len(feed.entries)
 
-        keyPair = {}
+        #keyPair = {}
+        keyPair = []
         regList = []
         countUp = 0
 
@@ -68,7 +69,11 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         while countUp < totNum:
      	    urlParse = feed.entries[countUp].enclosures[0]
 	    #keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
-	    keyPair[feed.entries[countUp].title] = urlParse["href"]
+	    #keyPair[feed.entries[countUp].title] = urlParse["href"]
+            keyPair.append({"title":     feed.entries[countUp].title,
+                            "link":      urlParse["href"],
+                            "length":    urlParse["length"],
+                            "pubdate":   feed.entries[countUp].updated})
 
     	    countUp=countUp+1
 
@@ -90,13 +95,14 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
         except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
 
-        for title, link in keyPair.items():
+        for entry in keyPair:
+            title = entry['title']
             #logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
             noYear = 'False'
 
             for subs in splitTitle:
-                logger.fdebug(subs)
+                #logger.fdebug('sub:' + subs)
                 regExCount = 0
                 if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
@@ -128,8 +134,10 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                     if noYear == 'False':
                         
                         entries.append({
-                                  'title':   subs,
-                                  'link':    str(link)
+                                  'title':     subs,
+                                  'link':      entry['link'],
+                                  'pubdate':   entry['pubdate'],
+                                  'length':    entry['length']
                                   })
                         break  # break out so we don't write more shit.
               

@@ -236,7 +236,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         elif issuechk['Status'] == "Wanted":
             logger.fdebug('...Status already Wanted .. not changing.')
         else:
-            logger.fdebug('...Already have issue - keeping existing status of : ' + issuechk['Status'])
+            logger.fdebug('...Already have issue - keeping existing status of : ' + str(issuechk['Status']))
 
     if issuechk is None:
         myDB.upsert("upcoming", newValue, controlValue)
@@ -271,6 +271,8 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
 
 def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None):
+    logger.fdebug('weekly_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber))
+    logger.fdebug('weekly_update of table : ' + str(CStatus))
     # here we update status of weekly table...
     # added Issue to stop false hits on series' that have multiple releases in a week
     # added CStatus to update status flags on Pullist screen
@@ -459,9 +461,9 @@ def forceRescan(ComicID,archive=None):
     rescan = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
     logger.info('Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in ' + rescan['ComicLocation'] )
     if archive is None:
-        fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
+        fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
     else:
-        fc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], AlternateSearch=rescan['AlternateSearch'])
+        fc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
     iscnt = rescan['Total']
     havefiles = 0
     if mylar.ANNUALS_ON:

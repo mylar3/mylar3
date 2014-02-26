@@ -36,7 +36,7 @@ def tehMain(forcerss=None):
 
     #function for looping through nzbs/torrent feeds
     if mylar.ENABLE_TORRENTS:
-        logger.fdebug("[RSS] Initiating Torrent RSS Check.")
+        logger.fdebug('[RSS] Initiating Torrent RSS Check.')
         if mylar.ENABLE_KAT:
             logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on KAT.')
             torrents(pickfeed='3')
@@ -44,7 +44,7 @@ def tehMain(forcerss=None):
             logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on CBT.')
             torrents(pickfeed='1')
             torrents(pickfeed='4')
-    logger.fdebug('RSS] Initiating RSS Feed Check for NZB Providers.')
+    logger.fdebug('[RSS] Initiating RSS Feed Check for NZB Providers.')
     nzbs()    
     logger.fdebug('[RSS] RSS Feed Check/Update Complete')
     logger.fdebug('[RSS] Watchlist Check for new Releases')
@@ -285,32 +285,37 @@ def nzbs(provider=None):
     if nonexp == "yes":
         #print str(ft) + " sites checked. There are " + str(totNum) + " entries to be updated."
         #print feedme
-        #i = 0
 
         for ft in feedthis:
+            sitei = 0
             site = ft['site']
             logger.fdebug(str(site) + " now being updated...")
+            logger.fdebug('feedthis:' + str(ft))
             for entry in ft['feed'].entries:
                 if site == 'dognzb':
                     #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
-                    if entry.attrib.get('name') == 'size':
-                        tmpsz = entry.attrib.get('value')
+                    tmpsz = 0
+                    #for attr in entry['newznab:attrib']:
+                    #    if attr('@name') == 'size':
+                    #        tmpsz = attr['@value']
+                    #        logger.fdebug('size retrieved as ' + str(tmpsz))
+                    #        break
                     feeddata.append({
                                'Site':     site,
-                               'Title':    ft['feed'].entries[i].title,
-                               'Link':     ft['feed'].entries[i].link,
-                               'Pubdate':  ft['feed'].entries[i].updated,
+                               'Title':    entry.title,    #ft['feed'].entries[i].title,
+                               'Link':     entry.link,     #ft['feed'].entries[i].link,
+                               'Pubdate':  entry.updated,  #ft['feed'].entries[i].updated,
                                'Size':     tmpsz
                                })
                 else:
                     #this should work for all newznabs (nzb.su included)
                     #only difference is the size of the file between this and above (which is probably the same)
-                    tmpsz = ft['feed'].entries[i].enclosures[0]
+                    tmpsz = entry.enclosures[0]  #ft['feed'].entries[i].enclosures[0]
                     feeddata.append({
                                'Site':     site,
-                               'Title':    ft['feed'].entries[i].title,
-                               'Link':     ft['feed'].entries[i].link,
-                               'Pubdate':  ft['feed'].entries[i].updated,
+                               'Title':    entry.title,   #ft['feed'].entries[i].title,
+                               'Link':     entry.link,    #ft['feed'].entries[i].link,
+                               'Pubdate':  entry.updated, #ft['feed'].entries[i].updated,
                                'Size':     tmpsz['length']
                                })
 
@@ -319,9 +324,10 @@ def nzbs(provider=None):
                 #logger.fdebug("Link: " + str(feeddata[i]['Link']))
                 #logger.fdebug("pubdate: " + str(feeddata[i]['Pubdate']))
                 #logger.fdebug("size: " + str(feeddata[i]['Size']))
-                i+=1
-            logger.info(str(site) + ' : ' + str(i) + ' entries indexed.')
-
+                sitei+=1
+            logger.info(str(site) + ' : ' + str(sitei) + ' entries indexed.')
+            i+=sitei
+    logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
     rssdbupdate(feeddata,i,'usenet')
     return
 
@@ -446,7 +452,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             titletemp = re.sub('cbr', '', str(titletemp))
             titletemp = re.sub('cbz', '', str(titletemp))
             titletemp = re.sub('none', '', str(titletemp))
-          
+
             if i == 0: 
                 rebuiltline = str(titletemp)
             else:
@@ -465,13 +471,13 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         seriesname_mod = re.sub('[\&]', ' ', seriesname_mod)
         foundname_mod = re.sub('[\&]', ' ', foundname_mod)
 
-        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.\-]', '',seriesname_mod)
-        formatrem_seriesname = re.sub('[\/]', '-', formatrem_seriesname)
+        formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\=\?\.\-\/]', '',seriesname_mod)
+        #formatrem_seriesname = re.sub('[\/]', '-', formatrem_seriesname)  #not necessary since seriesname in a torrent file won't have /
         formatrem_seriesname = re.sub('\s+', ' ', formatrem_seriesname)
         if formatrem_seriesname[:1] == ' ': formatrem_seriesname = formatrem_seriesname[1:]
 
-        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.\-]', '',foundname_mod)
-        formatrem_torsplit = re.sub('[\/]', '-', formatrem_torsplit)
+        formatrem_torsplit = re.sub('[\'\!\@\#\$\%\:\;\\=\?\.\-\/]', '',foundname_mod)
+        #formatrem_torsplit = re.sub('[\/]', '-', formatrem_torsplit)  #not necessary since if has a /, should be removed in above line
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
         logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())
         logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())

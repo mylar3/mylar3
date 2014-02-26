@@ -148,7 +148,8 @@ class PostProcessor(object):
                 # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                 if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
                     self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-    
+                    logger.fdebug('SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
+
                 #lookup nzb_name in nzblog table to get issueid
     
                 #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
@@ -172,6 +173,10 @@ class PostProcessor(object):
             if mylar.USE_NZBGET==1:
                 logger.fdebug("Using NZBGET")
                 logger.fdebug("NZB name as passed from NZBGet: " + self.nzb_name)
+                # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
+                if mylar.NZBGET_DIRECTORY is not None and mylar.NZBGET_DIRECTORY is not 'None' and len(mylar.NZBGET_DIRECTORY) > 4:
+                    self.nzb_folder = os.path.join(mylar.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                    logger.fdebug('NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
             myDB = db.DBConnection()
 
             if self.nzb_name == 'Manual Run':
@@ -195,12 +200,14 @@ class PostProcessor(object):
                         watchvals = {"SeriesYear":   cs['ComicYear'],
                                      "LatestDate":   cs['LatestDate'],
                                      "ComicVersion": cs['ComicVersion'],
+                                     "Publisher":    cs['ComicPublisher'],
                                      "Total":        cs['Total']}
-                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['AlternateSearch'], manual=watchvals)
+                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['ComicPublisher'],cs['AlternateSearch'], manual=watchvals)
                         if watchmatch['comiccount'] == 0: # is None:
                             nm+=1
                             continue
                         else:
+                            print 'i made it here...'
                             fn = 0
                             fccnt = int(watchmatch['comiccount'])
                             if len(watchmatch) == 1: continue
@@ -260,12 +267,32 @@ class PostProcessor(object):
                                     if issuechk is None:
                                         logger.info("No corresponding issue # found for " + str(cs['ComicID']))
                                     else:
-                                        logger.info("Found matching issue # " + str(fcdigit) + " for ComicID: " + str(cs['ComicID']) + " / IssueID: " + str(issuechk['IssueID']))
-                                        manual_list.append({"ComicLocation":   tmpfc['ComicLocation'],
-                                                            "ComicID":         cs['ComicID'],
-                                                            "IssueID":         issuechk['IssueID'],
-                                                            "IssueNumber":     issuechk['Issue_Number'],
-                                                            "ComicName":       cs['ComicName']})
+                                        datematch = "True"
+                                        if len(watchmatch) > 1:
+                                            #if the # of matches is more than 1, we need to make sure we get the right series
+                                            #compare the ReleaseDate for the issue, to the found issue date in the filename.
+                                            #if ReleaseDate doesn't exist, use IssueDate
+                                            #if no issue date was found, then ignore.
+                                            if issuechk['ReleaseDate'] is not None:
+                                                if int(issuechk['ReleaseDate'][:4]) < int(tmpfc['ComicYear']):
+                                                    logger.fdebug(str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
+                                                    datematch = "False"
+                                            else:
+                                                if int(issuechk['IssueDate'][:4]) < int(tmpfc['ComicYear']):
+                                                    logger.fdebug(str(issuechk['IssueDate']) + ' is before the issue year ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
+                                                    datematch = "False"
+                                          
+                                        else:
+                                            logger.info("Found matching issue # " + str(fcdigit) + " for ComicID: " + str(cs['ComicID']) + " / IssueID: " + str(issuechk['IssueID']))
+                                            
+                                        if datematch == "True":
+                                            manual_list.append({"ComicLocation":   tmpfc['ComicLocation'],
+                                                                "ComicID":         cs['ComicID'],
+                                                                "IssueID":         issuechk['IssueID'],
+                                                                "IssueNumber":     issuechk['Issue_Number'],
+                                                                "ComicName":       cs['ComicName']})
+                                        else:
+                                            logger.fdebug('Incorrect series - not populating..continuing post-processing')
                                         ccnt+=1
                                         #print manual_list
                                     wdc+=1
@@ -563,6 +590,8 @@ class PostProcessor(object):
             issueyear = issuenzb['IssueDate'][:4]
             self._log("Issue Year: " + str(issueyear), logger.DEBUG)
             logger.fdebug("Issue Year : " + str(issueyear))
+            month = issuenzb['IssueDate'][5:7].replace('-','').strip()
+            month_name = helpers.fullmonth(month)
 #            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher, logger.DEBUG)
@@ -675,6 +704,8 @@ class PostProcessor(object):
                            '$publisher': publisher.lower(),
                            '$VolumeY':   'V' + str(seriesyear),
                            '$VolumeN':   comversion,
+                           '$monthname': monthname,
+                           '$month':     month,
                            '$Annual':    'Annual'
                           }
 

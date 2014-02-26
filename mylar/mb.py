@@ -29,7 +29,14 @@ mb_lock = threading.Lock()
 
 def pullsearch(comicapi,comicquery,offset):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
-    PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
+    u_comicquery = u_comicquery.replace(" ", "%20")
+
+    # as of 02/15/2014 this is buggered up.
+    #PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
+
+    # 02/22/2014 use the volume filter label to get the right results.
+    PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset) #offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+
     #all these imports are standard on most modern python implementations
     #download the file:
     try:
@@ -59,8 +66,9 @@ def findComic(name, mode, issue, limityear=None):
     #print ("limityear: " + str(limityear))            
     if limityear is None: limityear = 'None'
 
+    comicquery = name
     #comicquery=name.replace(" ", "%20")
-    comicquery=name.replace(" ", " AND ")
+    #comicquery=name.replace(" ", " AND ")
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     offset = 1
 
@@ -68,15 +76,19 @@ def findComic(name, mode, issue, limityear=None):
     searched = pullsearch(comicapi,comicquery,1)
     if searched is None: return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
-    #print ("there are " + str(totalResults) + " search results...")
+    logger.fdebug("there are " + str(totalResults) + " search results...")
     if not totalResults:
         return False
     countResults = 0
     while (countResults < int(totalResults)):
-        #print ("querying " + str(countResults))
+        #logger.fdebug("querying " + str(countResults))
         if countResults > 0:
             #new api - have to change to page # instead of offset count
             offsetcount = (countResults/100) + 1
+
+            #2012/22/02 - CV API flipped back to offset usage instead of page :(
+            #if countResults == 1: offsetcount = 0
+            #else: offsetcount = countResults
             searched = pullsearch(comicapi,comicquery,offsetcount)
         comicResults = searched.getElementsByTagName('volume')
         body = ''

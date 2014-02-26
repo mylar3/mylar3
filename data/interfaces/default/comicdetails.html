@@ -401,8 +401,12 @@
               </table>
              </form>
              </div>
+
             %if annuals:
-          <h1>Annuals</h1>
+            <h1>Annuals</h1>
+             %for aninfo in annualinfo:
+                 ${aninfo['annualComicName']}<a href="annualDelete?comicid=${comic['ComicID']}&ReleaseComicID=${aninfo['annualComicID']}"><img src="interfaces/default/images/x.png" height="10" width="10"/></a>
+             %endfor
 
         <form action="markissues" method="get" id="markissues">
         <div id="markissue">Mark selected annuals as
@@ -445,6 +449,7 @@
                    <tbody>           
 
                    %for annual in annuals:
+
                         <%
                                 if annual['Status'] == 'Skipped':
                                         grade = 'Z'
@@ -483,17 +488,29 @@
                                         <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=${amode}',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Add to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
-                                        <a href="#" title="Retry" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&mode=${amode}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}'"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Retry" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&mode=${amode}', $(this),'table')" data-success="Retrying the same version of '${annual['ComicName']}'"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Archive" onclick="doAjaxCall('archiveissue?IssueID=${annual['IssueID']}',$(this),'table')"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived" /></a>
                                 </td>
 
                             </tr>
                    %endfor
                    </tbody>
-                  </table>
                 </form>
+                </table>
             %endif
- 
+                        <div style="position:relative; width:960px; height:10px; margin:10px auto;">
+                            <form action="manual_annual_add" method="GET">
+                                 <input type="hidden" name="comicid" value=${comic['ComicID']}>
+                                 <input type="hidden" name="comicname" value=${comic['ComicName'] |u}>
+                                 <input type="hidden" name="comicyear" value=${comic['ComicYear']}>
+                                      <div style="position:absolute; top:30px; right:0px;">
+                                           <center><label><strong><a href="#" title="Enter the ComicID of the annual(s) you want to add to the series"/>Comic ID</a></strong></label>
+                                           <input type="text" name="manual_comicid" size="10"><input type="image" src="interfaces/default/images/submit.png" height="25" width="25" /></center>
+                                      </div>
+
+                             </form>
+                        </div>
+
 </%def>
 
 <%def name="headIncludes()">
@@ -653,7 +670,17 @@
                                     { 'bVisible': false, 'aTargets': [1] },
                                     { 'sType': 'numeric', 'aTargets': [1] },
                                     { 'iDataSort': [1], 'aTargets': [2] }
-                               ]
+                               ],
+                               "oLanguage": {
+                                       "sLengthMenu":"",
+                                       "sEmptyTable": "No issue information available",
+                                       "sInfo":"Showing _TOTAL_ issues",
+                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
+                                       "sInfoFiltered":"",
+                                       "sSearch": ""},
+                               "bStateSave": true,
+                               "bFilter": false,
+                               "iDisplayLength": 10
                         });
 
                 resetFilters("issue");

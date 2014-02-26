@@ -405,11 +405,13 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
     ccname = []
     pubdate = []
     w = 0
+    wc = 0
     tot = 0
     chkout = []
     watchfnd = []
     watchfndiss = []
     watchfndextra = []
+    alternate = []
 
     #print ("----------WATCHLIST--------")
     a_list = []
@@ -432,7 +434,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing from comics")
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch from comics")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
@@ -467,16 +469,48 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                         b_list.append(watchd[2])
                         comicid.append(watchd[0])
                         pubdate.append(watchd[4])
-                        #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
-                        #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
                         lines.append(a_list[w].strip())
                         unlines.append(a_list[w].strip())
-                        llen.append(a_list[w].splitlines())
-                        ccname.append(a_list[w].strip())
-                        tmpwords = a_list[w].split(None)
-                        ltmpwords = len(tmpwords)
-                        ltmp = 1
-                        w+=1
+                        w+=1   # we need to increment the count here, so we don't count the same comics twice (albeit with alternate names)
+
+                        #here we load in the alternate search names for a series and assign them the comicid and
+                        #alternate names
+                        Altload = helpers.LoadAlternateSearchNames(watchd[7], watchd[0])
+                        if Altload == 'no results':
+                            pass
+                        else:
+                            wc = 0 
+                            alt_cid = Altload['ComicID']
+                            n = 0
+                            iscnt = Altload['Count']
+                            while (n <= iscnt):
+                                try:
+                                    altval = Altload['AlternateName'][n]
+                                except IndexError:
+                                    break
+                                cleanedname = altval['AlternateName']
+                                a_list.append(altval['AlternateName'])
+                                b_list.append(watchd[2])
+                                comicid.append(alt_cid)
+                                pubdate.append(watchd[4])
+                                lines.append(a_list[w+wc].strip())
+                                unlines.append(a_list[w+wc].strip())
+                                logger.info('loading in Alternate name for ' + str(cleanedname))
+                                n+=1
+                                wc+=1
+                            w+=wc
+
+                #-- to be removed - 
+                        #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
+                        #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
+                        #lines.append(a_list[w].strip())
+                        #unlines.append(a_list[w].strip())
+                        #llen.append(a_list[w].splitlines())
+                        #ccname.append(a_list[w].strip())
+                        #tmpwords = a_list[w].split(None)
+                        #ltmpwords = len(tmpwords)
+                        #ltmp = 1
+                #-- end to be removed
                     else:
                         logger.fdebug("Determined to not be a Continuing series at this time.")    
         cnt = int(w-1)
@@ -561,6 +595,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                 modcomicnm = re.sub(r'\s', '', modcomicnm)
                                 logger.fdebug("watchcomic : " + str(watchcomic) + " / mod :" + str(modwatchcomic))
                                 logger.fdebug("comicnm : " + str(comicnm) + " / mod :" + str(modcomicnm))
+
                                 if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
                                     logger.fdebug("matched on:" + comicnm + "..." + watchcomic.upper())
                                     pass
@@ -569,6 +604,37 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
 #                                    print ( row[3] + " matched on ANNUAL")
                                 else:
                                     break
+
+#this all needs to get redone, so the ability to compare issue dates can be done systematically.
+#Everything below should be in it's own function - at least the callable sections - in doing so, we can
+#then do comparisons when two titles of the same name exist and are by definition 'current'. Issue date comparisons
+#would identify the difference between two #1 titles within the same series year, but have different publishing dates.
+#Wolverine (2013) & Wolverine (2014) are good examples of this situation.
+#of course initially, the issue data for the newer series wouldn't have any issue data associated with it so it would be
+#a null value, but given that the 2013 series (as an exmaple) would be from 2013-05-01, it obviously wouldn't be a match to
+#the current date & year (2014). Throwing out that, we could just assume that the 2014 would match the #1.
+
+                                #get the issue number of the 'weeklypull' series.
+                                #load in the actual series issue number's store-date (not publishing date)
+                                #---use a function to check db, then return the results in a tuple/list to avoid db locks.
+                                #if the store-date is >= weeklypull-list date then continue processing below.
+                                #if the store-date is <= weeklypull-list date then break.
+                                ### week['ISSUE']  #issue # from pullist
+                                ### week['SHIPDATE']  #weeklypull-list date
+                                ### comicid[cnt] #comicid of matched series                                                                
+                                datecheck = loaditup(watchcomic, comicid[cnt], week['ISSUE'])
+                                logger.fdebug('Now checking date comparison using an issue store date of ' + str(datecheck))
+
+                                if datecheck == 'no results':
+                                    pass
+                                elif datecheck >= week['SHIPDATE']:
+                                    #logger.info('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is on/ahead of ' + str(week['SHIPDATE']))
+                                    logger.fdebug('Store Date falls within acceptable range - series MATCH')
+                                    pass
+                                elif datecheck < week['SHIPDATE']:
+                                    logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
+                                    break
+
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
                                     if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
                                         otot+=1
@@ -635,3 +701,19 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
 def check(fname, txt):
     with open(fname) as dataf:
         return any(txt in line for line in dataf)
+
+
+def loaditup(comicname, comicid, issue):
+    myDB = db.DBConnection()
+    issue_number = helpers.issuedigits(issue)
+    logger.fdebug('[' + comicname + '] trying to locate issue ' + str(issue) + ' to do comparitive issue analysis for pull-list')
+    issueload = myDB.action('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+    if issueload is None:
+        logger.fdebug('No results matched for Issue number - either this is a NEW series with no data yet, or something is wrong')
+        return 'no results'
+    if issueload['ReleaseDate'] is not None or issueload['ReleaseDate'] is not 'None':
+        logger.fdebug('Returning Release Date for issue # ' + str(issue) + ' of ' + str(issueload['ReleaseDate']))
+        return issueload['ReleaseDate']
+    else:
+        logger.fdebug('Returning Publication Date for issue # ' + str(issue) + ' of ' + str(issueload['PublicationDate']))
+        return issueload['PublicationDate']
