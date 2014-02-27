@@ -162,7 +162,9 @@ class WebInterface(object):
                 acnt+=1
             annualinfo = aName
             #annualinfo['count'] = acnt
-        else: annuals = None
+        else:
+            annuals = None
+            aName = None
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals, annualinfo=aName)
     comicDetails.exposed = True
 

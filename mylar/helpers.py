@@ -430,7 +430,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                            '$publisher': publisher.lower(),
                            '$VolumeY':   'V' + str(seriesyear),
                            '$VolumeN':   comversion,
-                           '$monthname': monthname,
+                           '$monthname': month_name,
                            '$month':     month,
                            '$Annual':    'Annual'
                           }
