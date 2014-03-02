@@ -207,7 +207,6 @@ class PostProcessor(object):
                             nm+=1
                             continue
                         else:
-                            print 'i made it here...'
                             fn = 0
                             fccnt = int(watchmatch['comiccount'])
                             if len(watchmatch) == 1: continue
@@ -218,7 +217,7 @@ class PostProcessor(object):
                                     break
                                 temploc= tmpfc['JusttheDigits'].replace('_', ' ')
                                 temploc = re.sub('[\#\']', '', temploc)
-                                logger.fdebug("temploc: " + str(temploc))
+                                #logger.fdebug("temploc: " + str(temploc))
 
                                 ww = shlex.split(temploc)
                                 lnw = len(ww)

@@ -723,7 +723,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 logger.fdebug('invalid date found. Unable to continue - skipping result.')
                                 continue
                     #use store date instead of publication date for comparisons since publication date is usually +2 months 
-                    if StoreDate is None or StoreDate is '0000-00-00': 
+                    if StoreDate is None or StoreDate == '0000-00-00':
                         stdate = IssueDate
                     else:
                         stdate = StoreDate
@@ -743,6 +743,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #logger.fdebug('econv:' + str(econv))
                     #convert it to a numeric
                     issuedate_int = time.mktime(econv[:len(econv)-1])
+                    #logger.fdebug('issuedate_int:' + str(issuedate_int))
                     if postdate_int < issuedate_int:
                         logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
                         continue

@@ -644,8 +644,8 @@ class WebInterface(object):
     addArtists.exposed = True
     
     def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None):
-        print "ComicID:" + str(ComicID)
-        print "mode:" + str(mode)
+        logger.fdebug('ComicID:' + str(ComicID))
+        logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
@@ -657,7 +657,6 @@ class WebInterface(object):
             # comics that have X many issues
             raise cherrypy.HTTPRedirect("searchit?name=%s&issue=%s&mode=%s" % (ComicName, 'None', 'pullseries'))
         elif ComicID is None and mode == 'readlist':
-            print "blahblah"
             # this is for marking individual comics from a readlist to be downloaded.
             # Because there is no associated ComicID or IssueID, follow same pattern as in 'pullwant'
             # except we know the Year
@@ -711,30 +710,24 @@ class WebInterface(object):
         #    newStatus = {"Status": "Wanted"}
         #    myDB.upsert("issues", newStatus, controlValueDict)
         #for future reference, the year should default to current year (.datetime)
-        print 'before db'
         if mode == 'want':
             issues = myDB.action("SELECT IssueDate, ReleaseDate FROM issues WHERE IssueID=?", [IssueID]).fetchone()
         elif mode == 'want_ann':
             issues = myDB.action("SELECT IssueDate, ReleaseDate FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
-        print 'after db'
         if ComicYear == None:
             ComicYear = str(issues['IssueDate'])[:4]
-        print 'after year'
         if issues['ReleaseDate'] is None:
             logger.info('No Store Date found for given issue. This is probably due to not Refreshing the Series beforehand.')
             logger.info('I Will assume IssueDate as Store Date, but you should probably Refresh the Series and try again if required.')
             storedate = issues['IssueDate']
         else:
             storedate = issues['ReleaseDate']
-        print 'there'
         miy = myDB.action("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
-        print 'miy'
         SeriesYear = miy['ComicYear']
         AlternateSearch = miy['AlternateSearch']
         Publisher = miy['ComicPublisher']
         UseAFuzzy = miy['UseFuzzy']
         ComicVersion = miy['ComicVersion']
-        print 'here'
         foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count

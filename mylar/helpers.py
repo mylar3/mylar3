@@ -720,7 +720,7 @@ def issuedigits(issnum):
             try:
                 int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
             except ValueError:
-                logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                 int_issnum = 999999999999999
         else:
             try:
