@@ -964,45 +964,49 @@ class WebInterface(object):
     def upcoming(self):
         myDB = db.DBConnection()
         #upcoming = myDB.select("SELECT * from issues WHERE ReleaseDate > date('now') order by ReleaseDate DESC")
-        upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueID is NULL order by IssueDate DESC")
-        upcoming = []
-        for upc in upcomingdata:
-            if len(upc['IssueDate']) <= 7 :
-                #if it's less than or equal 7, then it's a future-pull so let's check the date and display
-                #tmpdate = datetime.datetime.com
-                tmpdatethis = upc['IssueDate']
-                if tmpdatethis[:2] == '20':
-                    tmpdate = tmpdatethis #in correct format of yyyymm
+        upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueID is NULL AND IssueNumber is not NULL AND ComicName is not NULL order by IssueDate DESC")
+        if upcomingdata is None:
+            logger.info('No upcoming data as of yet...')
+        else:
+            upcoming = []
+            for upc in upcomingdata:
+            
+                if len(upc['IssueDate']) <= 7 :
+                    #if it's less than or equal 7, then it's a future-pull so let's check the date and display
+                    #tmpdate = datetime.datetime.com
+                    tmpdatethis = upc['IssueDate']
+                    if tmpdatethis[:2] == '20':
+                        tmpdate = tmpdatethis #in correct format of yyyymm
+                    else:
+                        findst = tmpdatethis.find('-')  #find the '-'
+                        tmpdate = tmpdatethis[findst+1:] + tmpdatethis[:findst] #rebuild in format of yyyymm
+                    timenow = datetime.datetime.now().strftime('%Y%m')
+                    #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+                    if int(tmpdate) >= int(timenow):
+                        if upc['Status'] == 'Wanted':
+                            upcoming.append({"ComicName":    upc['ComicName'],
+                                             "IssueNumber":  upc['IssueNumber'],
+                                             "IssueDate":    upc['IssueDate'],
+                                             "ComicID":      upc['ComicID'],
+                                             "IssueID":      upc['IssueID'],
+                                             "Status":       upc['Status'],
+                                             "DisplayComicName": upc['DisplayComicName']})
                 else:
-                    findst = tmpdatethis.find('-')  #find the '-'
-                    tmpdate = tmpdatethis[findst+1:] + tmpdatethis[:findst] #rebuild in format of yyyymm
-                timenow = datetime.datetime.now().strftime('%Y%m')
-                #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
-                if int(tmpdate) >= int(timenow):
-                    if upc['Status'] == 'Wanted':
-                        upcoming.append({"ComicName":    upc['ComicName'],
-                                         "IssueNumber":  upc['IssueNumber'],
-                                         "IssueDate":    upc['IssueDate'],
-                                         "ComicID":      upc['ComicID'],
-                                         "IssueID":      upc['IssueID'],
-                                         "Status":       upc['Status'],
-                                         "DisplayComicName": upc['DisplayComicName']})
-            else:
-                #if it's greater than 7 it's a full date, and shouldn't be displayed ;)
-                timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
-                tmpdate = re.sub("[^0-9]", "", upc['IssueDate'])  #convert date to numerics only (should be in yyyymmdd)
+                    #if it's greater than 7 it's a full date, and shouldn't be displayed ;)
+                    timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
+                    tmpdate = re.sub("[^0-9]", "", upc['IssueDate'])  #convert date to numerics only (should be in yyyymmdd)
 
-                #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+                    #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
 
-                if int(tmpdate) >= int(timenow):
-                    if upc['Status'] == 'Wanted':
-                        upcoming.append({"ComicName":    upc['ComicName'],
-                                         "IssueNumber":  upc['IssueNumber'],
-                                         "IssueDate":    upc['IssueDate'],
-                                         "ComicID":      upc['ComicID'],
-                                         "IssueID":      upc['IssueID'],
-                                         "Status":       upc['Status'],
-                                         "DisplayComicName": upc['DisplayComicName']})
+                    if int(tmpdate) >= int(timenow):
+                        if upc['Status'] == 'Wanted':
+                            upcoming.append({"ComicName":    upc['ComicName'],
+                                             "IssueNumber":  upc['IssueNumber'],
+                                             "IssueDate":    upc['IssueDate'],
+                                             "ComicID":      upc['ComicID'],
+                                             "IssueID":      upc['IssueID'],
+                                             "Status":       upc['Status'],
+                                             "DisplayComicName": upc['DisplayComicName']})
 
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
         ann_list = []

@@ -495,7 +495,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                 pubdate.append(watchd[4])
                                 lines.append(a_list[w+wc].strip())
                                 unlines.append(a_list[w+wc].strip())
-                                logger.info('loading in Alternate name for ' + str(cleanedname))
+                                logger.fdebug('loading in Alternate name for ' + str(cleanedname))
                                 n+=1
                                 wc+=1
                             w+=wc
@@ -534,7 +534,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                 if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
                 sqlsearch = re.sub(r'\s', '%', sqlsearch)
                 sqlsearch = sqlsearch + '%'
-                logger.fdebug("searchsql: " + sqlsearch)
+                #logger.fdebug("searchsql: " + sqlsearch)
                 if futurepull is None:
                     weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 else:

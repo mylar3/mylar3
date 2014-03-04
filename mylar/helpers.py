@@ -897,7 +897,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
     Alternate_Names = {}
     alt_count = 0
 
-    logger.fdebug('seriesname_alt:' + str(seriesname_alt))
+    #logger.fdebug('seriesname_alt:' + str(seriesname_alt))
     if seriesname_alt is None or seriesname_alt == 'None':
         logger.fdebug('no Alternate name given. Aborting search.')
         return "no results"
@@ -918,6 +918,6 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         Alternate_Names['AlternateName'] = AS_Alt
         Alternate_Names['ComicID'] = comicid
         Alternate_Names['Count'] = alt_count
-        logger.info('AlternateNames returned:' + str(Alternate_Names))
+        #logger.info('AlternateNames returned:' + str(Alternate_Names))
 
         return Alternate_Names
