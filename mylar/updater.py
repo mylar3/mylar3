@@ -271,8 +271,10 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
 
 def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None):
-    logger.fdebug('weekly_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber))
-    logger.fdebug('weekly_update of table : ' + str(CStatus))
+    if futurepull:
+        logger.fdebug('future_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber) + ' to a status of ' + str(CStatus))
+    else:
+        logger.fdebug('weekly_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber) + ' to a status of ' + str(CStatus))
     # here we update status of weekly table...
     # added Issue to stop false hits on series' that have multiple releases in a week
     # added CStatus to update status flags on Pullist screen
@@ -296,10 +298,12 @@ def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None):
         if futurepull is None:
             myDB.upsert("weekly", newValue, controlValue)
         else:
-            if issuecheck['ComicID'] is not None:
+            logger.info('checking ' + str(issuecheck['ComicID']) + ' status of : ' + str(CStatus))
+            if issuecheck['ComicID'] is not None and CStatus != None:
                 newValue = {"STATUS":       "Wanted",
                             "ComicID":      issuecheck['ComicID']}
-
+            logger.info('updating value: ' + str(newValue))
+            logger.info('updating control: ' + str(controlValue))
             myDB.upsert("future", newValue, controlValue)
 
 def newpullcheck(ComicName, ComicID):

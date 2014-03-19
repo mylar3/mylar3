@@ -936,6 +936,66 @@ class WebInterface(object):
 
     add2futurewatchlist.exposed = True
 
+    def future_check(self):
+        # this is the function that will check the futureupcoming table
+        # for series that have yet to be released and have no CV data associated with it
+        # ie. #1 issues would fall into this as there is no series data to poll against until it's released.
+        # Mylar will look for #1 issues, and in finding any will do the following:
+        # - check comicvine to see if the series data has been released and / or issue data
+        # - will automatically import the series (Add A Series) upon finding match
+        # - will then proceed to mark the issue as Wanted, then remove from the futureupcoming table
+        # - will then attempt to download the issue(s) in question.
+        myDB = db.DBConnection()
+        chkfuture = myDB.action("SELECT * FROM futureupcoming WHERE IssueNumber='1'").fetchall()
+        if chkfuture is None:
+            logger.info("There are not any series on your future-list that I consider to be a NEW series")
+            raise cherrypy.HTTPRedirect("home")
+
+        cflist = []
+        #load in the values on an entry-by-entry basis into a tuple, so that we can query the sql clean again.
+        for cf in chkfuture:
+            cflist.append({"ComicName":   cf['ComicName'],
+                           "IssueDate":   cf['IssueDate'],
+                           "IssueNumber": cf['IssueNumber'],   #this should be all #1's as the sql above limits the hits. 
+                           "Publisher":   cf['Publisher'],
+                           "Status":      cf['Status']})
+
+        #now we load in         
+        logger.info('I will be looking to see if any information has been released for ' + str(len(cflist)) + ' series that are NEW series')
+        #limit the search to just the 'current year' since if it's anything but a #1, it should have associated data already.
+        #limittheyear = []
+        #limittheyear.append(cf['IssueDate'][-4:])
+        for ser in cflist:
+            logger.info('looking for new data for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(ser['IssueDate'][-4:]) + ')')
+            searchresults = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=ser['IssueDate'][-4:])
+            print searchresults
+            if len(searchresults) > 1:
+                logger.info('More than one result returned - this may have to be a manual add')
+            else:
+                for sr in searchresults:
+                    #we should probably load all additional issues for the series on the futureupcoming list that are marked as Wanted and then
+                    #throw them to the importer as a tuple, and once imported the import can run the additional search against them.
+                    #now we scan for additional issues of the same series on the upcoming list and mark them accordingly.
+                    chkwant = myDB.action("SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber != '1' AND Status='Wanted'", [ser['ComicName']]).fetchall()
+                    if chkwant is None:
+                        logger.info('No extra issues to mark at this time for ' + ser['ComicName'])
+                    else:
+                        chkthewanted = []
+                        for chk in chkwant:
+                            chkthewanted.append({"ComicName":   chk['ComicName'],
+                                                 "IssueDate":   chk['IssueDate'],
+                                                 "IssueNumber": chk['IssueNumber'],   #this should be all #1's as the sql above limits the hits.
+                                                 "Publisher":   chk['Publisher'],
+                                                 "Status":      chk['Status']})
+
+                        logger.info('Marking ' + str(len(chkthewanted)) + ' additional issues as Wanted from ' + ser['ComicName'] + ' series as requested') 
+
+                    importer.addComictoDB(sr['comicid'], "no", chkwant=chkthewanted)
+                    logger.info('Sucessfully imported ' + ser['ComicName'] + ' (' + str(ser['IssueDate'][-4:]) + ')')
+
+        raise cherrypy.HTTPRedirect("home")
+    future_check.exposed = True
+
     def filterpull(self):
         myDB = db.DBConnection()
         weeklyresults = myDB.select("SELECT * from weekly")
@@ -968,6 +1028,7 @@ class WebInterface(object):
         if upcomingdata is None:
             logger.info('No upcoming data as of yet...')
         else:
+            futureupcoming = []
             upcoming = []
             for upc in upcomingdata:
             
@@ -984,13 +1045,13 @@ class WebInterface(object):
                     #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
                     if int(tmpdate) >= int(timenow):
                         if upc['Status'] == 'Wanted':
-                            upcoming.append({"ComicName":    upc['ComicName'],
-                                             "IssueNumber":  upc['IssueNumber'],
-                                             "IssueDate":    upc['IssueDate'],
-                                             "ComicID":      upc['ComicID'],
-                                             "IssueID":      upc['IssueID'],
-                                             "Status":       upc['Status'],
-                                             "DisplayComicName": upc['DisplayComicName']})
+                            futureupcoming.append({"ComicName":    upc['ComicName'],
+                                                   "IssueNumber":  upc['IssueNumber'],
+                                                   "IssueDate":    upc['IssueDate'],
+                                                   "ComicID":      upc['ComicID'],
+                                                   "IssueID":      upc['IssueID'],
+                                                   "Status":       upc['Status'],
+                                                   "DisplayComicName": upc['DisplayComicName']})
                 else:
                     #if it's greater than 7 it's a full date, and shouldn't be displayed ;)
                     timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
@@ -1018,6 +1079,9 @@ class WebInterface(object):
             ann_list += annuals_list
             issues += annuals_list
 
+        #let's straightload the series that have no issue data associated as of yet (ie. new series) form the futurepulllist
+        future_nodata_upcoming = myDB.select('SELECT * FROM futureupcoming')
+             
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
         #gather the list...
         mvupcome = myDB.select("SELECT * from upcoming WHERE IssueDate < date('now') order by IssueDate DESC")
@@ -1053,7 +1117,7 @@ class WebInterface(object):
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'],mvup['IssueNumber']])                                
 
 
-        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list)
+        return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list, futureupcoming=futureupcoming, future_nodata_upcoming=future_nodata_upcoming)
     upcoming.exposed = True
 
     def skipped2wanted(self, comicid, fromupdate=None):
@@ -2605,14 +2669,12 @@ class WebInterface(object):
                 mylar.CMTAGGER_PATH = re.sub(os.path.basename(mylar.CMTAGGER_PATH), '', mylar.CMTAGGER_PATH) 
                 logger.fdebug("Removed application name from ComicTagger path")
 
-        logger.info('nzb_downloader')
         #legacy support of older config - reload into old values for consistency.
         if mylar.NZB_DOWNLOADER == 0: mylar.USE_SABNZBD = True
         elif mylar.NZB_DOWNLOADER == 1: mylar.USE_NZBGET = True
         elif mylar.NZB_DOWNLOADER == 2: mylar.USE_BLACKHOLE = True
 
         # Write the config
-        logger.info('sending to config..')
         mylar.config_write()
 
         raise cherrypy.HTTPRedirect("config")

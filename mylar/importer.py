@@ -43,7 +43,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,calledfrom=None,annload=None):
+def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,calledfrom=None,annload=None,chkwant=None,issuechk=None,issuetype=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
 #    from mylar import cache
     
@@ -141,6 +141,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     else:
         SeriesYear = comic['ComicYear']
 
+    #since the weekly issue check could return either annuals or issues, let's initialize it here so it carries through properly.
+    weeklyissue_check = []
+
     #let's do the Annual check here.
     if mylar.ANNUALS_ON:
         #we need to check first to see if there are pre-existing annuals that have been manually added, or else they'll get
@@ -230,9 +233,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                                 issname = cleanname
                                 issdate = str(firstval['Issue_Date'])
                                 stdate = str(firstval['Store_Date'])
+                                int_issnum = helpers.issuedigits(issnum)
                                 newCtrl = {"IssueID": issid}
                                 newVals = {"Issue_Number":     issnum,
-                                           "Int_IssueNumber":  helpers.issuedigits(issnum),
+                                           "Int_IssueNumber":  int_issnum,
                                            "IssueDate":        issdate,
                                            "ReleaseDate":      stdate,
                                            "IssueName":        issname,
@@ -242,6 +246,15 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                                            "ReleaseComicName": sr['name'],
                                            "Status":           "Skipped"}
                                 myDB.upsert("annuals", newVals, newCtrl)
+
+                                if issuechk is not None and issuetype == 'annual':
+                                    logger.fdebug('comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
+                                    if issuechk == int_issnum:
+                                        weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
+                                                                  "Issue_Number":       issnum,
+                                                                  "IssueDate":          issdate,
+                                                                  "ReleaseDate":        stdate})
+
                                 n+=1
                 num_res+=1
 
@@ -739,6 +752,17 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                 if firstval['Issue_Date'] < firstdate:
                     firstiss = issnum
                     firstdate = str(firstval['Issue_Date'])
+
+                if issuechk is not None and issuetype == 'series':
+                    logger.fdebug('comparing ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
+                    if issuechk == int_issnum:
+                        weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
+                                                  "Issue_Number":       issnum,
+                                                  "IssueDate":          issdate,
+                                                  "ReleaseDate":        storedate})
+
+
+
 #--moved to lower function.
 #                # check if the issue already exists
 #                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issid]).fetchone()
@@ -855,6 +879,11 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     if calledfrom == 'dbupdate':
         logger.info('returning to dbupdate module')
         return
+    elif calledfrom == 'weekly':
+        logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue comparison.')
+        logger.info('Update issuedata for ' + str(issuechk) + ' of : ' + str(weeklyissue_check))
+        return weeklyissue_check
+
 
     #check for existing files...
     statbefore = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
@@ -890,10 +919,29 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             else:
                 logger.info('Already have the latest issue : #' + str(latestiss))
 
+    if chkwant is not None:
+        #if this isn't None, this is being called from the futureupcoming list
+        #a new series was added automagically, but it has more than 1 issue (probably because it was a back-dated issue)
+        #the chkwant is a tuple containing all the data for the given series' issues that were marked as Wanted for futureupcoming dates.
+        chkresults = myDB.select("SELECT * FROM issues WHERE ComicID=? AND Status='Skipped'", [comicid])
+        if chkresults:
+            logger.info('[FROM THE FUTURE CHECKLIST] Attempting to grab wanted issues for : ' + comic['ComicName'])
+            for result in chkresults:
+                for chkit in chkwant:
+                    logger.fdebug('checking ' + str(chkit['IssueNumber']) + ' against ' + str(result['Issue_Number']))
+                    if chkit['IssueNumber'] == result['Issue_Number']:
+                        logger.fdebug('Searching for : ' + str(result['Issue_Number']))
+                        logger.fdebug('Status of : ' + str(result['Status']))
+                        search.searchforissue(result['IssueID'])
+        else: logger.info('No issues marked as wanted for ' + comic['ComicName'])
+
+        logger.info('Finished grabbing what I could.')
+
+
+
     if calledfrom == 'addbyid':
         logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
         return
-
 
 def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
     # this is for importing via GCD only and not using CV.

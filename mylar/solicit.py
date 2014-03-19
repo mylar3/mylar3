@@ -29,7 +29,7 @@ def solicit(month, year):
     mnloop = 0
     upcoming = []
 
-    publishers = {'DC Comics':'DC Comics', 'Marvel':'Marvel Comics', 'Image':'Image Comics', 'IDW':'IDW Publishing', 'Dark Horse':'Dark Horse Comics'}
+    publishers = {'DC Comics':'DC Comics', 'DC\'s': 'DC Comics', 'Marvel':'Marvel Comics', 'Image':'Image Comics', 'IDW':'IDW Publishing', 'Dark Horse':'Dark Horse Comics'}
 
     while (mnloop < 5):
         if year == 2014:
@@ -41,13 +41,19 @@ def solicit(month, year):
         else:
             datestring = str(month) + str(year)
         pagelinks = "http://www.comicbookresources.com/tag/solicits" + str(datestring)
-        logger.info('datestring:' + datestring)
-        logger.info('checking:' + pagelinks)
+
+        #using the solicits+datestring leaves out some entries occasionally
+        #should use http://www.comicbookresources.com/tag/soliciations
+        #then just use the logic below but instead of datestring, find the month term and 
+        #go ahead up to +5 months.
+
+        #logger.info('datestring:' + datestring)
+        #logger.info('checking:' + pagelinks)
         pageresponse = urllib2.urlopen ( pagelinks )
         soup = BeautifulSoup (pageresponse)
         cntlinks = soup.findAll('h3')
         lenlinks = len(cntlinks)
-        logger.info( str(lenlinks) + ' results' )
+        #logger.info( str(lenlinks) + ' results' )
 
         publish = []
         resultURL = []
@@ -63,13 +69,15 @@ def solicit(month, year):
                 if ('Marvel' and 'DC' and 'Image' not in headName) and ('Solicitations' in headName or 'Solicits' in headName):
                     pubstart = headName.find('Solicitations')
                     for pub in publishers:
-                        if pub in headName[:pubstart]:                   
+                        if pub in headName[:pubstart]:     
+                            #print 'publisher:' + str(publishers[pub])
                             publish.append(publishers[pub])
+                            break
                             #publish.append( headName[:pubstart].strip() )
                     abc = headt.findAll('a', href=True)[0]
                     ID_som = abc['href']  #first instance will have the right link...
                     resultURL.append( ID_som )
-                    #print '[ ' + publish[cnt] + '] Link URL: ' + resultURL[cnt]
+                    #print '(' + str(cnt) + ') [ ' + publish[cnt] + '] Link URL: ' + resultURL[cnt]
                     cnt+=1
             x+=1
 
@@ -82,6 +90,8 @@ def solicit(month, year):
         #this loops through each 'found' solicit page 
         shipdate = str(month_string) + '-' + str(year)
         while ( loopthis >= 0 ):
+            #print 'loopthis is : ' + str(loopthis)
+            #print 'resultURL is : ' + str(resultURL[loopthis])
             upcoming += populate(resultURL[loopthis], publish[loopthis], shipdate)
             loopthis -=1
 
@@ -152,6 +162,7 @@ def solicit(month, year):
 def populate(link,publisher,shipdate):
     #this is the secondary url call to populate
     input = 'http://www.comicbookresources.com/' + link
+    #print 'checking ' + str(input)
     response = urllib2.urlopen ( input )
     soup = BeautifulSoup (response)
     abc = soup.findAll('p')
@@ -183,6 +194,8 @@ def populate(link,publisher,shipdate):
             get_next = False
         if prev_chk == True:
             tempName = titlet.findNext(text=True)
+            #logger.info('prev_chk: ' + str(prev_chk) + ' ... get_next: ' + str(get_next))
+            #logger.info('tempName:' + tempName)
             if ' TPB' not in tempName and ' HC' not in tempName and 'GN-TPB' not in tempName and 'for $1' not in tempName.lower() and 'subscription variant' not in tempName.lower() and 'poster' not in tempName.lower():
                 #print publisher + ' found upcoming'
                 if '#' in tempName:

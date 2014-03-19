@@ -611,7 +611,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
 #would identify the difference between two #1 titles within the same series year, but have different publishing dates.
 #Wolverine (2013) & Wolverine (2014) are good examples of this situation.
 #of course initially, the issue data for the newer series wouldn't have any issue data associated with it so it would be
-#a null value, but given that the 2013 series (as an exmaple) would be from 2013-05-01, it obviously wouldn't be a match to
+#a null value, but given that the 2013 series (as an example) would be from 2013-05-01, it obviously wouldn't be a match to
 #the current date & year (2014). Throwing out that, we could just assume that the 2014 would match the #1.
 
                                 #get the issue number of the 'weeklypull' series.
@@ -622,18 +622,48 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                 ### week['ISSUE']  #issue # from pullist
                                 ### week['SHIPDATE']  #weeklypull-list date
                                 ### comicid[cnt] #comicid of matched series                                                                
-                                datecheck = loaditup(watchcomic, comicid[cnt], week['ISSUE'])
-                                logger.fdebug('Now checking date comparison using an issue store date of ' + str(datecheck))
 
-                                if datecheck == 'no results':
+                                ## if it's a futurepull, the dates get mixed up when two titles exist of the same name
+                                ## ie. Wolverine-2011 & Wolverine-2014
+                                ## we need to set the compare date to today's date ( Now() ) in this case.
+                                if futurepull:
+                                    usedate = datetime.datetime.now().strftime('%Y%m%d')  #convert to yyyymmdd
+                                else:
+                                    usedate = re.sub("[^0-9]", "", week['SHIPDATE'])
+
+                                if 'ANNUAL' in comicnm.upper():
+                                    chktype = 'annual'
+                                else:
+                                    chktype = 'series' 
+                             
+                                datevalues = loaditup(watchcomic, comicid[cnt], week['ISSUE'], chktype)
+
+                                date_downloaded = None
+
+                                if datevalues == 'no results':
                                     pass
-                                elif datecheck >= week['SHIPDATE']:
-                                    #logger.info('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is on/ahead of ' + str(week['SHIPDATE']))
-                                    logger.fdebug('Store Date falls within acceptable range - series MATCH')
-                                    pass
-                                elif datecheck < week['SHIPDATE']:
-                                    logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
-                                    break
+                                else:
+                                    datecheck = datevalues[0]['issuedate']
+                                    datestatus = datevalues[0]['status']
+
+                                    logger.fdebug('Now checking date comparison using an issue store date of ' + str(datecheck))
+                                    logger.fdebug('Using a compare date (usedate) of ' + str(usedate))
+                                    #logger.fdebug('Status of ' + str(datestatus))
+
+                                    if int(datecheck) >= int(usedate):
+                                        #logger.info('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is on/ahead of ' + str(week['SHIPDATE']))
+                                        logger.fdebug('Store Date falls within acceptable range - series MATCH')
+                                    elif int(datecheck) < int(usedate):
+                                        logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
+                                        if date_downloaded is None:
+                                            break
+
+                                    if datestatus != 'Downloaded' and datestatus != 'Archived':
+                                        pass
+                                    else:
+                                        logger.fdebug('Issue #' + str(week['ISSUE']) + ' already downloaded.')
+                                        date_downloaded = datestatus
+
 
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
                                     if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
@@ -684,7 +714,11 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                             else: 
                                                 cstatusid = ComicID
                                                 fp = "yes"
-                                            updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid, futurepull=fp)
+
+                                            if date_downloaded is None:
+                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid, futurepull=fp)
+                                            else:
+                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=date_downloaded, CID=cstatusid, futurepull=fp)
                                             break
                                         break
                         break
@@ -703,17 +737,53 @@ def check(fname, txt):
         return any(txt in line for line in dataf)
 
 
-def loaditup(comicname, comicid, issue):
+def loaditup(comicname, comicid, issue, chktype):
     myDB = db.DBConnection()
     issue_number = helpers.issuedigits(issue)
-    logger.fdebug('[' + comicname + '] trying to locate issue ' + str(issue) + ' to do comparitive issue analysis for pull-list')
-    issueload = myDB.action('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+    if chktype == 'annual':
+        typedisplay = 'annual issue'
+        logger.fdebug('[' + comicname + '] trying to locate ' + str(typedisplay) + ' ' + str(issue) + ' to do comparitive issue analysis for pull-list')
+        issueload = myDB.action('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+    else:
+        typedisplay = 'issue'
+        logger.fdebug('[' + comicname + '] trying to locate ' + str(typedisplay) + ' ' + str(issue) + ' to do comparitive issue analysis for pull-list')
+        issueload = myDB.action('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+
     if issueload is None:
         logger.fdebug('No results matched for Issue number - either this is a NEW series with no data yet, or something is wrong')
         return 'no results'
-    if issueload['ReleaseDate'] is not None or issueload['ReleaseDate'] is not 'None':
-        logger.fdebug('Returning Release Date for issue # ' + str(issue) + ' of ' + str(issueload['ReleaseDate']))
-        return issueload['ReleaseDate']
+
+    dataissue = []    
+    releasedate = issueload['ReleaseDate']
+    storedate = issueload['IssueDate']
+    status = issueload['Status']
+
+    if releasedate == '0000-00-00':
+        logger.fdebug('Store date of 0000-00-00 returned for ' + str(typedisplay) + ' # ' + str(issue) + '. Refreshing series to see if valid date present')
+        mismatch = 'no'
+        issuerecheck = mylar.importer.addComictoDB(comicid,mismatch,calledfrom='weekly',issuechk=issue_number,issuetype=chktype)
+        if issuerecheck is not None:
+            for il in issuerecheck:
+                #this is only one record..
+                releasedate = il['IssueDate']
+                storedate = il['ReleaseDate']
+                status = il['Status']
+            logger.fdebug('issue-recheck releasedate is : ' + str(releasedate))
+            logger.fdebug('issue-recheck storedate of : ' + str(storedate))
+
+    if releasedate is not None and releasedate != "None" and releasedate != "":
+        logger.fdebug('Returning Release Date for ' + str(typedisplay) + ' # ' + str(issue) + ' of ' + str(releasedate))
+        thedate = re.sub("[^0-9]", "", releasedate)  #convert date to numerics only (should be in yyyymmdd)
+        #return releasedate
     else:
-        logger.fdebug('Returning Publication Date for issue # ' + str(issue) + ' of ' + str(issueload['PublicationDate']))
-        return issueload['PublicationDate']
+        logger.fdebug('Returning Publication Date for issue ' + str(typedisplay) + ' # ' + str(issue) + ' of ' + str(storedate))
+        if storedate is None and storedate != "None" and storedate != "":
+            logger.fdebug('no issue data available - both release date & store date. Returning no results')
+            return 'no results'
+        thedate = re.sub("[^0-9]", "", storedate)  #convert date to numerics only (should be in yyyymmdd)
+        #return storedate
+
+    dataissue.append({"issuedate":  thedate,
+                      "status":     status})
+
+    return dataissue

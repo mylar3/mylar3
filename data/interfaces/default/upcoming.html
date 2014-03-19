@@ -59,28 +59,100 @@
 	<div class="title">
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_upcoming.png" alt="Upcoming Issues"/>Upcoming Issues</h1>
 	</div>
+
+        <div id="tabs">
+                <ul>
+                        <li><a href="#tabs-1">This Week's Upcoming</a></li>
+                        <li><a href="#tabs-2">Upcoming nodata</a></li>
+                        <li><a href="#tabs-3">Future Upcoming</a></li>
+                </ul>
+
+        <div id="tabs-1">
+
+
 	<div class="table_wrapper">
 		<table class="display_no_select" id="upcoming_table">
-		<thead>
-			<tr>
-				<th id="comicname">Comic</th>
-				<th id="issuenumber">Issue</th>
-				<th id="reldate">Release Date</th>
-				<th id="status">Status</th>
-			</tr>
-		</thead>
-		<tbody>
-		%for upcome in upcoming:
-			<tr class="gradeZ">
-				<td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['DisplayComicName']}</a></td>
-				<td id="issuenumber">${upcome['IssueNumber']}</td>
-				<td id="reldate">${upcome['IssueDate']}</td>
-				<td id="status">${upcome['Status']}</td>
-			</tr>
-		%endfor
-		</tbody>
+                %if upcoming:
+    		    <thead>
+			    <tr>
+				    <th id="comicname">Comic</th>
+				    <th id="issuenumber">Issue</th>
+				    <th id="reldate">Release Date</th>
+				    <th id="status">Status</th>
+			    </tr>
+		    </thead>
+		    <tbody>
+                    %for upcome in upcoming:
+		   	    <tr class="gradeZ">
+			   	    <td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['DisplayComicName']}</a></td>
+				    <td id="issuenumber">${upcome['IssueNumber']}</td>
+				    <td id="reldate">${upcome['IssueDate']}</td>
+				    <td id="status">${upcome['Status']}</td>
+			    </tr>
+  		    %endfor
+   		    </tbody>
+                %else:
+                  <tr><td align="center" width="100%"> no upcoming data to display</td></tr>
+                %endif
 	</table>
 	</div>
+        </div>
+        <div id="tabs-2">
+           <div class="table_wrapper">
+                <table class="display_no_select" id="upcoming_table">
+                %if future_nodata_upcoming:
+                <thead>
+                        <tr>
+                                <th id="comicname">Comic</th>
+                                <th id="issuenumber">Issue</th>
+                                <th id="reldate">Release Date</th>
+                                <th id="status">Status</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    %for f_nodata in future_nodata_upcoming:
+                            <tr class="gradeZ">
+                                    <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
+                                    <td id="issuenumber">${f_nodata['IssueNumber']}</td>
+                                    <td id="reldate">${f_nodata['IssueDate']}</td>
+                                   <td id="status">${f_nodata['Status']}</td>
+                            </tr>
+                    %endfor
+                </tbody>
+                %else:
+                  <tr><td align='center" width="100%">no upcoming future data to display</td></tr>
+                %endif
+               </table>
+            </div>
+        </div>
+        <div id="tabs-3">
+           <div class="table_wrapper">
+                <table class="display_no_select" id="upcoming_table">
+                %if futureupcoming:
+                <thead>
+                        <tr>
+                                <th id="comicname">Comic</th>
+                                <th id="issuenumber">Issue</th>
+                                <th id="reldate">Release Date</th>
+                                <th id="status">Status</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    %for f_upcome in futureupcoming:
+                            <tr class="gradeZ">
+                                    <td id="comicname">${f_upcome['DisplayComicName']}</td>
+                                    <td id="issuenumber">${f_upcome['IssueNumber']}</td>
+                                    <td id="reldate">${f_upcome['IssueDate']}</td>
+                                    <td id="status">${f_upcome['Status']}</td>
+                            </tr>
+                    %endfor
+                </tbody>
+                %else:
+                  <tr><td align="center" width="100%">no upcoming future data to display</td></tr>
+                %endif
+               </table>
+         </div>
+        </div>
 </%def>
 
 <%def name="headIncludes()">
@@ -92,6 +164,9 @@
 	<script>
 	
 	function initThisPage() {
+                $(function() {
+                        $( "#tabs" ).tabs();
+                });
 		$('#wanted_table').dataTable({
 			"bDestroy":true,
 			"bFilter": false,
