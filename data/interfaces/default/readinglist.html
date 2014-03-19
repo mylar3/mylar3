@@ -46,7 +46,7 @@
                     <tbody>
                          %for issue in issuelist:
                               <tr>
-                                <td id="comicname"><a href="artistPage?ComicID=${issue['ComicID']}">${issue['ComicName']} (${issue['SeriesYear']})</td>
+                                <td id="comicname"><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']} (${issue['SeriesYear']})</td>
                                 <td id="issue">${issue['Issue_Number']}</td>
                                 <td id="issueyear">${issue['IssueDate']}</td>
                                 <td id="status">${issue['Status']}</td>

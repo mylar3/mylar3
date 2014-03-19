@@ -666,7 +666,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
                     bb = findcomicfeed.Startit(u_ComicName, isssearch, comyear, ComicVersion, IssDateFix)
                     # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
-                    cmloopit == 1
+                    #cmloopit == 1
 
             done = False
             foundc = "no"
@@ -1238,7 +1238,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #following is JUST for nzb.su
                             if nzbprov == 'nzb.su' or nzbprov == 'newznab':
                                 linkit = os.path.splitext(entry['link'])[1]
-                                linkit = linkit.replace("&", "%26")
+                                if mylar.USE_SABNZBD:
+                                    linkit = linkit.replace("&", "%26")
+                                logger.fdebug('new linkit:' + linkit)
                                 linkapi = str(linkstart) + str(linkit)
                             else:
                                 # this should work for every other provider

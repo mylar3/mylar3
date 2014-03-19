@@ -14,6 +14,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     #searchName = "Uncanny Avengers"
     #searchIssue = "01"
     #searchYear = "2012"
+    cName = searchName
     #clean up searchName due to webparse.
     searchName = searchName.replace("%20", " ")
     if "," in searchName:
@@ -104,7 +105,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
             for subs in splitTitle:
                 #logger.fdebug('sub:' + subs)
                 regExCount = 0
-                if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
+                if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list):
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
 #                while regExCount < len(regexList):
 #                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
@@ -145,8 +146,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     if tallycount >= 1:
         mres['entries'] = entries
         return mres 
-#       print("Title: "+regList[0])
-#       print("Link: "+keyPair[regList[0]])        
     else:
         logger.fdebug("No Results Found")
         return "no results"

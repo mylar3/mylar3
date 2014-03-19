@@ -822,8 +822,30 @@ class PostProcessor(object):
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )
             self._log(u"Post Processing SUCCESSFULL! ", logger.DEBUG)
+
+            # retrieve/create the corresponding comic objects
+            if mylar.ENABLE_EXTRA_SCRIPTS:
+                folderp = str(dst) #folder location after move/rename
+                nzbn = self.nzb_name #original nzb name
+                filen = str(nfilename + ext) #new filename
+                #name, comicyear, comicid , issueid, issueyear, issue, publisher
+                #create the dic and send it.
+                seriesmeta = []
+                seriesmetadata = {}
+                seriesmeta.append({
+                            'name':                 series,
+                            'comicyear':            seriesyear,
+                            'comicid':              comicid,
+                            'issueid':              issueid,
+                            'issueyear':            issueyear,
+                            'issue':                issuenum,
+                            'publisher':            publisher
+                            })
+                seriesmetadata['seriesmeta'] = seriesmeta
+                self._run_extra_scripts(nzbn, self.nzb_folder, filen, folderp, seriesmetadata )
+
             if ml is not None: 
-                return
+                return self.log
             else:
                 if mylar.PROWL_ENABLED:
                     pushmessage = series + '(' + issueyear + ') - issue #' + issuenumOG
@@ -846,27 +868,5 @@ class PostProcessor(object):
                     boxcar.notify(series, str(issueyear), str(issuenumOG))
 
              
-            # retrieve/create the corresponding comic objects
-
-            if mylar.ENABLE_EXTRA_SCRIPTS:
-                folderp = str(dst) #folder location after move/rename
-                nzbn = self.nzb_name #original nzb name
-                filen = str(nfilename + ext) #new filename
-                #name, comicyear, comicid , issueid, issueyear, issue, publisher
-                #create the dic and send it.
-                seriesmeta = []
-                seriesmetadata = {}
-                seriesmeta.append({
-                            'name':                 series,
-                            'comicyear':            seriesyear,
-                            'comicid':              comicid,
-                            'issueid':              issueid,
-                            'issueyear':            issueyear,
-                            'issue':                issuenum,
-                            'publisher':            publisher
-                            })
-                seriesmetadata['seriesmeta'] = seriesmeta
-                self._run_extra_scripts(nzbname, self.nzb_folder, filen, folderp, seriesmetadata )
-
             return self.log
 
