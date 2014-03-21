@@ -259,7 +259,7 @@ def nzbs(provider=None):
             elif nzbprovider[nzbpr] == 'nzb.su':
                 if mylar.NZBSU_UID is None:
                     mylar.NZBSU_UID = '1'
-                feed = 'http://nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY
+                feed = 'http://api.nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY
                 feedme = feedparser.parse(feed)
                 site = nzbprovider[nzbpr]
                 feedthis.append({"feed":   feedme,

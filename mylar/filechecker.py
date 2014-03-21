@@ -22,6 +22,7 @@ import re
 import logger
 import mylar
 import sys
+import platform
 
 def file2comicmatch(watchmatch):
     #print ("match: " + str(watchmatch))
@@ -73,11 +74,14 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
     for fname in dirlist:
         # at a later point, we should store the basedir and scan it in for additional info, since some users
         # have their structure setup as 'Batman v2 (2011)/Batman #1.cbz' or 'Batman/V2-(2011)/Batman #1.cbz'
+
+        #logger.fdebug('fname[directory]:' + fname['directory'])
+        #logger.fdebug('fname[filename]:' + fname['filename'])
         if fname['directory'] == '':
             basedir = dir
         else:
-            basedir = dir + fname['directory']
-        #print 'basedir is now: ' + str(basedir)
+            basedir = fname['directory']
+
         item = fname['filename']
              
         if item == 'cover.jpg' or item == 'cvinfo': continue
@@ -664,6 +668,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 if 'annual' in subname.lower():
                     subname = re.sub('annual', '', subname.lower())
                     subname = re.sub('\s+', ' ', subname)
+                    #if the sub has an annual, let's remove it from the modwatch as well
+                    modwatchcomic = re.sub('annual', '', modwatchcomic.lower())
 
                 #tmpitem = item[:jtd_len]
                 # if it's an alphanumeric with a space, rejoin, so we can remove it cleanly just below this.
@@ -776,12 +782,15 @@ def traverse_directories(dir):
     filelist = []
 
     for (dirname, subs, files) in os.walk(dir):
-        #print('[' + dirname.replace('/mnt/mediavg/Comics/testing/','') + ']')
-        direc = dirname.replace(dir,'')
+
         for fname in files:
-            #print(os.path.join(dirname, fname).replace(dirname + '/',''))
+            if dirname == dir:
+                direc = ''
+            else:
+                direc = dirname
+
             filelist.append({"directory":  direc,
-                             "filename":       os.path.join(dirname, fname).replace(dirname + '/','')})
+                             "filename":   fname})
 
     logger.fdebug('there are ' + str(len(filelist)) + ' files.')
     #logger.fdeubg(filelist)

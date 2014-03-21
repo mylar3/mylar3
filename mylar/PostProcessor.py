@@ -150,26 +150,27 @@ class PostProcessor(object):
                     self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug('SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
 
-                #lookup nzb_name in nzblog table to get issueid
-    
+      # -- start. not used.
                 #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
                 #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
-                querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+                #querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
                 #logger.info("querysab_string:" + str(querysab))
-                file = urllib2.urlopen(querysab)
-                data = file.read()
-                file.close()
-                dom = parseString(data)
+                #file = urllib2.urlopen(querysab)
+                #data = file.read()
+                #file.close()
+                #dom = parseString(data)
 
-                try:
-                    sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
-                except:
-                    errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
-                    logger.error(u"Error detected attempting to retrieve SAB data : " + errorm)
-                    return
-                sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
-                logger.fdebug("SAB Replace Spaces: " + str(sabreps))
-                logger.fdebug("SAB Replace Dots: " + str(sabrepd))
+                #try:
+                #    sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
+                #except:
+                #    errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
+                #    logger.error(u"Error detected attempting to retrieve SAB data : " + errorm)
+                #    return
+                #sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
+                #logger.fdebug("SAB Replace Spaces: " + str(sabreps))
+                #logger.fdebug("SAB Replace Dots: " + str(sabrepd))
+         # -- end. not used.
+
             if mylar.USE_NZBGET==1:
                 logger.fdebug("Using NZBGET")
                 logger.fdebug("NZB name as passed from NZBGet: " + self.nzb_name)
@@ -217,84 +218,47 @@ class PostProcessor(object):
                                     break
                                 temploc= tmpfc['JusttheDigits'].replace('_', ' ')
                                 temploc = re.sub('[\#\']', '', temploc)
-                                #logger.fdebug("temploc: " + str(temploc))
 
-                                ww = shlex.split(temploc)
-                                lnw = len(ww)
-                                wdc = 0
-                                while (wdc < lnw):
-                                    #counts get buggered up when the issue is the last field in the filename - ie. '50.cbr'
-                                    if ".cbr" in ww[wdc].lower():
-                                        ww[wdc] = ww[wdc].replace(".cbr", "")
-                                    elif ".cbz" in ww[wdc].lower():
-                                        ww[wdc] = ww[wdc].replace(".cbz", "")
-                                    if "(c2c)" in ww[wdc].lower():
-                                        ww[wdc] = ww[wdc].replace("(c2c)", " ")
-                                        get_issue = shlex.split(str(ww[wdc]))
-                                        if ww[wdc] != " ":
-                                            ww[wdc] = get_issue[0]
+                                if 'annual' in temploc.lower():
+                                    logger.info("annual detected.")
+                                    annchk = "yes"
+                                    fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                    issuechk = myDB.action("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
+                                else:
+                                    fcdigit = helpers.issuedigits(temploc)
+                                    issuechk = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
 
-                                    if '.' in ww[wdc]:
-                                    #logger.fdebug("decimal detected...adjusting.")
-                                        try:
-                                            i = float(ww[wdc])
-                                        except ValueError, TypeError:
-                                        #not numeric
-                                        #logger.fdebug("NOT NUMERIC - new word: " + str(ww[wdc]))
-                                            ww[wdc] = ww[wdc].replace(".", "")
-                                    else:
-                                        #numeric
-                                        pass
-
-                                    if ww[wdc].isdigit():
-                                        if int(ww[wdc]) > 0:
-                                            if wdc+1 < len(ww) and 'au' in ww[wdc+1].lower():
-                                                if len(ww[wdc+1]) == 2:
-                                                #if the 'AU' is in 005AU vs 005 AU it will yield different results.
-                                                    ww[wdc] = ww[wdc] + 'AU'
-                                                    ww[wdc+1] = '93939999919190933'
-                                                    logger.info("AU Detected seperate from issue - combining and continuing")
-
-                                    fcdigit = helpers.issuedigits(ww[wdc])
-                                    if 'annual' in self.nzb_name.lower():
-                                        logger.info("annual detected.")
-                                        annchk = "yes"
-                                        issuechk = myDB.action("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
-                                    else:
-                                        issuechk = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
-
-                                    if issuechk is None:
-                                        logger.info("No corresponding issue # found for " + str(cs['ComicID']))
-                                    else:
-                                        datematch = "True"
-                                        if len(watchmatch) > 1:
-                                            #if the # of matches is more than 1, we need to make sure we get the right series
-                                            #compare the ReleaseDate for the issue, to the found issue date in the filename.
-                                            #if ReleaseDate doesn't exist, use IssueDate
-                                            #if no issue date was found, then ignore.
-                                            if issuechk['ReleaseDate'] is not None:
-                                                if int(issuechk['ReleaseDate'][:4]) < int(tmpfc['ComicYear']):
-                                                    logger.fdebug(str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
-                                                    datematch = "False"
-                                            else:
-                                                if int(issuechk['IssueDate'][:4]) < int(tmpfc['ComicYear']):
-                                                    logger.fdebug(str(issuechk['IssueDate']) + ' is before the issue year ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
-                                                    datematch = "False"
+                                if issuechk is None:
+                                    logger.info("No corresponding issue # found for " + str(cs['ComicID']))
+                                else:
+                                    datematch = "True"
+                                    if len(watchmatch) > 1:
+                                        #if the # of matches is more than 1, we need to make sure we get the right series
+                                        #compare the ReleaseDate for the issue, to the found issue date in the filename.
+                                        #if ReleaseDate doesn't exist, use IssueDate
+                                        #if no issue date was found, then ignore.
+                                        if issuechk['ReleaseDate'] is not None:
+                                            if int(issuechk['ReleaseDate'][:4]) < int(tmpfc['ComicYear']):
+                                                logger.fdebug(str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
+                                                datematch = "False"
+                                        else:
+                                            if int(issuechk['IssueDate'][:4]) < int(tmpfc['ComicYear']):
+                                                logger.fdebug(str(issuechk['IssueDate']) + ' is before the issue year ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
+                                                datematch = "False"
                                           
-                                        else:
-                                            logger.info("Found matching issue # " + str(fcdigit) + " for ComicID: " + str(cs['ComicID']) + " / IssueID: " + str(issuechk['IssueID']))
+                                    else:
+                                        logger.info("Found matching issue # " + str(fcdigit) + " for ComicID: " + str(cs['ComicID']) + " / IssueID: " + str(issuechk['IssueID']))
                                             
-                                        if datematch == "True":
-                                            manual_list.append({"ComicLocation":   tmpfc['ComicLocation'],
-                                                                "ComicID":         cs['ComicID'],
-                                                                "IssueID":         issuechk['IssueID'],
-                                                                "IssueNumber":     issuechk['Issue_Number'],
-                                                                "ComicName":       cs['ComicName']})
-                                        else:
-                                            logger.fdebug('Incorrect series - not populating..continuing post-processing')
-                                        ccnt+=1
-                                        #print manual_list
-                                    wdc+=1
+                                    if datematch == "True":
+                                        manual_list.append({"ComicLocation":   tmpfc['ComicLocation'],
+                                                            "ComicID":         cs['ComicID'],
+                                                            "IssueID":         issuechk['IssueID'],
+                                                            "IssueNumber":     issuechk['Issue_Number'],
+                                                            "ComicName":       cs['ComicName']})
+                                    else:
+                                        logger.fdebug('Incorrect series - not populating..continuing post-processing')
+                                    #ccnt+=1
+
                                 fn+=1
                     logger.fdebug("There are " + str(len(manual_list)) + " files found that match on your watchlist, " + str(nm) + " do not match anything and will be ignored.")    
                 
@@ -816,11 +780,14 @@ class PostProcessor(object):
                     #update snatched table to change status to Downloaded
             if annchk == "no":
                 updater.foundsearch(comicid, issueid, down='True')
+                dispiss = 'issue: ' + str(issuenumOG)
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down='True')
+                dispiss = 'annual issue: ' + str(issuenumOG)
+
                     #force rescan of files
             updater.forceRescan(comicid)
-            logger.info(u"Post-Processing completed for: " + series + " issue: " + str(issuenumOG) )
+            logger.info(u"Post-Processing completed for: " + series + " " + dispiss )
             self._log(u"Post Processing SUCCESSFULL! ", logger.DEBUG)
 
             # retrieve/create the corresponding comic objects
