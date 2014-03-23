@@ -729,8 +729,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #logger.fdebug('Posting date of : ' + str(pubdate))
                     # convert it to a tuple
                     dateconv = email.utils.parsedate_tz(pubdate)
+                    #logger.fdebug('dateconv of : ' + str(dateconv))
                     # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
-                    postdate_int = time.mktime(dateconv[:len(dateconv)-1]) - dateconv[-1]
+                    if dateconv[-1] is not None:
+                        postdate_int = time.mktime(dateconv[:len(dateconv)-1]) - dateconv[-1]
+                    else:
+                        postdate_int = time.mktime(dateconv[:len(dateconv)-1])
+                    #logger.fdebug('postdate_int of : ' + str(postdate_int))
                     #logger.fdebug('Issue date of : ' + str(stdate))
                     #convert it to a Thu, 06 Feb 2014 00:00:00 format
                     issue_convert = datetime.datetime.strptime(stdate.rstrip(), '%Y-%m-%d')

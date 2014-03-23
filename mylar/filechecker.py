@@ -495,11 +495,11 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             x = float(justthedigits)
                             #validity check
                             if x < 0:
-                                logger.info("I've encountered a negative issue #: " + str(justthedigits) + ". Trying to accomodate.")
+                                logger.fdebug("I've encountered a negative issue #: " + str(justthedigits) + ". Trying to accomodate.")
                                 digitsvalid = "true"
                             else: raise ValueError
                         except ValueError, e:
-                                logger.info('Cannot determine issue number from given issue #: ' + str(justthedigits))
+                                logger.fdebug('Probably due to an incorrect match - I cannot determine the issue number from given issue #: ' + str(justthedigits))
 
 
 #                else:
