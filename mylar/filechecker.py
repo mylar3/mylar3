@@ -765,7 +765,7 @@ def validateAndCreateDirectory(dir, create=False):
                 try:
                     permission = int(mylar.CHMOD_DIR, 8)
                     os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
-                    os.makedirs(dir, permission )
+                    os.makedirs(dir.rstrip(), permission )
                 except OSError:
                     raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
                 return True
