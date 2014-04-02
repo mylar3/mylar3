@@ -117,7 +117,7 @@ def latest_update(ComicID, LatestIssue, LatestDate):
                     "LatestDate":       str(LatestDate)}
     myDB.upsert("comics", newlatestDict, latestCTRLValueDict)
 
-def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None):
+def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None, futurepull=None, altissuenumber=None):
     # here we add to upcoming table...
     myDB = db.DBConnection()
     dspComicName = ComicName #to make sure that the word 'annual' will be displayed on screen
@@ -163,6 +163,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     else:
         issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
 
+    if issuechk is None and altissuenumber is not None:
+        logger.info('altissuenumber is : ' + str(altissuenumber))
+        issuechk = myDB.action("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(altissuenumber)]).fetchone()
     if issuechk is None:
         if futurepull is None:
             logger.fdebug(adjComicName + ' Issue: ' + str(IssueNumber) + ' not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.')
@@ -176,7 +179,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 newVal = {"not_updated_db": str(upco_iss)}
                 myDB.upsert("comics", newVal, newKey)
             elif int(upco_iss) <=0 and lastupdatechk['not_updated_db']:
-                #if not_updated_db has a value, and upco_iss is > 0, let's zero it back out cause it's updated now.
+               #if not_updated_db has a value, and upco_iss is > 0, let's zero it back out cause it's updated now.
                 newKey = {"ComicID": ComicID}
                 newVal = {"not_updated_db": ""}
                 myDB.upsert("comics", newVal, newKey)
@@ -195,33 +198,34 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             nVal = {"Status": "Wanted"}
             myDB.upsert("future", nVal, nKey)
 
-    elif issuechk['Issue_Number'] == IssueNumber:
-        logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
-        logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
-        logger.fdebug('...Existing status: ' + str(issuechk['Status']))
-        control = {"IssueID":   issuechk['IssueID']}
-        newValue['IssueID'] = issuechk['IssueID']
-        if issuechk['Status'] == "Snatched":
-            values = { "Status":   "Snatched"}
-            newValue['Status'] = "Snatched"
-        elif issuechk['Status'] == "Downloaded":
-            values = { "Status":    "Downloaded"}
-            newValue['Status'] = "Downloaded"
-            #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
+    if issuechk is not None:
+        if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
+            logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
+            logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
+            logger.fdebug('...Existing status: ' + str(issuechk['Status']))
+            control = {"IssueID":   issuechk['IssueID']}
+            newValue['IssueID'] = issuechk['IssueID']
+            if issuechk['Status'] == "Snatched":
+                values = { "Status":   "Snatched"}
+                newValue['Status'] = "Snatched"
+            elif issuechk['Status'] == "Downloaded":
+                values = { "Status":    "Downloaded"}
+                newValue['Status'] = "Downloaded"
+                #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
 
-        elif issuechk['Status'] == "Wanted":
-            values = { "Status":    "Wanted"}
-            newValue['Status'] = "Wanted"            
-        elif issuechk['Status'] == "Archived":
-            values = { "Status":    "Archived"}
-            newValue['Status'] = "Archived"
+            elif issuechk['Status'] == "Wanted":
+                values = { "Status":    "Wanted"}
+                newValue['Status'] = "Wanted"            
+            elif issuechk['Status'] == "Archived":
+                values = { "Status":    "Archived"}
+                newValue['Status'] = "Archived"
+            else:
+                values = { "Status":    "Skipped"}
+                newValue['Status'] = "Skipped"
+            #was in wrong place :(
         else:
-            values = { "Status":    "Skipped"}
-            newValue['Status'] = "Skipped"
-        #was in wrong place :(
-    else:
-        logger.fdebug('Issues do not match for some reason...weekly new issue: ' + str(IssueNumber))
-        return
+            logger.fdebug('Issues do not match for some reason...weekly new issue: ' + str(IssueNumber))
+            return
 
     if mylar.AUTOWANT_UPCOMING:
         #for issues not in db - to be added to Upcoming table.
@@ -270,11 +274,15 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             return downstats
 
 
-def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None):
+def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None,altissuenumber=None):
     if futurepull:
         logger.fdebug('future_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber) + ' to a status of ' + str(CStatus))
     else:
         logger.fdebug('weekly_update of table : ' + str(ComicName) + ' #:' + str(IssueNumber) + ' to a status of ' + str(CStatus))
+
+    if altissuenumber:
+        logger.fdebug('weekly_update of table : ' + str(ComicName) + ' (Alternate Issue #):' + str(altissuenumber) + ' to a status of ' + str(CStatus))
+
     # here we update status of weekly table...
     # added Issue to stop false hits on series' that have multiple releases in a week
     # added CStatus to update status flags on Pullist screen
@@ -837,7 +845,10 @@ def forceRescan(ComicID,archive=None):
                 archivedissues+=1
                 pass
             else:
+                logger.info('comiclocation: ' + str(rescan['ComicLocation']))
+                logger.info('filelocation: ' + str(down['Location']))
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
+                logger.info('comicpath: ' + str(comicpath))
                 if os.path.exists(comicpath):
                     pass
                     #print "Issue exists - no need to change status."

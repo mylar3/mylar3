@@ -605,68 +605,79 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                 else:
                                     break
 
-#this all needs to get redone, so the ability to compare issue dates can be done systematically.
-#Everything below should be in it's own function - at least the callable sections - in doing so, we can
-#then do comparisons when two titles of the same name exist and are by definition 'current'. Issue date comparisons
-#would identify the difference between two #1 titles within the same series year, but have different publishing dates.
-#Wolverine (2013) & Wolverine (2014) are good examples of this situation.
-#of course initially, the issue data for the newer series wouldn't have any issue data associated with it so it would be
-#a null value, but given that the 2013 series (as an example) would be from 2013-05-01, it obviously wouldn't be a match to
-#the current date & year (2014). Throwing out that, we could just assume that the 2014 would match the #1.
-
-                                #get the issue number of the 'weeklypull' series.
-                                #load in the actual series issue number's store-date (not publishing date)
-                                #---use a function to check db, then return the results in a tuple/list to avoid db locks.
-                                #if the store-date is >= weeklypull-list date then continue processing below.
-                                #if the store-date is <= weeklypull-list date then break.
-                                ### week['ISSUE']  #issue # from pullist
-                                ### week['SHIPDATE']  #weeklypull-list date
-                                ### comicid[cnt] #comicid of matched series                                                                
-
-                                ## if it's a futurepull, the dates get mixed up when two titles exist of the same name
-                                ## ie. Wolverine-2011 & Wolverine-2014
-                                ## we need to set the compare date to today's date ( Now() ) in this case.
-                                if futurepull:
-                                    usedate = datetime.datetime.now().strftime('%Y%m%d')  #convert to yyyymmdd
-                                else:
-                                    usedate = re.sub("[^0-9]", "", week['SHIPDATE'])
-
-                                if 'ANNUAL' in comicnm.upper():
-                                    chktype = 'annual'
-                                else:
-                                    chktype = 'series' 
-                             
-                                datevalues = loaditup(watchcomic, comicid[cnt], week['ISSUE'], chktype)
-
-                                date_downloaded = None
-
-                                if datevalues == 'no results':
-                                    pass
-                                else:
-                                    datecheck = datevalues[0]['issuedate']
-                                    datestatus = datevalues[0]['status']
-
-                                    logger.fdebug('Now checking date comparison using an issue store date of ' + str(datecheck))
-                                    logger.fdebug('Using a compare date (usedate) of ' + str(usedate))
-                                    #logger.fdebug('Status of ' + str(datestatus))
-
-                                    if int(datecheck) >= int(usedate):
-                                        #logger.info('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is on/ahead of ' + str(week['SHIPDATE']))
-                                        logger.fdebug('Store Date falls within acceptable range - series MATCH')
-                                    elif int(datecheck) < int(usedate):
-                                        logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
-                                        if date_downloaded is None:
-                                            break
-
-                                    if datestatus != 'Downloaded' and datestatus != 'Archived':
-                                        pass
-                                    else:
-                                        logger.fdebug('Issue #' + str(week['ISSUE']) + ' already downloaded.')
-                                        date_downloaded = datestatus
-
 
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
                                     if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
+
+                                    #this all needs to get redone, so the ability to compare issue dates can be done systematically.
+                                    #Everything below should be in it's own function - at least the callable sections - in doing so, we can
+                                    #then do comparisons when two titles of the same name exist and are by definition 'current'. Issue date comparisons
+                                    #would identify the difference between two #1 titles within the same series year, but have different publishing dates.
+                                    #Wolverine (2013) & Wolverine (2014) are good examples of this situation.
+                                    #of course initially, the issue data for the newer series wouldn't have any issue data associated with it so it would be
+                                    #a null value, but given that the 2013 series (as an example) would be from 2013-05-01, it obviously wouldn't be a match to
+                                    #the current date & year (2014). Throwing out that, we could just assume that the 2014 would match the #1.
+
+                                    #get the issue number of the 'weeklypull' series.
+                                    #load in the actual series issue number's store-date (not publishing date)
+                                    #---use a function to check db, then return the results in a tuple/list to avoid db locks.
+                                    #if the store-date is >= weeklypull-list date then continue processing below.
+                                    #if the store-date is <= weeklypull-list date then break.
+                                    ### week['ISSUE']  #issue # from pullist
+                                    ### week['SHIPDATE']  #weeklypull-list date
+                                    ### comicid[cnt] #comicid of matched series                                                                
+
+                                    ## if it's a futurepull, the dates get mixed up when two titles exist of the same name
+                                    ## ie. Wolverine-2011 & Wolverine-2014
+                                    ## we need to set the compare date to today's date ( Now() ) in this case.
+                                        if futurepull:
+                                            usedate = datetime.datetime.now().strftime('%Y%m%d')  #convert to yyyymmdd
+                                        else:
+                                            usedate = re.sub("[^0-9]", "", week['SHIPDATE'])
+
+                                        if 'ANNUAL' in comicnm.upper():
+                                            chktype = 'annual'
+                                        else:
+                                            chktype = 'series' 
+                             
+                                        datevalues = loaditup(watchcomic, comicid[cnt], week['ISSUE'], chktype)
+
+                                        date_downloaded = None
+                                        altissuenum = None
+
+                                        if datevalues == 'no results':
+                                        #if a series is a .NOW on the pullist, it won't match up against anything (probably) on CV
+                                        #let's grab the digit from the .NOW, poll it against CV to see if there's any data
+                                        #if there is, check the store date to make sure it's a 'new' release.
+                                        #if it is a new release that has the same store date as the .NOW, then we assume
+                                        #it's the same, and assign it the AltIssueNumber to do extra searches.
+                                            if week['ISSUE'].isdigit() == False:
+                                                altissuenum = re.sub("[^0-9]", "", week['ISSUE'])  # carry this through to get added to db later if matches
+                                                logger.fdebug('altissuenum is: ' + str(altissuenum))
+                                                altvalues = loaditup(watchcomic, comicid[cnt], altissuenum, chktype)
+                                                if altvalues == 'no results':
+                                                    logger.fdebug('No alternate Issue numbering - something is probably wrong somewhere.')
+                                                    pass
+
+                                                validcheck = checkthis(altvalues[0]['issuedate'], altvalues[0]['status'], usedate)
+                                                if validcheck == False:
+                                                    if date_downloaded is None:
+                                                        break
+                                        else:
+                                            #logger.fdebug('issuedate:' + str(datevalues[0]['issuedate']))
+                                            #logger.fdebug('status:' + str(datevalues[0]['status']))
+                                            datestatus = datevalues[0]['status']
+                                            validcheck = checkthis(datevalues[0]['issuedate'], datestatus, usedate)
+                                            if validcheck == True:
+                                                if datestatus != 'Downloaded' and datestatus != 'Archived':
+                                                    pass
+                                                else:
+                                                    logger.fdebug('Issue #' + str(week['ISSUE']) + ' already downloaded.')
+                                                    date_downloaded = datestatus
+                                            else:
+                                                if date_downloaded is None:
+                                                    break
+
                                         otot+=1
                                         dontadd = "no"
                                         if dontadd == "no":
@@ -699,7 +710,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                                 statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck)
                                             else:
                                                 # here we add to upcoming table...
-                                                statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes')
+                                                statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes', altissuenumber=altissuenum)
 
                                             # here we update status of weekly table...
                                             if statusupdate is not None:
@@ -716,9 +727,9 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                                 fp = "yes"
 
                                             if date_downloaded is None:
-                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid, futurepull=fp)
+                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=cstatus, CID=cstatusid, futurepull=fp, altissuenumber=altissuenum)
                                             else:
-                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=date_downloaded, CID=cstatusid, futurepull=fp)
+                                                updater.weekly_update(ComicName=week['COMIC'], IssueNumber=ComicIssue, CStatus=date_downloaded, CID=cstatusid, futurepull=fp, altissuenumber=altissuenum)
                                             break
                                         break
                         break
@@ -750,7 +761,7 @@ def loaditup(comicname, comicid, issue, chktype):
         issueload = myDB.action('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
 
     if issueload is None:
-        logger.fdebug('No results matched for Issue number - either this is a NEW series with no data yet, or something is wrong')
+        logger.fdebug('No results matched for Issue number - either this is a NEW issue with no data yet, or something is wrong')
         return 'no results'
 
     dataissue = []    
@@ -787,3 +798,18 @@ def loaditup(comicname, comicid, issue, chktype):
                       "status":     status})
 
     return dataissue
+
+def checkthis(datecheck,datestatus,usedate):
+
+    logger.fdebug('Now checking date comparison using an issue store date of ' + str(datecheck))
+    logger.fdebug('Using a compare date (usedate) of ' + str(usedate))
+    logger.fdebug('Status of ' + str(datestatus))
+
+    if int(datecheck) >= int(usedate):
+        logger.fdebug('Store Date falls within acceptable range - series MATCH')
+        valid_check = True
+    elif int(datecheck) < int(usedate):
+        logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
+        valid_check = False
+
+    return valid_check

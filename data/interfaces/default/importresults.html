@@ -75,10 +75,18 @@
                 </thead>
                 <tbody>
                                           %if results:
-                                          %for result in results:                                      
+                                          %for result in results:
+                                           <%
+                                                if result['DisplayName'] is None:
+                                                    displayname = result['ComicName']
+                                                else:
+                                                    displayname = result['DisplayName']
+                                                endif
+                                                print 'displayname via gui is ' + displayname
+                                            %>
                                      <tr>
                                         <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" value="${result['ComicName']}" class="checkbox" />
-                                        <td id="comicname"><a href="${result['ComicName']}" title="${result['ComicName']}" target="_blank">${result['ComicName']}</td>
+                                        <td id="comicname"><a href="${displayname}" title="${displayname}" target="_blank">${displayname}</td>
                                         <td id="comicyear"><title="${result['ComicYear']}">${result['ComicYear']}</td>
                                         <td id="comicissues"><title="${result['IssueCount']}">${result['IssueCount']}</td>
                                         <td id="status">${result['Status']}
@@ -87,7 +95,7 @@
                                         %endif
                                         </td>
                                         <td id="importdate">${result['ImportDate']}</td>
-                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}">Import</a>]
+                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}&displaycomic=${displayname |u}">Import</a>]
                                         [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
                                         <!-- [<a href="#">Rename</a>] -->
                                         %if result['implog'] is not None:
@@ -128,7 +136,7 @@
                                        %for wresult in watchresults:
                                         <tr>
                                         <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${wresult['ComicName']}" class="checkbox" /></td>
-                                        <td id="comicname"><a href="http://www.comicvine.com/volume/49-${wresult['WatchMatch']} title="${wresult['ComicName']}" target="_blank">${wresult['ComicName']}</td>
+                                        <td id="comicname"><a href="http://www.comicvine.com/volume/4050-${wresult['WatchMatch']} title="${wresult['ComicName']}" target="_blank">${wresult['ComicName']}</td>
                                         <td id="comicissues"><title="${wresult['ComicYear']}">${wresult['ComicYear']}</td>
                                         <td id="status">${wresult['Status']}</td>
                                         <td id="importdate">${wresult['ImportDate']}</td>

@@ -12,7 +12,7 @@
 <%def name="body()">
 	
 	<div class="title">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_wanted.png" alt="Wanted Issues"/>Wanted Issues</h1>
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_wanted.png" alt="Wanted Issues"/>Wanted Issues (${wantedcount})</h1>
 	</div>
 	<form action="markissues" method="get" id="markissues">
 	<div id="markissue" style="top:0;">
@@ -62,9 +62,9 @@
 
         <div id="tabs">
                 <ul>
-                        <li><a href="#tabs-1">This Week's Upcoming</a></li>
+                        <li><a href="#tabs-1">This Week's Upcoming (${upcoming_count})</a></li>
                         <li><a href="#tabs-2">Upcoming nodata</a></li>
-                        <li><a href="#tabs-3">Future Upcoming</a></li>
+                        <li><a href="#tabs-3">Future Upcoming (${futureupcoming_count})</a></li>
                 </ul>
 
         <div id="tabs-1">

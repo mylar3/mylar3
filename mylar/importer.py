@@ -1308,7 +1308,7 @@ def issue_collection(issuedata,nostatus):
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
                     newValueDict['DateAdded'] = helpers.today()
-                    print 'issue #' + str(issue['Issue_Number']) + 'does not exist in db.'
+                    #logger.fdebug('issue #' + str(issue['Issue_Number']) + 'does not exist in db.')
                     if mylar.AUTOWANT_ALL:
                         newValueDict['Status'] = "Wanted"
                     elif issue['IssueDate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
@@ -1321,7 +1321,7 @@ def issue_collection(issuedata,nostatus):
                     newValueDict['Status'] = iss_exists['Status']
 
             else:
-                #logger.info("Not changing the status at this time - reverting to previous module after to re-append existing status")
+                #logger.fdebug("Not changing the status at this time - reverting to previous module after to re-append existing status")
                 pass #newValueDict['Status'] = "Skipped"
 
             try:

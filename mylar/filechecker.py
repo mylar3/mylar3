@@ -72,15 +72,16 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
 
 #    for item in os.listdir(basedir):
     for fname in dirlist:
+        moddir = None
         # at a later point, we should store the basedir and scan it in for additional info, since some users
         # have their structure setup as 'Batman v2 (2011)/Batman #1.cbz' or 'Batman/V2-(2011)/Batman #1.cbz'
-
-        #logger.fdebug('fname[directory]:' + fname['directory'])
-        #logger.fdebug('fname[filename]:' + fname['filename'])
         if fname['directory'] == '':
             basedir = dir
         else:
             basedir = fname['directory']
+            #if it's a subdir, strip out the main dir and retain the remainder for the filechecker to find it.
+            #start at position 1 so the initial slash is removed since it's a sub, and os.path.join will choke.
+            moddir = basedir.replace(dir,'')[1:].rstrip()
 
         item = fname['filename']
              
@@ -738,6 +739,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                      })
                 #print('appended.')
             else:
+                if moddir is not None:
+                    item = os.path.join(moddir, item)
                 comiclist.append({
                      'ComicFilename':           item,
                      'ComicLocation':           comicpath,

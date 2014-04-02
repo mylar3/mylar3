@@ -120,8 +120,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         nzbpr == 0
     findit = 'no'
 
-    if (providercount + torp) == 0:
-        logger.ERROR('[WARNING] You have 0 search providers enabled. I need at least ONE provider to work. Aborting search.')
+    totalproviders = providercount + torp
+
+    if totalproviders == 0:
+        logger.ERROR('[WARNING] You have ' + str(totalproviders) + ' search providers enabled. I need at least ONE provider to work. Aborting search.')
         findit = "no"
         nzbprov = None
         return findit, nzbprov
@@ -602,13 +604,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         # helper function to replace apikey here so we avoid logging it ;)
                         findurl = findurl + "&apikey=" + str(apikey)
                         logsearch = helpers.apiremove(str(findurl),'nzb')
+                        logger.fdebug("search-url: " + str(logsearch))
 
                         ### IF USENET_RETENTION is set, honour it
                         ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
                         if mylar.USENET_RETENTION != None:
                             findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
-
-                        logger.fdebug("search-url: " + str(findurl))
 
                         # Add a user-agent
                         #print ("user-agent:" + str(mylar.USER_AGENT))

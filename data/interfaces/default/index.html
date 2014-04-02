@@ -23,53 +23,6 @@
 		<tbody>
 		%for comic in comics:
 			<%
-                                myDB = db.DBConnection()
-                                issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
-                                wantedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
-                                if annuals_on:
-                                    anwantedc = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
-                                    annual = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
-                                else:
-                                    anwantedc = 0
-                                    annual = 0
-                                archedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Archived'", [comic['ComicID']]).fetchone()
-                                if annuals_on:
-                                    annualcount = annual[0]
-                                    if not annualcount:
-                                        annualcount = 0
-                                    anns = anwantedc[0]
-                                else:
-                                    annualcount = 0
-                                    anns = 0
-                                totaltracks = comic['Total'] + annualcount
-                                havetracks = comic['Have']
-                                wants = wantedc[0]
-                                arcs = archedc[0]
-                                if not havetracks:
-                                        havetracks = 0
-                                if not wants:
-                                    wants = 0
-                                if not anns:
-                                    anns = 0
-                                if not arcs:
-                                    arcs = 0
-                                try:
-                                    wantpercent = (wants*100.0)/totaltracks
-                                    if wantpercent > 100:
-                                        wantpercent = 100
-                                except (ZeroDivisionError, TypeError):
-                                        wantpercent = 0
-                                        wants = '?'
-
-				try:
-					percent = (havetracks*100.0)/totaltracks
-					if percent > 100:
-						percent = 100
-				except (ZeroDivisionError, TypeError):
-					percent = 0
-					totaltracks = '?'
-				
-
 				if comic['Status'] == 'Paused':
 					grade = 'X'
 				elif comic['Status'] == 'Loading':
@@ -78,7 +31,6 @@
                                         grade = 'X'
                                 else:
                                         grade = 'A'
-				
 			%>
 			<tr class="grade${grade}">
 				<td id="publisher">${comic['ComicPublisher']}</td>
@@ -86,28 +38,8 @@
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>                               
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>
-				<td id="have"><span title="${percent}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
-				<td id="status">
-                                %if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
-                                    Unknown 
-                                %elif comic['ForceContinuing'] == 1:
-                                    Continuing
-                                %elif 'present' in comic['ComicPublished'].lower() or ( helpers.today()[:4] in comic['LatestDate']):
-                                    <%
-                                          latestdate = comic['LatestDate']
-                                          c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
-                                          n_date = datetime.date.today()
-                                          recentchk = (n_date - c_date).days
-                                          if recentchk < 55:
-                                              recentstatus = 'Continuing'
-                                          else:
-                                              recentstatus = 'Ended'
-                                     %>
-                                    ${recentstatus}
-                                %else:
-                                    Ended
-                                %endif
-                                </td>
+				<td id="have"><span title="${comic['percent']}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
+				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
                                     <img src="/interfaces/default/images/checkmark.png" alt="Y" width="16" height="16" />

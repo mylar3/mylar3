@@ -8,7 +8,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-                        <a id="menu_link_refresh" onclick="doAjaxCall('refreshArtist?ComicID=${comic['ComicID']}', $(this)),'table'" href="#" data-success="'${comic['ComicName']}' is being refreshed">Refresh Comic</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('refreshArtist?ComicID=${comic['ComicID']}', $(this),'table')" href="#" data-success="'${comic['ComicName']}' is being refreshed">Refresh Comic</a>
                         <a id="menu_link_delete" href="deleteArtist?ComicID=${comic['ComicID']}">Delete Comic</a>
                         %if mylar.RENAME_FILES:
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
