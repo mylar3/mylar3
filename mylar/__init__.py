@@ -865,7 +865,7 @@ def launch_browser(host, port, root):
     except Exception, e:
         logger.error('Could not launch browser: %s' % e)
 
-def config_write:
+def config_write():
     new_config = ConfigObj()
     new_config.filename = CONFIG_FILE
 

@@ -2819,7 +2819,7 @@ class WebInterface(object):
                         qd = True
                     else:
                         qerror = dom.getElementsByTagName('error')[0].firstChild.wholeText
-                        logger.fdebug(str(qerror) + ' - check that the API (NZBkey) is correct, use the auto-detect option AND/OR check host:port settings')
+                        logger.error(str(qerror) + ' - check that the API (NZBkey) is correct, use the auto-detect option AND/OR check host:port settings')
                         qd = False
 
                 if qd == False: return
@@ -2827,19 +2827,19 @@ class WebInterface(object):
             #test which apikey provided
             if q_nzbkey != sab_apikey:
                 if q_apikey != sab_apikey:
-                    logger.fdebug('APIKey provided does not match with SABnzbd')
+                    logger.error('APIKey provided does not match with SABnzbd')
                     return
                 else:
-                    logger.fdebug('APIKey provided is FULL APIKey which is too much power - changing to NZBKey')
+                    logger.info('APIKey provided is FULL APIKey which is too much power - changing to NZBKey')
                     mylar.SAB_APIKEY = q_nzbkey
                     mylar.config_write()
-                    logger.fdebug('Succcessfully changed to NZBKey. Thanks for shopping S-MART!')
+                    logger.info('Succcessfully changed to NZBKey. Thanks for shopping S-MART!')
             else:
-                logger.fdebug('APIKey provided is NZBKey which is the correct key.')
+                logger.info('APIKey provided is NZBKey which is the correct key.')
 
-            logger.fdebug('Connection to SABnzbd tested sucessfully')
+            logger.info('Connection to SABnzbd tested sucessfully')
         else:
-            logger.fdebug('You do not have anything stated for SAB Host. Please correct and try again.')
+            logger.error('You do not have anything stated for SAB Host. Please correct and try again.')
             return
     SABtest.exposed = True
 
