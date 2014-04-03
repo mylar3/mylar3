@@ -66,39 +66,21 @@ class WebInterface(object):
         comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         for comic in comiclist:
             issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
-            wantedc = myDB.action("SELECT COUNT(*) as count FROM issues WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
             if mylar.ANNUALS_ON:
                 annuals_on = True
-                anwantedc = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=? AND Status='Wanted'", [comic['ComicID']]).fetchone()
                 annual = myDB.action("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
                 annualcount = annual[0]
                 if not annualcount:
                     annualcount = 0
-                    anns = anwantedc[0]
-                else:
-                    annualcount = 0
-                    anns = 0
             else: 
                 annuals_on = False
-                anwantedc = 0
-                annual = 0
+                annual = None
+                annualcount = 0
             totalissues = comic['Total'] + annualcount
             haveissues = comic['Have']
-            wants = wantedc[0]
+
             if not haveissues:
                havetracks = 0
-            if not wants:
-               wants = 0
-            if not anns:
-                anns = 0
-
-            try:
-                wantpercent = (wants*100.0)/totalissues
-                if wantpercent > 100:
-                    wantpercent = 100
-            except (ZeroDivisionError, TypeError):
-                wantpercent = 0
-                wants = '?'
 
             try:
                 percent = (haveissues*100.0)/totalissues

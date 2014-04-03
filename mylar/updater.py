@@ -845,10 +845,7 @@ def forceRescan(ComicID,archive=None):
                 archivedissues+=1
                 pass
             else:
-                logger.info('comiclocation: ' + str(rescan['ComicLocation']))
-                logger.info('filelocation: ' + str(down['Location']))
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
-                logger.info('comicpath: ' + str(comicpath))
                 if os.path.exists(comicpath):
                     pass
                     #print "Issue exists - no need to change status."

@@ -809,7 +809,7 @@ def checkthis(datecheck,datestatus,usedate):
         logger.fdebug('Store Date falls within acceptable range - series MATCH')
         valid_check = True
     elif int(datecheck) < int(usedate):
-        logger.fdebug('The issue date of issue #' + str(week['ISSUE']) + ' was on ' + str(datecheck) + ' which is prior to ' + str(week['SHIPDATE']))
+        logger.fdebug('The issue date of issue was on ' + str(datecheck) + ' which is prior to ' + str(usedate))
         valid_check = False
 
     return valid_check
