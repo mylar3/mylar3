@@ -709,7 +709,10 @@ def issuedigits(issnum):
             #logger.fdebug('decimal detected.')
             if ',' in issnum: issnum = re.sub(',','.', issnum)
             issst = str(issnum).find('.')
-            issb4dec = str(issnum)[:issst]
+            if issst == 0:
+                issb4dec = 0
+            else:
+                issb4dec = str(issnum)[:issst]
             decis = str(issnum)[issst+1:]
             if len(decis) == 1:
                 decisval = int(decis) * 10

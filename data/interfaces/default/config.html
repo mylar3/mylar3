@@ -19,7 +19,6 @@
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_gear.png" alt="settings"/>Settings</h1>
 	</div>
 	<form action="configUpdate" method="post" class="form" id="configUpdate">
-	
 	<div id="tabs">
 		<ul>
                         <li><a href="#tabs-1">Information</a></li>
@@ -213,7 +212,7 @@
                          <legend>Usenet</legend>
                             <input type="radio" name="nzb_downloader" id="nzb_downloader_sabnzbd" value="0" ${config['nzb_downloader_sabnzbd']}>Sabnzbd <input type="radio" name="nzb_downloader" id="nzb_downloader_nzbget" value="1" ${config['nzb_downloader_nzbget']}> NZBget <input type="radio" name="nzb_downloader" id="nzb_downloader_blackhole" value="2" ${config['nzb_downloader_blackhole']}>Black Hole
                        </fieldset>
-                       <fieldset id="sabnzbd_options">
+                        <fieldset id="sabnzbd_options">
 	                	<div class="row">
 		                    <label>SABnzbd Host:</label>
 		                    <input type="text" name="sab_host" value="${config['sab_host']}" size="30">
@@ -230,9 +229,12 @@
                                 <div Class="row">
                                      <div class="populatesab">
                                         <label>SABnzbd API:</label>
-                                        <input type="text" name="sab_apikey" id="sab_apikey" value="${config['sab_api']}" size="32">
-                                        <input style="float:right" type="image" src="interfaces/default/images/submit.png" height="20" width="20" title="Attempt to auto-populate SABnzbd API" id="find_sabapi">
-                                      </div>
+                                        <input type="text" name="sab_apikey" id="sab_apikey" value="${config['sab_api']}" size="28">
+<!--
+                                        <input style="float:right" type="button"><image src="interfaces/default/images/submit.png" height="20" width="20" title="Attempt to auto-populate SABnzbd API" id="find_sabapi">
+-->
+                                     <a href="#" style="float:right" type="button" id="find_sabapi" data-success="Sucessfully retrieved SABnzbd API" data-error="Error auto-populating SABnzbd API"><span class="ui-icon ui-icon-extlink"></span>Get API</a>
+                                     </div>
                                 </div>
                                 <div class="row">
                                     <label>SABnzbd Download Directory</label>
@@ -258,10 +260,11 @@
                                                 %endfor
                                                 </select>
                                 </div>
+<!--
                                 <div class="row">
-                                       <input type="hidden" name="tsab" value="True">
-                                       <a href="#" style="float:right" type="button" onclick="doAjaxCall('configUpdate',$(this),'tabs',true);return false;" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
+                                     <a href="#" style="float:right" type="button" onclick="doAjaxCall('addAction();SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
                                 </div>
+-->
                        </fieldset>
                        <fieldset id="nzbget_options">
                                 <div class="row">
@@ -833,12 +836,12 @@
 
 <%def name="javascriptIncludes()">
 	<script>
-	
+
 	hideServerDivs = function () {
 		$("#customoptions").slideUp();
 		$("#hpserveroptions").slideUp();
 	};
-	
+
 	handleNewSelection = function () {
 	
 		hideServerDivs();
@@ -1032,7 +1035,11 @@
                     formfields.append("</div>");
                     $("#add_newznab").before(formfields);
                 });
-    
+                function addAction() {
+                        $('#autoadd').append('<input type="hidden" name="tsab" value=1 />');
+                };
+
+
 		$(function() {
 			$( "#tabs" ).tabs();
 		});

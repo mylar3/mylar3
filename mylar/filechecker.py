@@ -173,7 +173,15 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subit = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
                 subthis2 = re.sub('.cbr', '', subit)
                 subthis1 = re.sub('.cbz', '', subthis2)
-                subname = re.sub('[-\:\;\!\'\/\?\+\=\_\%\.\-]', '', subthis1)
+                subname = re.sub('[-\:\;\!\'\/\?\+\=\_\%\-]', '', subthis1)
+                #if '.' appears more than once at this point, then it's being used in place of spaces.
+                #if '.' only appears once at this point, it's a decimal issue (since decimalinseries is False within this else stmt).
+                if len(str(subname.count('.'))) == 1:
+                    logger.fdebug('decimal issue detected, not removing decimals')
+                else:
+                    logger.fdebug('more than one decimal detected, and the series does not have decimals - assuming in place of spaces.')
+                    subname = re.sub('[\.]', '', subname)
+               
                 subnm = re.findall('[^()]+', subname)
 
         if Publisher.lower() in subname.lower():
@@ -622,7 +630,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     else:
                         logger.fdebug('[FILECHECKER] Versions wrong. Ignoring possible match.')
 
-                #else:
+                result_comyear = None
                 while (cnt < len_sm):
                     if subnm[cnt] is None: break
                     if subnm[cnt] == ' ':

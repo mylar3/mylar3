@@ -232,18 +232,32 @@ class PostProcessor(object):
                                     logger.info("No corresponding issue # found for " + str(cs['ComicID']))
                                 else:
                                     datematch = "True"
-                                    if len(watchmatch) > 1:
+                                    if len(watchmatch) > 1 and tmpfc['ComicYear'] is not None:
                                         #if the # of matches is more than 1, we need to make sure we get the right series
                                         #compare the ReleaseDate for the issue, to the found issue date in the filename.
                                         #if ReleaseDate doesn't exist, use IssueDate
                                         #if no issue date was found, then ignore.
+                                        issyr = None
+                                        if int(issuechk['IssueDate'][5:7]) == 11 or issuechk['IssueDate'][5:7] == 12: 
+                                            issyr = int(issuechk['IssueDate'][:4])
+                                        elif int(issuechk['IssueDate'][5:7]) == 1 or int(issuechk['IssueDate'][5:7]) == 2: 
+                                            issyr = int(issuechk['IssueDate'][:4])
+
                                         if issuechk['ReleaseDate'] is not None:
                                             if int(issuechk['ReleaseDate'][:4]) < int(tmpfc['ComicYear']):
                                                 logger.fdebug(str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
                                                 datematch = "False"
+                                                 
                                         else:
                                             if int(issuechk['IssueDate'][:4]) < int(tmpfc['ComicYear']):
                                                 logger.fdebug(str(issuechk['IssueDate']) + ' is before the issue year ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
+                                                datematch = "False"
+
+                                        if datematch == "False" and issyr is not None:
+                                            logger.fdebug(str(issyr) + ' comparing to ' + str(tmpfc['ComicYear']) + 'rechecking by month-check versus year.')
+                                            datematch == "True"
+                                            if int(issyr) != int(tmpfc['ComicYear']):
+                                                logger.fdebug('[fail] Issue is before the modified issue year of ' + str(issyr))
                                                 datematch = "False"
                                           
                                     else:

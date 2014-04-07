@@ -404,6 +404,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
     llen = []
     ccname = []
     pubdate = []
+    latestissue = []
     w = 0
     wc = 0
     tot = 0
@@ -434,7 +435,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch from comics")
+            cur.execute("SELECT ComicID, ComicName, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
@@ -464,11 +465,12 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                     if recentchk < int(chklimit) or watchd[6] == 1:
                         if watchd[6] == 1:
                             logger.fdebug('Forcing Continuing Series enabled for series...')
-                        # let's not even bother with comics that are in the Present.
+                        # let's not even bother with comics that are not in the Present.
                         a_list.append(watchd[1])
                         b_list.append(watchd[2])
                         comicid.append(watchd[0])
                         pubdate.append(watchd[4])
+                        latestissue.append(watchd[8])
                         lines.append(a_list[w].strip())
                         unlines.append(a_list[w].strip())
                         w+=1   # we need to increment the count here, so we don't count the same comics twice (albeit with alternate names)
@@ -493,6 +495,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                 b_list.append(watchd[2])
                                 comicid.append(alt_cid)
                                 pubdate.append(watchd[4])
+                                latestissue.append(watchd[8])
                                 lines.append(a_list[w+wc].strip())
                                 unlines.append(a_list[w+wc].strip())
                                 logger.fdebug('loading in Alternate name for ' + str(cleanedname))
@@ -524,6 +527,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
         #print ("----------THIS WEEK'S PUBLISHED COMICS------------")
         if w > 0:
             while (cnt > -1):
+                latestiss = latestissue[cnt]
                 lines[cnt] = lines[cnt].upper()
                 #llen[cnt] = str(llen[cnt])
                 logger.fdebug("looking for : " + lines[cnt])
@@ -651,7 +655,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                         #if there is, check the store date to make sure it's a 'new' release.
                                         #if it is a new release that has the same store date as the .NOW, then we assume
                                         #it's the same, and assign it the AltIssueNumber to do extra searches.
-                                            if week['ISSUE'].isdigit() == False:
+                                            if week['ISSUE'].isdigit() == False and '.' not in week['ISSUE']:
                                                 altissuenum = re.sub("[^0-9]", "", week['ISSUE'])  # carry this through to get added to db later if matches
                                                 logger.fdebug('altissuenum is: ' + str(altissuenum))
                                                 altvalues = loaditup(watchcomic, comicid[cnt], altissuenum, chktype)
@@ -663,6 +667,15 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                                 if validcheck == False:
                                                     if date_downloaded is None:
                                                         break
+
+                                            latest_int = helpers.issuedigits(latestiss)
+                                            weekiss_int = helpers.issuedigits(week['ISSUE'])
+                                            logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
+                                            if (latest_int > weekiss_int) or (latest_int == 0 or weekiss_int == 0):
+                                                logger.fdebug(str(week['ISSUE']) + ' should not be the next issue in THIS volume of the series.')
+                                                logger.fdebug('it should be either greater than ' + str(latestiss) + ' or an issue #0')
+                                                break
+
                                         else:
                                             #logger.fdebug('issuedate:' + str(datevalues[0]['issuedate']))
                                             #logger.fdebug('status:' + str(datevalues[0]['status']))

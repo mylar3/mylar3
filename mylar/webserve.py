@@ -570,10 +570,14 @@ class WebInterface(object):
 
                 logger.fdebug("Attempting to put the Status' back how they were.")
                 icount = 0
+                #the problem - the loop below will not match on NEW issues that have been refreshed that weren't present in the
+                #db before (ie. you left Mylar off for abit, and when you started it up it pulled down new issue information)
+                #need to test if issuenew['Status'] is None, but in a seperate loop below.
+                fndissue = []
                 for issue in issues:
                     for issuenew in issues_new:
-                        #logger.info('issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
-                        #logger.info('issuenew:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
+                        logger.info(str(issue['Issue_Number']) + ' - issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
+                        logger.info(str(issue['Issue_Number']) + ' - issue:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
                         if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
                             ctrlVAL = {"IssueID":      issue['IssueID']}
                             #if the status is None and the original status is either Downloaded / Archived, keep status & stats
@@ -598,15 +602,37 @@ class WebInterface(object):
                                 #change the status to the previous status
                                 newVAL = {"Status":        issue['Status']}
 
+                            if newVAL['Status'] == None:
+                                newVAL = {"Status":        "Skipped"}
+
                             if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
                                 logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
                                 myDB.upsert("Annuals", newVAL, ctrlVAL)
                             else:
-                                #logger.info('writing issuedata: ' + str(newVAL))
+                                logger.info('writing issuedata: ' + str(newVAL))
                                 myDB.upsert("Issues", newVAL, ctrlVAL)
+                            fndissue.append({"IssueID":      issue['IssueID']})
                             icount+=1
                             break
                 logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
+
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
+                if mylar.ANNUALS_ON:
+                    issues_new += myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
+
+                newiss = []
+                for iss in issues_new:
+                     newiss.append({"IssueID":      issue['IssueID'],
+                                    "Status":        "Skipped"})
+                if len(newiss) > 0:
+                     for newi in newiss:
+                         ctrlVAL = {"IssueID":   newi['IssueID']}
+                         newVAL = {"Status":     newi['Status']}
+                         logger.info('writing issuedata: ' + str(newVAL))
+                         myDB.upsert("Issues", newVAL, ctrlVAL)
+
+                logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
+
             else:
                 mylar.importer.addComictoDB(ComicID,mismatch)
 
@@ -2310,7 +2336,6 @@ class WebInterface(object):
                     "use_dognzb" : helpers.checked(mylar.DOGNZB),
                     "dognzb_uid" : mylar.DOGNZB_UID, 
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
-                    "use_nzbx" : helpers.checked(mylar.NZBX),
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
                     "use_newznab" : helpers.checked(mylar.NEWZNAB),
                     "newznab_host" : mylar.NEWZNAB_HOST,
@@ -2562,7 +2587,7 @@ class WebInterface(object):
     def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, api_enabled=0, api_key=None, launch_browser=0, logverbose=0, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
-        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, nzbx=0, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
         enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None,
         enable_torrents=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
@@ -2610,7 +2635,6 @@ class WebInterface(object):
         mylar.DOGNZB = dognzb
         mylar.DOGNZB_UID = dognzb_uid
         mylar.DOGNZB_APIKEY = dognzb_apikey
-        mylar.NZBX = nzbx
         mylar.RAW = raw
         mylar.RAW_PROVIDER = raw_provider
         mylar.RAW_USERNAME = raw_username
@@ -2753,9 +2777,13 @@ class WebInterface(object):
 
     configUpdate.exposed = True
 
-    def SABtest(self,sab_host,sab_username,sab_password,sab_apikey):
+    def SABtest(self):
+        sab_host = mylar.SAB_HOST
+        sab_username = mylar.SAB_USERNAME
+        sab_password = mylar.SAB_PASSWORD
+        sab_apikey = mylar.SAB_APIKEY
         logger.fdebug('testing SABnzbd connection')
-        logger.fdebug('sab_host: ' + str(sab_host))
+        logger.fdebug('sabhost: ' + str(sab_host))
         logger.fdebug('sab_username: ' + str(sab_username))
         logger.fdebug('sab_password: ' + str(sab_password))
         logger.fdebug('sab_apikey: ' + str(sab_apikey))
@@ -2866,7 +2894,7 @@ class WebInterface(object):
     def findsabAPI(self):
         import sabparse
         sabapi = sabparse.sabnzbd()
-        logger.info('SAB NZBKey found as : ' + str(sabapi))
+        logger.info('SAB NZBKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
         mylar.SAB_APIKEY = sabapi
         return sabapi
 

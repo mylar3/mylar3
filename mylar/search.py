@@ -123,7 +123,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     totalproviders = providercount + torp
 
     if totalproviders == 0:
-        logger.ERROR('[WARNING] You have ' + str(totalproviders) + ' search providers enabled. I need at least ONE provider to work. Aborting search.')
+        logger.error('[WARNING] You have ' + str(totalproviders) + ' search providers enabled. I need at least ONE provider to work. Aborting search.')
         findit = "no"
         nzbprov = None
         return findit, nzbprov

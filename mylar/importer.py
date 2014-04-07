@@ -651,12 +651,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                     int_issnum = int( issnum ) * 1000
                 else:
                     if 'a.i.' in issnum.lower(): issnum = re.sub('\.', '', issnum)
-                    #print str(issnum)
                     if 'au' in issnum.lower():
                         int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
 #                    elif 'ai' in issnum.lower():
 #                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-#                        print "ai:"  + str(int_issnum)
                     elif 'inh' in issnum.lower():
                         int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
                     elif 'now' in issnum.lower():
@@ -677,7 +675,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                         if ',' in issnum: issnum = re.sub(',','.', issnum)
                         issst = str(issnum).find('.')
                         #logger.fdebug("issst:" + str(issst))
-                        issb4dec = str(issnum)[:issst]
+                        if issst == 0:
+                            issb4dec = 0
+                        else:
+                            issb4dec = str(issnum)[:issst]
                         #logger.fdebug("issb4dec:" + str(issb4dec))
                         #if the length of decimal is only 1 digit, assume it's a tenth
                         decis = str(issnum)[issst+1:]
@@ -1298,12 +1299,13 @@ def issue_collection(issuedata,nostatus):
                             "IssueDate":          issue['IssueDate'],
                             "ReleaseDate":        issue['ReleaseDate'],
                             "Int_IssueNumber":    issue['Int_IssueNumber']
+                            #"Status":             "Skipped"  #set this to Skipped by default to avoid NULL entries.
                             }
 
+            # check if the issue already exists
+            iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issue['IssueID']]).fetchone()
 
             if nostatus == 'False':
-                # check if the issue already exists
-                iss_exists = myDB.action('SELECT * from issues WHERE IssueID=?', [issue['IssueID']]).fetchone()
 
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
