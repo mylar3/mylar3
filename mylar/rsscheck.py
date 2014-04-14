@@ -40,6 +40,7 @@ def tehMain(forcerss=None):
         if mylar.ENABLE_KAT:
             logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on KAT.')
             torrents(pickfeed='3')
+            torrents(pickfeed='6')
         if mylar.ENABLE_CBT:
             logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on CBT.')
             torrents(pickfeed='1')
@@ -79,32 +80,18 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     else:
         kat_url = 'http://kat.ph/'
 
-
-    if pickfeed == "1":      # cbt rss feed based on followlist
-        feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
-    elif pickfeed == "2" and srchterm is not None:    # kat.ph search
-        feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
-    elif pickfeed == "3":    # kat.ph rss feed
-        feed = kat_url + "usearch/category%3Acomics%20seeds%3A1/?rss=1"
-    elif pickfeed == "4":    #cbt follow link
-        feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
-    elif pickfeed == "5":    # cbt series link
-#       seriespage = "http://comicbt.com/series.php?passkey=" + str(passkey)
-        feed = "http://comicbt.com/rss.php?action=series&series=" + str(seriesno) + "&passkey=" + str(passkey)
+    if pickfeed == 'KAT':
+        #we need to cycle through both categories (comics & other) - so we loop.
+        loopit = 2
     else:
-        logger.error('invalid pickfeed denoted...')
-        return
+        loopit = 1
+
+    lp = 0
 
     title = []
     link = []
     description = []
     seriestitle = []
-
-    if pickfeed == "5": # we need to get the series # first
-        seriesSearch(seriespage, seriesname)
-
-    feedme = feedparser.parse(feed)
-    
     i = 0
 
     feeddata = []
@@ -112,48 +99,99 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
     torthekat = []
     katinfo = {}
 
-    for entry in feedme['entries']:
-        if pickfeed == "3":
-            tmpsz = feedme.entries[i].enclosures[0]
-            feeddata.append({
-                           'Site':     'KAT',
-                           'Title':    feedme.entries[i].title,
-                           'Link':     tmpsz['url'],
-                           'Pubdate':  feedme.entries[i].updated,
-                           'Size':     tmpsz['length']
-                           })
+    while (lp < loopit):
+        if lp == 0 and loopit == 2: 
+            pickfeed = '2'
+        elif lp == 1 and loopit == 2: 
+            pickfeed = '5'    
 
-        elif pickfeed == "2":
-            tmpsz = feedme.entries[i].enclosures[0]
-            torthekat.append({
-                           'site':     'KAT',
-                           'title':    feedme.entries[i].title,
-                           'link':     tmpsz['url'],
-                           'pubdate':  feedme.entries[i].updated,
-                           'length':     tmpsz['length']
-                           })
+        feedtype = None
 
-            #print ("Site: KAT")
-            #print ("Title: " + str(feedme.entries[i].title))
-            #print ("Link: " + str(tmpsz['url']))
-            #print ("pubdate: " + str(feedme.entries[i].updated))
-            #print ("size: " + str(tmpsz['length']))
+        if pickfeed == "1":      # cbt rss feed based on followlist
+            feed = "http://comicbt.com/rss.php?action=browse&passkey=" + str(passkey) + "&type=dl"
+            feedtype = ' from the New Releases RSS Feed for comics'
+        elif pickfeed == "2" and srchterm is not None:    # kat.ph search
+            feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A1/?rss=1"
+        elif pickfeed == "3":    # kat.ph rss feed
+            feed = kat_url + "usearch/category%3Acomics%20seeds%3A1/?rss=1"
+            feedtype = ' from the New Releases RSS Feed for comics'
+        elif pickfeed == "4":    #cbt follow link
+            feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
+            feedtype = ' from your CBT Followlist RSS Feed'
+        elif pickfeed == "5" and srchterm is not None:    # kat.ph search (category:other since some 0-day comics initially get thrown there until categorized)
+            feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Aother%20seeds%3A1/?rss=1"
+        elif pickfeed == "6":    # kat.ph rss feed (category:other so that we can get them quicker if need-be)
+            feed = kat_url + "usearch/.cbr%20category%3Aother%20seeds%3A1/?rss=1"
+            feedtype = ' from the New Releases for category Other RSS Feed that contain comics' 
+        elif pickfeed == "7":    # cbt series link
+#           seriespage = "http://comicbt.com/series.php?passkey=" + str(passkey)
+            feed = "http://comicbt.com/rss.php?action=series&series=" + str(seriesno) + "&passkey=" + str(passkey)
+        else:
+            logger.error('invalid pickfeed denoted...')
+            return
 
+        #print 'feed URL: ' + str(feed)
+  
+        if pickfeed == "7": # we need to get the series # first
+            seriesSearch(seriespage, seriesname)
+
+        feedme = feedparser.parse(feed)
+
+        if pickfeed == "3" or pickfeed == "6" or pickfeed == "2" or pickfeed == "5":
+            picksite = 'KAT'
         elif pickfeed == "1" or pickfeed == "4":
-#            tmpsz = feedme.entries[i].enclosures[0]
-            feeddata.append({
-                           'Site':     'CBT',
-                           'Title':    feedme.entries[i].title, 
-                           'Link':     feedme.entries[i].link,
-                           'Pubdate':  feedme.entries[i].updated
-#                          'Size':     tmpsz['length']
-                           })
-            #print ("Site: CBT")
-            #print ("Title: " + str(feeddata[i]['Title']))
-            #print ("Link: " + str(feeddata[i]['Link']))
-            #print ("pubdate: " + str(feeddata[i]['Pubdate']))
-        i+=1
-    logger.fdebug('there were ' + str(i) + ' results..')
+            picksite = 'CBT'
+    
+        for entry in feedme['entries']:
+            if pickfeed == "3" or pickfeed == "6":
+                tmpsz = feedme.entries[i].enclosures[0]
+                feeddata.append({
+                               'Site':     picksite,
+                               'Title':    feedme.entries[i].title,
+                               'Link':     tmpsz['url'],
+                               'Pubdate':  feedme.entries[i].updated,
+                               'Size':     tmpsz['length']
+                               })
+
+            elif pickfeed == "2" or pickfeed == "5":
+                tmpsz = feedme.entries[i].enclosures[0]
+                torthekat.append({
+                               'site':     picksite,
+                               'title':    feedme.entries[i].title,
+                               'link':     tmpsz['url'],
+                               'pubdate':  feedme.entries[i].updated,
+                               'length':     tmpsz['length']
+                               })
+  
+                #print ("Site: KAT")
+                #print ("Title: " + str(feedme.entries[i].title))
+                #print ("Link: " + str(tmpsz['url']))
+                #print ("pubdate: " + str(feedme.entries[i].updated))
+                #print ("size: " + str(tmpsz['length']))
+
+            elif pickfeed == "1" or pickfeed == "4":
+#               tmpsz = feedme.entries[i].enclosures[0]
+                feeddata.append({
+                               'Site':     picksite,
+                               'Title':    feedme.entries[i].title, 
+                               'Link':     feedme.entries[i].link,
+                               'Pubdate':  feedme.entries[i].updated
+#                              'Size':     tmpsz['length']
+                               })
+                #print ("Site: CBT")
+                #print ("Title: " + str(feeddata[i]['Title']))
+                #print ("Link: " + str(feeddata[i]['Link']))
+                #print ("pubdate: " + str(feeddata[i]['Pubdate']))
+
+
+            i+=1
+
+        if feedtype is None:
+            logger.fdebug('[' + picksite + '] there were ' + str(i) + ' results..')
+        else:
+            logger.fdebug('[' + picksite + '] there were ' + str(i) + ' results ' + feedtype)
+        lp +=1
+
 
     if not seriesname:
         rssdbupdate(feeddata,i,'torrent')
@@ -192,7 +230,7 @@ def nzbs(provider=None):
 
     # --------
     providercount = int(nzbp + newznabs)
-    logger.fdebug('there are : ' + str(providercount) + ' RSS search providers you have enabled.')
+    logger.fdebug('there are : ' + str(providercount) + ' nzb RSS search providers you have enabled.')
     nzbpr = providercount - 1
     if nzbpr < 0:
         nzbpr == 0
@@ -325,10 +363,11 @@ def nzbs(provider=None):
                 #logger.fdebug("pubdate: " + str(feeddata[i]['Pubdate']))
                 #logger.fdebug("size: " + str(feeddata[i]['Size']))
                 sitei+=1
-            logger.info(str(site) + ' : ' + str(sitei) + ' entries indexed.')
+            logger.info('[' + str(site) + '] ' + str(sitei) + ' entries indexed.')
             i+=sitei
-    logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
-    rssdbupdate(feeddata,i,'usenet')
+    if i > 0: 
+        logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
+        rssdbupdate(feeddata,i,'usenet')
     return
 
 def rssdbupdate(feeddata,i,type):

@@ -67,7 +67,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             torprovider.append('cbt')        
             torp+=1
             #print torprovider[0]
-        elif mylar.ENABLE_KAT:
+        if mylar.ENABLE_KAT:
             torprovider.append('kat')
             torp+=1
     ##nzb provider selection##
@@ -113,7 +113,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if torpr < 0:
         torpr = -1
     providercount = int(nzbp + newznabs)
-    logger.fdebug("there are : " + str(providercount) + " search providers you have selected.")
+    logger.fdebug("there are : " + str(providercount) + " nzb providers you have selected.")
     logger.fdebug("Usenet Retention : " + str(mylar.USENET_RETENTION) + " days")
     nzbpr = providercount - 1
     if nzbpr < 0: 
@@ -586,7 +586,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
-                    bb = rsscheck.torrents(pickfeed='2',seriesname=cmname,issue=mod_isssearch)
+                    bb = rsscheck.torrents(pickfeed='KAT',seriesname=cmname,issue=mod_isssearch)
                     rss = "no"
                     #if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
