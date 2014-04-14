@@ -2,7 +2,7 @@
 # modified very slightly so Mylar just passes it the IssueID for it to do it's magic.
 
 
-import os
+import os, errno
 import sys
 import re
 import glob
@@ -92,8 +92,15 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
 
     if os.path.exists( comicpath ):
         shutil.rmtree( comicpath )
-    os.makedirs( comicpath )
 
+    logger.fdebug('attempting to create directory @: ' + str(comicpath))
+    try:
+        os.makedirs(comicpath)
+    except OSError:
+        raise
+
+    logger.fdebug('created directory @ : ' + str(comicpath))
+    logger.fdebug('filename is : ' + str(filename))
     if filename is None:
         filename_list = glob.glob( os.path.join( downloadpath, "*.cbz" ) )
         filename_list.extend( glob.glob( os.path.join( downloadpath, "*.cbr" ) ) )
@@ -114,10 +121,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     if filename.endswith('.cbr'):
         f = os.path.join( comicpath, filename )
         if zipfile.is_zipfile( f ):
-            #print "zipfile detected"
+            logger.fdebug('zipfile detected')
             base = os.path.splitext( f )[0]
-            #print base
-            #print f
             shutil.move( f, base + ".cbz" )
             logger.fdebug('{0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
 
@@ -138,6 +143,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
 
     # Now rename all CBR files to RAR
     if filename.endswith('.cbr'):
+        #logger.fdebug('renaming .cbr to .rar')
         f = os.path.join( comicpath, filename)
         base = os.path.splitext( f )[0]
         baserar = base + ".rar"

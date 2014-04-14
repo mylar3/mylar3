@@ -86,7 +86,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         item = fname['filename']
              
         if item == 'cover.jpg' or item == 'cvinfo': continue
-        if not item.endswith(extensions):
+        if not item.lower().endswith(extensions):
             logger.fdebug('[FILECHECKER] filename not a valid cbr/cbz - ignoring: ' + item)
             continue
 
@@ -157,11 +157,11 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             #if the series has digits this f's it up.
             if numberinseries == 'True' or decimalinseries == 'True':
                 #we need to remove the series from the subname and then search the remainder.
-                watchname = re.sub('[-\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
+                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
                 logger.fdebug('[FILECHECKER] watch-cleaned: ' + str(watchname))
                 subthis = re.sub('.cbr', '', subname)
                 subthis = re.sub('.cbz', '', subthis)
-                subthis = re.sub('[-\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
+                subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + str(subthis))
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
@@ -173,7 +173,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subit = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
                 subthis2 = re.sub('.cbr', '', subit)
                 subthis1 = re.sub('.cbz', '', subthis2)
-                subname = re.sub('[-\:\;\!\'\/\?\+\=\_\%\-]', '', subthis1)
+                subname = re.sub('[\:\;\!\'\/\?\+\=\_\%]', '', subthis1)
                 #if '.' appears more than once at this point, then it's being used in place of spaces.
                 #if '.' only appears once at this point, it's a decimal issue (since decimalinseries is False within this else stmt).
                 if len(str(subname.count('.'))) == 1:
@@ -235,6 +235,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         detneg = "no"
         leavehyphen = False
         should_restart = True
+        lenwatch = len(watchcomic)  # because subname gets replaced dynamically, the length will change and things go wrong.
         while should_restart:
             should_restart = False
             for nono in not_these:
@@ -254,7 +255,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                     logger.fdebug('[FILECHECKER] possible negative issue detected.')
                                     nonocount = nonocount + subcnt - 1
                                     detneg = "yes"                                
-                                elif '-' in watchcomic and i < len(watchcomic):
+                                elif '-' in watchcomic and j < lenwatch:
+                                    lenwatch -=1
                                     logger.fdebug('[FILECHECKER] - appears in series title.')
                                     logger.fdebug('[FILECHECKER] up to - :' + subname[:j+1].replace('-', ' '))
                                     logger.fdebug('[FILECHECKER] after -  :' + subname[j+1:])
@@ -263,7 +265,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                     should_restart = True
                                     leavehyphen = True
                             i+=1
-                        if detneg == "no" or leavehyphen == False: 
+                        if detneg == "no" and leavehyphen == False: 
                             subname = re.sub(str(nono), ' ', subname)
                             nonocount = nonocount + subcnt
                 #logger.fdebug('[FILECHECKER] (str(nono) + " detected " + str(subcnt) + " times.")
@@ -374,23 +376,23 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     i=0
                     while (i < len(charpos)):
                         for i,j in enumerate(charpos):
-                            #print i,j
-                            #print subname
-                            #print "digitchk: " + str(subname[j:])
+                            #logger.fdebug('i,j:' + str(i) + ',' + str(j))
+                            #logger.fdebug(str(len(subname)) + ' - subname: ' + subname)
+                            #logger.fdebug("digitchk: " + str(subname[j:]))
                             if j >= len(subname):
                                 logger.fdebug('[FILECHECKER] end reached. ignoring remainder.')
                                 break
                             elif subname[j:] == '-':
-                                if i <= len(subname) and subname[i+1].isdigit():
+                                if j <= len(subname) and subname[j+1].isdigit():
                                     logger.fdebug('[FILECHECKER] negative issue detected.')
                                     #detneg = "yes"
                             elif j > findtitlepos:
                                 if subname[j:] == '#':
-                                   if subname[i+1].isdigit():
+                                   if subname[j+1].isdigit():
                                         logger.fdebug('[FILECHECKER] # detected denoting issue#, ignoring.')
                                    else: 
                                         nonocount-=1
-                                elif '-' in watchcomic and i < len(watchcomic):
+                                elif '-' in watchcomic and j < len(watchcomic):
                                    logger.fdebug('[FILECHECKER] - appears in series title, ignoring.')
                                 else:                             
                                    logger.fdebug('[FILECHECKER] special character appears outside of title - ignoring @ position: ' + str(charpos[i]))

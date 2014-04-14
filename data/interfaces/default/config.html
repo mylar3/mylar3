@@ -212,7 +212,7 @@
                          <legend>Usenet</legend>
                             <input type="radio" name="nzb_downloader" id="nzb_downloader_sabnzbd" value="0" ${config['nzb_downloader_sabnzbd']}>Sabnzbd <input type="radio" name="nzb_downloader" id="nzb_downloader_nzbget" value="1" ${config['nzb_downloader_nzbget']}> NZBget <input type="radio" name="nzb_downloader" id="nzb_downloader_blackhole" value="2" ${config['nzb_downloader_blackhole']}>Black Hole
                        </fieldset>
-                        <fieldset id="sabnzbd_options">
+                       <fieldset id="sabnzbd_options">
 	                	<div class="row">
 		                    <label>SABnzbd Host:</label>
 		                    <input type="text" name="sab_host" value="${config['sab_host']}" size="30">
@@ -283,7 +283,7 @@
                                 <div class="row">
                                     <label>NZBGet Password:</label>
                                     <input type="password" name="nzbget_password" value="${config['nzbget_pass']}" size="20">
-                            </div>
+                               </div>
                                 <div class="row">
                                     <label>NZBGet Download Directory</label>
                                     <input type="text" name="nzbget_directory" value="${config['nzbget_directory']}" size="36" />
@@ -380,7 +380,7 @@
                 <td>
                         <fieldset>
                           <div class="row checkbox left clearfix">
-                            <input id="enable_rss" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_rss" value=1 ${config['enable_rss']} /><label>Enable RSS Feed Searches</label>
+                            <input id="enable_rss" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_rss" value=1 ${config['enable_rss']} /><label>Enable RSS Feed Searches (nzbs & torrents)</label>
                           </div>
                           <div class="config">
                             <label>RSS Inteval Feed Check</label>
@@ -961,8 +961,8 @@
 
                 if ($("#nzb_downloader_sabnzbd").is(":checked"))
                         {
-                                $("#sabnzbd_options").show();
                                 $("#nzbget_options,#blackhole_options").hide();
+                                $("#sabnzbd_options").show();
                         }
                 if ($("#nzb_downloader_nzbget").is(":checked"))
                         {

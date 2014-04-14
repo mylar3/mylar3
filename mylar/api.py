@@ -145,42 +145,6 @@ class Api(object):
     def _getLogs(self, **kwargs):
         pass
     
-    def _findArtist(self, **kwargs):
-        if 'name' not in kwargs:
-            self.data = 'Missing parameter: name'
-            return
-        if 'limit' in kwargs:
-            limit = kwargs['limit']
-        else:
-            limit=50
-        
-        self.data = mb.findArtist(kwargs['name'], limit)
-
-    def _findAlbum(self, **kwargs):
-        if 'name' not in kwargs:
-            self.data = 'Missing parameter: name'
-            return
-        if 'limit' in kwargs:
-            limit = kwargs['limit']
-        else:
-            limit=50
-        
-        self.data = mb.findRelease(kwargs['name'], limit)
-        
-    def _addArtist(self, **kwargs):
-        if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
-            return
-        else:
-            self.id = kwargs['id']
-            
-        try:
-            importer.addComictoDB(self.id)
-        except Exception, e:
-            self.data = e
-            
-        return
-        
     def _delComic(self, **kwargs):
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
