@@ -194,6 +194,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 return
         else:
             # if futurepull is not None, let's just update the status and ComicID
+            # NOTE: THIS IS CREATING EMPTY ENTRIES IN THE FUTURE TABLE. ???
             nKey = {"ComicID": ComicID}
             nVal = {"Status": "Wanted"}
             myDB.upsert("future", nVal, nKey)
@@ -314,9 +315,9 @@ def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None,altissuenumb
             logger.info('updating control: ' + str(controlValue))
             myDB.upsert("future", newValue, controlValue)
 
-def newpullcheck(ComicName, ComicID):
+def newpullcheck(ComicName, ComicID, issue=None):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    mylar.weeklypull.pullitcheck(ComicName, ComicID)
+    mylar.weeklypull.pullitcheck(ComicName, ComicID, issue)
     return
 
 def no_searchresults(ComicID):
@@ -806,11 +807,18 @@ def forceRescan(ComicID,archive=None):
     logger.info('Total files located: ' + str(havefiles))
     foundcount = havefiles
     arcfiles = 0
+    arcanns = 0
     # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
     # the loop below won't work...let's adjust :)
     arcissues = myDB.action("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID]).fetchall()
     if int(arcissues[0][0]) > 0:
         arcfiles = arcissues[0][0]
+    arcannuals = myDB.action("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID]).fetchall()
+    if int(arcissues[0][0]) > 0:
+        arcanns = arcannuals[0][0]
+
+    if arcfiles > 0 and arcanns > 0:
+        arcfiles = arcfiles + arcanns
         havefiles = havefiles + arcfiles
         logger.fdebug('Adjusting have total to ' + str(havefiles) + ' because of this many archive files:' + str(arcfiles))
 
@@ -826,6 +834,7 @@ def forceRescan(ComicID,archive=None):
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
     downissues = myDB.select("SELECT * FROM issues WHERE ComicID=? and Status='Downloaded'", [ComicID])
+    downissues += myDB.select("SELECT * FROM annuals WHERE ComicID=? and Status='Downloaded'", [ComicID])
     if downissues is None:
         pass
     else:

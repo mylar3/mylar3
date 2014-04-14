@@ -53,7 +53,7 @@ def pullit(forcecheck=None):
         logger.info(u"No pullist found...I'm going to try and get a new list now.")
         pulldate = '00000000'
     if pulldate is None: pulldate = '00000000'
-    PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
+    PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
     #PULLURL = 'http://www.previewsworld.com/Archive/GetFile/1/1/71/994/081512.txt'
 
     #Prepare the Substitute name switch for pulllist to comic vine conversion
@@ -383,7 +383,7 @@ def pullit(forcecheck=None):
     os.remove( str(pullpath) + "newreleases.txt" )
     pullitcheck(forcecheck=forcecheck)
 
-def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepull=None):
+def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepull=None, issue=None):
     if futurepull is None:
         logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
     else:
@@ -432,6 +432,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
             lines.append(comic1off_name.strip())
             unlines.append(comic1off_name.strip())
             comicid.append(comic1off_id)
+            latestissue.append(issue)
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
@@ -667,14 +668,14 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                                 if validcheck == False:
                                                     if date_downloaded is None:
                                                         break
-
-                                            latest_int = helpers.issuedigits(latestiss)
-                                            weekiss_int = helpers.issuedigits(week['ISSUE'])
-                                            logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
-                                            if (latest_int > weekiss_int) or (latest_int == 0 or weekiss_int == 0):
-                                                logger.fdebug(str(week['ISSUE']) + ' should not be the next issue in THIS volume of the series.')
-                                                logger.fdebug('it should be either greater than ' + str(latestiss) + ' or an issue #0')
-                                                break
+                                            if chktype == 'series': 
+                                                latest_int = helpers.issuedigits(latestiss)
+                                                weekiss_int = helpers.issuedigits(week['ISSUE'])
+                                                logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
+                                                if (latest_int > weekiss_int) or (latest_int == 0 or weekiss_int == 0):
+                                                    logger.fdebug(str(week['ISSUE']) + ' should not be the next issue in THIS volume of the series.')
+                                                    logger.fdebug('it should be either greater than ' + str(latestiss) + ' or an issue #0')
+                                                    break
 
                                         else:
                                             #logger.fdebug('issuedate:' + str(datevalues[0]['issuedate']))

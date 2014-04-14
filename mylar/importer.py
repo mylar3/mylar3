@@ -902,7 +902,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             logger.fdebug('latestissue status: ' + chkstats['Status'])
             if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
                 logger.info('Checking this week pullist for new issues of ' + comic['ComicName'])
-                updater.newpullcheck(comic['ComicName'], comicid)
+                updater.newpullcheck(comic['ComicName'], comicid, issue=latestiss)
 
         #here we grab issues that have been marked as wanted above...
   

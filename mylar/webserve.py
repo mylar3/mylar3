@@ -684,14 +684,17 @@ class WebInterface(object):
                 if mi is None:
                     if mylar.ANNUALS_ON:
                         mi = myDB.action("SELECT * FROM annuals WHERE IssueID=?",[IssueID]).fetchone()
+                        comicname = mi['ReleaseComicName']
                         annchk = 'yes'
+                else: 
+                    comicname = mi['ComicName']
                 miyr = myDB.action("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
                         logger.info(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
 #                        continue
                 elif action == 'Archived':
-                    logger.info(u"Marking %s %s as %s" % (mi['ComicName'], mi['Issue_Number'], newaction))
+                    logger.info(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
@@ -726,8 +729,8 @@ class WebInterface(object):
     addArtists.exposed = True
     
     def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None):
-        logger.fdebug('ComicID:' + str(ComicID))
-        logger.fdebug('mode:' + str(mode))
+        #logger.fdebug('ComicID:' + str(ComicID))
+        #logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
@@ -781,7 +784,6 @@ class WebInterface(object):
             if mode == 'want':
                 logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
                 myDB.upsert("issues", newStatus, controlValueDict)
-                logger.info('Written to db.')
             else:
                 logger.info(u"Marking " + ComicName + " Annual: " + ComicIssue + " as wanted...")
                 myDB.upsert("annuals", newStatus, controlValueDict)
@@ -798,7 +800,7 @@ class WebInterface(object):
             issues = myDB.action("SELECT IssueDate, ReleaseDate FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
         if ComicYear == None:
             ComicYear = str(issues['IssueDate'])[:4]
-        if issues['ReleaseDate'] is None:
+        if issues['ReleaseDate'] is None or issues['ReleaseDate'] == '0000-00-00':
             logger.info('No Store Date found for given issue. This is probably due to not Refreshing the Series beforehand.')
             logger.info('I Will assume IssueDate as Store Date, but you should probably Refresh the Series and try again if required.')
             storedate = issues['IssueDate']
@@ -829,9 +831,16 @@ class WebInterface(object):
             annchk = 'no'
             if issue is None:
                 if mylar.ANNUALS_ON:
-                    issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                    issann = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                    comicname = issann['ReleaseComicName']
+                    issue = issann['Issue_Number']
                     annchk = 'yes'
-            logger.info(u"Marking " + issue['ComicName'] + " issue # " + issue['Issue_Number']  + " as skipped...")
+                    comicid = issann['ComicID']
+            else:
+                comicname = issue['ComicName']
+                issue = issue['Issue_Number']
+                comicid = issue['ComicID']
+            logger.info(u"Marking " + comicname + " issue # " + str(issue) + " as Skipped...")
             controlValueDict = {"IssueID": IssueID}
             newValueDict = {"Status": "Skipped"}
             if annchk == 'yes':
@@ -871,16 +880,23 @@ class WebInterface(object):
         annchk = 'no'
         if issue is None:
             if mylar.ANNUALS_ON:
-                issue = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                issann = myDB.action('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                comicname = issann['ReleaseComicName']
+                issue = issann['Issue_Number']
                 annchk = 'yes'
-        logger.info(u"Marking " + issue['ComicName'] + " issue # " + issue['Issue_Number']  + " as archived...")
+                comicid = issann['ComicID']
+        else:
+            comicname = issue['ComicName']
+            issue = issue['Issue_Number']
+            comicid = issue['ComicID']
+        logger.info(u"Marking " + comicname + " issue # " + str(issue) + " as archived...")
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Archived'}
         if annchk == 'yes':
             myDB.upsert("annuals", newValueDict, controlValueDict)
         else:
             myDB.upsert("issues", newValueDict, controlValueDict)
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % issue['ComicID'])
+        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     archiveissue.exposed = True
 
 
@@ -1174,7 +1190,7 @@ class WebInterface(object):
 
         wantedcount = iss_cnt + ann_cnt
 
-        #let's straightload the series that have no issue data associated as of yet (ie. new series) form the futurepulllist
+        #let's straightload the series that have no issue data associated as of yet (ie. new series) from the futurepulllist
         future_nodata_upcoming = myDB.select('SELECT * FROM futureupcoming')
              
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
@@ -1197,6 +1213,7 @@ class WebInterface(object):
                 myDB.upsert("issues", mvvalues, mvcontroldict)
 
                 #remove old entry from upcoming so it won't try to continually download again.
+                logger.fdebug('[DELETE] - ' + mvup['ComicName'] + ' issue #: ' + str(mvup['IssueNumber']))
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'],mvup['IssueNumber']])                                
 
 
@@ -2311,9 +2328,9 @@ class WebInterface(object):
                     "nzb_startup_search" : helpers.checked(mylar.NZB_STARTUP_SEARCH),
                     "libraryscan_interval" : mylar.LIBRARYSCAN_INTERVAL,
                     "search_delay" : mylar.SEARCH_DELAY,
-                    "nzb_downloader_sabnzbd" : helpers.radio(int(mylar.NZB_DOWNLOADER), 0),
-                    "nzb_downloader_nzbget" : helpers.radio(int(mylar.NZB_DOWNLOADER), 1),
-                    "nzb_downloader_blackhole" : helpers.radio(int(mylar.NZB_DOWNLOADER), 2),
+                    "nzb_downloader_sabnzbd" : helpers.radio(mylar.NZB_DOWNLOADER, 0),
+                    "nzb_downloader_nzbget" : helpers.radio(mylar.NZB_DOWNLOADER, 1),
+                    "nzb_downloader_blackhole" : helpers.radio(mylar.NZB_DOWNLOADER, 2),
                     "sab_host" : mylar.SAB_HOST,
                     "sab_user" : mylar.SAB_USERNAME,
                     "sab_api" : mylar.SAB_APIKEY,
