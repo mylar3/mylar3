@@ -792,7 +792,7 @@ def loaditup(comicname, comicid, issue, chktype):
                 #this is only one record..
                 releasedate = il['IssueDate']
                 storedate = il['ReleaseDate']
-                status = il['Status']
+                #status = il['Status']
             logger.fdebug('issue-recheck releasedate is : ' + str(releasedate))
             logger.fdebug('issue-recheck storedate of : ' + str(storedate))
 
@@ -819,7 +819,8 @@ def checkthis(datecheck,datestatus,usedate):
     logger.fdebug('Using a compare date (usedate) of ' + str(usedate))
     logger.fdebug('Status of ' + str(datestatus))
 
-    if int(datecheck) >= int(usedate):
+    #give an allowance of 10 days to datecheck for late publishs (+1.5 weeks)
+    if int(datecheck) + 10 >= int(usedate):
         logger.fdebug('Store Date falls within acceptable range - series MATCH')
         valid_check = True
     elif int(datecheck) < int(usedate):

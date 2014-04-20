@@ -157,7 +157,7 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
                 tmpsz = feedme.entries[i].enclosures[0]
                 torthekat.append({
                                'site':     picksite,
-                               'title':    feedme.entries[i].title,
+                               'title': feedme.entries[i].title,
                                'link':     tmpsz['url'],
                                'pubdate':  feedme.entries[i].updated,
                                'length':     tmpsz['length']
@@ -482,6 +482,10 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         logger.fdebug('tor-Title: ' + tor['Title'])
         logger.fdebug('there are ' + str(len(torsplit)) + ' sections in this title')
         i=0
+        if nzbprov is not None:
+            if nzbprov != tor['Site']:
+                logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
+                continue
         #0 holds the title/issue and format-type.
         while (i < len(torsplit)):
             #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.

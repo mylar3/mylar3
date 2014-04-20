@@ -814,10 +814,10 @@ def forceRescan(ComicID,archive=None):
     if int(arcissues[0][0]) > 0:
         arcfiles = arcissues[0][0]
     arcannuals = myDB.action("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID]).fetchall()
-    if int(arcissues[0][0]) > 0:
+    if int(arcannuals[0][0]) > 0:
         arcanns = arcannuals[0][0]
 
-    if arcfiles > 0 and arcanns > 0:
+    if arcfiles > 0 or arcanns > 0:
         arcfiles = arcfiles + arcanns
         havefiles = havefiles + arcfiles
         logger.fdebug('Adjusting have total to ' + str(havefiles) + ' because of this many archive files:' + str(arcfiles))
@@ -866,6 +866,8 @@ def forceRescan(ComicID,archive=None):
                     archivedissues+=1 
         totalarc = arcfiles + archivedissues
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
+        logger.fdebug('arcfiles : ' + str(arcfiles))
+        logger.fdebug('havefiles: ' + str(havefiles))
         logger.fdebug('I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
         

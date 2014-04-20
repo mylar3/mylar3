@@ -337,7 +337,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
 
             if str(len(issueno)) > 1:
-                if int(issueno) < 10:
+                if int(issueno) < 0:
+                    self._log("issue detected is a negative")
+                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
+                elif int(issueno) < 10:
                     logger.fdebug('issue detected less than 10')
                     if '.' in iss:
                         if int(iss_decval) > 0:
