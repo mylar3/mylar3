@@ -177,19 +177,19 @@ def GetComicInfo(comicid,dom):
                 #sometimes it's volume 5 and ocassionally it's fifth volume.
                 if i == 0:
                     vfind = comicDes[v_find:v_find+15]   #if it's volume 5 format
-                    basenums = {'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7','eight':'8','nine':'9','ten':'10'}
-                    #logger.fdebug(str(i) + ': ' + str(vfind))
+                    basenums = {'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7','eight':'8','nine':'9','ten':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
+                    logger.fdebug('volume X format - ' + str(i) + ': ' + str(vfind))
                 else:
                     vfind = comicDes[:v_find]   # if it's fifth volume format
-                    basenums = {'zero':'0','first':'1','second':'2','third':'3','fourth':'4','fifth':'5','sixth':'6','seventh':'7','eighth':'8','nineth':'9','tenth':'10'}
-                    #logger.fdebug(str(i) + ': ' + str(vfind))
+                    basenums = {'zero':'0','first':'1','second':'2','third':'3','fourth':'4','fifth':'5','sixth':'6','seventh':'7','eighth':'8','nineth':'9','tenth':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
+                    logger.fdebug('X volume format - ' + str(i) + ': ' + str(vfind))
                 volconv = ''
                 for nums in basenums:
                     if nums in vfind.lower():
                         sconv = basenums[nums]
                         vfind = re.sub(nums, sconv, vfind.lower())
                         break        
-                #logger.fdebug('volconv: ' + str(volconv))
+                #logger.info('volconv: ' + str(volconv))
 
                 #now we attempt to find the character position after the word 'volume'
                 if i == 0:

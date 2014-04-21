@@ -76,8 +76,14 @@ class WebInterface(object):
                 annuals_on = False
                 annual = None
                 annualcount = 0
-            totalissues = comic['Total'] + annualcount
-            haveissues = comic['Have']
+            try:
+                totalissues = comic['Total'] + annualcount
+                haveissues = comic['Have']
+            except TypeError:
+                logger.warning('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add this again.')
+                myDB.action("DELETE from COMICS WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
+                myDB.action("DELETE from ISSUES WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
+                continue
 
             if not haveissues:
                havetracks = 0
