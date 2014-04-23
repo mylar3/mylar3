@@ -2948,3 +2948,9 @@ class WebInterface(object):
 
     api.exposed = True
 
+    def downloadthis(self,pathfile=None):
+        logger.fdebug('filepath to retrieve file from is : ' + str(pathfile))
+        from cherrypy.lib.static import serve_download
+        return serve_download(pathfile)
+
+    downloadthis.exposed = True
