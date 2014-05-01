@@ -591,7 +591,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
                     if nzbprov == 'dognzb':
-                        findurl = "https://dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
+                        findurl = "https://api.dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
                     elif nzbprov == 'nzb.su':
                         findurl = "https://api.nzb.su/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
                     elif nzbprov == 'newznab':
