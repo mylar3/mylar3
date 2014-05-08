@@ -240,7 +240,20 @@ class Api(object):
         search.searchforissue()
     
     def _forceProcess(self, **kwargs):
-        PostProcessor.forcePostProcess()    
+        if 'nzb_name' not in kwargs:
+            self.data = 'Missing parameter: nzb_name'
+            return
+        else:
+            self.nzb_name = kwargs['nzb_name']
+
+        if 'nzb_folder' not in kwargs:
+            self.data = 'Missing parameter: nzb_folder'
+            return
+        else:
+            self.nzb_folder = kwargs['nzb_folder']
+
+        forceProcess = PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder)
+        forceProcess.Process()    
         
     def _getVersion(self, **kwargs):
         self.data = { 

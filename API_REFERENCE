@@ -50,7 +50,8 @@ queueIssue&id=$issueid (Mark an issue as wanted and start the search.
 unqueueIssue&id=$issueid (Unmark issue as wanted / i.e. mark as skipped)
 
 forceSearch (force search for wanted issues - not launched in a separate thread so it may take a bit to complete)
-forceProcess (force post process issues in download directory - also not launched in a separate thread)
+forceProcess&nzb_name&nzb_folder (force post process issues in download directory - also not launched in a separate thread
+                                  for manual run set nzb_name to 'Manual+Run')
 
 getVersion (Returns some version information: git_path, install_type, current_version, installed_version, commits_behind
 checkGithub (updates the version information above and returns getVersion data)
