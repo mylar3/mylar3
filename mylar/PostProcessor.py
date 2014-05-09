@@ -789,6 +789,12 @@ class PostProcessor(object):
                 #    return
                 #logger.fdebug("Removed temporary directory : " + str(self.nzb_folder))
 
+            #Hopefully set permissions on downloaded file
+            try:
+                os.chmod( dst, int(mylar.CHMOD_FILE,8) )
+            except (OSError, IOError):
+                return
+
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
                     #update snatched table to change status to Downloaded
