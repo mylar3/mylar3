@@ -38,72 +38,132 @@ def dbUpdate(ComicIDList=None):
     
     for comic in comiclist:
         if ComicIDList is None:
-            comicid = comic[0]
+            ComicID = comic[0]
         else:
-            comicid = comic
-        #print "comicid:" + str(comicid)
+            ComicID = comic
         mismatch = "no"
-        if not mylar.CV_ONLY or comicid[:1] == "G":
-            CV_EXcomicid = myDB.selectone("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
+        logger.fdebug('Refreshing comicid: ' + str(ComicID))
+        if not mylar.CV_ONLY or ComicID[:1] == "G":
+
+            CV_EXcomicid = myDB.selectone("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
             if CV_EXcomicid is None: pass
             else:
                 if CV_EXcomicid['variloop'] == '99':
                     mismatch = "yes"
-            if comicid[:1] == "G":
-                mylar.importer.GCDimport(comicid)
-            else: 
-                mylar.importer.addComictoDB(comicid,mismatch)
+            if ComicID[:1] == "G": threading.Thread(target=importer.GCDimport, args=[ComicID]).start()
+            else: threading.Thread(target=importer.addComictoDB, args=[ComicID,mismatch]).start()
         else:
             if mylar.CV_ONETIMER == 1:
-                logger.fdebug('CV_OneTimer option enabled...')
+                logger.fdebug("CV_OneTimer option enabled...")
+                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
+                logger.fdebug("Gathering the status of all issues for the series.")
+                issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
 
-                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clean refresh.
-                logger.fdebug('Gathering the status of all issues for the series.')
-                issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
+                annload = []  #initiate the list here so we don't error out below.
+
                 if mylar.ANNUALS_ON:
-                    issues += myDB.select('SELECT * FROM annuals WHERE ComicID=?', [comicid])
-                #store the issues' status for a given comicid, after deleting and readding, flip the status back to what it is currently.                
-                logger.fdebug('Deleting all issue data.')
-                myDB.select('DELETE FROM issues WHERE ComicID=?', [comicid])            
-                myDB.select('DELETE FROM annuals WHERE ComicID=?', [comicid])
-                logger.fdebug('Refreshing the series and pulling in new data using only CV.')             
-                mylar.importer.addComictoDB(comicid,mismatch,calledfrom='dbupdate')
-                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [comicid])
+                    #now we load the annuals into memory to pass through to importer when refreshing so that it can
+                    #refresh even the manually added annuals.
+                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                    logger.fdebug('checking annual db')
+                    for annthis in annual_load:
+                        if not any(d['ReleaseComicID'] == annthis['ReleaseComicID'] for d in annload):
+                            #print 'matched on annual'
+                            annload.append({
+                                  'ReleaseComicID':   annthis['ReleaseComicID'],
+                                  'ReleaseComicName': annthis['ReleaseComicName'],
+                                  'ComicID':          annthis['ComicID'],
+                                  'ComicName':        annthis['ComicName']
+                                  })
+                            #print 'added annual'
+                    issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
+                logger.fdebug("Deleting all issue data.")
+                myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
+                logger.fdebug("Refreshing the series and pulling in new data using only CV.")
+                mylar.importer.addComictoDB(ComicID,mismatch,calledfrom='dbupdate',annload=annload)
+                #reload the annuals here.
+
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
                 annuals = []
                 ann_list = []
                 if mylar.ANNUALS_ON:
-                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [comicid])
+                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                     ann_list += annuals_list
                     issues_new += annuals_list
 
+                logger.fdebug("Attempting to put the Status' back how they were.")
                 icount = 0
-                logger.fdebug('Attempting to put the Statuses back how they were.')
+                #the problem - the loop below will not match on NEW issues that have been refreshed that weren't present in the
+                #db before (ie. you left Mylar off for abit, and when you started it up it pulled down new issue information)
+                #need to test if issuenew['Status'] is None, but in a seperate loop below.
+                fndissue = []
                 for issue in issues:
                     for issuenew in issues_new:
-                       if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
-                            #if the status is now Downloaded, keep status.
-                            logger.info('existing status: ' + str(issuenew['Status']))
-                            logger.info('new status: ' + str(issue['Status']))
-                            if issuenew['Status'] == 'Downloaded' or issue['Status'] == 'Snatched': break
-                            #change the status to the previous status
-                            ctrlVAL = {'IssueID':  issue['IssueID']}
-                            newVAL = {'Status':  issue['Status']}
+                        #logger.fdebug(str(issue['Issue_Number']) + ' - issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
+                        #logger.fdebug(str(issue['Issue_Number']) + ' - issue:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
+                        if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
+                            ctrlVAL = {"IssueID":      issue['IssueID']}
+                            #if the status is None and the original status is either Downloaded / Archived, keep status & stats
+                            if issuenew['Status'] == None and (issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived'):
+                                newVAL = {"Location":     issue['Location'],
+                                          "ComicSize":    issue['ComicSize'],
+                                          "Status":       issue['Status']}
+                            #if the status is now Downloaded/Snatched, keep status & stats (downloaded only)
+                            elif issuenew['Status'] == 'Downloaded' or issue['Status'] == 'Snatched':
+                                newVAL = {"Location":      issue['Location'],
+                                          "ComicSize":     issue['ComicSize']}
+                                if issuenew['Status'] == 'Downloaded':
+                                    newVAL['Status'] = issuenew['Status']
+                                else:
+                                    newVAL['Status'] = issue['Status']
+
+                            elif issue['Status'] == 'Archived':
+                                newVAL = {"Status":        issue['Status'],
+                                          "Location":      issue['Location'],
+                                          "ComicSize":     issue['ComicSize']}
+                            else:
+                                #change the status to the previous status
+                                newVAL = {"Status":        issue['Status']}
+
+                            if newVAL['Status'] == None:
+                                newVAL = {"Status":        "Skipped"}
+
                             if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                logger.fdebug('annual detected for ' + str(issue['IssueID']) + ' #: ' + str(issue['Issue_Number']))
+                                logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
                                 myDB.upsert("Annuals", newVAL, ctrlVAL)
                             else:
+                                logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
                                 myDB.upsert("Issues", newVAL, ctrlVAL)
+                            fndissue.append({"IssueID":      issue['IssueID']})
                             icount+=1
                             break
-                logger.info('In converting data to CV only, I changed the status of ' + str(icount) + ' issues.')
-                mylar.CV_ONETIMER = 0   
-            else:
-                mylar.importer.addComictoDB(comicid,mismatch)
+                logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
 
-        #check global skipped2wanted status here
-        #if mylar.GLOBAL_SKIPPED2WANTED:
-        #    logger.fdebug('Global change for ' + str(comicid) + ' - Marking all issues not present as Wanted.')
-        #    mylar.webserve.skipped2wanted(comicid,True)
+                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
+                if mylar.ANNUALS_ON:
+                    issues_new += myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
+
+                newiss = []
+                if mylar.AUTOWANT_UPCOMING:
+                    newstatus = "Wanted"
+                else:
+                    newstatus = "Skipped"
+                for iss in issues_new:
+                     newiss.append({"IssueID":      iss['IssueID'],
+                                    "Status":       newstatus})
+                if len(newiss) > 0:
+                     for newi in newiss:
+                         ctrlVAL = {"IssueID":   newi['IssueID']}
+                         newVAL = {"Status":     newi['Status']}
+                         logger.fdebug('writing issuedata: ' + str(newVAL))
+                         myDB.upsert("Issues", newVAL, ctrlVAL)
+
+                logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
+
+            else:
+                mylar.importer.addComictoDB(ComicID,mismatch)
 
         time.sleep(5) #pause for 5 secs so dont hammer CV and get 500 error
     logger.info('Update complete')
