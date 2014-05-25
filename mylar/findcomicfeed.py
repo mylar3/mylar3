@@ -75,8 +75,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             "link":      urlParse["href"],
                             "length":    urlParse["length"],
                             "pubdate":   feed.entries[countUp].updated})
-
     	    countUp=countUp+1
+        logger.fdebug('keypair: ' + str(keyPair))
 
 
         # thanks to SpammyHagar for spending the time in compiling these regEx's!
@@ -98,12 +98,12 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
         for entry in keyPair:
             title = entry['title']
-            #logger.fdebug("titlesplit: " + str(title.split("\"")))
+            logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
             noYear = 'False'
 
             for subs in splitTitle:
-                #logger.fdebug('sub:' + subs)
+                logger.fdebug('sub:' + subs)
                 regExCount = 0
                 if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list):
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
@@ -116,6 +116,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 #                                  'title':   subs,
 #                                  'link':    str(link)
 #                                  })
+                    logger.fdebug('match.')
                     if IssDateFix != "no":
                         if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
                         else: ComicYearFix = str(int(searchYear) + 1)

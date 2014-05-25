@@ -119,10 +119,12 @@
                                  <div class="row checkbox">
                                     <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
                                  </div>
+<!--
                                  <div class="row checkbox">
-                                    <input type="checkbox" name="logverbose" value="1" ${config['logverbose']} /> <label>Verbose Logging</label>
+                                    <input type="checkbox" name="logverbose" value="2" ${config['logverbose']} /> <label>Verbose Logging</label>
                                     <br/><small>*Use this only when experiencing problems*</small>
                                  </div>
+-->
                                  <div class="row checkbox">
                                     <input type="checkbox" name="syno_fix" value="1" ${config['syno_fix']} /> <label>Synology Fix</label>
                                     <br/><small>*Use this if experiencing parsing problems*</small>
@@ -331,6 +333,10 @@
                                 <input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
                             </div>
                             <div class="config">
+                                       <div class="row">
+                                           <label>Minimum # of seeders</label>
+                                           <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
+                                       </div>
                                        <div class="row checkbox left clearfix">
                                             <input id="torrent_local" type="checkbox" onclick="initConfigCheckbox($(this));" name="torrent_local" value=1 ${config['torrent_local']} /><label>Local Torrent Client</label>
                                        </div> 
@@ -386,6 +392,7 @@
                             <label>RSS Inteval Feed Check</label>
                             <input type="text" name="rss_checkinterval" value="${config['rss_checkinterval']}" size="6" /><small>(Mins)</small>
                             <a href="#" style="float:right" type="button" onclick="doAjaxCall('force_rss',$(this))" data-success="RSS Force now running" data-error="Error trying to retrieve RSS Feeds"><span class="ui-icon ui-icon-extlink"></span>Force RSS</a>
+                            </br><small><% rss_last=mylar.RSS_LASTRUN %>last run: ${rss_last}</small>
                           </div>
                         </fieldset>
                 	<fieldset>
@@ -502,6 +509,7 @@
                                     <input type="button" value="Add Newznab" class="add_newznab" id="add_newznab" />
                                 </div>
                         </fieldset>
+
 <!--
                         <fieldset>
                                  <div id="newznab providers">
@@ -722,6 +730,10 @@
 							<label>Log Directory:</label>
 							<input type="text" name="log_dir" value="${config['log_dir']}" size="50">
 						</div>
+                                                <div class="row">
+                                                        <label>Maximum Log Size (bytes):</label>
+                                                        <input type="text" name="max_logsize" value="${config['max_logsize']}" size="20">
+                                                </div>
 
 					</fieldset>
                                         <h2>Notifications</h2>
@@ -792,7 +804,7 @@
                                                  </div>
                                                  <div id="pushoveroptions">
                                                    <div class="row">
-                                                       <label>API key</label><input type="text" name="pushover_apikey" value="${config['pushover_apikey']}" size="50">
+                                                       <label>API key</label><input type="text" title="Leave blank if you don't have your own API (recommended to get your own)" name="pushover_apikey" value="${config['pushover_apikey']}" size="50">
                                                    </div>
                                                    <div class="row">
                                                        <label>User key</label><input type="text" name="pushover_userkey" value="${config['pushover_userkey']}" size="50">
@@ -809,18 +821,35 @@
                      <fieldset>
                         <h3><img src="interfaces/default/images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
                         <div class="checkbox row">
-                           <input type="checkbox" name="boxcar_enabled" id="boxcar" value="1" ${config['boxcar_enabled']} /><label>Enable Boxcar.IO</label>
+                           <input type="checkbox" name="boxcar_enabled" id="boxcar" value="1" ${config['boxcar_enabled']} /><label>Enable Boxcar.IO Notifications</label>
                         </div>
                         <div id="boxcaroptions">
                             <div class="row">
                                     <div class="row checkbox">
                                             <input type="checkbox" name="boxcar_onsnatch" value="1" ${config['boxcar_onsnatch']} /><label>Notify on snatch?</label>
                                     </div>
-                                    <label>Boxcar Username (email)</label>
-                                    <input type="text" name="boxcar_username" value="${config['boxcar_username']}" size="30">
+                                    <label>Boxcar Token</label>
+                                    <input type="text" name="boxcar_token" value="${config['boxcar_token']}" size="30">
                             </div>
                         </div>
                      </fieldset>
+                            <fieldset>
+                                <h3><img src="interfaces/default/images/pushbullet_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushbullet</h3>
+                                <div class="row checkbox">
+                                    <input type="checkbox" name="pushbullet_enabled" id="pushbullet" value="1" ${config['pushbullet_enabled']} /><label>Enable PushBullet Notifications</label>
+                                </div>
+                                <div id="pushbulletoptions">
+                                    <div class="row checkbox">
+                                        <input type="checkbox" name="pushbullet_onsnatch" value="1" ${config['pushbullet_onsnatch']} /><label>Notify on snatch?</label>
+                                    </div>
+                                    <div class="row">
+                                        <label>API Key</label><input type="text" name="pushbullet_apikey" value="${config['pushbullet_apikey']}" size="50">
+                                    </div>
+                                    <div class="row">
+                                        <label>Device ID</label><input type="text" name="pushbullet_deviceid" value="${config['pushbullet_deviceid']}" size="50">
+                                    </div>
+                                </div>
+                            </fieldset>
 	       </td>
              </tr>
         </table>
@@ -958,6 +987,27 @@
                         {
                                 $("#boxcaroptions").slideUp();
                         }
+                });
+
+                if ($("#pushbullet").is(":checked"))
+                        {
+                                $("#pushbulletoptions").show();
+                        }
+                else
+                        {
+                                $("#pushbulletoptions").hide();
+                        }
+
+                $("#pushbullet").click(function(){
+                        if ($("#pushbullet").is(":checked"))
+                        {
+                                $("#pushbulletoptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#pushbulletoptions").slideUp();
+                        }
+                
 
                 if ($("#nzb_downloader_sabnzbd").is(":checked"))
                         {

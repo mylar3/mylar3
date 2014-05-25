@@ -1,4 +1,3 @@
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -19,8 +18,6 @@ from __future__ import division
 import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck
 
-LOG = mylar.LOG_DIR
-
 import lib.feedparser as feedparser
 import urllib
 import os, errno
@@ -35,6 +32,7 @@ from xml.dom.minidom import parseString
 import urllib2
 import email.utils
 import datetime
+from wsgiref.handlers import format_date_time
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None):
     if ComicYear == None: ComicYear = '2014'
@@ -62,7 +60,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     torprovider = []
     torp = 0
     logger.fdebug("Checking for torrent enabled.")
-    if mylar.ENABLE_TORRENTS and mylar.ENABLE_TORRENT_SEARCH:
+    if mylar.ENABLE_TORRENT_SEARCH: #and mylar.ENABLE_TORRENTS:
         if mylar.ENABLE_CBT:
             torprovider.append('cbt')        
             torp+=1
@@ -91,7 +89,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     newznab_hosts = []
 
     if mylar.NEWZNAB == 1:
-
+    #if len(mylar.EXTRA_NEWZNABS > 0):
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[4] == '1' or newznab_host[4] == 1:
                 newznab_hosts.append(newznab_host)              
@@ -106,7 +104,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 newznabs+=1
                 logger.fdebug("newznab name:" + str(newznab_host[0]) + " @ " + str(newznab_host[1]))
 
-
+    logger.fdebug('newznab hosts: ' + str(newznab_hosts))
+    logger.fdebug('nzbprovider: ' + str(nzbprovider))
     # --------
     logger.fdebug("there are : " + str(torp) + " torrent providers you have selected.")
     torpr = torp - 1
@@ -115,9 +114,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     providercount = int(nzbp + newznabs)
     logger.fdebug("there are : " + str(providercount) + " nzb providers you have selected.")
     logger.fdebug("Usenet Retention : " + str(mylar.USENET_RETENTION) + " days")
-    nzbpr = providercount - 1
-    if nzbpr < 0: 
-        nzbpr == 0
+    #nzbpr = providercount - 1
+    #if nzbpr < 0: 
+    #    nzbpr == 0
     findit = 'no'
 
     totalproviders = providercount + torp
@@ -128,15 +127,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         nzbprov = None
         return findit, nzbprov
 
-    #provider order sequencing here.
-    #prov_order = []
-
-    #if len(mylar.PROVIDER_ORDER) > 0:
-    #    for pr_order in mylar.PROVIDER_ORDER:
-    #        prov_order.append(pr_order[1])
-    #        logger.fdebug('sequence is now to start with ' + pr_order[1] + ' at spot #' + str(pr_order[0]))
-
+    prov_order,newznab_info = provider_sequence(nzbprovider,torprovider,newznab_hosts)
     # end provider order sequencing
+    logger.info('search provider order is ' + str(prov_order))
 
     #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
     IssDt = str(IssueDate)[5:7]
@@ -176,201 +169,83 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
         logger.fdebug("Initiating Search via : " + str(searchmode))
 
-        torprtmp = torpr
+        #torprtmp = 0 # torprtmp = torpr
+        prov_count = 0
 
-        while (torprtmp >=0 ):
-            if torprovider[torprtmp] == 'cbt':
-                # CBT
-                torprov = 'CBT'
-            elif torprovider[torprtmp] == 'kat':
-                torprov = 'KAT'
-
-            if searchmode == 'rss':
-                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
-                if findit == 'yes':
-                    logger.fdebug("findit = found!")
-                    break
-                else:
-                    if AlternateSearch is not None and AlternateSearch != "None":
-                        chkthealt = AlternateSearch.split('##')
-                        if chkthealt == 0:
-                            AS_Alternate = AlternateSearch
-                        loopit = len(chkthealt)
-                        for calt in chkthealt:
-                            AS_Alternate = re.sub('##','',calt)
-                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
-                            if findit == 'yes':
-                                break
-
-            else:
-                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, torprov, torpr, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                if findit == 'yes':
-                    logger.fdebug("findit = found!")
-                    break
-                else:
-                    if AlternateSearch is not None and AlternateSearch != "None":
-                        chkthealt = AlternateSearch.split('##')
-                        if chkthealt == 0:
-                            AS_Alternate = AlternateSearch
-                        loopit = len(chkthealt)
-                        for calt in chkthealt:
-                            AS_Alternate = re.sub('##','',calt)
-                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, torprov, torp, IssDateFix, IssueID, UseFuzzy, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                            if findit == 'yes':
-                                break
-
-            torprtmp-=1
-
-        i+=1
-    
-    if findit == 'yes': return findit, torprov        
-
-    searchcnt = 0
-    nzbprov = None
-
-    i = 1
-
-    if rsscheck:
-        if mylar.ENABLE_RSS:
-            searchcnt = 1  # rss-only 
-        else:
-            searchcnt = 0  # if it's not enabled, don't even bother.
-    else:
-        if mylar.ENABLE_RSS:
-            searchcnt = 2 # rss first, then api on non-matches
-        else:
-            searchcnt = 2  #set the searchcnt to 2 (api)
-            i = 2          #start the counter at api, so it will exit without running RSS
-
-    nzbsrchproviders = nzbpr
-
-    while ( i <= searchcnt ):
-        #searchmodes:
-        # rss - will run through the built-cached db of entries
-        # api - will run through the providers via api (or non-api in the case of Experimental)
-        # the trick is if the search is done during an rss compare, it needs to exit when done.
-        # otherwise, the order of operations is rss feed check first, followed by api on non-results.
-
-        if i == 1: searchmode = 'rss'  #order of ops - this will be used first.
-        elif i == 2: searchmode = 'api'
-
-        nzbpr = nzbsrchproviders
-        logger.fdebug("Initiating Search via : " + str(searchmode))
-
-        while (nzbpr >= 0 ):
-            if 'newznab' in nzbprovider[nzbpr]:
+        while (prov_count <= len(prov_order)-1):
+        #while (torprtmp <= torpr): #(torprtmp >=0 ):
+            newznab_host = None
+            if prov_order[prov_count] == 'cbt':
+                searchprov = 'CBT'
+            elif prov_order[prov_count] == 'kat':
+                searchprov = 'KAT'
+            elif 'newznab' in prov_order[prov_count]:
             #this is for newznab
-                nzbprov = 'newznab'
-                for newznab_host in newznab_hosts:
-                    #if it's rss - search both seriesname/alternates via rss then return.
-                    if searchmode == 'rss':
-                        if mylar.ENABLE_RSS:
-                            findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
-                            if findit == 'yes': 
-                                logger.fdebug("Found via RSS.")
-                                break
-                            #findit = altdefine(AlternateSearch, searchmode='rss')
-                            if AlternateSearch is not None and AlternateSearch != "None":
-                                chkthealt = AlternateSearch.split('##')
-                                if chkthealt == 0:
-                                    AS_Alternate = AlternateSearch
-                                loopit = len(chkthealt)
-                                for calt in chkthealt:
-                                    AS_Alternate = re.sub('##','',calt)
-                                    logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                                    findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
-                                    if findit == 'yes':
-                                        break
-                                if findit == 'yes':
-                                    logger.fdebug("Found via RSS Alternate Naming.")
-                                    break
-                        else:
-                            logger.fdebug("RSS search not enabled - using API only (Enable in the Configuration)")
-                            break
-                    else:
-                        #normal api-search here.
-                        findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                        if findit == 'yes':
-                            logger.fdebug("Found via API.")
-                            break
-                        if AlternateSearch is not None and AlternateSearch != "None":
-                            chkthealt = AlternateSearch.split('##')
-                            if chkthealt == 0:
-                                AS_Alternate = AlternateSearch
-                            loopit = len(chkthealt)
-                            for calt in chkthealt:
-                                AS_Alternate = re.sub('##','',calt)
-                                logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                                if findit == 'yes':
-                                    break
-                            if findit == 'yes':
-                                logger.fdebug("Found via API Alternate Naming.")
-                                break
-                    nzbpr-=1
-                if nzbpr >= 0 and findit != 'yes':
-                    logger.info(u"More than one search provider given - trying next one.")
-                else:
-                    break
+                searchprov = 'newznab'
+                for nninfo in newznab_info:
+                    if nninfo['provider'] == prov_order[prov_count]:
+                        newznab_host = nninfo['info']
+                if newznab_host is None:
+                    logger.fdebug('there was an error - newznab information was blank and it should not be.')
             else:
                 newznab_host = None
-                nzbprov = nzbprovider[nzbpr]
-                if searchmode == 'rss':
-                    if mylar.ENABLE_RSS:
-                        findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS='yes', ComicID=ComicID)
-                        if findit == 'yes':
-                            logger.fdebug("Found via RSS on " + nzbprov)
-                            break
-                        if AlternateSearch is not None and AlternateSearch != "None":
-                            chkthealt = AlternateSearch.split('##')
-                            if chkthealt == 0:
-                                AS_Alternate = AlternateSearch
-                            loopit = len(chkthealt)
-                            for calt in chkthealt:
-                                AS_Alternate = re.sub('##','',calt)
-                                logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
-                                if findit == 'yes':
-                                    logger.fdebug("Found via RSS Alternate Naming on " + nzbprov)
-                                    break
-                    else:
-                        logger.fdebug("RSS search not enabled - using API only (Enable in the Configuration)")
-                        break
+                searchprov = prov_order[prov_count].lower()
+
+            if searchmode == 'rss':
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
+                if findit == 'yes':
+                    logger.fdebug("findit = found!")
+                    break
                 else:
-                    #normal api-search here.
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
-                    if findit == 'yes':
-                        logger.fdebug("Found via API on " + nzbprov)
-                        break
                     if AlternateSearch is not None and AlternateSearch != "None":
                         chkthealt = AlternateSearch.split('##')
                         if chkthealt == 0:
                             AS_Alternate = AlternateSearch
+                        loopit = len(chkthealt)
                         for calt in chkthealt:
                             AS_Alternate = re.sub('##','',calt)
-                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate))
-                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
                             if findit == 'yes':
                                 break
-                        if findit == 'yes':
-                            logger.fdebug("Found via API Alternate Naming on " + nzbprov)
-                            break
-                nzbpr-=1
-                if nzbpr >= 0 and findit != 'yes':
-                    logger.info(u"More than one search provider given - trying next one.")
-                else:
+
+            else:
+                findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                if findit == 'yes':
+                    logger.fdebug("findit = found!")
                     break
-        if findit == 'yes': return findit, nzbprov
+                else:
+                    if AlternateSearch is not None and AlternateSearch != "None":
+                        chkthealt = AlternateSearch.split('##')
+                        if chkthealt == 0:
+                            AS_Alternate = AlternateSearch
+                        loopit = len(chkthealt)
+                        for calt in chkthealt:
+                            AS_Alternate = re.sub('##','',calt)
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
+                            if findit == 'yes':
+                                break
+
+            if searchprov == 'newznab':
+                searchprov = newznab_host[0].rstrip()
+            logger.info('Could not find Issue ' + str(IssueNumber) + ' of ' + ComicName + '(' + str(SeriesYear) + ') using ' + str(searchprov))
+            prov_count+=1
+            #torprtmp+=1  #torprtmp-=1
+
+        if findit == 'yes': 
+            return findit, searchprov        
         else:
             logger.fdebug("Finished searching via : " + str(searchmode))
             i+=1
 
-    return findit, nzbprov
+        if findit == 'no':
+            logger.info('Issue not found. Status kept as Wanted.')
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, nzbpr, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None):
+    return findit, searchprov
 
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None):
+    
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
     elif nzbprov == 'dognzb':
@@ -677,36 +552,38 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             else:
                 for entry in bb['entries']:
                     logger.fdebug("checking search result: " + entry['title'])
-                    if nzbprov != "experimental" and nzbprov != "CBT" and nzbprov != "dognzb":
+                    if nzbprov != "experimental" and nzbprov != "dognzb":
                         if RSS == "yes":
                             comsize_b = entry['length']
                         else:
                             #Experimental already has size constraints done.
                             if nzbprov == 'CBT':
-                                comsize_b = 0   #CBT rss doesn't have sizes
-                            elif nzbprov == 'KAT':
                                 comsize_b = entry['length']
+                            elif nzbprov == 'KAT':
+                                comsize_b = entry['size']
                             else:
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
-                        if comsize_b is None: comsize_b = 0
-                        comsize_m = helpers.human_size(comsize_b)
-                        logger.fdebug("size given as: " + str(comsize_m))
-#----size constraints.
-                        #if it's not within size constaints - dump it now and save some time.
-                        logger.fdebug("size : " + str(comsize_m))
-                        if mylar.USE_MINSIZE:
-                            conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
-                            logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
-                            if int(conv_minsize) > int(comsize_b):
-                                logger.fdebug("Failure to meet the Minimum size threshold - skipping")
-                                continue
-                        if mylar.USE_MAXSIZE:
-                            conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
-                            logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
-                            if int(comsize_b) > int(conv_maxsize):
-                                logger.fdebug("Failure to meet the Maximium size threshold - skipping")
-                                continue
+                        if comsize_b is None:
+                            logger.fdebug('Size of file cannot be retrieved. Ignoring size-comparison and continuing.')
+                            #comsize_b = 0
+                        else:
+                            comsize_m = helpers.human_size(comsize_b)
+                            logger.fdebug("size given as: " + str(comsize_m))
+                            #----size constraints.
+                            #if it's not within size constaints - dump it now and save some time.
+                            if mylar.USE_MINSIZE:
+                                conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
+                                logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
+                                if int(conv_minsize) > int(comsize_b):
+                                    logger.fdebug("Failure to meet the Minimum size threshold - skipping")
+                                    continue
+                            if mylar.USE_MAXSIZE:
+                                conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
+                                logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
+                                if int(comsize_b) > int(conv_maxsize):
+                                    logger.fdebug("Failure to meet the Maximium size threshold - skipping")
+                                    continue
 
 #---- date constaints.
                     # if the posting date is prior to the publication date, dump it and save the time.
@@ -741,12 +618,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #convert it to a Thu, 06 Feb 2014 00:00:00 format
                     issue_convert = datetime.datetime.strptime(stdate.rstrip(), '%Y-%m-%d')
                     #logger.fdebug('issue_convert:' + str(issue_convert))
-                    issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
+                    #issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
+                    # to get past different locale's os-dependent dates, let's convert it to a generic datetime format
+                    stamp = time.mktime(issue_convert.timetuple())
+                    #logger.fdebug('stamp: ' + str(stamp))
+                    issconv = format_date_time(stamp)
                     #logger.fdebug('issue date is :' + str(issconv))
                     #convert it to a tuple
                     econv = email.utils.parsedate_tz(issconv)
                     #logger.fdebug('econv:' + str(econv))
-                    #convert it to a numeric
+                    #convert it to a numeric and drop the GMT/Timezone
                     issuedate_int = time.mktime(econv[:len(econv)-1])
                     #logger.fdebug('issuedate_int:' + str(issuedate_int))
                     if postdate_int < issuedate_int:
@@ -1397,6 +1278,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     sent_to = "SABnzbd+"
                                     logger.info(u"Successfully sent nzb file to SABnzbd")
 
+                            if annualize == True:
+                                modcomicname = ComicName + ' Annual'
+                            else:
+                                modcomicname = ComicName
                             if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
                                 logger.info(u"Sending Prowl notification")
                                 prowl = notifiers.PROWL()
@@ -1404,7 +1289,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
                                 logger.info(u"Sending NMA notification")
                                 nma = notifiers.NMA()
-                                nma.notify(snatched_nzb=nzbname,sent_to=sent_to)
+                                snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+                                nma.notify(snline=snline,snatched_nzb=nzbname,sent_to=sent_to,prov=nzbprov)
                             if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
                                 logger.info(u"Sending Pushover notification")
                                 pushover = notifiers.PUSHOVER()
@@ -1413,6 +1299,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 logger.info(u"Sending Boxcar notification")
                                 boxcar = notifiers.BOXCAR()
                                 boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to)
+                            if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
+                                logger.info(u"Sending Pushbullet notification")
+                                pushbullet = notifiers.PUSHBULLET()
+                                snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+                                pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
 
                             foundc = "yes"
                             done = True
@@ -1433,14 +1324,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             foundcomic.append("yes")
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
             updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID)
-            nzbpr == 0
+            prov_count == 0
             #break
             return foundc
-        elif foundc == "no" and nzbpr == 0:
+        elif foundc == "no" and prov_count == 0:
             foundcomic.append("no")
-            logger.fdebug("couldn't find a matching comic using " + str(tmpprov))
+            #logger.fdebug('Could not find a matching comic using ' + str(tmpprov))
             if IssDateFix == "no":
-                logger.info(u"Couldn't find Issue " + str(IssueNumber) + " of " + ComicName + "(" + str(comyear) + "). Status kept as wanted." )
+                #logger.info('Could not find Issue ' + str(IssueNumber) + ' of ' + ComicName + '(' + str(comyear) + ') using ' + str(tmpprov) + '. Status kept as wanted.' )
                 break
     return foundc
 
@@ -1487,7 +1378,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
         new = True
 
         for result in results:
-            comic = myDB.action("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
+            comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
             Publisher = comic['ComicPublisher']
@@ -1510,16 +1401,16 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
                         pass 
                         #print ("not found!")
     else:
-        result = myDB.action('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+        result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
         mode = 'want'
         if result is None:
-            result = myDB.action('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+            result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
             mode = 'want_ann'
             if result is None:
                 logger.info("Unable to locate IssueID - you probably should delete/refresh the series.")
                 return
         ComicID = result['ComicID']
-        comic = myDB.action('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
+        comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
         SeriesYear = comic['ComicYear']
         Publisher = comic['ComicPublisher']
         AlternateSearch = comic['AlternateSearch']
@@ -1546,15 +1437,15 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
     for issueid in issuelist:
-        issue = myDB.action('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
+        issue = myDB.selectone('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
         mode = 'want'
         if issue is None:
-            issue = myDB.action('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
+            issue = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
             mode = 'want_ann'
             if issue is None:
                 logger.info("unable to determine IssueID - perhaps you need to delete/refresh series?")
                 break
-        comic = myDB.action('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
+        comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
         print ("Checking for issue: " + str(issue['Issue_Number']))
         foundNZB = "none"
         SeriesYear = comic['ComicYear']
@@ -1575,3 +1466,47 @@ def searchIssueIDList(issuelist):
                     pass
                     #print ("not found!")
 
+
+
+def provider_sequence(nzbprovider, torprovider, newznab_hosts):
+    #provider order sequencing here.
+    newznab_info = []
+    prov_order = []
+
+    nzbproviders_lower = [x.lower() for x in nzbprovider]
+
+    if len(mylar.PROVIDER_ORDER) > 0:
+        for pr_order in mylar.PROVIDER_ORDER:
+            logger.fdebug('looking for ' + str(pr_order[1]).lower())
+            logger.fdebug('nzbproviders ' + str(nzbproviders_lower))
+            logger.fdebug('torproviders ' + str(torprovider))
+            if (pr_order[1].lower() in torprovider) or any(pr_order[1].lower() in x for x in nzbproviders_lower):
+                logger.fdebug('found provider in existing enabled providers.')
+                if any(pr_order[1].lower() in x for x in nzbproviders_lower):
+                    # this is for nzb providers
+                    for np in nzbprovider:
+                        logger.fdebug('checking against nzb provider: ' + str(np))
+                        if all( [ 'newznab' in np, pr_order[1].lower() in np.lower() ] ):
+                            logger.fdebug('newznab match against: ' + str(np))
+                            for newznab_host in newznab_hosts:
+                                logger.fdebug('comparing ' + str(pr_order[1]).lower() + ' against: ' + str(newznab_host[0]).lower())
+                                if newznab_host[0].lower() == pr_order[1].lower():
+                                    logger.fdebug('sucessfully matched - appending to provider.order sequence')
+                                    prov_order.append(np) #newznab_host)
+                                    newznab_info.append({"provider":     np,
+                                                         "info": newznab_host})
+                                    break
+                        elif pr_order[1].lower() in np.lower():
+                            prov_order.append(pr_order[1])
+                            break
+                else:
+                    for tp in torprovider:
+                        logger.fdebug('checking against torrent provider: ' + str(tp))
+                        if (pr_order[1].lower() in tp.lower()):
+                            logger.fdebug('torrent match against: ' + str(tp))
+                            prov_order.append(tp) #torrent provider
+                            break
+
+                logger.fdebug('sequence is now to start with ' + pr_order[1] + ' at spot #' + str(pr_order[0]))
+
+    return prov_order,newznab_info

@@ -32,7 +32,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
     if type == 'comic':
         if not comicid.startswith('4050-'): comicid = '4050-' + comicid
-        PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck'
+        PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
@@ -178,11 +178,11 @@ def GetComicInfo(comicid,dom):
                 if i == 0:
                     vfind = comicDes[v_find:v_find+15]   #if it's volume 5 format
                     basenums = {'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7','eight':'8','nine':'9','ten':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
-                    logger.fdebug('volume X format - ' + str(i) + ': ' + str(vfind))
+                    logger.fdebug('volume X format - ' + str(i) + ': ' + vfind)
                 else:
                     vfind = comicDes[:v_find]   # if it's fifth volume format
                     basenums = {'zero':'0','first':'1','second':'2','third':'3','fourth':'4','fifth':'5','sixth':'6','seventh':'7','eighth':'8','nineth':'9','tenth':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
-                    logger.fdebug('X volume format - ' + str(i) + ': ' + str(vfind))
+                    logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
                 volconv = ''
                 for nums in basenums:
                     if nums in vfind.lower():
@@ -215,7 +215,7 @@ def GetComicInfo(comicid,dom):
                 i+=1
 
         if comic['ComicVersion'] == 'noversion':
-            logger.info('comic[ComicVersion]:' + str(comic['ComicVersion']))
+            logger.fdebug('comic[ComicVersion]:' + str(comic['ComicVersion']))
             desdeck -=1
         else:
             break

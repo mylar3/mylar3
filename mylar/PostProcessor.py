@@ -74,7 +74,7 @@ class PostProcessor(object):
 
         self.log = ''
 
-    def _log(self, message, level=logger.MESSAGE):
+    def _log(self, message, level=logger.message):  #level=logger.MESSAGE):
         """
         A wrapper for the internal logger which also keeps track of messages and saves them to a string for $
 
@@ -136,8 +136,8 @@ class PostProcessor(object):
 
 
     def Process(self):
-            self._log("nzb name: " + str(self.nzb_name), logger.DEBUG)
-            self._log("nzb folder: " + str(self.nzb_folder), logger.DEBUG)
+            self._log("nzb name: " + str(self.nzb_name))#, logger.DEBUG)
+            self._log("nzb folder: " + str(self.nzb_folder))#, logger.DEBUG)
             logger.fdebug("nzb name: " + str(self.nzb_name))
             logger.fdebug("nzb folder: " + str(self.nzb_folder))
             if mylar.USE_SABNZBD==0:
@@ -172,10 +172,13 @@ class PostProcessor(object):
          # -- end. not used.
 
             if mylar.USE_NZBGET==1:
-                logger.fdebug("Using NZBGET")
+                if self.nzb_name != 'Manual Run': 
+                    logger.fdebug("Using NZBGET")
                 logger.fdebug("NZB name as passed from NZBGet: " + self.nzb_name)
                 # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
-                if mylar.NZBGET_DIRECTORY is not None and mylar.NZBGET_DIRECTORY is not 'None' and len(mylar.NZBGET_DIRECTORY) > 4:
+                if self.nzb_name == 'Manual Run':
+                    logger.fdebug('Manual Run Post-Processing enabled.')
+                elif mylar.NZBGET_DIRECTORY is not None and mylar.NZBGET_DIRECTORY is not 'None' and len(mylar.NZBGET_DIRECTORY) > 4:
                     self.nzb_folder = os.path.join(mylar.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug('NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
             myDB = db.DBConnection()
@@ -188,7 +191,7 @@ class PostProcessor(object):
                 #once a series name and issue are matched,
                 #write the series/issue/filename to a tuple
                 #when all done, iterate over the tuple until completion...
-                comicseries = myDB.action("SELECT * FROM comics")
+                comicseries = myDB.select("SELECT * FROM comics")
                 manual_list = []
                 if comicseries is None: 
                     logger.error(u"No Series in Watchlist - aborting Manual Post Processing. Maybe you should be running Import?")
@@ -223,39 +226,49 @@ class PostProcessor(object):
                                     logger.info("annual detected.")
                                     annchk = "yes"
                                     fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                    issuechk = myDB.action("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
+                                    issuechk = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
                                 else:
                                     fcdigit = helpers.issuedigits(temploc)
-                                    issuechk = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
+                                    issuechk = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
 
                                 if issuechk is None:
-                                    logger.info("No corresponding issue # found for " + str(cs['ComicID']))
+                                    logger.fdebug("No corresponding issue # found for " + str(cs['ComicID']))
                                 else:
                                     datematch = "True"
-                                    if len(watchmatch) > 1 and tmpfc['ComicYear'] is not None:
+                                    if len(watchmatch) >= 1 and tmpfc['ComicYear'] is not None:
                                         #if the # of matches is more than 1, we need to make sure we get the right series
                                         #compare the ReleaseDate for the issue, to the found issue date in the filename.
                                         #if ReleaseDate doesn't exist, use IssueDate
                                         #if no issue date was found, then ignore.
                                         issyr = None
-                                        if int(issuechk['IssueDate'][5:7]) == 11 or issuechk['IssueDate'][5:7] == 12: 
-                                            issyr = int(issuechk['IssueDate'][:4])
-                                        elif int(issuechk['IssueDate'][5:7]) == 1 or int(issuechk['IssueDate'][5:7]) == 2: 
-                                            issyr = int(issuechk['IssueDate'][:4])
+                                        logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
+                                        logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
 
-                                        if issuechk['ReleaseDate'] is not None:
+                                        #logger.info('ReleaseDate: ' + str(issuechk['ReleaseDate']))
+                                        #logger.info('IssueDate: ' + str(issuechk['IssueDate']))
+                                        if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
+                                            monthval = issuechk['ReleaseDate']
                                             if int(issuechk['ReleaseDate'][:4]) < int(tmpfc['ComicYear']):
                                                 logger.fdebug(str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
                                                 datematch = "False"
                                                  
                                         else:
+                                            monthval = issuechk['IssueDate']
                                             if int(issuechk['IssueDate'][:4]) < int(tmpfc['ComicYear']):
                                                 logger.fdebug(str(issuechk['IssueDate']) + ' is before the issue year ' + str(tmpfc['ComicYear']) + ' that was discovered in the filename')
                                                 datematch = "False"
 
+                                        if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                            issyr = int(monthval[:4]) + 1
+                                            logger.fdebug('issyr is ' + str(issyr))
+                                        elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2:
+                                            issyr = int(monthval[:4]) - 1
+
+
+
                                         if datematch == "False" and issyr is not None:
-                                            logger.fdebug(str(issyr) + ' comparing to ' + str(tmpfc['ComicYear']) + 'rechecking by month-check versus year.')
-                                            datematch == "True"
+                                            logger.fdebug(str(issyr) + ' comparing to ' + str(tmpfc['ComicYear']) + ' : rechecking by month-check versus year.')
+                                            datematch = "True"
                                             if int(issyr) != int(tmpfc['ComicYear']):
                                                 logger.fdebug('[fail] Issue is before the modified issue year of ' + str(issyr))
                                                 datematch = "False"
@@ -284,7 +297,7 @@ class PostProcessor(object):
 
                 if nzbname.lower().endswith(extensions):
                     fd, ext = os.path.splitext(nzbname)
-                    self._log("Removed extension from nzb: " + ext, logger.DEBUG)
+                    self._log("Removed extension from nzb: " + ext)
                     nzbname = re.sub(str(ext), '', str(nzbname))
 
                 #replace spaces
@@ -295,18 +308,18 @@ class PostProcessor(object):
                 logger.fdebug("After conversions, nzbname is : " + str(nzbname))
 #                if mylar.USE_NZBGET==1:
 #                    nzbname=self.nzb_name
-                self._log("nzbname: " + str(nzbname), logger.DEBUG)
+                self._log("nzbname: " + str(nzbname))#, logger.DEBUG)
    
-                nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
 
                 if nzbiss is None:
-                    self._log("Failure - could not initially locate nzbfile in my database to rename.", logger.DEBUG)
+                    self._log("Failure - could not initially locate nzbfile in my database to rename.")#, logger.DEBUG)
                     logger.fdebug("Failure - could not locate nzbfile initially.")
                     # if failed on spaces, change it all to decimals and try again.
                     nzbname = re.sub('_', '.', str(nzbname))
-                    self._log("trying again with this nzbname: " + str(nzbname), logger.DEBUG)
+                    self._log("trying again with this nzbname: " + str(nzbname))#, logger.DEBUG)
                     logger.fdebug("trying again with nzbname of : " + str(nzbname))
-                    nzbiss = myDB.action("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                    nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
                     if nzbiss is None:
                         logger.error(u"Unable to locate downloaded file to rename. PostProcessing aborted.")
                         return
@@ -324,9 +337,9 @@ class PostProcessor(object):
                 if 'annual' in nzbname.lower():
                     logger.info("annual detected.")
                     annchk = "yes"
-                    issuenzb = myDB.action("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
                 else:
-                    issuenzb = myDB.action("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                    issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
 
                 if issuenzb is not None:
                     logger.info("issuenzb found.")
@@ -353,14 +366,14 @@ class PostProcessor(object):
                             logger.info("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
                             if mylar.STORYARCDIR:
                                 storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
-                                self._log("StoryArc Directory set to : " + storyarcd, logger.DEBUG)
+                                self._log("StoryArc Directory set to : " + storyarcd)#, logger.DEBUG)
                             else:
-                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
+                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)#, logger.DEBUG)
    
                         else:
-                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.", logger.DEBUG)
+                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")#, logger.DEBUG)
                             logger.info("One-off mode enabled for Post-Processing. Will move into Grab-bag directory.")
-                            self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR, logger.DEBUG)
+                            self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)#, logger.DEBUG)
 
                         for root, dirnames, filenames in os.walk(self.nzb_folder):
                             for filename in filenames:
@@ -386,7 +399,7 @@ class PostProcessor(object):
                             if mylar.READ2FILENAME:
                                 issuearcid = re.sub('S', '', issueid)
                                 logger.fdebug('issuearcid:' + str(issuearcid))
-                                arcdata = myDB.action("SELECT * FROM readinglist WHERE IssueArcID=?",[issuearcid]).fetchone()
+                                arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?",[issuearcid]).fetchone()
                                 logger.fdebug('readingorder#: ' + str(arcdata['ReadingOrder']))
                                 if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                                 elif int(arcdata['ReadingOrder']) > 10 and int(arcdata['ReadingOrder']) < 99: readord = "0" + str(arcdata['ReadingOrder'])
@@ -398,10 +411,10 @@ class PostProcessor(object):
                         else:
                             grab_dst = os.path.join(grdst, ofilename)
 
-                        self._log("Destination Path : " + grab_dst, logger.DEBUG)
+                        self._log("Destination Path : " + grab_dst)#, logger.DEBUG)
                         logger.info("Destination Path : " + grab_dst)
                         grab_src = os.path.join(self.nzb_folder, ofilename)
-                        self._log("Source Path : " + grab_src, logger.DEBUG)
+                        self._log("Source Path : " + grab_src)#, logger.DEBUG)
                         logger.info("Source Path : " + grab_src)
 
                         logger.info("Moving " + str(ofilename) + " into directory : " + str(grdst))
@@ -409,19 +422,19 @@ class PostProcessor(object):
                         try:
                             shutil.move(grab_src, grab_dst)
                         except (OSError, IOError):
-                            self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
+                            self._log("Failed to move directory - check directories and manually re-run.")#, logger.DEBUG)
                             logger.debug("Failed to move directory - check directories and manually re-run.")
                             return
                         #tidyup old path
                         try:
                             shutil.rmtree(self.nzb_folder)
                         except (OSError, IOError):
-                            self._log("Failed to remove temporary directory.", logger.DEBUG)
+                            self._log("Failed to remove temporary directory.")#, logger.DEBUG)
                             logger.debug("Failed to remove temporary directory - check directory and manually re-run.")
                             return
 
                         logger.debug("Removed temporary directory : " + str(self.nzb_folder))
-                        self._log("Removed temporary directory : " + self.nzb_folder, logger.DEBUG)
+                        self._log("Removed temporary directory : " + self.nzb_folder)#, logger.DEBUG)
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
@@ -457,12 +470,12 @@ class PostProcessor(object):
             annchk = "no"
             extensions = ('.cbr', '.cbz')
             myDB = db.DBConnection()
-            comicnzb = myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
-            issuenzb = myDB.action("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
+            comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+            issuenzb = myDB.selectone("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
             logger.fdebug('issueid: ' + str(issueid))
             logger.fdebug('issuenumOG: ' + str(issuenumOG))
             if issuenzb is None:
-                issuenzb = myDB.action("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
                 annchk = "yes"
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
@@ -491,7 +504,7 @@ class PostProcessor(object):
                     iss = iss_b4dec
                     issdec = int(iss_decval)
                     issueno = str(iss)
-                    self._log("Issue Number: " + str(issueno), logger.DEBUG)
+                    self._log("Issue Number: " + str(issueno))#, logger.DEBUG)
                     logger.fdebug("Issue Number: " + str(issueno))
                 else:
                     if len(iss_decval) == 1:
@@ -501,7 +514,7 @@ class PostProcessor(object):
                         iss = iss_b4dec + "." + iss_decval.rstrip('0')
                         issdec = int(iss_decval.rstrip('0')) * 10
                     issueno = iss_b4dec
-                    self._log("Issue Number: " + str(iss), logger.DEBUG)
+                    self._log("Issue Number: " + str(iss))#, logger.DEBUG)
                     logger.fdebug("Issue Number: " + str(iss))
             else:
                 iss = issuenum
@@ -518,8 +531,11 @@ class PostProcessor(object):
             logger.fdebug("Zero Suppression set to : " + str(mylar.ZERO_LEVEL_N))
 
             if str(len(issueno)) > 1:
-                if int(issueno) < 10:
-                    self._log("issue detected less than 10", logger.DEBUG)
+                if int(issueno) < 0:
+                    self._log("issue detected is a negative")
+                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
+                elif int(issueno) < 10:
+                    self._log("issue detected less than 10")#, logger.DEBUG)
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
@@ -530,9 +546,9 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None': 
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
                 elif int(issueno) >= 10 and int(issueno) < 100:
-                    self._log("issue detected greater than 10, but less than 100", logger.DEBUG)
+                    self._log("issue detected greater than 10, but less than 100")#, logger.DEBUG)
                     if mylar.ZERO_LEVEL_N == "none":
                         zeroadd = ""
                     else:
@@ -547,44 +563,44 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss), logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
                 else:
-                    self._log("issue detected greater than 100", logger.DEBUG)
+                    self._log("issue detected greater than 100")#, logger.DEBUG)
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
                     prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss), logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
             else:
                 prettycomiss = str(issueno)
-                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss), logger.DEBUG)
+                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))#, logger.DEBUG)
 
             if annchk == "yes":
                 self._log("Annual detected.")
             logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
-            self._log("Issue Year: " + str(issueyear), logger.DEBUG)
+            self._log("Issue Year: " + str(issueyear))#, logger.DEBUG)
             logger.fdebug("Issue Year : " + str(issueyear))
             month = issuenzb['IssueDate'][5:7].replace('-','').strip()
             month_name = helpers.fullmonth(month)
 #            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
-            self._log("Publisher: " + publisher, logger.DEBUG)
+            self._log("Publisher: " + publisher)#, logger.DEBUG)
             logger.fdebug("Publisher: " + str(publisher))
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
-            self._log("Series: " + series, logger.DEBUG)
+            self._log("Series: " + series)#, logger.DEBUG)
             logger.fdebug("Series: " + str(series))
             seriesyear = comicnzb['ComicYear']
-            self._log("Year: " + seriesyear, logger.DEBUG)
+            self._log("Year: " + seriesyear)#, logger.DEBUG)
             logger.fdebug("Year: "  + str(seriesyear))
             comlocation = comicnzb['ComicLocation']
-            self._log("Comic Location: " + comlocation, logger.DEBUG)
+            self._log("Comic Location: " + comlocation)#, logger.DEBUG)
             logger.fdebug("Comic Location: " + str(comlocation))
             comversion = comicnzb['ComicVersion']
-            self._log("Comic Version: " + str(comversion), logger.DEBUG)
+            self._log("Comic Version: " + str(comversion))#, logger.DEBUG)
             logger.fdebug("Comic Version: " + str(comversion))
             if comversion is None:
                 comversion = 'None'
@@ -593,7 +609,7 @@ class PostProcessor(object):
                 chunk_f_f = re.sub('\$VolumeN','',mylar.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                self._log("No version # found for series - tag will not be available for renaming.", logger.DEBUG)
+                self._log("No version # found for series - tag will not be available for renaming.")#, logger.DEBUG)
                 logger.fdebug("No version # found for series, removing from filename")
                 logger.fdebug("new format is now: " + str(chunk_file_format))
             else:
@@ -708,13 +724,13 @@ class PostProcessor(object):
             if ofilename is None:
                 logger.error(u"Aborting PostProcessing - the filename doesn't exist in the location given. Make sure that " + str(self.nzb_folder) + " exists and is the correct location.")
                 return
-            self._log("Original Filename: " + ofilename, logger.DEBUG)
-            self._log("Original Extension: " + ext, logger.DEBUG)
+            self._log("Original Filename: " + ofilename)#, logger.DEBUG)
+            self._log("Original Extension: " + ext)#, logger.DEBUG)
             logger.fdebug("Original Filname: " + str(ofilename))
             logger.fdebug("Original Extension: " + str(ext))
 
             if mylar.FILE_FORMAT == '' or not mylar.RENAME_FILES:
-                self._log("Rename Files isn't enabled...keeping original filename.", logger.DEBUG)
+                self._log("Rename Files isn't enabled...keeping original filename.")#, logger.DEBUG)
                 logger.fdebug("Rename Files isn't enabled - keeping original filename.")
                 #check if extension is in nzb_name - will screw up otherwise
                 if ofilename.lower().endswith(extensions):
@@ -728,7 +744,7 @@ class PostProcessor(object):
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?]', '', nfilename)
             nfilename = re.sub('[\/]', '-', nfilename)
-            self._log("New Filename: " + nfilename, logger.DEBUG)
+            self._log("New Filename: " + nfilename)#, logger.DEBUG)
             logger.fdebug("New Filename: " + str(nfilename))
 
             src = os.path.join(self.nzb_folder, ofilename)
@@ -739,12 +755,14 @@ class PostProcessor(object):
                 dst = (comlocation + "/" + nfilename + ext).lower()
             else:
                 dst = comlocation + "/" + nfilename + ext.lower()    
-            self._log("Source:" + src, logger.DEBUG)
-            self._log("Destination:" +  dst, logger.DEBUG)
+            self._log("Source:" + src)#, logger.DEBUG)
+            self._log("Destination:" +  dst)#, logger.DEBUG)
             logger.fdebug("Source: " + str(src))
             logger.fdebug("Destination: " + str(dst))
 
             if ml is None:
+                #downtype = for use with updater on history table to set status to 'Downloaded'
+                downtype = 'True'
                 #non-manual run moving/deleting...
                 logger.fdebug('self.nzb_folder: ' + self.nzb_folder)
                 logger.fdebug('ofilename:' + str(ofilename))
@@ -754,19 +772,21 @@ class PostProcessor(object):
                 try:
                     shutil.move(src, dst)
                 except (OSError, IOError):
-                    self._log("Failed to move directory - check directories and manually re-run.", logger.DEBUG)
-                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    self._log("Failed to move directory - check directories and manually re-run.")#, logger.DEBUG)
+                    self._log("Post-Processing ABORTED.")#, logger.DEBUG)
                     return
                 #tidyup old path
                 try:
                     shutil.rmtree(self.nzb_folder)
                 except (OSError, IOError):
-                    self._log("Failed to remove temporary directory - check directory and manually re-run.", logger.DEBUG)
-                    self._log("Post-Processing ABORTED.", logger.DEBUG)
+                    self._log("Failed to remove temporary directory - check directory and manually re-run.")#, logger.DEBUG)
+                    self._log("Post-Processing ABORTED.")#, logger.DEBUG)
                     return
 
-                self._log("Removed temporary directory : " + str(self.nzb_folder), logger.DEBUG)
+                self._log("Removed temporary directory : " + str(self.nzb_folder))#, logger.DEBUG)
             else:
+                #downtype = for use with updater on history table to set status to 'Post-Processed'
+                downtype = 'PP'
                 #Manual Run, this is the portion.
                 logger.fdebug("Renaming " + os.path.join(self.nzb_folder, str(ofilename)) + " ..to.. " + os.path.join(self.nzb_folder,str(nfilename + ext)))
                 os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
@@ -791,24 +811,27 @@ class PostProcessor(object):
 
             #Hopefully set permissions on downloaded file
             try:
-                os.chmod( dst, int(mylar.CHMOD_FILE,8) )
-            except (OSError, IOError):
-                return
-
+                permission = int(mylar.CHMOD_FILE, 8)
+                os.umask(0)
+                os.chmod(dst.rstrip(), permission)
+            except OSError:
+                logger.error('Could not change file permisssions for : ' + dst)
+                
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
                     #update snatched table to change status to Downloaded
+            
             if annchk == "no":
-                updater.foundsearch(comicid, issueid, down='True')
+                updater.foundsearch(comicid, issueid, down=downtype)
                 dispiss = 'issue: ' + str(issuenumOG)
             else:
-                updater.foundsearch(comicid, issueid, mode='want_ann', down='True')
+                updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype)
                 dispiss = 'annual issue: ' + str(issuenumOG)
 
                     #force rescan of files
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " " + dispiss )
-            self._log(u"Post Processing SUCCESSFULL! ", logger.DEBUG)
+            self._log(u"Post Processing SUCCESSFULL! ")#, logger.DEBUG)
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:
@@ -834,26 +857,44 @@ class PostProcessor(object):
             if ml is not None: 
                 return self.log
             else:
+                if annchk == "no":
+                    prline = series + '(' + issueyear + ') - issue #' + issuenumOG
+                else:
+                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
+                prline2 = 'Mylar has downloaded and post-processed: ' + prline
+
                 if mylar.PROWL_ENABLED:
-                    pushmessage = series + '(' + issueyear + ') - issue #' + issuenumOG
+                    pushmessage = prline
                     logger.info(u"Prowl request")
                     prowl = notifiers.PROWL()
                     prowl.notify(pushmessage,"Download and Postprocessing completed")
     
                 if mylar.NMA_ENABLED:
                     nma = notifiers.NMA()
-                    nma.notify(series, str(issueyear), str(issuenumOG))
+                    nma.notify(prline=prline, prline2=prline2)
 
                 if mylar.PUSHOVER_ENABLED:
-                    pushmessage = series + ' (' + str(issueyear) + ') - issue #' + str(issuenumOG)
                     logger.info(u"Pushover request")
                     pushover = notifiers.PUSHOVER()
-                    pushover.notify(pushmessage, "Download and Post-Processing completed")
+                    pushover.notify(prline, "Download and Post-Processing completed")
 
                 if mylar.BOXCAR_ENABLED:
                     boxcar = notifiers.BOXCAR()
-                    boxcar.notify(series, str(issueyear), str(issuenumOG))
+                    boxcar.notify(prline=prline, prline2=prline2)
 
+                if mylar.PUSHBULLET_ENABLED:
+                    pushbullet = notifiers.PUSHBULLET()
+                    pushbullet.notify(prline=prline, prline2=prline2)
              
             return self.log
+
+class FolderCheck():
+
+    def run(self):
+        import PostProcessor, logger
+        #monitor a selected folder for 'snatched' files that haven't been processed
+        logger.info('Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
+        PostProcess = PostProcessor.PostProcessor('Manual Run', mylar.CHECK_FOLDER)
+        result = PostProcess.Process()
+        logger.info('Finished checking for newly snatched downloads')
 

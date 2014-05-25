@@ -78,7 +78,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
     #let's load in the watchlist to see if we have any matches.
     logger.info("loading in the watchlist to see if a series is being watched already...")
-    watchlist = myDB.action("SELECT * from comics")
+    watchlist = myDB.select("SELECT * from comics")
     ComicName = []
     DisplayName = []
     ComicYear = []
@@ -486,7 +486,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     watch_issue = watch_the_list['ComicIssue']
                     print ("ComicID: " + str(watch_comicid))
                     print ("Issue#: " + str(watch_issue))
-                    issuechk = myDB.action("SELECT * from issues where ComicID=? AND INT_IssueNumber=?", [watch_comicid, watch_issue]).fetchone()
+                    issuechk = myDB.selectone("SELECT * from issues where ComicID=? AND INT_IssueNumber=?", [watch_comicid, watch_issue]).fetchone()
                     if issuechk is None:
                         print ("no matching issues for this comic#")
                     else:

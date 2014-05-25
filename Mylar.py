@@ -16,6 +16,7 @@
 
 import os, sys, locale
 import time
+import threading
 
 from lib.configobj import ConfigObj
 
@@ -64,6 +65,7 @@ def main():
     parser.add_argument('--config', help='Specify a config file to use')
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
     parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
+    parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
     
     args = parser.parse_args()
 
@@ -73,10 +75,28 @@ def main():
         mylar.VERBOSE = 0
     
     if args.daemon:
-        mylar.DAEMON=True
-        mylar.VERBOSE = 0
-        if args.pidfile :
-            mylar.PIDFILE = args.pidfile
+        if sys.platform == 'win32':
+            print "Daemonize not supported under Windows, starting normally"
+        else:
+            mylar.DAEMON=True
+            mylar.VERBOSE=0
+
+    if args.pidfile :
+        mylar.PIDFILE = args.pidfile
+
+        # If the pidfile already exists, mylar may still be running, so exit
+        if os.path.exists(mylar.PIDFILE):
+            sys.exit("PID file '" + mylar.PIDFILE + "' already exists. Exiting.")
+
+        # The pidfile is only useful in daemon mode, make sure we can write the file properly
+        if mylar.DAEMON:
+            try:
+                file(mylar.PIDFILE, 'w').write("pid\n")
+            except IOError, e:
+                raise SystemExit("Unable to write PID file: %s [%d]" % (e.strerror, e.errno))
+        else:
+            logger.warn("Not running in daemon mode. PID file creation disabled.")
+
 
     if args.datadir:
         mylar.DATA_DIR = args.datadir
@@ -88,6 +108,11 @@ def main():
     else:
         mylar.CONFIG_FILE = os.path.join(mylar.DATA_DIR, 'config.ini')
         
+    if args.safe:
+        mylar.SAFESTART = True
+    else:
+        mylar.SAFESTART = False
+
     # Try to create the DATA_DIR if it doesn't exist
     #if not os.path.exists(mylar.DATA_DIR):
     #    try:
@@ -105,6 +130,9 @@ def main():
     mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
     
     mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
+
+    # Rename the main thread
+    threading.currentThread().name = "MAIN"
     
     # Read config & start logging
     mylar.initialize()

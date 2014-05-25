@@ -267,13 +267,13 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             if issueid is None:
                 logger.fdebug('annualize is ' + str(annualize))
                 if annualize is None:
-                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                 else:
-                    chkissue = myDB.action("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
 
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
-                    chkissue = myDB.action("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                     if chkissue is None:
                         if chkissue is None:
                             logger.error('Invalid Issue_Number - please validate.')
@@ -286,10 +286,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             #use issueid to get publisher, series, year, issue number
             logger.fdebug('issueid is now : ' + str(issueid))
-            issuenzb = myDB.action("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
+            issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
             if issuenzb is None:
                 logger.fdebug('not an issue, checking against annuals')
-                issuenzb = myDB.action("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid,issueid]).fetchone()
                 if issuenzb is None:
                     logger.fdebug('Unable to rename - cannot locate issue id within db')
                     return
@@ -388,7 +388,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             month = issuenzb['IssueDate'][5:7].replace('-','').strip()
             month_name = fullmonth(month)
             logger.fdebug('Issue Year : ' + str(issueyear))
-            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+            comicnzb= myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             logger.fdebug('Publisher: ' + str(publisher))
             series = comicnzb['ComicName']
@@ -493,7 +493,7 @@ def ComicSort(comicorder=None,sequence=None,imported=None):
         i = 0
         import db, logger
         myDB = db.DBConnection()
-        comicsort = myDB.action("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
         comicorder = {}
         comicidlist = []
@@ -782,7 +782,7 @@ def checkthepub(ComicID):
     import db, logger
     myDB = db.DBConnection()
     publishers = ['marvel', 'dc', 'darkhorse']
-    pubchk = myDB.action("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+    pubchk = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
     if pubchk is None:
         logger.fdebug('No publisher information found to aid in determining series..defaulting to base check of 55 days.')
         return mylar.BIGGIE_PUB
@@ -798,7 +798,7 @@ def checkthepub(ComicID):
 def annual_update():
     import db, logger
     myDB = db.DBConnection()
-    annuallist = myDB.action('SELECT * FROM annuals')
+    annuallist = myDB.select('SELECT * FROM annuals')
     if annuallist is None:
         logger.info('no annuals to update.')
         return
@@ -806,7 +806,7 @@ def annual_update():
     cnames = []
     #populate the ComicName field with the corresponding series name from the comics table.
     for ann in annuallist:
-        coms = myDB.action('SELECT * FROM comics WHERE ComicID=?', [ann['ComicID']]).fetchone()
+        coms = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ann['ComicID']]).fetchone()
         cnames.append({'ComicID':     ann['ComicID'],
                        'ComicName':   coms['ComicName']
                       })
@@ -856,7 +856,7 @@ def latestdate_fix():
     import db, logger
     datefix = []
     myDB = db.DBConnection()
-    comiclist = myDB.action('SELECT * FROM comics')
+    comiclist = myDB.select('SELECT * FROM comics')
     if comiclist is None:
         logger.fdebug('No Series in watchlist to correct latest date')
         return

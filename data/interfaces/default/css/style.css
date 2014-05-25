@@ -892,7 +892,6 @@ div#artistheader #artistDetails {
   line-height: 16px;
   margin-top: 5px;
 }
-
 div#artistheader h1 a {
   font-size: 32px;
   margin-bottom: 5px;
@@ -937,14 +936,11 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-
 #read_detail td#options {
   min-width: 150px;
   text-align: left;
   vertical-align: middle;
 }
-
-
 #weekly_pull th#publisher {
   min-width: 150px;
   text-align: left;
@@ -976,6 +972,56 @@ div#artistheader h2 a {
   min-width: 150px;
   text-align: left;
   vertical-align: middle;
+}
+#pull_table th#publishdate {
+  min-width: 50px;
+  text-align: left;
+  vertial-align: middle;
+}
+#pull_table th#publisher {
+  min-width: 100px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table th#comicname {
+  min-width: 300px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table th#comicnumber {
+  max-width: 45px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table th#status {
+  min-width: 100px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table td#publishdate {
+  max-width: 50px;
+  text-align: left;
+  vertial-align: middle;
+}
+#pull_table td#publisher {
+  min-width: 100px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table td#comicname {
+  min-width: 300px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table td#comicnumber {
+  max-width: 45px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table td#status {
+  min-width: 100px;
+  text-align: left;
+  vertial-align: middle;
 }
 #manage_comic th#name {
   min-width: 275px;

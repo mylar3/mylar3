@@ -60,18 +60,18 @@
 			<tr class="grade${grade}">
                                 <td id="select"><input type="checkbox" name="${item['IssueID']}" class="checkbox" /></td>
 				<td id="dateadded">${item['DateAdded']}</td>
-				<td id="filename">${item['ComicName']}</td>
+				<td id="filename"><a href="comicDetails?ComicID=${item['ComicID']}">${item['ComicName']}</a></td>
                                 <td id="issue">${item['Issue_Number']}</td>
 				<td id="status">${item['Status']}
                                 %if item['Provider'] == 'CBT' or item['Provider'] == 'KAT':
                                     <img src="interfaces/default/images/torrent-icon.png" height="20" width="20" title="${item['Provider']}" />
                                 %else:
-                                    %if item['Status'] != 'Downloaded':
+                                    %if item['Status'] != 'Downloaded' and item['Status'] != 'Post-Processed':
                                         (${item['Provider']})
                                     %endif
                                 %endif
                                 </td>
-				<td id="action">[<a href="#" onclick="doAjaxCall('queueissue?IssueID=${item['IssueID']}&ComicName=${item['ComicName']}&ComicID=${item['ComicID']}&ComicIssue=${item['Issue_Number']}&mode=want&redirect=history', $(this),'table')"  data-success="Retrying download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
+				<td id="action">[<a href="#" onclick="doAjaxCall('queueissue?IssueID=${item['IssueID']}&ComicName=${item['ComicName']}&ComicID=${item['ComicID']}&ComicIssue=${item['Issue_Number']}&mode=want&redirect=history', $(this),'table')"  data-success="Successful re-download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
 			</tr>
 		%endfor
 		</tbody>

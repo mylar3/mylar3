@@ -107,17 +107,18 @@ class NMA:
         
         return response     
         
-    def notify(self, ComicName=None, Year=None, Issue=None, snatched_nzb=None, sent_to=None):
+    def notify(self, snline=None, prline=None, prline2=None, snatched_nzb=None, sent_to=None, prov=None):
     
         apikey = self.apikey
         priority = self.priority
         
         if snatched_nzb:
-            event = snatched_nzb + " snatched!"
-            description = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
+            if snatched_nzb[-1] == '\.': snatched_nzb = snatched_nzb[:-1]
+            event = snline
+            description = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and has sent it to " + sent_to
         else:
-            event = ComicName + ' (' + Year + ') - Issue #' + Issue + ' complete!'
-            description = "Mylar has downloaded and postprocessed: " + ComicName + ' (' + Year + ') #' + Issue
+            event = prline
+            description = prline2
     
         data = { 'apikey': apikey, 'application':'Mylar', 'event': event, 'description': description, 'priority': priority}
 
@@ -133,7 +134,10 @@ class PUSHOVER:
 
     def __init__(self):
         self.enabled = mylar.PUSHOVER_ENABLED
-        self.apikey = mylar.PUSHOVER_APIKEY
+        if mylar.PUSHOVER_APIKEY is None or mylar.PUSHOVER_APIKEY == 'None':
+            self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
+        else:
+            self.apikey = mylar.PUSHOVER_APIKEY
         self.userkey = mylar.PUSHOVER_USERKEY
         self.priority = mylar.PUSHOVER_PRIORITY
         # other API options:
@@ -187,98 +191,59 @@ class PUSHOVER:
         self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')
 
 
-API_URL = "https://boxcar.io/devices/providers/WqbewHpV8ZATnawpCsr4/notifications"
-
 class BOXCAR:
 
-    def test_notify(self, email, title="Test"):
-        return self._sendBoxcar("This is a test notification from SickBeard", title, email)
+    #new BoxCar2 API   
+    def __init__(self):
 
-    def _sendBoxcar(self, msg, title, email, subscribe=False):
+        self.url = 'https://new.boxcar.io/api/notifications'
+
+    def _sendBoxcar(self, msg, title):
+
         """
         Sends a boxcar notification to the address provided
 
         msg: The message to send (unicode)
         title: The title of the message
-        email: The email address to send the message to (or to subscribe with)
-        subscribe: If true then instead of sending a message this function will send a subscription notificat$
 
         returns: True if the message succeeded, False otherwise
         """
 
-        # build up the URL and parameters
-        msg = msg.strip()
-        curUrl = API_URL
+        try:
 
-        # if this is a subscription notification then act accordingly
-        if subscribe:
-            data = urllib.urlencode({'email': email})
-            curUrl = curUrl + "/subscribe"
-
-        # for normal requests we need all these parameters
-        else:
             data = urllib.urlencode({
-                'email': email,
-                'notification[from_screen_name]': title,
-                'notification[message]': msg.encode('utf-8'),
-                'notification[from_remote_service_id]': int(time.time())
+                'user_credentials': mylar.BOXCAR_TOKEN,
+                'notification[title]': title.encode('utf-8').strip(),
+                'notification[long_message]': message.encode('utf-8'),
+                'notification[sound]': "done"
                 })
 
-
-        # send the request to boxcar
-        try:
-            req = urllib2.Request(curUrl)
+            req = urllib2.Request(self.url)
             handle = urllib2.urlopen(req, data)
             handle.close()
+            return True
 
         except urllib2.URLError, e:
             # if we get an error back that doesn't have an error code then who knows what's really happening
             if not hasattr(e, 'code'):
-                logger.error("Boxcar notification failed." + ex(e))
-                return False
-            else:
-                logger.error("Boxcar notification failed. Error code: " + str(e.code))
-
-            # HTTP status 404 if the provided email address isn't a Boxcar user.
-            if e.code == 404:
-                logger.error("Username is wrong/not a boxcar email. Boxcar will send an email to it")
-                return False
-
-            # For HTTP status code 401's, it is because you are passing in either an invalid token, or the user has not added$
-            elif e.code == 401:
-
-                # If the user has already added your service, we'll return an HTTP status code of 401.
-                if subscribe:
-                    logger.error("Already subscribed to service")
-                    # i dont know if this is true or false ... its neither but i also dont know how we got here in the first $
-                    return False
-
-                #HTTP status 401 if the user doesn't have the service added
-                else:
-                    subscribeNote = self._sendBoxcar(msg, title, email, True)
-                    if subscribeNote:
-                        logger.info("Subscription send")
-                        return True
-                    else:
-                        logger.info("Subscription could not be send")
-                        return False
-
+                logger.error('Boxcar2 notification failed. %s' % e)
             # If you receive an HTTP status code of 400, it is because you failed to send the proper parameters
             elif e.code == 400:
                 logger.info("Wrong data sent to boxcar")
                 logger.info('data:' + data)
-                return False
+            else:
+                logger.error("Boxcar2 notification failed. Error code: " + str(e.code))
+            return False
 
-        logger.fdebug("Boxcar notification successful.")
+        logger.fdebug("Boxcar2 notification successful.")
         return True
 
-    def notify(self, ComicName=None, Year=None, Issue=None, sent_to=None, snatched_nzb=None, username=None, force=False):
+    def notify(self, ComicName=None, Year=None, Issue=None, sent_to=None, snatched_nzb=None, force=False):
         """
         Sends a boxcar notification based on the provided info or SB config
 
         title: The title of the notification to send
         message: The message string to send
-        username: The username to send the notification to (optional, defaults to the username in the config)
         force: If True then the notification will be sent even if Boxcar is disabled in the config
         """
 
@@ -287,10 +252,6 @@ class BOXCAR:
             return False
 
         # if no username was given then use the one from the config
-        if not username:
-            username = mylar.BOXCAR_USERNAME
-
-
         if snatched_nzb:
             title = "Mylar. Sucessfully Snatched!"
             message = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
@@ -299,9 +260,63 @@ class BOXCAR:
             message = "Mylar has downloaded and postprocessed: " + ComicName + ' (' + Year + ') #' + Issue
 
 
-        logger.info("Sending notification to Boxcar")
+        logger.info('Sending notification to Boxcar2')
 
-        self._sendBoxcar(message, title, username)
+        self._sendBoxcar(message, title)
         return True
 
+class PUSHBULLET:
+
+    def __init__(self):
+        self.apikey = mylar.PUSHBULLET_APIKEY
+        self.deviceid = mylar.PUSHBULLET_DEVICEID
+
+    def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None):
+        if not mylar.PUSHBULLET_ENABLED:
+            return
+        
+        if snatched:
+            if snatched[-1] == '.': snatched = snatched[:-1]
+            event = snline
+            message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
+        else:
+            event = prline + ' complete!'
+            message = prline2
+
+
+        http_handler = HTTPSConnection("api.pushbullet.com")
+
+        data = {'device_iden': mylar.PUSHBULLET_DEVICEID,
+                'type': "note",
+                'title': event, #"mylar",
+                'body': message.encode("utf-8") }
+
+        http_handler.request("POST",
+                                "/api/pushes",
+                                headers = {'Content-type': "application/x-www-form-urlencoded",
+                                            'Authorization' : 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":") },
+                                body = urlencode(data))
+        response = http_handler.getresponse()
+        request_status = response.status
+        #logger.debug(u"PushBullet response status: %r" % request_status)
+        #logger.debug(u"PushBullet response headers: %r" % response.getheaders())
+        #logger.debug(u"PushBullet response body: %r" % response.read())
+
+        if request_status == 200:
+                logger.fdebug(u"PushBullet notifications sent.")
+                return True
+        elif request_status >= 400 and request_status < 500:
+                logger.error(u"PushBullet request failed: %s" % response.reason)
+                return False
+        else:
+                logger.error(u"PushBullet notification failed serverside.")
+                return False
+
+    def test(self, apikey, deviceid):
+
+        self.enabled = True
+        self.apikey = apikey
+        self.deviceid = deviceid
+
+        self.notify('Main Screen Activate', 'Test Message')
 

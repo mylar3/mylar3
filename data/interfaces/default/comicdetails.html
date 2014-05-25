@@ -372,12 +372,15 @@
                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>                                    
                                 %elif (issue['Status'] == 'Downloaded'):
                                        <%
-                                              linky = os.path.join(comic['ComicLocation'],issue['Location'])
-                                              if not os.path.isfile(linky):
+                                              if issue['Location'] is not None:
+                                                  linky = os.path.join(comic['ComicLocation'],issue['Location'])
+                                                  if not os.path.isfile(linky):
+                                                      linky = None
+                                              else:
                                                   linky = None
                                         %>
                                         %if linky:
-                                            <a href="downloadthis?pathfile=${linky}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" /></a>
+                                            <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" /></a>
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
                                 %else:

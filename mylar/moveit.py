@@ -8,7 +8,7 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
     myDB = db.DBConnection()
     print ("comlocation is : " + str(comlocation))
     print ("original comicname is : " + str(ogcname))
-    impres = myDB.action("SELECT * from importresults WHERE ComicName=?", [ogcname])
+    impres = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
 
     if impres is not None:
         #print ("preparing to move " + str(len(impres)) + " files into the right directory now.")
@@ -36,7 +36,7 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
         print("all files moved.")
         #now that it's moved / renamed ... we remove it from importResults or mark as completed.
 
-    results = myDB.action("SELECT * from importresults WHERE ComicName=?", [ogcname])
+    results = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
     if results is not None:
         for result in results:
             controlValue = {"impID":    result['impid']}
@@ -46,7 +46,7 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
 
 def archivefiles(comicid,ogcname):
     # if move files isn't enabled, let's set all found comics to Archive status :)
-    result = myDB.action("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
+    result = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
     if result is None: pass
     else:
         ogdir = result['Location']

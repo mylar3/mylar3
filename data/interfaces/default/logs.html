@@ -9,27 +9,29 @@
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_logs.png" alt="Logs"/>Logs</h1>
 	</div>
 	<table class="display" id="log_table">
-                <form action="log_change" method="GET">
+<!--                <form action="log_change" method="GET">
                                             <div class="row">
                                                         <label>Interface</label>
-                                                        <select name="loglevel">
+                                                        <select name="log_level">
                                                         %for loglevel in ['Info', 'Warning', 'Debug']:
                                                                 <%
                                                                         if loglevel == mylar.LOG_LEVEL:
-                                                                                selected = 'selected="selected"'
+                                                                                selected = 'selected'
                                                                         else:
                                                                                 selected = ''
-                                                                %>
+                                                                 %>
                                                         <option value="${loglevel}" ${selected}>${loglevel}</option>
                                                         %endfor
                                                         </select>
                                               </div>
+                                     <input type="button" value="Go!" onclick="doAjaxCall('log_change?log_level=${loglevel}',$(this),'table',true)" data-success="Log level changed to ${loglevel}">
                  </form>
-            <input type="submit" value="Go"/>
+-->
 		<thead>
 			<tr>
 				<th id="timestamp">Timestamp</th>
 				<th id="level">Level</th>
+                                <th id="thread">Thread</th>
 				<th id="message">Message</th>
 			</tr>
 		</thead>
@@ -37,15 +39,19 @@
 		%for line in lineList:
 			<%
 				timestamp, message, level, threadname = line
-				
+
 				if level == 'WARNING' or level == 'ERROR':
 					grade = 'X'
 				else:
 					grade = 'Z'
+
+                                if threadname is None:
+                                    threadname = ''
 			%>
 				<tr class="grade${grade}">
 					<td id="timestamp">${timestamp}</td>
 					<td id="level">${level}</td>
+                                        <td id="thread">${threadname}</td>
 					<td id="message">${message}</td>
 				</tr>
 		%endfor

@@ -35,7 +35,7 @@ def pullit(forcecheck=None):
     popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
     if popit:
         try:
-            pull_date = myDB.action("SELECT SHIPDATE from weekly").fetchone()
+            pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
             logger.info(u"Weekly pull list present - checking if it's up-to-date..")
             if (pull_date is None):
                 pulldate = '00000000'
@@ -672,7 +672,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                                 latest_int = helpers.issuedigits(latestiss)
                                                 weekiss_int = helpers.issuedigits(week['ISSUE'])
                                                 logger.fdebug('comparing ' + str(latest_int) + ' to ' + str(weekiss_int))
-                                                if (latest_int > weekiss_int) or (latest_int == 0 or weekiss_int == 0):
+                                                if (latest_int > weekiss_int) and (latest_int != 0 or weekiss_int != 0):
                                                     logger.fdebug(str(week['ISSUE']) + ' should not be the next issue in THIS volume of the series.')
                                                     logger.fdebug('it should be either greater than ' + str(latestiss) + ' or an issue #0')
                                                     break
@@ -725,7 +725,6 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                             else:
                                                 # here we add to upcoming table...
                                                 statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes', altissuenumber=altissuenum)
-
                                             # here we update status of weekly table...
                                             if statusupdate is not None:
                                                 cstatus = statusupdate['Status']
@@ -768,11 +767,11 @@ def loaditup(comicname, comicid, issue, chktype):
     if chktype == 'annual':
         typedisplay = 'annual issue'
         logger.fdebug('[' + comicname + '] trying to locate ' + str(typedisplay) + ' ' + str(issue) + ' to do comparitive issue analysis for pull-list')
-        issueload = myDB.action('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+        issueload = myDB.selectone('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
     else:
         typedisplay = 'issue'
         logger.fdebug('[' + comicname + '] trying to locate ' + str(typedisplay) + ' ' + str(issue) + ' to do comparitive issue analysis for pull-list')
-        issueload = myDB.action('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
+        issueload = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, issue_number]).fetchone()
 
     if issueload is None:
         logger.fdebug('No results matched for Issue number - either this is a NEW issue with no data yet, or something is wrong')
@@ -786,7 +785,8 @@ def loaditup(comicname, comicid, issue, chktype):
     if releasedate == '0000-00-00':
         logger.fdebug('Store date of 0000-00-00 returned for ' + str(typedisplay) + ' # ' + str(issue) + '. Refreshing series to see if valid date present')
         mismatch = 'no'
-        issuerecheck = mylar.importer.addComictoDB(comicid,mismatch,calledfrom='weekly',issuechk=issue_number,issuetype=chktype)
+        #issuerecheck = mylar.importer.addComictoDB(comicid,mismatch,calledfrom='weekly',issuechk=issue_number,issuetype=chktype)
+        issuerecheck = mylar.importer.updateissuedata(comicid,comicname,calledfrom='weekly',issuechk=issue_number,issuetype=chktype)
         if issuerecheck is not None:
             for il in issuerecheck:
                 #this is only one record..

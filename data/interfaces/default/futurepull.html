@@ -36,15 +36,15 @@
 		%for future in futureresults:
 			<tr>
                                 %if pullfilter is True:
-                                        <td class="publishdate">${future['SHIPDATE']}</td>
-                                        <td class="publisher">${future['PUBLISHER']}</td>
-				        <td class="comicname">${future['COMIC']}
+                                        <td id="publishdate">${future['SHIPDATE']}</td>
+                                        <td id="publisher">${future['PUBLISHER']}</td>
+				        <td id="comicname">${future['COMIC']}
                                         %if future['EXTRA'] != '':
                                              (${future['EXTRA']})
                                         %endif
                                         </td>
-                                        <td class="comicnumber">${future['ISSUE']}</td>
-          				<td class="status">${future['STATUS']}
+                                        <td id="comicnumber">${future['ISSUE']}</td>
+          				<td id="status">${future['STATUS']}
                                         %if future['STATUS'] == 'Wanted':
                                              <a href="unqueueissue?IssueID=None&ComicID=${future['COMICID']}&ComicName=${future['COMIC'] | u}&Issue=${future['ISSUE']}&FutureID=${future['FUTUREID']}"><span class="ui-icon ui-icon-plus"></span>UnWant</a>
                                         %elif future['STATUS'] == 'Skipped':

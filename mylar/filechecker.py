@@ -93,6 +93,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         #print item
         #subname = os.path.join(basedir, item)
         subname = item
+        subname = re.sub('\_', ' ', subname)
 
         #Remove html code for ( )
         subname = re.sub(r'%28', '(', subname)
@@ -170,66 +171,71 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subname = watchcomic + subname
                 subnm = re.findall('[^()]+', subname)
             else:
-                subit = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subname)
+                subit = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\3 (\\2)', subname).replace('( )', '')
                 subthis2 = re.sub('.cbr', '', subit)
                 subthis1 = re.sub('.cbz', '', subthis2)
                 subname = re.sub('[\:\;\!\'\/\?\+\=\_\%]', '', subthis1)
                 #if '.' appears more than once at this point, then it's being used in place of spaces.
                 #if '.' only appears once at this point, it's a decimal issue (since decimalinseries is False within this else stmt).
                 if len(str(subname.count('.'))) == 1:
-                    logger.fdebug('decimal issue detected, not removing decimals')
+                    logger.fdebug('[FILECHECKER] decimal issue detected, not removing decimals')
                 else:
-                    logger.fdebug('more than one decimal detected, and the series does not have decimals - assuming in place of spaces.')
+                    logger.fdebug('[FILECHECKER] more than one decimal detected, and the series does not have decimals - assuming in place of spaces.')
                     subname = re.sub('[\.]', '', subname)
                
                 subnm = re.findall('[^()]+', subname)
 
-        if Publisher.lower() in subname.lower():
-            #if the Publisher is given within the title or filename even (for some reason, some people
-            #have this to distinguish different titles), let's remove it entirely.
-            lenm = len(subnm)
+        subsplit = subname.replace('_', ' ').split()
 
-            cnt = 0
-            pub_removed = None
+        if sarc is None:
+            if Publisher.lower() in re.sub('_', ' ', subname.lower()):
+                #if the Publisher is given within the title or filename even (for some reason, some people
+                #have this to distinguish different titles), let's remove it entirely.
+                lenm = len(subnm)
 
-            while (cnt < lenm):
-                if subnm[cnt] is None: break
-                if subnm[cnt] == ' ':
-                    pass
-                else:
-                    logger.fdebug(str(cnt) + ". Bracket Word: " + str(subnm[cnt]))
+                cnt = 0
+                pub_removed = None
 
-                if Publisher.lower() in subnm[cnt].lower() and cnt >= 1:
-                    logger.fdebug('Publisher detected within title : ' + str(subnm[cnt]))
-                    logger.fdebug('cnt is : ' + str(cnt) + ' --- Publisher is: ' + Publisher)
-                    pub_removed = subnm[cnt]
-                    #-strip publisher if exists here-
-                    logger.fdebug('removing publisher from title')
-                    subname_pubremoved = re.sub(pub_removed, '', subname)
-                    logger.fdebug('pubremoved : ' + str(subname_pubremoved))
-                    subname_pubremoved = re.sub('\(\)', '', subname_pubremoved) #remove empty brackets
-                    subname_pubremoved = re.sub('\s+', ' ', subname_pubremoved) #remove spaces > 1
-                    logger.fdebug('blank brackets removed: ' + str(subname_pubremoved))
-                    subnm = re.findall('[^()]+', subname_pubremoved)
-                    break
-                cnt+=1
+                while (cnt < lenm):
+                    submod = re.sub('_', ' ', subnm[cnt])
+                    if submod is None: break
+                    if submod == ' ':
+                        pass
+                    else:
+                        logger.fdebug('[FILECHECKER] ' + str(cnt) + ". Bracket Word: " + str(submod))
+
+                    if Publisher.lower() in submod.lower() and cnt >= 1:
+                        logger.fdebug('[FILECHECKER] Publisher detected within title : ' + str(submod))
+                        logger.fdebug('[FILECHECKER] cnt is : ' + str(cnt) + ' --- Publisher is: ' + Publisher)
+                        #-strip publisher if exists here-
+                        pub_removed = submod
+                        logger.fdebug('[FILECHECKER] removing publisher from title')
+                        subname_pubremoved = re.sub(pub_removed, '', subname)
+                        logger.fdebug('[FILECHECKER] pubremoved : ' + str(subname_pubremoved))
+                        subname_pubremoved = re.sub('\(\)', '', subname_pubremoved) #remove empty brackets
+                        subname_pubremoved = re.sub('\s+', ' ', subname_pubremoved) #remove spaces > 1
+                        logger.fdebug('[FILECHECKER] blank brackets removed: ' + str(subname_pubremoved))
+                        subnm = re.findall('[^()]+', subname_pubremoved)
+                        break
+                    cnt+=1
 
         #If the Year comes before the Issue # the subname is passed with no Issue number.
         #This logic checks for numbers before the extension in the format of 1 01 001 
         #and adds to the subname. (Cases where comic name is $Series_$Year_$Issue)
         if len(subnm) > 1:
-            if (re.search('[0-9]{0,1}[0-9]{0,1}[0-9]{1,1}\.cb.',subnm[2]) is not None):
-                subname = str(subnm[0])+str(subnm[2])
-            else:
-                subname = subnm[0]
-        else:
-            subname = subnm[0]
+            if (re.search('(19\d{2}|20\d{2})',subnm[1]) is not None):
+                logger.fdebug('subnm0: ' + str(subnm[0]))
+                logger.fdebug('subnm1: ' + str(subnm[1]))
+#                logger.fdebug('subnm2: ' + str(subnm[2]))
+                subname = str(subnm[0]).lstrip() + ' (' + str(subnm[1]).strip() + ') '
+                subnm = re.findall('[^()]+', subname)  # we need to regenerate this here.
+
+        subname = subnm[0]
 
         if len(subnm):
             # if it still has no year (brackets), check setting and either assume no year needed.
             subname = subname                
         logger.fdebug('[FILECHECKER] subname no brackets: ' + str(subname))
-        subname = re.sub('\_', ' ', subname)
         nonocount = 0
         charpos = 0
         detneg = "no"
@@ -748,6 +754,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                      'JusttheDigits':           justthedigits
                      })
                 #print('appended.')
+#               watchmatch['comiclist'] = comiclist
+#               break
             else:
                 if moddir is not None:
                     item = os.path.join(moddir, item)
