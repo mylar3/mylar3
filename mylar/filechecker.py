@@ -19,8 +19,10 @@ import os.path
 import pprint
 import subprocess
 import re
-import logger
+#import logger
 import mylar
+from mylar import logger, helpers
+import unicodedata
 import sys
 import platform
 
@@ -35,8 +37,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
     # checker looks for Star Trek TNG Doctor Who Assimilation2 (according to CV)
     
     # we need to convert to ascii, as watchcomic is utf-8 and special chars f'it up
-    u_watchcomic = watchcomic.encode('ascii', 'ignore').strip()    
-    logger.fdebug('[FILECHECKER] comic: ' + watchcomic)
+    u_watchcomic = unicodedata.normalize('NFKD', watchcomic).encode('ASCII', 'ignore') #watchcomic.encode('ascii', 'ignore').strip()
+    logger.fdebug('[FILECHECKER] comic: ' + u_watchcomic)
     basedir = dir
     logger.fdebug('[FILECHECKER] Looking in: ' + dir)
     watchmatch = {}

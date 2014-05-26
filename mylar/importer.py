@@ -1018,7 +1018,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     weeklyissue_check = []
     logger.fdebug('issuedata call references...')
     logger.fdebug('comicid:' + str(comicid))
-    logger.fdebug('comicname:' + str(comicname))
+    logger.fdebug('comicname:' + comicname)
     logger.fdebug('comicissues:' + str(comicIssues))
     logger.fdebug('calledfrom: ' + str(calledfrom))
     logger.fdebug('issuechk: ' + str(issuechk))

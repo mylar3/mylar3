@@ -17,7 +17,7 @@ from __future__ import with_statement
 
 import os, sys, subprocess
 
-#import threading
+import threading
 import datetime
 import webbrowser
 import sqlite3
@@ -28,12 +28,12 @@ import platform
 import locale
 from threading import Lock, Thread
 
-#from lib.apscheduler.scheduler import Scheduler
+from lib.apscheduler.scheduler import Scheduler
 from lib.configobj import ConfigObj
 
 import cherrypy
 
-from mylar import versioncheck, logger, version, versioncheckit, rsscheckit, scheduler, dbupdater, weeklypullit, PostProcessor, searchit #, search
+from mylar import versioncheck, logger, versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers #versioncheckit, searchit, weeklypullit, dbupdater, scheduler
 
 FULL_PATH = None
 PROG_DIR = None
@@ -49,10 +49,10 @@ VERBOSE = 1
 DAEMON = False
 PIDFILE= None
 
-#SCHED = Scheduler()
+SCHED = Scheduler()
 
-#INIT_LOCK = threading.Lock()
-INIT_LOCK = Lock()
+INIT_LOCK = threading.Lock()
+#INIT_LOCK = Lock()
 __INITIALIZED__ = False
 started = False
 WRITELOCK = False
@@ -872,48 +872,48 @@ def initialize():
 
         #start the db write only thread here.
         #this is a thread that continually runs in the background as the ONLY thread that can write to the db.
-        logger.info('Starting Write-Only thread.')
-        db.WriteOnly()
+#        logger.info('Starting Write-Only thread.')
+        #db.WriteOnly()
 
         #initialize the scheduler threads here.
-        dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
-                                                cycleTime=datetime.timedelta(hours=48),
-                                                runImmediately=False,
-                                                threadName="DBUPDATE")
+        #dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
+#                                                cycleTime=datetime.timedelta(hours=48),
+#                                                runImmediately=False,
+#                                                threadName="DBUPDATE")
 
-        if NZB_STARTUP_SEARCH:
-            searchrunmode = True
-        else:
-            searchrunmode = False
+#        if NZB_STARTUP_SEARCH:
+#            searchrunmode = True
+#        else:
+#            searchrunmode = False
 
-        searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
-                                              cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
-                                              threadName="SEARCH",
-                                              runImmediately=searchrunmode)
+        #searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
+#                                              cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
+#                                              threadName="SEARCH",
+#                                              runImmediately=searchrunmode)
 
-        RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
-                                           cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
-                                           threadName="RSSCHECK",
-                                           runImmediately=True,
-                                           delay=30)
+        #RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
+ #                                          cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
+ #                                          threadName="RSSCHECK",
+ #                                          runImmediately=True,
+ #                                          delay=30)
 
-        WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
-                                              cycleTime=datetime.timedelta(hours=24),
-                                              threadName="WEEKLYCHECK",
-                                              runImmediately=True,
-                                              delay=10)
+        #WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
+ #                                             cycleTime=datetime.timedelta(hours=24),
+ #                                             threadName="WEEKLYCHECK",
+ #                                             runImmediately=True,
+ #                                             delay=10)
 
-        VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
-                                               cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
-                                               threadName="VERSIONCHECK",
-                                               runImmediately=True)
+        #VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
+ #                                              cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
+ #                                              threadName="VERSIONCHECK",
+ #                                              runImmediately=True)
 
 
-        FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
-                                                     cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
-                                                     threadName="FOLDERMONITOR",
-                                                     runImmediately=True,
-                                                     delay=60)
+        #FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
+#                                                     cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
+#                                                     threadName="FOLDERMONITOR",
+#                                                     runImmediately=True,
+#                                                     delay=60)
 
                                     
         __INITIALIZED__ = True
@@ -1189,65 +1189,64 @@ def config_write():
     
 def start():
     
-    global __INITIALIZED__, \
-        dbUpdateScheduler, searchScheduler, RSSScheduler, \
-        WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
-        started
+    global __INITIALIZED__, started
+        #dbUpdateScheduler, searchScheduler, RSSScheduler, \
+        #WeeklyScheduler, VersionScheduler, FolderMonitorScheduler
 
     with INIT_LOCK:
 
         if __INITIALIZED__:
     
             # Start our scheduled background tasks
-            #from mylar import updater, searcher, librarysync, postprocessor
+            #from mylar import updater, search, PostProcessor
 
 
-#            SCHED.add_interval_job(updater.dbUpdate, hours=48)
-#            SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
+            SCHED.add_interval_job(updater.dbUpdate, hours=48)
+            SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
 
             #start the db updater scheduler
-            logger.info('Initializing the DB Updater.')
-            dbUpdateScheduler.thread.start()
+            #logger.info('Initializing the DB Updater.')
+            #dbUpdateScheduler.thread.start()
 
             #start the search scheduler
-            searchScheduler.thread.start()
+            #searchScheduler.thread.start()
 
             helpers.latestdate_fix()
 
             #initiate startup rss feeds for torrents/nzbs here...
             if ENABLE_RSS:
-#                SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
-                RSSScheduler.thread.start()
+                SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
+                #RSSScheduler.thread.start()
                 logger.info('Initiating startup-RSS feed checks.')
-#                rsscheck.tehMain()
+                rsscheck.tehMain()
         
 
             #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
             logger.info('Checking for existance of Weekly Comic listing...')
             PULLNEW = 'no'  #reset the indicator here.
-#            threading.Thread(target=weeklypull.pullit).start()
-#            #now the scheduler (check every 24 hours)
-#            SCHED.add_interval_job(weeklypull.pullit, hours=24)
-            WeeklyScheduler.thread.start()
+            threading.Thread(target=weeklypull.pullit).start()
+            #now the scheduler (check every 24 hours)
+            SCHED.add_interval_job(weeklypull.pullit, hours=24)
+            #WeeklyScheduler.thread.start()
         
             #let's do a run at the Wanted issues here (on startup) if enabled.
-#            if NZB_STARTUP_SEARCH:
-#                threading.Thread(target=search.searchforissue).start()
+            if NZB_STARTUP_SEARCH:
+                threading.Thread(target=search.searchforissue).start()
 
             if CHECK_GITHUB:
-                VersionScheduler.thread.start()
-#                SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
+                #VersionScheduler.thread.start()
+                SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
         
             #run checkFolder every X minutes (basically Manual Run Post-Processing)
             logger.info('CHECK_FOLDER SET TO: ' + str(CHECK_FOLDER))
             if CHECK_FOLDER:
                 if DOWNLOAD_SCAN_INTERVAL >0:
                     logger.info('Setting monitor on folder : ' + str(CHECK_FOLDER))
-                    FolderMonitorScheduler.thread.start()
-#                    SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
+                    #FolderMonitorScheduler.thread.start()
+                    SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
                 else:
                     logger.error('You need to specify a monitoring time for the check folder option to work')
-#            SCHED.start()
+            SCHED.start()
         
         started = True
     
@@ -1557,69 +1556,69 @@ def csv_load():
     conn.commit()
     c.close()    
 
-def halt():
-    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
-        VersionScheduler, FolderMonitorScheduler, started
+#def halt():
+#    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
+#        VersionScheduler, FolderMonitorScheduler, started
 
-    with INIT_LOCK:
+#    with INIT_LOCK:
 
-        if __INITIALIZED__:
+#        if __INITIALIZED__:
 
-            logger.info(u"Aborting all threads")
+#            logger.info(u"Aborting all threads")
 
             # abort all the threads
 
-            dbUpdateScheduler.abort = True
-            logger.info(u"Waiting for the DB UPDATE thread to exit")
-            try:
-                dbUpdateScheduler.thread.join(10)
-            except:
-                pass
+#            dbUpdateScheduler.abort = True
+#            logger.info(u"Waiting for the DB UPDATE thread to exit")
+#            try:
+#                dbUpdateScheduler.thread.join(10)
+#            except:
+#                pass
 
-            searchScheduler.abort = True
-            logger.info(u"Waiting for the SEARCH thread to exit")
-            try:
-                searchScheduler.thread.join(10)
-            except:
-                pass
+#            searchScheduler.abort = True
+#            logger.info(u"Waiting for the SEARCH thread to exit")
+#            try:
+#                searchScheduler.thread.join(10)
+#            except:
+#                pass
 
-            RSSScheduler.abort = True
-            logger.info(u"Waiting for the RSS CHECK thread to exit")
-            try:
-                RSSScheduler.thread.join(10)
-            except:
-                pass
+#            RSSScheduler.abort = True
+#            logger.info(u"Waiting for the RSS CHECK thread to exit")
+#            try:
+#                RSSScheduler.thread.join(10)
+#            except:
+#                pass
 
-            WeeklyScheduler.abort = True
-            logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
-            try:
-                WeeklyScheduler.thread.join(10)
-            except:
-                pass
+#            WeeklyScheduler.abort = True
+#            logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
+#            try:
+#                WeeklyScheduler.thread.join(10)
+#            except:
+#                pass
 
-            VersionScheduler.abort = True
-            logger.info(u"Waiting for the VERSION CHECK thread to exit")
-            try:
-                VersionScheduler.thread.join(10)
-            except:
-                pass
+#            VersionScheduler.abort = True
+#            logger.info(u"Waiting for the VERSION CHECK thread to exit")
+#            try:
+#                VersionScheduler.thread.join(10)
+#            except:
+#                pass
 
-            FolderMonitorScheduler.abort = True
-            logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
-            try:
-                FolderMonitorScheduler.thread.join(10)
-            except:
-                pass
+#            FolderMonitorScheduler.abort = True
+#            logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
+#            try:
+#                FolderMonitorScheduler.thread.join(10)
+#            except:
+#                pass
 
-            __INITIALIZED__ = False
+#            __INITIALIZED__ = False
 
 def shutdown(restart=False, update=False):
 
-    halt()
+    #halt()
 
     cherrypy.engine.exit()
 
-    #SCHED.shutdown(wait=False)
+    SCHED.shutdown(wait=False)
     
     config_write()
 
