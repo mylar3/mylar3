@@ -226,8 +226,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         #and adds to the subname. (Cases where comic name is $Series_$Year_$Issue)
         if len(subnm) > 1:
             if (re.search('(19\d{2}|20\d{2})',subnm[1]) is not None):
-                logger.fdebug('subnm0: ' + str(subnm[0]))
-                logger.fdebug('subnm1: ' + str(subnm[1]))
+                logger.fdebug('[FILECHECKER] subnm0: ' + str(subnm[0]))
+                logger.fdebug('[FILECHECKER] subnm1: ' + str(subnm[1]))
 #                logger.fdebug('subnm2: ' + str(subnm[2]))
                 subname = str(subnm[0]).lstrip() + ' (' + str(subnm[1]).strip() + ') '
                 subnm = re.findall('[^()]+', subname)  # we need to regenerate this here.

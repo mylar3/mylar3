@@ -241,8 +241,8 @@ class PostProcessor(object):
                                         #if ReleaseDate doesn't exist, use IssueDate
                                         #if no issue date was found, then ignore.
                                         issyr = None
-                                        logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
-                                        logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
+                                        #logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
+                                        #logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
 
                                         #logger.info('ReleaseDate: ' + str(issuechk['ReleaseDate']))
                                         #logger.info('IssueDate: ' + str(issuechk['IssueDate']))
@@ -788,8 +788,12 @@ class PostProcessor(object):
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
                 downtype = 'PP'
                 #Manual Run, this is the portion.
-                logger.fdebug("Renaming " + os.path.join(self.nzb_folder, str(ofilename)) + " ..to.. " + os.path.join(self.nzb_folder,str(nfilename + ext)))
-                os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+                if mylar.RENAME_FILES:
+                    if str(ofilename) != str(nfilename + ext):
+                        logger.fdebug("Renaming " + os.path.join(self.nzb_folder, str(ofilename)) + " ..to.. " + os.path.join(self.nzb_folder,str(nfilename + ext)))
+                        os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+                    else:
+                        logger.fdebug('filename is identical as original, not renaming.')
                 src = os.path.join(self.nzb_folder, str(nfilename + ext))
                 logger.fdebug("Moving " + src + " ... to ... " + dst)
                 try:
