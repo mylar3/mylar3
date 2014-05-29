@@ -36,21 +36,24 @@ def tehMain(forcerss=None):
 
     #function for looping through nzbs/torrent feed
     if mylar.ENABLE_TORRENTS:
-        logger.fdebug('[RSS] Initiating Torrent RSS Check.')
+        logger.info('[RSS] Initiating Torrent RSS Check.')
         if mylar.ENABLE_KAT:
-            logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on KAT.')
+            logger.info('[RSS] Initiating Torrent RSS Feed Check on KAT.')
             torrents(pickfeed='3')
             torrents(pickfeed='6')
         if mylar.ENABLE_CBT:
-            logger.fdebug('[RSS] Initiating Torrent RSS Feed Check on CBT.')
+            logger.info('[RSS] Initiating Torrent RSS Feed Check on CBT.')
             torrents(pickfeed='1')
             torrents(pickfeed='4')
-    logger.fdebug('[RSS] Initiating RSS Feed Check for NZB Providers.')
+    logger.info('[RSS] Initiating RSS Feed Check for NZB Providers.')
     nzbs()    
-    logger.fdebug('[RSS] RSS Feed Check/Update Complete')
-    logger.fdebug('[RSS] Watchlist Check for new Releases')
+    logger.info('[RSS] RSS Feed Check/Update Complete')
+    logger.info('[RSS] Watchlist Check for new Releases')
     mylar.search.searchforissue(rsscheck='yes')
-    logger.fdebug('[RSS] Watchlist Check complete.')
+    logger.info('[RSS] Watchlist Check complete.')
+    if forcerss:
+        logger.info('Successfully ran RSS Force Check.')
+
     return
 
 def torrents(pickfeed=None,seriesname=None,issue=None):
@@ -364,7 +367,7 @@ def nzbs(provider=None):
             sitei = 0
             site = ft['site']
             logger.fdebug(str(site) + " now being updated...")
-            logger.fdebug('feedthis:' + str(ft))
+            #logger.fdebug('feedthis:' + str(ft))
             for entry in ft['feed'].entries:
                 if site == 'dognzb':
                     #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value

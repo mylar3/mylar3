@@ -208,7 +208,7 @@ def GetComicInfo(comicid,dom):
                 ledigit = re.sub("[^0-9]", "", vf[0])
                 if ledigit != '':
                     comic['ComicVersion'] = ledigit
-                    logger.info("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
+                    logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
                     break
                 i+=1
             else:

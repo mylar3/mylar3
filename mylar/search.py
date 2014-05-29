@@ -242,7 +242,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if findit == 'no':
             logger.info('Issue not found. Status kept as Wanted.')
 
-    return findit, searchprov
+    return findit, 'None'
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None):
     
@@ -1379,6 +1379,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
         for result in results:
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
+            if comic is None:
+                logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
+                continue
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
             Publisher = comic['ComicPublisher']
@@ -1400,6 +1403,13 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
                     else:
                         pass 
                         #print ("not found!")
+
+        if rsscheck:
+            logger.info('Completed RSS Search scan')
+        else:
+            logger.info('Completed NZB Search scan')
+
+
     else:
         result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
         mode = 'want'

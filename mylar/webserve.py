@@ -470,11 +470,11 @@ class WebInterface(object):
     def post_process(self, nzb_name, nzb_folder):
         logger.info(u"Starting postprocessing for : " + str(nzb_name) )
         PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder)
-        result = PostProcess.Process()
-        #result = post_results.replace("\n","<br />\n")
         if nzb_name == 'Manual Run' or nzb_name == 'Manual+Run':
+            threading.Thread(target=PostProcess.Process).start()
             raise cherrypy.HTTPRedirect("home")
         else:
+            result = threading.Thread(target=PostProcess.Process).start()
             return result
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
         #return serve_template(templatename="postprocess.html", title="postprocess")
@@ -660,11 +660,17 @@ class WebInterface(object):
  
     def force_rss(self):
         logger.info('attempting to run RSS Check Forcibly')
-        forcethis = mylar.rsscheckit.tehMain(forcerss=True)
-        forcerun = forcethis.run()
-        if forcerun:
-            logger.info('Successfully ran RSS Force Check.')
-            return
+        forcerss = True
+        threading.Thread(target=mylar.rsscheck.tehMain, args=[True]).start()
+        #this is for use with the new scheduler not in place yet.
+        #forcethis = mylar.rsscheckit.tehMain(forcerss=True)
+        #forcerun = forcethis.run()
+        #if forcerun:
+        #    logger.info('Successfully ran RSS Force Check.')
+        #    return
+        #---
+
+        return
 
     force_rss.exposed = True
 
@@ -837,7 +843,6 @@ class WebInterface(object):
     queueissue.exposed = True
 
     def unqueueissue(self, IssueID, ComicID, ComicName=None, Issue=None, FutureID=None):
-        print 'here'
         myDB = db.DBConnection()
         if ComicName is None:
             issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
@@ -850,13 +855,8 @@ class WebInterface(object):
                     annchk = 'yes'
                     comicid = issann['ComicID']
             else:
-                print IssueID
                 comicname = issue['ComicName']
-                print issue['ComicName']
                 issue = issue['Issue_Number']
-                print issue
-                #comicid = issue['ComicID']
-                print ComicID
             logger.info(u"Marking " + comicname + " issue # " + str(issue) + " as Skipped...")
             controlValueDict = {"IssueID": IssueID}
             newValueDict = {"Status": "Skipped"}
@@ -960,7 +960,7 @@ class WebInterface(object):
         year = str(now.year)
         logger.fdebug('month = ' + str(month))
         logger.fdebug('year = ' + str(year))
-        threading.Thread(target=solicit.solicit(month,year)).start()
+        threading.Thread(target=solicit.solicit, args=[month, year]).start()
         raise cherrypy.HTTPRedirect("home")
     futurepull.exposed = True
 
@@ -1130,7 +1130,7 @@ class WebInterface(object):
 
     def manualpull(self):
         from mylar import weeklypull
-        threading.Thread(target=weeklypull.pullit()).start()
+        threading.Thread(target=weeklypull.pullit).start()
         raise cherrypy.HTTPRedirect("pullist")
     manualpull.exposed = True
 
@@ -1140,7 +1140,8 @@ class WebInterface(object):
         myDB.action("DROP TABLE weekly")
         mylar.dbcheck()
         logger.info("Deleted existed pull-list data. Recreating Pull-list...")
-        threading.Thread(target=weeklypull.pullit(forcecheck='yes')).start()
+        forcecheck = 'yes'
+        threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
         raise cherrypy.HTTPRedirect("pullist")
     pullrecreate.exposed = True
 

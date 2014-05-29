@@ -16,6 +16,7 @@
 
 import os
 import os.path
+import zlib
 import pprint
 import subprocess
 import re
@@ -86,6 +87,11 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             moddir = basedir.replace(dir,'')[1:].rstrip()
 
         item = fname['filename']
+
+        #for mac OS metadata ignoring.
+        if item.startswith('._'):
+            logger.info('ignoring os metadata for ' + item)
+            continue
              
         if item == 'cover.jpg' or item == 'cvinfo': continue
         if not item.lower().endswith(extensions):
@@ -767,10 +773,12 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                      'ComicSize':               comicsize,
                      'JusttheDigits':           justthedigits
                      })
+            #crcvalue = crc(comicpath)
+            #logger.fdebug('[FILECHECKER] CRC is calculated as ' + str(crcvalue) + ' for : ' + item)
             watchmatch['comiclist'] = comiclist
         else:
+            #directory found - ignoring
             pass
-            #print ("directory found - ignoring")
 
     logger.fdebug('[FILECHECKER] you have a total of ' + str(comiccnt) + ' ' + watchcomic + ' comics')
     watchmatch['comiccount'] = comiccnt
@@ -819,3 +827,13 @@ def traverse_directories(dir):
     #logger.fdeubg(filelist)
 
     return filelist
+
+def crc(filename):
+    #memory in lieu of speed (line by line)
+    #prev = 0
+    #for eachLine in open(filename,"rb"):
+    #    prev = zlib.crc32(eachLine, prev)
+    #return "%X"%(prev & 0xFFFFFFFF)
+
+    #speed in lieu of memory (file into memory entirely)
+    return "%X" % (zlib.crc32(open(filename,"rb").read()) & 0xFFFFFFFF)

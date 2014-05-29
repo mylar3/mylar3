@@ -90,22 +90,22 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the pre script
         """
-        self._log("initiating pre script detection.", logger.DEBUG)
-        self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS, logger.DEBUG)
+        self._log("initiating pre script detection.")
+        self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS)
 #        for currentScriptName in mylar.PRE_SCRIPTS:
         currentScriptName = str(mylar.PRE_SCRIPTS).decode("string_escape")
-        self._log("pre script detected...enabling: " + str(currentScriptName), logger.DEBUG)
+        self._log("pre script detected...enabling: " + str(currentScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
-        self._log("cmd to be executed: " + str(script_cmd), logger.DEBUG)
+        self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
         self._log(u"Executing command "+str(script_cmd))
-        self._log(u"Absolute path to script: "+script_cmd[0], logger.DEBUG)
+        self._log(u"Absolute path to script: "+script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            self._log(u"Script result: "+str(out), logger.DEBUG)
+            self._log(u"Script result: "+str(out))
         except OSError, e:
            self._log(u"Unable to run pre_script: " + str(script_cmd))
 
@@ -115,29 +115,29 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the extra script
         """
-        self._log("initiating extra script detection.", logger.DEBUG)
-        self._log("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS, logger.DEBUG)
+        self._log("initiating extra script detection.")
+        self._log("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS)
 #        for curScriptName in mylar.EXTRA_SCRIPTS:
         curScriptName = str(mylar.EXTRA_SCRIPTS).decode("string_escape")
-        self._log("extra script detected...enabling: " + str(curScriptName), logger.DEBUG)
+        self._log("extra script detected...enabling: " + str(curScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
-        self._log("cmd to be executed: " + str(script_cmd), logger.DEBUG)
+        self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
         self._log(u"Executing command "+str(script_cmd))
-        self._log(u"Absolute path to script: "+script_cmd[0], logger.DEBUG)
+        self._log(u"Absolute path to script: "+script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            self._log(u"Script result: "+str(out), logger.DEBUG)
+            self._log(u"Script result: "+str(out))
         except OSError, e:
             self._log(u"Unable to run extra_script: " + str(script_cmd))
 
 
     def Process(self):
-            self._log("nzb name: " + str(self.nzb_name))#, logger.DEBUG)
-            self._log("nzb folder: " + str(self.nzb_folder))#, logger.DEBUG)
+            self._log("nzb name: " + str(self.nzb_name))
+            self._log("nzb folder: " + str(self.nzb_folder))
             logger.fdebug("nzb name: " + str(self.nzb_name))
             logger.fdebug("nzb folder: " + str(self.nzb_folder))
             if mylar.USE_SABNZBD==0:
@@ -308,16 +308,16 @@ class PostProcessor(object):
                 logger.fdebug("After conversions, nzbname is : " + str(nzbname))
 #                if mylar.USE_NZBGET==1:
 #                    nzbname=self.nzb_name
-                self._log("nzbname: " + str(nzbname))#, logger.DEBUG)
+                self._log("nzbname: " + str(nzbname))
    
                 nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
 
                 if nzbiss is None:
-                    self._log("Failure - could not initially locate nzbfile in my database to rename.")#, logger.DEBUG)
+                    self._log("Failure - could not initially locate nzbfile in my database to rename.")
                     logger.fdebug("Failure - could not locate nzbfile initially.")
                     # if failed on spaces, change it all to decimals and try again.
                     nzbname = re.sub('_', '.', str(nzbname))
-                    self._log("trying again with this nzbname: " + str(nzbname))#, logger.DEBUG)
+                    self._log("trying again with this nzbname: " + str(nzbname))
                     logger.fdebug("trying again with nzbname of : " + str(nzbname))
                     nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
                     if nzbiss is None:
@@ -366,14 +366,14 @@ class PostProcessor(object):
                             logger.info("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
                             if mylar.STORYARCDIR:
                                 storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
-                                self._log("StoryArc Directory set to : " + storyarcd)#, logger.DEBUG)
+                                self._log("StoryArc Directory set to : " + storyarcd)
                             else:
-                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)#, logger.DEBUG)
+                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
    
                         else:
-                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")#, logger.DEBUG)
+                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
                             logger.info("One-off mode enabled for Post-Processing. Will move into Grab-bag directory.")
-                            self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)#, logger.DEBUG)
+                            self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
 
                         for root, dirnames, filenames in os.walk(self.nzb_folder):
                             for filename in filenames:
@@ -411,10 +411,10 @@ class PostProcessor(object):
                         else:
                             grab_dst = os.path.join(grdst, ofilename)
 
-                        self._log("Destination Path : " + grab_dst)#, logger.DEBUG)
+                        self._log("Destination Path : " + grab_dst)
                         logger.info("Destination Path : " + grab_dst)
                         grab_src = os.path.join(self.nzb_folder, ofilename)
-                        self._log("Source Path : " + grab_src)#, logger.DEBUG)
+                        self._log("Source Path : " + grab_src)
                         logger.info("Source Path : " + grab_src)
 
                         logger.info("Moving " + str(ofilename) + " into directory : " + str(grdst))
@@ -422,19 +422,19 @@ class PostProcessor(object):
                         try:
                             shutil.move(grab_src, grab_dst)
                         except (OSError, IOError):
-                            self._log("Failed to move directory - check directories and manually re-run.")#, logger.DEBUG)
+                            self._log("Failed to move directory - check directories and manually re-run.")
                             logger.debug("Failed to move directory - check directories and manually re-run.")
                             return
                         #tidyup old path
                         try:
                             shutil.rmtree(self.nzb_folder)
                         except (OSError, IOError):
-                            self._log("Failed to remove temporary directory.")#, logger.DEBUG)
+                            self._log("Failed to remove temporary directory.")
                             logger.debug("Failed to remove temporary directory - check directory and manually re-run.")
                             return
 
                         logger.debug("Removed temporary directory : " + str(self.nzb_folder))
-                        self._log("Removed temporary directory : " + self.nzb_folder)#, logger.DEBUG)
+                        self._log("Removed temporary directory : " + self.nzb_folder)
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
@@ -460,6 +460,7 @@ class PostProcessor(object):
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
                     self.Process_next(comicid,issueid,issuenumOG,ml)
+                logger.info('Manual post-processing completed.')
                 return
             else:
                 comicid = issuenzb['ComicID']
@@ -504,7 +505,7 @@ class PostProcessor(object):
                     iss = iss_b4dec
                     issdec = int(iss_decval)
                     issueno = str(iss)
-                    self._log("Issue Number: " + str(issueno))#, logger.DEBUG)
+                    self._log("Issue Number: " + str(issueno))
                     logger.fdebug("Issue Number: " + str(issueno))
                 else:
                     if len(iss_decval) == 1:
@@ -514,7 +515,7 @@ class PostProcessor(object):
                         iss = iss_b4dec + "." + iss_decval.rstrip('0')
                         issdec = int(iss_decval.rstrip('0')) * 10
                     issueno = iss_b4dec
-                    self._log("Issue Number: " + str(iss))#, logger.DEBUG)
+                    self._log("Issue Number: " + str(iss))
                     logger.fdebug("Issue Number: " + str(iss))
             else:
                 iss = issuenum
@@ -535,7 +536,7 @@ class PostProcessor(object):
                     self._log("issue detected is a negative")
                     prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
                 elif int(issueno) < 10:
-                    self._log("issue detected less than 10")#, logger.DEBUG)
+                    self._log("issue detected less than 10")
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
@@ -546,9 +547,9 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None': 
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
-                    self._log("issue detected greater than 10, but less than 100")#, logger.DEBUG)
+                    self._log("issue detected greater than 10, but less than 100")
                     if mylar.ZERO_LEVEL_N == "none":
                         zeroadd = ""
                     else:
@@ -563,44 +564,44 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
                 else:
-                    self._log("issue detected greater than 100")#, logger.DEBUG)
+                    self._log("issue detected greater than 100")
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
                     prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))#, logger.DEBUG)
+                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
             else:
                 prettycomiss = str(issueno)
-                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))#, logger.DEBUG)
+                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
 
             if annchk == "yes":
                 self._log("Annual detected.")
             logger.fdebug("Pretty Comic Issue is : " + str(prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
-            self._log("Issue Year: " + str(issueyear))#, logger.DEBUG)
+            self._log("Issue Year: " + str(issueyear))
             logger.fdebug("Issue Year : " + str(issueyear))
             month = issuenzb['IssueDate'][5:7].replace('-','').strip()
             month_name = helpers.fullmonth(month)
 #            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
-            self._log("Publisher: " + publisher)#, logger.DEBUG)
+            self._log("Publisher: " + publisher)
             logger.fdebug("Publisher: " + str(publisher))
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
-            self._log("Series: " + series)#, logger.DEBUG)
+            self._log("Series: " + series)
             logger.fdebug("Series: " + str(series))
             seriesyear = comicnzb['ComicYear']
-            self._log("Year: " + seriesyear)#, logger.DEBUG)
+            self._log("Year: " + seriesyear)
             logger.fdebug("Year: "  + str(seriesyear))
             comlocation = comicnzb['ComicLocation']
-            self._log("Comic Location: " + comlocation)#, logger.DEBUG)
+            self._log("Comic Location: " + comlocation)
             logger.fdebug("Comic Location: " + str(comlocation))
             comversion = comicnzb['ComicVersion']
-            self._log("Comic Version: " + str(comversion))#, logger.DEBUG)
+            self._log("Comic Version: " + str(comversion))
             logger.fdebug("Comic Version: " + str(comversion))
             if comversion is None:
                 comversion = 'None'
@@ -609,7 +610,7 @@ class PostProcessor(object):
                 chunk_f_f = re.sub('\$VolumeN','',mylar.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                self._log("No version # found for series - tag will not be available for renaming.")#, logger.DEBUG)
+                self._log("No version # found for series - tag will not be available for renaming.")
                 logger.fdebug("No version # found for series, removing from filename")
                 logger.fdebug("new format is now: " + str(chunk_file_format))
             else:
@@ -705,17 +706,23 @@ class PostProcessor(object):
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
             if ml is None:
-
+               
                 for root, dirnames, filenames in os.walk(self.nzb_folder):
                     for filename in filenames:
                         if filename.lower().endswith(extensions):
+                            odir = root
                             ofilename = filename
                             path, ext = os.path.splitext(ofilename)
+ 
+                logger.fdebug('odir: ' + str(odir))
+                logger.fdebug('ofilename: ' + str(ofilename))
+
             else:
                 if pcheck == "fail":
                     otofilename = ml['ComicLocation']
                 logger.fdebug('otofilename:' + str(otofilename))
                 odir, ofilename = os.path.split(otofilename)
+                logger.fdebug('odir: ' + str(odir))
                 logger.fdebug('ofilename: ' + str(ofilename))
                 path, ext = os.path.splitext(ofilename)
                 logger.fdebug('path: ' + str(path))
@@ -724,13 +731,13 @@ class PostProcessor(object):
             if ofilename is None:
                 logger.error(u"Aborting PostProcessing - the filename doesn't exist in the location given. Make sure that " + str(self.nzb_folder) + " exists and is the correct location.")
                 return
-            self._log("Original Filename: " + ofilename)#, logger.DEBUG)
-            self._log("Original Extension: " + ext)#, logger.DEBUG)
+            self._log("Original Filename: " + ofilename)
+            self._log("Original Extension: " + ext)
             logger.fdebug("Original Filname: " + str(ofilename))
             logger.fdebug("Original Extension: " + str(ext))
 
             if mylar.FILE_FORMAT == '' or not mylar.RENAME_FILES:
-                self._log("Rename Files isn't enabled...keeping original filename.")#, logger.DEBUG)
+                self._log("Rename Files isn't enabled...keeping original filename.")
                 logger.fdebug("Rename Files isn't enabled - keeping original filename.")
                 #check if extension is in nzb_name - will screw up otherwise
                 if ofilename.lower().endswith(extensions):
@@ -744,19 +751,19 @@ class PostProcessor(object):
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?]', '', nfilename)
             nfilename = re.sub('[\/]', '-', nfilename)
-            self._log("New Filename: " + nfilename)#, logger.DEBUG)
+            self._log("New Filename: " + nfilename)
             logger.fdebug("New Filename: " + str(nfilename))
 
-            src = os.path.join(self.nzb_folder, ofilename)
-
+            #src = os.path.join(self.nzb_folder, ofilename)
+            src = os.path.join(odir, ofilename)
             filechecker.validateAndCreateDirectory(comlocation, True)
 
             if mylar.LOWERCASE_FILENAMES:
                 dst = (comlocation + "/" + nfilename + ext).lower()
             else:
                 dst = comlocation + "/" + nfilename + ext.lower()    
-            self._log("Source:" + src)#, logger.DEBUG)
-            self._log("Destination:" +  dst)#, logger.DEBUG)
+            self._log("Source:" + src)
+            self._log("Destination:" +  dst)
             logger.fdebug("Source: " + str(src))
             logger.fdebug("Destination: " + str(dst))
 
@@ -765,25 +772,33 @@ class PostProcessor(object):
                 downtype = 'True'
                 #non-manual run moving/deleting...
                 logger.fdebug('self.nzb_folder: ' + self.nzb_folder)
+                logger.fdebug('odir: ' + str(odir))
                 logger.fdebug('ofilename:' + str(ofilename))
                 logger.fdebug('nfilename:' + str(nfilename + ext))
-                os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
-                src = os.path.join(self.nzb_folder, str(nfilename + ext))
+                if mylar.RENAME_FILES:
+                    if str(ofilename) != str(nfilename + ext):
+                        logger.fdebug("Renaming " + os.path.join(odir, str(ofilename)) + " ..to.. " + os.path.join(odir,str(nfilename + ext)))
+                        os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir,str(nfilename + ext)))
+                    else:
+                        logger.fdebug('filename is identical as original, not renaming.')
+
+                #src = os.path.join(self.nzb_folder, str(nfilename + ext))
+                src = os.path.join(odir, str(nfilename + ext))
                 try:
                     shutil.move(src, dst)
                 except (OSError, IOError):
-                    self._log("Failed to move directory - check directories and manually re-run.")#, logger.DEBUG)
-                    self._log("Post-Processing ABORTED.")#, logger.DEBUG)
+                    self._log("Failed to move directory - check directories and manually re-run.")
+                    self._log("Post-Processing ABORTED.")
                     return
                 #tidyup old path
                 try:
                     shutil.rmtree(self.nzb_folder)
                 except (OSError, IOError):
-                    self._log("Failed to remove temporary directory - check directory and manually re-run.")#, logger.DEBUG)
-                    self._log("Post-Processing ABORTED.")#, logger.DEBUG)
+                    self._log("Failed to remove temporary directory - check directory and manually re-run.")
+                    self._log("Post-Processing ABORTED.")
                     return
 
-                self._log("Removed temporary directory : " + str(self.nzb_folder))#, logger.DEBUG)
+                self._log("Removed temporary directory : " + str(self.nzb_folder))
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
                 downtype = 'PP'
@@ -791,10 +806,12 @@ class PostProcessor(object):
                 if mylar.RENAME_FILES:
                     if str(ofilename) != str(nfilename + ext):
                         logger.fdebug("Renaming " + os.path.join(self.nzb_folder, str(ofilename)) + " ..to.. " + os.path.join(self.nzb_folder,str(nfilename + ext)))
-                        os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
+                        os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir ,str(nfilename + ext)))
                     else:
                         logger.fdebug('filename is identical as original, not renaming.')
-                src = os.path.join(self.nzb_folder, str(nfilename + ext))
+                src = os.path.join(odir, str(nfilename + ext))
+                logger.fdebug('odir rename: ' + os.path.join(odir, str(ofilename)) + ' TO ' + os.path.join(odir, str(nfilename + ext)))
+                logger.fdebug('odir src : ' + os.path.join(odir, str(nfilename + ext)))
                 logger.fdebug("Moving " + src + " ... to ... " + dst)
                 try:
                     shutil.move(src, dst)
@@ -819,8 +836,8 @@ class PostProcessor(object):
                 os.umask(0)
                 os.chmod(dst.rstrip(), permission)
             except OSError:
-                logger.error('Could not change file permisssions for : ' + dst)
-                
+                logger.error('Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : ' + dst)
+                logger.fdebug('Continuing post-processing but unable to change file permissions in ' + dst)
                     #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
                     #update snatched table to change status to Downloaded
@@ -835,7 +852,7 @@ class PostProcessor(object):
                     #force rescan of files
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " " + dispiss )
-            self._log(u"Post Processing SUCCESSFULL! ")#, logger.DEBUG)
+            self._log(u"Post Processing SUCCESSFULL! ")
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:

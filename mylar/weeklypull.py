@@ -328,7 +328,7 @@ def pullit(forcecheck=None):
                         if len(comicnm) >= len(repcheck):
                             #if the leftmost chars match the short text then replace them with the long text
                             if comicnm[:len(repcheck)]==repcheck:
-                                logger.info("Switch worked on "+comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
+                                logger.fdebug("Switch worked on "+comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
                                 comicnm = re.sub(repcheck, longrep[repindex], comicnm)
 
                 for excl in excludes:
