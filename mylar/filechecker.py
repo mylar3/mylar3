@@ -172,6 +172,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subthis = re.sub('.cbz', '', subthis)
                 subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + str(subthis))
+                #we need to make sure the file is part of the correct series or else will match falsely 
+                if watchname not in subthis:
+                    logger.fdebug('[FILECHECKER] this is a false match. Ignoring this result.')
+                    continue
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
                 logger.fdebug('[FILECHECKER] new subname: ' + str(subthis))
@@ -351,7 +355,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 #same = encode.
                 u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
                 altsearchcomic = re.sub('[\_\#\,\/\:\;\.\!\$\%\+\'\?\@]', ' ', u_altsearchcomic)
-                altsearchcomic = re.sub('[\-]', '', altsearchcomic)
+                altsearchcomic = re.sub('[\-]', ' ', altsearchcomic)  #because this is a watchcomic registered, use same algorithim for watchcomic
                 altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
                 altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()       
                 AS_Alt.append(altsearchcomic)

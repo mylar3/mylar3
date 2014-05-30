@@ -474,7 +474,7 @@ class WebInterface(object):
             threading.Thread(target=PostProcess.Process).start()
             raise cherrypy.HTTPRedirect("home")
         else:
-            result = threading.Thread(target=PostProcess.Process).start()
+            result = PostProcess.Process()
             return result
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
         #return serve_template(templatename="postprocess.html", title="postprocess")
