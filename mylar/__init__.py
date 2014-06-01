@@ -580,7 +580,7 @@ def initialize():
         NZBSU_UID = check_setting_str(CFG, 'NZBsu', 'nzbsu_uid', '')
         NZBSU_APIKEY = check_setting_str(CFG, 'NZBsu', 'nzbsu_apikey', '')
         if NZBSU:
-            PR.append('nzbsu')
+            PR.append('nzb.su')
             PR_NUM +=1
 
         DOGNZB = bool(check_setting_int(CFG, 'DOGnzb', 'dognzb', 0))
