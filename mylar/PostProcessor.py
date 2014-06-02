@@ -470,9 +470,17 @@ class PostProcessor(object):
     def Process_next(self,comicid,issueid,issuenumOG,ml=None):
             annchk = "no"
             extensions = ('.cbr', '.cbz')
+            snatchedtorrent = False
             myDB = db.DBConnection()
             comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             issuenzb = myDB.selectone("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
+            if ml is not None and mylar.SNATCHEDTORRENT_NOTIFY:
+                snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=?) AND Status='Snatched'", [issueid,comicid,'KAT','CBT']).fetchone() 
+                if snatchnzb is None:
+                    logger.fdebug('Was not downloaded with Mylar and the usage of torrents. Disabling torrent manual post-processing completion notification.')
+                else:
+                    logger.fdebug('Was downloaded from ' + snatchnzb['Provider'] + '. Enabling torrent manual post-processing completion notification.')
+                    snatchedtorrent = True
             logger.fdebug('issueid: ' + str(issueid))
             logger.fdebug('issuenumOG: ' + str(issuenumOG))
             if issuenzb is None:
@@ -852,7 +860,7 @@ class PostProcessor(object):
                     #force rescan of files
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " " + dispiss )
-            self._log(u"Post Processing SUCCESSFULL! ")
+            self._log(u"Post Processing SUCCESSFUL! ")
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:
@@ -875,37 +883,43 @@ class PostProcessor(object):
                 seriesmetadata['seriesmeta'] = seriesmeta
                 self._run_extra_scripts(nzbn, self.nzb_folder, filen, folderp, seriesmetadata )
 
-            if ml is not None: 
-                return self.log
-            else:
-                if annchk == "no":
-                    prline = series + '(' + issueyear + ') - issue #' + issuenumOG
+            if ml is not None:
+                #we only need to return self.log if it's a manual run and it's not a snatched torrent
+                if snatchedtorrent: 
+                    #manual run + snatched torrent
+                    pass
                 else:
-                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
-                prline2 = 'Mylar has downloaded and post-processed: ' + prline
+                    #manual run + not snatched torrent (or normal manual-run)
+                    return self.log
 
-                if mylar.PROWL_ENABLED:
-                    pushmessage = prline
-                    logger.info(u"Prowl request")
-                    prowl = notifiers.PROWL()
-                    prowl.notify(pushmessage,"Download and Postprocessing completed")
+            if annchk == "no":
+                prline = series + '(' + issueyear + ') - issue #' + issuenumOG
+            else:
+                prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
+            prline2 = 'Mylar has downloaded and post-processed: ' + prline
+
+            if mylar.PROWL_ENABLED:
+                pushmessage = prline
+                logger.info(u"Prowl request")
+                prowl = notifiers.PROWL()
+                prowl.notify(pushmessage,"Download and Postprocessing completed")
     
-                if mylar.NMA_ENABLED:
-                    nma = notifiers.NMA()
-                    nma.notify(prline=prline, prline2=prline2)
+            if mylar.NMA_ENABLED:
+                nma = notifiers.NMA()
+                nma.notify(prline=prline, prline2=prline2)
 
-                if mylar.PUSHOVER_ENABLED:
-                    logger.info(u"Pushover request")
-                    pushover = notifiers.PUSHOVER()
-                    pushover.notify(prline, "Download and Post-Processing completed")
+            if mylar.PUSHOVER_ENABLED:
+                logger.info(u"Pushover request")
+                pushover = notifiers.PUSHOVER()
+                pushover.notify(prline, "Download and Post-Processing completed")
 
-                if mylar.BOXCAR_ENABLED:
-                    boxcar = notifiers.BOXCAR()
-                    boxcar.notify(prline=prline, prline2=prline2)
+            if mylar.BOXCAR_ENABLED:
+                boxcar = notifiers.BOXCAR()
+                boxcar.notify(prline=prline, prline2=prline2)
 
-                if mylar.PUSHBULLET_ENABLED:
-                    pushbullet = notifiers.PUSHBULLET()
-                    pushbullet.notify(prline=prline, prline2=prline2)
+            if mylar.PUSHBULLET_ENABLED:
+                pushbullet = notifiers.PUSHBULLET()
+                pushbullet.notify(prline=prline, prline2=prline2)
              
             return self.log
 

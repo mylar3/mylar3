@@ -60,74 +60,7 @@ class WebInterface(object):
     index.exposed=True
 
     def home(self):
-        comics = []
-
-        myDB = db.DBConnection()
-        comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
-        for comic in comiclist:
-            issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
-            if mylar.ANNUALS_ON:
-                annuals_on = True
-                annual = myDB.selectone("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
-                annualcount = annual[0]
-                if not annualcount:
-                    annualcount = 0
-            else: 
-                annuals_on = False
-                annual = None
-                annualcount = 0
-            try:
-                totalissues = comic['Total'] + annualcount
-                haveissues = comic['Have']
-            except TypeError:
-                logger.warning('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add this again.')
-                myDB.action("DELETE from COMICS WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
-                myDB.action("DELETE from ISSUES WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
-                continue
-
-            if not haveissues:
-               havetracks = 0
-
-            try:
-                percent = (haveissues*100.0)/totalissues
-                if percent > 100:
-                    percent = 100
-            except (ZeroDivisionError, TypeError):
-                percent = 0
-                totalissuess = '?'
-
-            if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
-                recentstatus = 'Unknown'
-            elif comic['ForceContinuing'] == 1:
-                recentstatus = 'Continuing'
-            elif 'present' in comic['ComicPublished'].lower() or ( helpers.today()[:4] in comic['LatestDate']):
-                latestdate = comic['LatestDate']
-                c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
-                n_date = datetime.date.today()
-                recentchk = (n_date - c_date).days
-                if recentchk < 55:
-                    recentstatus = 'Continuing'
-                else:
-                    recentstatus = 'Ended'
-            else:
-                recentstatus = 'Ended'
-
-
-            comics.append({"ComicID":         comic['ComicID'],
-                           "ComicName":       comic['ComicName'],
-                           "ComicSortName":   comic['ComicSortName'],
-                           "ComicPublisher":  comic['ComicPublisher'],
-                           "ComicYear":       comic['ComicYear'],
-                           "LatestIssue":     comic['LatestIssue'],
-                           "LatestDate":      comic['LatestDate'],
-                           "ComicPublished":  comic['ComicPublished'],
-                           "Status":          comic['Status'],
-                           "recentstatus":    recentstatus,
-                           "percent":         percent,
-                           "totalissues":     totalissues,
-                           "haveissues":      haveissues})
-
-
+        comics = helpers.havetotals()
         return serve_template(templatename="index.html", title="Home", comics=comics)
     home.exposed = True
 
@@ -230,7 +163,7 @@ class WebInterface(object):
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals, annualinfo=aName)
     comicDetails.exposed = True
 
-    def searchit(self, name, issue=None, mode=None, type=None):
+    def searchit(self, name, issue=None, mode=None, type=None, explicit=None):
         if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
         else: logger.fdebug(str(type) + " mode enabled.")
         #mode dictates type of search:
@@ -249,7 +182,7 @@ class WebInterface(object):
                 logger.info('Attempting to add directly by ComicVineID: ' + str(comicid) + '. I sure hope you know what you are doing.')
                 threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None]).start()
                 raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
-            searchresults = mb.findComic(name, mode, issue=None)
+            searchresults = mb.findComic(name, mode, issue=None, explicit=explicit)
         elif type == 'comic' and mode == 'want':
             searchresults = mb.findComic(name, mode, issue)
         elif type == 'storyarc':
@@ -257,7 +190,7 @@ class WebInterface(object):
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)
         #print ("Results: " + str(searchresults))
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, explicit=explicit)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None):
@@ -474,8 +407,10 @@ class WebInterface(object):
             threading.Thread(target=PostProcess.Process).start()
             raise cherrypy.HTTPRedirect("home")
         else:
-            result = PostProcess.Process()
-            return result
+            result = helpers.ThreadWithReturnValue(target=PostProcess.Process)
+            result.start()
+            #result = PostProcess.Process()
+            return result.join()
         #log2screen = threading.Thread(target=PostProcessor.PostProcess, args=[nzb_name,nzb_folder]).start()
         #return serve_template(templatename="postprocess.html", title="postprocess")
     post_process.exposed = True
@@ -961,7 +896,7 @@ class WebInterface(object):
         logger.fdebug('month = ' + str(month))
         logger.fdebug('year = ' + str(year))
         threading.Thread(target=solicit.solicit, args=[month, year]).start()
-        raise cherrypy.HTTPRedirect("home")
+        raise cherrypy.HTTPRedirect("futurepulllist")
     futurepull.exposed = True
 
     def futurepulllist(self):
@@ -1065,7 +1000,7 @@ class WebInterface(object):
         # specify whether you want to 'add a series (Watch For)' or 'mark an issue as a one-off download'.
         # currently the 'add series' option in the futurepulllist will attempt to add a series as per normal.
         myDB = db.DBConnection()
-        chkfuture = myDB.select("SELECT * FROM futureupcoming WHERE IssueNumber is not NULL")
+        chkfuture = myDB.select("SELECT * FROM futureupcoming WHERE IssueNumber='1' OR IssueNumber='0'") #is not NULL")
         if chkfuture is None:
             logger.info("There are not any series on your future-list that I consider to be a NEW series")
             raise cherrypy.HTTPRedirect("home")
@@ -1217,7 +1152,7 @@ class WebInterface(object):
         wantedcount = iss_cnt + ann_cnt
 
         #let's straightload the series that have no issue data associated as of yet (ie. new series) from the futurepulllist
-        future_nodata_upcoming = myDB.select('SELECT * FROM futureupcoming')
+        future_nodata_upcoming = myDB.select("SELECT * FROM futureupcoming WHERE IssueNumber='1' OR IssueNumber='0'")
              
         #let's move any items from the upcoming table into the wanted table if the date has already passed.
         #gather the list...
@@ -1341,8 +1276,7 @@ class WebInterface(object):
     manage.exposed = True
     
     def manageComics(self):
-        myDB = db.DBConnection()
-        comics = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        comics = helpers.havetotals()
         return serve_template(templatename="managecomics.html", title="Manage Comics", comics=comics)
     manageComics.exposed = True
     
@@ -2409,6 +2343,7 @@ class WebInterface(object):
                     "enable_kat" : helpers.checked(mylar.ENABLE_KAT),
                     "enable_cbt" : helpers.checked(mylar.ENABLE_CBT),
                     "cbt_passkey" : mylar.CBT_PASSKEY,
+                    "snatchedtorrent_notify" : mylar.SNATCHEDTORRENT_NOTIFY,
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "chmod_dir" : mylar.CHMOD_DIR,
                     "chmod_file" : mylar.CHMOD_FILE,
@@ -2642,7 +2577,7 @@ class WebInterface(object):
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
-        enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None,
+        enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
@@ -2716,6 +2651,7 @@ class WebInterface(object):
         mylar.ENABLE_KAT = int(enable_kat)
         mylar.ENABLE_CBT = int(enable_cbt)
         mylar.CBT_PASSKEY = cbt_passkey
+        mylar.SNATCHEDTORRENT_NOTIFY = int(snatchedtorrent_notify)
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files
         mylar.RENAME_FILES = rename_files

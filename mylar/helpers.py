@@ -927,3 +927,93 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         #logger.info('AlternateNames returned:' + str(Alternate_Names))
 
         return Alternate_Names
+
+def havetotals():
+        import db, logger
+
+        comics = []
+
+        myDB = db.DBConnection()
+        comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        for comic in comiclist:
+            issue = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comic['ComicID']])
+            if mylar.ANNUALS_ON:
+                annuals_on = True
+                annual = myDB.selectone("SELECT COUNT(*) as count FROM annuals WHERE ComicID=?", [comic['ComicID']]).fetchone()
+                annualcount = annual[0]
+                if not annualcount:
+                    annualcount = 0
+            else:
+                annuals_on = False
+                annual = None
+                annualcount = 0
+            try:
+                totalissues = comic['Total'] + annualcount
+                haveissues = comic['Have']
+            except TypeError:
+                logger.warning('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add the series.')
+                myDB.action("DELETE from COMICS WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
+                myDB.action("DELETE from ISSUES WHERE ComicID=? AND ComicName LIKE 'Comic ID%'", [comic['ComicID']])
+                continue
+
+            if not haveissues:
+               havetracks = 0
+
+            try:
+                percent = (haveissues*100.0)/totalissues
+                if percent > 100:
+                    percent = 100
+            except (ZeroDivisionError, TypeError):
+                percent = 0
+                totalissuess = '?'
+
+            if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
+                recentstatus = 'Unknown'
+            elif comic['ForceContinuing'] == 1:
+                recentstatus = 'Continuing'
+            elif 'present' in comic['ComicPublished'].lower() or ( today()[:4] in comic['LatestDate']):
+                latestdate = comic['LatestDate']
+                c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
+                n_date = datetime.date.today()
+                recentchk = (n_date - c_date).days
+                if recentchk < 55:
+                    recentstatus = 'Continuing'
+                else:
+                    recentstatus = 'Ended'
+            else:
+                recentstatus = 'Ended'
+
+            comics.append({"ComicID":         comic['ComicID'],
+                           "ComicName":       comic['ComicName'],
+                           "ComicSortName":   comic['ComicSortName'],
+                           "ComicPublisher":  comic['ComicPublisher'],
+                           "ComicYear":       comic['ComicYear'],
+                           "ComicImage":      comic['ComicImage'],
+                           "LatestIssue":     comic['LatestIssue'],
+                           "LatestDate":      comic['LatestDate'],
+                           "ComicPublished":  comic['ComicPublished'],
+                           "Status":          comic['Status'],
+                           "recentstatus":    recentstatus,
+                           "percent":         percent,
+                           "totalissues":     totalissues,
+                           "haveissues":      haveissues,
+                           "DateAdded":       comic['LastUpdated']})
+
+        return comics
+
+from threading import Thread
+
+class ThreadWithReturnValue(Thread):
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs, Verbose)
+        self._return = None
+    def run(self):
+        if self._Thread__target is not None:
+            self._return = self._Thread__target(*self._Thread__args,
+                                                **self._Thread__kwargs)
+    def join(self):
+        Thread.join(self)
+        return self._return
+
+

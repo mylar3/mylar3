@@ -150,6 +150,12 @@ def GetComicInfo(comicid,dom):
     except:
         comic_deck = 'None'
 
+    try:
+        comic['Aliases'] = dom.getElementsByTagName('aliases')[0].firstChild.wholeText
+        #logger.fdebug('Aliases: ' + str(aliases))
+    except:
+        comic['Aliases'] = 'None'
+
     comic['ComicVersion'] = 'noversion'
     #logger.info('comic_desc:' + comic_desc)
     #logger.info('comic_deck:' + comic_deck)
@@ -224,7 +230,9 @@ def GetComicInfo(comicid,dom):
         comic['ComicIssues'] = str(cntit)
     else:
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
+
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
+    comic['ComicImageALT'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
 
     try:
         comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText

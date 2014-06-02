@@ -27,15 +27,19 @@ from mylar.helpers import multikeysort, replace_all, cleanName
 mb_lock = threading.Lock()
 
 
-def pullsearch(comicapi,comicquery,offset):
+def pullsearch(comicapi,comicquery,offset,explicit):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     # as of 02/15/2014 this is buggered up.
-    #PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
+    #FALSE
+    if explicit == False:
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset)
 
+    else:
+    #TRUE
     # 02/22/2014 use the volume filter label to get the right results.
-    PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+        PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
     #download the file:
@@ -53,7 +57,7 @@ def pullsearch(comicapi,comicquery,offset):
     dom = parseString(data)
     return dom
 
-def findComic(name, mode, issue, limityear=None):
+def findComic(name, mode, issue, limityear=None, explicit=None):
 
     #with mb_lock:       
     comiclist = []
@@ -65,14 +69,23 @@ def findComic(name, mode, issue, limityear=None):
 
     #print ("limityear: " + str(limityear))            
     if limityear is None: limityear = 'None'
-
+    
     comicquery = name
     #comicquery=name.replace(" ", "%20")
-    #comicquery=name.replace(" ", " AND ")
+
+    if explicit is None:
+        logger.fdebug('explicit is None. Setting to False.')
+        explicit = False
+
+    if explicit:
+        logger.fdebug('changing to explicit mode.')
+        comicquery=name.replace(" ", " AND ")
+    else:
+        logger.fdebug('non-explicit mode.')
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
 
     #let's find out how many results we get from the query...    
-    searched = pullsearch(comicapi,comicquery,0)
+    searched = pullsearch(comicapi,comicquery,0,explicit)
     if searched is None: return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
     logger.fdebug("there are " + str(totalResults) + " search results...")
@@ -85,7 +98,7 @@ def findComic(name, mode, issue, limityear=None):
             #2012/22/02 - CV API flipped back to offset usage instead of page 
             offsetcount = countResults
 
-            searched = pullsearch(comicapi,comicquery,offsetcount)
+            searched = pullsearch(comicapi,comicquery,offsetcount,explicit)
         comicResults = searched.getElementsByTagName('volume')
         body = ''
         n = 0        

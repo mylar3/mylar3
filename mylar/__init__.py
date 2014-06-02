@@ -278,7 +278,7 @@ KAT_PROXY = None
 ENABLE_CBT = 0
 CBT_PASSKEY = None
 
-
+SNATCHEDTORRENT_NOTIFY = 0
 
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
@@ -341,7 +341,7 @@ def initialize():
                 ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, \
@@ -525,7 +525,8 @@ def initialize():
         KAT_PROXY = check_setting_str(CFG, 'Torrents', 'kat_proxy', '')
         ENABLE_CBT = bool(check_setting_int(CFG, 'Torrents', 'enable_cbt', 0))
         CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '')
-
+        SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
+   
         #this needs to have it's own category - for now General will do.
         NZB_DOWNLOADER = check_setting_int(CFG, 'General', 'nzb_downloader', 0)
         #legacy support of older config - reload into old values for consistency.
@@ -1102,7 +1103,7 @@ def config_write():
     new_config['Torrents']['kat_proxy'] = KAT_PROXY
     new_config['Torrents']['enable_cbt'] = int(ENABLE_CBT)
     new_config['Torrents']['cbt_passkey'] = CBT_PASSKEY
-
+    new_config['Torrents']['snatchedtorrent_notify'] = int(SNATCHEDTORRENT_NOTIFY)
     new_config['SABnzbd'] = {}
     #new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
     new_config['SABnzbd']['sab_host'] = SAB_HOST

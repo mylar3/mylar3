@@ -364,7 +364,7 @@
                                 </td>
                                 <td id="options">
                                 %if issue['Status'] == 'Skipped' or issue['Status'] == 'Ignored':
-                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')" data-success="Issue Marked as Wanted"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                 %elif (issue['Status'] == 'Wanted'):
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                 %elif (issue['Status'] == 'Snatched'):

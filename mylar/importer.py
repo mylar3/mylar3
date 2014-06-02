@@ -411,7 +411,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
 
     except Exception, e:
         logger.warn('[%s] Error fetching data using : %s' % (e, comic['ComicImage']))
+        logger.info('Attempting to use alternate image size to get cover.')
+        try:
+            cimage = re.sub('[\+]','%20', comic['ComicImageALT'])
+            request = urllib2.Request(cimage)
+            response = urllib2.urlopen(request)
+            com_image = response.read()
+            with open(coverfile, 'wb') as the_file:
+                the_file.write(com_image)
 
+            logger.info('Successfully retrieved cover for ' + comic['ComicName'])
+        except Exception, e:
+            logger.warn('[%s] Error fetching data using : %s' % (e, comic['ComicImageALT']))        
 
     PRComicImage = os.path.join('cache',str(comicid) + ".jpg")
     ComicImage = helpers.replacetheslash(PRComicImage)

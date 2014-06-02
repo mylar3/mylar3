@@ -1,17 +1,35 @@
 <%inherit file="base.html" />
 
+<%def name="headerIncludes()">
+        <div id="subhead_container">
+                <div id="subhead_menu">
+                    %if explicit:
+                    <a id="menu_link_delete" title="This will search for any of the terms given : ${name}" href="searchit?name=${name |u}&explicit=True">Explicit Search</a>
+                    %else:
+                    <a id="menu_link_delete" title="This will search explicitly for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=True">Explicit Search</a>
+                    %endif
+                </div>
+        </div>
+</%def>
 <%def name="body()">
-	<div class="table_wrapper">
 	<div id="paddingheader">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>Search Result</h1>
-	</div>
+                <%
+                      if explicit:
+                          searchtext = "Explicit Search results for: </br><center> " + name + "</center>"
+                      else:
+                          searchtext = "Search results for : </br><center>" + name + "</center>"
+                 %>
+
+		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>${searchtext}</h1>
+        </div>
+        <div class="table_wrapper">
 	<table class="display" id="searchresults_table">
 		<thead>
 			<tr>
 				<th id="blank"></th>
 				<th id="name">Comic Name</th>
-                <th id="publisher">Publisher</th>
-                <th id="comicyear">Year</th>
+                                <th id="publisher">Publisher</th>
+                                <th id="comicyear">Year</th>
 				<th id="issues">Issues</th>
 				<th id="add"></th>
 			</tr>
@@ -20,7 +38,7 @@
 			%if searchresults:
 				%for result in searchresults:
 				<%
-					if result['comicyear'] == '2013':
+					if result['comicyear'] == '2014':
 						grade = 'A'
 					else:
 						grade = 'Z'
@@ -50,42 +68,36 @@
 	<script src="js/libs/jquery.dataTables.min.js"></script>
 	
 	<script>
-	function getArt() {
-		$("table#searchresults_table tr td#comicimage img").each(function(){	
-			var id = $(this).attr('title');
-			var image = $(this);
-			if ( !image.hasClass('done') ) {
-				image.addClass('done');
-				getImageLinks(image,id,"${type}");
-			}
-		});
-	}
-	function initThisPage() {
-		getArt();
+        function initThisPage(){
+
+                initActions();
 		$('#searchresults_table').dataTable(
 			{
-				"bDestroy": true,
-				"aoColumnDefs": [
-			          { 'bSortable': false, 'aTargets': [ 0,3 ] }
-				],	
-				"oLanguage": {
-					"sLengthMenu":"Show _MENU_ results per page",
-					"sEmptyTable": "No results",
-					"sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
-					"sInfoEmpty":"Showing 0 to 0 of 0 results",
-					"sInfoFiltered":"(filtered from _MAX_ total results)",
-					"sSearch" : ""},
-				"iDisplayLength": 25,
-				"sPaginationType": "full_numbers",
-				"aaSorting": []
-			});
-			resetFilters("result");
-	}
-	$(document).ready(function(){
-			initThisPage();		
-	});
-	$(window).load(function(){
-		initFancybox();
-	});
+			       "bDestroy": true,
+			       "aoColumnDefs": [
+			         { 'bSortable': false, 'aTargets': [ 0,3 ] }
+			       ],	
+			       "oLanguage": {
+			     	       "sLengthMenu":"Show _MENU_ results per page",
+				       "sEmptyTable": "No results",
+				       "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+				       "sInfoEmpty":"Showing 0 to 0 of 0 results",
+				       "sInfoFiltered":"(filtered from _MAX_ total results)",
+				       "sSearch" : ""},
+			       "iDisplayLength": 25,
+			       "sPaginationType": "full_numbers",
+			       "aaSorting": []
+                        });
+
+                resetFilters("result");
+                setTimeout(function(){
+                    initFancybox();
+                },1500);
+        }
+
+        $(document).ready(function() {
+                initThisPage();
+        });
 	</script>
 </%def>
+
