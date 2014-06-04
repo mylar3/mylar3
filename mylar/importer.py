@@ -193,37 +193,37 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             #else:
             #sresults = mb.findComic(annComicName, mode, issue=annissues, limityear=annualval['AnnualYear'])
             #print "annualyear: " + str(annualval['AnnualYear'])
-        logger.fdebug('annualyear:' + str(annualyear))
-        sresults = mb.findComic(annComicName, mode, issue=None)
+        logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
+        sresults, explicit = mb.findComic(annComicName, mode, issue=None)#,explicit=True)
 
         type='comic'
 
         if len(sresults) == 1:
-            logger.fdebug('1 result')
+            logger.fdebug('[IMPORTER-ANNUAL] - 1 result')
         if len(sresults) > 0:
-            logger.fdebug('there are ' + str(len(sresults)) + ' results.')
+            logger.fdebug('[IMPORTER-ANNUAL] - there are ' + str(len(sresults)) + ' results.')
             num_res = 0
             while (num_res < len(sresults)):
                 sr = sresults[num_res]
                 logger.fdebug("description:" + sr['description'])
                 if 'paperback' in sr['description'] or 'collecting' in sr['description'] or 'reprints' in sr['description'] or 'collected' in sr['description']:
-                    logger.fdebug('tradeback/collected edition detected - skipping ' + str(sr['comicid']))
+                    logger.fdebug('[IMPORTER-ANNUAL] - tradeback/collected edition detected - skipping ' + str(sr['comicid']))
                 else:
                     if comicid in sr['description']:
-                        logger.fdebug(str(comicid) + ' found. Assuming it is part of the greater collection.')
+                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
                         issueid = sr['comicid']
-                        logger.fdebug(str(issueid) + ' added to series list as an Annual')
+                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' added to series list as an Annual')
                         if issueid in annualids:
-                            logger.fdebug(str(issueid) + ' already exists & was refreshed.')
+                            logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' already exists & was refreshed.')
                             num_res+=1 # need to manually increment since not a for-next loop
                             continue
                         issued = cv.getComic(issueid,'issue')
                         if len(issued) is None or len(issued) == 0:
-                            logger.fdebug('Could not find any annual information...')
+                            logger.fdebug('[IMPORTER-ANNUAL] - Could not find any annual information...')
                             pass
                         else:
                             n = 0
-                            logger.fdebug('there are ' + str(sr['issues']) + ' annuals in this series.')
+                            logger.fdebug('[IMPORTER-ANNUAL] - There are ' + str(sr['issues']) + ' annuals in this series.')
                             while (n < int(sr['issues'])):
                                 try:
                                    firstval = issued['issuechoice'][n]
@@ -250,7 +250,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                                 myDB.upsert("annuals", newVals, newCtrl)
 
                                 if issuechk is not None and issuetype == 'annual':
-                                    logger.fdebug('comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
+                                    logger.fdebug('[IMPORTER-ANNUAL] - Comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
                                     if issuechk == int_issnum:
                                         weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
                                                                   "Issue_Number":       issnum,
@@ -261,20 +261,20 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                 num_res+=1
 
         elif len(sresults) == 0 or len(sresults) is None:
-            logger.fdebug('no results, removing the year from the agenda and re-querying.')
-            sresults = mb.findComic(annComicName, mode, issue=None)
+            logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
+            sresults, explicit = mb.findComic(annComicName, mode, issue=None)#, explicit=True)
             if len(sresults) == 1:
                 sr = sresults[0]
-                logger.fdebug(str(comicid) + ' found. Assuming it is part of the greater collection.')
+                logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
             else:
                 resultset = 0
         else:
-            logger.fdebug('returning results to screen - more than one possibility')
+            logger.fdebug('[IMPORTER-ANNUAL] - Returning results to screen - more than one possibility')
             for sr in sresults:
                 if annualyear < sr['comicyear']:
-                    logger.fdebug(str(annualyear) + ' is less than ' + str(sr['comicyear']))
+                    logger.fdebug('[IMPORTER-ANNUAL] - ' + str(annualyear) + ' is less than ' + str(sr['comicyear']))
                 if int(sr['issues']) > (2013 - int(sr['comicyear'])):
-                    logger.fdebug('issue count is wrong')
+                    logger.fdebug('[IMPORTER-ANNUAL] - Issue count is wrong')
             
         #newCtrl = {"IssueID": issueid}
         #newVals = {"Issue_Number":  annualval['AnnualIssue'],
@@ -1171,10 +1171,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
                             return
             #get the latest issue / date using the date.
-            logger.fdebug('issue : ' + str(issnum))
-            logger.fdebug('latest date: ' + str(latestdate))
-            logger.fdebug('first date: ' + str(firstdate))
-            logger.fdebug('issue date: ' + str(firstval['Issue_Date']))
+            #logger.fdebug('issue : ' + str(issnum))
+            #logger.fdebug('latest date: ' + str(latestdate))
+            #logger.fdebug('first date: ' + str(firstdate))
+            #logger.fdebug('issue date: ' + str(firstval['Issue_Date']))
             if firstval['Issue_Date'] > latestdate:
                 if issnum > latestiss:
                     latestiss = issnum

@@ -31,14 +31,11 @@ def pullsearch(comicapi,comicquery,offset,explicit):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     u_comicquery = u_comicquery.replace(" ", "%20")
 
-    # as of 02/15/2014 this is buggered up.
-    #FALSE
-    if explicit == False:
+    if explicit == 'all' or explicit == 'loose':
         PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset)
 
     else:
-    #TRUE
-    # 02/22/2014 use the volume filter label to get the right results.
+        # 02/22/2014 use the volume filter label to get the right results.
         PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
@@ -74,14 +71,22 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
     #comicquery=name.replace(" ", "%20")
 
     if explicit is None:
-        logger.fdebug('explicit is None. Setting to False.')
-        explicit = False
+        #logger.fdebug('explicit is None. Setting to Default mode of ALL search words.')
+        comicquery=name.replace(" ", " AND ")
+        explicit = 'all'
 
-    if explicit:
-        logger.fdebug('changing to explicit mode.')
+    #OR
+    if explicit == 'loose':
+        logger.fdebug('Changing to loose mode - this will match ANY of the search words')
+        comicquery = name.replace(" ", " OR ")
+    elif explicit == 'explicit':
+        logger.fdebug('Changing to explicit mode - this will match explicitly on the EXACT words')
         comicquery=name.replace(" ", " AND ")
     else:
-        logger.fdebug('non-explicit mode.')
+        logger.fdebug('Default search mode - this will match on ALL search words')
+        comicquery = name.replace(" ", " AND ")
+        explicit = 'all'
+
     comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
 
     #let's find out how many results we get from the query...    
@@ -158,4 +163,4 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
         #search results are limited to 100 and by pagination now...let's account for this.
         countResults = countResults + 100
    
-    return comiclist
+    return comiclist, explicit

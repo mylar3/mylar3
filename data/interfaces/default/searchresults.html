@@ -3,10 +3,15 @@
 <%def name="headerIncludes()">
         <div id="subhead_container">
                 <div id="subhead_menu">
-                    %if explicit:
-                    <a id="menu_link_delete" title="This will search for any of the terms given : ${name}" href="searchit?name=${name |u}&explicit=True">Explicit Search</a>
-                    %else:
-                    <a id="menu_link_delete" title="This will search explicitly for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=True">Explicit Search</a>
+                    %if explicit == 'loose':
+                        <a id="menu_link_delete" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=loose">Search ALL terms</a>
+                        <a id="menu_link_delete" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
+                    %elif explicit == 'explicit':
+                        <a id="menu_link_delete" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
+                        <a id="menu_link_delete" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=all">Search ALL terms</a>
+                    %elif explicit == 'all':
+                        <a id="menu_link_delete" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
+                        <a id="menu_link_delete" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
                     %endif
                 </div>
         </div>
@@ -14,7 +19,9 @@
 <%def name="body()">
 	<div id="paddingheader">
                 <%
-                      if explicit:
+                      if explicit == 'loose':
+                          searchtext = "Loose Search results for: </br><center> " + name + "</center>"
+                      elif explicit == 'explicit':
                           searchtext = "Explicit Search results for: </br><center> " + name + "</center>"
                       else:
                           searchtext = "Search results for : </br><center>" + name + "</center>"

@@ -42,11 +42,9 @@ def pullit(forcecheck=None):
             else:
                 pulldate = pull_date['SHIPDATE']
         except (sqlite3.OperationalError, TypeError),msg:
-            conn=sqlite3.connect(mylar.DB_FILE)
-            c=conn.cursor()
             logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
-            c.execute('DROP TABLE weekly')    
-            c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)')
+            myDB.action("DROP TABLE weekly")    
+            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)")
             pulldate = '00000000'
             logger.fdebug(u"Table re-created, trying to populate")
     else:
@@ -346,15 +344,17 @@ def pullit(forcecheck=None):
     logger.info(u"Populating the NEW Weekly Pull list into Mylar.")
     newtxtfile.close()
 
-    mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
+    #mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
 
-    connection = sqlite3.connect(str(mylardb))
-    cursor = connection.cursor()
+    #connection = sqlite3.connect(str(mylardb))
+    #cursor = connection.cursor()
 
-    cursor.executescript('drop table if exists weekly;')
+    #cursor.execute('drop table if exists weekly;')
+    myDB.action("drop table if exists weekly")
+    myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)")
 
-    cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text);")
-    connection.commit()
+    #cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text);")
+    #connection.commit()
 
 
     csvfile = open(newfl, "rb")
@@ -368,14 +368,23 @@ def pullit(forcecheck=None):
         #print (row)
         try:
             logger.debug("Row: %s" % row)
-            cursor.execute("INSERT INTO weekly VALUES (?,?,?,?,?,?,null);", row)
+
+            controlValueDict = {'COMIC': row[3],
+                                'ISSUE': row[2],
+                                'EXTRA': row[4] }
+            newValueDict = {'SHIPDATE': row[0],
+                            'PUBLISHER': row[1],
+                            'STATUS': row[5],
+                            'COMICID': None }
+            myDB.upsert("weekly", newValueDict, controlValueDict)
+            #cursor.execute("INSERT INTO weekly VALUES (?,?,?,?,?,?,null);", row)
         except Exception, e:
             #print ("Error - invald arguments...-skipping")
             pass
         t+=1
     csvfile.close()
-    connection.commit()
-    connection.close()
+    #connection.commit()
+    #connection.close()
     logger.info(u"Weekly Pull List successfully loaded.")
     #let's delete the files
     pullpath = str(mylar.CACHE_DIR) + "/"
@@ -725,6 +734,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                             else:
                                                 # here we add to upcoming table...
                                                 statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes', altissuenumber=altissuenum)
+
                                             # here we update status of weekly table...
                                             if statusupdate is not None:
                                                 cstatus = statusupdate['Status']
@@ -757,9 +767,11 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
 
 
 def check(fname, txt):
-    with open(fname) as dataf:
-        return any(txt in line for line in dataf)
-
+    try:
+        with open(fname) as dataf:
+            return any(txt in line for line in dataf)
+    except:
+        return None        
 
 def loaditup(comicname, comicid, issue, chktype):
     myDB = db.DBConnection()

@@ -174,7 +174,7 @@ class WebInterface(object):
         if len(name) == 0:
             raise cherrypy.HTTPRedirect("home")
         if type == 'comic' and mode == 'pullseries':
-            searchresults = mb.findComic(name, mode, issue=issue)
+            searchresults, explicit = mb.findComic(name, mode, issue=issue)
         elif type == 'comic' and mode == 'series':
             if name.startswith('4050-'):
                 mismatch = "no"
@@ -182,11 +182,11 @@ class WebInterface(object):
                 logger.info('Attempting to add directly by ComicVineID: ' + str(comicid) + '. I sure hope you know what you are doing.')
                 threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None]).start()
                 raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
-            searchresults = mb.findComic(name, mode, issue=None, explicit=explicit)
+            searchresults, explicit = mb.findComic(name, mode, issue=None, explicit=explicit)
         elif type == 'comic' and mode == 'want':
-            searchresults = mb.findComic(name, mode, issue)
+            searchresults, explicit = mb.findComic(name, mode, issue)
         elif type == 'storyarc':
-            searchresults = mb.findComic(name, mode, issue=None, storyarc='yes')
+            searchresults, explicit = mb.findComic(name, mode, issue=None, storyarc='yes')
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear','issues'), reverse=True)
         #print ("Results: " + str(searchresults))
@@ -1021,7 +1021,7 @@ class WebInterface(object):
         #limittheyear.append(cf['IssueDate'][-4:])
         for ser in cflist:
             logger.info('looking for new data for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(ser['IssueDate'][-4:]) + ')')
-            searchresults = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=ser['IssueDate'][-4:])
+            searchresults, explicit = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=ser['IssueDate'][-4:], explicit='all')
             print searchresults
             if len(searchresults) > 1:
                 logger.info('More than one result returned - this may have to be a manual add')
@@ -1076,7 +1076,7 @@ class WebInterface(object):
         mylar.dbcheck()
         logger.info("Deleted existed pull-list data. Recreating Pull-list...")
         forcecheck = 'yes'
-        threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
+        weeklypull.pullit(forcecheck)
         raise cherrypy.HTTPRedirect("pullist")
     pullrecreate.exposed = True
 
@@ -1954,10 +1954,10 @@ class WebInterface(object):
     def confirmResult(self,comicname,comicid):
         #print ("here.")
         mode='series'
-        sresults = mb.findComic(comicname, mode, None)
+        sresults, explicit = mb.findComic(comicname, mode, None, explicit='all')
         #print sresults
         type='comic'
-        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"',searchresults=sresults, type=type, imported='confirm', ogcname=comicid)
+        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"',searchresults=sresults, type=type, imported='confirm', ogcname=comicid, explicit=explicit)
     confirmResult.exposed = True
 
     def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_rename=0, imp_metadata=0):
@@ -2175,9 +2175,9 @@ class WebInterface(object):
         
             mode='series'
             if yearRANGE is None:
-                sresults = mb.findComic(displaycomic, mode, issue=numissues) #ComicName, mode, issue=numissues)
+                sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
             else:
-                sresults = mb.findComic(displaycomic, mode, issue=numissues, limityear=yearRANGE) #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
             type='comic'
 
             if len(sresults) == 1:
@@ -2187,7 +2187,7 @@ class WebInterface(object):
 #            #need to move the files here.
             elif len(sresults) == 0 or len(sresults) is None:
                 implog = implog + "no results, removing the year from the agenda and re-querying.\n"
-                sresults = mb.findComic(displaycomic, mode, issue=numissues) #ComicName, mode, issue=numissues)
+                sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
                 if len(sresults) == 1:
                     sr = sresults[0]
                     implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
@@ -2209,7 +2209,7 @@ class WebInterface(object):
                 cresults = self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
                 return serve_template(templatename="searchfix.html", title="Error Check", comicname=sr['name'], comicid=sr['comicid'], comicyear=sr['comicyear'], comicimage=sr['comicimage'], comicissues=sr['issues'], cresults=cresults, imported='yes', ogcname=str(ogcname))
             else:
-                return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname) #imported=comicstoIMP, ogcname=ogcname)
+                return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname, explicit=explicit) #imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
 
     def pretty_git(self, br_history):
