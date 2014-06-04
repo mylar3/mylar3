@@ -48,6 +48,7 @@ OS_LANG, OS_ENCODING = locale.getdefaultlocale()
 VERBOSE = 1
 DAEMON = False
 PIDFILE= None
+CREATEPID = False
 
 SCHED = Scheduler()
 
@@ -66,6 +67,8 @@ FolderMonitorScheduler = None
 
 DATA_DIR = None
 DBLOCK = False
+
+UMASK = None
 
 CONFIG_FILE = None
 CFG = None
@@ -345,7 +348,7 @@ def initialize():
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
                 
         if __INITIALIZED__:
             return False
@@ -916,6 +919,9 @@ def initialize():
 #                                                     runImmediately=True,
 #                                                     delay=60)
 
+        # Store the original umask
+        UMASK = os.umask(0)
+        os.umask(UMASK)
                                     
         __INITIALIZED__ = True
         return True
@@ -943,6 +949,10 @@ def daemonize():
         
     os.setsid()
 
+    # Make sure I can read my own files and shut out others
+    prev = os.umask(0)  # @UndefinedVariable - only available in UNIX
+    os.umask(prev and int('077', 8))
+
     # Do second fork
     try:
         pid = os.fork()
@@ -952,9 +962,9 @@ def daemonize():
     except OSError, e:
         sys.exit("2nd fork failed: %s [%d]" % (e.strerror, e.errno))
 
-    os.chdir("/")
-    os.umask(0)
-    
+    dev_null = file('/dev/null', 'r')
+    os.dup2(dev_null.fileno(), sys.stdin.fileno())
+
     si = open('/dev/null', "r")
     so = open('/dev/null', "a+")
     se = open('/dev/null', "a+")
@@ -965,9 +975,10 @@ def daemonize():
 
     pid = os.getpid()
     logger.info('Daemonized to PID: %s' % pid)
-    if PIDFILE:
-        logger.info('Writing PID %s to %s' % (pid, PIDFILE))
-        file(PIDFILE, 'w').write("%s\n" % pid)
+    if CREATEPID:
+        logger.info("Writing PID %d to %s", pid, PIDFILE)
+        with file(PIDFILE, 'w') as fp:
+            fp.write("%s\n" % pid)
 
 def launch_browser(host, port, root):
 
@@ -1632,7 +1643,7 @@ def shutdown(restart=False, update=False):
         except Exception, e:
             logger.warn('Mylar failed to update: %s. Restarting.' % e) 
 
-    if PIDFILE :
+    if CREATEPID:
         logger.info('Removing pidfile %s' % PIDFILE)
         os.remove(PIDFILE)
         

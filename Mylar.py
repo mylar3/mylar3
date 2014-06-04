@@ -22,7 +22,7 @@ from lib.configobj import ConfigObj
 
 import mylar
 
-from mylar import webstart, logger, filechecker
+from mylar import webstart, logger, filechecker, versioncheck
 
 try:
     import argparse
@@ -66,6 +66,7 @@ def main():
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
     parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
     parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
+    #parser.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
     
     args = parser.parse_args()
 
@@ -74,6 +75,14 @@ def main():
     elif args.quiet:
         mylar.VERBOSE = 0
     
+    #if args.update:
+    #    print('Attempting to update Mylar so things can work again...')
+    #    try:
+    #        versioncheck.update()
+    #    except Exception, e:
+    #        sys.exit('Mylar failed to update.')
+
+
     if args.daemon:
         if sys.platform == 'win32':
             print "Daemonize not supported under Windows, starting normally"
@@ -82,7 +91,7 @@ def main():
             mylar.VERBOSE=0
 
     if args.pidfile :
-        mylar.PIDFILE = args.pidfile
+        mylar.PIDFILE = str(args.pidfile)
 
         # If the pidfile already exists, mylar may still be running, so exit
         if os.path.exists(mylar.PIDFILE):
@@ -90,6 +99,7 @@ def main():
 
         # The pidfile is only useful in daemon mode, make sure we can write the file properly
         if mylar.DAEMON:
+            mylar.CREATEPID = True
             try:
                 file(mylar.PIDFILE, 'w').write("pid\n")
             except IOError, e:
@@ -166,7 +176,10 @@ def main():
     
     while True:
         if not mylar.SIGNAL:
-            time.sleep(1)
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                mylar.SIGNAL = 'shutdown'
         else:
             logger.info('Received signal: ' + mylar.SIGNAL)
             if mylar.SIGNAL == 'shutdown':
