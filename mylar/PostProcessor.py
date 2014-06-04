@@ -722,6 +722,9 @@ class PostProcessor(object):
                             ofilename = filename
                             path, ext = os.path.splitext(ofilename)
  
+                if odir is None:
+                    logger.fdebug('no root folder set.')
+                    odir = self.nzb_folder
                 logger.fdebug('odir: ' + str(odir))
                 logger.fdebug('ofilename: ' + str(ofilename))
 
