@@ -1902,9 +1902,10 @@ class WebInterface(object):
 
     downloadLocal.exposed = True
 
-    def MassWeeklyDownload(self, pulldate, weekfolder=0):
-        mylar.WEEKFOLDER = int(weekfolder)
-        mylar.config_write()
+    def MassWeeklyDownload(self, pulldate, weekfolder=0, filename=None):
+        if filename is None:
+            mylar.WEEKFOLDER = int(weekfolder)
+            mylar.config_write()
 
         # this will download all downloaded comics from the weekly pull list and throw them
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
@@ -1946,7 +1947,6 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("pullist")
     MassWeeklyDownload.exposed = True
     
-    #for testing.
     def idirectory(self):    
         return serve_template(templatename="idirectory.html", title="Import a Directory")
     idirectory.exposed = True
@@ -2279,6 +2279,7 @@ class WebInterface(object):
                       "COUNT_SIZE" : COUNT_SIZE }
 
         config = { 
+                    "comicvine_api" : mylar.COMICVINE_API,
                     "http_host" : mylar.HTTP_HOST,
                     "http_user" : mylar.HTTP_USERNAME,
                     "http_port" : mylar.HTTP_PORT,
@@ -2572,7 +2573,7 @@ class WebInterface(object):
     readOptions.exposed = True
 
     
-    def configUpdate(self, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, api_enabled=0, api_key=None, launch_browser=0, logverbose=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
+    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, api_enabled=0, api_key=None, launch_browser=0, logverbose=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
@@ -2583,6 +2584,7 @@ class WebInterface(object):
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, cvapifix=0,
         tsab=None, destination_dir=None, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, **kwargs):
+        mylar.COMICVINE_API = comicvine_api
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
@@ -2729,6 +2731,10 @@ class WebInterface(object):
                 mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_api, newznab_uid, newznab_enabled))
 
         # Sanity checking
+        if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == '' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+            logger.info('Personal Comicvine API key not provided. This will severely impact the usage of Mylar - you have been warned.')
+            mylar.COMICVINE_API = None
+
         if mylar.SEARCH_INTERVAL < 360:
             logger.info("Search interval too low. Resetting to 6 hour minimum")
             mylar.SEARCH_INTERVAL = 360

@@ -123,7 +123,6 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                 #if vari_loop == '99':
                 gcdinfo = parseit.GCDdetails(comseries=None, resultURL=resultURL, vari_loop=0, ComicID=comicid, TotalIssues=0, issvariation="no", resultPublished=None)
 
-    logger.info('Sucessfully retrieved details for ' + comic['ComicName'] )
     # print ("Series Published" + parseit.resultPublished)
 
     CV_NoYearGiven = "no"
@@ -142,6 +141,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             SeriesYear = gcdinfo['SeriesYear']
     else:
         SeriesYear = comic['ComicYear']
+
+    logger.info('Sucessfully retrieved details for ' + comic['ComicName'] )
 
     #since the weekly issue check could return either annuals or issues, let's initialize it here so it carries through properly.
     weeklyissue_check = []

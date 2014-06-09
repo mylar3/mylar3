@@ -26,6 +26,7 @@ import os
 import time 
 import re
 import datetime
+import shutil
 
 import mylar 
 from mylar import db, updater, helpers, logger
@@ -840,3 +841,49 @@ def checkthis(datecheck,datestatus,usedate):
         valid_check = False
 
     return valid_check
+
+def weekly_singlecopy(comicid, issuenum, file, path):
+    myDB = db.DBConnection()
+    try:
+        pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
+        if (pull_date is None):
+            pulldate = '00000000'
+        else:
+            pulldate = pull_date['SHIPDATE']
+
+        logger.fdebug(u"Weekly pull list detected as : " + str(pulldate))
+
+    except (sqlite3.OperationalError, TypeError),msg:
+        logger.info(u"Error determining current weekly pull-list date - you should refresh the pull-list manually probably.")
+        return
+
+    chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND ISSUE=?',[comicid, issuenum]).fetchone()
+    if chkit is None:
+        logger.fdebug(file + ' is not on the weekly pull-list or it is a one-off download that is not supported as of yet.')
+        return
+
+    logger.info('issue on weekly pull-list.')
+
+    if mylar.WEEKFOLDER:
+        desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+        dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True)
+        if dircheck:
+            pass
+        else:
+            desdir = mylar.DESTINATION_DIR
+
+    else:
+        desdir = mylar.GRABBAG_DIR
+
+    desfile = os.path.join(desdir, file)
+    srcfile = os.path.join(path)
+
+    try:
+        shutil.copy2(srcfile, desfile)
+    except IOError as e:
+        logger.error('Could not copy ' + str(srcfile) + ' to ' + str(desfile))
+        return
+
+    logger.debug('sucessfully copied to ' + desfile.encode('utf-8').strip() )
+    return
+

@@ -49,21 +49,23 @@ VERBOSE = 1
 DAEMON = False
 PIDFILE= None
 CREATEPID = False
+SAFESTART = False
 
 SCHED = Scheduler()
 
 INIT_LOCK = threading.Lock()
-#INIT_LOCK = Lock()
 __INITIALIZED__ = False
 started = False
 WRITELOCK = False
 
-dbUpdateScheduler = None
-searchScheduler = None
-RSSScheduler = None
-WeeklyScheduler = None
-VersionScheduler = None
-FolderMonitorScheduler = None
+## for use with updated scheduler (not working atm)
+#INIT_LOCK = Lock()
+#dbUpdateScheduler = None
+#searchScheduler = None
+#RSSScheduler = None
+#WeeklyScheduler = None
+#VersionScheduler = None
+#FolderMonitorScheduler = None
 
 DATA_DIR = None
 DBLOCK = False
@@ -101,6 +103,9 @@ LATEST_VERSION = None
 COMMITS_BEHIND = None
 USER_AGENT = None
 SEARCH_DELAY = 1
+
+COMICVINE_API = None
+DEFAULT_CVAPI = '583939a3df0a25fc4e8b7a29934a13078002dc27'
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -333,8 +338,8 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
-                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, \
+        global __INITIALIZED__, COMICVINE_API, DEFAULT_CVAPI, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
+                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
@@ -373,6 +378,9 @@ def initialize():
             HTTP_PORT = 8090
             
         CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
+        COMICVINE_API = check_setting_str(CFG, 'General', 'comicvine_api', '')
+        if not COMICVINE_API:
+            COMICVINE_API = None
         HTTP_HOST = check_setting_str(CFG, 'General', 'http_host', '0.0.0.0')
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
@@ -791,6 +799,10 @@ def initialize():
             except OSError:
                 logger.error('Could not create cache dir. Check permissions of datadir: ' + DATA_DIR)
 
+        #ComicVine API Check
+        if COMICVINE_API is None or COMICVINE_API == '':
+            logger.error('No User Comicvine API key specified. I will not work very well due to api limits - http://api.comicvine.com/ and get your own free key.')
+
         # Sanity check for search interval. Set it to at least 6 hours
         if SEARCH_INTERVAL < 360:
             logger.info('Search interval too low. Resetting to 6 hour minimum')
@@ -997,6 +1009,7 @@ def config_write():
     new_config.encoding = 'UTF8'
     new_config['General'] = {}
     new_config['General']['config_version'] = CONFIG_VERSION
+    new_config['General']['comicvine_api'] = COMICVINE_API
     new_config['General']['http_port'] = HTTP_PORT
     new_config['General']['http_host'] = HTTP_HOST
     new_config['General']['http_username'] = HTTP_USERNAME

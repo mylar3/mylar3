@@ -140,12 +140,18 @@
                 <td>          
                          <fieldset>
                                 <legend>API</legend>
+                                <div class="row">
+                                   <label>ComicVine API Key</label>
+                                   <input type="text" name="comicvine_api" value="${config['comicvine_api']}" title="get one for free @ http://api.comicvine.com" size="40">
+                                   <small>specify your own CV API key here </small>
+                                </div>
+
                                 <div class="row checkbox">
                                     <input id="api_enabled" type="checkbox" onclick="initConfigCheckbox($(this));" name="api_enabled" value="1" ${config['api_enabled']} /><label>Enable API</label>
                                 </div>
                                 <div class="apioptions">
                                   <div Class="row">
-                                    <label>API key</label>
+                                    <label>Mylar API key</label>
                                     <input type="text" name="api_key" id="api_key" value="${config['api_key']}" size="20">
                                     <input type="button" value="Generate" id="generate_api">
                                     <small>Current API key: <strong>${config['api_key']}</strong></small>

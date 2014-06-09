@@ -87,7 +87,12 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
         comicquery = name.replace(" ", " AND ")
         explicit = 'all'
 
-    comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
+
+    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
+        comicapi = mylar.DEFAULT_CVAPI
+    else:
+        comicapi = mylar.COMICVINE_API
 
     #let's find out how many results we get from the query...    
     searched = pullsearch(comicapi,comicquery,0,explicit)

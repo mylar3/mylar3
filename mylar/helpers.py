@@ -295,7 +295,6 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     return
                 else:
                     annualize = True
-            logger.fdebug('blah')
             #comicid = issuenzb['ComicID']
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
@@ -419,11 +418,54 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             else:
                 logger.fdebug('chunk_file_format is: ' + str(chunk_file_format))
-                if '$Annual' not in chunk_file_format:
-                #if it's an annual, but $annual isn't specified in file_format, we need to
-                #force it in there, by default in the format of $Annual $Issue
-                    prettycomiss = "Annual " + str(prettycomiss)
-                    logger.fdebug('prettycomiss: ' + str(prettycomiss))
+                if mylar.ANNUALS_ON:
+                    if 'annual' in series.lower():
+                        if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
+                        #if it's an annual, but $annual isn't specified in file_format, we need to
+                        #force it in there, by default in the format of $Annual $Issue
+                            #prettycomiss = "Annual " + str(prettycomiss)
+                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                        else:
+                            #because it exists within title, strip it then use formatting tag for placement of wording.
+                            chunk_f_f = re.sub('\$Annual','',chunk_file_format)
+                            chunk_f = re.compile(r'\s+')
+                            chunk_file_format = chunk_f.sub(' ', chunk_f_f)
+                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                    else:
+                        if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
+                        #if it's an annual, but $annual isn't specified in file_format, we need to
+                        #force it in there, by default in the format of $Annual $Issue
+                            prettycomiss = "Annual " + str(prettycomiss)
+                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                        else:
+                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+
+                else:
+                    #if annuals aren't enabled, then annuals are being tracked as independent series.
+                    #annualize will be true since it's an annual in the seriesname.
+                    if 'annual' in series.lower():
+                        if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
+                        #if it's an annual, but $annual isn't specified in file_format, we need to
+                        #force it in there, by default in the format of $Annual $Issue
+                            #prettycomiss = "Annual " + str(prettycomiss)
+                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                        else:
+                            #because it exists within title, strip it then use formatting tag for placement of wording.
+                            chunk_f_f = re.sub('\$Annual','',chunk_file_format)
+                            chunk_f = re.compile(r'\s+')
+                            chunk_file_format = chunk_f.sub(' ', chunk_f_f)
+                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                    else:
+                        if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
+                            #if it's an annual, but $annual isn't specified in file_format, we need to
+                            #force it in there, by default in the format of $Annual $Issue
+                            prettycomiss = "Annual " + str(prettycomiss)
+                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                        else:
+                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+
+
+                    logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
             file_values = {'$Series':    series,
                            '$Issue':     prettycomiss,

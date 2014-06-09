@@ -29,7 +29,12 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
-    comicapi='583939a3df0a25fc4e8b7a29934a13078002dc27'
+    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
+        comicapi = mylar.DEFAULT_CVAPI
+    else:
+        comicapi = mylar.COMICVINE_API
+
     if type == 'comic':
         if not comicid.startswith('4050-'): comicid = '4050-' + comicid
         PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
@@ -46,6 +51,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
     elif type == 'storyarc':
        PULLURL =  mylar.CVURL + 'story_arc/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+
 
     #download the file:
     file = urllib2.urlopen(PULLURL)

@@ -28,7 +28,7 @@ import sqlite3
 from xml.dom.minidom import parseString
 
 
-from mylar import logger, db, helpers, updater, notifiers, filechecker
+from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull
 
 class PostProcessor(object):
     """
@@ -864,6 +864,10 @@ class PostProcessor(object):
             updater.forceRescan(comicid)
             logger.info(u"Post-Processing completed for: " + series + " " + dispiss )
             self._log(u"Post Processing SUCCESSFUL! ")
+
+            if mylar.WEEKFOLDER:
+                #if enabled, will *copy* the post-processed file to the weeklypull list folder for the given week.
+                weeklypull.weekly_singlecopy(comicid,issuenum,str(nfilename+ext),dst)
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:
