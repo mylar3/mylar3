@@ -454,6 +454,7 @@ class WebInterface(object):
             logger.fdebug("Deleted nzblog table.")
             myDB.action('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT)')
             logger.fdebug("Re-created nzblog table.")
+        raise cherrypy.HTTPRedirect("history")
     wipenzblog.exposed = True
 
     def refreshArtist(self, ComicID):
