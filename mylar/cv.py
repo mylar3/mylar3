@@ -29,7 +29,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
-    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API is None or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
         logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
         comicapi = mylar.DEFAULT_CVAPI
     else:
