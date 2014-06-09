@@ -2,7 +2,11 @@ Mylar is an automated Comic Book (cbr/cbz) downloader program heavily-based on t
 
 Yes, it does work, yes there are still bugs, and for that reson I still consider it the definition of an 'Alpha Release'.
 
-This application requires a version of the 2.7.x Python branch for the best results. 3.x is not supported.
+This application requires a version of the 2.7.x Python branch for the best results (3.x is not supported)
+
+                                                     ** NEW ** 
+                   You will need to get your OWN ComicVine API Key for this application to fully work. 
+   Failure to do that will result in limited (to None) ability to add/update/refresh series as well as other important functunality.
 
 To start it, type in 'python Mylar.py' from within the root of the mylar directory. Adding a --help option to the command will give a list of available options.
 

@@ -131,8 +131,12 @@ def GetComicInfo(comicid,dom):
     cntit = int(cntit)
     #retrieve the first xml tag (<tag>data</tag>)
     #that the parser finds with name tagName:
-    comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
-    comic['ComicName'] = comic['ComicName'].rstrip() 
+    try:
+        comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
+        comic['ComicName'] = comic['ComicName'].rstrip() 
+    except:
+        logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible AND that you have provided your OWN ComicVine API key.')
+        return
     try:
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     except:

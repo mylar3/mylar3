@@ -717,6 +717,14 @@ def issuedigits(issnum):
     if str(issnum).isdigit():
         int_issnum = int( issnum ) * 1000
     else:
+        count = 0
+        for char in issnum:
+            if char.isalpha():
+                count += 1
+        if count  > 5:
+            logger.error('This is not an issue number - not enough numerics to parse')
+            int_issnum = 999999999999999
+            return int_issnum
         if 'au' in issnum.lower() and issnum[:1].isdigit():
             int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
         elif 'ai' in issnum.lower() and issnum[:1].isdigit():

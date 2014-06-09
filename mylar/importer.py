@@ -482,11 +482,17 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     if CV_NoYearGiven == 'no':
         #if set to 'no' then we haven't pulled down the issues, otherwise we did it already
         issued = cv.getComic(comicid,'issue')
+        if issued is None:
+            logger.warn('Unable to retrieve data from ComicVine. Get your own API key already!')
+            return
     logger.info('Sucessfully retrieved issue details for ' + comic['ComicName'] )
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.    
     issuedata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear)
+    if issuedata is None:
+        logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
+        return
 
     if mylar.CVINFO or (mylar.CV_ONLY and mylar.CVINFO):
         if not os.path.exists(os.path.join(comlocation,"cvinfo")) or mylar.CV_ONETIMER:
@@ -1039,6 +1045,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     #chkType comes from the weeklypulllist - either 'annual' or not to distinguish annuals vs. issues
     if comicIssues is None:
         comic = cv.getComic(comicid,'comic')
+        if comic is None:
+            logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
+            return
         if comicIssues is None:
             comicIssues = comic['ComicIssues']
         if SeriesYear is None:
@@ -1047,6 +1056,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             comicname = comic['ComicName']
     if issued is None:
         issued = cv.getComic(comicid,'issue')
+        if issued is None:
+            logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
+            return
     n = 0
     iscnt = int(comicIssues)
     issid = []
