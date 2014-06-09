@@ -6,7 +6,7 @@ This application requires a version of the 2.7.x Python branch for the best resu
 
                                                      ** NEW ** 
                    You will need to get your OWN ComicVine API Key for this application to fully work. 
-   Failure to do that will result in limited (to None) ability to add/update/refresh series as well as other important functunality.
+                      Failure to do this will result in limited (to No) ability when using Mylar.
 
 To start it, type in 'python Mylar.py' from within the root of the mylar directory. Adding a --help option to the command will give a list of available options.
 
