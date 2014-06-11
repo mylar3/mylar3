@@ -208,6 +208,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID)
                             if findit == 'yes':
                                 break
+                        if findit == 'yes': break
 
             else:
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
@@ -226,6 +227,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID)
                             if findit == 'yes':
                                 break
+                        if findit == 'yes': break
 
             if searchprov == 'newznab':
                 searchprov = newznab_host[0].rstrip()
@@ -863,11 +865,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 i+=1
                             logger.fdebug("chg_comic:" + str(chg_comic))
                             findcomic_chksplit = re.sub('[\-\:\,\.\?]', ' ', findcomic)
-                            chg_comic = re.sub('[\s]', '', chg_comic)
+                            findcomic_chksplit = re.sub('[\&]', 'and', findcomic_chksplit)
                             findcomic_chksplit = re.sub('[\s]', '', findcomic_chksplit)
-                            #print chg_comic.upper()
-                            #print findcomic_chksplit.upper()
-                            if chg_comic.upper() == findcomic_chksplit.upper():
+                            chg_comic = re.sub('[\-\:\,\.\?]', ' ', chg_comic)
+                            chg_comic = re.sub('[\&]', 'and', chg_comic)
+                            chg_comic = re.sub('[\s]', '', chg_comic)
+                            logger.fdebug('chg_comic: ' + chg_comic.upper())
+                            logger.fdebug('findcomic_chksplit: ' + findcomic_chksplit.upper())
+                            if chg_comic.upper() in findcomic_chksplit.upper():
                                 logger.fdebug("series contains numerics...adjusting..")
                             else:
                                 changeup = "." + splitit[(len(splitit)-1)]

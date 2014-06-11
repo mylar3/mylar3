@@ -131,10 +131,10 @@ def dbUpdate(ComicIDList=None):
                                 newVAL = {"Status":        "Skipped"}
 
                             if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
+                                #logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
                                 myDB.upsert("Annuals", newVAL, ctrlVAL)
                             else:
-                                logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
+                                #logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
                                 myDB.upsert("Issues", newVAL, ctrlVAL)
                             fndissue.append({"IssueID":      issue['IssueID']})
                             icount+=1
@@ -157,7 +157,7 @@ def dbUpdate(ComicIDList=None):
                      for newi in newiss:
                          ctrlVAL = {"IssueID":   newi['IssueID']}
                          newVAL = {"Status":     newi['Status']}
-                         logger.fdebug('writing issuedata: ' + str(newVAL))
+                         #logger.fdebug('writing issuedata: ' + str(newVAL))
                          myDB.upsert("Issues", newVAL, ctrlVAL)
 
                 logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
@@ -171,6 +171,7 @@ def dbUpdate(ComicIDList=None):
 
 def latest_update(ComicID, LatestIssue, LatestDate):
     # here we add to comics.latest
+    #logger.info(str(ComicID) + ' - updating latest_date to : ' + str(LatestDate))
     myDB = db.DBConnection()
     latestCTRLValueDict = {"ComicID":      ComicID}
     newlatestDict = {"LatestIssue":      str(LatestIssue),
@@ -250,6 +251,10 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
                 else: mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck')#mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
             else:
+                #if 'annual' in ComicName.lower():
+                #    logger.fdebug('Annual detected - refreshing series.')
+                #    mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck', issuetype='annual')
+                #else:
                 logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
                 return
         else:

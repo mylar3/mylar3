@@ -1188,8 +1188,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             #logger.fdebug('latest date: ' + str(latestdate))
             #logger.fdebug('first date: ' + str(firstdate))
             #logger.fdebug('issue date: ' + str(firstval['Issue_Date']))
-            if firstval['Issue_Date'] > latestdate:
-                if issnum > latestiss:
+            if firstval['Issue_Date'] >= latestdate:
+                #logger.fdebug('date check hit for issue date > latestdate')
+                if int_issnum > helpers.issuedigits(latestiss):
+                    #logger.fdebug('assigning latest issue to : ' + str(issnum))
                     latestiss = issnum
                 latestdate = str(firstval['Issue_Date'])
             if firstval['Issue_Date'] < firstdate:
@@ -1264,7 +1266,6 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     importantdates['LatestIssue'] = latestiss
     importantdates['LatestDate'] = latestdate
     importantdates['LastPubDate'] = lastpubdate
-
 
     if calledfrom == 'weekly':
         return weeklyissue_check

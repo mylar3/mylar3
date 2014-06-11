@@ -13,12 +13,11 @@
 
 
 <%def name="body()">
-	<div class="table_wrapper">
 	<div id="manageheader" class="title">
 		<h1 class="clearfix">Manage comics</h1>
 	</div>
 	<form action="markComics" method="get" id="markComics">
-	<div id="markalbum">
+        <div id="markcomics" style="top:0;">
 		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
   			<option disabled="disabled" selected="selected">Choose...</option>
   			<option value="pause">Pause</option>
@@ -29,6 +28,8 @@
 		selected comics
 		<input type="hidden" value="Go">
 	</div>
+	<div class="table_wrapper">
+
 	<table class="display" id="manage_comic">
 		<thead>
 			<tr>
@@ -57,8 +58,8 @@
 		%endfor
 		</tbody>
 	</table>
-	</form>
 	</div>
+	</form>
 </%def>
 
 <%def name="headIncludes()">

@@ -613,6 +613,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
 
                                 if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
                                     logger.fdebug("matched on:" + comicnm + "..." + watchcomic.upper())
+                                    watchcomic = unlines[cnt]
                                     pass
 #                                elif ("ANNUAL" in week['EXTRA']):
 #                                    pass

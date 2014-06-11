@@ -32,7 +32,7 @@ def pullsearch(comicapi,comicquery,offset,explicit):
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     if explicit == 'all' or explicit == 'loose':
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset)
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
 
     else:
         # 02/22/2014 use the volume filter label to get the right results.
@@ -106,8 +106,13 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
         #logger.fdebug("querying " + str(countResults))
         if countResults > 0:
             #2012/22/02 - CV API flipped back to offset usage instead of page 
-            offsetcount = countResults
-
+            if explicit == 'all' or explicit == 'loose':
+                #all / loose uses page for offset
+                offsetcount = (countResults/100) + 1
+            else:
+                #explicit uses offset
+                offsetcount = countResults
+            
             searched = pullsearch(comicapi,comicquery,offsetcount,explicit)
         comicResults = searched.getElementsByTagName('volume')
         body = ''

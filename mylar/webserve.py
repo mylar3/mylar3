@@ -1022,7 +1022,7 @@ class WebInterface(object):
         #limittheyear.append(cf['IssueDate'][-4:])
         for ser in cflist:
             logger.info('looking for new data for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(ser['IssueDate'][-4:]) + ')')
-            searchresults, explicit = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=ser['IssueDate'][-4:], explicit='all')
+            searchresults, explicit = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=ser['IssueDate'][-4:], explicit='explicit')
             print searchresults
             if len(searchresults) > 1:
                 logger.info('More than one result returned - this may have to be a manual add')
@@ -1323,6 +1323,8 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comicsToAdd = []
         for ComicID in args:
+            if ComicID == 'manage_comic_length':
+                break
             if action == 'delete':
                 myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
                 myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
@@ -1338,7 +1340,6 @@ class WebInterface(object):
                 comicsToAdd.append(ComicID)
         if len(comicsToAdd) > 0:
             logger.fdebug("Refreshing comics: %s" % comicsToAdd)
-            #threading.Thread(target=importer.addComicIDListToDB, args=[comicsToAdd]).start()
             threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
         raise cherrypy.HTTPRedirect("home")
     markComics.exposed = True
