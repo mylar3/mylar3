@@ -131,12 +131,32 @@ def GetComicInfo(comicid,dom):
     cntit = int(cntit)
     #retrieve the first xml tag (<tag>data</tag>)
     #that the parser finds with name tagName:
+    # to return the parent name of the <name> node : dom.getElementsByTagName('name')[0].parentNode.nodeName
+    # where [0] denotes the number of the name field(s)
+    # where nodeName denotes the parentNode : ComicName = results, publisher = publisher, issues = issue
     try:
-        comic['ComicName'] = dom.getElementsByTagName('name')[trackcnt+1].firstChild.wholeText
-        comic['ComicName'] = comic['ComicName'].rstrip() 
+        names = len( dom.getElementsByTagName('name') )
+        n = 0
+        while ( n < names ):
+            if dom.getElementsByTagName('name')[n].parentNode.nodeName == 'results':
+                try:
+                    comic['ComicName'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
+                    comic['ComicName'] = comic['ComicName'].rstrip() 
+                except:
+                    logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible AND that you have provided your OWN ComicVine API key.')
+                    return
+
+            elif dom.getElementsByTagName('name')[n].parentNode.nodeName == 'publisher':
+                try:
+                    comic['ComicPublisher'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
+                except:
+                    comic['ComicPublisher'] = "Unknown"
+
+            n+=1  
     except:
-        logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible AND that you have provided your OWN ComicVine API key.')
+        logger.warn('Something went wrong retrieving from ComicVine. Ensure your API is up-to-date and that comicvine is accessible')
         return
+
     try:
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     except:
@@ -243,11 +263,6 @@ def GetComicInfo(comicid,dom):
 
     comic['ComicImage'] = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
     comic['ComicImageALT'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
-
-    try:
-        comic['ComicPublisher'] = dom.getElementsByTagName('name')[trackcnt+2].firstChild.wholeText
-    except:
-        comic['ComicPublisher'] = "Unknown"
 
     comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 
