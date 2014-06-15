@@ -23,12 +23,18 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
 
     if platform.system() == "Windows":
-        (x, y) = platform.architecture()
-        if x == "64bit":
-            comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
+        #if it's a source install.
+        if os.path.isdir(os.path.join(mylar.CMTAGGER_PATH, '.git')):
+            comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
+
         else:
-            comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
-        unrar_cmd =       "C:\Program Files\WinRAR\UnRAR.exe"
+            #regardless of 32/64 bit install
+            if 'comictagger.exe' in mylar.CMTAGGER_PATH:
+                comictagger_cmd = mylar.CMTAGGER_PATH
+            else:
+                comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
+
+        unrar_cmd = "C:\Program Files\WinRAR\UnRAR.exe"
 
       # test for UnRAR
         if not os.path.isfile(unrar_cmd):
@@ -41,7 +47,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     
     elif platform.system() == "Darwin":  #Mac OS X
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-        unrar_cmd =       "/usr/local/bin/unrar"
+        unrar_cmd = "/usr/local/bin/unrar"
     
     else:
         #for the 'nix
@@ -55,7 +61,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
 
         #set this to the lib path (ie. '<root of mylar>/lib')
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-        unrar_cmd =       "/usr/bin/unrar"
+        unrar_cmd = "/usr/bin/unrar"
 
 #    if not os.path.exists( comictagger_cmd ):
 #        print "ERROR:  can't find the ComicTagger program: {0}".format( comictagger_cmd )
@@ -113,6 +119,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             filename = f  #just the filename itself
             fcount+=1
     else:
+        # if the filename is identical to the parent folder, the entire subfolder gets copied since it's the first match, instead of just the file
         shutil.move( filename, comicpath )
 
     filename = os.path.split(filename)[1]   # just the filename itself
@@ -165,7 +172,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             logger.fdebug('{0}: Unrar is ' + unrar_folder )
             try:
                 #subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
-                output = check_output( [ unrar_cmd, "x", baserar ] ) #os.path.join(comicpath,basename) ] )
+                output = subprocess.check_output( [ unrar_cmd, 'x', baserar ] ) #os.path.join(comicpath,basename) ] )
             except CalledProcessError as e:
                 if e.returncode == 3:
                     logger.fdebug('[Unrar Error 3] - Broken Archive.')
@@ -208,13 +215,38 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     logger.fdebug('destination path: ' + os.path.join(dirName,file_n))
     logger.fdebug('dirName: ' + dirName)
     logger.fdebug('absDirName: ' + os.path.abspath(dirName))
-    ## Tag each CBZ, and move it back to original directory ##
-    if issueid is None:
-        subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
-        subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+    ## check comictagger version - less than 1.15.beta - take your chances.
+    ctversion = subprocess.check_output( [ comictagger_cmd, "--version" ] )
+    ctend = ctversion.find(':')
+    ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
+    ctcheck = re.sub('\.', '', ctcheck).strip()
+    if int(ctcheck) >= int('1115'): #(v1.1.15)
+        if mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+            logger.fdebug(ctversion[:ctend] + ' being used - no personal ComicVine API Key supplied. Take your chances.')
+            use_cvapi = "False"
+        else:
+            logger.fdebug(ctversion[:ctend] + ' being used - using personal ComicVine API key supplied via mylar.')
+            use_cvapi = "True"
     else:
-        subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
-        subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        logger.fdebug(ctversion[:ctend] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
+        use_cvapi = "False"
+
+    if use_cvapi == "True":
+    ## Tag each CBZ, and move it back to original directory ##
+        if issueid is None:
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "--cv-api-key", mylar.COMICVINE_API, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "--cv-api-key", mylar.COMICVINE_API, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        else:
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "--cv-api-key", mylar.COMICVINE_API, "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "--cv-api-key", mylar.COMICVINE_API, "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+    else:
+        if issueid is None:
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        else:
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cr", "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+            subprocess.Popen( [ comictagger_cmd, "-s", "-t", "cbl", "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+
 
     if os.path.exists(os.path.join(os.path.abspath(dirName),file_n)):
         logger.fdebug('Unable to move - file already exists.')
