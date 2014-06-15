@@ -93,14 +93,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         for newznab_host in mylar.EXTRA_NEWZNABS:
             if newznab_host[4] == '1' or newznab_host[4] == 1:
                 newznab_hosts.append(newznab_host)              
-                if newznab_host[0] == newznab_host[1]:
-                    nzbprovider.append('newznab')
-                else:
-                    nzbprovider.append('newznab:' + str(newznab_host[0]))
-#                except:
-#                    nzbprovider.append('newznab')
-#                    logger.error("newznab name not given for " + str(newznab_host[0]) + ". Defaulting name to newznab.")
-
+                #if newznab_host[0] == newznab_host[1]:
+                #    nzbprovider.append('newznab')
+                #else:
+                nzbprovider.append('newznab:' + str(newznab_host[0]))
                 newznabs+=1
                 logger.fdebug("newznab name:" + str(newznab_host[0]) + " @ " + str(newznab_host[1]))
 
