@@ -885,6 +885,6 @@ def weekly_singlecopy(comicid, issuenum, file, path):
         logger.error('Could not copy ' + str(srcfile) + ' to ' + str(desfile))
         return
 
-    logger.debug('sucessfully copied to ' + desfile.encode('utf-8').strip() )
+    logger.info('[WEEKLY-PULL] Sucessfully copied to ' + desfile.encode('utf-8').strip() )
     return
 

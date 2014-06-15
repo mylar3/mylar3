@@ -99,9 +99,9 @@ def solicit(month, year):
         while (x < lenlinks):
             headt = cntlinks[x] #iterate through the hrefs pulling out only results.
             if "/?page=article&amp;id=" in str(headt):
-                print ("titlet: " + str(headt))
+                #print ("titlet: " + str(headt))
                 headName = headt.findNext(text=True)
-                print ('headName: ' + headName)
+                #print ('headName: ' + headName)
                 if 'Image' in headName: print 'IMAGE FOUND'
                 if not all( ['Marvel' in headName, 'DC' in headName, 'Image' in headName] ) and ('Solicitations' in headName or 'Solicits' in headName):
                    # test for month here (int(month) + 5)
@@ -117,7 +117,7 @@ def solicit(month, year):
                                 publishchk = False
                                 for pub in publishers:
                                     if pub in headName[:pubstart]:
-                                        print 'publisher:' + str(publishers[pub])
+                                        #print 'publisher:' + str(publishers[pub])
                                         publish.append(publishers[pub])
                                         publishchk = True
                                         break
@@ -127,7 +127,7 @@ def solicit(month, year):
                                 abc = headt.findAll('a', href=True)[0]
                                 ID_som = abc['href']  #first instance will have the right link...
                                 resultURL.append( ID_som )
-                                print '(' + str(cnt) + ') [ ' + publish[cnt] + '] Link URL: ' + resultURL[cnt]
+                                #print '(' + str(cnt) + ') [ ' + publish[cnt] + '] Link URL: ' + resultURL[cnt]
                                 cnt+=1
 
                     else:
@@ -148,16 +148,6 @@ def solicit(month, year):
             upcoming += populate(resultURL[loopthis], publish[loopthis], shipdate)
             loopthis -=1
 
-## not needed.
-#        month +=1  #increment month by 1
-#        mnloop +=1 #increment loop by 1
-
-#        if month > 12:    #failsafe failover for months
-#            month = 1
-#            year+=1
-#---
-
-    #print upcoming
     logger.info( str(len(upcoming)) + ' upcoming issues discovered.' )
 
     newfl = mylar.CACHE_DIR + "/future-releases.txt"

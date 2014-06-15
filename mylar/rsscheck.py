@@ -35,7 +35,7 @@ def tehMain(forcerss=None):
     mylar.config_write()
 
     #function for looping through nzbs/torrent feed
-    if mylar.ENABLE_TORRENTS:
+    if mylar.ENABLE_TORRENT_SEARCH: #and mylar.ENABLE_TORRENTS:
         logger.info('[RSS] Initiating Torrent RSS Check.')
         if mylar.ENABLE_KAT:
             logger.info('[RSS] Initiating Torrent RSS Feed Check on KAT.')

@@ -14,6 +14,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     #searchName = "Uncanny Avengers"
     #searchIssue = "01"
     #searchYear = "2012"
+    if searchName.lower().startswith('the '):
+        searchName = searchName[4:]
     cName = searchName
     #clean up searchName due to webparse.
     searchName = searchName.replace("%20", " ")
