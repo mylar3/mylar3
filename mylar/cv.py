@@ -21,6 +21,8 @@ import string
 import urllib
 import lib.feedparser
 import mylar
+from mylar.helpers import cvapi_check
+
 from bs4 import BeautifulSoup as Soup
 
 def pulldetails(comicid,type,issueid=None,offset=1):
@@ -52,9 +54,13 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     elif type == 'storyarc':
        PULLURL =  mylar.CVURL + 'story_arc/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
 
-
+    #CV API Check here.
+    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
+        cvapi_check()
     #download the file:
     file = urllib2.urlopen(PULLURL)
+    #increment CV API counter.
+    mylar.CVAPI_COUNT +=1
     #convert to string:
     data = file.read()
     #close file because we dont need it anymore:

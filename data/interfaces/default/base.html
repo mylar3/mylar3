@@ -1,6 +1,7 @@
 <%
 	import mylar
 	from mylar import version
+        from mylar.helpers import cvapi_check
 %>
 <!doctype html>
 <!--[if lt IE 7 ]> <html lang="en" class="no-js ie6"> <![endif]-->
@@ -95,6 +96,8 @@
 				%if version.MYLAR_VERSION != 'master':
 				(${version.MYLAR_VERSION})
 				%endif
+                                <br/>
+                                API Usage: ${cvapi_check(True)}
 			</div>			
 		</footer>
 		<a href="#main" id="toTop"><span>Back to top</span></a>

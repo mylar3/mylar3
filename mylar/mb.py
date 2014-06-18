@@ -22,7 +22,7 @@ from xml.dom.minidom import parseString, Element
 
 import mylar
 from mylar import logger, db, cv
-from mylar.helpers import multikeysort, replace_all, cleanName
+from mylar.helpers import multikeysort, replace_all, cleanName, cvapi_check
 
 mb_lock = threading.Lock()
 
@@ -39,6 +39,9 @@ def pullsearch(comicapi,comicquery,offset,explicit):
         PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
+    #CV API Check here.
+    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
+        cvapi_check()
     #download the file:
     try:
         file = urllib2.urlopen(PULLURL)
@@ -46,6 +49,8 @@ def pullsearch(comicapi,comicquery,offset,explicit):
         logger.error('err : ' + str(err))
         logger.error("There was a major problem retrieving data from ComicVine - on their end. You'll have to try again later most likely.")
         return        
+    #increment CV API counter.
+    mylar.CVAPI_COUNT +=1
     #convert to string:
     data = file.read()
     #close file because we dont need it anymore:

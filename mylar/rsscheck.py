@@ -531,20 +531,20 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
         #0 holds the title/issue and format-type.
         while (i < len(torsplit)):
             #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.
-            logger.fdebug('section(' + str(i) + '): ' + str(torsplit[i]))
+            logger.fdebug('section(' + str(i) + '): ' + torsplit[i])
             #remove extensions
             titletemp = torsplit[i]
-            titletemp = re.sub('cbr', '', str(titletemp))
-            titletemp = re.sub('cbz', '', str(titletemp))
-            titletemp = re.sub('none', '', str(titletemp))
+            titletemp = re.sub('cbr', '', titletemp)
+            titletemp = re.sub('cbz', '', titletemp)
+            titletemp = re.sub('none', '', titletemp)
 
             if i == 0: 
-                rebuiltline = str(titletemp)
+                rebuiltline = titletemp
             else:
-                rebuiltline = rebuiltline + ' (' + str(titletemp) + ')'
+                rebuiltline = rebuiltline + ' (' + titletemp + ')'
             i+=1
 
-        logger.fdebug('rebuiltline is :' + str(rebuiltline))
+        logger.fdebug('rebuiltline is :' + rebuiltline)
 
         seriesname_mod = seriesname
         foundname_mod = torsplit[0]
@@ -575,10 +575,10 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
             titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
             #remove extensions
-            titleend = re.sub('cbr', '', str(titleend))
-            titleend = re.sub('cbz', '', str(titleend))
-            titleend = re.sub('none', '', str(titleend))
-            logger.fdebug('titleend: ' + str(titleend))
+            titleend = re.sub('cbr', '', titleend)
+            titleend = re.sub('cbz', '', titleend)
+            titleend = re.sub('none', '', titleend)
+            logger.fdebug('titleend: ' + titleend)
 
             sptitle = titleend.split()
             extra = ''

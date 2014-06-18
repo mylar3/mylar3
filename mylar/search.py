@@ -599,7 +599,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 continue
                     #use store date instead of publication date for comparisons since publication date is usually +2 months 
                     if StoreDate is None or StoreDate == '0000-00-00':
-                        stdate = IssueDate
+                        if IssueDate is None or IssueDate == '0000-00-00':
+                            logger.fdebug('Invalid store date & issue date detected - you probably should refresh the series or wait for CV to correct the data')
+                            continue
+                        else:
+                            stdate = IssueDate
                     else:
                         stdate = StoreDate
                     #logger.fdebug('Posting date of : ' + str(pubdate))
@@ -1382,6 +1386,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             if comic is None:
                 logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
+                continue
+            if result['StoreDate'] == '0000-00-00':
+                logger.fdebug(str(result['ComicID']) + ' has an invalid Store Date. Skipping searching for this series.')
                 continue
             foundNZB = "none"
             SeriesYear = comic['ComicYear']

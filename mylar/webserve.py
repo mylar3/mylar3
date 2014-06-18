@@ -52,6 +52,16 @@ def serve_template(templatename, **kwargs):
     
 class WebInterface(object):
     
+#    def filter_request():
+#        request = cherrypy.request
+
+#        if mylar.HTTPS_FORCE_ON:
+#            request.base = request.base.replace('http://', 'https://')
+
+#    cherrypy.tools.filter_request = cherrypy.Tool('before_request_body', filter_request)
+
+#    _cp_config = { 'tools.filter_reqeust_on': True }      
+
     def index(self):
         if mylar.SAFESTART:
             raise cherrypy.HTTPRedirect("manageComics")
@@ -473,9 +483,21 @@ class WebInterface(object):
         else:
             if mylar.CV_ONETIMER == 1:
                 logger.fdebug("CV_OneTimer option enabled...")
-                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
+                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clean grab.
                 logger.fdebug("Gathering the status of all issues for the series.")
+
                 issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+
+                if not issues:
+                    #if issues are None it's probably a bad refresh/maxed out API that resulted in the issue data
+                    #getting wiped out and not refreshed. Setting whack=True will force a complete refresh.
+                    logger.info('No issue data available. This is Whack.')
+                    whack = True
+                else:
+                    #check for series that are numerically out of whack (ie. 5/4)
+                    logger.info('Checking how out of whack the series is.')
+                    whack = helpers.havetotals(refreshit=ComicID)
+                
                 
                 annload = []  #initiate the list here so we don't error out below.
 
@@ -500,86 +522,90 @@ class WebInterface(object):
                 myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
                 myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
-                mylar.importer.addComictoDB(ComicID,mismatch,calledfrom='dbupdate',annload=annload)
-                #reload the annuals here.
+                if whack == False:
+                    mylar.importer.addComictoDB(ComicID,mismatch,calledfrom='dbupdate',annload=annload)
+                    #reload the annuals here.
                 
-                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])            
-                annuals = []
-                ann_list = []
-                if mylar.ANNUALS_ON:
-                    annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
-                    ann_list += annuals_list
-                    issues_new += annuals_list
+                    issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])            
+                    annuals = []
+                    ann_list = []
+                    if mylar.ANNUALS_ON:
+                        annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
+                        ann_list += annuals_list
+                        issues_new += annuals_list
 
-                logger.fdebug("Attempting to put the Status' back how they were.")
-                icount = 0
-                #the problem - the loop below will not match on NEW issues that have been refreshed that weren't present in the
-                #db before (ie. you left Mylar off for abit, and when you started it up it pulled down new issue information)
-                #need to test if issuenew['Status'] is None, but in a seperate loop below.
-                fndissue = []
-                for issue in issues:
-                    for issuenew in issues_new:
-                        #logger.fdebug(str(issue['Issue_Number']) + ' - issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
-                        #logger.fdebug(str(issue['Issue_Number']) + ' - issue:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
-                        if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
-                            ctrlVAL = {"IssueID":      issue['IssueID']}
-                            #if the status is None and the original status is either Downloaded / Archived, keep status & stats
-                            if issuenew['Status'] == None and (issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived'):
-                                newVAL = {"Location":     issue['Location'],
-                                          "ComicSize":    issue['ComicSize'],
-                                          "Status":       issue['Status']}
-                            #if the status is now Downloaded/Snatched, keep status & stats (downloaded only)
-                            elif issuenew['Status'] == 'Downloaded' or issue['Status'] == 'Snatched':
-                                newVAL = {"Location":      issue['Location'],
-                                          "ComicSize":     issue['ComicSize']}
-                                if issuenew['Status'] == 'Downloaded':
-                                    newVAL['Status'] = issuenew['Status']
-                                else:
-                                    newVAL['Status'] = issue['Status']
+                    logger.fdebug("Attempting to put the Status' back how they were.")
+                    icount = 0
+                    #the problem - the loop below will not match on NEW issues that have been refreshed that weren't present in the
+                    #db before (ie. you left Mylar off for abit, and when you started it up it pulled down new issue information)
+                    #need to test if issuenew['Status'] is None, but in a seperate loop below.
+                    fndissue = []
+                    for issue in issues:
+                        for issuenew in issues_new:
+                            #logger.fdebug(str(issue['Issue_Number']) + ' - issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
+                            #logger.fdebug(str(issue['Issue_Number']) + ' - issue:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
+                            if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
+                                ctrlVAL = {"IssueID":      issue['IssueID']}
+                                #if the status is None and the original status is either Downloaded / Archived, keep status & stats
+                                if issuenew['Status'] == None and (issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived'):
+                                    newVAL = {"Location":     issue['Location'],
+                                              "ComicSize":    issue['ComicSize'],
+                                              "Status":       issue['Status']}
+                                #if the status is now Downloaded/Snatched, keep status & stats (downloaded only)
+                                elif issuenew['Status'] == 'Downloaded' or issue['Status'] == 'Snatched':
+                                    newVAL = {"Location":      issue['Location'],
+                                              "ComicSize":     issue['ComicSize']}
+                                    if issuenew['Status'] == 'Downloaded':
+                                        newVAL['Status'] = issuenew['Status']
+                                    else:
+                                        newVAL['Status'] = issue['Status']
                                 
-                            elif issue['Status'] == 'Archived':
-                                newVAL = {"Status":        issue['Status'],
-                                          "Location":      issue['Location'],
-                                          "ComicSize":     issue['ComicSize']}
-                            else:
-                                #change the status to the previous status
-                                newVAL = {"Status":        issue['Status']}
+                                elif issue['Status'] == 'Archived':
+                                    newVAL = {"Status":        issue['Status'],
+                                              "Location":      issue['Location'],
+                                              "ComicSize":     issue['ComicSize']}
+                                else:
+                                    #change the status to the previous status
+                                    newVAL = {"Status":        issue['Status']}
+  
+                                if newVAL['Status'] == None:
+                                    newVAL = {"Status":        "Skipped"}
 
-                            if newVAL['Status'] == None:
-                                newVAL = {"Status":        "Skipped"}
+                                if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
+                                    logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
+                                    myDB.upsert("Annuals", newVAL, ctrlVAL)
+                                else:
+                                    #logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
+                                    myDB.upsert("Issues", newVAL, ctrlVAL)
+                                fndissue.append({"IssueID":      issue['IssueID']})
+                                icount+=1
+                                break
+                    logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
 
-                            if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
-                                myDB.upsert("Annuals", newVAL, ctrlVAL)
-                            else:
-                                logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
-                                myDB.upsert("Issues", newVAL, ctrlVAL)
-                            fndissue.append({"IssueID":      issue['IssueID']})
-                            icount+=1
-                            break
-                logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
+                    issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
+                    if mylar.ANNUALS_ON:
+                        issues_new += myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
 
-                issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
-                if mylar.ANNUALS_ON:
-                    issues_new += myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
+                    newiss = []
+                    if mylar.AUTOWANT_UPCOMING:
+                        #only mark store date >= current date as Wanted.
+                        newstatus = "Wanted"
+                    else:
+                        newstatus = "Skipped"
+                    for iss in issues_new:
+                         newiss.append({"IssueID":      iss['IssueID'],
+                                        "Status":       newstatus})
+                    if len(newiss) > 0:
+                         for newi in newiss:
+                             ctrlVAL = {"IssueID":   newi['IssueID']}
+                             newVAL = {"Status":     newi['Status']}
+                             #logger.info('writing issuedata: ' + str(newVAL))
+                             myDB.upsert("Issues", newVAL, ctrlVAL)
 
-                newiss = []
-                if mylar.AUTOWANT_UPCOMING:
-                    newstatus = "Wanted"
+                    logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
                 else:
-                    newstatus = "Skipped"
-                for iss in issues_new:
-                     newiss.append({"IssueID":      iss['IssueID'],
-                                    "Status":       newstatus})
-                if len(newiss) > 0:
-                     for newi in newiss:
-                         ctrlVAL = {"IssueID":   newi['IssueID']}
-                         newVAL = {"Status":     newi['Status']}
-                         logger.info('writing issuedata: ' + str(newVAL))
-                         myDB.upsert("Issues", newVAL, ctrlVAL)
-
-                logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
-
+                    mylar.importer.addComictoDB(ComicID,mismatch,annload=annload)
+    
             else:
                 mylar.importer.addComictoDB(ComicID,mismatch)
 
@@ -682,9 +708,13 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     addArtists.exposed = True
     
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None):
-        #logger.fdebug('ComicID:' + str(ComicID))
-        #logger.fdebug('mode:' + str(mode))
+    def queueit(self, **kwargs):
+        threading.Thread(target=self.queueissue, kwargs=kwargs).start()
+    queueit.exposed = True
+
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None):
+        logger.fdebug('ComicID:' + str(ComicID))
+        logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
         myDB = db.DBConnection()
         #mode dictates type of queue - either 'want' for individual comics, or 'series' for series watchlist.
@@ -730,17 +760,23 @@ class WebInterface(object):
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
             raise cherrypy.HTTPRedirect("pullist")
             #return
-        elif mode == 'want' or mode == 'want_ann':
+        elif mode == 'want' or mode == 'want_ann' or manualsearch:
             cdname = myDB.selectone("SELECT ComicName from comics where ComicID=?", [ComicID]).fetchone()
             ComicName = cdname['ComicName']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
-                logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
-                myDB.upsert("issues", newStatus, controlValueDict)
+                if manualsearch:
+                    logger.info('Initiating manual search for ' + ComicName + ' issue: ' + ComicIssue)
+                else:
+                    logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
+                    myDB.upsert("issues", newStatus, controlValueDict)
             else:
-                logger.info(u"Marking " + ComicName + " Annual: " + ComicIssue + " as wanted...")
-                myDB.upsert("annuals", newStatus, controlValueDict)
+                if manualsearch:
+                    logger.info('Initiating manual search for ' + ComicName + ' Annual: ' + ComicIssue)
+                else:
+                    logger.info(u"Marking " + ComicName + " Annual: " + ComicIssue + " as wanted...")
+                    myDB.upsert("annuals", newStatus, controlValueDict)
         #---
         #this should be on it's own somewhere
         #if IssueID is not None:
@@ -2399,6 +2435,8 @@ class WebInterface(object):
                     "post_processing" : helpers.checked(mylar.POST_PROCESSING),
                     "enable_meta" : helpers.checked(mylar.ENABLE_META),
                     "cmtagger_path" : mylar.CMTAGGER_PATH,
+                    "ct_tag_cr" : helpers.checked(mylar.CT_TAG_CR),
+                    "ct_tag_cbl" : helpers.checked(mylar.CT_TAG_CBL),
                     "branch" : version.MYLAR_VERSION,
                     "br_type" : mylar.INSTALL_TYPE,
                     "br_version" : mylar.versioncheck.getVersion(),
@@ -2580,7 +2618,7 @@ class WebInterface(object):
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0,
-        enable_meta=0, cmtagger_path=None, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None, snatchedtorrent_notify=0,
+        enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, enable_rss=0, rss_checkinterval=None, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
@@ -2706,6 +2744,8 @@ class WebInterface(object):
         mylar.PRE_SCRIPTS = pre_scripts
         mylar.ENABLE_META = enable_meta
         mylar.CMTAGGER_PATH = cmtagger_path
+        mylar.CT_TAG_CR = ct_tag_cr
+        mylar.CT_TAG_CBL = ct_tag_cbl
         mylar.LOG_DIR = log_dir
         mylar.LOG_LEVEL = log_level
         mylar.CHMOD_DIR = chmod_dir

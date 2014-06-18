@@ -92,6 +92,7 @@ HTTP_HOST = None
 HTTP_USERNAME = None
 HTTP_PASSWORD = None
 HTTP_ROOT = None
+HTTPS_FORCE_ON = False
 API_ENABLED = False
 API_KEY = None
 LAUNCH_BROWSER = False
@@ -106,6 +107,8 @@ SEARCH_DELAY = 1
 
 COMICVINE_API = None
 DEFAULT_CVAPI = '583939a3df0a25fc4e8b7a29934a13078002dc27'
+CVAPI_COUNT = 0
+CVAPI_TIME = None
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -264,6 +267,8 @@ BIGGIE_PUB = 55
 
 ENABLE_META = 0
 CMTAGGER_PATH = None
+CT_TAG_CR = 1
+CT_TAG_CBL = 1
 
 ENABLE_RSS = 0
 RSS_CHECKINTERVAL = 20
@@ -338,15 +343,15 @@ def initialize():
 
     with INIT_LOCK:
     
-        global __INITIALIZED__, COMICVINE_API, DEFAULT_CVAPI, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
-                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, \
+        global __INITIALIZED__, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
+                HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
@@ -385,6 +390,7 @@ def initialize():
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
         HTTP_ROOT = check_setting_str(CFG, 'General', 'http_root', '/')
+        HTTPS_FORCE_ON = bool(check_setting_int(CFG, 'General', 'https_force_on', 0))
         API_ENABLED = bool(check_setting_int(CFG, 'General', 'api_enabled', 0))
         API_KEY = check_setting_str(CFG, 'General', 'api_key', '') 
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
@@ -512,6 +518,8 @@ def initialize():
 
         ENABLE_META = bool(check_setting_int(CFG, 'General', 'enable_meta', 0))
         CMTAGGER_PATH = check_setting_str(CFG, 'General', 'cmtagger_path', '')
+        CT_TAG_CR = bool(check_setting_int(CFG, 'General', 'ct_tag_cr', 1))
+        CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
 
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
@@ -1015,6 +1023,7 @@ def config_write():
     new_config['General']['http_username'] = HTTP_USERNAME
     new_config['General']['http_password'] = HTTP_PASSWORD
     new_config['General']['http_root'] = HTTP_ROOT
+    new_config['General']['https_force_on'] = int(HTTPS_FORCE_ON)
     new_config['General']['api_enabled'] = int(API_ENABLED)
     new_config['General']['api_key'] = API_KEY   
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
@@ -1089,6 +1098,8 @@ def config_write():
     new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
     new_config['General']['enable_meta'] = int(ENABLE_META)
     new_config['General']['cmtagger_path'] = CMTAGGER_PATH
+    new_config['General']['ct_tag_cr'] = int(CT_TAG_CR)
+    new_config['General']['ct_tag_cbl'] = int(CT_TAG_CBL)
     new_config['General']['indie_pub'] = INDIE_PUB
     new_config['General']['biggie_pub'] = BIGGIE_PUB
 
@@ -1238,6 +1249,10 @@ def start():
 
             helpers.latestdate_fix()
 
+            #start the ComicVine API Counter here.
+            logger.info('Initiating the ComicVine API Checker to report API hits every 5 minutes.')
+            SCHED.add_interval_job(helpers.cvapi_check, minutes=5)
+
             #initiate startup rss feeds for torrents/nzbs here...
             if ENABLE_RSS:
                 SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
@@ -1263,10 +1278,10 @@ def start():
                 SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
         
             #run checkFolder every X minutes (basically Manual Run Post-Processing)
-            logger.info('CHECK_FOLDER SET TO: ' + str(CHECK_FOLDER))
+            logger.info('Monitor folder set to : ' + str(CHECK_FOLDER))
             if CHECK_FOLDER:
                 if DOWNLOAD_SCAN_INTERVAL >0:
-                    logger.info('Setting monitor on folder : ' + str(CHECK_FOLDER))
+                    logger.info('Enabling folder monitor for : ' + str(CHECK_FOLDER) + ' every ' + str(DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
                     #FolderMonitorScheduler.thread.start()
                     SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
                 else:

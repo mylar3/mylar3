@@ -37,6 +37,7 @@ body { font:13px/1.231 sans-serif; *font-size:small; }
 select, input, textarea, button { font:99% sans-serif; }
 pre, code, kbd, samp { font-family: monospace, sans-serif; }
 
+
 html { overflow-y: scroll; }
 a:hover, a:active { outline: none; }
 ul, ol { margin-left: 2em; }
@@ -160,6 +161,7 @@ table#artist_table td#album { vertical-align: middle; text-align: left; min-widt
 table#artist_table td#have { vertical-align: middle; }
 
 div#paddingheader { padding-top: 48px; font-size: 24px; font-weight: bold; text-align: center; }
+div#paddingheadertitle { padding-top: 24px; font-size: 24px; font-weight: bold; text-align: center; }
 div#nopaddingheader { font-size: 24px; font-weight: bold; text-align: center; }
 table#issue_table { background-color: grey; width: 100%; padding: 10px; }
 

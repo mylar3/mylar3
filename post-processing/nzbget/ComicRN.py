@@ -26,11 +26,11 @@ if os.environ.has_key('NZBOP_SCRIPTDIR') and not os.environ['NZBOP_VERSION'][0:5
     POSTPROCESS_NONE=95
 
     #Start script
-    result = autoProcessComics.processEpisode(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'])
+    result = autoProcessComics.processIssue(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'])
 
 
 elif len(sys.argv) == NZBGET_NO_OF_ARGUMENTS:
-   result = autoProcessComics.processEpisode(sys.argv[1], sys.argv[2], sys.argv[3])
+   result = autoProcessComics.processIssue(sys.argv[1], sys.argv[2], sys.argv[3])
 	
 if result == 0:
     if os.environ.has_key('NZBOP_SCRIPTDIR'): # log success for nzbget

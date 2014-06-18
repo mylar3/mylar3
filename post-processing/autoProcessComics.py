@@ -22,7 +22,7 @@ class AuthURLOpener(urllib.FancyURLopener):
         return urllib.FancyURLopener.open(self, url)
 
 
-def processEpisode(dirName, nzbName=None):
+def processIssue(dirName, nzbName=None):
 
     config = ConfigParser.ConfigParser()
     configFilename = os.path.join(os.path.dirname(sys.argv[0]), "autoProcessComics.cfg")
@@ -81,7 +81,7 @@ def processEpisode(dirName, nzbName=None):
     for line in result:
         print line
 
-    if any("Post Processing SUCCESSFULL" in s for s in result):
+    if any("Post Processing SUCCESSFUL" in s for s in result):
         return 0
     else:
         return 1

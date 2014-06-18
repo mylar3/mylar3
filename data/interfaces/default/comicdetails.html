@@ -33,13 +33,12 @@
                                 <img src="interfaces/default/images/loader_black.gif" alt="loading" style="float:left; margin-right: 5px;"/>
                         %endif
                         <div class="row">
-
-                             <a href="${comic['DetailURL']}" target="_blank">${comic['ComicName']} (${comic['ComicYear']})</a>
+                              <a href="${comic['DetailURL']}" target="_blank">${comic['ComicName']} (${comic['ComicYear']})</a>
                               %if comic['Status'] == 'Loading':
                                     <h3><i>(Comic information is currently being loaded)</i></h3>
                               %endif
                         </div>
-                 </h1>
+                </h1>
                              <div style="z-index:10; position: absolute; right: 0; top: 10;">
                              <a href="comicDetails?ComicID=${series['Previous']}"><img src="interfaces/default/images/prev.gif" width="16" height="18" /></a>
                              <a href="comicDetails?ComicID=${series['Next']}"><img src="interfaces/default/images/next.gif" width="16" height="18" /></a>
@@ -363,12 +362,13 @@
                                 %endif
                                 </td>
                                 <td id="options">
+                                <a href="#" title="Manual Search" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want&manualsearch=True',$(this),'table')" data-success="Manually searching for ${comic['ComicName']} #${issue['Issue_Number']}"><img src="interfaces/default/images/search.png" height="25" width="25" /></a>
                                 %if issue['Status'] == 'Skipped' or issue['Status'] == 'Ignored':
-                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')" data-success="Issue Marked as Wanted"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
+                                        <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}&mode=want',$(this),'table')" data-success="Issue Marked as Wanted"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                 %elif (issue['Status'] == 'Wanted'):
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                 %elif (issue['Status'] == 'Snatched'):
-                                       <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                       <a href="#" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>                                    
                                 %elif (issue['Status'] == 'Downloaded'):
                                        <%
@@ -384,7 +384,7 @@
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
                                 %else:
-                                <a href="#" onclick="doAjaxCall('queueissue?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
+                                <a href="#" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" /></a>
                                 <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                 %endif
                                 <a href="#" onclick="doAjaxCall('archiveissue?IssueID=${issue['IssueID']}',$(this),'table')"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived"></a>
@@ -479,6 +479,7 @@
                                 </td>
                                 <td id="aoptions">
                                    <% amode = 'want_ann' %>
+                                        <a href="#" title="Manual Search" onclick="doAjaxCall('queueit?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=${amode}&manualsearch=True',$(this),'table')" data-success="Manually searching for ${annual['ComicName']} #${annual['Issue_Number']}"><img src="interfaces/default/images/search.png" height="25" width="25" /></a>
                                         <a href="#" title="Mark issue as Wanted" onclick="doAjaxCall('queueissue?ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&ComicIssue=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&mode=${amode}',$(this),'table')"><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                         <a href="#" title="Add to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" /></a>
@@ -543,7 +544,7 @@
                 data: {
                   resources: "volume",
                   format: "json",
-                  api_key: "583939a3df0a25fc4e8b7a29934a13078002dc27",
+                  api_key: "",
                   query: request.term
                 },
                 success: function( data ) {
