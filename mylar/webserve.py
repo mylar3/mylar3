@@ -467,6 +467,13 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("history")
     wipenzblog.exposed = True
 
+    def refreshSeries(self, ComicID):
+        comicsToAdd = [ComicID]
+        logger.fdebug("Refreshing comic: %s" % comicsToAdd)
+        threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
+        #threading.Thread(target=self.refreshArtist, kwargs=kwargs).start()
+    refreshSeries.exposed = True
+
     def refreshArtist(self, ComicID):
         myDB = db.DBConnection()
         mismatch = "no"
@@ -702,11 +709,6 @@ class WebInterface(object):
         #else:
         #    raise cherrypy.HTTPRedirect("upcoming")
     markissues.exposed = True
-    
-    def addArtists(self, **args):
-        threading.Thread(target=importer.artistlist_to_mbids, args=[args, True]).start()
-        raise cherrypy.HTTPRedirect("home")
-    addArtists.exposed = True
     
     def queueit(self, **kwargs):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
