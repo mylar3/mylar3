@@ -487,11 +487,17 @@ class PostProcessor(object):
                 else:
                     logger.fdebug(module + ' Was downloaded from ' + snatchnzb['Provider'] + '. Enabling torrent manual post-processing completion notification.')
                     snatchedtorrent = True
-            logger.fdebug(module + ' issueid: ' + str(issueid))
-            logger.fdebug(module + ' issuenumOG: ' + str(issuenumOG))
+
             if issuenzb is None:
                 issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
                 annchk = "yes"
+            if annchk == "no":
+                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' issue: ' + str(issuenzb['Issue_Number']))
+            else:
+                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' Annual issue: ' + str(issuenzb['Issue_Number']))
+            logger.fdebug(module + ' issueid: ' + str(issueid))
+            logger.fdebug(module + ' issuenumOG: ' + str(issuenumOG))
+
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
@@ -846,9 +852,15 @@ class PostProcessor(object):
 
                 #tidyup old path
                 try:
-                    if os.path.isdir(odir) and odir != self.nzb_folder:
-                        logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
-                        shutil.rmtree(odir)
+                    if os.path.isdir(odir): #and odir != self.nzb_folder:
+                        # check to see if the directory is empty or not.
+                        if not os.listdir(odir):
+                            logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
+                            shutil.rmtree(odir)
+                        else:
+                            raise OSError(module + ' ' + odir + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be removed manually.')
+                    else:
+                        raise OSError(module + ' ' + odir + ' unable to remove at this time.') 
                 except (OSError, IOError):
                     logger.fdebug(module + ' Failed to remove temporary directory (' + odir + ') - Processing will continue, but manual removal is necessary')
 
