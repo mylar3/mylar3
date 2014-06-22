@@ -932,6 +932,9 @@ def GCDimport(gcomicid, pullupd=None,imported=None,ogcname=None):
 def issue_collection(issuedata,nostatus):
     myDB = db.DBConnection()
 
+    nowdate = datetime.datetime.now()
+    nowtime = nowdate.strftime("%Y%m%d")
+
     if issuedata:    
         for issue in issuedata:
 
@@ -958,13 +961,15 @@ def issue_collection(issuedata,nostatus):
                     #logger.fdebug('issue #' + str(issue['Issue_Number']) + 'does not exist in db.')
                     if mylar.AUTOWANT_ALL:
                         newValueDict['Status'] = "Wanted"
-                    elif issue['IssueDate'] > helpers.today() and mylar.AUTOWANT_UPCOMING:
+                        #logger.fdebug('autowant all')
+                    elif re.sub('-', '', issue['ReleaseDate']).strip() > nowtime and mylar.AUTOWANT_UPCOMING:
+                        #logger.fdebug(str(re.sub('-', '', issue['ReleaseDate']).strip()) + ' > ' + str(nowtime))
                         newValueDict['Status'] = "Wanted"
                     else:
                         newValueDict['Status'] = "Skipped"
-
+                    #logger.fdebug('status is : ' + str(newValueDict))
                 else:
-                    #logger.info('Existing status for issue #' + str(issue['Issue_Number']) + ' : ' + str(iss_exists['Status']))
+                    #logger.fdebug('Existing status for issue #' + str(issue['Issue_Number']) + ' : ' + str(iss_exists['Status']))
                     newValueDict['Status'] = iss_exists['Status']
 
             else:

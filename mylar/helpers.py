@@ -1075,12 +1075,15 @@ def havetotals(refreshit=None):
 def cvapi_check(web=None):
     import logger
     if web is None: logger.fdebug('[ComicVine API] ComicVine API Check Running...')
-    if mylar.CVAPI_TIME is None:
+    if mylar.CVAPI_TIME is None or mylar.CVAPI_TIME == '':
         c_date = now()
         c_obj_date = datetime.datetime.strptime(c_date,"%Y-%m-%d %H:%M:%S")
         mylar.CVAPI_TIME = c_obj_date
     else:
-        c_obj_date = mylar.CVAPI_TIME
+        if isinstance(mylar.CVAPI_TIME, unicode):
+            c_obj_date = datetime.datetime.strptime(mylar.CVAPI_TIME,"%Y-%m-%d %H:%M:%S")
+        else:
+            c_obj_date = mylar.CVAPI_TIME
     if web is None: logger.fdebug('[ComicVine API] API Start Monitoring Time (~15mins): ' + str(mylar.CVAPI_TIME))
     now_date = now()
     n_date = datetime.datetime.strptime(now_date,"%Y-%m-%d %H:%M:%S")
@@ -1088,10 +1091,10 @@ def cvapi_check(web=None):
     absdiff = abs(n_date - c_obj_date)
     mins = round(((absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0),2)
     if mins < 15:
-        if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' in ' + str(mins) + ' minutes.')
-        if mylar.CVAPI_COUNT > 200:
+        if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' / ' + str(mylar.CVAPI_MAX) + ' in ' + str(mins) + ' minutes.')
+        if mylar.CVAPI_COUNT > mylar.CVAPI_MAX:
             cvleft = 15 - mins
-            if web is None: logger.warn('[ComicVine API] You have already hit your API limit with ' + str(cvleft) + ' minutes. Best be slowing down, cowboy.')
+            if web is None: logger.warn('[ComicVine API] You have already hit your API limit (' + str(mylar.CVAPI_MAX) + ' with ' + str(cvleft) + ' minutes. Best be slowing down, cowboy.')
     elif mins > 15:
         mylar.CVAPI_COUNT = 0
         c_date = now()

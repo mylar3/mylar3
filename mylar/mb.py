@@ -40,7 +40,7 @@ def pullsearch(comicapi,comicquery,offset,explicit):
 
     #all these imports are standard on most modern python implementations
     #CV API Check here.
-    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
+    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         cvapi_check()
     #download the file:
     try:

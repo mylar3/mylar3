@@ -55,7 +55,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
        PULLURL =  mylar.CVURL + 'story_arc/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
 
     #CV API Check here.
-    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
+    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         cvapi_check()
     #download the file:
     file = urllib2.urlopen(PULLURL)

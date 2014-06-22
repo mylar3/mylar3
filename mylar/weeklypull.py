@@ -843,7 +843,10 @@ def checkthis(datecheck,datestatus,usedate):
 
     return valid_check
 
-def weekly_singlecopy(comicid, issuenum, file, path):
+def weekly_singlecopy(comicid, issuenum, file, path, module=None):
+    if module is None:
+        module = ''
+    module += '[WEEKLY-PULL]'
     myDB = db.DBConnection()
     try:
         pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
@@ -852,22 +855,22 @@ def weekly_singlecopy(comicid, issuenum, file, path):
         else:
             pulldate = pull_date['SHIPDATE']
 
-        logger.fdebug(u"Weekly pull list detected as : " + str(pulldate))
+        logger.fdebug(module + ' Weekly pull list detected as : ' + str(pulldate))
 
     except (sqlite3.OperationalError, TypeError),msg:
-        logger.info(u"Error determining current weekly pull-list date - you should refresh the pull-list manually probably.")
+        logger.info(module + ' Error determining current weekly pull-list date - you should refresh the pull-list manually probably.')
         return
 
     chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND ISSUE=?',[comicid, issuenum]).fetchone()
     if chkit is None:
-        logger.fdebug(file + ' is not on the weekly pull-list or it is a one-off download that is not supported as of yet.')
+        logger.fdebug(module + ' ' + file + ' is not on the weekly pull-list or it is a one-off download that is not supported as of yet.')
         return
 
-    logger.info('issue on weekly pull-list.')
+    logger.info(module + ' Issue found on weekly pull-list.')
 
     if mylar.WEEKFOLDER:
         desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
-        dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True)
+        dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True, module=module)
         if dircheck:
             pass
         else:
@@ -882,9 +885,9 @@ def weekly_singlecopy(comicid, issuenum, file, path):
     try:
         shutil.copy2(srcfile, desfile)
     except IOError as e:
-        logger.error('Could not copy ' + str(srcfile) + ' to ' + str(desfile))
+        logger.error(module + ' Could not copy ' + str(srcfile) + ' to ' + str(desfile))
         return
 
-    logger.info('[WEEKLY-PULL] Sucessfully copied to ' + desfile.encode('utf-8').strip() )
+    logger.info(module + ' Sucessfully copied to ' + desfile.encode('utf-8').strip() )
     return
 

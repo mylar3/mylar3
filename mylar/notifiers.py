@@ -42,9 +42,13 @@ class PROWL:
     def conf(self, options):
         return cherrypy.config['config'].get('Prowl', options)
 
-    def notify(self, message, event):
+    def notify(self, message, event, module=None):
         if not mylar.PROWL_ENABLED:
             return
+
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
 
         http_handler = HTTPSConnection("api.prowlapp.com")
                                                 
@@ -62,13 +66,13 @@ class PROWL:
         request_status = response.status
 
         if request_status == 200:
-                logger.info(u"Prowl notifications sent.")
+                logger.info(module + ' Prowl notifications sent.')
                 return True
         elif request_status == 401: 
-                logger.info(u"Prowl auth failed: %s" % response.reason)
+                logger.info(module + ' Prowl auth failed: %s' % response.reason)
                 return False
         else:
-                logger.info(u"Prowl notification failed.")
+                logger.info(module + ' Prowl notification failed.')
                 return False
 
     def updateLibrary(self):
@@ -90,7 +94,7 @@ class NMA:
         self.apikey = mylar.NMA_APIKEY
         self.priority = mylar.NMA_PRIORITY
         
-    def _send(self, data):
+    def _send(self, data, module):
         
         url_data = urllib.urlencode(data)
         url = 'https://www.notifymyandroid.com/publicapi/notify'
@@ -100,15 +104,19 @@ class NMA:
         try:
             handle = urllib2.urlopen(req)
         except Exception, e:
-            logger.warn('Error opening NotifyMyAndroid url: ' % e)
+            logger.warn(module + ' Error opening NotifyMyAndroid url: ' % e)
             return
 
         response = handle.read().decode(mylar.SYS_ENCODING)
         
         return response     
         
-    def notify(self, snline=None, prline=None, prline2=None, snatched_nzb=None, sent_to=None, prov=None):
-    
+    def notify(self, snline=None, prline=None, prline2=None, snatched_nzb=None, sent_to=None, prov=None, module=None):
+
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'    
+
         apikey = self.apikey
         priority = self.priority
         
@@ -122,12 +130,12 @@ class NMA:
     
         data = { 'apikey': apikey, 'application':'Mylar', 'event': event, 'description': description, 'priority': priority}
 
-        logger.info('Sending notification request to NotifyMyAndroid')
-        request = self._send(data)
+        logger.info(module + ' Sending notification request to NotifyMyAndroid')
+        request = self._send(data,module)
         
         if not request:
-            logger.warn('Error sending notification request to NotifyMyAndroid')        
-        
+            logger.warn(module + ' Error sending notification request to NotifyMyAndroid')        
+
 # 2013-04-01 Added Pushover.net notifications, based on copy of Prowl class above.
 # No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
 class PUSHOVER:
@@ -151,9 +159,12 @@ class PUSHOVER:
     #def conf(self, options):
     # return cherrypy.config['config'].get('Pushover', options)
 
-    def notify(self, message, event):
+    def notify(self, message, event, module=None):
         if not mylar.PUSHOVER_ENABLED:
             return
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
 
         http_handler = HTTPSConnection("api.pushover.net:443")
                                                 
@@ -172,13 +183,13 @@ class PUSHOVER:
         request_status = response.status
 
         if request_status == 200:
-                logger.info(u"Pushover notifications sent.")
+                logger.info(module + ' Pushover notifications sent.')
                 return True
         elif request_status == 401:
-                logger.info(u"Pushover auth failed: %s" % response.reason)
+                logger.info(module + 'Pushover auth failed: %s' % response.reason)
                 return False
         else:
-                logger.info(u"Pushover notification failed.")
+                logger.info(module + ' Pushover notification failed.')
                 return False
 
     def test(self, apikey, userkey, priority):
@@ -198,7 +209,7 @@ class BOXCAR:
 
         self.url = 'https://new.boxcar.io/api/notifications'
 
-    def _sendBoxcar(self, msg, title):
+    def _sendBoxcar(self, msg, title, module):
 
         """
         Sends a boxcar notification to the address provided
@@ -226,19 +237,19 @@ class BOXCAR:
         except urllib2.URLError, e:
             # if we get an error back that doesn't have an error code then who knows what's really happening
             if not hasattr(e, 'code'):
-                logger.error('Boxcar2 notification failed. %s' % e)
+                logger.error(module + 'Boxcar2 notification failed. %s' % e)
             # If you receive an HTTP status code of 400, it is because you failed to send the proper parameters
             elif e.code == 400:
-                logger.info("Wrong data sent to boxcar")
-                logger.info('data:' + data)
+                logger.info(module + ' Wrong data sent to boxcar')
+                logger.info(module + ' data:' + data)
             else:
-                logger.error("Boxcar2 notification failed. Error code: " + str(e.code))
+                logger.error(module + ' Boxcar2 notification failed. Error code: ' + str(e.code))
             return False
 
-        logger.fdebug("Boxcar2 notification successful.")
+        logger.fdebug(module + ' Boxcar2 notification successful.')
         return True
 
-    def notify(self, ComicName=None, Year=None, Issue=None, sent_to=None, snatched_nzb=None, force=False):
+    def notify(self, ComicName=None, Year=None, Issue=None, sent_to=None, snatched_nzb=None, force=False, module=None):
         """
         Sends a boxcar notification based on the provided info or SB config
 
@@ -246,9 +257,12 @@ class BOXCAR:
         message: The message string to send
         force: If True then the notification will be sent even if Boxcar is disabled in the config
         """
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
 
         if not mylar.BOXCAR_ENABLED and not force:
-            logger.fdebug("Notification for Boxcar not enabled, skipping this notification")
+            logger.fdebug(module + ' Notification for Boxcar not enabled, skipping this notification.')
             return False
 
         # if no username was given then use the one from the config
@@ -260,9 +274,9 @@ class BOXCAR:
             message = "Mylar has downloaded and postprocessed: " + ComicName + ' (' + Year + ') #' + Issue
 
 
-        logger.info('Sending notification to Boxcar2')
+        logger.info(module + ' Sending notification to Boxcar2')
 
-        self._sendBoxcar(message, title)
+        self._sendBoxcar(message, title, module)
         return True
 
 class PUSHBULLET:
@@ -271,9 +285,12 @@ class PUSHBULLET:
         self.apikey = mylar.PUSHBULLET_APIKEY
         self.deviceid = mylar.PUSHBULLET_DEVICEID
 
-    def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None):
+    def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None):
         if not mylar.PUSHBULLET_ENABLED:
             return
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
         
         if snatched:
             if snatched[-1] == '.': snatched = snatched[:-1]
@@ -303,13 +320,13 @@ class PUSHBULLET:
         #logger.debug(u"PushBullet response body: %r" % response.read())
 
         if request_status == 200:
-                logger.fdebug(u"PushBullet notifications sent.")
+                logger.fdebug(module + ' PushBullet notifications sent.')
                 return True
         elif request_status >= 400 and request_status < 500:
-                logger.error(u"PushBullet request failed: %s" % response.reason)
+                logger.error(module + ' PushBullet request failed: %s' % response.reason)
                 return False
         else:
-                logger.error(u"PushBullet notification failed serverside.")
+                logger.error(module + ' PushBullet notification failed serverside.')
                 return False
 
     def test(self, apikey, deviceid):

@@ -6,6 +6,7 @@ import os, errno
 import sys
 import re
 import glob
+import shlex
 import platform
 import shutil
 import time
@@ -17,8 +18,12 @@ import mylar
 from mylar import logger
 from mylar.helpers import cvapi_check
 
-def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
-    logger.fdebug('[META-TAGGING] dirName:' + dirName)
+def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module=None):
+    if module is None:
+        module = ''
+    module += '[META-TAGGER]'
+
+    logger.fdebug(module + ' dirName:' + dirName)
 
     ## Set the directory in which comictagger and other external commands are located - IMPORTANT - ##
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
@@ -41,8 +46,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         if not os.path.isfile(unrar_cmd):
             unrar_cmd = "C:\Program Files (x86)\WinRAR\UnRAR.exe"
             if not os.path.isfile(unrar_cmd):
-                logger.fdebug('[META-TAGGING] Unable to locate UnRAR.exe - make sure it is installed.')
-                logger.fdebug('[META-TAGGING] Aborting meta-tagging.')
+                logger.fdebug(module + ' Unable to locate UnRAR.exe - make sure it is installed.')
+                logger.fdebug(module + ' Aborting meta-tagging.')
                 return "fail"
 
     
@@ -56,8 +61,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         try:
             import configparser
         except ImportError:
-            logger.fdebug('[META-TAGGING] configparser not found on system. Please install manually in order to write metadata')
-            logger.fdebug('[META-TAGGING] continuing with PostProcessing, but I am not using metadata.')
+            logger.fdebug(module + ' configparser not found on system. Please install manually in order to write metadata')
+            logger.fdebug(module + ' continuing with PostProcessing, but I am not using metadata.')
             return "fail"
 
         #set this to the lib path (ie. '<root of mylar>/lib')
@@ -72,9 +77,9 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     file_conversion = True
     file_extension_fixing = True
     if not os.path.exists( unrar_cmd ):
-        logger.fdebug('[META-TAGGING] WARNING:  cannot find the unrar command.')
-        logger.fdebug('[META-TAGGING] File conversion and extension fixing not available')
-        logger.fdebug('[META-TAGGING] You probably need to edit this script, or install the missing tool, or both!')
+        logger.fdebug(module + ' WARNING:  cannot find the unrar command.')
+        logger.fdebug(module + ' File conversion and extension fixing not available')
+        logger.fdebug(module + ' You probably need to edit this script, or install the missing tool, or both!')
         file_conversion = False
         file_extension_fixing = False
 
@@ -86,35 +91,42 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     if manual is None:
         comicpath = os.path.join( downloadpath , "temp" )
     else:
+        chkpath, chkfile = os.path.split(filename)
+        logger.fdebug(module + ' chkpath: ' + chkpath)
+        logger.fdebug(module + ' chkfile: ' + chkfile)
+        extensions = ('.cbr', '.cbz')
+        if os.path.isdir(chkpath) and chkpath != downloadpath:
+            logger.fdebug(module + ' Changing ' + downloadpath + ' location to ' + chkpath + ' as it is a directory.')
+            downloadpath = chkpath
         comicpath = os.path.join( downloadpath, issueid )
     unrar_folder = os.path.join( comicpath , "unrard" )
 
-    logger.fdebug('[META-TAGGING] ---directory settings.')
-    logger.fdebug('[META-TAGGING] scriptname : ' + scriptname)
-    logger.fdebug('[META-TAGGING] downloadpath : ' + downloadpath)
-    logger.fdebug('[META-TAGGING] sabnzbdscriptpath : ' + sabnzbdscriptpath)
-    logger.fdebug('[META-TAGGING] comicpath : ' + comicpath)
-    logger.fdebug('[META-TAGGING] unrar_folder : ' + unrar_folder)
-    logger.fdebug('[META-TAGGING] Running the Post-SabNZBd/Mylar script')
+    logger.fdebug(module + ' Paths / Locations:')
+    logger.fdebug(module + ' scriptname : ' + scriptname)
+    logger.fdebug(module + ' downloadpath : ' + downloadpath)
+    logger.fdebug(module + ' sabnzbdscriptpath : ' + sabnzbdscriptpath)
+    logger.fdebug(module + ' comicpath : ' + comicpath)
+    logger.fdebug(module + ' unrar_folder : ' + unrar_folder)
+    logger.fdebug(module + ' Running the ComicTagger Add-on for Mylar')
 
     if os.path.exists( comicpath ):
         shutil.rmtree( comicpath )
 
-    logger.fdebug('[META-TAGGING] Attempting to create directory @: ' + str(comicpath))
+    logger.fdebug(module + ' Attempting to create directory @: ' + str(comicpath))
     try:
         os.makedirs(comicpath)
     except OSError:
         raise
 
-    logger.fdebug('[META-TAGGING] Created directory @ : ' + str(comicpath))
-    logger.fdebug('[META-TAGGING] Filename is : ' + str(filename))
+    logger.fdebug(module + ' Created directory @ : ' + str(comicpath))
+    logger.fdebug(module + ' Filename is : ' + str(filename))
     if filename is None:
         filename_list = glob.glob( os.path.join( downloadpath, "*.cbz" ) )
         filename_list.extend( glob.glob( os.path.join( downloadpath, "*.cbr" ) ) )
         fcount = 1
         for f in filename_list:
             if fcount > 1: 
-                logger.fdebug('[META-TAGGING] More than one cbr/cbz within path, performing Post-Process on first file detected: ' + f)
+                logger.fdebug(module + ' More than one cbr/cbz within path, performing Post-Process on first file detected: ' + f)
                 break
             shutil.move( f, comicpath )
             filename = f  #just the filename itself
@@ -129,25 +141,56 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     if filename.endswith('.cbr'):
         f = os.path.join( comicpath, filename )
         if zipfile.is_zipfile( f ):
-            logger.fdebug('[META-TAGGING] zipfile detected')
+            logger.fdebug(module + ' zipfile detected')
             base = os.path.splitext( f )[0]
             shutil.move( f, base + ".cbz" )
-            logger.fdebug('[META-TAGGING] {0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
+            logger.fdebug(module + ' {0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
 
     if file_extension_fixing:
         if filename.endswith('.cbz'):
+            logger.info(module + ' Filename detected as a .cbz file.')
             f = os.path.join( comicpath, filename )
+            logger.fdebug(module + ' filename : ' + f)
 
             if os.path.isfile( f ):
                 try:
                     rar_test_cmd_output = "is not RAR archive" #default, in case of error
                     rar_test_cmd_output = subprocess.check_output( [ unrar_cmd, "t", f ] )
                 except:
-                    pass
+                    logger.fdebug(module + ' This is a zipfile. Unable to test rar.')
+
                 if not "is not RAR archive" in rar_test_cmd_output:
                     base = os.path.splitext( f )[0]
                     shutil.move( f, base + ".cbr" )
-                    logger.fdebug('[META-TAGGING] {0}: renaming {1} to be a cbr'.format( scriptname, os.path.basename( f ) ))
+                    logger.fdebug(module + ' {0}: renaming {1} to be a cbr'.format( scriptname, os.path.basename( f ) ))
+                else:
+                    try:
+                        with open(f): pass
+                    except:
+                        logger.warn(module + ' No zip file present')
+                        return "fail"
+
+
+                    base = os.path.join(re.sub(issueid, '', comicpath), filename) #extension is already .cbz
+                    logger.fdebug(module + ' Base set to : ' + base)
+                    logger.fdebug(module + ' Moving : ' + f + ' - to - ' + base)
+                    shutil.move( f, base)
+                    try:
+                        with open(base):
+                            logger.fdebug(module + ' Verified file exists in location: ' + base)
+                        removetemp = True
+                    except:
+                        logger.fdebug(module + ' Cannot verify file exist in location: ' + base)
+                        removetemp = False
+
+                    if removetemp == True:
+                        if comicpath != downloadpath:
+                            shutil.rmtree( comicpath )
+                            logger.fdebug(module + ' Successfully removed temporary directory: ' + comicpath)
+                        else:
+                            loggger.fdebug(module + ' Unable to remove temporary directory since it is identical to the download location : ' + comicpath)
+                    logger.fdebug(module + ' new filename : ' + base)
+                    nfilename = base
 
     # Now rename all CBR files to RAR
     if filename.endswith('.cbr'):
@@ -160,7 +203,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
         ## Changes any cbr files to cbz files for insertion of metadata ##
         if file_conversion:
             f = os.path.join( comicpath, filename )
-            logger.fdebug('[META-TAGGING] {0}: converting {1} to be zip format'.format( scriptname, os.path.basename( f ) ))
+            logger.fdebug(module + ' {0}: converting {1} to be zip format'.format( scriptname, os.path.basename( f ) ))
             basename = os.path.splitext( f )[0]
             zipname = basename + ".cbz"
 
@@ -169,17 +212,17 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             os.chdir( unrar_folder )
 
             # Extract and zip up
-            logger.fdebug('[META-TAGGING] {0}: Comicpath is ' + baserar) #os.path.join(comicpath,basename))
-            logger.fdebug('[META-TAGGING] {0}: Unrar is ' + unrar_folder )
+            logger.fdebug(module + ' {0}: Comicpath is ' + baserar) #os.path.join(comicpath,basename))
+            logger.fdebug(module + ' {0}: Unrar is ' + unrar_folder )
             try:
                 #subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
                 output = subprocess.check_output( [ unrar_cmd, 'x', baserar ] ) #os.path.join(comicpath,basename) ] )
             except CalledProcessError as e:
                 if e.returncode == 3:
-                    logger.fdebug('[META-TAGGING] [Unrar Error 3] - Broken Archive.')
+                    logger.warn(module + ' [Unrar Error 3] - Broken Archive.')
                 elif e.returncode == 1:
-                    logger.fdebug('[META-TAGGING] [Unrar Error 1] - No files to extract.')
-                logger.fdebug('[META-TAGGING] Marking this as an incomplete download.')
+                    logger.warn(module + ' [Unrar Error 1] - No files to extract.')
+                logger.warn(module + ' Marking this as an incomplete download.')
                 return "unrar error"
 
             shutil.make_archive( basename, "zip", unrar_folder )
@@ -195,27 +238,34 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
             try:
                 with open(f): pass
             except:
-                logger.warn('[META-TAGGING] No zip file present')
+                logger.warn(module + ' No zip file present:' + f)
                 return "fail"         
             base = os.path.splitext( f )[0]
             shutil.move( f, base + ".cbz" )
             nfilename = base + ".cbz"
-    else:
-        logger.fdebug('[META-TAGGING] Filename:' + filename)
-        nfilename = filename
+    #else:
+    #    logger.fdebug(module + ' Filename:' + filename)       
+    #    nfilename = filename
 
-    if os.path.isfile( nfilename ):
-        logger.fdebug('[META-TAGGING] File exists in given location already.')
-        file_dir, file_n = os.path.split(nfilename)
-    else:
-        #remove the IssueID from the path
-        file_dir = re.sub(issueid, '', comicpath)
-        file_n = os.path.split(nfilename)[1]
-    logger.fdebug('[META-TAGGING] Converted directory: ' + str(file_dir))
-    logger.fdebug('[META-TAGGING] Converted filename: ' + str(file_n))
-    logger.fdebug('[META-TAGGING] Destination path: ' + os.path.join(dirName,file_n))
-    logger.fdebug('[META-TAGGING] dirName: ' + dirName)
-    logger.fdebug('[META-TAGGING] absDirName: ' + os.path.abspath(dirName))
+    #if os.path.isfile( nfilename ):
+    #    logger.fdebug(module + ' File exists in given location already : ' + nfilename)
+    #    file_dir, file_n = os.path.split(nfilename)
+    #else:
+    #    #remove the IssueID from the path
+    #    file_dir = re.sub(issueid, '', comicpath)
+    #    file_n = os.path.split(nfilename)[1]
+    file_dir = re.sub(issueid, '', comicpath)
+    file_n = os.path.split(nfilename)[1]
+    logger.fdebug(module + ' Converted directory: ' + str(file_dir))
+    logger.fdebug(module + ' Converted filename: ' + str(file_n))
+    logger.fdebug(module + ' Destination path: ' + os.path.join(file_dir,file_n))  #dirName,file_n))
+    logger.fdebug(module + ' dirName: ' + dirName)
+    logger.fdebug(module + ' absDirName: ' + os.path.abspath(dirName))
+
+    ##set up default comictagger options here.
+    tagoptions = [ "-s", "--verbose" ]
+
+
     ## check comictagger version - less than 1.15.beta - take your chances.
     ctversion = subprocess.check_output( [ comictagger_cmd, "--version" ] )
     ctend = ctversion.find(':')
@@ -223,13 +273,14 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
     ctcheck = re.sub('\.', '', ctcheck).strip()
     if int(ctcheck) >= int('1115'): #(v1.1.15)
         if mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
-            logger.fdebug('[META-TAGGING] ' + ctversion[:ctend] + ' being used - no personal ComicVine API Key supplied. Take your chances.')
+            logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - no personal ComicVine API Key supplied. Take your chances.')
             use_cvapi = "False"
         else:
-            logger.fdebug('[META-TAGGING] ' + ctversion[:ctend] + ' being used - using personal ComicVine API key supplied via mylar.')
+            logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - using personal ComicVine API key supplied via mylar.')
             use_cvapi = "True"
+            tagoptions.extend( [ "--cv-api-key", mylar.COMICVINE_API ] )
     else:
-        logger.fdebug('[META-TAGGING] ' + ctversion[:ctend] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
+        logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
         use_cvapi = "False"
 
     i = 1
@@ -237,69 +288,118 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None):
 
     if mylar.CT_TAG_CR:
         tagcnt = 1
-        logger.info('[META-TAGGING] CR Tagging enabled.')
+        logger.fdebug(module + ' CR Tagging enabled.')
 
     if mylar.CT_TAG_CBL:
         if not mylar.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
         tagcnt = 2
-        logger.info('[META-TAGGING] CBL Tagging enabled.')
+        logger.fdebug(module + ' CBL Tagging enabled.')
 
     if tagcnt == 0:
-        logger.warn('[META-TAGGING] You have metatagging enabled, but you have not selected the type(s) of metadata to write. Please fix and re-run manually')
+        logger.warn(module + ' You have metatagging enabled, but you have not selected the type(s) of metadata to write. Please fix and re-run manually')
         return "fail"
     
+    #if it's a cbz file - check if no-overwrite existing tags is enabled / disabled in config.
+    if nfilename.endswith('.cbz'):
+        if mylar.CT_CBZ_OVERWRITE:
+            logger.fdebug(module + ' Will modify existing tag blocks even if it exists.')
+        else:
+            logger.fdebug(module + ' Will NOT modify existing tag blocks even if they exist already.')
+            tagoptions.extend( [ "--nooverwrite" ] )
+
+    if issueid is None:
+        tagoptions.extend( [ "-f", "-o" ] )
+    else:
+        tagoptions.extend( [ "-o", "--id", issueid ] )
+
+    original_tagoptions = tagoptions
+    og_tagtype = None
+
     while ( i <= tagcnt ):
         if i == 1: 
-            tagtype = "cr"  # CR meta-tagging cycle.
+            tagtype = 'cr'  # CR meta-tagging cycle.
             tagdisp = 'ComicRack tagging'
         elif i == 2: 
-            tagtype = "cbl"  #Cbl meta-tagging cycle
+            tagtype = 'cbl'  #Cbl meta-tagging cycle
             tagdisp = 'Comicbooklover tagging'
-        logger.info('[META-TAGGING] ' + tagdisp + ' meta-tagging processing started.')
+
+
+        f_tagoptions = original_tagoptions
+
+        if og_tagtype is not None: 
+            for index, item in enumerate(f_tagoptions):
+                if item == og_tagtype:
+                    f_tagoptions[index] = tagtype
+        else:
+            f_tagoptions.extend( [ "--type", tagtype, nfilename ] )
+
+        og_tagtype = tagtype
+
+        logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
  
         #CV API Check here.
         if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
             cvapi_check()
 
+        currentScriptName = str(comictagger_cmd).decode("string_escape")
+        logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
+            # generate a safe command line string to execute the script and provide all the parameters
+        script_cmd = shlex.split(currentScriptName, posix=False) + f_tagoptions
+
+            # use subprocess to run the command and capture output
+        logger.fdebug(module + ' Executing command: '+str(script_cmd))
+        logger.fdebug(module + ' Absolute path to script: '+script_cmd[0])
+        try:
+            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out, err = p.communicate() #@UnusedVariable
+            logger.fdebug(module + '[COMIC-TAGGER] : '+str(out))
+            logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp)
+        except OSError, e:
+            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + str(script_cmd))
+
+        #increment CV API counter.
+        mylar.CVAPI_COUNT +=1
+
+
         ## Tag each CBZ, and move it back to original directory ##
-        if use_cvapi == "True":
-            if issueid is None:
-                subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "--cv-api-key", mylar.COMICVINE_API, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
-            else:
-                subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "--cv-api-key", mylar.COMICVINE_API, "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
-                logger.info('[META-TAGGING] ' + tagtype + ' meta-tagging complete')
-            #increment CV API counter.
-            mylar.CVAPI_COUNT +=1
-        else:
-            if issueid is None:
-                subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
-            else:
-                subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
-            #increment CV API counter.
-            mylar.CVAPI_COUNT +=1
+        #if use_cvapi == "True":
+        #    if issueid is None:
+        #        subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "--cv-api-key", mylar.COMICVINE_API, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        #    else:
+        #        subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "--cv-api-key", mylar.COMICVINE_API, "-o", "--id", issueid, "--verbose", nfilename ] ).communicate()
+        #        logger.info(module + ' ' + tagdisp + ' meta-tagging complete')
+        #    #increment CV API counter.
+        #    mylar.CVAPI_COUNT +=1
+        #else:
+        #    if issueid is None:
+        #        subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "-f", "-o", "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        #    else:
+        #        subprocess.Popen( [ comictagger_cmd, "-s", "-t", tagtype, "-o", "--id", issueid, "--verbose", "--nooverwrite", nfilename ] ).communicate()
+        #    #increment CV API counter.
+        #    mylar.CVAPI_COUNT +=1
         i+=1
 
-    if os.path.exists(os.path.join(os.path.abspath(dirName),file_n)):
-        logger.fdebug('[META-TAGGING] Unable to move - file already exists.')
+    if os.path.exists(os.path.join(os.path.abspath(file_dir),file_n)): #(os.path.abspath(dirName),file_n)):
+        logger.fdebug(module + ' Unable to move from temporary directory - file already exists in destination: ' + os.path.join(os.path.abspath(file_dir),file_n))
     else:
-        shutil.move( os.path.join(comicpath, nfilename), os.path.join(os.path.abspath(dirName),file_n))
+        shutil.move( os.path.join(comicpath, nfilename), os.path.join(os.path.abspath(file_dir),file_n)) #os.path.abspath(dirName),file_n))
         #shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
-        logger.fdebug('[META-TAGGING] Sucessfully moved file from temporary path.')
+        logger.fdebug(module + ' Sucessfully moved file from temporary path.')
         i = 0
 
         os.chdir( mylar.PROG_DIR )
 
         while i < 10:
             try:
-                logger.fdebug('[META-TAGGING] Attempting to remove: ' + comicpath)
+                logger.fdebug(module + ' Attempting to remove: ' + comicpath)
                 shutil.rmtree( comicpath )
             except:
                 time.sleep(.1)
             else:
-                return os.path.join(os.path.abspath(dirName), file_n)
+                return os.path.join(os.path.abspath(file_dir), file_n) #dirName), file_n)
             i+=1
 
-        logger.fdebug('[META-TAGGING] Failed to remove temporary path : ' + str(comicpath))
+        logger.fdebug(module + ' Failed to remove temporary path : ' + str(comicpath))
 
-    return os.path.join(os.path.abspath(dirName),file_n)
+    return os.path.join(os.path.abspath(file_dir),file_n) #dirName),file_n)
 
