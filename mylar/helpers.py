@@ -467,6 +467,17 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
+            series = series.encode('ascii', 'ignore').strip()
+            filebad = [':',',','/','?','!','\''] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+            for dbd in filebad:
+                if dbd in series:
+                    if dbd == '/': repthechar = '-'
+                    else: repthechar = ''
+                    series = series.replace(dbd,repthechar)
+                    logger.fdebug('Altering series name due to filenaming restrictions: ' + series)
+           
+            publisher = re.sub('!','', publisher)
+
             file_values = {'$Series':    series,
                            '$Issue':     prettycomiss,
                            '$Year':      issueyear,
@@ -497,13 +508,15 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if mylar.REPLACE_SPACES:
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
+
             nfilename = re.sub('[\,\:]', '', nfilename) + ext.lower()
             logger.fdebug('New Filename: ' + str(nfilename))
 
             if mylar.LOWERCASE_FILENAMES:
-                dst = (comlocation + "/" + nfilename).lower()
+                dst = os.path.join(comlocation, nfilename.lower())
             else:
-                dst = comlocation + "/" + nfilename
+                dst = os.path.join(comlocation, nfilename)
+
             logger.fdebug('Source: ' + str(ofilename))
             logger.fdebug('Destination: ' + str(dst))
 
