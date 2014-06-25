@@ -167,11 +167,11 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             if numberinseries == 'True' or decimalinseries == 'True':
                 #we need to remove the series from the subname and then search the remainder.
                 watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
-                logger.fdebug('[FILECHECKER] watch-cleaned: ' + str(watchname))
+                logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
                 subthis = re.sub('.cbr', '', subname)
                 subthis = re.sub('.cbz', '', subthis)
                 subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
-                logger.fdebug('[FILECHECKER] sub-cleaned: ' + str(subthis))
+                logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely 
                 if watchname not in subthis:
                     logger.fdebug('[FILECHECKER] this is a false match. Ignoring this result.')

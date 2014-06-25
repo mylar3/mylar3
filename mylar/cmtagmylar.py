@@ -185,7 +185,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
 
                     if removetemp == True:
                         if comicpath != downloadpath:
-                            shutil.rmtree( comicpath )
+                            #shutil.rmtree( comicpath )
                             logger.fdebug(module + ' Successfully removed temporary directory: ' + comicpath)
                         else:
                             loggger.fdebug(module + ' Unable to remove temporary directory since it is identical to the download location : ' + comicpath)
@@ -254,7 +254,11 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     #    #remove the IssueID from the path
     #    file_dir = re.sub(issueid, '', comicpath)
     #    file_n = os.path.split(nfilename)[1]
-    file_dir = re.sub(issueid, '', comicpath)
+    if manual is None:
+        file_dir = downloadpath
+    else:
+        file_dir = re.sub(issueid, '', comicpath)
+
     file_n = os.path.split(nfilename)[1]
     logger.fdebug(module + ' Converted directory: ' + str(file_dir))
     logger.fdebug(module + ' Converted filename: ' + str(file_n))
@@ -382,9 +386,14 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     if os.path.exists(os.path.join(os.path.abspath(file_dir),file_n)): #(os.path.abspath(dirName),file_n)):
         logger.fdebug(module + ' Unable to move from temporary directory - file already exists in destination: ' + os.path.join(os.path.abspath(file_dir),file_n))
     else:
-        shutil.move( os.path.join(comicpath, nfilename), os.path.join(os.path.abspath(file_dir),file_n)) #os.path.abspath(dirName),file_n))
-        #shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
-        logger.fdebug(module + ' Sucessfully moved file from temporary path.')
+        try:
+            shutil.move( os.path.join(comicpath, nfilename), os.path.join(os.path.abspath(file_dir),file_n)) #os.path.abspath(dirName),file_n))
+            #shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
+            logger.fdebug(module + ' Sucessfully moved file from temporary path.')
+        except:
+            logger.error(module + ' Unable to move file from temporary path. Deletion of temporary path halted.')
+            return os.path.join(comicpath, nfilename)
+
         i = 0
 
         os.chdir( mylar.PROG_DIR )

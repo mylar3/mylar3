@@ -470,7 +470,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     tsearch_removed = re.sub('\s+', ' ', tsearch_rem2)
     tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s]', '%',tsearch_removed)
     tsearch = tsearch_seriesname + "%"
-    logger.fdebug('tsearch : ' + str(tsearch))
+    logger.fdebug('tsearch : ' + tsearch)
     AS_Alt = []
     tresults = []
 

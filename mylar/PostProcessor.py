@@ -728,12 +728,13 @@ class PostProcessor(object):
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
             if ml is None:
-               
                 for root, dirnames, filenames in os.walk(self.nzb_folder):
                     for filename in filenames:
                         if filename.lower().endswith(extensions):
                             odir = root
+                            logger.fdebug(module + ' odir (root): ' + odir)
                             ofilename = filename
+                            logger.fdebug(module + ' ofilename: ' + ofilename)
                             path, ext = os.path.splitext(ofilename)
  
                 if odir is None:
@@ -852,7 +853,7 @@ class PostProcessor(object):
 
                 #tidyup old path
                 try:
-                    if os.path.isdir(odir): #and odir != self.nzb_folder:
+                    if os.path.isdir(odir) and odir != self.nzb_folder:
                         # check to see if the directory is empty or not.
                         if not os.listdir(odir):
                             logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
