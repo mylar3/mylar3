@@ -21,6 +21,8 @@
 				<option disabled="disabled" selected="selected">Choose...</option>
 				<option value="Skipped">Skipped</option>
 				<option value="Downloaded">Downloaded</option>
+                                <option value="Archived">Archived</option>
+                                <option value="Ignored">Ignored</option>
 		</select>
 		<input type="hidden" value="Go">
 	</div>
@@ -90,10 +92,10 @@
 				    <td id="status">${upcome['Status']}</td>
 			    </tr>
   		    %endfor
-   		    </tbody>
                 %else:
                   <tr><td align="center" width="100%"> no upcoming data to display</td></tr>
                 %endif
+               </tbody>
 	</table>
 	</div>
         </div>
@@ -102,7 +104,7 @@
            <div class="table_wrapper">
                 <table class="display_no_select" id="upcoming_table">
                 %if future_nodata_upcoming:
-                <thead>
+                    <thead>
                         <tr>
                                 <th id="comicname">Comic</th>
                                 <th id="issuenumber">Issue</th>
@@ -116,13 +118,13 @@
                                     <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
                                     <td id="issuenumber">${f_nodata['IssueNumber']}</td>
                                     <td id="reldate">${f_nodata['IssueDate']}</td>
-                                   <td id="status">${f_nodata['Status']}</td>
+                                    <td id="status">${f_nodata['Status']}</td>
                             </tr>
                     %endfor
-                </tbody>
                 %else:
-                  <tr><td align='center" width="100%">no upcoming future data to display</td></tr>
+                  <tr><td align="center" width="100%">no upcoming future data to display</td></tr>
                 %endif
+               </tbody>
                </table>
             </div>
         </div>
@@ -131,14 +133,14 @@
            <div class="table_wrapper">
                 <table class="display_no_select" id="upcoming_table">
                 %if futureupcoming:
-                <thead>
+                    <thead>
                         <tr>
                                 <th id="comicname">Comic</th>
                                 <th id="issuenumber">Issue</th>
                                 <th id="reldate">Release Date</th>
                                 <th id="status">Status</th>
                         </tr>
-                </thead>
+                    </thead>
                 <tbody>
                     %for f_upcome in futureupcoming:
                             <tr class="gradeZ">
@@ -148,10 +150,10 @@
                                     <td id="status">${f_upcome['Status']}</td>
                             </tr>
                     %endfor
-                </tbody>
                 %else:
                   <tr><td align="center" width="100%">no upcoming future data to display</td></tr>
                 %endif
+                </tbody>
                </table>
          </div>
         </div>

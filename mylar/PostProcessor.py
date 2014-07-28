@@ -46,7 +46,7 @@ class PostProcessor(object):
     FOLDER_NAME = 2
     FILE_NAME = 3
 
-    def __init__(self, nzb_name, nzb_folder, module=None):
+    def __init__(self, nzb_name, nzb_folder, module=None, queue=None):
         """
         Creates a new post processor with the given file path and optionally an NZB name.
 
@@ -72,10 +72,11 @@ class PostProcessor(object):
             self.module = module + '[POST-PROCESSING]'
         else:
             self.module = '[POST-PROCESSING]'
+        if queue: self.queue = queue
         #self.in_history = False
         #self.release_group = None
         #self.is_proper = False
-
+        self.valreturn = []
         self.log = ''
 
     def _log(self, message, level=logger.message):  #level=logger.MESSAGE):
@@ -109,7 +110,7 @@ class PostProcessor(object):
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            self._log(u"Script result: "+str(out))
+            self._log(u"Script result: " + out)
         except OSError, e:
            self._log(u"Unable to run pre_script: " + str(script_cmd))
 
@@ -134,7 +135,7 @@ class PostProcessor(object):
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            self._log(u"Script result: "+str(out))
+            self._log(u"Script result: " + out)
         except OSError, e:
             self._log(u"Unable to run extra_script: " + str(script_cmd))
 
@@ -327,7 +328,10 @@ class PostProcessor(object):
                     nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
                     if nzbiss is None:
                         logger.error(module + ' Unable to locate downloaded file to rename. PostProcessing aborted.')
-                        return
+                        self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
+                        self.valreturn.append({"self.log" : self.log,
+                                               "mode"     : 'stop'})
+                        return self.queue.put(self.valreturn)
                     else:
                         self._log("I corrected and found the nzb as : " + str(nzbname))
                         logger.fdebug(module + ' Auto-corrected and found the nzb as : ' + str(nzbname))
@@ -683,7 +687,14 @@ class PostProcessor(object):
                 elif pcheck == "unrar error":
                     self._log("This is a corrupt archive - whether CRC errors or it's incomplete. Marking as BAD, and retrying a different copy.")
                     logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
-                    return self.log
+                    self.valreturn.append({"self.log":    self.log,
+                                           "mode":        'fail',
+                                           "issueid":     issueid,
+                                           "comicid":     comicid,
+                                           "comicname":   comicnzb['ComicName'],
+                                           "issuenumber": issuenzb['Issue_Number'],
+                                           "annchk":      annchk})
+                    return self.queue.put(self.valreturn)
                 else:
                     otofilename = pcheck
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
@@ -728,7 +739,7 @@ class PostProcessor(object):
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
             if ml is None:
-                for root, dirnames, filenames in os.walk(self.nzb_folder):
+                for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
                     for filename in filenames:
                         if filename.lower().endswith(extensions):
                             odir = root
@@ -817,7 +828,10 @@ class PostProcessor(object):
                     self._log("Post-Processing ABORTED.")
                     logger.warn(module + ' Failed to move directory : ' + src + ' to ' + dst + ' - check directory and manually re-run')
                     logger.warn(module + ' Post-Processing ABORTED')
-                    return
+                    self.valreturn.append({"self.log" : self.log,
+                                           "mode"     : 'stop'})
+                    return self.queue.put(self.valreturn)
+
                 #tidyup old path
                 try:
                     shutil.rmtree(self.nzb_folder)
@@ -826,8 +840,9 @@ class PostProcessor(object):
                     self._log("Post-Processing ABORTED.")
                     logger.warn(module + ' Failed to remove temporary directory : ' + self.nzb_folder)
                     logger.warn(module + ' Post-Processing ABORTED')
-                    return
-
+                    self.valreturn.append({"self.log" : self.log,
+                                           "mode"     : 'stop'})
+                    return self.queue.put(self.valreturn)
                 self._log("Removed temporary directory : " + str(self.nzb_folder))
                 logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
             else:
@@ -848,7 +863,10 @@ class PostProcessor(object):
                 except (OSError, IOError):
                     logger.fdebug(module + ' Failed to move directory - check directories and manually re-run.')
                     logger.fdebug(module + ' Post-Processing ABORTED.')
-                    return
+
+                    self.valreturn.append({"self.log" : self.log,
+                                           "mode"     : 'stop'})
+                    return self.queue.put(self.valreturn)
                 logger.fdebug(module + ' Successfully moved to : ' + dst)
 
                 #tidyup old path
@@ -921,7 +939,12 @@ class PostProcessor(object):
                     #manual run + not snatched torrent (or normal manual-run)
                     logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss )
                     self._log(u"Post Processing SUCCESSFUL! ")
-                    return self.log
+                    self.valreturn.append({"self.log" : self.log,
+                                           "mode"     : 'stop',
+                                           "issueid"  : issueid,
+                                           "comicid"  : comicid})
+
+                    return self.queue.put(self.valreturn)
 
             if annchk == "no":
                 prline = series + '(' + issueyear + ') - issue #' + issuenumOG
@@ -952,7 +975,15 @@ class PostProcessor(object):
              
             logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss )
             self._log(u"Post Processing SUCCESSFUL! ")
-            return self.log
+
+            self.valreturn.append({"self.log" : self.log,
+                                   "mode"     : 'stop',
+                                   "issueid"  : issueid,
+                                   "comicid"  : comicid})
+
+            return self.queue.put(self.valreturn)
+
+
 
 class FolderCheck():
 

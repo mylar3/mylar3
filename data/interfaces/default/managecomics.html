@@ -69,18 +69,7 @@
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
 	<script>
-	function getArtistArt() {
-		$("table#artist_table tr td#albumart #artistImg").each(function(){	
-			var id = $(this).children('img').attr('id');
-			var image = $(this).children('img');
-			if ( !image.hasClass('done') ) {
-				image.addClass('done');
-				getThumb(image,id,'artist');
-			}
-		});
-	}
         function initThisPage() {
-                getArtistArt();
                 $('#manage_comic').dataTable(
                         {
                                 "bDestroy": true,

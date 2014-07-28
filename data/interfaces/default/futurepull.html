@@ -50,7 +50,7 @@
                                         %elif future['STATUS'] == 'Skipped':
                                              <a href="searchit?name=${future['COMIC'] | u}&issue=${future['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
                                              <a href="queueissue?ComicName=${future['COMIC'] | u}&ComicIssue=${future['ISSUE']}&mode=pullwant"><span class="ui-icon ui-icon-plus"></span>one off</a>
-                                             <a href="add2futurewatchlist?ComicName=${future['COMIC'] | u}&Issue=${future['ISSUE']}&Publisher=${future['PUBLISHER']}&ShipDate=${future['SHIPDATE']}&FutureID=${future['FUTUREID']}"><span class="ui-icon ui-icon-plus"></span>Watch For</a>
+                                             <a href="#" onclick="doAjaxCall('add2futurewatchlist?ComicName=${future['COMIC'] |u}&Issue=${future['ISSUE']}&Publisher=${future['PUBLISHER']}}&ShipDate=${future['SHIPDATE']}&FutureID=${future['FUTUREID']}', $(this), 'table')" data-success="Adding ${future['COMIC']} Issue: ${future['ISSUE']} to Upcoming Watchlist"><span class="ui-icon ui-icon-plus"></span>Watch For</a>
                                         %endif
                                         </td>
                                 %endif

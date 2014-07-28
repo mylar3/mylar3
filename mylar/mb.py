@@ -15,6 +15,7 @@
 
 from __future__ import with_statement
 
+import re
 import time
 import threading
 import urllib, urllib2
@@ -27,16 +28,20 @@ from mylar.helpers import multikeysort, replace_all, cleanName, cvapi_check
 mb_lock = threading.Lock()
 
 
-def pullsearch(comicapi,comicquery,offset,explicit):
+def pullsearch(comicapi,comicquery,offset,explicit,type):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     if explicit == 'all' or explicit == 'loose':
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=volume&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
 
     else:
         # 02/22/2014 use the volume filter label to get the right results.
-        PULLURL = mylar.CVURL + 'volumes?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+        # add the 's' to the end of type to pluralize the caption (it's needed)
+        if type == 'story_arc':
+            logger.info('redefining.')
+            u_comicquery = re.sub("%20AND%20", "%20", u_comicquery)
+        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
     #CV API Check here.
@@ -59,7 +64,7 @@ def pullsearch(comicapi,comicquery,offset,explicit):
     dom = parseString(data)
     return dom
 
-def findComic(name, mode, issue, limityear=None, explicit=None):
+def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
     #with mb_lock:       
     comiclist = []
@@ -77,7 +82,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
 
     if explicit is None:
         #logger.fdebug('explicit is None. Setting to Default mode of ALL search words.')
-        comicquery=name.replace(" ", " AND ")
+        #comicquery=name.replace(" ", " AND ")
         explicit = 'all'
 
     #OR
@@ -99,8 +104,11 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
     else:
         comicapi = mylar.COMICVINE_API
 
+    if type is None:
+        type = 'volume'
+
     #let's find out how many results we get from the query...    
-    searched = pullsearch(comicapi,comicquery,0,explicit)
+    searched = pullsearch(comicapi,comicquery,0,explicit,type)
     if searched is None: return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
     logger.fdebug("there are " + str(totalResults) + " search results...")
@@ -118,8 +126,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None):
                 #explicit uses offset
                 offsetcount = countResults
             
-            searched = pullsearch(comicapi,comicquery,offsetcount,explicit)
-        comicResults = searched.getElementsByTagName('volume')
+            searched = pullsearch(comicapi,comicquery,offsetcount,explicit,type)
+        comicResults = searched.getElementsByTagName(type) #('volume')
         body = ''
         n = 0        
         if not comicResults:

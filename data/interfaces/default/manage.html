@@ -60,11 +60,11 @@
                                            <small>Leaving this unchecked will not move anything, but will mark the issues as Archived</small>
                                         </div>
                                         <div class="config">
-                                               <input type="checkbox" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
                                                <small>Rename files to configuration settings</small>
                                         </div>
                                         <br/>
-                                     <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes saved. Library will be scanned">
+                                     <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes saved. Library will be scanned" data-always="Sucessfully completed scanning library.">
                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully">
                                 </fieldset>
                        </form>

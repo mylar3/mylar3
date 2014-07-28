@@ -7,7 +7,7 @@
 <%def name="body()">
         <div class="table_wrapper">
 
-	<table class="display" id="artist_table">
+	<table class="display" id="series_table">
 		<thead>
 			<tr>
 				<th id="publisher">Publisher</th>
@@ -17,7 +17,7 @@
                                 <th id="published">Published</th>
 				<th id="have">Have</th>
                                 <th id="status">Status</th>
-                                <th id="status">Active</th>
+                                <th id="active">Active</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -63,7 +63,7 @@
 	<script>
 
 	function initThisPage() {
-		$('#artist_table').dataTable(
+		$('#series_table').dataTable(
                         {
 			        "bDestroy": true,
 			        "aoColumnDefs": [

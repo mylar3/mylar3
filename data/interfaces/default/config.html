@@ -133,10 +133,20 @@
                                     <input type="checkbox" name="cvapifix" value="1" ${config['cvapifix']} /> <label>Comicvine URL Fix</label>
                                     <br/><small>*Use this if CV's URL has changed*</small>
                                  </div>
-
-
             		 </fieldset>
+                         <fieldset>
+                             <legend>Annual Handling</legend>
+                                <div>
+                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Series need to be Refreshed for annuals to appear</small>
+                                </div>
+                             <div class="row checkbox">
+                                 <input type="checkbox" name="annuals_on" value="1" ${config['annuals_on']} /><label>Enable Series-Annual Integration</label>
+                             </div>
+                                 </br><small>Enabled: Annuals are tracked as part of the series it belongs to</small></br>
+                                 <small>Disabled: Annuals are tracked independently and will appear on your watchlist as a series</small>
+                         </fieldset>
             	</td>
+
                 <td>          
                          <fieldset>
                                 <legend>API</legend>
@@ -150,7 +160,7 @@
                                     <input id="api_enabled" type="checkbox" onclick="initConfigCheckbox($(this));" name="api_enabled" value="1" ${config['api_enabled']} /><label>Enable API</label>
                                 </div>
                                 <div class="apioptions">
-                                  <div Class="row">
+                                  <div class="row">
                                     <label>Mylar API key</label>
                                     <input type="text" name="api_key" id="api_key" value="${config['api_key']}" size="20">
                                     <input type="button" value="Generate" id="generate_api">
@@ -167,21 +177,13 @@
                                     <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>NZB Search on startup</label>
                                   </div>
                                   <div class="row">
-                                  <label>Search delay</label>
-                                  <input type="text" name="search_delay" value="${config['search_delay']}" size="4" />mins
+                                      <label>Search delay</label>
+                                      <input type="text" name="search_delay" value="${config['search_delay']}" size="4" />mins
                                   </div>
                             </div>
 
-      	                    </div>
-   	       
-     
-	                	<div class="row">
-	                    	<label>Download Scan Interval</label>
-	                    	<input type="text" name="download_scan_interval" value="${config['download_scan_interval']}" size="4">mins
-	                    </div>
-	                
 	                    <div class="row">
-	                   	 	<label>Library Scan Interval</label>
+	                    	<label>Library Scan Interval</label>
 	                    	<input type="text" name="libraryscan_interval" value="${config['libraryscan_interval']}" size="4">mins
 	                    </div>
                                <legend>Comic Location</legend>
@@ -584,28 +586,62 @@
                              </div>
 
                         </fieldset>
+                        <fieldset>
+                             <legend>Failed Download Handling</legend>
+                             <div class="row checkbox left clearfix">
+                                 <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
+                             </div>
+                                <div class="config">
+                                    <div class="row checkbox left clearfix">
+                                       <input type="checkbox" name="failed_auto" value="1" ${config['failed_auto']} /><label>Enable Automatic-Retry for Failed Downloads</label>
+                                    </div>
+
+                        </fieldset>
+
                	</td>
                 <td>
                         <fieldset>
                                 <legend>Post-Processing</legend>
                                 <div class="row checkbox left clearfix">
-                                     <input type="checkbox" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
+                                     <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
+                                </div>
+                                <div class="config">
+                                    <div class="row checkbox left clearfix">
+                                        <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
+                                    </div>
+                                    <div class="config">
+                                       <div class="row">
+                                          <label>Folder location to monitor</label>
+                                          <input type="text" name="check_folder" value="${config['check_folder']}" size="30">
+                                          <small>enter in the absolute path to monitor for new issues</small>
+                                       </div>
+                                       <div class="row">
+                                          <label>Folder Monitor Scan Interval</label>
+                                          <input type="text" name="download_scan_interval" value="${config['download_scan_interval']}" size="4">mins
+                                          <small>enter in the time delay scanning the folder</small>
+                                       </div>
+
+                                    </div>
                                 </div>
                                 <div class="row checkbox left clearfix">
-                                     <input type="checkbox" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Use Extra Script BEFORE Post-Processing</label>
+                                    <input type="checkbox" id="enable_pre_scripts" onclick="initConfigCheckbox($this));" name="enable_pre_scripts" value="1" ${config['enable_pre_scripts']} /><label>Use Extra Script BEFORE Post-Processing</label>
                                 </div>
-                                <div class="row">
+                                <div class="config">
+                                   <div class="row">
                                       <label>Pre - Script Location</label>
                                       <input type="text" name="pre_scripts" value="${config['pre_scripts']}" size="30">
                                       <small>enter in the absolute path to the script</small>
+                                   </div>
                                 </div>  
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
+                                    <input type="checkbox" id="enable_extra_scripts" onclick="initConfigCheckbox($this));" name="enable_extra_scripts" value="1" ${config['enable_extra_scripts']} /><label>Use Extra Script AFTER Post-Processing</label>
                                 </div>
-                                <div class="row">
-                                      <label>Extra Script Location</label>
-                                      <input type="text" name="extra_scripts" value="${config['extra_scripts']}" size="30">
-                                      <small>enter in the absolute path to the script</small>
+                                <div class="config">
+                                    <div class="row">
+                                        <label>Extra Script Location</label>
+                                        <input type="text" name="extra_scripts" value="${config['extra_scripts']}" size="30">
+                                        <small>enter in the absolute path to the script</small>
+                                    </div>
                                 </div>                           
                 	</fieldset>
                         <fieldset>
@@ -1132,8 +1168,13 @@
                 initConfigCheckbox("#replace_spaces");
                 initConfigCheckbox("#use_minsize");
                 initConfigCheckbox("#use_maxsize");
+                initConfigCheckbox("#enable_failed");
                 initConfigCheckbox("#enable_meta");
                 initConfigCheckbox("#zero_level");
+                initConfigCheckbox("#post_processing");
+                initConfigCheckbox("#enable_check_folder");
+                initConfigCheckbox("#enable_pre_scripts");
+                initConfigCheckbox("#enable_extra_scripts");
 	}
 	$(document).ready(function() {
 		initThisPage();

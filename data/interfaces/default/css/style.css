@@ -283,7 +283,7 @@ input,
 select,
 form .checkbox input,
 .configtable td#middle,
-#artist_table td#have,
+#series_table td#have,
 #album_table td#have {
   vertical-align: middle;
 }
@@ -1065,58 +1065,54 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 
-#artist_table {
+#series_table {
   background-color: #FFF;
   padding: 20px;
   width: 100%;
 }
-#artist_table th#select {
+#series_table th#publisher {
+  min-width: 150px;
   text-align: left;
 }
-#artist_table th#select input {
-  vertical-align: middle;
-}
-#artist_table #artistImg {
-  background: url("../images/loader_black.gif") no-repeat scroll center center #ffffff;
-  border: 3px solid #FFFFFF;
-  box-shadow: 1px 1px 2px 0 #555555;
-  float: left;
-  height: 50px;
-  overflow: hidden;
-  text-indent: -3000px;
-  width: 50px;
-}
-#artist_table th#name {
-  min-width: 200px;
+#series_table th#name {
+  min-width: 275px;
   text-align: left;
 }
-#artist_table th#album {
-  min-width: 300px;
+#series_table th#year,
+#series_table th#issue {
+  min-width: 25px;
   text-align: left;
 }
-#artist_table th#status,
-#artist_table th#albumart,
-#artist_table th#lastupdated {
+#series_table th#status,
+#series_table th#active,
+#series_table th#published {
   min-width: 50px;
   text-align: left;
 }
-#artist_table th#have {
+#series_table th#have {
   text-align: center;
 }
-#artist_table td#name {
-  min-width: 200px;
+#series_table td#publisher {
+  min-width: 150px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
 }
-#artist_table td#status,
-#artist_table td#lastupdated {
-  min-width: 50px;
+#series_table td#name {
+  min-width: 275px;
   text-align: left;
   vertical-align: middle;
 }
-#artist_table td#album {
-  min-width: 300px;
+#series_table th#year,
+#series_table th#issue {
+  max-width: 25px;
+  text-align: left;
+  vertical-align: middle;
+}
+#series_table td#status,
+#series_table td#active,
+#series_table td#published {
+  max-width: 50px;
   text-align: left;
   vertical-align: middle;
 }
@@ -1770,4 +1766,122 @@ table tr td#status a {
 }
 .ie7 legend {
   margin-left: -7px;
+}
+/* Mask for background, by default is not display */
+#mask {
+    display: none;
+    background: #000;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+    z-index: 999;
+}
+/* You can customize to your needs  */
+.login-popup {
+    width: 600px;
+    display: none;
+    background: #333;
+    padding: 5px;
+    border: 2px solid #ddd;
+    color: white;
+    font-size: 1.2em;
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    z-index: 99999;
+    box-shadow: 0px 0px 20px #999;
+    /* CSS3 */
+        -moz-box-shadow: 0px 0px 20px #999;
+    /* Firefox */
+        -webkit-box-shadow: 0px 0px 20px #999;
+    /* Safari, Chrome */
+	border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px;
+    /* Firefox */
+        -webkit-border-radius: 3px;
+    /* Safari, Chrome */;
+}
+
+.alignleft {
+    float: left;
+}
+.alignright {
+    float: right;
+}
+
+img.btn_close {
+    Position the close button
+	float: right;
+    margin: -28px -28px 0 0;
+}
+
+fieldset {
+    border: none;
+}
+
+form.signin .textbox label {
+    display: block;
+    padding-bottom: 7px;
+}
+
+form.signin .textbox span {
+    display: block;
+}
+
+form.signin p, form.signin span {
+    color: #999;
+    font-size: 11px;
+    line-height: 18px;
+}
+
+form.signin .textbox input {
+    background: #666666;
+    border-bottom: 1px solid #333;
+    border-left: 1px solid #000;
+    border-right: 1px solid #333;
+    border-top: 1px solid #000;
+    color: #fff;
+    border-radius: 3px 3px 3px 3px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    font: 13px Arial, Helvetica, sans-serif;
+    padding: 6px 6px 4px;
+    width: 200px;
+}
+
+form.signin input:-moz-placeholder {
+    color: #bbb;
+    text-shadow: 0 0 2px #000;
+}
+
+form.signin input::-webkit-input-placeholder {
+    color: #bbb;
+    text-shadow: 0 0 2px #000;
+}
+
+.button {
+    background: -moz-linear-gradient(center top, #f3f3f3, #dddddd);
+    background: -webkit-gradient(linear, left top, left bottom, from(#f3f3f3), to(#dddddd));
+    background: -o-linear-gradient(top, #f3f3f3, #dddddd);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#f3f3f3', EndColorStr='#dddddd');
+    border-color: #000;
+    border-width: 1px;
+    border-radius: 4px 4px 4px 4px;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+    color: #333;
+    cursor: pointer;
+    display: inline-block;
+    padding: 6px 6px 4px;
+    margin-top: 10px;
+    font: 12px;
+    width: 214px;
+}
+
+.button:hover {
+    background: #ddd;
 }

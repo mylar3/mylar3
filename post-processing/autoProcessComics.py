@@ -22,7 +22,7 @@ class AuthURLOpener(urllib.FancyURLopener):
         return urllib.FancyURLopener.open(self, url)
 
 
-def processIssue(dirName, nzbName=None):
+def processIssue(dirName, nzbName=None, failed=False):
 
     config = ConfigParser.ConfigParser()
     configFilename = os.path.join(os.path.dirname(sys.argv[0]), "autoProcessComics.cfg")
@@ -59,6 +59,8 @@ def processIssue(dirName, nzbName=None):
     params['nzb_folder'] = dirName
     if nzbName != None:
         params['nzb_name'] = nzbName
+
+    params['failed'] = failed
         
     myOpener = AuthURLOpener(username, password)
     

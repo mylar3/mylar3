@@ -52,7 +52,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
         #this is used ONLY for CV_ONLY
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
     elif type == 'storyarc':
-       PULLURL =  mylar.CVURL + 'story_arc/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+       PULLURL =  mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
 
     #CV API Check here.
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
@@ -71,7 +71,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     return dom
 
 
-def getComic(comicid,type,issueid=None):
+def getComic(comicid,type,issueid=None,arc=None):
     if type == 'issue': 
         offset = 1
         issue = {}
@@ -111,6 +111,9 @@ def getComic(comicid,type,issueid=None):
     elif type == 'firstissue': 
         dom = pulldetails(comicid,'firstissue',issueid,1)
         return GetFirstIssue(issueid,dom)
+    elif type == 'storyarc':
+        dom = pulldetails(arc,'storyarc',None,1)   
+        return GetComicInfo(issueid,dom)
 
 def GetComicInfo(comicid,dom):
 
@@ -333,7 +336,10 @@ def GetIssuesInfo(comicid,dom):
                 tempissue['StoreDate'] = subtrack.getElementsByTagName('store_date')[0].firstChild.wholeText
             except:
                 tempissue['StoreDate'] = '0000-00-00'
-            tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
+            try:
+                tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
+            except:
+                logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
             issuech.append({
                 'Comic_ID':                comicid,
                 'Issue_ID':                tempissue['Issue_ID'],

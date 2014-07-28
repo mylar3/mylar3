@@ -26,7 +26,12 @@ if os.environ.has_key('NZBOP_SCRIPTDIR') and not os.environ['NZBOP_VERSION'][0:5
     POSTPROCESS_NONE=95
 
     #Start script
-    result = autoProcessComics.processIssue(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'])
+    if os.environ['NZBPP_TOTALSTATUS'] == 'FAILURE' or os.environ['NZBPP_TOTALSTATUS'] == 'WARNING':
+        failit = 1
+    else:
+        failit = 0
+
+    result = autoProcessComics.processIssue(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'], failed=failit)
 
 
 elif len(sys.argv) == NZBGET_NO_OF_ARGUMENTS:

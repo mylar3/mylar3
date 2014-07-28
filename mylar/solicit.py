@@ -281,13 +281,42 @@ def populate(link,publisher,shipdate):
                         if exinfo == '&': exinfo = 'N/A'
 
                     comic = tempName[:stissue].strip()
+
                     if 'for \$1' in comic:
                         exinfo = 'for $1'
                         comic = comic.replace('for \$1\:', '').lstrip()
 
+                    issuedate = shipdate
+                    if 'on sale' in str(titlet).lower():
+                        onsale_start = str(titlet).lower().find('on sale') + 8
+                        onsale_end = str(titlet).lower().find('<br>',onsale_start)
+                        thedate = str(titlet)[onsale_start:onsale_end]
+                        m = None
+
+                        basemonths = {'january':'1','jan':'1','february':'2','feb':'2','march':'3','mar':'3','april':'4','apr':'4','may':'5','june':'6','july':'7','august':'8','aug':'8','september':'9','sept':'9','october':'10','oct':'10','november':'11','nov':'11','december':'12','dec':'12'}
+                        for month in basemonths:
+                            if month in thedate.lower():
+                                m = basemonths[month]
+                                monthname = month
+                                break
+
+                        if m is not None:
+                            theday = len(month) + 1  # account for space between month & day
+                            thedaystart = thedate[theday:(theday+2)].strip() # day numeric won't exceed 2
+                            if len(str(thedaystart)) == 1:
+                                thedaystart = '0' + str(thedaystart)
+                            if len(str(m)) == 1:
+                                m = '0' + str(m)
+                            thedate = shipdate[-4:] + '-' + str(m) + '-' + str(thedaystart)
+
+                        logger.info('[' + comic + '] On sale :' + str(thedate))
+                        exinfo += ' [' + str(thedate) + ']'
+                        issuedate = thedate
+                    
+
                     if issue1:
                         upcome.append({
-                            'Shipdate': shipdate,
+                            'Shipdate': issuedate,
                             'Publisher': publisher.upper(),
                             'Issue':   re.sub('#', '',issue1).lstrip(),
                             'Comic':   comic.upper(),
@@ -298,7 +327,7 @@ def populate(link,publisher,shipdate):
                         #print ('extra info: ' + exinfo)
                         if issue2:
                             upcome.append({
-                                'Shipdate': shipdate,
+                                'Shipdate': issuedate,
                                 'Publisher': publisher.upper(),
                                 'Issue':   re.sub('#', '', issue2).lstrip(),
                                 'Comic':   comic.upper(),
@@ -309,7 +338,7 @@ def populate(link,publisher,shipdate):
                             #print ('extra info: ' + exinfo)
                     else:          
                         upcome.append({
-                            'Shipdate': shipdate,
+                            'Shipdate': issuedate,
                             'Publisher': publisher.upper(),
                             'Issue':   re.sub('#', '', issue).lstrip(),
                             'Comic':   comic.upper(),

@@ -96,9 +96,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
     import_comicids = {}
 
     for watch in watchlist:
+        #use the comicname_filesafe to start
         watchdisplaycomic = re.sub('[\_\#\,\/\:\;\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
+        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['ComicName_Filesafe']).encode('utf-8').strip()
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
@@ -152,6 +153,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         #cfilename = re.sub('\s', '_', str(cfilename))
         d_filename = re.sub('[\_\#\,\/\;\!\$\%\&\?\@]', ' ', comfilename)
         d_filename = re.sub('[\:\-\+\']', '#', d_filename)
+
+        #strip extraspaces
+        d_filename = re.sub('\s+', ' ', d_filename)
+        cfilename = re.sub('\s+', ' ', cfilename)
 
         #versioning - remove it
         subsplit = cfilename.replace('_', ' ').split()
@@ -315,14 +320,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         logger.fdebug("adjusted comic and issue: " + str(comic_iss))
         #remove 'the' from here for proper comparisons.
         if ' the ' in comic_iss.lower():
-            comic_iss = comic_iss[-4:]
+            comic_iss = re.sub('\\bthe\\b','', comic_iss).strip()
         splitit = comic_iss.split(None)
         logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
         #here we cycle through the Watchlist looking for a match.
         while (cm_cn < watchcnt):
             #setup the watchlist
             comname = ComicName[cm_cn]
-            print ("watch_comic:" + comname)
             comyear = ComicYear[cm_cn]
             compub = ComicPublisher[cm_cn]
             comtotal = ComicTotal[cm_cn]
