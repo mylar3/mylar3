@@ -971,12 +971,15 @@ def latestdate_fix():
     return
 
 def checkFolder():
-    import PostProcessor, logger
+    from mylar import PostProcessor, logger
+    import Queue
+
+    queue = Queue.Queue()
     #monitor a selected folder for 'snatched' files that haven't been processed
     logger.info('Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
-    PostProcess = PostProcessor.PostProcessor('Manual Run', mylar.CHECK_FOLDER)
-    result = PostProcess.Process()
-    logger.info('Finished checking for newly snatched downloads')
+    PostProcess = PostProcessor.PostProcessor('Manual Run', mylar.CHECK_FOLDER, queue=queue)
+    vals = PostProcess.Process()
+    return
 
 def LoadAlternateSearchNames(seriesname_alt, comicid):
     import logger    

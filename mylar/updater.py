@@ -588,7 +588,7 @@ def forceRescan(ComicID,archive=None,module=None):
         pass
     else:
         for ascan in annscan:
-            logger.info('ReleaseComicName: ' + ascan['ReleaseComicName'])
+            #logger.info('ReleaseComicName: ' + ascan['ReleaseComicName'])
             if ascan['ReleaseComicName'] not in altnames:
                 altnames += ascan['ReleaseComicName'] + '!!' + ascan['ReleaseComicID'] + '##'
         altnames = altnames[:-2]

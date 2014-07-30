@@ -460,7 +460,7 @@ class PostProcessor(object):
 
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
-                if len(manual_list) == '0':
+                if len(manual_list) == 0:
                     logger.info(module + ' No matches for Manual Run ... exiting.')
                     return
 
