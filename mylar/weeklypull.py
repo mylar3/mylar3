@@ -174,41 +174,40 @@ def pullit(forcecheck=None):
             mylar.PULLNEW = 'yes'
             for yesyes in checkit:
                 if yesyes in i:
-                    logger.info('yesyes found: ' + yesyes)
+                    #logger.info('yesyes found: ' + yesyes)
                     if format(str(yesyes)) == 'COMICS':
-                        logger.info('yesyes = comics: ' + format(str(yesyes)))
+                        #logger.info('yesyes = comics: ' + format(str(yesyes)))
                         for chkchk in checkit2:
                             flagged = "no"
-                            logger.info('chkchk is : ' + chkchk)
+                            #logger.info('chkchk is : ' + chkchk)
                             if chkchk in i:
-                                logger.info('chkchk found in i: ' + chkchk)
+                                #logger.info('chkchk found in i: ' + chkchk)
                                 bl = i.split()
                                 blchk = str(bl[0]) + " " + str(bl[1])
                                 if chkchk in blchk:
                                     pub = format(str(chkchk)) + " COMICS"
-                                    logger.info("chkchk: " + str(pub))
+                                    #logger.info("chkchk: " + str(pub))
                                     break
                             else:
-                                logger.info('chkchk not in i - i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
+                                #logger.info('chkchk not in i - i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
                                 if all( [i.find("COMICS") < 1, len(i.strip()) == 6 ] ) or ("GRAPHIC NOVELS" in i): 
 #                                if i.find("COMICS") < 1 and (len(i.strip()) == 6 or "& GRAPHIC NOVELS" in i):
                                     pub = "COMICS"
-                                    logger.info("i.find comics & len =6 : " + pub)
+                                    #logger.info("i.find comics & len =6 : " + pub)
                                     break 
                                 elif i.find("COMICS") > 12:
-                                    logger.info("comics word found in comic title")
+                                    #logger.info("comics word found in comic title")
                                     flagged = "yes"                    
                                     break
                     else:
-                        logger.info('yesyes not found: ' + yesyes + ' i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
+                        #logger.info('yesyes not found: ' + yesyes + ' i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
                         if all( [i.find("COMICS") < 1, len(i.strip()) == 6 ] ) or ("GRAPHIC NOVELS" in i): 
-#                        if i.find("COMIC") < 1 and (len(i.strip()) == 6 or "& GRAPHIC NOVELS" in i):
-                            logger.info("format string not comics & i.find < 1: " + pub)
+                            #logger.info("format string not comics & i.find < 1: " + pub)
                             pub = "COMICS"
                             break
                         else:
                             pub = format(str(yesyes))
-                            logger.info("format string not comics & i.find > 1: " + pub)
+                            #logger.info("format string not comics & i.find > 1: " + pub)
                             break
                     if flagged == "no": 
                         break
@@ -241,7 +240,7 @@ def pullit(forcecheck=None):
                         comicnm = comicnm + " " + issname[n]
                         n+=1
                     comcnm = re.sub('1 FOR \$1','', comicnm).strip()
-                    logger.info("Comicname: " + str(comicnm) )
+                    #logger.info("Comicname: " + str(comicnm) )
                     #get remainder
                     comicrm = issname[comicend +2]
                     if '$' in comicrm:
@@ -252,10 +251,11 @@ def pullit(forcecheck=None):
                             break
                         comicrm = str(comicrm) + " " + str(issname[n])
                         n+=1
-                    logger.info("Comic Extra info: " + str(comicrm) )
-                    logger.info("ship: " + str(shipdate))
-                    logger.info("pub: " + str(pub))
-                    logger.info("issue: " + str(issue))
+                    #logger.info("Comic Extra info: " + str(comicrm) )
+                    #logger.info("ship: " + str(shipdate))
+                    #logger.info("pub: " + str(pub))
+                    #logger.info("issue: " + str(issue))
+
                     #--let's make sure we don't wipe out decimal issues ;)
 #                    if '.' in issue:
 #                        issue_decimal = re.compile(r'[^\d.]+')
