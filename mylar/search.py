@@ -493,14 +493,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         request.add_header('User-Agent', str(mylar.USER_AGENT))
                         opener = urllib2.build_opener()
 
-                        #set a delay between searches here. Default is for 30 seconds...
+                        #set a delay between searches here. Default is for 60 seconds...
+                        #changing this to lower could result in a ban from your nzb source due to hammering.
                         if mylar.SEARCH_DELAY == 'None' or mylar.SEARCH_DELAY is None:
-                            pause_the_search = 1 * 60   # (it's in seconds)
+                            pause_the_search = 60   # (it's in seconds)
                         elif str(mylar.SEARCH_DELAY).isdigit():
-                            pause_the_search = mylar.SEARCH_DELAY * 60
+                            pause_the_search = int(mylar.SEARCH_DELAY) * 60
                         else:
                             logger.info("Check Search Delay - invalid numerical given. Force-setting to 1 minute.")
-                            pause_the_search = 1 * 60
+                            pause_the_search = 60
 
                         #bypass for local newznabs
                         #remove the protocol string (http/https)
