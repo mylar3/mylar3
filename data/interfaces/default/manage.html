@@ -88,7 +88,12 @@
                                         post-processing options.<br/> The remainder will not be moved from the given directory</strong></p>
                                         <div class="row">
                                             <label for="">Path to Manually Run</label>
-                                            <input type="text" value="Enter the full path to post-process" name="nzb_folder" size="70" />
+                                            %if mylar.CHECK_FOLDER:
+                                              <input type="text" value="${mylar.CHECK_FOLDER}" name="nzb_folder" size="70" />
+                                            %else:
+                                              <input type="text" value="Enter the full path to post-process" onfocus="if
+                                              (this.value==this.defaultValue) this.value='';" name="nzb_folder" size="70" />
+                                            %endif
                                             <input type="hidden" name="nzb_name" value='Manual Run' />
                                         </div>
                                       <input type="button" value="Go Manual Run!" onclick="doAjaxCall('post_process',$(this),'tabs',true);return false;" data-success="Manual post-processing now running." data-error="Manual post-processing unable to run at this time.">
