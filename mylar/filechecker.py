@@ -135,6 +135,9 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         bracketsinseries = 'False'
 
         for i in watchcomic.split():
+            if i.isdigit():
+                numberinseries = 'True'
+
             if ('20' in i or '19' in i):
                 if i.isdigit():
                     numberinseries = 'True'
@@ -186,11 +189,12 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             #if the series has digits this f's it up.
             if numberinseries == 'True' or decimalinseries == 'True':
                 #we need to remove the series from the subname and then search the remainder.
-                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
+                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', watchcomic)   #remove spec chars for watchcomic match.
                 logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
                 subthis = re.sub('.cbr', '', subname)
                 subthis = re.sub('.cbz', '', subthis)
-                subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
+                subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', subthis)
+                subthis = re.sub('\s+',' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely 
                 if watchname not in subthis:
@@ -199,8 +203,21 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
                 logger.fdebug('[FILECHECKER] new subname: ' + str(subthis))
-                subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subthis)
-                subname = watchcomic + subname
+                if subthis.startswith('('):
+                    # if it startswith a bracket, then it's probably a year - let's check.
+                    for i in subthis.split():
+                        tmpi = re.sub('[\(\)]','',i).strip()
+                        if tmpi.isdigit():
+                            if (tmpi.startswith('19') or tmpi.startswith('20')) and len(tmpi) == 4:
+                                logger.fdebug('[FILECHECKER] year detected: ' + str(tmpi))
+                                subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
+                                subname = re.sub('\(\)', '', subname).strip()
+                                subname = watchcomic + ' ' + subname
+                                logger.fdebug('[FILECHECKER] new subname reversed: ' + str(subname))
+                                break
+                else:
+                    subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\2 (\\3)', subthis)
+
                 subnm = re.findall('[^()]+', subname)
             else:
                 subit = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\3 (\\2)', subname).replace('( )', '')
@@ -219,21 +236,39 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         else:
             if numberinseries == 'True' or decimalinseries == 'True':
                 #we need to remove the series from the subname and then search the remainder.
-                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', watchcomic)   #remove spec chars for watchcomic match.
+                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', watchcomic)   #remove spec chars for watchcomic match.
                 logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
                 subthis = re.sub('.cbr', '', subname)
                 subthis = re.sub('.cbz', '', subthis)
-                subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.]', '', subthis)
+                subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', subthis)
+                subthis = re.sub('\s+',' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely
                 if watchname not in subthis:
                     logger.fdebug('[FILECHECKER] this is a false match. Ignoring this result.')
                     continue
-                subthis = subthis[len(watchname):]  #remove watchcomic
+                subthis = subthis[len(watchname):].strip()  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
                 logger.fdebug('[FILECHECKER] new subname: ' + str(subthis))
-                subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 (\\2) \\3', subthis)
-                subname = watchname + subname
+                if subthis.startswith('('):
+                    # if it startswith a bracket, then it's probably a year and the format is incorrect to continue - let's check.
+                    for i in subthis.split():
+                        tmpi = re.sub('[\(\)]','',i).strip()
+                        if tmpi.isdigit():
+                            if (tmpi.startswith('19') or tmpi.startswith('20')) and len(tmpi) == 4:
+                                logger.fdebug('[FILECHECKER] Year detected: ' + str(tmpi))
+                                subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
+                                subname = re.sub('\(\)', '', subname).strip()
+                                logger.fdebug('[FILECHECKER] Flipping the issue with the year: ' + str(subname))
+                                break
+                else:                        
+                    subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
+                    subname = re.sub('\(\)', '', subname).strip()
+
+                subname = watchname + ' ' + subname
+                subname = re.sub('\s+', ' ', subname).strip()
+
+                logger.fdebug('[FILECHECKER] New subname reversed: ' + str(subname))
                 subnm = re.findall('[^()]+', subname)
 
 
@@ -274,13 +309,32 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         #If the Year comes before the Issue # the subname is passed with no Issue number.
         #This logic checks for numbers before the extension in the format of 1 01 001 
         #and adds to the subname. (Cases where comic name is $Series_$Year_$Issue)
-        if len(subnm) > 1:
-            if (re.search('(19\d{2}|20\d{2})',subnm[1]) is not None):
-                logger.fdebug('[FILECHECKER] subnm0: ' + str(subnm[0]))
-                logger.fdebug('[FILECHECKER] subnm1: ' + str(subnm[1]))
+
+#        if len(subnm) > 1:
+#            if (re.search('(19\d{2}|20\d{2})',subnm[1]) is not None):
+#                logger.info('subnm[1]: ' + str(subnm[1]))
+#                for i in subnm:
+#                    tmpi = i.strip()
+#                    if tmpi.isdigit():
+#                        if (tmpi.startswith('19') or tmpi.startswith('20')) and len(tmpi) == 4:
+#                            logger.info('[FILECHECKER] year detected: ' + str(tmpi))
+#                            #strip out all the brackets in the subnm[2] if it exists so we're left with just the issue # in most cases
+#                            subremoved = re.findall('[^()]+', subnm[2]).strip()
+#                            if len(subremoved) > 5:
+#                                logger.info('[FILECHECKER] something is wrong with the parsing - better report the issue on github.')
+#                                break
+#                            subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 ' + str(subremoved) + ' (\\2)', subname)
+#                            subname = re.sub('\(\)', '', subname).strip()
+#                            logger.info('[FILECHECKER] THE new subname reversed: ' + str(subname))
+#                            break
+#            else:
+#                subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\2 (\\3)', subname)
+
+#            subnm = re.findall('[^()]+', subname)  # we need to regenerate this here.
+#            logger.fdebug('[FILECHECKER] subnm0: ' + str(subnm[0]))
+#            logger.fdebug('[FILECHECKER] subnm1: ' + str(subnm[1]))
 #                logger.fdebug('subnm2: ' + str(subnm[2]))
-                subname = str(subnm[0]).lstrip() + ' (' + str(subnm[1]).strip() + ') '
-                subnm = re.findall('[^()]+', subname)  # we need to regenerate this here.
+#                subname = str(subnm[0]).lstrip() + ' (' + str(subnm[1]).strip() + ') '
 
         subname = subnm[0]
 
