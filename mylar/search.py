@@ -1183,7 +1183,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                          logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
                                          return
                                     logger.fdebug("filename saved to your blackhole as : " + str(nzbname) + '.nzb')
-                                    logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(filenamenzb) + '.nzb')
+                                    logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
                                     sent_to = "your Blackhole Directory"
                             #end blackhole
                             elif nzbprov == 'CBT' or nzbprov == 'KAT':
