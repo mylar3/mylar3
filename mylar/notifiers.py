@@ -225,7 +225,7 @@ class BOXCAR:
             data = urllib.urlencode({
                 'user_credentials': mylar.BOXCAR_TOKEN,
                 'notification[title]': title.encode('utf-8').strip(),
-                'notification[long_message]': message.encode('utf-8'),
+                'notification[long_message]': msg.encode('utf-8'),
                 'notification[sound]': "done"
                 })
 
