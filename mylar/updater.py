@@ -782,7 +782,7 @@ def forceRescan(ComicID,archive=None,module=None):
                 reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND ReleaseComicID=?', [ComicID, ANNComicID])
             else:
                 reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
-
+                ANNComicID = ComicID
             # annual inclusion here.
             #logger.fdebug("checking " + str(temploc))
             fcnew = shlex.split(str(temploc))
