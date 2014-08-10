@@ -469,16 +469,16 @@ class WebInterface(object):
                 thread_.join()
                 failchk = queue.get()
                 if failchk[0]['mode'] == 'retry':
-                    yield chk[0]['self.log']
+                    yield failchk[0]['self.log']
                     logger.info('Attempting to return to search module with ' + str(failchk[0]['issueid']))
                     if failchk[0]['annchk'] == 'no': mode = 'want'
                     else: mode = 'want_ann'
                     self.queueit(mode=mode, ComicName=failchk[0]['comicname'], ComicIssue=failchk[0]['issuenumber'], ComicID=failchk[0]['comicid'], IssueID=failchk[0]['issueid'], manualsearch=True)
                 elif failchk[0]['mode'] == 'stop':
-                    yield chk[0]['self.log']
+                    yield failchk[0]['self.log']
                 else:
                     logger.error('mode is unsupported: ' + failchk[0]['mode'])
-                    yield chk[0]['self.log']
+                    yield failchk[0]['self.log']
             else:
                 logger.warn('Failed Download Handling is not enabled. Leaving Failed Download as-is.') 
     post_process.exposed = True
@@ -678,13 +678,12 @@ class WebInterface(object):
     refreshArtist.exposed=True  
 
     def issue_edit(self, id, value):
-        print 'here'
-        print 'id: ' + str(id)
-        print 'value: ' + str(value)
+        logger.fdebug('id: ' + str(id))
+        logger.fdebug('value: ' + str(value))
         comicid = id[:id.find('.')]
-        print 'comicid:' + str(comicid)
+        logger.fdebug('comicid:' + str(comicid))
         issueid = id[id.find('.')+1:]
-        print 'issueid:' + str(issueid)
+        logger.fdebug('issueid:' + str(issueid))
         myDB = db.DBConnection()
         comicchk = myDB.selectone('SELECT ComicYear FROM comics WHERE ComicID=?', [comicid]).fetchone()
         issuechk = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
@@ -693,6 +692,7 @@ class WebInterface(object):
             return
         oldissuedate = issuechk['IssueDate']
         seriesyear = comicchk['ComicYear']
+        issuenumber = issuechk['Issue_Number']
 
         #check if the new date is in the correct format of yyyy-mm-dd
         try:
@@ -710,7 +710,7 @@ class WebInterface(object):
                   "IssueDate_Edit" : oldissuedate}
         ctrlVal = {"IssueID": issueid}
         myDB.upsert("issues", newVal, ctrlVal)
-        logger.info('updated issueinfo')
+        logger.info('Updated Issue Date for issue #' + str(issuenumber))
         return value
 
     issue_edit.exposed=True
@@ -731,16 +731,6 @@ class WebInterface(object):
 
     force_rss.exposed = True
 
-    #def chkTorrents(self, ComicName, pickfeed):
-    #    chktorrent = rsscheck.torrents(ComicName,pickfeed)
-    #    if chktorrent:
-    #        print ("Torrent Check completed.")
-
-    #    raise cherrypy.HTTPRedirect("home")
-
-    #chkTorrents.exposed = True
-
-
     def markissues(self, action=None, **args):
         myDB = db.DBConnection()
         issuesToAdd = []
@@ -750,8 +740,7 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            print ("issueID: " + str(IssueID) + "... " + str(newaction))
-            if IssueID is None or 'issue_table' in IssueID or 'history_table' in IssueID:
+            if IssueID is None or 'issue_table' in IssueID or 'history_table' in IssueID or 'manage_issues' in IssueID:
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
@@ -805,6 +794,146 @@ class WebInterface(object):
         #    raise cherrypy.HTTPRedirect("upcoming")
     markissues.exposed = True
     
+    def retryit(self, **kwargs):
+        threading.Thread(target=self.retryissue, kwargs=kwargs).start()
+    retryit.exposed = True
+
+    def retryissue(self, ComicName, ComicID, IssueID, IssueNumber, ReleaseComicID=None, ComicYear=None, redirect=None):
+
+        logger.info('ComicID:' + str(ComicID))
+        logger.info('Retrying : ' + str(IssueID))
+        # mode = either series or annual (want vs. want_ann)
+        #To retry the exact download again - we already have the nzb/torrent name stored in the nzblog.
+        #0 - Change status to Retrying.
+        #1 - we need to search the snatched table for the relevant information (since it HAS to be in snatched status)
+        #2 - we need to reference the ID from the snatched table to the nzblog table
+        #  - if it doesn't match, then it's an invalid retry.
+        #  - if it does match, we get the nzbname/torrent name and provider info
+        #3 - if it's an nzb - we recreate the sab/nzbget url and resubmit it directly.
+        #  - if it's a torrent - we redownload the torrent and flip it to the watchdir on the local / seedbox.
+        #4 - Change status to Snatched.
+        myDB = db.DBConnection()
+        chk_snatch = myDB.select('SELECT * FROM snatched WHERE IssueID=?', [IssueID])
+        if chk_snatch is None:
+            logger.info('Unable to locate how issue was downloaded (name, provider). Cannot continue.')
+            return
+
+        confirmedsnatch = False
+        for cs in chk_snatch:
+            if cs['Status'] == 'Snatched':
+                logger.info('Located snatched download:')
+                logger.info('--Referencing : ' + cs['Provider'] + ' @ ' + str(cs['DateAdded']))
+                Provider = cs['Provider']
+                confirmedsnatch = True
+            elif (cs['Status'] == 'Post-Processed' or cs['Status'] == 'Downloaded') and confirmedsnatch == True:
+                logger.info('Issue has already been Snatched, Downloaded & Post-Processed.')
+                logger.info('You should be using Manual Search or Mark Wanted - not retry the same download.')
+                return
+
+        Provider_sql = '%' + Provider + '%'
+
+        chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
+        if chk_log is None:
+            logger.info('Unable to locate provider information from nzblog - if you wiped the log, you have to search/download as per normal')
+            return
+        nzbname = chk_log['NZBName']
+        id = chk_log['ID']
+        fullprov = chk_log['PROVIDER'] #the full newznab name if it exists will appear here as 'sitename (newznab)'
+
+        #now we break it down by provider to recreate the link.
+        #torrents first.
+        if Provider == 'CBT' or Provider == 'KAT':
+            if not mylar.ENABLE_TORRENT_SEARCH:
+               logger.error('Torrent Providers are not enabled - unable to process retry request until provider is re-enabled.')
+               return
+
+            if Provider == 'CBT':
+                if not mylar.ENABLE_CBT:
+                    logger.error('CBT is not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+                # format - http://comicbt.com/download.php?torrent=48064            
+                link = 'http://comicbt.com/download.php?torrent=' + str(id)
+            elif Provider == 'KAT':
+                if not mylar.ENABLE_KAT:
+                    logger.error('KAT is not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+                # format - http://torcache.net/torrent/63194E7328FD9D0AA15795CCA74D4C4995AEDD92.torrent?title=[kickass.to]low.001.2014.digital.zone.empire.cbr.ne
+                link = 'http://torcache.net/torrent/' + str(id) + '.torrent'
+
+            logger.fdebug("sending .torrent to watchdir.")
+            logger.fdebug("ComicName:" + ComicName)
+            logger.fdebug("link:" + str(link))
+            logger.fdebug("Torrent Provider:" + Provider)
+
+            rcheck = mylar.rsscheck.torsend2client(ComicName, IssueNumber, ComicYear, link, Provider)
+            if rcheck == "fail":
+                logger.error("Unable to send torrent - check logs and settings.")
+        else:
+            annualize = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+            if annualize is None:
+                modcomicname = ComicName
+            else:
+                modcomicname = ComicName + ' Annual'
+
+
+            comicinfo = []
+            comicinfo.append({"ComicName":     ComicName,
+                              "IssueNumber":   IssueNumber,
+                              "comyear":       ComicYear,
+                              "modcomicname":  modcomicname})            
+
+            if Provider == 'nzb.su':
+                if not mylar.NZBSU:
+                    logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+                # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
+                link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_ID) + '&r=' + str(mylar.NZBSU_APIKEY)
+                logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
+            elif Provider == 'dognzb':
+                if not mylar.DOGNZB:
+                    logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+                # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
+                link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.DOGNZB_APIKEY)
+                logger.info('fetched via dognzb. Retrying the send : ' + str(link))
+            elif Provider == 'experimental':
+                if not mylar.EXPERIMENTAL:
+                    logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+                # http://nzbindex.nl/download/110818178
+                link = 'http://nzbindex.nl/download/' + str(id)
+                logger.info('fetched via experimental. Retrying the send : ' + str(link))
+            elif 'newznab' in Provider:
+                if not mylar.NEWZNAB:
+                    logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
+                    return
+
+                # http://192.168.2.2/getnzb/4323f9c567c260e3d9fc48e09462946c.nzb&i=<uid>&r=<passkey>
+                # trickier - we have to scroll through all the newznabs until we find a match.
+                logger.info('fetched via newnzab. Retrying the send.')
+                m = re.findall('[^()]+', fullprov)
+                tmpprov = m[0].strip()
+              
+                for newznab_info in mylar.EXTRA_NEWZNABS:
+                    if tmpprov.lower() in newznab_info[0].lower():
+                        if (newznab_info[4] == '1' or newznab_info[4] == 1):
+                            if newznab_info[1].endswith('/'):
+                                newznab_host = newznab_info[1]
+                            else:
+                                newznab_host = newznab_info[1] + '/'
+                            newznab_api = newznab_info[2]
+                            newznab_uid = newznab_info[3]
+                            link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
+                            logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
+                            logger.info('link : ' + str(link))
+                            break
+                        else:
+                            logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
+                            return
+
+            sendit = search.searcher(Provider, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True)
+    retryissue.exposed = True
+
     def queueit(self, **kwargs):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
     queueit.exposed = True
@@ -1506,10 +1635,14 @@ class WebInterface(object):
         return serve_template(templatename="managecomics.html", title="Manage Comics", comics=comics)
     manageComics.exposed = True
     
-    def manageIssues(self):
+    def manageIssues(self, **kwargs):
+        print 'here'
+        print kwargs
+        status = kwargs['status']
         myDB = db.DBConnection()
-        issues = myDB.select('SELECT * from issues')
-        return serve_template(templatename="manageissues.html", title="Manage Issues", issues=issues)
+        issues = myDB.select('SELECT * from issues WHERE Status=?', [status])
+
+        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=issues)
     manageIssues.exposed = True
     
     def manageNew(self):
@@ -1726,6 +1859,61 @@ class WebInterface(object):
                        "TotalIssues": len(tracks)}
             myDB.upsert("readinglist", NewVals, CtrlVal)
             i+=1
+
+        # Now we either load in all of the issue data for series' already on the watchlist,
+        # or we dynamically load them from CV and write to the db.
+
+        #this loads in all the series' that have multiple entries in the current story arc.
+        Arc_MultipleSeries = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND IssueID is NULL GROUP BY ComicName HAVING (COUNT(ComicName) > 1)", [storyarcid])
+        
+        if Arc_MultipleSeries is None:
+            logger.info('Detected 0 series that have multiple entries in this Story Arc. Continuing.')
+
+        else:
+            AMS = []
+            for Arc_MS in Arc_MultipleSeries:
+                #the purpose of this loop is to loop through the multiple entries, pulling out the lowest & highest issue numbers
+                #along with the publication years in order to help the auto-detector attempt to figure out what the series is on CV.
+                #.schema readinglist
+                #(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, 
+                # Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT);
+                if not any(d['ComicName'] == Arc_MS['ComicName'] for d in AMS):
+
+                    AMS.append({"StoryArcID":  Arc_MS['StoryArcID'],
+                                "ComicName":   Arc_MS['ComicName'],
+                                "IssueNumber": Arc_MS['IssueNumber'],
+                                "SeriesYear":  Arc_MS['SeriesYear'],
+                                "IssueYear":   Arc_MS['IssueYear'],
+                                "IssueID":     Arc_MS['IssueID']})
+
+
+        mode='series'
+        if yearRANGE is None:
+            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, explicit='all')
+        else:
+            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, limityear=yearRANGE, explicit='all')
+        type='comic'
+
+        if len(sresults) == 1:
+            sr = sresults[0]
+            implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
+            resultset = 1
+            #need to move the files here.
+        elif len(sresults) == 0 or len(sresults) is None:
+            implog = implog + "no results, removing the year from the agenda and re-querying.\n"
+            sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+            if len(sresults) == 1:
+                sr = sresults[0]
+                implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
+                resultset = 1
+            else:
+                resultset = 0
+        else:
+            implog = implog + "returning results to screen - more than one possibility.\n"
+            resultset = 0
+
+
+
         raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarc))
     importReadlist.exposed = True
 

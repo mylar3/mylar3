@@ -1,7 +1,7 @@
 <%inherit file="base.html" />
 <%!
-	from headphones import db
-	import headphones
+        from mylar import db
+        import mylar
 %>
 
 <%def name="headerIncludes()">
@@ -13,93 +13,73 @@
 
 
 <%def name="body()">
-	<div class="table_wrapper">
 	<div id="manageheader" class="title">
-		<h1 class="clearfix"><img src="interfaces/default/images/icon_manage.png" alt="manage"/>Manage Albums</h1>
+		<h1 class="clearfix">Manage Issues</h1>
 	</div>
-	<form action="markAlbums" method="get" id="markAlbums">
-	<div id="markalbum">Mark selected albums as 
-		<select name="action" onChange="doAjaxCall('markAlbums',$(this),'table',true);" data-error="You didn't select any albums">
+
+        <form action="manageIssues" method="get">
+        <div>
+            <label>Manage Issues with Status&nbsp&nbsp</label><select name="status">
+                        %for curStatus in ['Wanted', 'Downloaded', 'Snatched', 'Skipped', 'Archived', 'Ignored', 'Failed']:
+                            <%
+                                     if curStatus == status:
+                                             selected = 'selected'
+                                     else:
+                                             selected = ''
+                             %>
+                             <option value="${curStatus}" ${selected}>${curStatus}</option> 
+                        %endfor
+                </select>
+                <input type="submit" value="Manage">
+        </div>
+        </form>
+        </br></br>
+	<form action="markissues" method="get" id="markissues">
+        <div id="markissues" style="top:0;">
+		<select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-error="You didn't select any issues">
   			<option disabled="disabled" selected="selected">Choose...</option>
   			<option value="Wanted">Wanted</option>
-  			<option value="WantedNew">Wanted (new only)</option>
-            <option value="WantedLossless">Wanted (lossless)</option>
+  			<option value="Archived">Archived</option>
   			<option value="Skipped">Skipped</option>
-  			<option value="Downloaded">Downloaded</option>
+  			<option value="Ignored">Ignored</option>
+  			<option value="Failed">Failed</option>
 		</select>
+                selected issues
 		<input type="hidden" value="Go">
 	</div>
-	<table class="display" id="album_table">
+        
+	<div class="table_wrapper">
+
+	<table class="display" id="manage_issues">
 		<thead>
 			<tr>
-				<th id="select"><input type="checkbox" onClick="toggle(this)" /></th>
-				<th id="albumname">Album</th>
-                <th id="artistname">Artist</th>
-				<th id="reldate">Date</th>
-				<th id="type">Type</th>
+				<th id="select"><input type="checkbox" onClick="toggle(this)" class="checkbox" align="left" /></th>
+				<th id="name">Series</th>
+                                <th id="int_issue">Int_Issue</th>
+				<th id="issue">Issue</th>
+                                <th id="pubdate">Pub Date</th>
+                                <th id="releasedate">Store Date</th>
 				<th id="status">Status</th>
-				<th id="have">Have</th>
-				<th id="bitrate">Bitrate</th>
-				<th id="albumformat">Format</th>
+				<th id="options">Options</th>
 			</tr>
 		</thead>
 		<tbody>
-		%for album in albums:
-			<%
-				if album['Status'] == 'Skipped':
-					grade = 'Z'
-				elif album['Status'] == 'Wanted':
-					grade = 'X'
-				elif album['Status'] == 'Snatched':
-					grade = 'C'
-				else:
-					grade = 'A'
-
-				myDB = db.DBConnection()					
-				totaltracks = len(myDB.select('SELECT TrackTitle from tracks WHERE AlbumID=?', [album['AlbumID']]))
-				havetracks = len(myDB.select('SELECT TrackTitle from tracks WHERE AlbumID=? AND Location IS NOT NULL', [album['AlbumID']])) + len(myDB.select('SELECT TrackTitle from have WHERE ArtistName like ? AND AlbumTitle LIKE ?', [album['ArtistName'], album['AlbumTitle']]))
-				
-				try:
-					percent = (havetracks*100.0)/totaltracks
-					if percent > 100:
-						percent = 100
-				except (ZeroDivisionError, TypeError):
-					percent = 0
-					totaltracks = '?'
-					
-				avgbitrate = myDB.action("SELECT AVG(BitRate) FROM tracks WHERE AlbumID=?", [album['AlbumID']]).fetchone()[0]
-				if avgbitrate:
-					bitrate = str(int(avgbitrate)/1000) + ' kbps'
-				else:
-					bitrate = ''
-
-				albumformatcount = myDB.action("SELECT COUNT(DISTINCT Format) FROM tracks WHERE AlbumID=?", [album['AlbumID']]).fetchone()[0]
-				if albumformatcount == 1:
-					albumformat = myDB.action("SELECT DISTINCT Format FROM tracks WHERE AlbumID=?", [album['AlbumID']]).fetchone()[0]
-				elif albumformatcount > 1:
-					albumformat = 'Mixed'
-				else:
-					albumformat = ''
-
-				lossy_formats = [str.upper(fmt) for fmt in headphones.LOSSY_MEDIA_FORMATS]
-
-			%>
-			<tr class="grade${grade}">
-				<td id="select"><input type="checkbox" name="${album['AlbumID']}" class="checkbox" /></td>
-				<td id="albumname"><a href="albumPage?AlbumID=${album['AlbumID']}">${album['AlbumTitle']}</a></td>
-                <td id="artistname"><a href="artistPage?ArtistID=${album['ArtistID']}">${album['ArtistName']}</a></td>
-				<td id="reldate">${album['ReleaseDate']}</td>
-				<td id="type">${album['Type']}</td>
-				<td id="status">${album['Status']}</td>
-				<td id="have"><span title="${percent}"><span><div class="progress-container"><div style="width:${percent}%"><div class="havetracks">${havetracks}/${totaltracks}</div></div></div></td>
-				<td id="bitrate">${bitrate}</td>
-				<td id="albumformat">${albumformat}</td>
-			</tr>	
+		%for issue in issues:
+			<tr>
+				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
+				<td id="name"><span title="${issue['ComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
+                                <td id="int_issue">${issue['Int_IssueNumber']}</td>
+				<td id="issue">${issue['Issue_Number']}</td>
+				<td id="pubdate">${issue['IssueDate']}</td>
+				<td id="releasedate">${issue['ReleaseDate']}</td>
+				<td id="status">${issue['Status']}</td>	
+                                <td id="options"></td>
+			</tr>
 		%endfor
 		</tbody>
 	</table>
-	</form>
 	</div>
+	</form>
 </%def>
 
 <%def name="headIncludes()">
@@ -108,41 +88,39 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-	<script>
+        <script>
+        function initThisPage() {
+                $('#manage_issues').dataTable(
+                        {
+                                "bDestroy": true,
+                                "aoColumnDefs": [
+                                  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
+                                  { 'bVisible': false, 'aTargets': [2] },
+                                  { 'sType': 'numeric', 'aTargets': [2] },
+                                  { 'iDataSort': [2], 'aTargets': [3] }
+                                ],
+                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "oLanguage": {
+                                        "sLengthMenu":"Show _MENU_ results per page",
+                                        "sEmptyTable": "No results",
+                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
+                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
+                                        "sSearch" : ""},
+                                "bStateSave": true,
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [[1, 'desc'],[2, 'desc']]
+                        });
+                        resetFilters("issue");
+        }
 
-	function initThisPage() {
-		$('#album_table').dataTable({
-			"bDestroy": true,
-			"aoColumns": [
-                null,
-				null,
-				null,
-				null,
-				null,
-				null,
-				{ "sType": "title-numeric"},
-				null,
-				null
-			],
-			"aoColumnDefs": [
-			          { 'bSortable': false, 'aTargets': [ 0 ] }
-			],				
-			"oLanguage": {
-				"sLengthMenu":"Show _MENU_ albums per page",
-				"sEmptyTable": "No album information available",
-				"sInfo":"Showing _TOTAL_ albums",
-				"sInfoEmpty":"Showing 0 to 0 of 0 albums",
-				"sInfoFiltered":"(filtered from _MAX_ total albums)",
-				"sSearch": ""},
-			"bPaginate": false,
-			"aaSorting": [[5, 'desc']]
+        $(document).ready(function(){
+                initThisPage();
+        });
+        $(window).load(function(){
+                initFancybox();
+        });
+        </script>
 
-		});
-		resetFilters("albums");
-	}
-	$(document).ready(function() {
-		initThisPage();
-	});
-	</script>
 </%def>
-

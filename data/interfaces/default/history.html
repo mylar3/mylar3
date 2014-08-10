@@ -71,7 +71,7 @@
                                     %endif
                                 %endif
                                 </td>
-				<td id="action">[<a href="#" onclick="doAjaxCall('queueissue?IssueID=${item['IssueID']}&ComicName=${item['ComicName']}&ComicID=${item['ComicID']}&ComicIssue=${item['Issue_Number']}&mode=want&redirect=history', $(this),'table')"  data-success="Successful re-download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
+				<td id="action">[<a href="#" onclick="doAjaxCall('retryit?ComicName=${item['ComicName'] |u}&ComicID=${item['ComicID']}&IssueID=${item['IssueID']}&IssueNumber=${item['Issue_Number']}&redirect=history', $(this),'table')"  data-success="Successful re-download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>
 			</tr>
 		%endfor
 		</tbody>

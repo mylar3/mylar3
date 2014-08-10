@@ -285,27 +285,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     if mylar.PREFERRED_QUALITY == 0: filetype = ""
     elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
     elif mylar.PREFERRED_QUALITY == 2: filetype = ".cbz"
-
-    if mylar.SAB_PRIORITY:
-        if mylar.SAB_PRIORITY == "Default": sabpriority = "-100"
-        elif mylar.SAB_PRIORITY == "Low": sabpriority = "-1"
-        elif mylar.SAB_PRIORITY == "Normal": sabpriority = "0"
-        elif mylar.SAB_PRIORITY == "High": sabpriority = "1"
-        elif mylar.SAB_PRIORITY == "Paused": sabpriority = "-2"
-    else:
-        #if sab priority isn't selected, default to Normal (0)
-        sabpriority = "0"
-
-    if mylar.NZBGET_PRIORITY:
-        if mylar.NZBGET_PRIORITY == "Default": nzbgetpriority = "0"
-        elif mylar.NZBGET_PRIORITY == "Low": nzbgetpriority = "-50"
-        elif mylar.NZBGET_PRIORITY == "Normal": nzbgetpriority = "0"
-        elif mylar.NZBGET_PRIORITY == "High": nzbgetpriority = "50"
-        #there's no priority for "paused", so set "Very Low" and deal with that later...
-        elif mylar.NZBGET_PRIORITY == "Paused": nzbgetpriority = "-100"
-    else:
-        #if sab priority isn't selected, default to Normal (0)
-        nzbgetpriority = "0"
         
     #UseFuzzy == 0: Normal 
     #UseFuzzy == 1: Remove Year
@@ -1103,212 +1082,38 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         
                         #issue comparison now as well
                         if int(intIss) == int(comintIss):
-                            comicinfo = []
-                            comicinfo.append({"ComicName":   ComicName,
-                                              "IssueNumber": IssueNumber,
-                                              "comyear":     comyear})
-                            #check if nzb is in do not download list ;)
-                            if nzbprov == 'experimental':
-                                #id is located after the /download/ portion
-                                url_parts = urlparse.urlparse(entry['link'])
-                                path_parts = url_parts[2].rpartition('/')
-                                nzbtempid = path_parts[0].rpartition('/')
-                                nzblen = len(nzbtempid)
-                                nzbid = nzbtempid[nzblen-1]
-                            elif nzbprov == 'CBT':
-                                url_parts = urlparse.urlparse(entry['link'])
-                                nzbtemp = url_parts[4] # get the query paramater string
-                                nzbtemp = re.sub('torrent=', '', nzbtemp).rstrip()
-                                nzbid = re.sub('.torrent', '', nzbtemp).rstrip()
-                            elif nzbprov == 'KAT':
-                                url_parts = urlparse.urlparse(entry['link'])
-                                path_parts = url_parts[2].rpartition('/')
-                                nzbtempid = path_parts[2]
-                                nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
-                            elif nzbprov == 'nzb.su':
-                                url_parts = urlparse.urlparse(entry['link'])
-                                path_parts = url_parts[2].rpartition('/')
-                                nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
-                            elif nzbprov == 'dognzb':
-                                url_parts = urlparse.urlparse(entry['link'])
-                                path_parts = url_parts[2].rpartition('/')
-                                nzbid = path_parts[0].rsplit('/',1)[1]
-                            elif nzbprov == 'newznab':
-                                #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
-                                nzbid = os.path.splitext(entry['link'])[0].rsplit('/', 1)[1]
-                                
-                            nzbname = nzbname_create(nzbprov, info=comicinfo, title=entry['title'])
 
-                            if mylar.FAILED_DOWNLOAD_HANDLING:
-                                if nzbid is not None:
-                                    call_the_fail = Failed.FailedProcessor(nzb_name=nzbname, id=nzbid, issueid=IssueID, comicid=ComicID, prov=tmpprov)
-                                    check_the_fail = call_the_fail.failed_check()
-                                    if check_the_fail == 'Failed':
-                                        logger.fdebug('[FAILED_DOWNLOAD_CHECKER] [' + str(tmpprov) + '] Marked as a bad download : ' + str(nzbid))
-                                        continue
-                                    elif check_the_fail == 'Good':
-                                        logger.fdebug('[FAILED_DOWNLOAD_CHECKER] This is not in the failed downloads list. Will continue with the download.')
-
-                            logger.fdebug('issues match!')
-                            logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(tmpprov) )
-                        ## -- inherit issue. Comic year is non-standard. nzb year is the year
-                        ## -- comic was printed, not the start year of the comic series and
-                        ## -- thus the deciding component if matches are correct or not
-                            linkstart = os.path.splitext(entry['link'])[0]
-                        #following is JUST for nzb.su
-                            if nzbprov == 'nzb.su' or nzbprov == 'newznab':
-                                linkit = os.path.splitext(entry['link'])[1]
-                                if mylar.USE_SABNZBD:
-                                    linkit = linkit.replace("&", "%26")
-                                linkapi = str(linkstart) + str(linkit)
-                            else:
-                                # this should work for every other provider
-                                linkstart = linkstart.replace("&", "%26")
-                                linkapi = str(linkstart)
-                            logger.fdebug("link given by: " + str(nzbprov))
-                            #logger.fdebug("link: " + str(linkstart))
-                            #logger.fdebug("linkforapi: " + str(linkapi))
-                            #here we distinguish between rename and not.
-                            #blackhole functinality---
-                            #let's download the file to a temporary cache.
-                            sent_to = None
-                            if mylar.USE_BLACKHOLE and nzbprov != 'CBT' and nzbprov != 'KAT':
-                                logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
-                                if os.path.exists(mylar.BLACKHOLE_DIR):
-                                    # Add a user-agent
-                                    request = urllib2.Request(linkapi) #(str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
-                                    request.add_header('User-Agent', str(mylar.USER_AGENT))
-                                    try: 
-                                        opener = helpers.urlretrieve(urllib2.urlopen(request), str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
-                                    except Exception, e:
-                                         logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
-                                         return
-                                    logger.fdebug("filename saved to your blackhole as : " + str(nzbname) + '.nzb')
-                                    logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
-                                    sent_to = "your Blackhole Directory"
-                            #end blackhole
-                            elif nzbprov == 'CBT' or nzbprov == 'KAT':
-                                logger.fdebug("sending .torrent to watchdir.")
-                                logger.fdebug("ComicName:" + ComicName)
-                                logger.fdebug("link:" + entry['link'])
-                                logger.fdebug("Torrent Provider:" + nzbprov)
-                                foundc = "yes"
-
-                                rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, entry['link'], nzbprov)
-                                if rcheck == "fail":
-                                    logger.error("Unable to send torrent - check logs and settings.")
-                                    return
-                                if mylar.TORRENT_LOCAL:
-                                    sent_to = "your local Watch folder"
-                                else:
-                                    sent_to = "your seedbox Watch folder"
-                            else:
-                                tmppath = mylar.CACHE_DIR
-                                if os.path.exists(tmppath):
-                                   logger.fdebug("cache directory successfully found at : " + str(tmppath))
-                                   pass
-                                else:
-                                #let's make the dir.
-                                    logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
-                                    try:
-                                        os.makedirs(str(mylar.CACHE_DIR))
-                                        logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
-
-                                    except OSError.e:
-                                        if e.errno != errno.EEXIST:
-                                            raise
-                                logger.fdebug("link to retrieve via api:" + str(helpers.apiremove(linkapi,'$')))
-
-                                #test nzb.get
-                                if mylar.USE_NZBGET:                                
-                                    from xmlrpclib import ServerProxy
-                                    if mylar.NZBGET_HOST[:4] == 'http':
-                                        tmpapi = "http://"
-                                        nzbget_host = mylar.NZBGET_HOST[7:]
-                                    elif mylar.NZBGET_HOST[:5] == 'https':
-                                        tmpapi = "https://"
-                                        nzbget_host = mylar.NZBGET_HOST[8:]
-                                    else:
-                                        logger.error("You have an invalid nzbget hostname specified. Exiting")
-                                        return
-                                    tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
-                                    tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
-                                    server = ServerProxy(tmpapi)
-                                    send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
-                                    sent_to = "NZBGet"
-                                    if send_to_nzbget is True:
-                                        logger.info("Successfully sent nzb to NZBGet!")
-                                    else:
-                                        logger.info("Unable to send nzb to NZBGet - check your configs.")
-#                                #end nzb.get test
-               
-                                elif mylar.USE_SABNZBD:
-                                    # let's build the send-to-SAB string now:
-                                    tmpapi = str(mylar.SAB_HOST)
-                                    logger.fdebug("send-to-SAB host string: " + str(tmpapi))
-                                    # changed to just work with direct links now...
-                                    SABtype = "/api?mode=addurl&name="
-                                    fileURL = str(linkapi)
-                                    tmpapi = tmpapi + str(SABtype)
-                                    logger.fdebug("...selecting API type: " + str(tmpapi))
-                                    tmpapi = tmpapi + str(fileURL)
-                                    
-                                    logger.fdebug("...attaching nzb provider link: " + str(helpers.apiremove(tmpapi,'$')))
-                                    # determine SAB priority
-                                    if mylar.SAB_PRIORITY:
-                                        tmpapi = tmpapi + "&priority=" + str(sabpriority)
-                                        logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi,'&')))
-                                    # if category is blank, let's adjust
-                                    if mylar.SAB_CATEGORY:
-                                        tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
-                                        logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi,'&')))
-                                    if mylar.POST_PROCESSING: #or mylar.RENAME_FILES:
-                                        if mylar.POST_PROCESSING_SCRIPT:
-                                           #this is relative to the SABnzbd script directory (ie. no path)
-                                           tmpapi = tmpapi + "&script=" + mylar.POST_PROCESSING_SCRIPT
-                                        else:
-                                           tmpapi = tmpapi + "&script=ComicRN.py"
-                                        logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi,'&')))
-                                    #final build of send-to-SAB    
-                                    tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
-
-                                    logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
-
-                                    try:
-                                        urllib2.urlopen(tmpapi)
-                                    except urllib2.URLError:
-                                        logger.error(u"Unable to send nzb file to SABnzbd")
-                                        return
- 
-                                    sent_to = "SABnzbd+"
-                                    logger.info(u"Successfully sent nzb file to SABnzbd")
-
+                            #modify the name for annualization to be displayed properly
                             if annualize == True:
                                 modcomicname = ComicName + ' Annual'
                             else:
                                 modcomicname = ComicName
-                            if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
-                                logger.info(u"Sending Prowl notification")
-                                prowl = notifiers.PROWL()
-                                prowl.notify(nzbname,"Download started using " + sent_to)
-                            if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
-                                logger.info(u"Sending NMA notification")
-                                nma = notifiers.NMA()
-                                snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
-                                nma.notify(snline=snline,snatched_nzb=nzbname,sent_to=sent_to,prov=nzbprov)
-                            if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
-                                logger.info(u"Sending Pushover notification")
-                                pushover = notifiers.PUSHOVER()
-                                pushover.notify(nzbname,"Download started using " + sent_to)
-                            if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
-                                logger.info(u"Sending Boxcar notification")
-                                boxcar = notifiers.BOXCAR()
-                                boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to)
-                            if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
-                                logger.info(u"Sending Pushbullet notification")
-                                pushbullet = notifiers.PUSHBULLET()
-                                snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
-                                pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
+
+
+                            comicinfo = []
+                            comicinfo.append({"ComicName":     ComicName,
+                                              "IssueNumber":   IssueNumber,
+                                              "comyear":       comyear,
+                                              "modcomicname":  modcomicname})
+
+                            #generate nzbname
+                            nzbname = nzbname_create(nzbprov, info=comicinfo, title=entry['title'])
+
+                            #generate the send-to and actually send the nzb / torrent.
+                            searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov)
+
+                            if searchresult == 'downloadchk-fail':
+                                continue
+                            elif searchresult == 'torrent-fail' or searchresult == 'nzbget-fail' or searchresult == 'sab-fail' or searchresult == 'blackhole-fail':
+                                return
+                            else:
+                                #nzbid, nzbname, sent_to
+                                nzbid = searchresult[0]['nzbid']
+                                nzbname = searchresult[0]['nzbname']
+                                sent_to = searchresult[0]['sent_to']
+
+                            #send out the notifications for the snatch.
+                            notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
 
                             foundc = "yes"
                             done = True
@@ -1576,3 +1381,258 @@ def nzbname_create(provider, title=None, info=None):
 
     logger.fdebug("nzbname used for post-processing:" + str(nzbname))
     return nzbname
+
+def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None):
+
+    #load in the details of the issue from the tuple.
+    ComicName = comicinfo[0]['ComicName']
+    IssueNumber = comicinfo[0]['IssueNumber']
+    comyear = comicinfo[0]['comyear']
+    modcomicname = comicinfo[0]['modcomicname']
+
+    #setup the priorities.
+    if mylar.SAB_PRIORITY:
+        if mylar.SAB_PRIORITY == "Default": sabpriority = "-100"
+        elif mylar.SAB_PRIORITY == "Low": sabpriority = "-1"
+        elif mylar.SAB_PRIORITY == "Normal": sabpriority = "0"
+        elif mylar.SAB_PRIORITY == "High": sabpriority = "1"
+        elif mylar.SAB_PRIORITY == "Paused": sabpriority = "-2"
+    else:
+        #if sab priority isn't selected, default to Normal (0)
+        sabpriority = "0"
+
+    if mylar.NZBGET_PRIORITY:
+        if mylar.NZBGET_PRIORITY == "Default": nzbgetpriority = "0"
+        elif mylar.NZBGET_PRIORITY == "Low": nzbgetpriority = "-50"
+        elif mylar.NZBGET_PRIORITY == "Normal": nzbgetpriority = "0"
+        elif mylar.NZBGET_PRIORITY == "High": nzbgetpriority = "50"
+        #there's no priority for "paused", so set "Very Low" and deal with that later...
+        elif mylar.NZBGET_PRIORITY == "Paused": nzbgetpriority = "-100"
+    else:
+        #if sab priority isn't selected, default to Normal (0)
+        nzbgetpriority = "0"
+
+    #check if nzb is in do not download list
+    if nzbprov == 'experimental':
+        #id is located after the /download/ portion
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbtempid = path_parts[0].rpartition('/')
+        nzblen = len(nzbtempid)
+        nzbid = nzbtempid[nzblen-1]
+    elif nzbprov == 'CBT':
+        url_parts = urlparse.urlparse(link)
+        nzbtemp = url_parts[4] # get the query paramater string
+        nzbtemp = re.sub('torrent=', '', nzbtemp).rstrip()
+        nzbid = re.sub('.torrent', '', nzbtemp).rstrip()
+    elif nzbprov == 'KAT':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbtempid = path_parts[2]
+        nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
+    elif nzbprov == 'nzb.su':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
+    elif nzbprov == 'dognzb':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbid = path_parts[0].rsplit('/',1)[1]
+    elif nzbprov == 'newznab':
+        #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
+        nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+
+
+    if mylar.FAILED_DOWNLOAD_HANDLING:
+        if nzbid is not None:
+            call_the_fail = Failed.FailedProcessor(nzb_name=nzbname, id=nzbid, issueid=IssueID, comicid=ComicID, prov=tmpprov)
+            check_the_fail = call_the_fail.failed_check()
+            if check_the_fail == 'Failed':
+                logger.fdebug('[FAILED_DOWNLOAD_CHECKER] [' + str(tmpprov) + '] Marked as a bad download : ' + str(nzbid))
+                return "downloadchk-fail"
+                #continue
+            elif check_the_fail == 'Good':
+                logger.fdebug('[FAILED_DOWNLOAD_CHECKER] This is not in the failed downloads list. Will continue with the download.')
+
+    logger.fdebug('issues match!')
+    logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + str(IssueNumber) + " using " + str(tmpprov) )
+
+    linkstart = os.path.splitext(link)[0]
+    if nzbprov == 'nzb.su' or nzbprov == 'newznab':
+        linkit = os.path.splitext(link)[1]
+        if mylar.USE_SABNZBD:
+            linkit = linkit.replace("&", "%26")
+        linkapi = str(linkstart) + str(linkit)
+    else:
+        # this should work for every other provider
+        linkstart = linkstart.replace("&", "%26")
+        linkapi = str(linkstart)
+    logger.fdebug("link given by: " + str(nzbprov))
+    #logger.fdebug("link: " + str(linkstart))
+    #logger.fdebug("linkforapi: " + str(linkapi))
+
+    #blackhole
+    sent_to = None
+    if mylar.USE_BLACKHOLE and nzbprov != 'CBT' and nzbprov != 'KAT':
+        logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
+        if os.path.exists(mylar.BLACKHOLE_DIR):
+            # Add a user-agent
+            request = urllib2.Request(linkapi) #(str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
+            request.add_header('User-Agent', str(mylar.USER_AGENT))
+            try:
+                opener = helpers.urlretrieve(urllib2.urlopen(request), str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
+            except Exception, e:
+                logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
+                return "blackhole-fail"
+
+            logger.fdebug("filename saved to your blackhole as : " + str(nzbname) + '.nzb')
+            logger.info(u"Successfully sent .nzb to your Blackhole directory : " + str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
+            sent_to = "your Blackhole Directory"
+    #end blackhole
+
+    #torrents (CBT & KAT)
+    elif nzbprov == 'CBT' or nzbprov == 'KAT':
+        logger.fdebug("sending .torrent to watchdir.")
+        logger.fdebug("ComicName:" + ComicName)
+        logger.fdebug("link:" + link)
+        logger.fdebug("Torrent Provider:" + nzbprov)
+        foundc = "yes"
+
+
+        rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov)
+        if rcheck == "fail":
+            logger.error("Unable to send torrent - check logs and settings.")
+            return "torrent-fail"
+        if mylar.TORRENT_LOCAL:
+            sent_to = "your local Watch folder"
+        else:
+            sent_to = "your seedbox Watch folder"
+    #end torrents
+
+    #SABnzbd / NZBGet
+    else:
+        tmppath = mylar.CACHE_DIR
+        if os.path.exists(tmppath):
+            logger.fdebug("cache directory successfully found at : " + str(tmppath))
+            pass
+        else:
+            #let's make the dir.
+            logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
+            try:
+                os.makedirs(str(mylar.CACHE_DIR))
+                logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
+            except OSError.e:
+                if e.errno != errno.EEXIST:
+                    raise
+
+        logger.fdebug("link to retrieve via api:" + str(helpers.apiremove(linkapi,'$')))
+
+        #nzb.get
+        if mylar.USE_NZBGET:
+            from xmlrpclib import ServerProxy
+            if mylar.NZBGET_HOST[:4] == 'http':
+                tmpapi = "http://"
+                nzbget_host = mylar.NZBGET_HOST[7:]
+            elif mylar.NZBGET_HOST[:5] == 'https':
+                tmpapi = "https://"
+                nzbget_host = mylar.NZBGET_HOST[8:]
+            else:
+                logger.error("You have an invalid nzbget hostname specified. Exiting")
+                return "nzbget-fail"
+            tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
+            tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
+            server = ServerProxy(tmpapi)
+            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
+            sent_to = "NZBGet"
+            if send_to_nzbget is True:
+                logger.info("Successfully sent nzb to NZBGet!")
+            else:
+                logger.info("Unable to send nzb to NZBGet - check your configs.")
+                return "nzbget-fail"
+        #end nzb.get
+
+        elif mylar.USE_SABNZBD:
+            # let's build the send-to-SAB string now:
+            tmpapi = str(mylar.SAB_HOST)
+            logger.fdebug("send-to-SAB host string: " + str(tmpapi))
+            # changed to just work with direct links now...
+            SABtype = "/api?mode=addurl&name="
+            fileURL = str(linkapi)
+            tmpapi = tmpapi + str(SABtype)
+            logger.fdebug("...selecting API type: " + str(tmpapi))
+            tmpapi = tmpapi + str(fileURL)
+
+            logger.fdebug("...attaching nzb provider link: " + str(helpers.apiremove(tmpapi,'$')))
+            # determine SAB priority
+            if mylar.SAB_PRIORITY:
+                tmpapi = tmpapi + "&priority=" + str(sabpriority)
+                logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi,'&')))
+            # if category is blank, let's adjust
+            if mylar.SAB_CATEGORY:
+                tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
+                logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi,'&')))
+            if mylar.POST_PROCESSING: #or mylar.RENAME_FILES:
+                if mylar.POST_PROCESSING_SCRIPT:
+                    #this is relative to the SABnzbd script directory (ie. no path)
+                    tmpapi = tmpapi + "&script=" + mylar.POST_PROCESSING_SCRIPT
+                else:
+                    tmpapi = tmpapi + "&script=ComicRN.py"
+                logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi,'&')))
+            #final build of send-to-SAB
+            tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
+
+            logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
+
+            try:
+                urllib2.urlopen(tmpapi)
+            except urllib2.URLError:
+                logger.error(u"Unable to send nzb file to SABnzbd")
+                return "sab-fail"
+
+            sent_to = "SABnzbd+"
+            logger.info(u"Successfully sent nzb file to SABnzbd")
+            
+    #nzbid, nzbname, sent_to
+    return_val = []
+    return_val.append({"nzbid":    nzbid,
+                       "nzbname":  nzbname,
+                       "sent_to":  sent_to})
+
+    #if it's a directsend link (ie. via a retry).
+    if directsend is None:
+        return return_val
+    else:
+        #send out notifications for on snatch.
+        notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
+        #update the db on the snatch.
+        logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
+        if '[RSS]' in tmpprov : tmpprov = tmpprov[:-4].strip()
+        updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)     
+        return
+
+def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
+
+    if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
+        logger.info(u"Sending Prowl notification")
+        prowl = notifiers.PROWL()
+        prowl.notify(nzbname,"Download started using " + sent_to)
+    if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
+        logger.info(u"Sending NMA notification")
+        nma = notifiers.NMA()
+        snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+        nma.notify(snline=snline,snatched_nzb=nzbname,sent_to=sent_to,prov=nzbprov)
+    if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
+        logger.info(u"Sending Pushover notification")
+        pushover = notifiers.PUSHOVER()
+        pushover.notify(nzbname,"Download started using " + sent_to)
+    if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
+        logger.info(u"Sending Boxcar notification")
+        boxcar = notifiers.BOXCAR()
+        boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to)
+    if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
+        logger.info(u"Sending Pushbullet notification")
+        pushbullet = notifiers.PUSHBULLET()
+        snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+        pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
+
+    return

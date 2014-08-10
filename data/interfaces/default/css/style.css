@@ -1064,7 +1064,52 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-
+#manage_issues th#name {
+  min-width: 275px;
+  text-align: left;
+}
+#manage_issues th#options {
+  min-width: 150px;
+  text-align: left;
+}
+#manage_issues th#select {
+  min-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_issues th#status,
+#manage_issues th#issue,
+#manage_issues th#pubdate,
+#manage_issues th#releasedate,
+#manage_issues th#int_issue {
+  min-width: 50px;
+  text-align: left;
+}
+#manage_issues td#name {
+  min-width: 275px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#manage_issues td#select {
+  min-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_issues td#status,
+#manage_issues td#issue,
+#manage_issues td#pubdate,
+#manage_issues td#releasedate,
+#manage_issues td#int_issue {
+  min-width: 50px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_issues td#options {
+  min-width: 150px;
+  text-align: left;
+  vertical-align: middle;
+}
 #series_table {
   background-color: #FFF;
   padding: 20px;
@@ -1781,7 +1826,7 @@ table tr td#status a {
     z-index: 999;
 }
 /* You can customize to your needs  */
-.login-popup {
+.issue-popup {
     width: 600px;
     display: none;
     background: #333;
@@ -1805,83 +1850,20 @@ table tr td#status a {
         -webkit-border-radius: 3px;
     /* Safari, Chrome */;
 }
-
 .alignleft {
     float: left;
 }
 .alignright {
     float: right;
 }
-
 img.btn_close {
     Position the close button
 	float: right;
     margin: -28px -28px 0 0;
 }
-
 fieldset {
     border: none;
 }
-
-form.signin .textbox label {
-    display: block;
-    padding-bottom: 7px;
-}
-
-form.signin .textbox span {
-    display: block;
-}
-
-form.signin p, form.signin span {
-    color: #999;
-    font-size: 11px;
-    line-height: 18px;
-}
-
-form.signin .textbox input {
-    background: #666666;
-    border-bottom: 1px solid #333;
-    border-left: 1px solid #000;
-    border-right: 1px solid #333;
-    border-top: 1px solid #000;
-    color: #fff;
-    border-radius: 3px 3px 3px 3px;
-    -moz-border-radius: 3px;
-    -webkit-border-radius: 3px;
-    font: 13px Arial, Helvetica, sans-serif;
-    padding: 6px 6px 4px;
-    width: 200px;
-}
-
-form.signin input:-moz-placeholder {
-    color: #bbb;
-    text-shadow: 0 0 2px #000;
-}
-
-form.signin input::-webkit-input-placeholder {
-    color: #bbb;
-    text-shadow: 0 0 2px #000;
-}
-
-.button {
-    background: -moz-linear-gradient(center top, #f3f3f3, #dddddd);
-    background: -webkit-gradient(linear, left top, left bottom, from(#f3f3f3), to(#dddddd));
-    background: -o-linear-gradient(top, #f3f3f3, #dddddd);
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorStr='#f3f3f3', EndColorStr='#dddddd');
-    border-color: #000;
-    border-width: 1px;
-    border-radius: 4px 4px 4px 4px;
-    -moz-border-radius: 4px;
-    -webkit-border-radius: 4px;
-    color: #333;
-    cursor: pointer;
-    display: inline-block;
-    padding: 6px 6px 4px;
-    margin-top: 10px;
-    font: 12px;
-    width: 214px;
-}
-
-.button:hover {
-    background: #ddd;
+img.highqual { 
+    -ms-interpolation-mode: bicubuic;
 }
