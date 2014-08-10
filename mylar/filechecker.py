@@ -110,22 +110,36 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         #versioning - remove it
         subsplit = subname.replace('_', ' ').split()
         volrem = None
+
+        vers4year = "no"
+        vers4vol = "no"
+
         for subit in subsplit:
             if subit[0].lower() == 'v':
                 vfull = 0
                 if subit[1:].isdigit():
                     #if in format v1, v2009 etc...
-                    if len(subit) > 3:
+                    if len(subit[1:]) == 4: #v2013
                         # if it's greater than 3 in length, then the format is Vyyyy
-                        vfull = 1 # add on 1 character length to account for extra space
+                        logger.fdebug('[FILECHECKER] Version detected as : ' + str(subit))
+                        vers4year = "yes"
+                    else:
+                        if len(subit) < 4:
+                            logger.fdebug('[FILECHECKER] Version detected as : ' + str(subit))
+                            vers4vol = str(subit)
+
                     subname = re.sub(subit, '', subname)
                     volrem = subit
+                    vers4vol = volrem
+                    break
                 elif subit.lower()[:3] == 'vol':
                     #if in format vol.2013 etc
                     #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
                     logger.fdebug('[FILECHECKER] volume indicator detected as version #:' + str(subit))
                     subname = re.sub(subit, '', subname)
                     volrem = subit
+                    vers4year = "yes"
+                    
 
         #check if a year is present in series title (ie. spider-man 2099)
         #also check if decimal present in series title (ie. batman beyond 2.0)
@@ -410,7 +424,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 logger.fdebug('[FILECHECKER] blankspace detected before and after ' + str(nono))
                                 blspc+=1
                             x+=1
-                        subname = re.sub(str(nono), ' ', subname)
+                        logger.info('[FILECHECKER] replacing ' + str(nono) + ' with a space')
+                        subname = re.sub(str(nono), '', subname)
                         nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
         if decimalinseries == 'True':
@@ -434,6 +449,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             detectthe_mod = True
         modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
         if '&' in subname:
+            logger.fdebug('[FILECHECKER] detected & in subname')
             subname = re.sub('\&', ' and ', subname) 
             detectand = True
         if ' the ' in subname.lower() or subname.lower().startswith('the '):
@@ -727,24 +743,26 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     #print ("there are " + str(lenm) + " words.")
                     cnt = 0
                     yearmatch = "none"
-                    vers4year = "no"
-                    vers4vol = "no"
+                    #vers4year = "no"
+                    #vers4vol = "no"
 
-                    for ct in subsplit:
-                        if ct.lower().startswith('v') and ct[1:].isdigit():
-                            logger.fdebug('[FILECHECKER] possible versioning..checking')
-                            #we hit a versioning # - account for it
-                            if ct[1:].isdigit():
-                                if len(ct[1:]) == 4:  #v2013
-                                    logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
-                                    vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
-                                    break
-                                else:
-                                    if len(ct) < 4:
-                                        logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
-                                        vers4vol = str(ct)
-                                        break
-                            logger.fdebug('[FILECHECKER] false version detection..ignoring.')
+                    logger.fdebug('[FILECHECKER] subsplit : ' + str(subsplit))
+
+                    #for ct in subsplit:
+                    #    if ct.lower().startswith('v') and ct[1:].isdigit():
+                    #        logger.fdebug('[FILECHECKER] possible versioning..checking')
+                    #        #we hit a versioning # - account for it
+                    #        if ct[1:].isdigit():
+                    #            if len(ct[1:]) == 4:  #v2013
+                    #                logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
+                    #                vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
+                    #                break
+                    #            else:
+                    #                if len(ct) < 4:
+                    #                    logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
+                    #                    vers4vol = str(ct)
+                    #                    break
+                    #        logger.fdebug('[FILECHECKER] false version detection..ignoring.')
 
                     versionmatch = "false"
                     if vers4year is not "no" or vers4vol is not "no":
@@ -768,6 +786,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                         if int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
                             logger.fdebug('[FILECHECKER] We matched on versions...' + str(volrem))
                             versionmatch = "true"
+                            yearmatch = "false"
                         else:
                             logger.fdebug('[FILECHECKER] Versions wrong. Ignoring possible match.')
 
@@ -807,6 +826,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             logger.fdebug('[FILECHECKER] Matched on version, but not on year - continuing.')
                          else:
                             logger.fdebug('[FILECHECKER] Matched on both version, and issue year - continuing.')
+
+                    logger.fdebug('[FILECHECKER] yearmatch string is : ' + str(yearmatch))
 
                     if yearmatch == "none":
                         if ComVersChk == 0:
