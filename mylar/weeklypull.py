@@ -90,6 +90,10 @@ def pullit(forcecheck=None):
               '3RD PTG',
               '4TH PTG',
               '5TH PTG',
+              '6TH PTG',
+              '7TH PTG',
+              '8TH PTG',
+              '9TH PTG',
               'NEW PTG',
               'POSTER',
               'COMBO PACK']
