@@ -436,9 +436,9 @@
                  ${aninfo['annualComicName']}<a href="annualDelete?comicid=${comic['ComicID']}&ReleaseComicID=${aninfo['annualComicID']}"><img src="interfaces/default/images/x.png" height="10" width="10"/></a>
              %endfor
 
-        <form action="markissues" method="get" id="markissues">
-        <div id="markissue">Mark selected annuals as
-                <select name="action" onChange="doAjaxCall('markissues',$(this),'table',true);" data-success="selected issues marked">
+        <form action="markannuals" method="get" id="markannuals">
+        <div id="markannuals">Mark selected annuals as
+                <select name="ann_action" form="markannuals" onChange="doAjaxCall('markannuals',$(this),'table',true);" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
@@ -446,7 +446,6 @@
                         <option value="Archived">Archived</option>
                         <option value="Ignored">Ignored</option>
                 </select>
-                selected annuals
                 <input type="hidden" value="Go">
         </div>
 
@@ -465,7 +464,7 @@
            -->
                    <thead>
                         <tr>
-                                <th id="aselect" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
                                 <th id="aint_issuenumber">Int_IssNumber</th>
                                 <th id="aissuenumber">Number</th>
                                 <th id="aissuename">Name</th>
@@ -493,7 +492,7 @@
                                         grade = 'A'
                         %>
                         <tr class="${annual['Status']} grade${grade}">
-                                <td id="aselect"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
+                                <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
                                 <% 
                                     if annual['Int_IssueNumber'] is None:
                                         annual_Number = annual['Int_IssueNumber']

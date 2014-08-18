@@ -1160,34 +1160,33 @@ def IssueDetails(filelocation, IssueID=None):
     issuedetails = []
 
     if filelocation.endswith('.cbz'):
-        logger.info('CBZ file detected. Checking for .xml within file')
+        logger.fdebug('CBZ file detected. Checking for .xml within file')
         shutil.copy( filelocation, dstlocation )
     else:
-        logger.info('filename is not a cbz : ' + filelocation)
+        logger.fdebug('filename is not a cbz : ' + filelocation)
         return
 
     cover = "notfound"
     issuetag = None
 
     modtime = os.path.getmtime(dstlocation)
-    logger.info('file modtime set to : ' + str(modtime))
 
     with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
         for infile in inzipfile.namelist():
             if infile == 'ComicInfo.xml':
-               logger.info('Extracting ComicInfo.xml to display.')
+               logger.fdebug('Extracting ComicInfo.xml to display.')
                dst = os.path.join(mylar.CACHE_DIR, 'ComicInfo.xml')
                data = inzipfile.read(infile)
                print str(data)
                issuetag = 'xml'
             elif '000.jpg' in infile or '000.png' in infile or '00.jpg' in infile:
-               logger.info('Extracting primary image ' + infile + ' as coverfile for display.')
+               logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
                local_file.close
                cover = "found"
             elif ('001.jpg' in infile or '001.png' in infile) and cover == "notfound":
-               logger.info('Extracting primary image ' + infile + ' as coverfile for display.')
+               logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
                local_file.close
@@ -1195,6 +1194,7 @@ def IssueDetails(filelocation, IssueID=None):
 
     ComicImage = os.path.join('cache', 'temp.jpg?'+str(modtime))
     IssueImage = replacetheslash(ComicImage)
+
 
     if issuetag is None:
         import subprocess
@@ -1207,8 +1207,9 @@ def IssueDetails(filelocation, IssueID=None):
             issuetag = 'comment'
         except CalledProcessError as e:
             logger.warn('Unable to extract comment field from zipfile.')
+            
+    #logger.info('data:' + str(data))
 
-    print 'data:' + str(data)
     if issuetag == 'xml':
         #import easy to use xml parser called minidom:
         dom = parseString(data)
@@ -1292,25 +1293,27 @@ def IssueDetails(filelocation, IssueID=None):
                 pagecount = result.getElementsByTagName('PageCount')[0].firstChild.wholeText
             except:
                 pagecount = 0     
-            logger.info("number of pages I counted: " + str(pagecount))
+            logger.fdebug("number of pages I counted: " + str(pagecount))
             i = 0
             while (i < int(pagecount)):
                 pageinfo = result.getElementsByTagName('Page')[i].attributes
                 attrib = pageinfo.getNamedItem('Image')
-                logger.info('Frontcover validated as being image #: ' + str(attrib.value))
+                logger.fdebug('Frontcover validated as being image #: ' + str(attrib.value))
                 att = pageinfo.getNamedItem('Type')
-                logger.info('pageinfo: ' + str(pageinfo))
+                logger.fdebug('pageinfo: ' + str(pageinfo))
                 if att.value == 'FrontCover':
-                    logger.info('FrontCover detected. Extracting.')
+                    logger.fdebug('FrontCover detected. Extracting.')
                     break
                 i+=1
     else:
         stripline = 'Archive:  ' + dstlocation
-        data = re.sub(stripline, '', data.encode("utf-8")) 
+        data = re.sub(stripline, '', data.encode("utf-8")).strip()
+        if data is None or data == '':
+            return
         import ast
         ast_data = ast.literal_eval(str(data))
         lastmodified = ast_data['lastModified']
-        print lastmodified
+
         dt = ast_data['ComicBookInfo/1.0']
         publisher = dt['publisher']
         year = dt['publicationYear']

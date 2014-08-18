@@ -731,6 +731,10 @@ class WebInterface(object):
 
     force_rss.exposed = True
 
+    def markannuals(self, ann_action=None, **args):
+        self.markissues(action=ann_action, **args)
+    markannuals.exposed = True
+     
     def markissues(self, action=None, **args):
         myDB = db.DBConnection()
         issuesToAdd = []
@@ -740,7 +744,7 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            if IssueID is None or 'issue_table' in IssueID or 'history_table' in IssueID or 'manage_issues' in IssueID:
+            if IssueID is None or 'issue_table' in IssueID or 'history_table' in IssueID or 'manage_issues' in IssueID or 'issue_table_length' in IssueID:
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?",[IssueID]).fetchone()
@@ -752,25 +756,26 @@ class WebInterface(object):
                         annchk = 'yes'
                 else: 
                     comicname = mi['ComicName']
+
                 miyr = myDB.selectone("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
-                        logger.info(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
+                        logger.fdebug(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
                         continue
                 elif action == 'Archived':
-                    logger.info(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
                     if action == 'Retry': newaction = 'Wanted'
-                    logger.info(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     issuesToAdd.append(IssueID)
                 elif action == 'Skipped':
-                    logger.info(u"Marking " + str(IssueID) + " as Skipped")
+                    logger.fdebug(u"Marking " + str(IssueID) + " as Skipped")
                 elif action == 'Clear':
                     myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
                 elif action == 'Failed' and mylar.FAILED_DOWNLOAD_HANDLING:
-                    logger.info('Marking [' + comicname + '] : ' + str(IssueID) + ' as Failed. Sending to failed download handler.')
+                    logger.fdebug('Marking [' + comicname + '] : ' + str(IssueID) + ' as Failed. Sending to failed download handler.')
                     failedcomicid = mi['ComicID']
                     failedissueid = IssueID
                     break
@@ -786,7 +791,7 @@ class WebInterface(object):
         if len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
         if len(issuesToAdd) > 0:
-            logger.debug("Marking issues: %s as Wanted" % (issuesToAdd))
+            logger.fdebug("Marking issues: %s as Wanted" % (issuesToAdd))
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
         #if IssueID:
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % mi['ComicID'])
@@ -1887,30 +1892,30 @@ class WebInterface(object):
                                 "IssueID":     Arc_MS['IssueID']})
 
 
-        mode='series'
-        if yearRANGE is None:
-            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, explicit='all')
-        else:
-            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, limityear=yearRANGE, explicit='all')
-        type='comic'
+#        mode='series'
+#        if yearRANGE is None:
+#        sresults, explicit = mb.findComic(comicname, mode, issue=numissues, explicit='all')
+#        else:
+#            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, limityear=yearRANGE, explicit='all')
+#        type='comic'
 
-        if len(sresults) == 1:
-            sr = sresults[0]
-            implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
-            resultset = 1
-            #need to move the files here.
-        elif len(sresults) == 0 or len(sresults) is None:
-            implog = implog + "no results, removing the year from the agenda and re-querying.\n"
-            sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
-            if len(sresults) == 1:
-                sr = sresults[0]
-                implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
-                resultset = 1
-            else:
-                resultset = 0
-        else:
-            implog = implog + "returning results to screen - more than one possibility.\n"
-            resultset = 0
+#        if len(sresults) == 1:
+#            sr = sresults[0]
+#            implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
+#            resultset = 1
+#            #need to move the files here.
+#        elif len(sresults) == 0 or len(sresults) is None:
+#            implog = implog + "no results, removing the year from the agenda and re-querying.\n"
+#            sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+#            if len(sresults) == 1:
+#                sr = sresults[0]
+#                implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
+#                resultset = 1
+#            else:
+#                resultset = 0
+#        else:
+#            implog = implog + "returning results to screen - more than one possibility.\n"
+#            resultset = 0
 
 
 
@@ -3433,7 +3438,8 @@ class WebInterface(object):
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
         for ginfo in groupinfo:
-            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']))
+            logger.info('tagging : ' + str(ginfo))
+            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']), ComicID)
         logger.info('Finished doing a complete series (re)tagging of metadata.')
     group_metatag.exposed = True
 

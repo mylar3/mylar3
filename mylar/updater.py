@@ -25,7 +25,7 @@ import itertools
 import mylar
 from mylar import db, logger, helpers, filechecker
 
-def dbUpdate(ComicIDList=None):
+def dbUpdate(ComicIDList=None, calledfrom=None):
 
     myDB = db.DBConnection()
     #print "comicidlist:" + str(ComicIDList)
@@ -34,7 +34,8 @@ def dbUpdate(ComicIDList=None):
     else:
         comiclist = ComicIDList
 
-    logger.info('Starting update for %i active comics' % len(comiclist))
+    if calledfrom is None:
+        logger.info('Starting update for %i active comics' % len(comiclist))
     
     for comic in comiclist:
         if ComicIDList is None:
@@ -62,12 +63,19 @@ def dbUpdate(ComicIDList=None):
                 if not issues:
                     #if issues are None it's probably a bad refresh/maxed out API that resulted in the issue data
                     #getting wiped out and not refreshed. Setting whack=True will force a complete refresh.
-                    logger.info('No issue data available. This is Whack.')
+                    logger.fdebug('No issue data available. This is Whack.')
                     whack = True
                 else:
                     #check for series that are numerically out of whack (ie. 5/4)
-                    logger.info('Checking how out of whack the series is.')
+                    logger.fdebug('Checking how out of whack the series is.')
                     whack = helpers.havetotals(refreshit=ComicID)
+
+                if calledfrom == 'weekly':
+                    if whack == True:
+                        logger.info('Series is out of whack. Forcibly refreshing series to ensure everything is in order.')
+                        return True
+                    else:
+                        return False
 
                 annload = []  #initiate the list here so we don't error out below.
 
@@ -184,7 +192,8 @@ def dbUpdate(ComicIDList=None):
                              myDB.upsert("Issues", newVAL, ctrlVAL)
 
                     logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
-
+                    forceRescan(ComicID)
+        
                 else:
                     mylar.importer.addComictoDB(ComicID,mismatch,annload=annload)
 
@@ -292,7 +301,15 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
     if issuechk is not None:
         if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
-            logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
+            #check for 'out-of-whack' series here.
+            whackness = dbUpdate([ComicID], calledfrom='weekly')
+            if whackness == True:
+                logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
+                dbUpdate([ComicID])
+                issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
+            else:
+                logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
+
             logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
             logger.fdebug('...Existing status: ' + str(issuechk['Status']))
             control = {"IssueID":   issuechk['IssueID']}
