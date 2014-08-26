@@ -921,6 +921,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #account for possible version inclusion here and annual inclusions.
                     cvers = "false"
                     annualize = "false"
+                    scount = 0
+
                     if 'annual' in ComicName.lower():
                         logger.fdebug("IssueID of : " + str(IssueID) + " - This is an annual...let's adjust.")
                         annualize = "true"
@@ -941,9 +943,58 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             else:
                                 logger.fdebug("error - unknown length for : " + str(tstsplit))
                             logger.fdebug("volume detection commencing - adjusting length.")
-                            cvers = "true"
-                            splitst = splitst - 1
-                            break
+
+                            logger.fdebug("watch comicversion is " + str(ComicVersion))
+                            fndcomicversion = str(tstsplit)
+                            logger.fdebug("version found: " + str(fndcomicversion))
+                            logger.fdebug("vers4year: " + str(vers4year))
+                            logger.fdebug("vers4vol: " + str(vers4vol))
+
+                            if vers4year is not "no" or vers4vol is not "no":
+
+                                #if the volume is None, assume it's a V1 to increase % hits
+                                if ComVersChk == 0:
+                                    D_ComicVersion = 1
+                                else:
+                                    D_ComicVersion = ComVersChk
+
+                            F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
+
+                            #if this is a one-off, SeriesYear will be None and cause errors.
+                            if SeriesYear is None:
+                                S_ComicVersion = 0
+                            else:
+                                S_ComicVersion = str(SeriesYear)
+
+                            logger.fdebug("FCVersion: " + str(F_ComicVersion))
+                            logger.fdebug("DCVersion: " + str(D_ComicVersion))
+                            logger.fdebug("SCVersion: " + str(S_ComicVersion))
+
+                            #here's the catch, sometimes annuals get posted as the Pub Year
+                            # instead of the Series they belong to (V2012 vs V2013)
+                            if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
+                                logger.fdebug("We matched on versions for annuals " + str(fndcomicversion))
+                                scount+=1
+                                cvers = "true"
+
+                            elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
+                                logger.fdebug("We matched on versions..." + str(fndcomicversion))
+                                scount+=1
+                                cvers = "true"
+
+                            else:
+                                logger.fdebug("Versions wrong. Ignoring possible match.")
+                                scount = 0
+                                cvers = "false"
+                                
+                            if cvers == "true":
+                                #since we matched on versions, let's remove it entirely to improve matching.
+                                logger.fdebug('Removing versioning from nzb filename to improve matching algorithims.')
+                                cissb4vers = re.sub(tstsplit, "", comic_iss_b4).strip()
+                                logger.fdebug('New b4split : ' + str(cissb4vers))
+                                splitit = cissb4vers.split(None)                         
+                                splitst -=1
+                                break
 
                     #do an initial check
                     initialchk = 'ok'
@@ -982,7 +1033,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     else:
                         logger.fdebug("length match..proceeding")
                         n = 0
-                        scount = 0
                         logger.fdebug("search-length: " + str(splitst))
                         logger.fdebug("Watchlist-length: " + str(len(watchcomic_split)))
                         if cvers == "true": splitst = splitst + 1
@@ -999,45 +1049,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 #elif ':' in splitit[n] or '-' in splitit[n]:
                                 #    splitrep = splitit[n].replace('-', '')
                                 #    print ("non-character keyword...skipped on " + splitit[n])
-                            elif str(splitit[n].lower()).startswith('v'):
-                                logger.fdebug("possible versioning..checking")
-                                #we hit a versioning # - account for it
-                                if splitit[n][1:].isdigit():
-                                    logger.fdebug("watch comicversion is " + str(ComicVersion))
-                                    fndcomicversion = str(splitit[n])
-                                    logger.fdebug("version found: " + str(fndcomicversion))
-                                    logger.fdebug("vers4year: " + str(vers4year))
-                                    logger.fdebug("vers4vol: " + str(vers4vol))
-                                    if vers4year is not "no" or vers4vol is not "no":
 
-                                        #if the volume is None, assume it's a V1 to increase % hits
-                                        if ComVersChk == 0:
-                                            D_ComicVersion = 1
-                                        else:
-                                            D_ComicVersion = ComVersChk
-
-                                        F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
-                                        #if this is a one-off, SeriesYear will be None and cause errors.
-                                        if SeriesYear is None:
-                                            S_ComicVersion = 0
-                                        else:
-                                            S_ComicVersion = str(SeriesYear)
-                                        logger.fdebug("FCVersion: " + str(F_ComicVersion))
-                                        logger.fdebug("DCVersion: " + str(D_ComicVersion))
-                                        logger.fdebug("SCVersion: " + str(S_ComicVersion))
-
-                                        #here's the catch, sometimes annuals get posted as the Pub Year
-                                        # instead of the Series they belong to (V2012 vs V2013)
-                                        if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
-                                            logger.fdebug("We matched on versions for annuals " + str(fndcomicversion))
-                                            scount+=1
-
-                                        elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
-                                            logger.fdebug("We matched on versions..." + str(fndcomicversion))
-                                            scount+=1
-                                        else:
-                                            logger.fdebug("Versions wrong. Ignoring possible match.")
-                                            scount = 0
                             else:
                                 logger.fdebug("Comic / Issue section")
                                 if splitit[n].isdigit():
@@ -1193,9 +1205,10 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             if comic is None:
                 logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
                 continue
-            if result['StoreDate'] == '0000-00-00':
-                logger.fdebug(str(result['ComicID']) + ' has an invalid Store Date. Skipping searching for this series.')
-                continue
+            if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
+                if result['IssueDate'] is None or result['IssueDate'] == '0000-00-00':
+                    logger.fdebug('ComicID: ' + str(result['ComicID']) + ' has invalid Date data. Skipping searching for this series.')
+                    continue
             foundNZB = "none"
             SeriesYear = comic['ComicYear']
             Publisher = comic['ComicPublisher']
