@@ -432,7 +432,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 logger.fdebug('[FILECHECKER] blankspace detected before and after ' + str(nono))
                                 blspc+=1
                             x+=1
-                        logger.info('[FILECHECKER] replacing ' + str(nono) + ' with a space')
+                        #logger.fdebug('[FILECHECKER] replacing ' + str(nono) + ' with a space')
                         subname = re.sub(str(nono), '', subname)
                         nonocount = nonocount + subcnt + blspc
         #subname = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\+\'\?\@]',' ', subname)
