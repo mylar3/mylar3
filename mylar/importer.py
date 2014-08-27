@@ -431,9 +431,9 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     if mylar.COMIC_COVER_LOCAL:
         try:
             comiclocal = os.path.join(comlocation,'cover.jpg')
-            shutil.copy(ComicImage,comiclocal)
+            shutil.copy(coverfile,comiclocal)
         except IOError as e:
-            logger.error('Unable to save cover into series directory at this time.')
+            logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
 
     if oldcomversion is None or oldcomversion == "None":
         logger.info('previous version detected as None - seeing if update required')
