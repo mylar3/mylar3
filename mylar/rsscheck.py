@@ -84,12 +84,12 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         loopit = 1
 
     lp = 0
+    totalcount = 0
 
     title = []
     link = []
     description = []
     seriestitle = []
-    i = 0
 
     feeddata = []
     myDB = db.DBConnection()
@@ -138,6 +138,8 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
             picksite = 'KAT'
         elif pickfeed == "1" or pickfeed == "4":
             picksite = 'CBT'
+
+        i = 0
     
         for entry in feedme['entries']:
             if pickfeed == "3" or pickfeed == "6":
@@ -229,11 +231,13 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
             logger.fdebug('[' + picksite + '] there were ' + str(i) + ' results..')
         else:
             logger.fdebug('[' + picksite + '] there were ' + str(i) + ' results ' + feedtype)
+
+        totalcount += i
         lp +=1
 
 
     if not seriesname:
-        rssdbupdate(feeddata,i,'torrent')
+        rssdbupdate(feeddata,totalcount,'torrent')
     else:
         katinfo['entries'] = torthekat
         return katinfo
