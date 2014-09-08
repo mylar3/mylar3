@@ -1110,14 +1110,12 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 elif 'now' in issnum.lower():
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
                 elif u'\xbd' in issnum:
-                    issnum = .5
-                    int_issnum = int(issnum) * 1000
+                    int_issnum = .5 * 1000
+                    logger.info('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
                 elif u'\xbc' in issnum:
-                    issnum = .25
-                    int_issnum = int(issnum) * 1000
+                    int_issnum = .25 * 1000
                 elif u'\xbe' in issnum:
-                    issnum = .75
-                    int_issnum = int(issnum) * 1000
+                    int_issnum = .75 * 1000
                 elif u'\u221e' in issnum:
                     #issnum = utf-8 will encode the infinity symbol without any help
                     int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
@@ -1167,10 +1165,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             if issnum[x].isalpha():
                                 #take first occurance of alpha in string and carry it through
                                 tstord = issnum[x:].rstrip()
-                                issno = issnum[:x].rstrip()
+                                issno = issnum[:x+1].rstrip()
                                 try:
                                     isschk = float(issno)
                                 except ValueError, e:
+                                    if len(issnum) == 1 and issnum.isalpha():
+                                        logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
+                                        break
                                     logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
                                     issno = None
                                     tstord = None
@@ -1178,15 +1179,15 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 break
                             x+=1
                         if tstord is not None and issno is not None:
-                            logger.fdebug('tstord: ' + str(tstord))
                             a = 0
                             ordtot = 0
-                            while (a < len(tstord)):
-                                ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                a+=1
-                            logger.fdebug('issno: ' + str(issno))
-                            int_issnum = (int(issno) * 1000) + ordtot
-                            logger.fdebug('intissnum : ' + str(int_issnum))
+                            if len(issno) == 1 and issnum.isalpha():
+                                int_issnum = ord(tstord.lower())
+                            else:
+                                while (a < len(tstord)):
+                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                                    a+=1
+                                int_issnum = (int(issno) * 1000) + ordtot
                         elif invchk == "true":
                             logger.fdebug('this does not have an issue # that I can parse properly.')
                             return

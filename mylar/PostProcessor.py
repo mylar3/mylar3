@@ -556,7 +556,10 @@ class PostProcessor(object):
             logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
 
             if str(len(issueno)) > 1:
-                if int(issueno) < 0:
+                if issueno.isalpha():
+                    self._log('issue detected as an alpha.')
+                    prettycomiss = str(issueno)
+                elif int(issueno) < 0:
                     self._log("issue detected is a negative")
                     prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
                 elif int(issueno) < 10:

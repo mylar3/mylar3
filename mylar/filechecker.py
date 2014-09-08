@@ -66,7 +66,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                       'AI', 
                       'A',
                       'B',
-                      'C']
+                      'C',
+                      'X']
 
     extensions = ('.cbr', '.cbz')
 
@@ -256,8 +257,9 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', watchcomic)   #remove spec chars for watchcomic match.
                     subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', subthis)
                 else:
-                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', watchcomic)   #remove spec chars for watchcomic match.
-                    subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\.\-]', '', subthis)
+                    # in order to get series like Earth 2 scanned in that contain a decimal, I removed the \. from the re.subs below - 28-08-2014
+                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', watchcomic)   #remove spec chars for watchcomic match.
+                    subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', subthis)
                 logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
                 subthis = re.sub('\s+',' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)

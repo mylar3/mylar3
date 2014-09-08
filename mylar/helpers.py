@@ -171,7 +171,7 @@ def human2bytes(s):
 def replace_all(text, dic):
     for i, j in dic.iteritems():
         text = text.replace(i, j)
-    return text
+    return text.rstrip()
     
 def cleanName(string):
 
@@ -734,7 +734,7 @@ def cleanhtml(raw_html):
 def issuedigits(issnum):
     import db, logger
     #print "issnum : " + str(issnum)
-    if str(issnum).isdigit():
+    if issnum.isdigit():
         int_issnum = int( issnum ) * 1000
     else:
         #count = 0
@@ -767,14 +767,11 @@ def issuedigits(issnum):
             else:
                 int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
         elif u'\xbd' in issnum:
-            issnum = .5
-            int_issnum = int(issnum) * 1000
+            int_issnum = .5 * 1000
         elif u'\xbc' in issnum:
-            issnum = .25
-            int_issnum = int(issnum) * 1000
+            int_issnum = .25 * 1000
         elif u'\xbe' in issnum:
-            issnum = .75
-            int_issnum = int(issnum) * 1000
+            int_issnum = .75 * 1000
         elif u'\u221e' in issnum:
             #issnum = utf-8 will encode the infinity symbol without any help
             int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
@@ -820,6 +817,8 @@ def issuedigits(issnum):
                         try:
                             isschk = float(issno)
                         except ValueError, e:
+                            if len(issnum) == 1 and issnum.isalpha():
+                                break
                             logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
                             issno = None
                             tstord = None
@@ -827,18 +826,18 @@ def issuedigits(issnum):
                         break
                     x+=1
                 if tstord is not None and issno is not None:
-                    logger.fdebug('tstord: ' + str(tstord))
                     a = 0
                     ordtot = 0
-                    while (a < len(tstord)):
-                        try:
-                            ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                        except ValueError:
-                            break
-                        a+=1
-                    logger.fdebug('issno: ' + str(issno))
-                    int_issnum = (int(issno) * 1000) + ordtot
-                    logger.fdebug('intissnum : ' + str(int_issnum))
+                    if len(issnum) == 1 and issnum.isalpha():
+                        int_issnum = ord(tstord.lower())
+                    else:
+                        while (a < len(tstord)):
+                            try:
+                                ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                            except ValueError:
+                                break
+                            a+=1
+                        int_issnum = (int(issno) * 1000) + ordtot
                 elif invchk == "true":
                     logger.fdebug('this does not have an issue # that I can parse properly.')
                     int_issnum = 999999999999999
@@ -1395,6 +1394,14 @@ def IssueDetails(filelocation, IssueID=None):
 
     return issuedetails
 
+def get_issue_title(IssueID):
+    import db
+    myDB = db.DBConnection()
+    issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+    if issue is None:
+        logger.warn('Unable to locate given IssueID within the db.')
+        return None
+    return issue['IssueName']
 
 
 from threading import Thread
