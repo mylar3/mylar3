@@ -1406,7 +1406,7 @@ def IssueDetails(filelocation, IssueID=None):
     return issuedetails
 
 def get_issue_title(IssueID):
-    import db
+    import db, logger
     myDB = db.DBConnection()
     issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
     if issue is None:
