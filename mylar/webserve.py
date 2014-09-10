@@ -2600,7 +2600,7 @@ class WebInterface(object):
                 cresults = self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
                 return serve_template(templatename="searchfix.html", title="Error Check", comicname=sr['name'], comicid=sr['comicid'], comicyear=sr['comicyear'], comicimage=sr['comicimage'], comicissues=sr['issues'], cresults=cresults, imported='yes', ogcname=str(ogcname))
             else:
-                return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname, name=ogcname, explicit=explicit) #imported=comicstoIMP, ogcname=ogcname)
+                return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname, name=ogcname, explicit=explicit, serinfo=None) #imported=comicstoIMP, ogcname=ogcname)
     preSearchit.exposed = True
 
     def pretty_git(self, br_history):

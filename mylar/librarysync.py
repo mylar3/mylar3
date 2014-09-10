@@ -254,9 +254,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                             ydetected = 'yes'
                             result_comyear = cs[i]
                         elif cs[i].isdigit() and idetected == 'no' or '.' in cs[i]:
-                            issue = cs[i]
-                            logger.fdebug("issue detected : " + str(issue))
-                            idetected = 'yes'
                             if '.' in cs[i]:
                                 #make sure it's a number on either side of decimal and assume decimal issue.
                                 decst = cs[i].find('.')
@@ -273,6 +270,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                                     logger.fdebug("false decimal represent. Chunking to extra word.")
                                     cn = cn + cs[i] + " "
                                     break
+                            issue = cs[i]
+                            logger.fdebug("issue detected : " + str(issue))
+                            idetected = 'yes'
+
                         elif '\#' in cs[i] or decimaldetect == 'yes':
                             logger.fdebug("issue detected: " + str(cs[i]))
                             idetected = 'yes'
