@@ -1043,7 +1043,7 @@ class WebInterface(object):
             # if it's a manual search, return to null here so the thread will die and not cause http redirect errors.
             return
         if ComicID:
-            raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
+            return cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
         else:
             raise cherrypy.HTTPRedirect(redirect)
     queueissue.exposed = True
@@ -1882,6 +1882,13 @@ class WebInterface(object):
                 #.schema readinglist
                 #(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, 
                 # Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT);
+                if any(d['ComicName'] == Arc_MS['ComicName'] for d in AMS):
+                    #store the high value
+                    if helpers.issuedigit(Arc_MS['IssueNumber']) >= helpers.issuedigit(d['highvalue']):
+                        for key in AMS.keys():
+                            if key == "highvalue":
+                                AMS[key] = Arc_MS['IssueNumber']
+
                 if not any(d['ComicName'] == Arc_MS['ComicName'] for d in AMS):
 
                     AMS.append({"StoryArcID":  Arc_MS['StoryArcID'],
@@ -1889,9 +1896,10 @@ class WebInterface(object):
                                 "IssueNumber": Arc_MS['IssueNumber'],
                                 "SeriesYear":  Arc_MS['SeriesYear'],
                                 "IssueYear":   Arc_MS['IssueYear'],
-                                "IssueID":     Arc_MS['IssueID']})
+                                "IssueID":     Arc_MS['IssueID'],
+                                "highvalue":   Arc_MS['IssueNumber']})
 
-
+            print str(AMS)
 #        mode='series'
 #        if yearRANGE is None:
 #        sresults, explicit = mb.findComic(comicname, mode, issue=numissues, explicit='all')
@@ -2383,6 +2391,10 @@ class WebInterface(object):
     confirmResult.exposed = True
 
     def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_rename=0, imp_metadata=0):
+        import Queue
+        queue = Queue.Queue()
+
+        #save the values so they stick.
         mylar.LIBRARYSCAN = libraryscan
         mylar.ADD_COMICS = autoadd
         mylar.COMIC_DIR = path
@@ -2390,61 +2402,18 @@ class WebInterface(object):
         mylar.IMP_RENAME = imp_rename
         mylar.IMP_METADATA = imp_metadata
         mylar.config_write()
-        if scan:
-            try:
-                soma,noids = librarysync.libraryScan()
-            except Exception, e:
-                logger.error('Unable to complete the scan: %s' % e)
-                return
-            if soma == "Completed":
-                print ("sucessfully completed import.")
-            else:
-                logger.info(u"Starting mass importing..." + str(noids) + " records.")
-                #this is what it should do...
-                #store soma (the list of comic_details from importing) into sql table so import can be whenever
-                #display webpage showing results
-                #allow user to select comic to add (one at a time)
-                #call addComic off of the webpage to initiate the add.
-                #return to result page to finish or continue adding.
-                #....
-                #threading.Thread(target=self.searchit).start()
-                #threadthis = threadit.ThreadUrl()
-                #result = threadthis.main(soma)
-                myDB = db.DBConnection()
-                sl = 0
-                print ("number of records: " + str(noids))
-                while (sl < int(noids)):
-                    soma_sl = soma['comic_info'][sl]
-                    print ("soma_sl: " + str(soma_sl))
-                    print ("comicname: " + soma_sl['comicname'].encode('utf-8'))
-                    print ("filename: " + soma_sl['comfilename'].encode('utf-8'))
-                    controlValue = {"impID":    soma_sl['impid']}
-                    newValue = {"ComicYear":        soma_sl['comicyear'],
-                                "Status":           "Not Imported",
-                                "ComicName":        soma_sl['comicname'].encode('utf-8'),
-                                "DisplayName":      soma_sl['displayname'].encode('utf-8'),
-                                "ComicFilename":    soma_sl['comfilename'].encode('utf-8'),
-                                "ComicLocation":    soma_sl['comlocation'].encode('utf-8'),
-                                "ImportDate":       helpers.today(),
-                                "WatchMatch":       soma_sl['watchmatch']}      
-                    myDB.upsert("importresults", newValue, controlValue)
-                    sl+=1
-                # because we could be adding volumes/series that span years, we need to account for this
-                # add the year to the db under the term, valid-years
-                # add the issue to the db under the term, min-issue
-                
-                #locate metadata here.
-                # unzip -z filename.cbz will show the comment field of the zip which contains the metadata.
-
-                # unzip -z filename.cbz < /dev/null  will remove the comment field, and thus the metadata.
-
-                    
-                #self.importResults()
-            raise cherrypy.HTTPRedirect("importResults")
-        if redirect:
-            raise cherrypy.HTTPRedirect(redirect)
-        else:
-            raise cherrypy.HTTPRedirect("home")
+        #thread the scan.
+        if scan == '1': scan = True
+        else: scan = False
+      
+        thread_ = threading.Thread(target=librarysync.scanLibrary, name="LibraryScan", args=[scan, queue])
+        thread_.start()
+        thread_.join()
+        chk = queue.get()
+        while True:
+            if chk[0]['result'] == 'success':
+#                yield logger.info('I should now enable the Results button somehow.') 
+                break
     comicScan.exposed = True
 
     def importResults(self):
@@ -2537,8 +2506,8 @@ class WebInterface(object):
                             yearRANGE.append(result['ComicYear'])
                             yearTOP = str(result['ComicYear'])
                     getiss_num = helpers.issuedigits(getiss)
-                    miniss_num = helpers.issuedigits(minISSUE)
-                    startiss_num = helpers.issuedigits(startISSUE)
+                    miniss_num = helpers.issuedigits(str(minISSUE))
+                    startiss_num = helpers.issuedigits(str(startISSUE))
                     if int(getiss_num) > int(miniss_num):
                         implog = implog + "issue now set to : " + str(getiss) + " ... it was : " + str(minISSUE) + "\n"
                         minISSUE = str(getiss)
@@ -3450,3 +3419,13 @@ class WebInterface(object):
             mylar.config_write()
 
     CreateFolders.exposed = True
+
+    def getPushbulletDevices(self, api=None):
+        logger.fdebug('here')
+        notifythis = notifiers.pushbullet
+        result = notifythis.get_devices(api)
+        if result:
+            return result
+        else:
+            return 'Error sending Pushbullet notifications.'
+    getPushbulletDevices.exposed = True
