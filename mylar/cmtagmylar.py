@@ -57,6 +57,10 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     
     else:
         #for the 'nix
+        if 'freebsd' in platform.linux_distribution()[0].lower():
+            unrar_cmd = "/usr/local/bin/unrar"
+        else:
+            unrar_cmd = "/usr/bin/unrar"
         #check for dependencies here - configparser
         try:
             import configparser
@@ -67,7 +71,6 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
 
         #set this to the lib path (ie. '<root of mylar>/lib')
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-        unrar_cmd = "/usr/bin/unrar"
 
 #    if not os.path.exists( comictagger_cmd ):
 #        print "ERROR:  can't find the ComicTagger program: {0}".format( comictagger_cmd )
@@ -216,7 +219,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
             logger.fdebug(module + ' {0}: Unrar is ' + unrar_folder )
             try:
                 #subprocess.Popen( [ unrar_cmd, "x", os.path.join(comicpath,basename) ] ).communicate()
-                output = subprocess.check_output( [ unrar_cmd, 'x', baserar ] ) #os.path.join(comicpath,basename) ] )
+                output = subprocess.check_output( [ unrar_cmd, 'x', baserar ] )
             except CalledProcessError as e:
                 if e.returncode == 3:
                     logger.warn(module + ' [Unrar Error 3] - Broken Archive.')
@@ -354,7 +357,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         logger.fdebug(module + ' Executing command: '+str(script_cmd))
         logger.fdebug(module + ' Absolute path to script: '+script_cmd[0])
         try:
-            p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(script_cmd)
             out, err = p.communicate() #@UnusedVariable
             logger.fdebug(module + '[COMIC-TAGGER] : '+str(out))
             logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp)
