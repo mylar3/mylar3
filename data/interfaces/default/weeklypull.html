@@ -68,7 +68,7 @@
           				<td class="status">${weekly['STATUS']}
                                         %if weekly['STATUS'] == 'Skipped':
                                              <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
-                                             <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant"><span class="ui-icon ui-icon-plus"></span>one off</a>
+                                             <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}"><span class="ui-icon ui-icon-plus"></span>one off</a>
                                         %endif
                                         </td>
                                 %endif

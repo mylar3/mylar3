@@ -943,7 +943,7 @@ class WebInterface(object):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
     queueit.exposed = True
 
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None):
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None):
         logger.fdebug('ComicID:' + str(ComicID))
         logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
@@ -984,9 +984,10 @@ class WebInterface(object):
             #better to set both to some generic #, and then filter out later...
             cyear = myDB.selectone("SELECT SHIPDATE FROM weekly").fetchone()
             ComicYear = str(cyear['SHIPDATE'])[:4]
+            if Publisher == 'COMICS': Publisher = None
             if ComicYear == '': ComicYear = now.year
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=None, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue )  
             raise cherrypy.HTTPRedirect("pullist")

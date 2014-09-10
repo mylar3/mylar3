@@ -213,8 +213,8 @@ class FailedProcessor(object):
 
 
     def failed_check(self):
-        issueid = self.issueid
-        comicid = self.comicid    
+        #issueid = self.issueid
+        #comicid = self.comicid    
            
         # ID = ID passed by search upon a match upon preparing to send it to client to download.
         #     ID is provider dependent, so the same file should be different for every provider.
