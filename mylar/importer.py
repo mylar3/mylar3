@@ -1102,7 +1102,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             if issnum.isdigit():
                 int_issnum = int( issnum ) * 1000
             else:
-                if 'a.i.' in issnum.lower(): issnum = re.sub('\.', '', issnum)
+                if 'a.i.' in issnum.lower() or 'ai' in issnum.lower(): 
+                    issnum = re.sub('\.', '', issnum)
+                    #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
                 if 'au' in issnum.lower():
                     int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
                 elif 'inh' in issnum.lower():
@@ -1165,7 +1167,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             if issnum[x].isalpha():
                                 #take first occurance of alpha in string and carry it through
                                 tstord = issnum[x:].rstrip()
-                                issno = issnum[:x+1].rstrip()
+                                issno = issnum[:x].rstrip()
                                 try:
                                     isschk = float(issno)
                                 except ValueError, e:
@@ -1181,7 +1183,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                         if tstord is not None and issno is not None:
                             a = 0
                             ordtot = 0
-                            if len(issno) == 1 and issnum.isalpha():
+                            if len(issnum) == 1 and issnum.isalpha():
                                 int_issnum = ord(tstord.lower())
                             else:
                                 while (a < len(tstord)):
