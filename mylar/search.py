@@ -1430,13 +1430,13 @@ def nzbname_create(provider, title=None, info=None):
             #pretty this biatch up.
             BComicName = re.sub('[\:\,\/\?]', '', str(ComicName))
             Bl_ComicName = re.sub('[\&]', 'and', str(BComicName))
-            if u'\xbd' in issnum:
+            if u'\xbd' in IssueNumber:
                 str_IssueNumber = '0.5'
-            elif u'\xbc' in issnum:
+            elif u'\xbc' in IssueNumber:
                 str_IssueNumber = '0.25'
-            elif u'\xbe' in issnum:
+            elif u'\xbe' in IssueNumber:
                 str_IssueNumber = '0.75'
-            elif u'\u221e' in issnum:
+            elif u'\u221e' in IssueNumber:
                 str_IssueNumber = 'infinity'
             else:
                 str_IssueNumber = IssueNumber
