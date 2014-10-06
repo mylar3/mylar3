@@ -343,25 +343,41 @@ class PostProcessor(object):
                     #use issueid to get publisher, series, year, issue number
 
                 annchk = "no"
-                if 'annual' in nzbname.lower():
-                    logger.info(module + ' Annual detected.')
-                    annchk = "yes"
+#                if 'annual' in nzbname.lower():
+#                    logger.info(module + ' Annual detected.')
+#                    annchk = "yes"
+#                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+#                else:
+#                    issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+
+                issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                if issuenzb is None:                
+                    logger.info(module + ' Could not detect as a standard issue - checking against annuals.')
                     issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
-                else:
-                    issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
+                    if issuenzb is None:                    
+                        logger.info(module + ' issuenzb not found.')
+                        #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
+                        #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
+                        if 'S' in issueid:
+                            sandwich = issueid
+                        elif 'G' in issueid or '-' in issueid:
+                            sandwich = 1
+                    else:
+                        logger.info(module + ' Successfully located issue as an annual. Continuing.')
+                        annchk = "yes"
 
                 if issuenzb is not None:
                     logger.info(module + ' issuenzb found.')
                     if helpers.is_number(issueid):
                         sandwich = int(issuenzb['IssueID'])
-                else:
-                    logger.info(module + ' issuenzb not found.')
-                    #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
-                    #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
-                    if 'S' in issueid:
-                        sandwich = issueid
-                    elif 'G' in issueid or '-' in issueid: 
-                        sandwich = 1
+#                else:
+#                    logger.info(module + ' issuenzb not found.')
+#                    #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
+#                    #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
+#                    if 'S' in issueid:
+#                        sandwich = issueid
+#                    elif 'G' in issueid or '-' in issueid: 
+#                        sandwich = 1
                 if helpers.is_number(sandwich):
                     if sandwich < 900000:
                         # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
@@ -498,7 +514,7 @@ class PostProcessor(object):
             if annchk == "no":
                 logger.info(module + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' issue: ' + str(issuenzb['Issue_Number']))
             else:
-                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' Annual issue: ' + str(issuenzb['Issue_Number']))
+                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ReleaseComicName'] + ' issue: ' + str(issuenzb['Issue_Number']))
             logger.fdebug(module + ' issueid: ' + str(issueid))
             logger.fdebug(module + ' issuenumOG: ' + str(issuenumOG))
 
@@ -647,7 +663,7 @@ class PostProcessor(object):
                 chunk_f_f = re.sub('\$Annual','',chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                logger.fdebug(module + ' Not an annual - removing from filename paramaters')
+                logger.fdebug(module + ' Not an annual - removing from filename parameters')
                 logger.fdebug(module + ' New format: ' + str(chunk_file_format))
 
             else:
@@ -903,9 +919,12 @@ class PostProcessor(object):
                 dispiss = 'issue: ' + str(issuenumOG)
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module)
-                dispiss = 'annual issue: ' + str(issuenumOG)
+                if 'annual' not in series.lower():
+                    dispiss = 'annual issue: ' + str(issuenumOG)
+                else:
+                    dispiss = str(issuenumOG)
 
-                    #force rescan of files
+            #force rescan of files
             updater.forceRescan(comicid,module=module)
 
             if mylar.WEEKFOLDER:
@@ -952,7 +971,11 @@ class PostProcessor(object):
             if annchk == "no":
                 prline = series + '(' + issueyear + ') - issue #' + issuenumOG
             else:
-                prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
+                if 'annual' not in series.lower():
+                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
+                else:
+                    prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
+
             prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
             if mylar.PROWL_ENABLED:

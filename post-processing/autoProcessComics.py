@@ -3,6 +3,8 @@ import urllib
 import os.path
 import ConfigParser
 
+apc_version = "1.0"
+
 class AuthURLOpener(urllib.FancyURLopener):
     def __init__(self, user, pw):
         self.username = user
@@ -21,8 +23,11 @@ class AuthURLOpener(urllib.FancyURLopener):
         self.numTries = 0
         return urllib.FancyURLopener.open(self, url)
 
+def processEpisode(dirName, nzbName=None):
+    print "Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors."
+    return processIssue(dirName, nzbName)
 
-def processIssue(dirName, nzbName=None, failed=False):
+def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
 
     config = ConfigParser.ConfigParser()
     configFilename = os.path.join(os.path.dirname(sys.argv[0]), "autoProcessComics.cfg")
@@ -61,6 +66,9 @@ def processIssue(dirName, nzbName=None, failed=False):
         params['nzb_name'] = nzbName
 
     params['failed'] = failed
+
+    params['apc_version'] = apc_version
+    params['comicrn_version'] = comicrn_version
         
     myOpener = AuthURLOpener(username, password)
     

@@ -61,10 +61,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                 "Status":   "Loading"}
         comlocation = None
         oldcomversion = None
+        series_status = 'Loading'
     else:
         if chkwant is not None:
             logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
             return 'Exists'
+        if dbcomic['Status'] == 'Active':
+            series_status = 'Active'
+        elif dbcomic['Status'] == 'Paused':
+            series_status = 'Paused'
+        else:
+            series_status = 'Loading'
+
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
         if not latestissueinfo:
@@ -89,7 +97,8 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
             newValueDict = {"ComicName":   "Fetch failed, try refreshing. (%s)" % (comicid),
                     "Status":   "Active"}
         else:
-            newValueDict = {"Status":   "Active"}
+            if series_status == 'Active' or series_status == 'Loading':
+                newValueDict = {"Status":   "Active"}
         myDB.upsert("comics", newValueDict, controlValueDict)
         return
     
@@ -449,7 +458,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     #Cdesc = helpers.cleanhtml(comic['ComicDescription'])
     #cdes_find = Cdesc.find("Collected")
     #cdes_removed = Cdesc[:cdes_find]
-    #print cdes_removed
+    #logger.fdebug('description: ' + cdes_removed)
 
     controlValueDict = {"ComicID":      comicid}
     newValueDict = {"ComicName":        comic['ComicName'],
@@ -461,7 +470,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                     "ComicVersion":     comicVol,
                     "ComicLocation":    comlocation,
                     "ComicPublisher":   comic['ComicPublisher'],
-                    #"Description":      Cdesc.decode('utf-8', 'replace'),
+#                    "Description":      Cdesc, #.dencode('utf-8', 'replace'),
                     "DetailURL":        comic['ComicURL'],
 #                    "ComicPublished":   gcdinfo['resultPublished'],
                     "ComicPublished":   "Unknown",
@@ -537,7 +546,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
-        if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present': #and 'Present' in gcdinfo['resultPublished']:
+        if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present' and series_status == 'Active': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
             chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
             logger.fdebug('latestissue status: ' + chkstats['Status'])

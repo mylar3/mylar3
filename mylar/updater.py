@@ -480,6 +480,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
     module += '[UPDATER]'
 
     myDB = db.DBConnection()
+    modcomicname = False
 
     logger.fdebug(module + ' comicid: ' + str(ComicID))
     logger.fdebug(module + ' issueid: ' + str(IssueID))
@@ -488,6 +489,9 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         ComicName = comic['ComicName']
         if mode == 'want_ann':
             issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+            if ComicName != issue['ReleaseComicName'] + ' Annual':
+                ComicName = issue['ReleaseComicName']
+                modcomicname = True
         else:
             issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
         CYear = issue['IssueDate'][:4]
@@ -535,10 +539,13 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "Status":          "Snatched"
                                }
         else:
-            if mode == 'want_ann':
-                IssueNum = "Annual " + issue['Issue_Number']
-            else:
+            if modcomicname:
                 IssueNum = issue['Issue_Number']
+            else:
+                if mode == 'want_ann':
+                    IssueNum = "Annual " + issue['Issue_Number']
+                else:
+                    IssueNum = issue['Issue_Number']
 
             newsnatchValues = {"ComicName":       ComicName,
                                "ComicID":         ComicID,
@@ -556,7 +563,10 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
             logger.info(module + ' Setting status to Downloaded in history.')
             downstatus = 'Downloaded'
         if mode == 'want_ann':
-            IssueNum = "Annual " + issue['Issue_Number']
+            if modcomicname:
+                IssueNum = issue['Issue_Number']
+            else:
+                IssueNum = "Annual " + issue['Issue_Number']
         elif mode == 'story_arc':
             IssueNum = issue['IssueNumber']
             IssueID = IssueArcID
@@ -628,7 +638,30 @@ def forceRescan(ComicID,archive=None,module=None):
     issuedupechk = []
     annualdupechk = []
     issueexceptdupechk = []
+    mc_issue = []
+    mc_issuenumber = []
     reissues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+    multiple_check = myDB.select('SELECT * FROM issues WHERE ComicID=? GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
+
+    if len(multiple_check) == 0: 
+        logger.fdebug('No issues with identical issue numbering were detected for this series')
+        mc_issuenumber = None
+    else:
+        logger.fdebug('Multiple issues with identical numbering were detected. Attempting to accomodate.')
+        for mc in multiple_check:
+            mc_issuenumber.append({"Int_IssueNumber": mc['Int_IssueNumber']})
+
+    if not mc_issuenumber is None:
+        for mciss in mc_issuenumber:
+           mchk = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, mciss['Int_IssueNumber']])
+           for mck in mchk:
+              mc_issue.append({"Int_IssueNumber":   mck['Int_IssueNumber'],
+                               "IssueYear":         mck['IssueDate'][:4],
+                               "IssueID":           mck['IssueID']})
+
+
+    logger.fdebug('mc_issue:' + str(mc_issue))
+
     issID_to_ignore = []
     issID_to_ignore.append(str(ComicID))
     issID_to_write = []
@@ -756,32 +789,82 @@ def forceRescan(ComicID,archive=None,module=None):
                     #logger.fdebug("int_iss: " + str(int_iss))
 
                     if int(fcdigit) == int_iss:
-                        logger.fdebug(module + ' Issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
+                        logger.fdebug(module + ' [' + str(reiss['IssueID']) + '] Issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
 
                         if '-' in temploc and temploc.find(reiss['Issue_Number']) > temploc.find('-'):
                             logger.fdebug(module + ' I have detected a possible Title in the filename')
                             logger.fdebug(module + ' the issue # has occured after the -, so I assume that it is part of the Title')
                             break
+
+                        multiplechk = False
+
                         for d in issuedupechk:
                             if int(d['fcdigit']) == int(fcdigit):
-                                logger.fdebug(module + ' Duplicate issue detected - not counting this: ' + str(tmpfc['ComicFilename']))
-                                logger.fdebug(module + ' is a duplicate of ' + d['filename'])
-                                logger.fdebug('fcdigit:' + str(fcdigit) + ' === dupedigit: ' + str(d['fcdigit']))
-                                issuedupe = "yes"
-                                break
+                                if len(mc_issue) > 1:
+                                    logger.fdebug('[Initial Check] multiple check issue detected - more than one issue with identical numbering for series.')
+                                    for mi in mc_issue:
+                                        if (mi['IssueYear'] in tmpfc['ComicFilename']):# and (int(d['issueyear']) == int(mi['IssueYear'])) and (d['fcdigit'] == mi['Int_IssueNumber']):
+                                            logger.fdebug('[Initial Check] detected : ' + str(mi['IssueYear']) + ' within filename.')
+                                            multiplechk = False  
+                                            issuedupe = "no"
+                                            break
+                                        else:
+                                            logger.fdebug('[Initial Check] ' + str(mi['Int_IssueNumber']) + ' - did not detect year within filename - expecting (' + str(mi['IssueYear']) + '). Assuming this is the identical numbered issue.')
+                                            multiplechk = True
+                                    if multiplechk == False: break
+
+                        
+                        if multiplechk == True:
+                            logger.fdebug(module + ' Duplicate issue detected - not counting this: ' + str(tmpfc['ComicFilename']))
+                            #logger.fdebug(module + ' is a duplicate of ' + d['filename'])
+                            #logger.fdebug('fcdigit:' + str(fcdigit) + ' === dupedigit: ' + str(d['fcdigit']))
+                            issuedupe = "yes"
+                            break
+
                         if issuedupe == "no":
-                            logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + str(reiss['Issue_Number']) + ' --- ' + str(int_iss))
-                            havefiles+=1
-                            haveissue = "yes"
-                            isslocation = str(tmpfc['ComicFilename'])
-                            issSize = str(tmpfc['ComicSize'])
-                            logger.fdebug(module + ' .......filename: ' + str(isslocation))
-                            logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
-                            # to avoid duplicate issues which screws up the count...let's store the filename issues then 
-                            # compare earlier...
-                            issuedupechk.append({'fcdigit': int(fcdigit),
-                                                 'filename': tmpfc['ComicFilename']})
-                        break
+
+                            foundchk = False
+
+                            #make sure we are adding the correct issue.
+                            for d in issuedupechk:
+                                if int(d['fcdigit']) == int(fcdigit):
+                                    if len(mc_issue) > 1 and multiplechk == False:
+                                    #if len(mc_issue) > 1 and multiplechk != False and any d['Int_IssueNumber'] == int_iss for d in mc_issue):
+                                        for mi in mc_issue:
+                                            logger.fdebug('[DupeCheck]' + str(mi['IssueID']) + ' comparing to ' + str(d['issueid']))
+                                            if mi['IssueID'] != d['issueid'] and mi['IssueID'] == reiss['IssueID']:
+                                                logger.fdebug('Most likely, I should not be marking this as a dupe.')
+                                                if (mi['IssueYear'] in tmpfc['ComicFilename']) and (d['fcdigit'] == mi['Int_IssueNumber']):
+                                                    logger.fdebug('[DupeCheck] detected : ' + str(mi['IssueYear']) + ' within filename. This is an issue that happens to have duplicate numbering and is acceptable')
+                                                    foundchk = True
+                                                    break
+                                                else:
+                                                    logger.fdebug('[DupeCheck] ' + str(mi['Int_IssueNumber']) + ': did not detect year (' + str(mi['IssueYear']) + ').')
+                                                    foundchk = False
+                                            else:  
+                                                foundchk = True
+                                  
+
+                                        if foundchk == True:
+                                            logger.fdebug('[DupeCheck] This is not a duplicate. foundchk is : ' + str(foundchk))
+                                            letitgo = True
+                                            break
+
+                            if foundchk == False:  
+                                logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
+                                havefiles+=1
+                                haveissue = "yes"
+                                isslocation = str(tmpfc['ComicFilename'])
+                                issSize = str(tmpfc['ComicSize'])
+                                logger.fdebug(module + ' .......filename: ' + str(isslocation))
+                                logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
+                                # to avoid duplicate issues which screws up the count...let's store the filename issues then 
+                                # compare earlier...
+                                issuedupechk.append({'fcdigit':   int(fcdigit),
+                                                     'filename':  tmpfc['ComicFilename'],
+                                                     'issueyear': issyear,
+                                                     'issueid':   reiss['IssueID']})
+                                break
                         #else:
                         # if the issue # matches, but there is no year present - still match.
                         # determine a way to match on year if present, or no year (currently).
@@ -865,21 +948,26 @@ def forceRescan(ComicID,archive=None,module=None):
             #even if we couldn't find the physical issue, check the status.
             #-- if annuals aren't enabled, this will bugger out.
             writeit = True
-            if mylar.ANNUALS_ON:
-                if 'annual' in temploc.lower():
-                    if reann is None:
-                        logger.fdebug(module + ' Annual present in location, but series does not have any annuals attached to it - Ignoring')
+            try:
+                if mylar.ANNUALS_ON:
+                    if 'annual' in temploc.lower():
+                        if reann is None:
+                            logger.fdebug(module + ' Annual present in location, but series does not have any annuals attached to it - Ignoring')
+                            writeit = False
+                        else:
+                            iss_id = reann['IssueID']
+                    else:
+                        iss_id = reiss['IssueID']
+                else:
+                    if 'annual' in temploc.lower():
+                        logger.fdebug(module + ' Annual support not enabled, but annual issue present within directory. Ignoring annual.')
                         writeit = False
                     else:
-                        iss_id = reann['IssueID']
-                else:
-                    iss_id = reiss['IssueID']
-            else:
-                if 'annual' in temploc.lower():
-                    logger.fdebug(module + ' Annual support not enabled, but annual issue present within directory. Ignoring annual.')
-                    writeit = False
-                else:
-                    iss_id = reiss['IssueID']
+                        iss_id = reiss['IssueID']
+            except:
+                logger.warn(module + ' An error occured trying to get the relevant issue data. This is probably due to the series not having proper issue data.')
+                logger.warn(module + ' you should either Refresh the series, and/or submit an issue on github in regards to the series and the error.')
+                return
 
             if writeit == True:
                 logger.fdebug(module + ' issueID to write to db:' + str(iss_id))

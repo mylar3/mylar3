@@ -189,6 +189,8 @@ def GetComicInfo(comicid,dom):
     except:
         comic_deck = 'None'
 
+    #comic['ComicDescription'] = comic_desc
+
     try:
         comic['Aliases'] = dom.getElementsByTagName('aliases')[0].firstChild.wholeText
         #logger.fdebug('Aliases: ' + str(aliases))

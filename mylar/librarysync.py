@@ -97,9 +97,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
     for watch in watchlist:
         #use the comicname_filesafe to start
-        watchdisplaycomic = re.sub('[\_\#\,\/\:\;\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
+        watchdisplaycomic = watch['ComicName'].encode('utf-8').strip() #re.sub('[\_\#\,\/\:\;\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['ComicName_Filesafe']).encode('utf-8').strip()
+        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe']).encode('utf-8').strip()
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
@@ -110,7 +110,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
          
         # account for alternate names as well
         if watch['AlternateSearch'] is not None and watch['AlternateSearch'] is not 'None':
-            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', ' ', watch['AlternateSearch']).encode('utf-8').strip()
+            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch']).encode('utf-8').strip()
             #altcomic = re.sub('\s+', ' ', str(altcomic)).strip()
             AltName.append(altcomic)
             alt_chk = "yes"  # alt-checker flag
@@ -210,7 +210,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
         #we need to track the counter to make sure we are comparing the right array parts
         #this takes care of the brackets :)
-        m = re.findall('[^()]+', cfilename)
+        m = re.findall('[^()]+', d_filename)  #cfilename)
         lenm = len(m)
         logger.fdebug("there are " + str(lenm) + " words.")
         cnt = 0
@@ -316,22 +316,23 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             cnt+=1
 
         displength = len(cname)
-        print 'd_filename is : ' + d_filename
+        logger.fdebug('cname length : ' + str(displength) + ' --- ' + str(cname))
+        logger.fdebug('d_filename is : ' + d_filename)
         charcount = d_filename.count('#')
-        print ('charcount is : ' + str(charcount))
+        logger.fdebug('charcount is : ' + str(charcount))
         if charcount > 0:
-            print ('entering loop')
+            logger.fdebug('entering loop')
             for i,m in enumerate(re.finditer('\#', d_filename)):
                 if m.end() <= displength:
-                    print comfilename[m.start():m.end()]
+                    logger.fdebug(comfilename[m.start():m.end()])
                     # find occurance in c_filename, then replace into d_filname so special characters are brought across
                     newchar = comfilename[m.start():m.end()]
-                    print 'newchar:' + str(newchar)
+                    logger.fdebug('newchar:' + str(newchar))
                     d_filename = d_filename[:m.start()] + str(newchar) + d_filename[m.end():]
-                    print 'd_filename:' + str(d_filename)
+                    logger.fdebug('d_filename:' + str(d_filename))
 
         dispname = d_filename[:displength]
-        print ('dispname : ' + dispname)
+        logger.fdebug('dispname : ' + dispname)
 
         splitit = []
         watchcomic_split = []
@@ -445,19 +446,20 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
         else:
             vol_label = volno
 
-        print ("adding " + com_NAME + " to the import-queue!")
-        impid = com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
-        print ("impid: " + str(impid))
+        logger.fdebug("adding " + com_NAME + " to the import-queue!")
+        impid = dispname + '-' + str(result_comyear) + '-' + str(comiss) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
+        logger.fdebug("impid: " + str(impid))
         import_by_comicids.append({ 
             "impid"       : impid,
             "watchmatch"  : watchmatch,
             "displayname" : dispname,
-            "comicname"   : com_NAME,
+            "comicname"   : dispname, #com_NAME,
             "comicyear"   : result_comyear,
             "volume"      : vol_label,
             "comfilename" : comfilename,
             "comlocation" : comlocation.decode(mylar.SYS_ENCODING)
                                    })
+        logger.fdebug('import_by_ids: ' + str(import_by_comicids))
 
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice
@@ -550,9 +552,9 @@ def scanLibrary(scan=None, queue=None):
             logger.error('Unable to complete the scan: %s' % e)
             return
         if soma == "Completed":
-            print ("sucessfully completed import.")
+            logger.info('Sucessfully completed import.')
         else:
-            logger.info(u"Starting mass importing..." + str(noids) + " records.")
+            logger.info('Starting mass importing...' + str(noids) + ' records.')
             #this is what it should do...
             #store soma (the list of comic_details from importing) into sql table so import can be whenever
             #display webpage showing results
@@ -565,12 +567,12 @@ def scanLibrary(scan=None, queue=None):
             #result = threadthis.main(soma)
             myDB = db.DBConnection()
             sl = 0
-            print ("number of records: " + str(noids))
+            logger.fdebug("number of records: " + str(noids))
             while (sl < int(noids)):
                 soma_sl = soma['comic_info'][sl]
-                print ("soma_sl: " + str(soma_sl))
-                print ("comicname: " + soma_sl['comicname'].encode('utf-8'))
-                print ("filename: " + soma_sl['comfilename'].encode('utf-8'))
+                logger.fdebug("soma_sl: " + str(soma_sl))
+                logger.fdebug("comicname: " + soma_sl['comicname'].encode('utf-8'))
+                logger.fdebug("filename: " + soma_sl['comfilename'].encode('utf-8'))
                 controlValue = {"impID":    soma_sl['impid']}
                 newValue = {"ComicYear":        soma_sl['comicyear'],
                             "Status":           "Not Imported",

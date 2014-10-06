@@ -34,7 +34,7 @@ from lib.configobj import ConfigObj
 
 import cherrypy
 
-from mylar import versioncheck, logger, versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers #versioncheckit, searchit, weeklypullit, dbupdater, scheduler
+from mylar import logger, versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers #versioncheckit, searchit, weeklypullit, dbupdater, scheduler
 
 FULL_PATH = None
 PROG_DIR = None
@@ -128,7 +128,7 @@ COMIC_DIR = None
 LIBRARYSCAN = False
 IMP_MOVE = False
 IMP_RENAME = False
-IMP_METADATA = False
+IMP_METADATA = False  # should default to False - this is enabled for testing only.
 
 SEARCH_INTERVAL = 360
 NZB_STARTUP_SEARCH = False
@@ -280,6 +280,10 @@ CT_CBZ_OVERWRITE = 0
 ENABLE_RSS = 0
 RSS_CHECKINTERVAL = 20
 RSS_LASTRUN = None
+
+#these are used to set the comparison against the post-processing scripts
+STATIC_COMICRN_VERSION = "1.0"
+STATIC_APC_VERSION = "1.0"
 
 FAILED_DOWNLOAD_HANDLING = 0
 FAILED_AUTO = 0

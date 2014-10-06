@@ -343,14 +343,29 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if mylar.ZERO_LEVEL_N  == "none": zeroadd = ""
                 elif mylar.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
-
+          
             logger.fdebug('Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
+            prettycomiss = None
 
-            if str(len(issueno)) > 1:
-                if int(issueno) < 0:
-                    self._log("issue detected is a negative")
-                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-                elif int(issueno) < 10:
+            try:
+                x = float(issueno)
+                #validity check
+                if x < 0:
+                    logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
+                    logger.info('abs is : ' + str(abs(iss)))
+                    prettycomiss = '-' + str(zeroadd) + str(abs(iss))
+                    logger.info('past.')
+                else: raise ValueError
+            except ValueError, e:
+                logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
+                return
+
+            if prettycomiss is None and len(str(issueno)) > 0:
+                logger.info('here')
+                #if int(issueno) < 0:
+                #    self._log("issue detected is a negative")
+                #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
+                if int(issueno) < 10:
                     logger.fdebug('issue detected less than 10')
                     if '.' in iss:
                         if int(iss_decval) > 0:
@@ -389,7 +404,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
                     logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
-            else:
+            elif len(str(issueno)) == 0:
                 prettycomiss = str(issueno)
                 logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
 
@@ -1413,6 +1428,12 @@ def get_issue_title(IssueID):
         logger.warn('Unable to locate given IssueID within the db.')
         return None
     return issue['IssueName']
+
+def int_num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
 
 
 from threading import Thread

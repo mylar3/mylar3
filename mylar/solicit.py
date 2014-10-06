@@ -70,7 +70,7 @@ def solicit(month, year):
             if len(str(mon)) == 1:
                 mon = '0' + str(mon)
 
-            monthlist.append({"month":     helpers.fullmonth(mon).lower(),
+            monthlist.append({"month":     helpers.fullmonth(str(mon)).lower(),
                               "num_month": mon,
                               "year":      str(year)})
             mongr+=1

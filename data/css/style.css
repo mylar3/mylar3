@@ -148,16 +148,16 @@ div#main { margin: 0; padding: 80px 0 0 0; }
 .comictable td#maindetails { width: 200px; padding: 10px; }
 .comictable td#middle { vertical-align: middle; }
 
-table#series_table { background-color: white; width: 100%; padding: 20px; }
+table#series_table { background-color: black; width: 100%; padding: 10px; }
 
 table#series_table th#publisher { text-align: left; min-width: 50px; }
 table#series_table th#name { text-align: left; min-width: 250px; }
-table#series_table th#year { text-align: left; min-width: 25px; }
+table#series_table th#year { text-align: left; max-width: 25px; }
 table#series_table th#issue { text-align: left; min-width: 100px; }
 table#series_table th#published { vertical-align: middle; text-align: left; min-width:40px; }
 table#series_table th#have { text-align: center; }
 table#series_table th#status { vertical-align: middle; text-align: left; min-width: 25px; }
-table#series_table th#active { vertical-align: middle; text-align: left; min-width: 20px; }
+table#series_table th#active { vertical-align: middle; text-align: left; max-width: 20px; }
 
 table#series_table td#publisher { text-align: left; max-width: 100px; }
 table#series_table td#name { text-align: left; max-width: 250px; }

@@ -1116,20 +1116,23 @@ div#artistheader h2 a {
   width: 100%;
 }
 #series_table th#publisher {
-  min-width: 150px;
+  min-width: 100px;
   text-align: left;
 }
 #series_table th#name {
   min-width: 275px;
   text-align: left;
 }
-#series_table th#year,
-#series_table th#issue {
-  min-width: 25px;
+#series_table th#year {
+  max-width: 25px;
+  text-align: left;
+}
+#series_table th#active {
+  max-width: 40px;
   text-align: left;
 }
 #series_table th#status,
-#series_table th#active,
+#series_table th#issue,
 #series_table th#published {
   min-width: 50px;
   text-align: left;
@@ -1138,7 +1141,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #series_table td#publisher {
-  min-width: 150px;
+  min-width: 100px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
@@ -1148,14 +1151,18 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#series_table th#year,
-#series_table th#issue {
+#series_table td#year {
   max-width: 25px;
   text-align: left;
   vertical-align: middle;
 }
+#series_table td#active {
+  max-width: 40px;
+  text-align: left;
+  vertical-align: middle;
+}
 #series_table td#status,
-#series_table td#active,
+#series_table td#issue,
 #series_table td#published {
   max-width: 50px;
   text-align: left;

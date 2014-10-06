@@ -136,10 +136,10 @@
                                 <div>
                                    <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
                                 </div>
-                                <div>
+<!--                            <div>
                                    <label><big>Description:</big></label><br/>
-                              <!-- <norm>${comic['Description']}</norm> -->
-                                </div>
+                                   <small>${comic['Description']}</small> 
+-->                             </div>
                          </fieldset>
 
             	</td>
@@ -298,7 +298,9 @@
         <label for="Downloaded" class="checkbox inline Downloaded"><input type="checkbox" id="Downloaded" checked="checked" /> Downloaded: <b>${isCounts['Downloaded']}</b></label>
         <label for="Skipped" class="checkbox inline Skipped"><input type="checkbox" id="Skipped" checked="checked" /> Skipped: <b>${isCounts['Skipped']}</b></label>
         <label for="Ignored" class="checkbox inline Ignored"><input type="checkbox" id="Ignored" checked="checked" /> Ignored: <b>${isCounts['Ignored']}</b></label>
-        <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
+        %if mylar.FAILED_DOWNLOAD_HANDLING:
+            <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
+        %endif
     </div>
    </div>
 
@@ -314,7 +316,9 @@
                         <option value="Downloaded">Downloaded</option>
                         <option value="Archived">Archived</option>
                         <option value="Ignored">Ignored</option>
-                        <option value="Failed">Failed</option>
+                        %if mylar.FAILED_DOWNLOAD_HANDLING:
+                            <option value="Failed">Failed</option>
+                        %endif
                 </select>
                 selected issues
                 <input type="hidden" value="Go">
@@ -384,7 +388,9 @@
                                 %elif (issue['Status'] == 'Snatched'):
                                        <a href="#" onclick="doAjaxCall('retryit?ComicName=${issue['ComicName'] |u}&ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&IssueNumber=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>                          
-                                       <a href="#" title="Mark issue as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode="failed"',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
+                                       %if mylar.FAILED_DOWNLOAD_HANDLING:
+                                               <a href="#" title="Mark issue as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode=failed',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
+                                       %endif
                                %elif (issue['Status'] == 'Downloaded'):
                                        <%
                                               if issue['Location'] is not None:
@@ -520,7 +526,9 @@
                                 %elif (annual['Status'] == 'Snatched'):
                                         <a href="#" onclick="doAjaxCall('retryit?ComicName=${annual['ComicName'] |u}&ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&IssueNumber=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&ReleaseComicID=${annual['ReleaseComicID']}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                         <a href="#" title="Mark annual as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}&ReleaseComicID=${annual['ReleaseComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
-                                        <a href="#" title="Mark annual as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode="failed"',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
+                                        %if mylar.FAILED_DOWNLOAD_HANDLING:
+                                               <a href="#" title="Mark annual as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode="failed"',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
+                                        %endif
                                 %elif (annual['Status'] == 'Downloaded'):
                                        <%
                                               if annual['Location'] is not None:

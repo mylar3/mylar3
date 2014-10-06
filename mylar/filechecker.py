@@ -69,7 +69,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                       'C',
                       'X']
 
-    extensions = ('.cbr', '.cbz')
+    extensions = ('.cbr', '.cbz', '.cb7')
 
 #    #get the entire tree here
     dirlist = traverse_directories(basedir)
@@ -538,8 +538,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 logger.fdebug('[FILECHECKER] AS_Tuple : ' + str(AS_Tuple))
                 annual_comicid = None
                 for ATS in AS_Tuple:
-                    logger.fdebug('[FILECHECKER] ' + str(ATS['AS_Alternate']) + ' comparing to ' + str(modwatchcomic))
-                    if ATS['AS_Alternate'] == modwatchcomic:
+                    logger.fdebug('[FILECHECKER] ' + str(ATS['AS_Alternate']) + ' comparing to ' + str(subname)) #str(modwatchcomic))
+                    if ATS['AS_Alternate'] == subname: #modwatchcomic:
                         logger.fdebug('[FILECHECKER] Associating ComiciD : ' + str(ATS['ComicID']))
                         annual_comicid = str(ATS['ComicID'])
                         break

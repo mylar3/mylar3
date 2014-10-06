@@ -138,7 +138,11 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         # if the filename is identical to the parent folder, the entire subfolder gets copied since it's the first match, instead of just the file
         shutil.move( filename, comicpath )
 
-    filename = os.path.split(filename)[1]   # just the filename itself
+    try:
+        filename = os.path.split(filename)[1]   # just the filename itself
+    except:
+        logger.warn('Unable to detect filename within directory - I am aborting the tagging. You best check things out.')
+        return "fail"
     #print comicpath
     #print os.path.join( comicpath, filename )
     if filename.endswith('.cbr'):

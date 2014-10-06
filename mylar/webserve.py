@@ -423,7 +423,20 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % gcomicid)
     GCDaddComic.exposed = True
 
-    def post_process(self, nzb_name, nzb_folder, failed=False):
+    def post_process(self, nzb_name, nzb_folder, failed=False, apc_version=None, comicrn_version=None):
+        if comicrn_version is None and apc_version is None:
+            logger.warn('ComicRN should be v' + str(mylar.STATIC_COMICRN_VERSION) + ' and autoProcessComics.py should be v' + str(mylar.STATIC_APC_VERSION) + ', but they are not and are out of date. Post-Processing may or may not work.')
+        elif comicrn_version is None or comicrn_version != mylar.STATIC_COMICRN_VERSION:
+            if comicrn_version == 'None':
+                comicrn_version = "0"
+            logger.warn('Your ComicRN.py script should be v' + str(mylar.STATIC_COMICRN_VERSION) + ', but is v' + str(comicrn_version) + ' and is out of date. Things may still work - but you are taking your chances.')
+        elif apc_version is None or apc_version != mylar.STATIC_APC_VERSION:
+            if apc_version == 'None':
+                apc_version = "0"
+            logger.warn('Your autoProcessComics.py script should be v' + str(mylar.STATIC_APC_VERSION) + ', but is v' + str(apc_version) + ' and is out of date. Odds are something is gonna fail - you should update it.')
+        else:
+            logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
+
         import Queue
         logger.info('Starting postprocessing for : ' + nzb_name)
         if failed == '0':
@@ -509,6 +522,8 @@ class WebInterface(object):
         logger.info(u"Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+        if mylar.ANNUALS_ON:
+            myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
         helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
@@ -1004,10 +1019,16 @@ class WebInterface(object):
                     logger.info(u"Marking " + ComicName + " issue: " + ComicIssue + " as wanted...")
                     myDB.upsert("issues", newStatus, controlValueDict)
             else:
-                if manualsearch:
-                    logger.info('Initiating manual search for ' + ComicName + ' Annual: ' + ComicIssue)
+                annual_name = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? and IssueID=?", [ComicID,IssueID]).fetchone()
+                if annual_name is None:
+                    logger.fdebug('Unable to locate.')
                 else:
-                    logger.info(u"Marking " + ComicName + " Annual: " + ComicIssue + " as wanted...")
+                    ComicName = annual_name['ReleaseComicName']
+
+                if manualsearch:
+                    logger.info('Initiating manual search for ' + ComicName + ' : ' + ComicIssue)
+                else:
+                    logger.info(u"Marking " + ComicName + " : " + ComicIssue + " as wanted...")
                     myDB.upsert("annuals", newStatus, controlValueDict)
         #---
         #this should be on it's own somewhere
@@ -2542,7 +2563,7 @@ class WebInterface(object):
             #determine a best-guess to # of issues in series
             #this needs to be reworked / refined ALOT more.
             #minISSUE = highest issue #, startISSUE = lowest issue #
-            numissues = int(minISSUE) - int(startISSUE)
+            numissues = helpers.int_num(minISSUE) - helpers.int_num(startISSUE)
             #normally minissue would work if the issue #'s started at #1.
             implog = implog + "the years involved are : " + str(yearRANGE) + "\n"
             implog = implog + "highest issue # is : " + str(minISSUE) + "\n"
@@ -2567,9 +2588,9 @@ class WebInterface(object):
         
             mode='series'
             if yearRANGE is None:
-                sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
             else:
-                sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
             type='comic'
 
             if len(sresults) == 1:

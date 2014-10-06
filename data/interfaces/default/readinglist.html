@@ -95,14 +95,16 @@
                  </tr>
                  <tr>
                  <form action="readOptions" method="get">
-                     <div class="row">
-                         <label>Options</label><br/>
-                         <input type="checkbox" /><label>Arcs in Grabbag Directory?</label><br/>
-                         <input type="checkbox" name="storyarcdir" value="1" ${readConfig['storyarcdir']} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label><br/>
-                         <input type="checkbox" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/> 
-                         <input type="checkbox" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading # to filename</label>
+                   <fieldset>
+                     <legend>Options</legend>
+                     <div class="row checkbox left clearfix">
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Arcs in Grabbag Directory?</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" value="1" ${readConfig['storyarcdir']} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/> 
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading # to filename</label>
                         
                      </div>
+                   </fieldset>
                  </form>
                 </tr>
                 </tr>

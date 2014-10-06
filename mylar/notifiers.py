@@ -182,6 +182,11 @@ class PUSHOVER:
         response = http_handler.getresponse()
         request_status = response.status
 
+        logger.fdebug(u"PushOver response status: %r" % request_status)
+        logger.fdebug(u"PushOver response headers: %r" % response.getheaders())
+        logger.fdebug(u"PushOver response body: %r" % response.read())
+
+
         if request_status == 200:
                 logger.info(module + ' Pushover notifications sent.')
                 return True
@@ -249,7 +254,7 @@ class BOXCAR:
         logger.fdebug(module + ' Boxcar2 notification successful.')
         return True
 
-    def notify(self, ComicName=None, Year=None, Issue=None, sent_to=None, snatched_nzb=None, force=False, module=None):
+    def notify(self, prline=None, prline2=None, sent_to=None, snatched_nzb=None, force=False, module=None):
         """
         Sends a boxcar notification based on the provided info or SB config
 
@@ -270,9 +275,8 @@ class BOXCAR:
             title = "Mylar. Sucessfully Snatched!"
             message = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
         else:
-            title = "Mylar. Successfully Downloaded & Post-Processed!"
-            message = "Mylar has downloaded and postprocessed: " + ComicName + ' (' + Year + ') #' + Issue
-
+            title = prline
+            message = prline2
 
         logger.info(module + ' Sending notification to Boxcar2')
 
@@ -285,13 +289,45 @@ class PUSHBULLET:
         self.apikey = mylar.PUSHBULLET_APIKEY
         self.deviceid = mylar.PUSHBULLET_DEVICEID
 
-    def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None):
+    def get_devices(self, api):
+        return self.notify(method="GET")
+
+    def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None, method=None):
         if not mylar.PUSHBULLET_ENABLED:
             return
         if module is None:
             module = ''
         module += '[NOTIFIER]'
         
+        http_handler = HTTPSConnection("api.pushbullet.com")
+
+        #possible needed for update.
+        #if method == 'GET':
+        #    uri = '/v2/devices'
+        #else:
+        #    method = 'POST'
+        #    uri = '/v2/pushes'
+
+        #authString = base64.encodestring('%s:' % (self.apikey)).replace('\n', '')
+
+        #if method == 'GET':
+        #    http_handler.request(method, uri, None, headers={'Authorization': 'Basic %s:' % authString})
+        #else:
+        #    if snatched:
+        #        if snatched[-1] == '.': snatched = snatched[:-1]
+        #        event = snline
+        #        message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
+        #    else:
+        #        event = prline + ' complete!'
+        #        message = prline2
+
+        #    data = {'device_iden': self.deviceid,
+        #            'type': "note",
+        #            'title': event.encode('utf-8'), #"mylar",
+        #            'body': message.encode('utf-8') }
+
+        #    http_handler.request(method, uri, body=urlencode(data), headers={'Authorization': 'Basic %s' % authString})
+
         if snatched:
             if snatched[-1] == '.': snatched = snatched[:-1]
             event = snline
@@ -300,34 +336,36 @@ class PUSHBULLET:
             event = prline + ' complete!'
             message = prline2
 
-
-        http_handler = HTTPSConnection("api.pushbullet.com")
-
         data = {'device_iden': mylar.PUSHBULLET_DEVICEID,
                 'type': "note",
-                'title': event, #"mylar",
-                'body': message.encode("utf-8") }
+                'title': event,
+                'body': message.encode("utf-8")}
 
         http_handler.request("POST",
                                 "/api/pushes",
                                 headers = {'Content-type': "application/x-www-form-urlencoded",
-                                            'Authorization' : 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":") },
+                                           'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":") },
                                 body = urlencode(data))
+
         response = http_handler.getresponse()
+        request_body = response.read()
         request_status = response.status
-        #logger.debug(u"PushBullet response status: %r" % request_status)
-        #logger.debug(u"PushBullet response headers: %r" % response.getheaders())
-        #logger.debug(u"PushBullet response body: %r" % response.read())
+        logger.fdebug(u"PushBullet response status: %r" % request_status)
+        logger.fdebug(u"PushBullet response headers: %r" % response.getheaders())
+        logger.fdebug(u"PushBullet response body: %r" % response.read())
 
         if request_status == 200:
+            if method == 'GET':
+                return request_body
+            else:
                 logger.fdebug(module + ' PushBullet notifications sent.')
                 return True
         elif request_status >= 400 and request_status < 500:
-                logger.error(module + ' PushBullet request failed: %s' % response.reason)
-                return False
+            logger.error(module + ' PushBullet request failed: %s' % response.reason)
+            return False
         else:
-                logger.error(module + ' PushBullet notification failed serverside.')
-                return False
+            logger.error(module + ' PushBullet notification failed serverside.')
+            return False
 
     def test(self, apikey, deviceid):
 

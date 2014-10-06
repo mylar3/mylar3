@@ -460,7 +460,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
             w = 1            
         else:
             #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName_Filesafe, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics")
+            cur.execute("SELECT ComicID, ComicName_Filesafe, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics WHERE Status = 'Active'")
             while True:
                 watchd = cur.fetchone()
                 #print ("watchd: " + str(watchd))
