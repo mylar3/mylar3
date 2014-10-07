@@ -352,10 +352,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 #validity check
                 if x < 0:
                     logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
-                    logger.info('abs is : ' + str(abs(iss)))
-                    prettycomiss = '-' + str(zeroadd) + str(abs(iss))
-                    logger.info('past.')
-                else: raise ValueError
+                    prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
+                elif x >= 0:
+                    pass
+                else:
+                    raise ValueError
             except ValueError, e:
                 logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
                 return
