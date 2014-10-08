@@ -1438,16 +1438,18 @@ def int_num(s):
 
 def listLibrary():
     import db
-    library = []
+    library = {}
     myDB = db.DBConnection()
-    # Get individual comics
+#    # Get individual comics
     list = myDB.select("SELECT ComicId FROM Comics")
     for row in list:
-        library.append(row['ComicId'])
+        library[row['ComicID']] = row['ComicID']
+#        library.append(row['ComicId'])
     # Add the annuals
-    list = myDB.select("SELECT ReleaseComicId FROM Annuals")
+    list = myDB.select("SELECT ReleaseComicId,ComicID FROM Annuals")
     for row in list:
-        library.append(row['ReleaseComicId'])
+        library[row['ReleaseComicId']] = row['ComicID']
+#        library.append(row['ReleaseComicId'])
     return library
 
 from threading import Thread

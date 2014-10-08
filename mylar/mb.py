@@ -235,9 +235,9 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         xmldesc = "None"
                             
                         if xmlid in comicLibrary:
-                            haveit = "Yes"
+                            haveit = comicLibrary[xmlid]
                         else:
-						haveit = "No"
+                            haveit = "No"
 
                     comiclist.append({
                             'name':                 xmlTag,
@@ -289,7 +289,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             except:
                                 xmldesc = "None"
                             if xmlid in comicLibrary:
-                                haveit = "Yes"
+                                haveit = comicLibrary[xmlid]
                             else:
                                 haveit = "No"
                             comiclist.append({

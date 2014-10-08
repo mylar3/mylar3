@@ -64,7 +64,7 @@
 						grade = 'A'
 					else:
 						grade = 'Z'
-					if result['haveit'] == "Yes":
+					if result['haveit'] != "No":
 						grade = 'H';
 				%>
 				<tr class="grade${grade}">
@@ -77,7 +77,7 @@
 					%if result['haveit'] == "No":
 						<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher'] |u}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}&serinfo=${serinfo}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
 					%else:
-						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${result['comicid']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
+						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${result['haveit']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
 					%endif
 				</tr>
 				%endfor
