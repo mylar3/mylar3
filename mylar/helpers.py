@@ -1436,6 +1436,19 @@ def int_num(s):
     except ValueError:
         return float(s)
 
+def listLibrary():
+    import db
+    library = []
+    myDB = db.DBConnection()
+    # Get individual comics
+    list = myDB.select("SELECT ComicId FROM Comics")
+    for row in list:
+        library.append(row['ComicId'])
+    # Add the annuals
+    list = myDB.select("SELECT ReleaseComicId FROM Annuals")
+    for row in list:
+        library.append(row['ReleaseComicId'])
+    return library
 
 from threading import Thread
 

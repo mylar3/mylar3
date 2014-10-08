@@ -231,6 +231,15 @@ table.display tr.odd.gradeC {
 table.display tr.even.gradeC {
 	background-color: #ebf5ff;
 }
+
+table.display tr.even.gradeH{
+	background-color: #FFF5CC;
+}
+
+table.display tr.odd.gradeH {
+	background-color: #FFF5CC;
+}
+
 table.display tr.even.gradeL {
 	background-color: #ebf5ff;
 }

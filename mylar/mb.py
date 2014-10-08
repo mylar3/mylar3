@@ -23,7 +23,7 @@ from xml.dom.minidom import parseString, Element
 
 import mylar
 from mylar import logger, db, cv
-from mylar.helpers import multikeysort, replace_all, cleanName, cvapi_check
+from mylar.helpers import multikeysort, replace_all, cleanName, cvapi_check, listLibrary
 
 mb_lock = threading.Lock()
 
@@ -68,7 +68,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
     #with mb_lock:       
     comiclist = []
     comicResults = None
-        
+    comicLibrary = listLibrary()
+    
     chars = set('!?*')
     if any((c in chars) for c in name):
         name = '"'+name+'"'
@@ -232,6 +233,11 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         xmldesc = result.getElementsByTagName('deck')[0].firstChild.wholeText
                     except:
                         xmldesc = "None"
+                            
+                        if xmlid in comicLibrary:
+                            haveit = "Yes"
+                        else:
+						haveit = "No"
 
                     comiclist.append({
                             'name':                 xmlTag,
@@ -241,7 +247,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             'issues':               issuecount,
                             'comicimage':           xmlimage,
                             'publisher':            xmlpub,
-                            'description':          xmldesc
+                            'description':          xmldesc, 
+                            'haveit':   haveit
                             })
 
     
@@ -281,6 +288,10 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                 xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText
                             except:
                                 xmldesc = "None"
+                            if xmlid in comicLibrary:
+                                haveit = "Yes"
+                            else:
+                                haveit = "No"
                             comiclist.append({
                                     'name':             xmlTag,
                                     'comicyear':             xmlYr,
@@ -289,7 +300,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     'issues':            xmlcnt,
                                     'comicimage':          xmlimage,
                                     'publisher':            xmlpub,
-                                    'description':          xmldesc
+                                    'description':          xmldesc,
+                                    'haveit':   haveit
                                     })
                         else:
                             logger.fdebug('year: ' + str(xmlYr) + ' -  contraint not met. Has to be within ' + str(limityear)) 
