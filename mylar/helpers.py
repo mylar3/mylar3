@@ -1440,16 +1440,14 @@ def listLibrary():
     import db
     library = {}
     myDB = db.DBConnection()
-#    # Get individual comics
+    # Get individual comics
     list = myDB.select("SELECT ComicId FROM Comics")
     for row in list:
         library[row['ComicID']] = row['ComicID']
-#        library.append(row['ComicId'])
     # Add the annuals
     list = myDB.select("SELECT ReleaseComicId,ComicID FROM Annuals")
     for row in list:
         library[row['ReleaseComicId']] = row['ComicID']
-#        library.append(row['ReleaseComicId'])
     return library
 
 from threading import Thread
