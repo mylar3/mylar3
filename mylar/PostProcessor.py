@@ -229,9 +229,14 @@ class PostProcessor(object):
                                 temploc = re.sub('[\#\']', '', temploc)
 
                                 if 'annual' in temploc.lower():
-                                    logger.info(module + ' Annual detected.')
+                                    biannchk = re.sub('-', '', temploc.lower()).strip()
+                                    if 'biannual' in biannchk:
+                                        logger.info(module + ' Bi-Annual detected.')
+                                        fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                    else:
+                                        logger.info(module + ' Annual detected.')
+                                        fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     annchk = "yes"
-                                    fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     issuechk = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
                                 else:
                                     fcdigit = helpers.issuedigits(temploc)

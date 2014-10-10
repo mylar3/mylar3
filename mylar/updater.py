@@ -910,7 +910,7 @@ def forceRescan(ComicID,archive=None,module=None):
                         get_issue = shlex.split(str(fcnew[som]))
                         if fcnew[som] != " ":
                             fcnew[som] = get_issue[0]
-                    if fcnew[som].lower() == 'annual':
+                    if 'annual' in fcnew[som].lower():
                         logger.fdebug('Annual detected.')
                         if fcnew[som+1].isdigit():
                             ann_iss = fcnew[som+1]
