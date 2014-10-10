@@ -883,8 +883,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 issue_firstword = hyphensplit[1]
                                 logger.fdebug('First word of issue stored as : ' + str(issue_firstword))
                             except:
-                                logger.fdebug('Unable to parse title due to no space between hyphen. Ignoring this result.')
-                                hyphenfail = True
+                                if m.start() + 2 > len(comic_andiss.strip()):
+                                    issue_firstword = None                                 
+                                else:
+                                    logger.fdebug('Unable to parse title due to no space between hyphen. Ignoring this result.')
+                                    hyphenfail = True
                             break
 
                     if hyphenfail == True:
@@ -1114,8 +1117,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             isstitle_match = 0   #counter to tally % match
                             misword = 0 # counter to tally words that probably don't need to be an 'exact' match for
                             for wsplit in issuetitle_words:
+                                of_chk = False
                                 if wsplit.lower() == 'part' or wsplit.lower() == 'of':
-                                    of_chk = False
                                     if wsplit.lower() == 'of':
                                         of_chk = True
                                     logger.fdebug('not worrying about this word : ' + str(wsplit))
