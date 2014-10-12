@@ -21,10 +21,10 @@ import pprint
 import subprocess
 import re
 #import logger
-import mylar
-from mylar import logger, helpers
-import unicodedata
-import sys
+import mylar 
+from mylar import logger, helpers 
+import unicodedata 
+import sys 
 import platform
 
 def file2comicmatch(watchmatch):
@@ -997,6 +997,9 @@ def traverse_directories(dir):
                 direc = ''
             else:
                 direc = dirname
+                if '.AppleDouble' in direc:
+                    #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
+                    continue
 
             filelist.append({"directory":  direc,
                              "filename":   fname})
