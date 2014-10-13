@@ -247,3 +247,40 @@ class FailedProcessor(object):
             else:
                 logger.info(module + ' result has a status of ' + chk_fail['status'] + '. I am not sure what to do now.')
                 return "nope"
+
+    def markFailed(self):
+        #use this to forcibly mark a single issue as being Failed (ie. if a search result is sent to a client, but the result
+        #ends up passing in a 404 or something that makes it so that the download can't be initiated).
+        module = '[FAILED-DOWNLOAD]'
+
+        myDB = db.DBConnection()
+
+        logger.info(module + ' Marking as a Failed Download.')
+
+        logger.fdebug(module + 'nzb_name: ' + self.nzb_name)
+        logger.fdebug(module + 'issueid: ' + str(self.issueid))
+        logger.fdebug(module + 'nzb_id: ' + str(self.id))
+        logger.fdebug(module + 'prov: ' + self.prov)
+
+        if 'annual' in self.nzb_name.lower():
+            logger.info(module + ' Annual detected.')
+            annchk = "yes"
+            issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
+        else:
+            issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
+
+
+        ctrlVal = {"IssueID": self.issueid}
+        Vals = {"Status":    'Failed'}
+        myDB.upsert("issues", Vals, ctrlVal)
+
+        ctrlVal = {"ID":       self.id,
+                   "Provider": self.prov,
+                   "NZBName":  self.nzb_name}
+        Vals = {"Status":       'Failed',
+                "ComicName":    issuenzb['ComicName'],
+                "Issue_Number": issuenzb['Issue_Number']}
+        myDB.upsert("failed", Vals, ctrlVal)
+
+        logger.info(module + ' Successfully marked as Failed.')
+        

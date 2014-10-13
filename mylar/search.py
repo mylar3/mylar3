@@ -1693,8 +1693,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov)
         if rcheck == "fail":
-            logger.error("Unable to send torrent - check logs and settings.")
-            return "torrent-fail"
+            if mylar.FAILED_DOWNLOAD_HANDLING:
+                logger.error('Unable to send torrent to client. Assuming incomplete link - sending to Failed Handler and continuing search.')
+                return FailedMark(ComicID=ComicID, IssueID=IssueID, id=nzbid, nzbname=nzbname, prov=nzbprov)
+            else:
+                logger.error('Unable to send torrent - check logs and settings (this would be marked as a BAD torrent if Failed Handling was enabled)')
+                return "torrent-fail"
         if mylar.TORRENT_LOCAL:
             sent_to = "your local Watch folder"
         else:
@@ -1828,3 +1832,13 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
 
     return
+
+def FailedMark(IssueID, ComicID, id, nzbname, prov):
+        # Used to pass a failed attempt at sending a download to a client, to the failed handler, and then back again to continue searching.
+
+        from mylar import Failed
+
+        FailProcess = Failed.FailedProcessor(issueid=IssueID, comicid=ComicID, id=id, nzb_name=nzbname, prov=prov)
+        Markit = FailProcess.markFailed()
+
+        return "torrent-fail"
