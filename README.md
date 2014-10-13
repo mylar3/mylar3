@@ -14,25 +14,26 @@ Once it's started, navigate to to localhost:8090 in your web browser (or whateve
 
 Here are some helpful hints hopefully:
 - Add a comic (series) using the Search button, or using the Pullist. 
-- Make sure you specify Comic Location as well as your SABnzbd settings in the Configuration!
+- Make sure you specify Comic Location in the Configuration!
  (Mylar auto-creates the Comic Series directories under the Comic Location. The directory is displayed on the Comic Detail page).
 - If you make any Configuration changes, shutdown Mylar and restart it or else errors will occur - this is an outstanding bug.
-- You need to specify a search-provider in order to get the downloads to send to SABnzbd. If you don't have either listed, choose Experimental!
+- You need to specify a search-provider in order to perform any search-related function!
 - In the Configuration section, if you enable 'Automatically Mark Upcoming Issues as Wanted' it will mark any NEW comic from the pullist that is on your 'watchlist' as wanted.
 - There are times when adding a comic it will fail with an 'Error', submit a bug and it will be checked out (usually an easy fix).
 - For the most up-to-date build, use the Development build. Master doesn't get updated as frequently (> month), and Development is usually fairly stable.
 
-The Mylar Forums are now online: http://forum.mylarcomics.com   (it's new - don't be scared to post)
+The Mylar Forums are also online @ http://forum.mylarcomics.com
 
 Please submit issues via git for any outstanding problems that need attention.
 
 Post-Processing
- (Post-Processing has now been done to try and mimic the way SickBeard handles it.)
+ (Post-Processing is similar to the way SickBeard handles it.)
 
-- Within the sabnzbd/ folder of Mylar there are 3 files (autoProcessComics.py, autoProcessComics.cfg.sample, ComicRN.py) 
+- Within the post-processing/ folder of Mylar there are 2 files (autoProcessComics.py and autoProcessComics.cfg.sample)
+- Within the post-processing/ folder of Mylar there are 2 directories (nzbget, sabnzbd) and within each of these client folders, is a ComicRN.py script that is to be used with the respective download client.
 - Edit (put in your Mylar host, port, login and password (if required), and ssl(0 for no, 1 for yes) and rename the autoProcessComics.cfg.sample to autoProcessComics.cfg. 
-- Copy autoProcessComics.py, autoProcessComics.cfg and ComicRN.py into your SABnzbd scripts directory (or wherever your SABnzbd stores it's scripts).
-- Make sure SABnzbd is setup to have a 'comic-related' category that points it to the ComicRN.py script that was just moved. 
+- Copy autoProcessComics.py, autoProcessComics.cfg and the respective ComicRN.py into your SABnzbd/NZBGet scripts directory (or wherever your download client stores it's scripts).
+- Make sure SABnzbd/NZBGet is setup to have a 'comic-related' category that points it to the ComicRN.py script that was just moved. 
 - Ensure in Mylar that the category is named exactly the same.
 
 Renaming

@@ -3,3 +3,4 @@ config.ini
 *.pyc
 .idea
 logs
+.AppleDouble
