@@ -8,7 +8,7 @@ import re
 import logger
 import mylar
 import unicodedata
-
+import urllib
 
 def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     #searchName = "Uncanny Avengers"
@@ -24,7 +24,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     logger.fdebug("name:" + str(searchName))
     logger.fdebug("issue:" + str(searchIssue))
     logger.fdebug("year:" + str(searchYear))
-    splitSearch = searchName.split(" ")
+    encodeSearch = urllib.quote_plus(searchName)
+    splitSearch = encodeSearch.split(" ")
+
     joinSearch = "+".join(splitSearch)+"+"+searchIssue
     searchIsOne = "0"+searchIssue
     searchIsTwo = "00"+searchIssue
