@@ -771,9 +771,12 @@ class PostProcessor(object):
                             ofilename = filename
                             logger.fdebug(module + ' ofilename: ' + ofilename)
                             path, ext = os.path.splitext(ofilename)
- 
-                if odir is None:
-                    logger.fdebug(module + ' No root folder set.')
+                try:
+                    if odir is None:
+                        logger.fdebug(module + ' No root folder set.')
+                        odir = self.nzb_folder
+                except:
+                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
                     odir = self.nzb_folder
                 logger.fdebug(module + ' odir: ' + str(odir))
                 logger.fdebug(module + ' ofilename: ' + str(ofilename))
@@ -791,7 +794,9 @@ class PostProcessor(object):
 
             if ofilename is None:
                 logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + str(self.nzb_folder) + ' exists and is the correct location.')
-                return
+                self.valreturn.append({"self.log" : self.log,
+                                       "mode"     : 'stop'})
+                return self.queue.put(self.valreturn)
             self._log("Original Filename: " + ofilename)
             self._log("Original Extension: " + ext)
             logger.fdebug(module + ' Original Filname: ' + str(ofilename))

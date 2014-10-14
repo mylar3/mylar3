@@ -28,6 +28,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     ## Set the directory in which comictagger and other external commands are located - IMPORTANT - ##
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
 
+        
     if platform.system() == "Windows":
         #if it's a source install.
         if os.path.isdir(os.path.join(mylar.CMTAGGER_PATH, '.git')):
@@ -40,7 +41,10 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
             else:
                 comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
 
-        unrar_cmd = "C:\Program Files\WinRAR\UnRAR.exe"
+        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+            unrar_cmd = "C:\Program Files\WinRAR\UnRAR.exe"
+        else:
+            unrar_cmd = mylar.UNRAR_CMD.strip()
 
       # test for UnRAR
         if not os.path.isfile(unrar_cmd):
@@ -50,17 +54,30 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
                 logger.fdebug(module + ' Aborting meta-tagging.')
                 return "fail"
 
+        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
+
     
     elif platform.system() == "Darwin":  #Mac OS X
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-        unrar_cmd = "/usr/local/bin/unrar"
+        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+            unrar_cmd = "/usr/local/bin/unrar"
+        else:
+            unrar_cmd = mylar.UNRAR_CMD.strip()
+
+        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
     
     else:
         #for the 'nix
-        if 'freebsd' in platform.linux_distribution()[0].lower():
-            unrar_cmd = "/usr/local/bin/unrar"
+        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+            if 'freebsd' in platform.linux_distribution()[0].lower():
+                unrar_cmd = "/usr/local/bin/unrar"
+            else:
+                unrar_cmd = "/usr/bin/unrar"
         else:
-            unrar_cmd = "/usr/bin/unrar"
+            unrar_cmd = mylar.UNRAR_CMD.strip()
+
+        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
+
         #check for dependencies here - configparser
         try:
             import configparser
@@ -83,8 +100,9 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         logger.fdebug(module + ' WARNING:  cannot find the unrar command.')
         logger.fdebug(module + ' File conversion and extension fixing not available')
         logger.fdebug(module + ' You probably need to edit this script, or install the missing tool, or both!')
-        file_conversion = False
-        file_extension_fixing = False
+        return "fail"
+        #file_conversion = False
+        #file_extension_fixing = False
 
 
     ## Sets up other directories ##
@@ -266,7 +284,12 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     else:
         file_dir = re.sub(issueid, '', comicpath)
 
-    file_n = os.path.split(nfilename)[1]
+    try:
+        file_n = os.path.split(nfilename)[1]
+    except:
+        logger.error(module + ' unable to retrieve filename properly. Check your logs as there is probably an error or misconfiguration indicated (such as unable to locate unrar or configparser)')
+        return "fail"
+
     logger.fdebug(module + ' Converted directory: ' + str(file_dir))
     logger.fdebug(module + ' Converted filename: ' + str(file_n))
     logger.fdebug(module + ' Destination path: ' + os.path.join(file_dir,file_n))  #dirName,file_n))

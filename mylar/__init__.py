@@ -276,6 +276,7 @@ CMTAGGER_PATH = None
 CT_TAG_CR = 1
 CT_TAG_CBL = 1
 CT_CBZ_OVERWRITE = 0
+UNRAR_CMD = None
 
 ENABLE_RSS = 0
 RSS_CHECKINTERVAL = 20
@@ -365,7 +366,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
@@ -541,6 +542,7 @@ def initialize():
         CT_TAG_CR = bool(check_setting_int(CFG, 'General', 'ct_tag_cr', 1))
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
+        UNRAR_CMD = check_setting_str(CFG, 'General', 'unrar_cmd', '')
 
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
@@ -1134,6 +1136,7 @@ def config_write():
     new_config['General']['ct_tag_cr'] = int(CT_TAG_CR)
     new_config['General']['ct_tag_cbl'] = int(CT_TAG_CBL)
     new_config['General']['ct_cbz_overwrite'] = int(CT_CBZ_OVERWRITE)
+    new_config['General']['unrar_cmd'] = UNRAR_CMD
     new_config['General']['indie_pub'] = INDIE_PUB
     new_config['General']['biggie_pub'] = BIGGIE_PUB
 
