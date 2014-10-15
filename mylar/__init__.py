@@ -1044,7 +1044,10 @@ def config_write():
     new_config.encoding = 'UTF8'
     new_config['General'] = {}
     new_config['General']['config_version'] = CONFIG_VERSION
-    new_config['General']['comicvine_api'] = COMICVINE_API.strip()
+    if COMICVINE_API is None or COMICVINE_API == '':
+        new_config['General']['comicvine_api'] = COMICVINE_API
+    else:
+        new_config['General']['comicvine_api'] = COMICVINE_API.strip()
     #write the current CV API time / count here so it's persistent through reboots/restarts.
     #get the current values.
     helpers.cvapi_check()
