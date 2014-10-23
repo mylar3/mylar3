@@ -17,6 +17,7 @@
 import os, sys, locale
 import time
 import threading
+import signal
 
 from lib.configobj import ConfigObj
 
@@ -28,7 +29,9 @@ try:
     import argparse
 except ImportError:
     import lib.argparse as argparse
-    
+
+def handler_sigterm(signum, frame):
+    mylar.SIGNAL = 'shutdown'
 
 def main():
 
@@ -173,6 +176,8 @@ def main():
         
     # Start the background threads
     mylar.start()
+
+    signal.signal(signal.SIGTERM, handler_sigterm)
     
     while True:
         if not mylar.SIGNAL:
