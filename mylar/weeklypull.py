@@ -246,7 +246,16 @@ def pullit(forcecheck=None):
                     comcnm = re.sub('1 FOR \$1','', comicnm).strip()
                     #logger.info("Comicname: " + str(comicnm) )
                     #get remainder
-                    comicrm = issname[comicend +2]
+                    try:
+                        comicrm = issname[comicend +2]
+                    except:
+                        try:
+                            comicrm = issname[comicend +1]
+                        except:
+                            try:
+                                comicrm = issname[comicend]
+                            except:
+                                comicrm = '$'
                     if '$' in comicrm:
                         comicrm="None"
                     n = (comicend + 3)
