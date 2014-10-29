@@ -41,7 +41,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
             else:
                 comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.exe')
 
-        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
             unrar_cmd = "C:\Program Files\WinRAR\UnRAR.exe"
         else:
             unrar_cmd = mylar.UNRAR_CMD.strip()
@@ -59,7 +59,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     
     elif platform.system() == "Darwin":  #Mac OS X
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
-        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
             unrar_cmd = "/usr/local/bin/unrar"
         else:
             unrar_cmd = mylar.UNRAR_CMD.strip()
@@ -68,7 +68,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     
     else:
         #for the 'nix
-        if mylar.UNRAR_CMD is None or mylar.UNRAR_CMD == '':
+        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
             if 'freebsd' in platform.linux_distribution()[0].lower():
                 unrar_cmd = "/usr/local/bin/unrar"
             else:
@@ -210,7 +210,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
 
                     if removetemp == True:
                         if comicpath != downloadpath:
-                            #shutil.rmtree( comicpath )
+                            shutil.rmtree( comicpath )
                             logger.fdebug(module + ' Successfully removed temporary directory: ' + comicpath)
                         else:
                             loggger.fdebug(module + ' Unable to remove temporary directory since it is identical to the download location : ' + comicpath)
@@ -299,9 +299,8 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     ##set up default comictagger options here.
     tagoptions = [ "-s", "--verbose" ]
 
-
     ## check comictagger version - less than 1.15.beta - take your chances.
-    ctversion = subprocess.check_output( [ comictagger_cmd, "--version" ] )
+    ctversion = subprocess.check_output( [ sys.executable, comictagger_cmd, "--version" ] )
     ctend = ctversion.find(':')
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
     ctcheck = re.sub('\.', '', ctcheck).strip()
@@ -375,7 +374,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
             cvapi_check()
 
-        currentScriptName = str(comictagger_cmd).decode("string_escape")
+        currentScriptName = sys.executable + ' ' + str(comictagger_cmd).decode("string_escape")
         logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + f_tagoptions
