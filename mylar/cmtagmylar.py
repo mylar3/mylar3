@@ -31,6 +31,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         
     if platform.system() == "Windows":
         #if it's a source install.
+        sys_type = 'windows'
         if os.path.isdir(os.path.join(mylar.CMTAGGER_PATH, '.git')):
             comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
 
@@ -57,7 +58,9 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
 
     
-    elif platform.system() == "Darwin":  #Mac OS X
+    elif platform.system() == "Darwin":
+        #Mac OS X
+        sys_type = 'mac'
         comictagger_cmd = os.path.join(mylar.CMTAGGER_PATH, 'comictagger.py')
         if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
             unrar_cmd = "/usr/local/bin/unrar"
@@ -68,6 +71,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     
     else:
         #for the 'nix
+        sys_type = 'linux'
         if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
             if 'freebsd' in platform.linux_distribution()[0].lower():
                 unrar_cmd = "/usr/local/bin/unrar"
@@ -300,7 +304,11 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     tagoptions = [ "-s", "--verbose" ]
 
     ## check comictagger version - less than 1.15.beta - take your chances.
-    ctversion = subprocess.check_output( [ sys.executable, comictagger_cmd, "--version" ] )
+    if sys_type == 'windows':
+        ctversion = subprocess.check_output( [ comictagger_cmd, "--version" ] )
+    else:
+        ctversion = subprocess.check_output( [ sys.executable, comictagger_cmd, "--version" ] )
+
     ctend = ctversion.find(':')
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
     ctcheck = re.sub('\.', '', ctcheck).strip()
@@ -373,8 +381,10 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
         #CV API Check here.
         if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
             cvapi_check()
-
-        currentScriptName = sys.executable + ' ' + str(comictagger_cmd).decode("string_escape")
+        if sys_type == 'windows':
+            currentScriptName = str(comictagger_cmd).decode("string_escape")
+        else:
+            currentScriptName = sys.executable + ' ' + str(comictagger_cmd).decode("string_escape")
         logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + f_tagoptions
