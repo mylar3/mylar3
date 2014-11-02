@@ -13,6 +13,7 @@
 
 import sys, os
 import autoProcessComics
+comicrn_version = "1.0"
 
 # NZBGet V11+
 # Check if the script is called from nzbget 11.0 or later
