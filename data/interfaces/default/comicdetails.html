@@ -43,8 +43,12 @@
                         </div>
                 </h1>
                              <div style="z-index:10; position: absolute; right: 0; top: 10;">
+                             % if 'Previous' in series:
                              <a href="comicDetails?ComicID=${series['Previous']}"><img src="interfaces/default/images/prev.gif" width="16" height="18" /></a>
+                             % endif
+                             % if 'Next' in series:
                              <a href="comicDetails?ComicID=${series['Next']}"><img src="interfaces/default/images/next.gif" width="16" height="18" /></a>
+                             % endif
                              </div>
 
 	</div>
