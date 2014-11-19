@@ -775,6 +775,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     pub_removed = None
 
                     while (cnt < lenm):
+                        #print 'm[cnt]: ' + str(m[cnt])
                         if m[cnt] is None: break
                         if m[cnt] == ' ': 
                             pass
@@ -826,26 +827,26 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                             logger.fdebug(str(comyear) + " - not the right year.")
 
                         elif UseFuzzy == "1": yearmatch = "true"
-
-                        if Publisher.lower() in m[cnt].lower() and cnt >= 1:
-                            #if the Publisher is given within the title or filename even (for some reason, some people
-                            #have this to distinguish different titles), let's remove it entirely.
-                            logger.fdebug('Publisher detected within title : ' + str(m[cnt]))
-                            logger.fdebug('cnt is : ' + str(cnt) + ' --- Publisher is: ' + Publisher)
-                            pub_removed = m[cnt]                           
-                            #-strip publisher if exists here-
-                            logger.fdebug('removing publisher from title')
-                            cleantitle_pubremoved = re.sub(pub_removed, '', cleantitle)
-                            logger.fdebug('pubremoved : ' + str(cleantitle_pubremoved))
-                            cleantitle_pubremoved = re.sub('\(\)', '', cleantitle_pubremoved) #remove empty brackets
-                            cleantitle_pubremoved = re.sub('\s+', ' ', cleantitle_pubremoved) #remove spaces > 1
-                            logger.fdebug('blank brackets removed: ' + str(cleantitle_pubremoved))
-                            #reset the values to initial without the publisher in the title
-                            m = re.findall('[^()]+', cleantitle_pubremoved)
-                            lenm = len(m)
-                            cnt = 0
-                            yearmatch = "false"
-                            continue
+                        if Publisher is not None:
+                            if Publisher.lower() in m[cnt].lower() and cnt >= 1:
+                                #if the Publisher is given within the title or filename even (for some reason, some people
+                                #have this to distinguish different titles), let's remove it entirely.
+                                logger.fdebug('Publisher detected within title : ' + str(m[cnt]))
+                                logger.fdebug('cnt is : ' + str(cnt) + ' --- Publisher is: ' + Publisher)
+                                pub_removed = m[cnt]                           
+                                #-strip publisher if exists here-
+                                logger.fdebug('removing publisher from title')
+                                cleantitle_pubremoved = re.sub(pub_removed, '', cleantitle)
+                                logger.fdebug('pubremoved : ' + str(cleantitle_pubremoved))
+                                cleantitle_pubremoved = re.sub('\(\)', '', cleantitle_pubremoved) #remove empty brackets
+                                cleantitle_pubremoved = re.sub('\s+', ' ', cleantitle_pubremoved) #remove spaces > 1
+                                logger.fdebug('blank brackets removed: ' + str(cleantitle_pubremoved))
+                                #reset the values to initial without the publisher in the title
+                                m = re.findall('[^()]+', cleantitle_pubremoved)
+                                lenm = len(m)
+                                cnt = 0
+                                yearmatch = "false"
+                                continue
                         if 'digital' in m[cnt] and len(m[cnt]) == 7: 
                             logger.fdebug("digital edition detected")
                             pass
@@ -860,7 +861,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 logger.fdebug("Scanner detected: " + str(m[cnt]))
                                 result_comscanner = m[cnt]
                         cnt+=1
-
                     if yearmatch == "false": continue
                     
                     splitit = []   
@@ -1174,7 +1174,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 #print comic_iss_b4
                                 #print comic_iss_b4[4:]
                                 #splitit = comic_iss_b4[4:].split(None)
-                                cissb4this = re.sub("\\bthe\\b", "", comic_iss_b4)
+                                if cvers == "true":
+                                    use_this = cissb4vers
+                                else:
+                                    use_this = comic_iss_b4
+                                logger.fdebug('Use_This is : ' + str(use_this))
+                                cissb4this = re.sub("\\bthe\\b", "", use_this) #comic_iss_b4)
                                 splitit = cissb4this.split(None)
                                 splitst = splitst - 1 #remove 'the' from start
                                 logger.fdebug("comic is now : " + str(splitit))#str(comic_iss[4:]))
@@ -1749,12 +1754,16 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         elif mylar.USE_SABNZBD:
             # let's build the send-to-SAB string now:
-            tmpapi = str(mylar.SAB_HOST)
-            logger.fdebug("send-to-SAB host string: " + str(tmpapi))
             # changed to just work with direct links now...
-            SABtype = "/api?mode=addurl&name="
+            tmpapi = str(mylar.SAB_HOST) + "/api?apikey=" + str(mylar.SAB_APIKEY) 
+
+            logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi,'&')))
+
             fileURL = str(linkapi)
+
+            SABtype = "&mode=addurl&name="
             tmpapi = tmpapi + str(SABtype)
+
             logger.fdebug("...selecting API type: " + str(tmpapi))
             tmpapi = tmpapi + str(fileURL)
 
@@ -1775,8 +1784,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     tmpapi = tmpapi + "&script=ComicRN.py"
                 logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi,'&')))
             #final build of send-to-SAB
-            tmpapi = tmpapi + "&apikey=" + str(mylar.SAB_APIKEY)
-
             logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
 
             try:
@@ -1808,6 +1815,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
 def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
 
+    snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+
     if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
         logger.info(u"Sending Prowl notification")
         prowl = notifiers.PROWL()
@@ -1815,20 +1824,19 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
     if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
         logger.info(u"Sending NMA notification")
         nma = notifiers.NMA()
-        snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
         nma.notify(snline=snline,snatched_nzb=nzbname,sent_to=sent_to,prov=nzbprov)
     if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
         logger.info(u"Sending Pushover notification")
+        thisline = 'Mylar has snatched: ' + nzbname + ' from ' + nzbprov + ' and has sent it to ' + sent_to
         pushover = notifiers.PUSHOVER()
-        pushover.notify(nzbname,"Download started using " + sent_to)
+        pushover.notify(thisline,snline)
     if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
         logger.info(u"Sending Boxcar notification")
         boxcar = notifiers.BOXCAR()
-        boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to)
+        boxcar.notify(snatched_nzb=nzbname,sent_to=sent_to,snline=snline)
     if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
         logger.info(u"Sending Pushbullet notification")
         pushbullet = notifiers.PUSHBULLET()
-        snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
         pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
 
     return

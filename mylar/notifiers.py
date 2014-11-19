@@ -254,7 +254,7 @@ class BOXCAR:
         logger.fdebug(module + ' Boxcar2 notification successful.')
         return True
 
-    def notify(self, prline=None, prline2=None, sent_to=None, snatched_nzb=None, force=False, module=None):
+    def notify(self, prline=None, prline2=None, sent_to=None, snatched_nzb=None, force=False, module=None, snline=None):
         """
         Sends a boxcar notification based on the provided info or SB config
 
@@ -272,7 +272,7 @@ class BOXCAR:
 
         # if no username was given then use the one from the config
         if snatched_nzb:
-            title = "Mylar. Sucessfully Snatched!"
+            title = snline
             message = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
         else:
             title = prline
