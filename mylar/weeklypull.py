@@ -169,7 +169,7 @@ def pullit(forcecheck=None):
                     shipdaterep = shipdate.replace('-', '')
                     pulldate = re.sub('-', '', str(pulldate))
                     logger.fdebug("shipdate: " + str(shipdaterep))
-                    logger.febug("today: " + str(pulldate))
+                    logger.fdebug("today: " + str(pulldate))
                     if pulldate == shipdaterep:
                         logger.info(u"No new pull-list available - will re-check again in 24 hours.")
                         pullitcheck()
