@@ -29,7 +29,7 @@ import datetime
 import shutil
 
 import mylar 
-from mylar import db, updater, helpers, logger
+from mylar import db, updater, helpers, logger, newpull
 
 def pullit(forcecheck=None):
     myDB = db.DBConnection()
@@ -123,13 +123,17 @@ def pullit(forcecheck=None):
     prevcomic = ""
     previssue = ""
 
+    newrl = mylar.CACHE_DIR + "/newreleases.txt"
+
+    if mylar.ALT_PULL:
+        logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
+        newpull.newpull()
+    else:
+        logger.info('[PULL-LIST] Populating & Loading pull-list data from file : ' + newrl)
+        f = urllib.urlretrieve(PULLURL, newrl)
+
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
-    newrl = mylar.CACHE_DIR + "/newreleases.txt"
-    f = urllib.urlretrieve(PULLURL, newrl)
-#    local_file = open(newrl, "wb")
-#    local_file.write(f.read())
-#    local_file.close
 
     newfl = mylar.CACHE_DIR + "/Clean-newreleases.txt"
     newtxtfile = open(newfl, 'wb')
@@ -164,8 +168,8 @@ def pullit(forcecheck=None):
                     shipdate = sdsplit[2] + "-" + mo + "-" + dy
                     shipdaterep = shipdate.replace('-', '')
                     pulldate = re.sub('-', '', str(pulldate))
-                    #print ("shipdate: " + str(shipdaterep))
-                    #print ("today: " + str(pulldate))
+                    logger.fdebug("shipdate: " + str(shipdaterep))
+                    logger.febug("today: " + str(pulldate))
                     if pulldate == shipdaterep:
                         logger.info(u"No new pull-list available - will re-check again in 24 hours.")
                         pullitcheck()
@@ -339,6 +343,16 @@ def pullit(forcecheck=None):
                         #print ("pub: " + str(pub))
                         #print ("issue: " + str(issue))
                         dupefound = "no"
+
+                #-- remove html tags when alt_pull is enabled
+                if mylar.ALT_PULL:
+                    if '&amp;' in comicnm:
+                        comicnm = re.sub('&amp;','&',comicnm).strip()
+                    if '&amp;' in pub:
+                        pub = re.sub('&amp;','&',pub).strip()
+                    if '&amp;' in comicrm:
+                        comicrm = re.sub('&amp;','&',comicrm).strip()
+
                 #--start duplicate comic / issue chk
                 # pullist has shortforms of a series' title sometimes and causes problems
                 if 'O/T' in comicnm:
@@ -392,7 +406,6 @@ def pullit(forcecheck=None):
         #print (row)
         try:
             logger.debug("Row: %s" % row)
-
             controlValueDict = {'COMIC': row[3],
                                 'ISSUE': row[2],
                                 'EXTRA': row[4] }
@@ -572,7 +585,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                 if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
                 sqlsearch = re.sub(r'\s', '%', sqlsearch)
                 sqlsearch = sqlsearch + '%'
-                #logger.fdebug("searchsql: " + sqlsearch)
+                logger.fdebug("searchsql: " + sqlsearch)
                 if futurepull is None:
                     weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 else:
@@ -612,7 +625,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                                     modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
                                     modcomicnm = re.sub('\&', 'AND', modcomicnm)
                                 if '&' in comicnm:
-                                    modwatchcom = re.sub('\&', 'AND', modwatchcomic.upper())
+                                    modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
                                     modcomicnm = re.sub('\&', 'AND', modcomicnm)
                                 #thnx to A+X for this...
                                 if '+' in watchcomic:

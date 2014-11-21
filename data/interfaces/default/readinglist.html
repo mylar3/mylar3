@@ -2,7 +2,8 @@
 <%!
         import os
         import mylar
-	from mylar import helpers, db
+	from mylar import db
+        from mylar.helpers import checked
 %>
 
 <%def name="headerIncludes()">
@@ -87,24 +88,26 @@
                 <form action="importReadlist" method="get">
                      <div class="row" style="float:right">
                         <label for="">File to import</label>
-                        <input type="text" value="Enter a filename to import" onfocus="if
+                        <input type="text" runat="server" value="Enter a filename to import" onfocus="if
                         (this.value==this.defaultValue) this.value='';" name="filename" size="70" />
                         <input type="submit" value="Import">
                      </div>
                  </form>
                  </tr>
                  <tr>
-                 <form action="readOptions" method="get">
+                 <form action="readOptions" id="chkoptions" method="GET">
                    <fieldset>
                      <legend>Options</legend>
                      <div class="row checkbox left clearfix">
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Arcs in Grabbag Directory?</label><br/>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" value="1" ${readConfig['storyarcdir']} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/> 
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading # to filename</label>
-                        
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label>
                      </div>
                    </fieldset>
+                     <div>
+                        <input type="submit" value="Update"/>
+                     </div>
                  </form>
                 </tr>
                 </tr>
@@ -124,7 +127,7 @@
                                          myDB = db.DBConnection()
                                          totalcnt = myDB.action("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=?", [item['StoryArcID']]).fetchall()
                                          totalarc = totalcnt[0][0]
-                                         havecnt = myDB.action("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=? AND Status='Downloaded' or Status='Archived'", [item['StoryArcID']]).fetchall()
+                                         havecnt = myDB.action("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=? AND (Status='Downloaded' or Status='Archived')", [item['StoryArcID']]).fetchall()
                                          havearc = havecnt[0][0]
                                          if not havearc:
                                                  havearc = 0
@@ -158,6 +161,12 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script type="text/javascript">
+        $("#menu_link_scan").click(function() {
+            $('#chkoptions').submit();
+            return true;
+        });
+        </script>
 	<script>
 	function initThisPage() {
                 jQuery( "#tabs" ).tabs();

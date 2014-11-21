@@ -138,7 +138,24 @@
                                     </norm></label>
                                 </div>
                                 <div>
-                                   <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
+                                    %if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                                       <%
+                                           try:
+                                               archive_path = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                           except:
+                                               archive_path = 'None'
+                                        %>
+                                        %if os.path.exists(archive_path) and archive_path != comic['ComicLocation']:
+                                            <label><big>Directories</big><br/>
+                                            <norm>Primary: ${comic['ComicLocation']}</norm></label>
+                                            <norm>Secondary: ${archive_path}</norm></label>
+                                        %else:
+                                            <label><big>Directory</big><br/>
+                                            <norm>${comic['ComicLocation']}</norm></label>
+                                        %endif
+                                    %else:
+                                       <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
+                                    %endif                               
                                 </div>
 <!--                            <div>
                                    <label><big>Description:</big></label><br/>
@@ -369,8 +386,8 @@
                                 <td id="int_issuenumber">${issue['Int_IssueNumber']}</td>
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
                                 <%    
-                                    if len(issue['IssueName']) > 80:
-                                        issuename = issue['IssueName'][:80] + '...'
+                                    if len(issue['IssueName']) > 70:
+                                        issuename = issue['IssueName'][:70] + '...'
                                     else:
                                         issuename = issue['IssueName']
                                     endif
@@ -400,7 +417,11 @@
                                               if issue['Location'] is not None:
                                                   linky = os.path.join(comic['ComicLocation'],issue['Location'])
                                                   if not os.path.isfile(linky):
-                                                      linky = None
+                                                      if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                                                          pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                          linky = os.path.join(pathdir,issue['Location'])
+                                                      else:
+                                                          linky = None
                                               else:
                                                   linky = None
                                         %>

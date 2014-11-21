@@ -810,12 +810,15 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                         #if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
                         #    logger.fdebug('[FILECHECKER] ("We matched on versions for annuals " + str(volrem))
 
-                        if int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
-                            logger.fdebug('[FILECHECKER] We matched on versions...' + str(volrem))
-                            versionmatch = "true"
-                            yearmatch = "false"
-                        else:
-                            logger.fdebug('[FILECHECKER] Versions wrong. Ignoring possible match.')
+                        try:
+                            if int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
+                                logger.fdebug('[FILECHECKER] We matched on versions...' + str(volrem))
+                                versionmatch = "true"
+                                yearmatch = "false"
+                            else:
+                                logger.fdebug('[FILECHECKER] Versions wrong. Ignoring possible match.')
+                        except ValueError:
+                            logger.warning('[FILECHECKER] Unable to determine version number. This issue will be skipped.')
 
                     result_comyear = None
                     while (cnt < len_sm):
@@ -847,7 +850,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             logger.fdebug('[FILECHECKER] Failed to match on both version and issue year.')
                             continue
                         else:
-                            logger.fdebug('[FILECHECKER] Matched on versions, not on year - continuing.')
+                            logger.fdebug('[FILECHECKER] Matched on year, not on version - continuing.')
                     else:
                          if yearmatch == "false":
                             logger.fdebug('[FILECHECKER] Matched on version, but not on year - continuing.')

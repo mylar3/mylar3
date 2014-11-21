@@ -88,6 +88,7 @@ CACHE_DIR = None
 SYNO_FIX = False
 
 PULLNEW = None
+ALT_PULL = False
 
 HTTP_PORT = None
 HTTP_HOST = None
@@ -117,7 +118,8 @@ CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
 CHECK_GITHUB_INTERVAL = None
 
-DESTINATION_DIR = None
+DESTINATION_DIR = None   #if M_D_D_ is enabled, this will be the DEFAULT for writing
+MULTIPLE_DEST_DIRS = None  #Nothing will ever get written to these dirs - just for scanning, unless it's metatagging/renaming.
 CHMOD_DIR = None
 CHMOD_FILE = None
 USENET_RETENTION = None
@@ -360,7 +362,7 @@ def initialize():
     
         global __INITIALIZED__, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
                 queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, \
-                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, CREATE_FOLDERS, \
+                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, \
@@ -373,7 +375,7 @@ def initialize():
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
                 
         if __INITIALIZED__:
             return False
@@ -430,11 +432,12 @@ def initialize():
         CHECK_GITHUB_INTERVAL = check_setting_int(CFG, 'General', 'check_github_interval', 360)
         
         DESTINATION_DIR = check_setting_str(CFG, 'General', 'destination_dir', '')
+        MULTIPLE_DEST_DIRS = check_setting_str(CFG, 'General', 'multiple_dest_dirs', '')
         CREATE_FOLDERS = bool(check_setting_int(CFG, 'General', 'create_folders', 1))
         CHMOD_DIR = check_setting_str(CFG, 'General', 'chmod_dir', '0777')
         CHMOD_FILE = check_setting_str(CFG, 'General', 'chmod_file', '0660')
         USENET_RETENTION = check_setting_int(CFG, 'General', 'usenet_retention', '1500')
-        
+        ALT_PULL = bool(check_setting_int(CFG, 'General', 'alt_pull', 0))
         SEARCH_INTERVAL = check_setting_int(CFG, 'General', 'search_interval', 360)
         NZB_STARTUP_SEARCH = bool(check_setting_int(CFG, 'General', 'nzb_startup_search', 0))
         LIBRARYSCAN = bool(check_setting_int(CFG, 'General', 'libraryscan', 1))
@@ -1076,11 +1079,12 @@ def config_write():
     new_config['General']['check_github_interval'] = CHECK_GITHUB_INTERVAL
 
     new_config['General']['destination_dir'] = DESTINATION_DIR
+    new_config['General']['multiple_dest_dirs'] = MULTIPLE_DEST_DIRS
     new_config['General']['create_folders'] = int(CREATE_FOLDERS)
     new_config['General']['chmod_dir'] = CHMOD_DIR
     new_config['General']['chmod_file'] = CHMOD_FILE
     new_config['General']['usenet_retention'] = USENET_RETENTION
-
+    new_config['General']['alt_pull'] = int(ALT_PULL)
     new_config['General']['search_interval'] = SEARCH_INTERVAL
     new_config['General']['nzb_startup_search'] = int(NZB_STARTUP_SEARCH)
     new_config['General']['libraryscan'] = int(LIBRARYSCAN)
@@ -1345,7 +1349,7 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
@@ -1358,6 +1362,8 @@ def dbcheck():
 
     
     #add in the late players to the game....
+    # -- Comics Table --
+
     try:
         c.execute('SELECT LastUpdated from comics')
     except sqlite3.OperationalError:
@@ -1396,14 +1402,50 @@ def dbcheck():
         c.execute('ALTER TABLE comics ADD COLUMN SortOrder INTEGER')
 
     try:
+        c.execute('SELECT UseFuzzy from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
+
+    try:
+        c.execute('SELECT DetailURL from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN DetailURL TEXT')
+
+    try:
+        c.execute('SELECT ForceContinuing from comics')
+    except:
+        c.execute('ALTER TABLE comics ADD COLUMN ForceContinuing INTEGER')
+
+    try:
+        c.execute('SELECT ComicName_Filesafe from comics')
+    except:
+        c.execute('ALTER TABLE comics ADD COLUMN ComicName_Filesafe TEXT')
+
+
+    # -- Issues Table --
+
+    try:
         c.execute('SELECT ComicSize from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ComicSize TEXT')
 
     try:
-        c.execute('SELECT UseFuzzy from comics')
+        c.execute('SELECT inCacheDir from issues')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
+        c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+
+    try:
+        c.execute('SELECT AltIssueNumber from issues')
+    except:
+        c.execute('ALTER TABLE issues ADD COLUMN AltIssueNumber TEXT')
+
+    try:
+        c.execute('SELECT IssueDate_Edit from issues')
+    except:
+        c.execute('ALTER TABLE issues ADD COLUMN IssueDate_Edit TEXT')
+
+
+    ## -- ImportResults Table --
 
     try:
         c.execute('SELECT WatchMatch from importresults')
@@ -1431,9 +1473,17 @@ def dbcheck():
         c.execute('ALTER TABLE importresults ADD COLUMN impID TEXT')
 
     try:
-        c.execute('SELECT inCacheDir from issues')
-    except sqlite3.OperationalError:
-        c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
+        c.execute('SELECT implog from importresults')
+    except:
+        c.execute('ALTER TABLE importresults ADD COLUMN implog TEXT')
+
+    try:
+        c.execute('SELECT DisplayName from importresults')
+    except:
+        c.execute('ALTER TABLE importresults ADD COLUMN DisplayName TEXT')
+
+
+    ## -- Readlist Table --
 
     try:
         c.execute('SELECT inCacheDIR from readlist')
@@ -1460,20 +1510,16 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN ComicID TEXT')
 
-    try:
-        c.execute('SELECT DetailURL from comics')
-    except sqlite3.OperationalError:
-        c.execute('ALTER TABLE comics ADD COLUMN DetailURL TEXT')
+
+    ## -- Weekly Table --
 
     try:
         c.execute('SELECT ComicID from weekly')
     except:
         c.execute('ALTER TABLE weekly ADD COLUMN ComicID TEXT')
 
-    try:
-        c.execute('SELECT implog from importresults')
-    except:
-        c.execute('ALTER TABLE importresults ADD COLUMN implog TEXT')
+
+    ## -- Nzblog Table --
 
     try:
         c.execute('SELECT SARC from nzblog')
@@ -1489,6 +1535,9 @@ def dbcheck():
         c.execute('SELECT ID from nzblog')
     except:
         c.execute('ALTER TABLE nzblog ADD COLUMN ID TEXT')
+
+
+    ## -- Annuals Table --
 
     try:
         c.execute('SELECT Location from annuals')
@@ -1515,26 +1564,6 @@ def dbcheck():
     if annual_update == "yes":
         logger.info("Updating Annuals table for new fields - one-time update.")
         helpers.annual_update()
-  
-    try:
-        c.execute('SELECT Provider from snatched')
-    except:
-        c.execute('ALTER TABLE snatched ADD COLUMN Provider TEXT')
-
-    try:
-        c.execute('SELECT DisplayComicName from upcoming')
-    except:
-        c.execute('ALTER TABLE upcoming ADD COLUMN DisplayComicName TEXT')
-
-    try:
-        c.execute('SELECT ForceContinuing from comics')
-    except:
-        c.execute('ALTER TABLE comics ADD COLUMN ForceContinuing INTEGER')
-
-    try:
-        c.execute('SELECT AltIssueNumber from issues')
-    except:
-        c.execute('ALTER TABLE issues ADD COLUMN AltIssueNumber TEXT')
 
     try:
         c.execute('SELECT ReleaseDate from annuals')
@@ -1552,24 +1581,58 @@ def dbcheck():
         c.execute('ALTER TABLE annuals ADD COLUMN ReleaseComicName TEXT')
 
     try:
-        c.execute('SELECT DisplayName from importresults')
-    except:
-        c.execute('ALTER TABLE importresults ADD COLUMN DisplayName TEXT')
-
-    try:
-        c.execute('SELECT ComicName_Filesafe from comics')
-    except:
-        c.execute('ALTER TABLE comics ADD COLUMN ComicName_Filesafe TEXT')
-
-    try:
-        c.execute('SELECT IssueDate_Edit from issues')
-    except:
-        c.execute('ALTER TABLE issues ADD COLUMN IssueDate_Edit TEXT')
-
-    try:
         c.execute('SELECT IssueDate_Edit from annuals')
     except:
         c.execute('ALTER TABLE annuals ADD COLUMN IssueDate_Edit TEXT')
+
+
+    ## -- Snatched Table --
+  
+    try:
+        c.execute('SELECT Provider from snatched')
+    except:
+        c.execute('ALTER TABLE snatched ADD COLUMN Provider TEXT')
+
+
+    ## -- Upcoming Table --
+
+    try:
+        c.execute('SELECT DisplayComicName from upcoming')
+    except:
+        c.execute('ALTER TABLE upcoming ADD COLUMN DisplayComicName TEXT')
+
+
+    ## -- Readinglist Table --
+
+    try:
+        c.execute('SELECT ComicID from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN ComicID TEXT')
+
+    try:
+        c.execute('SELECT StoreDate from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN StoreDate TEXT')
+
+    try:
+        c.execute('SELECT IssueDate from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN IssueDate TEXT')
+
+    try:
+        c.execute('SELECT Publisher from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN Publisher TEXT')
+
+    try:
+        c.execute('SELECT IssuePublisher from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN IssuePublisher TEXT')
+
+    try:
+        c.execute('SELECT IssueName from readinglist')
+    except:
+        c.execute('ALTER TABLE readinglist ADD COLUMN IssueName TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 

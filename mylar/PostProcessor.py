@@ -405,12 +405,42 @@ class PostProcessor(object):
                             logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
                             self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
 
+                        odir = None
                         for root, dirnames, filenames in os.walk(self.nzb_folder):
                             for filename in filenames:
                                 if filename.lower().endswith(extensions):
+                                    odir = root
                                     ofilename = filename
                                     path, ext = os.path.splitext(ofilename)
-      
+
+                        if odir is None:
+                            odir = self.nzb_folder     
+
+                        issuearcid = re.sub('S', '', issueid)
+                        logger.fdebug(module + ' issuearcid:' + str(issuearcid))
+                        arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?",[issuearcid]).fetchone()
+
+                        issueid = arcdata['IssueID']                        
+                        #tag the meta.
+                        if mylar.ENABLE_META:
+                            self._log("Metatagging enabled - proceeding...")
+                            try:
+                                import cmtagmylar
+                                metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
+                            except ImportError:
+                                logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
+                                metaresponse = "fail"
+
+                            if metaresponse == "fail":
+                                logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
+                            elif metaresponse == "unrar error":
+                                logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
+                                #launch failed download handling here.
+                            else:
+                                ofilename = os.path.split(metaresponse)[1]
+                                logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
+                                self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
+
                         if 'S' in sandwich:
                             if mylar.STORYARCDIR:
                                 grdst = storyarcd
@@ -427,9 +457,6 @@ class PostProcessor(object):
                         if 'S' in sandwich:
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.READ2FILENAME:
-                                issuearcid = re.sub('S', '', issueid)
-                                logger.fdebug(module + ' issuearcid:' + str(issuearcid))
-                                arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?",[issuearcid]).fetchone()
                                 logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
                                 if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                                 elif int(arcdata['ReadingOrder']) > 10 and int(arcdata['ReadingOrder']) < 99: readord = "0" + str(arcdata['ReadingOrder'])
@@ -469,15 +496,22 @@ class PostProcessor(object):
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
                         if 'S' in issueid:
-                            issuearcid = re.sub('S', '', issueid)
+                            #issuearcid = re.sub('S', '', issueid)
                             logger.info(module + ' IssueArcID is : ' + str(issuearcid))
                             ctrlVal = {"IssueArcID":  issuearcid}
-                            newVal = {"Status":    "Downloaded",
-                                      "Location":  grab_dst }
-                            myDB.upsert("readinglist",newVal,ctrlVal)
+                            newVal = {"Status":       "Downloaded",
+                                      "Location":     grab_dst}
+                            logger.info('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                            myDB.upsert("readinglist", newVal, ctrlVal)
+                            logger.info('wrote.')
                             logger.info(module + ' Updated status to Downloaded')
-                        return self.log
 
+                        logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
+                        self._log(u"Post Processing SUCCESSFUL! ")
+
+                        self.valreturn.append({"self.log" : self.log,
+                                               "mode"     : 'stop'})
+                        return self.queue.put(self.valreturn)
 
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.

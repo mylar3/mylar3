@@ -620,18 +620,50 @@ def forceRescan(ComicID,archive=None,module=None):
                 altnames += ascan['ReleaseComicName'] + '!!' + ascan['ReleaseComicID'] + '##'
         altnames = altnames[:-2]
     logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in ' + rescan['ComicLocation'] )
+    fca = []
     if archive is None:
-        fc = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames) #rescan['AlternateSearch'])
+        tmpval = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+        comiccnt = int(tmpval['comiccount'])
+        logger.info('comiccnt is:' + str(comiccnt))
+        fca.append(tmpval)
+        if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])) != rescan['ComicLocation']:
+            logger.info('multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
+            logger.info('dir: ' + rescan['ComicLocation'])
+            logger.info('os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
+            pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
+            logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + pathdir )
+            tmpv = filechecker.listFiles(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+            logger.info('tmpv filecount: ' + str(tmpv['comiccount']))
+            comiccnt += int(tmpv['comiccount'])
+            fca.append(tmpv)
     else:
-        fc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+        fca.append(filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch']))
+    fcb = []
+    fc = {}
+    #if len(fca) > 0:
+    for ca in fca:
+        i = 0
+        while True:
+            try:
+                cla = ca['comiclist'][i]
+            except (IndexError, KeyError) as e:
+                break
+            fcb.append({"ComicFilename":   cla['ComicFilename'],
+                        "ComicLocation":   cla['ComicLocation'],
+                        "ComicSize":       cla['ComicSize'],
+                        "JusttheDigits":   cla['JusttheDigits'],
+                        "AnnualComicID":   cla['AnnualComicID']})
+            i+=1
+    fc['comiclist'] = fcb
     iscnt = rescan['Total']
+
     havefiles = 0
     if mylar.ANNUALS_ON:
         an_cnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE ComicID=?", [ComicID])
         anncnt = an_cnt[0][0]
     else:
         anncnt = 0
-    fccnt = int(fc['comiccount'])
+    fccnt = comiccnt #int(fc['comiccount'])
     issnum = 1
     fcnew = []
     fn = 0
@@ -1101,9 +1133,13 @@ def forceRescan(ComicID,archive=None,module=None):
             else:
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
                 if os.path.exists(comicpath):
-                    pass
+                    continue
                     #print "Issue exists - no need to change status."
                 else:
+                    if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                        if os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
+                            logger.info('Issues found within multiple destination directory location')
+                            continue
                     #print "Changing status from Downloaded to Archived - cannot locate file"
                     controlValue = {"IssueID":   down['IssueID']}
                     newValue = {"Status":    "Archived"}

@@ -652,6 +652,11 @@ def fullmonth(monthno):
     return monthconv
 
 def updateComicLocation():
+    #in order for this to work, the ComicLocation MUST be left at the original location.
+    #in the config.ini - set LOCMOVE = 1  (to enable this to run on the NEXT startup)
+    #                  - set NEWCOMDIR = new ComicLocation
+    #after running, set ComicLocation to new location in Configuration GUI
+
     import db, logger
     myDB = db.DBConnection()
     if mylar.NEWCOM_DIR is not None:
@@ -707,6 +712,9 @@ def updateComicLocation():
                         comlocation = os.path.join(mylar.NEWCOM_DIR,first).strip()
 
                 else:
+                    #DESTINATION_DIR = /mnt/mediavg/Comics
+                    #NEWCOM_DIR = /mnt/mediavg/Comics/Comics-1
+                    #dl['ComicLocation'] = /mnt/mediavg/Comics/Batman-(2011)
                     comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation']).strip()
 
                 comloc.append({"comlocation":  comlocation,
@@ -725,7 +733,7 @@ def updateComicLocation():
                 for cl in comloc:
                     ctrlVal = {"ComicID":      cl['comicid']}
                     newVal = {"ComicLocation": cl['comlocation']}
-#                   myDB.upsert("Comics", newVal, ctrlVal)
+                    myDB.upsert("Comics", newVal, ctrlVal)
                     logger.fdebug('Updated : ' + cl['origlocation'] + ' .: TO :. ' + cl['comlocation'])
                 logger.info('Updated ' + str(len(comloc)) + ' series to a new Comic Location as specified in the config.ini')
             else:

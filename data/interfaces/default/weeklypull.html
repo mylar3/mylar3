@@ -20,7 +20,11 @@
 
 <%def name="body()">
         <div class="clearfix">
-                <h1>Weekly Pull list for : ${pulldate}</h1>
+              %if wantedcount == 0:
+                   <h1>Weekly Pull list for : ${pulldate}</h1>
+              %else:
+                   <h1>Weekly Pull list for : ${pulldate} (${wantedcount})</h1>
+              %endif              
         </div>
 
         <div>
@@ -69,6 +73,9 @@
                                         %if weekly['STATUS'] == 'Skipped':
                                              <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
                                              <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}"><span class="ui-icon ui-icon-plus"></span>one off</a>
+                                             %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
+                                                   <a href="#" title="Watch for this series" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${pulldate}, $(this),'table')" data-success="Successfuly Added ${weekly['COMIC']} to future Watch list.">Watch</a>
+                                             %endif
                                         %endif
                                         </td>
                                 %endif

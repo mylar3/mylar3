@@ -2,7 +2,7 @@
 <%!
         import os
         import mylar
-	from mylar import helpers
+	from mylar.helpers import checked
 %>
 
 <%def name="headerIncludes()">
@@ -24,16 +24,19 @@
          <center><h1>${storyarcname}</h1></center>        
           <table class="configtable">
                <tr>
-                <form action="readOptions" method="get">
+                <form action="readOptions" id="chkoptions" method="GET">
                    <fieldset>
                      <legend>Options</legend>
                      <div class="row checkbox left clearfix">
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" value="1" ${readConfig['storyarcdir']} /><label>Should I create a Story-Arc Directory?</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><br/>
                          <small>Arcs in StoryArc Directory: <% sdir = os.path.join(mylar.DESTINATION_DIR, "StoryArcs") %>${sdir}</small><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" value="1" ${readConfig['read2filename']} /><label>Append Reading# to filename</label><br/>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading# to filename</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Copy watchlisted issues to StoryArc Directory</label>
+                       <input type="hidden" name="StoryArcID" value="${storyarcid}">
+                       <input type="hidden" name="StoryArcName" value="${storyarcname}">
+
                      </div>
                    </fieldset>
                          <div>
@@ -73,9 +76,18 @@
 
                          <tr id="${item['ReadingOrder']}" class="grade${grade}">
                                 <td id="readingorder">${item['ReadingOrder']}</td>
-                                <td id="comicname">${item['ComicName']} (${item['SeriesYear']})</td>
+                                <td id="comicname" title="${item['IssueName']}">${item['ComicName']} (${item['SeriesYear']})</td>
                                 <td id="issue">${item['IssueNumber']}</td>
-                                <td id="issueyear">${item['IssueYear']}</td>
+                                <% 
+                                    if item['IssueDate'] != '0000-00-00':
+                                        issueyear = item['IssueDate'][:4]
+                                    else:
+                                        if item['StoreDate'] != '0000-00-00':
+                                            issueyear = item['IssueDate'][:4]
+                                        else:
+                                            issueyear = '0000'
+                                 %>
+                                <td id="issueyear">${issueyear}</td>
                                 <td id="status">${item['Status']}</td>
                                 <td id="action">
                                  %if item['Status'] is None or item['Status'] == None:
@@ -99,6 +111,12 @@
 <!--    
         <script src="js/libs/jquery.dataTables.rowReordering.js"></script>
 -->
+        <script type="text/javascript">
+        $("#menu_link_scan").click(function() {
+            $('#chkoptions').submit();
+            return true;
+        });
+        </script>
 	<script>
 
 	function initThisPage() {

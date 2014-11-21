@@ -326,6 +326,189 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addbyid.exposed = True
 
+    def addStoryArc(self, storyarcname, storyarcyear, storyarcpublisher, storyarcissues, arcid, arclist , desc, image):
+        # used when a choice is selected to 'add story arc' via the searchresults screen (via the story arc search).
+        # arclist contains ALL the issueid's in sequence, along with the issue titles.
+        # call the function within cv.py to grab all the issueid's and return all the issue data
+        arc_results = mylar.cv.getComic(comicid=None, type='issue', arcid=arcid, arclist=arclist)
+        logger.info('arcresults: ' + str(arc_results))
+        if len(arc_results) > 0:
+            import random
+
+            issuedata = []
+            storyarcid = str(random.randint(1000,9999)) + str(storyarcissues)
+            n = 0
+            cidlist = ''
+            iscnt = int(storyarcissues)
+            while (n <= iscnt):
+                try:
+                    arcval = arc_results['issuechoice'][n]
+                    #print arcval
+                except IndexError:
+                    break
+                comicname = arcval['ComicName']
+                issname = arcval['Issue_Name']
+                issid = str(arcval['IssueID'])
+                comicid = str(arcval['ComicID'])
+                if comicid not in cidlist:
+                    if n == 0:
+                        cidlist += str(comicid)
+                    else:
+                        cidlist += '|' + str(comicid)
+                st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
+                issnum = arcval['Issue_Number']
+                issdate = str(arcval['Issue_Date'])
+                storedate = str(arcval['Store_Date'])
+                if issnum.isdigit():
+                    int_issnum = int( issnum ) * 1000
+                else:
+                    if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
+                        issnum = re.sub('\.', '', issnum)
+                        #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+                    if 'au' in issnum.lower():
+                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
+                    elif 'inh' in issnum.lower():
+                        int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
+                    elif 'now' in issnum.lower():
+                        int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+                    elif u'\xbd' in issnum:
+                        int_issnum = .5 * 1000
+                        logger.info('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
+                    elif u'\xbc' in issnum:
+                        int_issnum = .25 * 1000
+                    elif u'\xbe' in issnum:
+                        int_issnum = .75 * 1000
+                    elif u'\u221e' in issnum:
+                        #issnum = utf-8 will encode the infinity symbol without any help
+                        int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
+                    elif '.' in issnum or ',' in issnum:
+                        if ',' in issnum: issnum = re.sub(',','.', issnum)
+                        issst = str(issnum).find('.')
+                        #logger.fdebug("issst:" + str(issst))
+                        if issst == 0:
+                            issb4dec = 0
+                        else:
+                            issb4dec = str(issnum)[:issst]
+                        #logger.fdebug("issb4dec:" + str(issb4dec))
+                        #if the length of decimal is only 1 digit, assume it's a tenth
+                        decis = str(issnum)[issst+1:]
+                        #logger.fdebug("decis:" + str(decis))
+                        if len(decis) == 1:
+                            decisval = int(decis) * 10
+                            issaftdec = str(decisval)
+                        elif len(decis) == 2:
+                            decisval = int(decis)
+                            issaftdec = str(decisval)
+                        else:
+                            decisval = decis
+                            issaftdec = str(decisval)
+                        try:
+#                           int_issnum = str(issnum)
+                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
+                        except ValueError:
+                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                            updater.no_searchresults(comicid)
+                            return
+                    else:
+                        try:
+                            x = float(issnum)
+                            #validity check
+                            if x < 0:
+                                logger.info('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
+                                logger.fdebug('value of x is : ' + str(x))
+                                int_issnum = (int(x)*1000) - 1
+                            else: raise ValueError
+                        except ValueError, e:
+                            x = 0
+                            tstord = None
+                            issno = None
+                            invchk = "false"
+                            while (x < len(issnum)):
+                                if issnum[x].isalpha():
+                                    #take first occurance of alpha in string and carry it through
+                                    tstord = issnum[x:].rstrip()
+                                    issno = issnum[:x].rstrip()
+                                    try:
+                                        isschk = float(issno)
+                                    except ValueError, e:
+                                        if len(issnum) == 1 and issnum.isalpha():
+                                            logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
+                                            break
+                                        logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
+                                        issno = None
+                                        tstord = None
+                                        invchk = "true"
+                                    break
+                                x+=1
+                            if tstord is not None and issno is not None:
+                                a = 0
+                                ordtot = 0
+                                if len(issnum) == 1 and issnum.isalpha():
+                                    int_issnum = ord(tstord.lower())
+                                else:
+                                    while (a < len(tstord)):
+                                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                                        a+=1
+                                    int_issnum = (int(issno) * 1000) + ordtot
+                            elif invchk == "true":
+                                logger.fdebug('this does not have an issue # that I can parse properly.')
+                                return
+                            else:
+                                logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
+                                return
+
+                issuedata.append({"ComicID":            comicid,
+                                  "IssueID":            issid,
+                                  "StoryArcID":         storyarcid,
+                                  "IssueArcID":         st_issueid,
+                                  "ComicName":          comicname,
+                                  "IssueName":          issname,
+                                  "Issue_Number":       issnum,
+                                  "IssueDate":          issdate,
+                                  "ReleaseDate":        storedate,
+                                  "ReadingOrder":       n+1,
+                                  "Int_IssueNumber":    int_issnum})
+                n+=1
+
+            comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
+            #logger.info('comicid_results: ' + str(comicid_results))
+
+            logger.fdebug('initiating issue updating - just the info')
+
+            myDB = db.DBConnection()
+
+            for AD in issuedata:
+                seriesYear = 'None'
+                issuePublisher = 'None'
+
+                for cid in comicid_results:
+                    if cid['ComicID'] == AD['ComicID']:
+                        seriesYear = cid['SeriesYear']
+                        issuePublisher = cid['Publisher']
+                        break
+
+                newCtrl = {"IssueArcID":     AD['IssueArcID'],
+                           "StoryArcID":     AD['StoryArcID']}
+                newVals = {"ComicID":        AD['ComicID'],
+                           "IssueID":        AD['IssueID'],
+                           "StoryArc":       storyarcname,
+                           "ComicName":      AD['ComicName'],
+                           "IssueName":      AD['IssueName'][:70],
+                           "IssueNumber":    AD['Issue_Number'],
+                           "Publisher":      storyarcpublisher,
+                           "TotalIssues":    storyarcissues,
+                           "ReadingOrder":   AD['ReadingOrder'],
+                           "IssueDate":      AD['IssueDate'],
+                           "StoreDate":      AD['ReleaseDate'],
+                           "SeriesYear":     seriesYear,
+                           "IssuePublisher": issuePublisher}
+
+                myDB.upsert("readinglist", newVals, newCtrl)
+
+        raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
+    
+    addStoryArc.exposed = True
+
     def wanted_Export(self):
         import unicodedata
         myDB = db.DBConnection()
@@ -424,18 +607,19 @@ class WebInterface(object):
     GCDaddComic.exposed = True
 
     def post_process(self, nzb_name, nzb_folder, failed=False, apc_version=None, comicrn_version=None):
-        if comicrn_version is None and apc_version is None:
-            logger.warn('ComicRN should be v' + str(mylar.STATIC_COMICRN_VERSION) + ' and autoProcessComics.py should be v' + str(mylar.STATIC_APC_VERSION) + ', but they are not and are out of date. Post-Processing may or may not work.')
-        elif comicrn_version is None or comicrn_version != mylar.STATIC_COMICRN_VERSION:
-            if comicrn_version == 'None':
-                comicrn_version = "0"
-            logger.warn('Your ComicRN.py script should be v' + str(mylar.STATIC_COMICRN_VERSION) + ', but is v' + str(comicrn_version) + ' and is out of date. Things may still work - but you are taking your chances.')
-        elif apc_version is None or apc_version != mylar.STATIC_APC_VERSION:
-            if apc_version == 'None':
-                apc_version = "0"
-            logger.warn('Your autoProcessComics.py script should be v' + str(mylar.STATIC_APC_VERSION) + ', but is v' + str(apc_version) + ' and is out of date. Odds are something is gonna fail - you should update it.')
-        else:
-            logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
+        if all( [nzb_name != 'Manual Run', nzb_name != 'Manual+Run'] ):
+            if comicrn_version is None and apc_version is None:
+                logger.warn('ComicRN should be v' + str(mylar.STATIC_COMICRN_VERSION) + ' and autoProcessComics.py should be v' + str(mylar.STATIC_APC_VERSION) + ', but they are not and are out of date. Post-Processing may or may not work.')
+            elif comicrn_version is None or comicrn_version != mylar.STATIC_COMICRN_VERSION:
+                if comicrn_version == 'None':
+                    comicrn_version = "0"
+                logger.warn('Your ComicRN.py script should be v' + str(mylar.STATIC_COMICRN_VERSION) + ', but is v' + str(comicrn_version) + ' and is out of date. Things may still work - but you are taking your chances.')
+            elif apc_version is None or apc_version != mylar.STATIC_APC_VERSION:
+                if apc_version == 'None':
+                    apc_version = "0"
+                logger.warn('Your autoProcessComics.py script should be v' + str(mylar.STATIC_APC_VERSION) + ', but is v' + str(apc_version) + ' and is out of date. Odds are something is gonna fail - you should update it.')
+            else:
+                logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
 
         import Queue
         logger.info('Starting postprocessing for : ' + nzb_name)
@@ -850,9 +1034,13 @@ class WebInterface(object):
                 logger.info('You should be using Manual Search or Mark Wanted - not retry the same download.')
                 return
 
-        Provider_sql = '%' + Provider + '%'
+        try:
+            Provider_sql = '%' + Provider + '%'
+            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
+        except:
+            logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
+            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=?', [IssueID]).fetchone()
 
-        chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
         if chk_log is None:
             logger.info('Unable to locate provider information from nzblog - if you wiped the log, you have to search/download as per normal')
             return
@@ -1189,6 +1377,7 @@ class WebInterface(object):
     def pullist(self):
         myDB = db.DBConnection()
         weeklyresults = []
+        wantedcount = 0
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
             w_results = myDB.select("SELECT PUBLISHER, ISSUE, COMIC, STATUS from weekly")
@@ -1207,6 +1396,9 @@ class WebInterface(object):
                                            "COMIC"      : weekly['COMIC'],
                                            "STATUS"     : weekly['STATUS']
                                          })
+                    if weekly['STATUS'] == 'Wanted':
+                        wantedcount +=1
+
             weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER','COMIC'), reverse=False)
             pulldate = myDB.selectone("SELECT * from weekly").fetchone()
             if pulldate is None:
@@ -1215,7 +1407,7 @@ class WebInterface(object):
         else:
             return self.manualpull()
         weekfold = os.path.join(mylar.DESTINATION_DIR, pulldate['SHIPDATE'])
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold)
+        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold, wantedcount=wantedcount)
     pullist.exposed = True   
 
     def futurepull(self):
@@ -1300,12 +1492,14 @@ class WebInterface(object):
 
     futurepulllist.exposed = True
 
-    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, FutureID):
+    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, FutureID=None):
         myDB = db.DBConnection()
-        chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=?', [ComicName, Issue]).fetchone()
-        if chkfuture is not None:
-            logger.info('Already on Future Upcoming list - not adding at this time.')
-            return
+        if FutureID is not None:
+            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=?', [ComicName, Issue]).fetchone()
+            if chkfuture is not None:
+                logger.info('Already on Future Upcoming list - not adding at this time.')
+                return
+
         logger.info('Adding ' + ComicName + ' # ' + str(Issue) + ' [' + Publisher + '] to future upcoming watchlist')
         newCtrl = {"ComicName":   ComicName,
                    "IssueNumber": Issue,
@@ -1316,9 +1510,10 @@ class WebInterface(object):
 
         myDB.upsert("futureupcoming", newVal, newCtrl)
  
-        fCtrl = {"FutureID":  FutureID}
-        fVal = {"Status":    "Wanted"}
-        myDB.upsert("future", fVal, fCtrl)
+        if FutureID is not None:
+            fCtrl = {"FutureID":  FutureID}
+            fVal = {"Status":    "Wanted"}
+            myDB.upsert("future", fVal, fCtrl)
 
     add2futurewatchlist.exposed = True
 
@@ -1768,22 +1963,13 @@ class WebInterface(object):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist WHERE ComicName is not Null group by StoryArcID COLLATE NOCASE")
         issuelist = myDB.select("SELECT * from readlist")
-        readConfig = {
-                    "read2filename" : helpers.checked(mylar.READ2FILENAME),
-                    "storyarcdir" : helpers.checked(mylar.STORYARCDIR)
-               }
-        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist, issuelist=issuelist,readConfig=readConfig)
-        return page
+        return serve_template(templatename="readinglist.html", title="Readlist", readlist=readlist, issuelist=issuelist)
     readlist.exposed = True
 
     def detailReadlist(self,StoryArcID, StoryArcName):
         myDB = db.DBConnection()
         readlist = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
-        readConfig = {
-                    "read2filename" : helpers.checked(mylar.READ2FILENAME),
-                    "storyarcdir" : helpers.checked(mylar.STORYARCDIR)
-                     }
-        return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName, storyarcid=StoryArcID, readConfig=readConfig)
+        return serve_template(templatename="readlist.html", title="Detailed Arc list", readlist=readlist, storyarcname=StoryArcName, storyarcid=StoryArcID)
     detailReadlist.exposed = True
 
     def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None):
@@ -1899,54 +2085,126 @@ class WebInterface(object):
         else:
             AMS = []
             for Arc_MS in Arc_MultipleSeries:
+                print Arc_MS
                 #the purpose of this loop is to loop through the multiple entries, pulling out the lowest & highest issue numbers
                 #along with the publication years in order to help the auto-detector attempt to figure out what the series is on CV.
                 #.schema readinglist
                 #(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, 
                 # Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT);
-                if any(d['ComicName'] == Arc_MS['ComicName'] for d in AMS):
-                    #store the high value
-                    if helpers.issuedigit(Arc_MS['IssueNumber']) >= helpers.issuedigit(d['highvalue']):
-                        for key in AMS.keys():
-                            if key == "highvalue":
-                                AMS[key] = Arc_MS['IssueNumber']
-
-                if not any(d['ComicName'] == Arc_MS['ComicName'] for d in AMS):
-
-                    AMS.append({"StoryArcID":  Arc_MS['StoryArcID'],
-                                "ComicName":   Arc_MS['ComicName'],
-                                "IssueNumber": Arc_MS['IssueNumber'],
-                                "SeriesYear":  Arc_MS['SeriesYear'],
-                                "IssueYear":   Arc_MS['IssueYear'],
-                                "IssueID":     Arc_MS['IssueID'],
-                                "highvalue":   Arc_MS['IssueNumber']})
+                AMS.append({"StoryArcID":  Arc_MS['StoryArcID'],
+                            "ComicName":   Arc_MS['ComicName'],
+                            "SeriesYear":  Arc_MS['SeriesYear'],
+                            "IssueYear":   Arc_MS['IssueYear'],
+                            "IssueID":     Arc_MS['IssueID'],
+                            "highvalue":   '0',
+                            "lowvalue":    '9999',
+                            "yearRANGE":   [str(Arc_MS['SeriesYear'])]}) #Arc_MS['SeriesYear']})
 
             print str(AMS)
-#        mode='series'
-#        if yearRANGE is None:
-#        sresults, explicit = mb.findComic(comicname, mode, issue=numissues, explicit='all')
-#        else:
-#            sresults, explicit = mb.findComic(comicname, mode, issue=numissues, limityear=yearRANGE, explicit='all')
-#        type='comic'
 
-#        if len(sresults) == 1:
-#            sr = sresults[0]
-#            implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
-#            resultset = 1
-#            #need to move the files here.
-#        elif len(sresults) == 0 or len(sresults) is None:
-#            implog = implog + "no results, removing the year from the agenda and re-querying.\n"
-#            sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
-#            if len(sresults) == 1:
-#                sr = sresults[0]
-#                implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
-#                resultset = 1
-#            else:
-#                resultset = 0
-#        else:
-#            implog = implog + "returning results to screen - more than one possibility.\n"
-#            resultset = 0
+            for MSCheck in AMS:
+                thischk = myDB.select('SELECT * FROM readinglist WHERE ComicName=? AND SeriesYear=?', [MSCheck['ComicName'], MSCheck['SeriesYear']])
+                for tchk in thischk:
+                    if helpers.issuedigits(tchk['IssueNumber']) > helpers.issuedigits(MSCheck['highvalue']):
+                        for key in MSCheck.keys():
+                            if key == "highvalue":
+                                MSCheck[key] = tchk['IssueNumber']
 
+                    if helpers.issuedigits(tchk['IssueNumber']) < helpers.issuedigits(MSCheck['lowvalue']):
+                        for key in MSCheck.keys():
+                            if key == "lowvalue":
+                                MSCheck[key] = tchk['IssueNumber']
+
+                    print str(tchk['IssueYear'])
+                    print str(MSCheck['yearRANGE'])
+                    if str(tchk['IssueYear']) not in str(MSCheck['yearRANGE']):
+                        for key in MSCheck.keys():
+                            if key == "yearRANGE":
+                                MSCheck[key].append(str(tchk['IssueYear']))
+
+                #write out here    
+                print MSCheck
+
+        #now we load in the list without the multiple entries (ie. series that appear only once in the cbl and don't have an IssueID)
+        Arc_Issues = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND IssueID is NULL GROUP BY ComicName HAVING (COUNT(ComicName) = 1)", [storyarcid])
+        if Arc_Issues is None:
+            logger.fdebug('No individual series detected within the Reading list (series that only appear once).')
+        else:
+            logger.fdebug('Detected series that occur only once in the Reading List.')
+            for AI in Arc_Issues:
+                logger.fdebug('Detected ' + AI['ComicName'] + ' (' + AI['SeriesYear'] + ') #' + AI['IssueNumber'])
+                AMS.append({"StoryArcID":  AI['StoryArcID'],
+                            "ComicName":   AI['ComicName'],
+                            "SeriesYear":  AI['SeriesYear'],
+                            "IssueYear":   AI['IssueYear'],
+                            "IssueID":     AI['IssueID'],
+                            "highvalue":   AI['IssueNumber'],
+                            "lowvalue":    AI['IssueNumber'],
+                            "yearRANGE":   AI['IssueYear']})
+
+        print 'AMS:' + str(AMS)
+        print ('I need to now try to populate ' + str(len(AMS)) + ' series.')
+
+        Arc_Data = []
+
+        for duh in AMS:
+            mode='series'
+            sresults, explicit = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'], explicit='all')
+            type='comic'
+
+            if len(sresults) == 1:
+                sr = sresults[0]
+                logger.info('Only one result...automagik-mode enabled for ' + duh['ComicName'] + ' :: ' + str(sr['comicid']) + ' :: Publisher : ' + str(sr['publisher']))
+                issues = mylar.cv.getComic(sr['comicid'],'issue')
+                isscnt = len(issues['issuechoice'])
+                logger.info('isscnt : ' + str(isscnt))
+                chklist = myDB.select('SELECT * FROM readinglist WHERE StoryArcID=? AND ComicName=? AND SeriesYear=?',[duh['StoryArcID'],duh['ComicName'],duh['SeriesYear']])
+                if chklist is None:
+                    logger.error('I did not find anything in the Story Arc. Something is probably wrong.')
+                    continue
+                else:
+                    n = 0
+                    while (n <= isscnt):
+                        try:
+                            islval = issues['issuechoice'][n]
+                        except IndexError:
+                            break
+
+                        for d in chklist:
+                            if islval['Issue_Number'] == d['IssueNumber']:
+                                logger.info('[' + str(islval['Issue_ID']) + '] matched on Issue Number for ' + duh['ComicName'] + ' #' + str(d['IssueNumber']))
+                                logger.info('I should write these dates: ' + islval['Issue_Date'] + ' -- ' + islval['Store_Date'])
+                                Arc_Data.append({"StoryArcID":    duh['StoryArcID'],
+                                                 "IssueArcID":    d['IssueArcID'],
+                                                 "ComicID":       islval['Comic_ID'],
+                                                 "IssueID":       islval['Issue_ID'],
+                                                 "Issue_Number":  islval['Issue_Number'],
+                                                 "Issue_Date":    islval['Issue_Date'],
+                                                 "Publisher":     sr['publisher'],
+                                                 "Store_Date":    islval['Store_Date']})
+                                break
+                        n+=1
+                #the below cresults will auto-add and cycle through until all are added to watchlist
+                #cresults = importer.addComictoDB(sr['comicid'],"no",None)
+
+            else:
+                logger.fdebug('Returning results to screen - more than one possibility.')
+                resultset = 0
+
+        logger.info('I need to update ' + str(len(Arc_Data)) + ' issues in this Reading List with CV Issue Data.')
+        if len(Arc_Data) > 0:
+            for AD in Arc_Data:
+                newCtrl = {"IssueArcID":  AD['IssueArcID']}
+                newVals = {"ComicID":     AD['ComicID'],
+                           "IssueID":     AD['IssueID'],
+                           "Publisher":   AD['Publisher'],
+                           "IssueDate":   AD['Issue_Date'],
+                           "StoreDate":   AD['Store_Date']}
+
+                logger.info('CTRLWRITE TO: ' + str(newCtrl))
+                logger.info('WRITING: ' + str(newVals))
+
+                myDB.upsert("readinglist", newVals, newCtrl)
 
 
         raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarc))
@@ -2151,13 +2409,17 @@ class WebInterface(object):
                 IssueArcID = want['IssueArcID']
                 if issuechk is None:
                     # none means it's not a 'watched' series
-                    s_comicid = None
-                    s_issueid = None
-                    logger.fdebug("-- NOT a watched series queue.")
-                    logger.fdebug(want['ComicName'] + " -- #" + str(want['IssueNumber']))
+                    s_comicid = want['ComicID'] #None
+                    s_issueid = want['IssueID'] #None
+                    stdate = want['StoreDate']
+                    issdate = want['IssueDate']
+                    logger.info("-- NOT a watched series queue.")
+                    logger.info(want['ComicName'] + " -- #" + str(want['IssueNumber']))
                     logger.info(u"Story Arc : " + str(SARC) + " queueing selected issue...")
                     logger.info(u"IssueArcID : " + str(IssueArcID))
-                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=None, StoreDate=None, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID, mode=None, rsscheck=None, ComicID=None)
+                    logger.info('ComicID: ' + str(s_comicid) + ' --- IssueID: ' + str(s_issueid))
+                    logger.info('StoreDate: ' + str(stdate) + ' --- IssueDate: ' + str(issdate))
+                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], Publisher=want['Publisher'], IssueDate=issdate, StoreDate=stdate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID, mode=None, rsscheck=None, ComicID=None)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
@@ -2980,9 +3242,14 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     comic_config.exposed = True
 
-    def readOptions(self, read2filename, storyarcdir):
+    def readOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0):
+        print mylar.READ2FILENAME
+        print mylar.STORYARCDIR
         mylar.READ2FILENAME = int(read2filename)
         mylar.STORYARCDIR = int(storyarcdir)
+        print mylar.READ2FILENAME
+        print mylar.STORYARCDIR
+
         mylar.config_write()
 
         #force the check/creation of directory com_location here
@@ -2993,6 +3260,10 @@ class WebInterface(object):
             else:
                 logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
                 filechecker.validateAndCreateDirectory(arcdir, True)
+        if StoryArcID is not None:
+            raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (StoryArcID, StoryArcName))
+        else:
+            raise cherrypy.HTTPRedirect("readlist")
     readOptions.exposed = True
 
     

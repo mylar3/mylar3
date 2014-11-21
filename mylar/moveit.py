@@ -45,6 +45,7 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
     return
 
 def archivefiles(comicid,ogcname):
+    myDB = db.DBConnection()
     # if move files isn't enabled, let's set all found comics to Archive status :)
     result = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
     if result is None: pass

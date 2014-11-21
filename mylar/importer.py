@@ -1101,7 +1101,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 #print firstval
             except IndexError:
                 break
-            cleanname = helpers.cleanName(firstval['Issue_Name'])
+            try:
+                cleanname = helpers.cleanName(firstval['Issue_Name'])
+            except:
+                cleanname = 'None'
             issid = str(firstval['Issue_ID'])
             issnum = firstval['Issue_Number']
             #print ("issnum: " + str(issnum))

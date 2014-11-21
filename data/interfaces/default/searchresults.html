@@ -24,10 +24,14 @@
 <%def name="body()">
 	<div id="paddingheader">
                 <%
+                      if type == 'story_arc':
+                          typesel = " Story Arc"
+                      else:
+                          typesel = ""
                       if explicit == 'loose':
                           searchtext = "Loose Search results for: </br><center> " + name + "</center>"
                       elif explicit == 'explicit':
-                          searchtext = "Explicit Search results for: </br><center> " + name + "</center>"
+                          searchtext = "Explicit " + typesel.rstrip() + " Search results for: </br><center> " + name + "</center>"
                       else:
                           searchtext = "Search results for : </br><center>" + name + "</center>"
                  %>
@@ -69,13 +73,21 @@
 				%>
 				<tr class="grade${grade}">
 					<td class="blank"></td>
-					<td class="name"><a href="${result['url']}" title="${result['name']}" target="_blank">${result['name']}</a></td>
+                                        %if result['description'] == 'None' or result['description'] is None:
+					<td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
+                                        %else:
+					<td class="name"><a href="${result['url']}" title="${result['description']}" target="_blank">${result['name']}</a></td>
+                                        %endif
                                         <td class="publisher">${result['publisher']}</a></td>
                                         <td class="comicyear">${result['comicyear']}</a></td>
 					<td class="issues">${result['issues']}</td>
 
 					%if result['haveit'] == "No":
+                                            %if type == 'story_arc':
+						<td class="add" nowrap="nowrap"><a href="addStoryArc?arcid=${result['comicid']}&storyarcname=${result['name'] |u}&storyarcyear=${result['comicyear']}&storyarcpublisher=${result['publisher'] |u}&storyarcissues=${result['issues']}&arclist=${result['arclist']}&desc=${result['description']}&image=${result['comicimage']}"><span class="ui-icon ui-icon-plus"></span> Add this Story Arc</a></td>
+                                            %else:
 						<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher'] |u}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}&serinfo=${serinfo}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
+                                            %endif
 					%else:
 						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${result['haveit']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
 					%endif

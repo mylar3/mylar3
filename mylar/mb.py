@@ -33,17 +33,17 @@ def pullsearch(comicapi,comicquery,offset,explicit,type):
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     if explicit == 'all' or explicit == 'loose':
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&page=' + str(offset)
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck&format=xml&page=' + str(offset)
 
     else:
         # 02/22/2014 use the volume filter label to get the right results.
         # add the 's' to the end of type to pluralize the caption (it's needed)
         if type == 'story_arc':
             u_comicquery = re.sub("%20AND%20", "%20", u_comicquery)
-        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
-    #logger.info('PULLURL: ' + str(PULLURL))
+        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
     #all these imports are standard on most modern python implementations
     #CV API Check here.
+    #logger.info('PULLURL:' + PULLURL)
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         cvapi_check()
     #download the file:
@@ -135,6 +135,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         for result in comicResults:
                 #retrieve the first xml tag (<tag>data</tag>)
                 #that the parser finds with name tagName:
+                arclist = []
                 if type == 'story_arc':
                     #call cv.py here to find out issue count in story arc
                     try:
@@ -181,7 +182,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
                     if xmlid is not None:
                         #respawn to the exact id for the story arc and count the # of issues present.
-                        ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,name,first_appeared_in_issue&format=xml&offset=0'
+                        ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
                         logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
                         if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
                             cvapi_check()
@@ -200,6 +201,22 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         try:
                             logger.fdebug('story_arc ascension')
                             issuecount = len( arcdom.getElementsByTagName('issue') )
+                            issuedom = arcdom.getElementsByTagName('issue')
+                            isc = 0 
+                            arclist = ''
+                            for isd in issuedom:
+                                zeline = isd.getElementsByTagName('id')
+                                isdlen = len( zeline )
+                                isb = 0
+                                while ( isb < isdlen):
+                                    if isc == 0:
+                                        arclist = str(zeline[isb].firstChild.wholeText).strip()
+                                    else:
+                                        arclist += '|' + str(zeline[isb].firstChild.wholeText).strip()
+                                    isb+=1
+
+                                isc+=1
+
                         except:
                             logger.fdebug('unable to retrive issue count - nullifying value.')
                             issuecount = 0
@@ -214,25 +231,25 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     if not arcdom.getElementsByTagName('id')[fi].firstChild.wholeText == xmlid:
                                         logger.fdebug('hit it.')
                                         firstid = arcdom.getElementsByTagName('id')[fi].firstChild.wholeText
-                                        break
-                            fi+=1
+                                        break # - dont' break out here as we want to gather ALL the issue ID's since it's here
+                                fi+=1
                             logger.fdebug('firstid: ' + str(firstid))
-                            if firstID is not None:
+                            if firstid is not None:
                                 firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
                                 logger.fdebug('success')
                                 arcyear = cv.GetFirstIssue(firstid,firstdom)
                         except:
                             logger.fdebug('Unable to retrieve first issue details. Not caclulating at this time.')
 
-                    if (result.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
-                        xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
-                    else:
-                        xmlimage = "cache/blankcover.jpg"
+                        if (arcdom.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
+                            xmlimage = arcdom.getElementsByTagName('super_url')[0].firstChild.wholeText
+                        else:
+                            xmlimage = "cache/blankcover.jpg"
 
-                    try:
-                        xmldesc = result.getElementsByTagName('deck')[0].firstChild.wholeText
-                    except:
-                        xmldesc = "None"
+                        try:
+                            xmldesc = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
+                        except:
+                            xmldesc = "None"
                             
                         if xmlid in comicLibrary:
                             haveit = comicLibrary[xmlid]
@@ -247,29 +264,69 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             'issues':               issuecount,
                             'comicimage':           xmlimage,
                             'publisher':            xmlpub,
-                            'description':          xmldesc, 
-                            'haveit':   haveit
+                            'description':          xmldesc,
+                            'arclist':              arclist,
+                            'haveit':               haveit
                             })
 
+                    logger.info(arclist)
     
                 else:
                     xmlcnt = result.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
                     #here we can determine what called us, and either start gathering all issues or just limited ones.
-                    #print ("n: " + str(n) + "--xmcnt" + str(xmlcnt))
                     if issue is not None and str(issue).isdigit():
                         #this gets buggered up with NEW/ONGOING series because the db hasn't been updated
                         #to reflect the proper count. Drop it by 1 to make sure.
                         limiter = int(issue) - 1
                     else: limiter = 0
-                    if int(xmlcnt) >= limiter:
+                    #get the first issue # (for auto-magick calcs)
+                    try:
+                        xmlfirst = result.getElementsByTagName('issue_number')[0].firstChild.wholeText
+                        if '\xbd' in xmlfirst:
+                            xmlfirst = "1"  #if the first issue is 1/2, just assume 1 for logistics
+                    except:
+                        xmlfirst = '1'
+
+                    #logger.info('There are : ' + str(xmlcnt) + ' issues in this series.')
+                    #logger.info('The first issue started at # ' + str(xmlfirst))
                     
-                        xmlTag = result.getElementsByTagName('name')[0].firstChild.wholeText
+                    cnt_numerical = int(xmlcnt) + int(xmlfirst) # (of issues + start of first issue = numerical range)
+                    #logger.info('The maximum issue number should be roughly # ' + str(cnt_numerical))
+                    #logger.info('The limiter (issue max that we know of) is # ' + str(limiter))
+                    if cnt_numerical >= limiter:
+                        cnl = len ( result.getElementsByTagName('name') )
+                        cl = 0
+                        xmlTag = 'None'
+                        xmlimage = "cache/blankcover.jpg"
+                        while (cl < cnl):
+                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
+                                xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
+                                #break
+
+                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
+                                xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
+
+                            cl+=1
+
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                         else: xmlYr = "0000"
+                        #logger.info('name:' + str(xmlTag) + ' -- ' + str(xmlYr))
                         if xmlYr in limityear or limityear == 'None':
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
-                            xmlid = result.getElementsByTagName('id')[0].firstChild.wholeText
+                            idl = len ( result.getElementsByTagName('id') )
+                            idt = 0
+                            xmlid = None
+                            while (idt < idl):
+                                if result.getElementsByTagName('id')[idt].parentNode.nodeName == 'volume':
+                                    xmlid = result.getElementsByTagName('id')[idt].firstChild.wholeText
+                                    break
+                                idt+=1
+
+                            if xmlid is None:
+                                logger.error('Unable to figure out the comicid - skipping this : ' + str(xmlurl))
+                                continue    
+                            #logger.info('xmlid: ' + str(xmlid))
                             publishers = result.getElementsByTagName('publisher')
                             if len(publishers) > 0:
                                 pubnames = publishers[0].getElementsByTagName('name')
@@ -279,13 +336,9 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     xmlpub = "Unknown"
                             else:
                                 xmlpub = "Unknown"
-                            if (result.getElementsByTagName('name')[0].childNodes[0].nodeValue) is None:
-                                xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
-                            else:
-                                xmlimage = "cache/blankcover.jpg"            
 
                             try:
-                                xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText
+                                xmldesc = result.getElementsByTagName('deck')[0].firstChild.wholeText
                             except:
                                 xmldesc = "None"
                             if xmlid in comicLibrary:
@@ -293,16 +346,17 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             else:
                                 haveit = "No"
                             comiclist.append({
-                                    'name':             xmlTag,
-                                    'comicyear':             xmlYr,
-                                    'comicid':                xmlid,
-                                    'url':                 xmlurl,
-                                    'issues':            xmlcnt,
-                                    'comicimage':          xmlimage,
+                                    'name':                 xmlTag,
+                                    'comicyear':            xmlYr,
+                                    'comicid':              xmlid,
+                                    'url':                  xmlurl,
+                                    'issues':               xmlcnt,
+                                    'comicimage':           xmlimage,
                                     'publisher':            xmlpub,
                                     'description':          xmldesc,
-                                    'haveit':   haveit
+                                    'haveit':               haveit
                                     })
+                            #logger.fdebug('year: ' + str(xmlYr) + ' - constraint met: ' + str(xmlTag) + '[' + str(xmlYr) + '] --- 4050-' + str(xmlid))
                         else:
                             logger.fdebug('year: ' + str(xmlYr) + ' -  contraint not met. Has to be within ' + str(limityear)) 
                 n+=1    

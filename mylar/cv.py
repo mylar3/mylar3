@@ -25,7 +25,7 @@ from mylar.helpers import cvapi_check
 
 from bs4 import BeautifulSoup as Soup
 
-def pulldetails(comicid,type,issueid=None,offset=1):
+def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None):
     import urllib2
 
     #import easy to use xml parser called minidom:
@@ -43,7 +43,10 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
-            searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
+            if arclist is None:
+                searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
+            else:
+                searchset = 'filter=id:' + (arclist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume'
         else:
             cv_type = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
@@ -52,8 +55,11 @@ def pulldetails(comicid,type,issueid=None,offset=1):
         #this is used ONLY for CV_ONLY
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
     elif type == 'storyarc':
-       PULLURL =  mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
+        PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
+    elif type == 'comicyears':
+        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher&offset=' + str(offset)
 
+    #logger.info('PULLURL: ' + PULLURL)
     #CV API Check here.
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         cvapi_check()
@@ -71,7 +77,7 @@ def pulldetails(comicid,type,issueid=None,offset=1):
     return dom
 
 
-def getComic(comicid,type,issueid=None,arc=None):
+def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidlist=None):
     if type == 'issue': 
         offset = 1
         issue = {}
@@ -80,7 +86,14 @@ def getComic(comicid,type,issueid=None,arc=None):
         comicResults = []
         firstdate = '2099-00-00'
         #let's find out how many results we get from the query...
-        searched = pulldetails(comicid,'issue',None,0)
+        if comicid is None:
+            #if comicid is None, it's coming from the story arc search results.
+            id = arcid
+            islist = arclist
+        else:
+            id = comicid
+            islist = None
+        searched = pulldetails(id,'issue',None,0,islist)
         if searched is None: return False
         totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
         logger.fdebug("there are " + str(totalResults) + " search results...")
@@ -92,8 +105,8 @@ def getComic(comicid,type,issueid=None,arc=None):
             if countResults > 0:
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
-                searched = pulldetails(comicid,'issue',None,offsetcount)
-            issuechoice,tmpdate = GetIssuesInfo(comicid,searched)
+                searched = pulldetails(id,'issue',None,offsetcount,islist)
+            issuechoice,tmpdate = GetIssuesInfo(id,searched,arcid)
             if tmpdate < firstdate:
                 firstdate = tmpdate
             ndic = ndic + issuechoice
@@ -114,6 +127,11 @@ def getComic(comicid,type,issueid=None,arc=None):
     elif type == 'storyarc':
         dom = pulldetails(arc,'storyarc',None,1)   
         return GetComicInfo(issueid,dom)
+    elif type == 'comicyears':
+        #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year.
+        #this grabs each issue based on issueid, and then subsets the comicid for each to be used later.
+        dom = pulldetails(arcid,'comicyears',offset=1,comicidlist=comicidlist)
+        return GetSeriesYears(dom)
 
 def GetComicInfo(comicid,dom):
 
@@ -292,7 +310,7 @@ def GetComicInfo(comicid,dom):
 #    comic['comicchoice'] = comicchoice
     return comic
 
-def GetIssuesInfo(comicid,dom):
+def GetIssuesInfo(comicid,dom,arcid=None):
     subtracks = dom.getElementsByTagName('issue')
     if not mylar.CV_ONLY:
         cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
@@ -326,10 +344,32 @@ def GetIssuesInfo(comicid,dom):
                 })
         else:
             try:
-                tempissue['Issue_Name'] = subtrack.getElementsByTagName('name')[0].firstChild.wholeText
+                totnames = len( subtrack.getElementsByTagName('name') )
+                tot = 0
+                while (tot < totnames):
+                    if subtrack.getElementsByTagName('name')[tot].parentNode.nodeName == 'volume':
+                        tempissue['ComicName'] = subtrack.getElementsByTagName('name')[tot].firstChild.wholeText
+                    elif subtrack.getElementsByTagName('name')[tot].parentNode.nodeName == 'issue':
+                        try:
+                            tempissue['Issue_Name'] = subtrack.getElementsByTagName('name')[tot].firstChild.wholeText
+                        except:
+                            tempissue['Issue_Name'] = None
+                    tot+=1
+            except:
+                tempissue['ComicName'] = 'None'
+
+            try:
+                totids = len( subtrack.getElementsByTagName('id') )
+                idt = 0
+                while (idt < totids):
+                    if subtrack.getElementsByTagName('id')[idt].parentNode.nodeName == 'volume':
+                        tempissue['Comic_ID'] = subtrack.getElementsByTagName('id')[idt].firstChild.wholeText
+                    elif subtrack.getElementsByTagName('id')[idt].parentNode.nodeName == 'issue':
+                        tempissue['Issue_ID'] = subtrack.getElementsByTagName('id')[idt].firstChild.wholeText
+                    idt+=1
             except:
                 tempissue['Issue_Name'] = 'None'
-            tempissue['Issue_ID'] = subtrack.getElementsByTagName('id')[0].firstChild.wholeText
+
             try:
                 tempissue['CoverDate'] = subtrack.getElementsByTagName('cover_date')[0].firstChild.wholeText
             except:
@@ -342,14 +382,28 @@ def GetIssuesInfo(comicid,dom):
                 tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
             except:
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
-            issuech.append({
-                'Comic_ID':                comicid,
-                'Issue_ID':                tempissue['Issue_ID'],
-                'Issue_Number':            tempissue['Issue_Number'],
-                'Issue_Date':              tempissue['CoverDate'],
-                'Store_Date':              tempissue['StoreDate'],
-                'Issue_Name':              tempissue['Issue_Name']
-                })
+
+            if arcid is None:
+                issuech.append({
+                    'Comic_ID':                comicid,
+                    'Issue_ID':                tempissue['Issue_ID'],
+                    'Issue_Number':            tempissue['Issue_Number'],
+                    'Issue_Date':              tempissue['CoverDate'],
+                    'Store_Date':              tempissue['StoreDate'],
+                    'Issue_Name':              tempissue['Issue_Name']
+                    })
+
+            else:
+                issuech.append({
+                    'ArcID':                   arcid,
+                    'ComicName':               tempissue['ComicName'],
+                    'ComicID':                 tempissue['Comic_ID'],
+                    'IssueID':                 tempissue['Issue_ID'],
+                    'Issue_Number':            tempissue['Issue_Number'],
+                    'Issue_Date':              tempissue['CoverDate'],
+                    'Store_Date':              tempissue['StoreDate'],
+                    'Issue_Name':              tempissue['Issue_Name']
+                    })
 
             if tempissue['CoverDate'] < firstdate and tempissue['CoverDate'] != '0000-00-00':
                 firstdate = tempissue['CoverDate']
@@ -372,6 +426,51 @@ def GetFirstIssue(issueid,dom):
 
     return the_year
 
+def GetSeriesYears(dom):
+    #used by the 'add a story arc' option to individually populate the Series Year for each series within the given arc.
+    #series year is required for alot of functionality.
+    series = dom.getElementsByTagName('volume')
+    tempseries = {}
+    serieslist = []
+    for dm in series:
+        try:
+            totids = len( dm.getElementsByTagName('id') )
+            idc = 0
+            while (idc < totids):
+                if dm.getElementsByTagName('id')[idc].parentNode.nodeName == 'volume':
+                    tempseries['ComicID'] = dm.getElementsByTagName('id')[idc].firstChild.wholeText
+                idc+=1
+        except:
+            logger.warn('There was a problem retrieving a comicid for a series within the arc. This will have to manually corrected most likely.')
+            tempseries['ComicID'] = 'None'
+
+        tempseries['Series'] = 'None'
+        tempseries['Publisher'] = 'None'
+        try:
+            totnames = len( dm.getElementsByTagName('name') )
+            namesc = 0
+            while (namesc < totnames):
+                if dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'volume':
+                    tempseries['Series'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
+                elif dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'publisher':
+                    tempseries['Publisher'] = dm.getElementsByTagName('name')[namesc].firstChild.wholeText
+                namesc+=1
+        except:
+            logger.warn('There was a problem retrieving a Series Name or Publisher for a series within the arc. This will have to manually corrected.')
+
+        try:
+            tempseries['SeriesYear'] = dm.getElementsByTagName('start_year')[0].firstChild.wholeText
+        except:
+            logger.warn('There was a problem retrieving the start year for a particular series within the story arc.')
+            tempseries['SeriesYear'] = '0000'
+
+
+        serieslist.append({"ComicID":    tempseries['ComicID'],
+                           "ComicName":  tempseries['Series'],
+                           "SeriesYear": tempseries['SeriesYear'],
+                           "Publisher": tempseries['Publisher']})
+
+    return serieslist
 
 def drophtml(html):
     from bs4 import BeautifulSoup
@@ -380,3 +479,5 @@ def drophtml(html):
     text_parts = soup.findAll(text=True)
     #print ''.join(text_parts)
     return ''.join(text_parts)
+
+
