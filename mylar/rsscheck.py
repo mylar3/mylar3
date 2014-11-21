@@ -328,7 +328,8 @@ def nzbs(provider=None):
                             newzst = newznab_host[3].find('#')
                             newznabuid = newznab_host[3][:newzst]
                             newznabcat = newznab_host[3][newzst+1:]
-                    feed = newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&r=' + newznab_host[2].rstrip()
+                    # 11-21-2014: added &num=100 to return 100 results (or maximum) - unsure of cross-reliablity
+                    feed = newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&&r=' + newznab_host[2].rstrip()
                     feedme = feedparser.parse(feed)
                     site = newznab_host[0].rstrip()
                     feedthis.append({"feed":     feedme,

@@ -1637,7 +1637,14 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         nzbid = path_parts[0].rsplit('/',1)[1]
     elif nzbprov == 'newznab':
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
-        nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+        tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
+        if tmpid == '' or tmpid is None:
+            nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+        else:
+            # for the geek in all of us...
+            st = tmpid.find('&id')
+            end = tmpid.find('&',st+1)
+            nzbid = re.sub('&id=','', tmpid[st:end]).strip()
 
 
     if mylar.FAILED_DOWNLOAD_HANDLING:
@@ -1743,7 +1750,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
             tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
             server = ServerProxy(tmpapi)
-            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
+            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, urllib.quote_plus(linkapi))
             sent_to = "NZBGet"
             if send_to_nzbget is True:
                 logger.info("Successfully sent nzb to NZBGet!")
@@ -1755,26 +1762,26 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         elif mylar.USE_SABNZBD:
             # let's build the send-to-SAB string now:
             # changed to just work with direct links now...
-            tmpapi = str(mylar.SAB_HOST) + "/api?apikey=" + str(mylar.SAB_APIKEY) 
+            tmpapi = mylar.SAB_HOST + "/api?apikey=" + mylar.SAB_APIKEY
 
             logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi,'&')))
 
-            fileURL = str(linkapi)
+            fileURL = urllib.quote_plus(linkapi)
 
             SABtype = "&mode=addurl&name="
-            tmpapi = tmpapi + str(SABtype)
+            tmpapi = tmpapi + SABtype
 
             logger.fdebug("...selecting API type: " + str(tmpapi))
-            tmpapi = tmpapi + str(fileURL)
+            tmpapi = tmpapi + fileURL
 
             logger.fdebug("...attaching nzb provider link: " + str(helpers.apiremove(tmpapi,'$')))
             # determine SAB priority
             if mylar.SAB_PRIORITY:
-                tmpapi = tmpapi + "&priority=" + str(sabpriority)
+                tmpapi = tmpapi + "&priority=" + sabpriority
                 logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi,'&')))
             # if category is blank, let's adjust
             if mylar.SAB_CATEGORY:
-                tmpapi = tmpapi + "&cat=" + str(mylar.SAB_CATEGORY)
+                tmpapi = tmpapi + "&cat=" + mylar.SAB_CATEGORY
                 logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi,'&')))
             if mylar.POST_PROCESSING: #or mylar.RENAME_FILES:
                 if mylar.POST_PROCESSING_SCRIPT:
