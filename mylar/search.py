@@ -1664,13 +1664,15 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     linkstart = os.path.splitext(link)[0]
     if nzbprov == 'nzb.su' or nzbprov == 'newznab':
         linkit = os.path.splitext(link)[1]
-        if mylar.USE_SABNZBD:
-            linkit = linkit.replace("&", "%26")
-        linkapi = str(linkstart) + str(linkit)
+        #if mylar.USE_SABNZBD:
+        #    linkit = linkit.replace("&", "%26")
+        linkapi = linkstart + linkit
     else:
         # this should work for every other provider
-        linkstart = linkstart.replace("&", "%26")
-        linkapi = str(linkstart)
+        #linkstart = linkstart.replace("&", "%26")
+        linkapi = linkstart
+
+    fileURL = urllib.quote_plus(linkapi)
     logger.fdebug("link given by: " + str(nzbprov))
     #logger.fdebug("link: " + str(linkstart))
     #logger.fdebug("linkforapi: " + str(linkapi))
@@ -1750,7 +1752,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
             tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
             server = ServerProxy(tmpapi)
-            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, urllib.quote_plus(linkapi))
+            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, fileURL)
             sent_to = "NZBGet"
             if send_to_nzbget is True:
                 logger.info("Successfully sent nzb to NZBGet!")
@@ -1765,8 +1767,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmpapi = mylar.SAB_HOST + "/api?apikey=" + mylar.SAB_APIKEY
 
             logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi,'&')))
-
-            fileURL = urllib.quote_plus(linkapi)
 
             SABtype = "&mode=addurl&name="
             tmpapi = tmpapi + SABtype
