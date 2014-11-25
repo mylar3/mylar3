@@ -86,7 +86,7 @@ def newpull():
             x+=1
 
         logger.fdebug('Saving new pull-list information into local file for subsequent merge')
-        except_file = '/home/hero/mylar/cache/newreleases.txt'
+        except_file = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
         try:
             csvfile = open(str(except_file), 'rb')
             csvfile.close()

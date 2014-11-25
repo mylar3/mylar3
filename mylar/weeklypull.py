@@ -119,6 +119,10 @@ def pullit(forcecheck=None):
           'ONE SHOT',
           'PI']
 
+    #denotes issues that contain special characters within that would normally fail when checked if issue ONLY contained numerics.
+    #add freely, just lowercase and exclude decimals (they get stripped during comparisons)
+    specialissues = {'au','ai','inh','now'}
+
     pub = "COMICS"
     prevcomic = ""
     previssue = ""
@@ -129,7 +133,7 @@ def pullit(forcecheck=None):
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
         newpull.newpull()
     else:
-        logger.info('[PULL-LIST] Populating & Loading pull-list data from file : ' + newrl)
+        logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
         f = urllib.urlretrieve(PULLURL, newrl)
 
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
@@ -232,7 +236,20 @@ def pullit(forcecheck=None):
                             if issname[n] == "PI":
                                 issue = "NA"
                                 break
-                            issue = issname[n]
+
+                            #this is to ensure we don't get any comps added by removing them entirely (ie. #1-4, etc)
+                            x = None
+                            try:
+                                x = float( re.sub('#','', issname[n].strip()) )
+                            except ValueError, e:
+                                if any(d in re.sub(r'[^a-zA-Z0-9]','',issname[n]).strip() for d in specialissues):
+                                    issue = issname[n]
+                                else:
+                                    logger.fdebug('Comp issue set detected as : ' + str(issname[n]) + '. Ignoring.')
+                                    issue = 'NA'
+                            else:
+                                issue = issname[n]
+
                             if 'ongoing' not in issname[n-1].lower() and '(vu)' not in issname[n-1].lower():
                                 #print ("issue found : " + issname[n])
                                 comicend = n - 1
@@ -585,7 +602,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
                 if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
                 sqlsearch = re.sub(r'\s', '%', sqlsearch)
                 sqlsearch = sqlsearch + '%'
-                logger.fdebug("searchsql: " + sqlsearch)
+                #logger.fdebug("searchsql: " + sqlsearch)
                 if futurepull is None:
                     weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
                 else:
@@ -874,8 +891,12 @@ def checkthis(datecheck,datestatus,usedate):
         logger.fdebug('Store Date falls within acceptable range - series MATCH')
         valid_check = True
     elif int(datecheck) < int(usedate):
-        logger.fdebug('The issue date of issue was on ' + str(datecheck) + ' which is prior to ' + str(usedate))
-        valid_check = False
+        if datecheck == '00000000':
+            logger.fdebug('Issue date retrieved as : ' + str(datecheck) + '. This is unpopulated data on CV, which normally means it\'s a new issue and is awaiting data population.')
+            valid_check = True
+        else:
+            logger.fdebug('The issue date of issue was on ' + str(datecheck) + ' which is prior to ' + str(usedate))
+            valid_check = False
 
     return valid_check
 
