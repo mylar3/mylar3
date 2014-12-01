@@ -26,7 +26,6 @@ from mylar import helpers
 
 # These settings are for file logging only
 FILENAME = 'mylar.log'
-MAX_SIZE = 1000000 # 1 MB
 MAX_FILES = 5
 
 # Mylar logger
@@ -43,10 +42,10 @@ class LogListHandler(logging.Handler):
         mylar.LOG_LIST.insert(0, (helpers.now(), message, record.levelname, record.threadName))
 
 def initLogger(verbose=1):
-#    if mylar.MAX_LOGSIZE:
-#        MAX_SIZE = mylar.MAX_LOGSIZE
-#    else:
-#        MAX_SIZE = 1000000 # 1 MB
+    if mylar.MAX_LOGSIZE:
+        MAX_SIZE = mylar.MAX_LOGSIZE
+    else:
+        MAX_SIZE = 1000000 # 1 MB
 
     """
     Setup logging for Mylar. It uses the logger instance with the name

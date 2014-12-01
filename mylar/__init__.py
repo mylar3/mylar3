@@ -419,7 +419,7 @@ def initialize():
             VERBOSE = 2
         else:
             VERBOSE = 1
-        MAX_LOGSIZE = check_setting_str(CFG, 'General', 'max_logsize', '')
+        MAX_LOGSIZE = check_setting_int(CFG, 'General', 'max_logsize', 1000000)
         if not MAX_LOGSIZE:
             MAX_LOGSIZE = 1000000        
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
