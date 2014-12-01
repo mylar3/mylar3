@@ -609,11 +609,12 @@ def ComicSort(comicorder=None,sequence=None,imported=None):
                 comicorder['SortOrder'] = comicorderlist
                 comicorder['LastOrderNo'] = i-1
                 comicorder['LastOrderID'] = comicorder['SortOrder'][i-1]['ComicID']
+            if i < 0: i == 0
             logger.info('Sucessfully ordered ' + str(i-1) + ' series in your watchlist.')
             return comicorder
         elif sequence == 'update':
             mylar.COMICSORT['SortOrder'] = comicorderlist
-            print ("i:" + str(i))
+            #print ("i:" + str(i))
             if i == 0:
                 placemnt = 1
             else:

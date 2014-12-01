@@ -77,7 +77,7 @@ def newpull():
                             break
                         if len(found_iss) > 0:
                             pull_list.append({"iss_url":   found_iss[0],
-                                              "name":      found_iss[1],
+                                              "name":      found_iss[1].findNext(text=True),
                                               "price":     found_iss[2],
                                               "publisher": isspublisher,
                                               "ID"       : urlID})                       
