@@ -474,7 +474,15 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
     tsearch_rem2 = re.sub("\\bthe\\b", "%", tsearch_rem1.lower())    
     tsearch_removed = re.sub('\s+', ' ', tsearch_rem2)
     tsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s]', '%',tsearch_removed)
-    tsearch = tsearch_seriesname + "%"
+    if mylar.PREFERRED_QUALITY == 0:
+        tsearch = tsearch_seriesname + "%"
+    elif mylar.PREFERRED_QUALITY == 1:
+        tsearch = tsearch_seriesname + "%cbr%"
+    elif mylar.PREFERRED_QUALITY == 2:
+        tsearch = tsearch_seriesname + "%cbz%"
+    else:   
+        tsearch = tsearch_seriesname + "%"
+
     logger.fdebug('tsearch : ' + tsearch)
     AS_Alt = []
     tresults = []
@@ -508,7 +516,14 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
             if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
             AS_Alt.append(AS_formatrem_seriesname)
 
-            AS_Alternate += '%'
+            if mylar.PREFERRED_QUALITY == 0:
+                 AS_Alternate += "%"
+            elif mylar.PREFERRED_QUALITY == 1:
+                 AS_Alternate += "%cbr%"
+            elif mylar.PREFERRED_QUALITY == 2:
+                 AS_Alternate += "%cbz%"
+            else:
+                 AS_Alternate += "%"
 
             if mylar.ENABLE_CBT:
                 #print "AS_Alternate:" + str(AS_Alternate)
@@ -526,6 +541,17 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 
     for tor in tresults:
         torsplit = tor['Title'].split('/')
+        if mylar.PREFERRED_QUALITY == 1:
+            if 'cbr' in tor['Title']:
+                logger.fdebug('Quality restriction enforced [ cbr only ]. Accepting result.')
+            else:
+                logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
+        elif mylar.PREFERRED_QUALITY == 2:
+            if 'cbz' in tor['Title']:
+                logger.fdebug('Quality restriction enforced [ cbz only ]. Accepting result.')
+            else:
+                logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
+
         logger.fdebug('tor-Title: ' + tor['Title'])
         logger.fdebug('there are ' + str(len(torsplit)) + ' sections in this title')
         i=0
@@ -534,6 +560,7 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
                 logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
                 continue
         #0 holds the title/issue and format-type.
+        ext_check = True   # extension checker to enforce cbr/cbz filetype restrictions.
         while (i < len(torsplit)):
             #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.
             logger.fdebug('section(' + str(i) + '): ' + torsplit[i])
@@ -549,6 +576,8 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
                 rebuiltline = rebuiltline + ' (' + titletemp + ')'
             i+=1
 
+        if ext_check == False: 
+            continue
         logger.fdebug('rebuiltline is :' + rebuiltline)
 
         seriesname_mod = seriesname
@@ -656,10 +685,11 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,Comic
             seriesname = snm['ComicName']
             seriesname_alt = snm['AlternateSearch']
 
-
     nsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.\-\s]', '%',seriesname)
     formatrem_seriesname = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+
     nsearch = '%' + nsearch_seriesname + "%"
+
     nresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [nsearch,nzbprov])
     if nresults is None:
         logger.fdebug('nzb search returned no results for ' + seriesname)
@@ -672,6 +702,7 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,Comic
                 AS_Alternate = AlternateSearch
             for calt in chkthealt:
                 AS_Alternate = re.sub('##','',calt)
+                AS_Alternate = '%' + AS_Alternate + "%"
                 nresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site=?", [AS_Alternate,nzbprov])
             if nresults is None:
                 logger.fdebug('nzb alternate name search returned no results.')
@@ -692,15 +723,28 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,Comic
         else:
             ComVersChk = 0
 
+        filetype = None
+        if mylar.PREFERRED_QUALITY == 1: filetype = 'cbr'
+        elif mylar.PREFERRED_QUALITY == 2: filetype = 'cbz'
+       
         for results in nresults:
             title = results['Title']
             #logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
             noYear = 'False'
-
+            _digits = re.compile('\d')
             for subs in splitTitle:
                 #logger.fdebug(subs)
-                if len(subs) > 10 and not any(d in subs.lower() for d in except_list):
+                if len(subs) >= len(seriesname) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
+                    if subs.lower().startswith('for'):
+                         # need to filter down alternate names in here at some point...
+                        if seriesname.lower().startswith('for'):
+                            pass
+                        else:
+                            #this is the crap we ignore. Continue
+                            logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
+                            continue
+
                     if ComVersChk == 0:
                         noYear = 'False'
 
@@ -715,6 +759,10 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,Comic
                         noYear = 'False'
 
                     if noYear == 'False':
+
+                        if filetype is not None:
+                            if filetype not in subs.lower():
+                                continue
 
                         nzbtheinfo.append({
                                   'title':   subs,

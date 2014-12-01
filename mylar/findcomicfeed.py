@@ -31,6 +31,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     searchIsOne = "0"+searchIssue
     searchIsTwo = "00"+searchIssue
 
+    if mylar.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
+    elif mylar.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
+
     if "-" in searchName:
         searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
 
@@ -105,11 +108,12 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
             logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
             noYear = 'False'
+            _digits = re.compile('\d')
 
             for subs in splitTitle:
                 logger.fdebug('sub:' + subs)
                 regExCount = 0
-                if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list):
+                if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
 #                while regExCount < len(regexList):
 #                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
@@ -120,6 +124,14 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 #                                  'title':   subs,
 #                                  'link':    str(link)
 #                                  })
+                    # this will still match on crap like 'For SomeSomayes' especially if the series length < 'For SomeSomayes'
+                    if subs.startswith('for').lower():
+                        if cName.startswith('for').lower():
+                            pass
+                        else:
+                            #this is the crap we ignore. Continue
+                            logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
+                            continue
                     logger.fdebug('match.')
                     if IssDateFix != "no":
                         if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
