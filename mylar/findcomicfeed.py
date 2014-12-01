@@ -125,8 +125,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 #                                  'link':    str(link)
 #                                  })
                     # this will still match on crap like 'For SomeSomayes' especially if the series length < 'For SomeSomayes'
-                    if subs.startswith('for').lower():
-                        if cName.startswith('for').lower():
+                    if subs.lower().startswith('for'):
+                        if cName.lower().startswith('for'):
                             pass
                         else:
                             #this is the crap we ignore. Continue
