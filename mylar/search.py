@@ -1616,11 +1616,13 @@ def nzbname_create(provider, title=None, info=None):
             logger.fdebug("nzb name to be used for post-processing is : " + str(nzbname))
 
     elif provider == 'CBT' or provider == 'KAT':
+        #filesafe the name cause people are idiots when they post sometimes.
+        nzbname = re.sub('\s{2,}',' ', helpers.filesafe(title)).strip()
         #let's change all space to decimals for simplicity
-        nzbname = re.sub(" ", ".", title)
+        nzbname = re.sub(" ", ".", nzbname)
         #gotta replace & or escape it
-        nzbname = re.sub("\&", 'and', str(nzbname))
-        nzbname = re.sub('[\,\:\?]', '', str(nzbname))
+        nzbname = re.sub("\&", 'and', nzbname)
+        nzbname = re.sub('[\,\:\?]', '', nzbname)
         if nzbname.lower().endswith('.torrent'):
             nzbname = re.sub('.torrent', '', nzbname)
 
@@ -1641,7 +1643,7 @@ def nzbname_create(provider, title=None, info=None):
     nzbname = re.sub('.cbr', '', nzbname).strip()
     nzbname = re.sub('.cbz', '', nzbname).strip()
 
-    logger.fdebug("nzbname used for post-processing:" + str(nzbname))
+    logger.fdebug("nzbname used for post-processing:" + nzbname)
     return nzbname
 
 def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None):
