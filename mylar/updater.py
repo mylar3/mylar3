@@ -1107,6 +1107,14 @@ def forceRescan(ComicID,archive=None,module=None):
             havefiles = havefiles + ignorecount
             logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Ignored files:' + str(ignorecount))
 
+    snatchedcount = 0
+    if mylar.SNATCHED_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
+        snatches = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Snatched'", [ComicID])
+        if int(snatches[0][0]) > 0:
+            snatchedcount = snatches[0][0]
+            havefiles = havefiles + snatchedcount
+            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Snatched files:' + str(snatchedcount))
+
     #now that we are finished...
     #adjust for issues that have been marked as Downloaded, but aren't found/don't exist.
     #do it here, because above loop only cycles though found comics using filechecker.
@@ -1160,6 +1168,6 @@ def forceRescan(ComicID,archive=None,module=None):
     combined_total = rescan['Total'] + anncnt
 
     myDB.upsert("comics", newValueStat, controlValueStat)
-    logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state. Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total))
+    logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, snatched ' + str(snatchedcount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state [ Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total) + ' ]')
 
     return

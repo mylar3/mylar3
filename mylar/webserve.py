@@ -120,10 +120,11 @@ class WebInterface(object):
         isCounts[4] = 0   #4 downloaded
         isCounts[5] = 0   #5 ignored
         isCounts[6] = 0   #6 failed
-        #isCounts[7] = 0   #7 read 
+        isCounts[7] = 0   #7 snatched
+        #isCounts[8] = 0   #8 read 
 
         for curResult in issues:
-            baseissues = {'skipped':1,'wanted':2,'archived':3,'downloaded':4,'ignored':5,'failed':6}
+            baseissues = {'skipped':1,'wanted':2,'archived':3,'downloaded':4,'ignored':5,'failed':6,'snatched':7}
             for seas in baseissues:
                 if curResult['Status'] is None:
                    continue
@@ -138,7 +139,8 @@ class WebInterface(object):
                  "Archived" : str(isCounts[3]),
                  "Downloaded" : str(isCounts[4]),
                  "Ignored" : str(isCounts[5]),
-                 "Failed" : str(isCounts[6])
+                 "Failed" : str(isCounts[6]),
+                 "Snatched" : str(isCounts[7])
                }
         usethefuzzy = comic['UseFuzzy']
         skipped2wanted = "0"

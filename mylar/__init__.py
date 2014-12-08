@@ -152,6 +152,7 @@ ZERO_LEVEL = False
 ZERO_LEVEL_N = None
 LOWERCASE_FILENAME = False
 IGNORE_HAVETOTAL = False
+SNATCHED_HAVETOTAL = False
 USE_MINSIZE = False
 MINSIZE = 10
 USE_MAXSIZE = False
@@ -368,7 +369,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
@@ -468,6 +469,7 @@ def initialize():
         ZERO_LEVEL_N = check_setting_str(CFG, 'General', 'zero_level_n', '')
         LOWERCASE_FILENAMES = bool(check_setting_int(CFG, 'General', 'lowercase_filenames', 0))
         IGNORE_HAVETOTAL = bool(check_setting_int(CFG, 'General', 'ignore_havetotal', 0))
+        SNATCHED_HAVETOTAL = bool(check_setting_int(CFG, 'General', 'snatched_havetotal', 0))
         SYNO_FIX = bool(check_setting_int(CFG, 'General', 'syno_fix', 0))
         SEARCH_DELAY = check_setting_int(CFG, 'General', 'search_delay', 1)
         GRABBAG_DIR = check_setting_str(CFG, 'General', 'grabbag_dir', '')
@@ -1115,6 +1117,7 @@ def config_write():
     new_config['General']['zero_level_n'] = ZERO_LEVEL_N
     new_config['General']['lowercase_filenames'] = int(LOWERCASE_FILENAMES)
     new_config['General']['ignore_havetotal'] = int(IGNORE_HAVETOTAL)
+    new_config['General']['snatched_havetotal'] = int(SNATCHED_HAVETOTAL)
     new_config['General']['syno_fix'] = int(SYNO_FIX)
     new_config['General']['search_delay'] = SEARCH_DELAY
     new_config['General']['grabbag_dir'] = GRABBAG_DIR
