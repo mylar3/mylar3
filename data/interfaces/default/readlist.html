@@ -79,13 +79,20 @@
                                 <td id="comicname" title="${item['IssueName']}">${item['ComicName']} (${item['SeriesYear']})</td>
                                 <td id="issue">${item['IssueNumber']}</td>
                                 <% 
-                                    if item['IssueDate'] != '0000-00-00':
-                                        issueyear = item['IssueDate'][:4]
-                                    else:
-                                        if item['StoreDate'] != '0000-00-00':
+                                    try:
+                                        if item['IssueDate'] != '0000-00-00' and item['IssueDate'] is not None:
                                             issueyear = item['IssueDate'][:4]
                                         else:
-                                            issueyear = '0000'
+                                            if item['StoreDate'] != '0000-00-00' and item['StoreDate'] is not None:
+                                                issueyear = item['IssueDate'][:4]
+                                            else:
+                                                # this is needed for imported cbl's
+                                                try:
+                                                    issueyear = item['issueYEAR']
+                                                except:
+                                                    issueyear = '0000'
+                                    except:
+                                        issueyear = '0000'
                                  %>
                                 <td id="issueyear">${issueyear}</td>
                                 <td id="status">${item['Status']}</td>

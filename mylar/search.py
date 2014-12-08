@@ -1223,7 +1223,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 #
 #                        else:
 #                            pass
-                            print str(vals)
+                            #print str(vals)
 
                             if vals is not None:
                                 if vals[0]['status'] == 'continue':

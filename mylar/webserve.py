@@ -481,6 +481,11 @@ class WebInterface(object):
                 seriesYear = 'None'
                 issuePublisher = 'None'
 
+                if AD['IssueName'] is None:
+                    IssueName = 'None'
+                else:
+                    IssueName = AD['IssueName'][:70]
+
                 for cid in comicid_results:
                     if cid['ComicID'] == AD['ComicID']:
                         seriesYear = cid['SeriesYear']
@@ -493,7 +498,7 @@ class WebInterface(object):
                            "IssueID":        AD['IssueID'],
                            "StoryArc":       storyarcname,
                            "ComicName":      AD['ComicName'],
-                           "IssueName":      AD['IssueName'][:70],
+                           "IssueName":      IssueName,
                            "IssueNumber":    AD['Issue_Number'],
                            "Publisher":      storyarcpublisher,
                            "TotalIssues":    storyarcissues,
