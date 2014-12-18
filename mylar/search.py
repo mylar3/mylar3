@@ -242,6 +242,11 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             #torprtmp+=1  #torprtmp-=1
 
         if findit == 'yes': 
+            #check for snatched_havetotal being enabled here and adjust counts now.
+            #IssueID being the catch/check for one-offs as they won't exist on the watchlist and error out otherwise.
+            if mylar.SNATCHED_HAVETOTAL and IssueID is not None:
+                logger.fdebug('Adding this to the HAVE total for the series.')
+                helpers.incr_snatched(ComicID)                
             return findit, searchprov        
         else:
             if manualsearch is None:
@@ -1112,118 +1117,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         if issue_firstword:
                             vals = IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstword, hyphensplit, orignzb=entry['title'])
-#                        logger.fdebug("incorrect comic lengths...not a match")
-#
-#                        issuetitle = re.sub('[\-\:\,\?\.]', ' ', str(issuetitle))
-#                        issuetitle_words = issuetitle.split(None)
-#                        #issue title comparison here:
-#                        logger.fdebug('there are ' + str(len(issuetitle_words)) + ' words in the issue title of : ' + str(issuetitle))
-#                        # we minus 1 the splitst since the issue # is included in there.
-#                        if (splitst - 1) > len(watchcomic_split):  
-#                            possibleissue_num = splitit[splitst]
-#                            logger.fdebug('possible issue number of : ' + str(possibleissue_num))
-#                            extra_words = splitst - len(watchcomic_split)
-#                            logger.fdebug('there are ' + str(extra_words) + ' left over after we remove the series title.')
-#                            wordcount = 1
-#                            #remove the series title here so we just have the 'hopefully' issue title
-#                            for word in splitit:
-#                                #logger.info('word: ' + str(word))
-#                                if wordcount > len(watchcomic_split):
-#                                    #logger.info('wordcount: ' + str(wordcount))
-#                                    #logger.info('watchcomic_split: ' + str(len(watchcomic_split)))
-#                                    if wordcount - len(watchcomic_split) == 1:
-#                                        search_issue_title = word
-#                                        possibleissue_num = word
-#                                    else:
-#                                        search_issue_title += ' ' + word
-#                                wordcount +=1
-#
-#                            decit = search_issue_title.split(None)
-#                            if decit[0].isdigit() and decit[1].isdigit():
-#                                logger.fdebug('possible decimal - referencing position from original title.')
-#                                chkme = entry['title'].find(decit[0])
-#                                chkend = entry['title'].find(decit[1], chkme + len(decit[0]))
-#                                chkspot = entry['title'][chkme:chkend+1]
-#                                print chkme, chkend
-#                                print chkspot
-#                                # we add +1 to decit totals in order to account for the '.' that's missing and we assume is there.
-#                                if len(chkspot) == ( len(decit[0]) + len(decit[1]) + 1 ):   
-#                                    logger.fdebug('lengths match for possible decimal issue.')
-#                                    if '.' in chkspot:
-#                                        logger.fdebug('decimal located within : ' + str(chkspot))
-#                                        possibleissue_num = chkspot
-#                                        splitst = splitst -1  #remove the second numeric as it's a decimal and would add an extra char to the matching process
-#                            logger.fdebug('search_issue_title is : ' + str(search_issue_title))
-#                            logger.fdebug('possible issue number of : ' + str(possibleissue_num))
-#
-#                            if hyphensplit is not None:
-#                                logger.fdebug('hypen split detected.')
-#                                try:
-#                                    issue_start = search_issue_title.find(issue_firstword)
-#                                    logger.fdebug('located first word of : ' + str(issue_firstword) + ' at position : ' + str(issue_start))
-#                                    search_issue_title = search_issue_title[issue_start:]
-#                                    logger.fdebug('corrected search_issue_title is now : ' + str(search_issue_title))
-#                                except TypeError:
-#                                    logger.fdebug('invalid parsing detection. Ignoring this result.')
-#                                    continue
-#                            #now we have the nzb issue title (if it exists), let's break it down further.
-#                            sit_split = search_issue_title.split(None)
-#                            watch_split_count = len(issuetitle_words)
-#                            isstitle_removal = []
-#                            isstitle_match = 0   #counter to tally % match
-#                            misword = 0 # counter to tally words that probably don't need to be an 'exact' match for
-#                            for wsplit in issuetitle_words:
-#                                of_chk = False
-#                                if wsplit.lower() == 'part' or wsplit.lower() == 'of':
-#                                    if wsplit.lower() == 'of':
-#                                        of_chk = True
-#                                    logger.fdebug('not worrying about this word : ' + str(wsplit))
-#                                    misword +=1
-#                                    continue
-#                                if wsplit.isdigit() and of_chk == True:
-#                                    logger.fdebug('of ' + str(wsplit) + ' detected. Ignoring for matching.')
-#                                    of_chk = False
-#                                    continue
-#
-#                                for sit in sit_split:
-#                                    logger.fdebug('looking at : ' + str(sit.lower()) + ' -TO- ' + str(wsplit.lower()))
-#                                    if sit.lower() == 'part':
-#                                        logger.fdebug('not worrying about this word : ' + str(sit))
-#                                        misword +=1
-#                                        isstitle_removal.append(sit)
-#                                        break
-#                                    elif sit.lower() == wsplit.lower():
-#                                        logger.fdebug('word match: ' + str(sit))
-#                                        isstitle_match +=1
-#                                        isstitle_removal.append(sit)
-#                                        break
-#                                    else:
-#                                        try:
-#                                            if int(sit) == int(wsplit):
-#                                                logger.fdebug('found matching numeric: ' + str(wsplit))
-#                                                isstitle_match +=1
-#                                                isstitle_removal.append(sit)
-#                                                break
-#                                        except:
-#                                            pass
-#
-#                            logger.fdebug('isstitle_match count : ' + str(isstitle_match))
-#                            if isstitle_match > 0:
-#                                iss_calc = ( ( isstitle_match + misword ) / watch_split_count ) * 100
-#                                logger.fdebug('iss_calc: ' + str(iss_calc) + ' % with ' + str(misword) + ' unaccounted for words')
-#                            else:
-#                                iss_calc = 0
-#                                logger.fdebug('0 words matched on issue title.')
-#                            if iss_calc >= 80:
-#                                logger.fdebug('>80% match on issue name. If this were implemented, this would be considered a match.')
-#                                logger.fdebug('we should remove ' + str(len(isstitle_removal)) + ' words : ' + str(isstitle_removal))                                
-#                                logger.fdebug('Removing issue title from nzb filename to improve matching algorithims.')
-#                                splitst = splitst - len(isstitle_removal)
-#                                isstitle_chk = True
-#
-#                        else:
-#                            pass
-                            #print str(vals)
 
                             if vals is not None:
                                 if vals[0]['status'] == 'continue':
@@ -1384,7 +1277,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         if foundc == "yes":
             foundcomic.append("yes")
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-            if '[RSS]' in tmpprov : tmpprov = tmpprov[:-4].strip()
+            if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
             updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID, nzbid, tmpprov)
             prov_count == 0
             #break
@@ -1883,7 +1776,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         #update the db on the snatch.
         logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-        if '[RSS]' in tmpprov : tmpprov = tmpprov[:-4].strip()
+        if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
         updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)     
         return
 
@@ -1938,7 +1831,10 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
         logger.fdebug('there are ' + str(len(issuetitle_words)) + ' words in the issue title of : ' + str(issuetitle))
         # we minus 1 the splitst since the issue # is included in there.
         if (splitst - 1) > len(watchcomic_split):
-            possibleissue_num = splitit[splitst]
+            logger.fdebug('splitit:' + str(splitit))
+            logger.fdebug('splitst:' + str(splitst))
+            logger.fdebug('len-watchcomic:' + str(len(watchcomic_split)))
+            possibleissue_num = splitit[len(watchcomic_split)] #[splitst]
             logger.fdebug('possible issue number of : ' + str(possibleissue_num))
             extra_words = splitst - len(watchcomic_split)
             logger.fdebug('there are ' + str(extra_words) + ' left over after we remove the series title.')
@@ -1970,7 +1866,7 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
                     if '.' in chkspot:
                         logger.fdebug('decimal located within : ' + str(chkspot))
                         possibleissue_num = chkspot
-                        splitst = splitst -1  #remove the second numeric as it's a decimal and would add an extra char to$
+                        splitst = splitst -1  #remove the second numeric as it's a decimal and would add an extra char to
 
             logger.fdebug('search_issue_title is : ' + str(search_issue_title))
             logger.fdebug('possible issue number of : ' + str(possibleissue_num))
@@ -2042,9 +1938,11 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
                 logger.fdebug('Removing issue title from nzb filename to improve matching algorithims.')
                 splitst = splitst - len(isstitle_removal)
                 isstitle_chk = True
-
-
-        return vals.append({"splitit":  splitit,
-                            "splitst":  splitst,
-                            "isstitle_chk": isstitle_chk,
-                            "status":   "ok"})
+                vals.append({"splitit":  splitit,
+                             "splitst":  splitst,
+                             "isstitle_chk": isstitle_chk,
+                             "possibleissue_num": possibleissue_num,
+                             "isstitle_removal": isstitle_removal,
+                             "status":   'ok'})
+                return vals
+        return
