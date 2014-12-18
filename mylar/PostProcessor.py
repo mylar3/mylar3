@@ -203,16 +203,44 @@ class PostProcessor(object):
                     logger.error(module + ' No Series in Watchlist - aborting Manual Post Processing. Maybe you should be running Import?')
                     return
                 else:
+                    watchvals = []
+                    for wv in comicseries:
+
+                        wv_comicname = wv['ComicName']
+                        wv_comicpublisher = wv['ComicPublisher']
+                        wv_alternatesearch = wv['AlternateSearch']
+                        wv_comicid = wv['ComicID']
+
+                        wv_seriesyear = wv['ComicYear']
+                        wv_comicversion = wv['ComicVersion']
+                        wv_publisher = wv['ComicPublisher']
+                        wv_total = wv['Total']
+
+                        #logger.fdebug('Checking ' + wv['ComicName'] + ' [' + str(wv['ComicYear']) + '] -- ' + str(wv['ComicID']))
+
+                        #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
+                        latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
+                        if latestdate:
+                            latestdate = latestdate[0][0]
+                        else:
+                            latestdate = wv['LatestDate']
+
+                        watchvals.append({"ComicName":       wv_comicname,
+                                          "ComicPublisher":  wv_comicpublisher,
+                                          "AlternateSearch": wv_alternatesearch,
+                                          "ComicID":         wv_comicid,
+                                          "WatchValues" : {"SeriesYear":   wv_seriesyear,
+                                                           "LatestDate":   latestdate,
+                                                           "ComicVersion": wv_comicversion,
+                                                           "Publisher":    wv_publisher,
+                                                           "Total":        wv_total,
+                                                           "ComicID":      wv_comicid}
+                                         })
+
                     ccnt=0
                     nm=0
-                    watchvals = {}
-                    for cs in comicseries:
-                        watchvals = {"SeriesYear":   cs['ComicYear'],
-                                     "LatestDate":   cs['LatestDate'],
-                                     "ComicVersion": cs['ComicVersion'],
-                                     "Publisher":    cs['ComicPublisher'],
-                                     "Total":        cs['Total']}
-                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['ComicPublisher'],cs['AlternateSearch'], manual=watchvals)
+                    for cs in watchvals:
+                        watchmatch = filechecker.listFiles(self.nzb_folder,cs['ComicName'],cs['ComicPublisher'],cs['AlternateSearch'], manual=cs['WatchValues'])
                         if watchmatch['comiccount'] == 0: # is None:
                             nm+=1
                             continue
@@ -272,7 +300,7 @@ class PostProcessor(object):
                                         if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                             issyr = int(monthval[:4]) + 1
                                             logger.fdebug(module + ' IssueYear (issyr) is ' + str(issyr))
-                                        elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2:
+                                        elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
                                             issyr = int(monthval[:4]) - 1
 
 
@@ -513,6 +541,7 @@ class PostProcessor(object):
                                                "mode"     : 'stop'})
                         return self.queue.put(self.valreturn)
 
+
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
                 if len(manual_list) == 0:
@@ -523,13 +552,27 @@ class PostProcessor(object):
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
-                    self.Process_next(comicid,issueid,issuenumOG,ml)
+                    dupthis = helpers.duplicate_filecheck(ml['ComicLocation'], ComicID=comicid, IssueID=issueid)
+                    if dupthis == "write":
+                        self.Process_next(comicid,issueid,issuenumOG,ml)
+                        dupthis = None
                 logger.info(module + ' Manual post-processing completed.')
                 return
             else:
                 comicid = issuenzb['ComicID']
                 issuenumOG = issuenzb['Issue_Number']
-                return self.Process_next(comicid,issueid,issuenumOG)
+                #the self.nzb_folder should contain only the existing filename
+                dupthis = helpers.duplicate_filecheck(self.nzb_folder, ComicID=comicid, IssueID=issueid)
+                if dupthis == "write":
+                    return self.Process_next(comicid,issueid,issuenumOG)
+                else:
+                    self.valreturn.append({"self.log" : self.log,
+                                           "mode"     : 'stop',
+                                           "issueid"  : issueid,
+                                           "comicid"  : comicid})
+
+                    return self.queue.put(self.valreturn)
+
 
     def Process_next(self,comicid,issueid,issuenumOG,ml=None):
             module = self.module

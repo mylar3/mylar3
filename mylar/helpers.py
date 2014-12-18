@@ -1212,14 +1212,26 @@ def IssueDetails(filelocation, IssueID=None):
                logger.fdebug('Extracting ComicInfo.xml to display.')
                dst = os.path.join(mylar.CACHE_DIR, 'ComicInfo.xml')
                data = inzipfile.read(infile)
-               print str(data)
+               #print str(data)
                issuetag = 'xml'
+            #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
             elif '000.jpg' in infile or '000.png' in infile or '00.jpg' in infile:
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
                local_file.close
                cover = "found"
+            elif any( [ '00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile ]):
+               logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
+               altlist = ('00a', '00b', '00c', '00d', '00e')
+               for alt in altlist:
+                   if alt in infile:
+                       local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
+                       local_file.write(inzipfile.read(infile))
+                       local_file.close
+                       cover = "found"
+                       break
+
             elif ('001.jpg' in infile or '001.png' in infile) and cover == "notfound":
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
@@ -1271,7 +1283,8 @@ def IssueDetails(filelocation, IssueID=None):
             if '*List' in summary: 
                 summary_cut = summary.find('*List')
                 summary = summary[:summary_cut]
-
+                #check here to see if Covers exist as they will probably be misnamed when trying to determine the actual cover
+                # (ie. 00a.jpg / 00d.jpg  - when there's a Cover A or a Cover D listed)
             try:
                 notes = result.getElementsByTagName('Notes')[0].firstChild.wholeText  #IssueID is in here
             except:
@@ -1430,13 +1443,20 @@ def IssueDetails(filelocation, IssueID=None):
 
     return issuedetails
 
-def get_issue_title(IssueID):
+def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None):
     import db, logger
     myDB = db.DBConnection()
-    issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
-    if issue is None:
-        logger.warn('Unable to locate given IssueID within the db.')
-        return None
+    if IssueID:
+        issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+        if issue is None:
+            logger.warn('Unable to locate given IssueID within the db.')
+            return None
+    else:
+        issue = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, issuedigits(IssueNumber)]).fetchone()
+        if issue is None:
+            logger.warn('Unable to locate given IssueID within the db.')
+            return None
+        
     return issue['IssueName']
 
 def int_num(s):
@@ -1458,6 +1478,63 @@ def listLibrary():
     for row in list:
         library[row['ReleaseComicId']] = row['ComicID']
     return library
+
+def incr_snatched(ComicID):
+    import db, logger
+    myDB = db.DBConnection()
+    incr_count = myDB.selectone("SELECT Have FROM Comics WHERE ComicID=?", [ComicID]).fetchone()
+    logger.fdebug('Incrementing HAVE count total to : ' + str( incr_count['Have'] + 1 ))
+    newCtrl = {"ComicID":    ComicID}
+    newVal = {"Have":  incr_count['Have'] + 1}
+    myDB.upsert("comics", newVal, newCtrl)
+    return 
+
+def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
+    #filename = the filename in question that's being checked against
+    #comicid = the comicid of the series that's being checked for duplication
+    #issueid = the issueid of the issue that's being checked for duplication
+    #storyarcid = the storyarcid of the issue that's being checked for duplication.
+    #
+    import db, logger
+    myDB = db.DBConnection()
+
+    logger.info('duplicate check for ' + filename)
+    filesz = os.path.getsize(filename)
+
+    if IssueID:
+        dupchk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+    if dupchk is None:
+        dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        if dupchk is None:
+            logger.info('Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
+            return
+
+    if any( [ dupchk['Status'] == 'Downloaded', dupchk['Status'] == 'Archived' ] ):
+        logger.info('Existing Status already set to ' + dupchk['Status'])
+        dupsize = dupchk['ComicSize']
+        if dupsize is None:
+            logger.info('Existing filesize is 0 bytes as I cannot locate the orginal entry - it is probably archived.')
+            rtnval = "dupe"
+        else:
+            logger.info('Existing file :' + dupchk['Location'] + ' has a filesize of : ' + str(dupsize) + ' bytes.')
+
+            #keywords to force keep / delete
+            #this will be eventually user-controlled via the GUI once the options are enabled.
+
+            if int(dupsize) >= filesz:
+                logger.info('Existing filesize is greater than : ' + str(filesz) + ' bytes.')
+                rtnval = "dupe"
+            elif int(dupsize) == 0:
+                logger.info('Existing filesize is 0 as I cannot locate the original entry. Will assume it is Archived already.')
+                rtnval = "dupe"
+            else:
+                logger.info('Existing filesize is less than : ' + str(filesz) + ' bytes. Checking configuration if I should keep this or  not.')
+                rtnval = "write"
+
+    else:
+        logger.info('Duplication detection returned no hits. This is not a duplicate of anything currently on your watchlist.')
+        rtnval = "write"
+    return rtnval
 
 from threading import Thread
 

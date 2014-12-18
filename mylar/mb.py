@@ -33,14 +33,14 @@ def pullsearch(comicapi,comicquery,offset,explicit,type):
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     if explicit == 'all' or explicit == 'loose':
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck&format=xml&page=' + str(offset)
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&page=' + str(offset)
 
     else:
         # 02/22/2014 use the volume filter label to get the right results.
         # add the 's' to the end of type to pluralize the caption (it's needed)
         if type == 'story_arc':
             u_comicquery = re.sub("%20AND%20", "%20", u_comicquery)
-        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
     #all these imports are standard on most modern python implementations
     #CV API Check here.
     #logger.info('PULLURL:' + PULLURL)
@@ -247,9 +247,14 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             xmlimage = "cache/blankcover.jpg"
 
                         try:
-                            xmldesc = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
+                            xmldesc = arcdom.getElementsByTagName('desc')[0].firstChild.wholeText
                         except:
                             xmldesc = "None"
+
+                        try:
+                            xmldeck = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
+                        except:
+                            xmldeck = "None"
                             
                         if xmlid in comicLibrary:
                             haveit = comicLibrary[xmlid]
@@ -265,6 +270,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             'comicimage':           xmlimage,
                             'publisher':            xmlpub,
                             'description':          xmldesc,
+                            'deck':                 xmldeck,
                             'arclist':              arclist,
                             'haveit':               haveit
                             })
@@ -338,9 +344,17 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                 xmlpub = "Unknown"
 
                             try:
-                                xmldesc = result.getElementsByTagName('deck')[0].firstChild.wholeText
+                                xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText
                             except:
                                 xmldesc = "None"
+
+                            #this is needed to display brief synopsis for each series on search results page.
+                            try:
+                                xmldeck = result.getElementsByTagName('deck')[0].firstChild.wholeText
+                            except:
+                                xmldeck = "None"
+
+
                             if xmlid in comicLibrary:
                                 haveit = comicLibrary[xmlid]
                             else:
@@ -354,6 +368,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     'comicimage':           xmlimage,
                                     'publisher':            xmlpub,
                                     'description':          xmldesc,
+                                    'deck':                 xmldeck,
                                     'haveit':               haveit
                                     })
                             #logger.fdebug('year: ' + str(xmlYr) + ' - constraint met: ' + str(xmlTag) + '[' + str(xmlYr) + '] --- 4050-' + str(xmlid))

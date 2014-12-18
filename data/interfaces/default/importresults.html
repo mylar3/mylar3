@@ -94,11 +94,11 @@
                                         %endif
                                         </td>
                                         <td id="importdate">${result['ImportDate']}</td>
-                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']}&displaycomic=${displayname |u}">Import</a>]
+                                        <td id="addcomic">[<a href="preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname |u}">Import</a>]
                                         [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
                                         <!-- [<a href="#">Rename</a>] -->
                                         %if result['implog'] is not None:
-                                             [<a class="showlog" href="importLog?ComicName=${result['ComicName']}">Log</a>]
+                                             [<a class="showlog" href="importLog?ComicName=${result['ComicName']| u}">Log</a>]
                                         %endif
                                         </td>
                                      </tr>

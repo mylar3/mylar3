@@ -169,11 +169,12 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
                                'size':     tmpsz['length']
                                })
   
-                #print ("Site: KAT")
-                #print ("Title: " + str(feedme.entries[i].title))
-                #print ("Link: " + str(tmpsz['url']))
-                #print ("pubdate: " + str(feedme.entries[i].updated))
-                #print ("size: " + str(tmpsz['length']))
+               # print ("Site: KAT")
+               # print ("Title: " + feedme.entries[i].title)
+               # print ("Link: " + tmpsz['url'])
+               # print ("pubdate: " + feedme.entries[i].updated)
+               # print ("size: " + str(tmpsz['length']))
+               # print ("filename: " + feedme.entries[i].torrent_filename)
 
             elif pickfeed == "1" or pickfeed == "4":
                 if pickfeed == "1":

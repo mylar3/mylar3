@@ -58,6 +58,7 @@ INIT_LOCK = threading.Lock()
 __INITIALIZED__ = False
 started = False
 WRITELOCK = False
+LOGTYPE = None
 
 ## for use with updated scheduler (not working atm)
 #INIT_LOCK = Lock()
@@ -86,6 +87,7 @@ MAX_LOGSIZE = None
 
 CACHE_DIR = None
 SYNO_FIX = False
+IMPORTBUTTON = False
 
 PULLNEW = None
 ALT_PULL = False
@@ -829,6 +831,16 @@ def initialize():
         # Start the logger, silence console logging if we need to
         logger.initLogger(verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
 
+        # verbatim back the logger being used since it's now started.
+#        if LOGTYPE == 'clog':
+#            logprog = 'Concurrent Log Handler'
+#        else:
+#            logprog = 'Rotational Log Handler (default)'
+#            logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
+#            logger.fdebug('[Windows Users] If you are experiencing log file locking, you should install the ConcurrentLogHandler ( https://pypi.python.org/pypi/ConcurrentLogHandler/0.8.7 )')
+
+#        logger.fdebug('Logger set to use : ' + logprog)
+
         # Put the cache dir in the data dir for now
         if not CACHE_DIR:
             CACHE_DIR = os.path.join(str(DATA_DIR), 'cache')
@@ -1357,6 +1369,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT)')
     conn.commit
     c.close
     #new
@@ -1636,6 +1649,23 @@ def dbcheck():
         c.execute('SELECT IssueName from readinglist')
     except:
         c.execute('ALTER TABLE readinglist ADD COLUMN IssueName TEXT')
+
+    ## -- searchresults Table --
+    try:
+        c.execute('SELECT SRID from searchresults')
+    except:
+        c.execute('ALTER TABLE searchresults ADD COLUMN SRID TEXT')
+
+    try:
+        c.execute('SELECT Series from searchresults')
+    except:
+        c.execute('ALTER TABLE searchresults ADD COLUMN Series TEXT')
+
+    try:
+        c.execute('SELECT sresults from searchresults')
+    except:
+        c.execute('ALTER TABLE searchresults ADD COLUMN sresults TEXT')
+
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 

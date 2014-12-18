@@ -2703,8 +2703,11 @@ class WebInterface(object):
         chk = queue.get()
         while True:
             if chk[0]['result'] == 'success':
-#                yield logger.info('I should now enable the Results button somehow.') 
+                yield chk[0]['result'] 
+                logger.info('Successfully scanned in directory. Enabling the importResults button now.')
+                mylar.IMPORTBUTTON = True   #globally set it to ON after the scan so that it will be picked up.
                 break
+        return
     comicScan.exposed = True
 
     def importResults(self):
@@ -2732,7 +2735,6 @@ class WebInterface(object):
     deleteimport.exposed = True
 
     def preSearchit(self, ComicName, comiclist=None, mimp=0, displaycomic=None):
-        print 'displaycomic is : ' + str(displaycomic)
         implog = ''
         implog = implog + "imp_rename:" + str(mylar.IMP_RENAME) + "\n"
         implog = implog + "imp_move:" + str(mylar.IMP_MOVE) + "\n"
@@ -2741,9 +2743,13 @@ class WebInterface(object):
             comiclist.append(ComicName) 
         for cl in comiclist:
             ComicName = cl
+            logger.info('comicname is :' + ComicName)
             implog = implog + "comicName: " + str(ComicName) + "\n"
             myDB = db.DBConnection()
             results = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ComicName])
+            if not results:
+                logger.info('I cannot find any results.')
+                continue
             #if results > 0:
             #    print ("There are " + str(results[7]) + " issues to import of " + str(ComicName))
             #build the valid year ranges and the minimum issue# here to pass to search.
@@ -2856,6 +2862,9 @@ class WebInterface(object):
             # so that we can reference the correct issues later.
         
             mode='series'
+            displaycomic = helpers.filesafe(ComicName)
+            logger.info('displaycomic : ' + displaycomic)
+            logger.info('comicname : ' + ComicName)
             if yearRANGE is None:
                 sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
             else:
@@ -2886,12 +2895,32 @@ class WebInterface(object):
             newVal = {"implog":       implog}
             myDB.upsert("importresults", newVal, ctrlVal)
 
+            logger.info('sresults: ' + str(sresults))
+
+            # store the search results for series that returned more than one result for user to select later / when they want.
+            # should probably assign some random numeric for an id to reference back at some point. 
+            cVal = {"Series": ComicName}
+            for sr in sresults:
+                nVal = {"results":     len(sresults),
+                        "publisher":   sr['publisher'],
+                        "haveit":      sr['haveit'],
+                        "name":        sr['name'],
+                        "deck":        sr['deck'],
+                        "url":         sr['url'],
+                        "description":  sr['description'],
+                        "comicid":     sr['comicid'],
+                        "comicimage":  sr['comicimage'],
+                        "issues":      sr['issues'],
+                        "comicyear":   sr['comicyear']}
+                myDB.upsert("searchresults", nVal, cVal)
+
             if resultset == 1:
                 #implog = implog + "ogcname -- " + str(ogcname) + "\n"
                 cresults = self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)
                 return serve_template(templatename="searchfix.html", title="Error Check", comicname=sr['name'], comicid=sr['comicid'], comicyear=sr['comicyear'], comicimage=sr['comicimage'], comicissues=sr['issues'], cresults=cresults, imported='yes', ogcname=str(ogcname))
-            else:
-                return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname, name=ogcname, explicit=explicit, serinfo=None) #imported=comicstoIMP, ogcname=ogcname)
+            #else:
+            #    return serve_template(templatename="searchresults.html", title='Import Results for: "' + displaycomic + '"',searchresults=sresults, type=type, imported='yes', ogcname=ogcname, name=ogcname, explicit=explicit, serinfo=None) #imported=comicstoIMP, ogcname=ogcname)
+
     preSearchit.exposed = True
 
     def pretty_git(self, br_history):
@@ -3648,7 +3677,7 @@ class WebInterface(object):
 
     def IssueInfo(self, filelocation):
         issuedetails = helpers.IssueDetails(filelocation)
-        print str(issuedetails)
+        #print str(issuedetails)
         issueinfo = '<table width="500"><tr><td>'
         issueinfo += '<img style="float: left; padding-right: 10px" src=' + issuedetails[0]['IssueImage'] + ' height="400" width="263">'
         issueinfo += '<h1><center><b>' + issuedetails[0]['series'] + '</br>[#' + issuedetails[0]['issue_number'] + ']</b></center></h1>'

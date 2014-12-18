@@ -73,10 +73,10 @@
 				%>
 				<tr class="grade${grade}">
 					<td class="blank"></td>
-                                        %if result['description'] == 'None' or result['description'] is None:
+                                        %if result['deck'] == 'None' or result['deck'] is None:
 					<td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
                                         %else:
-					<td class="name"><a href="${result['url']}" title="${result['description']}" target="_blank">${result['name']}</a></td>
+					<td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']}</a></td>
                                         %endif
                                         <td class="publisher">${result['publisher']}</a></td>
                                         <td class="comicyear">${result['comicyear']}</a></td>
