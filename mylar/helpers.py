@@ -769,7 +769,12 @@ def cleanhtml(raw_html):
 
 def issuedigits(issnum):
     import db, logger
-    #print "issnum : " + str(issnum)
+
+    try:
+        tst = issnum.isdigit()
+    except:
+        return 9999999999
+
     if issnum.isdigit():
         int_issnum = int( issnum ) * 1000
     else:
@@ -849,13 +854,15 @@ def issuedigits(issnum):
                     if issnum[x].isalpha():
                     #take first occurance of alpha in string and carry it through
                         tstord = issnum[x:].rstrip()
+                        tstord = re.sub('[\-\,\.\+]','', tstord).rstrip()
                         issno = issnum[:x].rstrip()
+                        issno = re.sub('[\-\,\.\+]','', issno).rstrip()
                         try:
                             isschk = float(issno)
                         except ValueError, e:
                             if len(issnum) == 1 and issnum.isalpha():
                                 break
-                            logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
+                            logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
                             issno = None
                             tstord = None
                             invchk = "true"

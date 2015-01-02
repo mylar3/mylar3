@@ -67,7 +67,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                       'A',
                       'B',
                       'C',
-                      'X']
+                      'X',
+                      'O']
 
     extensions = ('.cbr', '.cbz', '.cb7')
 

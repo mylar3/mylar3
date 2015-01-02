@@ -1192,14 +1192,16 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             if issnum[x].isalpha():
                                 #take first occurance of alpha in string and carry it through
                                 tstord = issnum[x:].rstrip()
+                                tstord = re.sub('[\-\,\.\+]','', tstord).rstrip()
                                 issno = issnum[:x].rstrip()
+                                issno = re.sub('[\-\,\.\+]','', issno).rstrip()
                                 try:
                                     isschk = float(issno)
                                 except ValueError, e:
                                     if len(issnum) == 1 and issnum.isalpha():
                                         logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
                                         break
-                                    logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
+                                    logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
                                     issno = None
                                     tstord = None
                                     invchk = "true"
