@@ -524,7 +524,6 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     latestiss = issuedata['LatestIssue']
     latestdate = issuedata['LatestDate']
     lastpubdate = issuedata['LastPubDate']
-
     #move the files...if imported is not empty & not futurecheck (meaning it's not from the mass importer.)
     if imported is None or imported == 'None' or imported == 'futurecheck':
         pass
@@ -1120,7 +1119,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 cleanname = 'None'
             issid = str(firstval['Issue_ID'])
             issnum = firstval['Issue_Number']
-            #print ("issnum: " + str(issnum))
+            #logger.info("issnum: " + str(issnum))
             issname = cleanname
             issdate = str(firstval['Issue_Date'])
             storedate = str(firstval['Store_Date'])
@@ -1167,6 +1166,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     else:
                         decisval = decis
                         issaftdec = str(decisval)
+                    #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
+                    if issaftdec[-1:] == '.':
+                        logger.fdebug('Trailing decimal located within issue number. Irrelevant to numbering. Obliterating.')
+                        issaftdec = issaftdec[:-1]
                     try:
 #                        int_issnum = str(issnum)
                         int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
@@ -1201,12 +1204,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                     if len(issnum) == 1 and issnum.isalpha():
                                         logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
                                         break
-                                    logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
+                                    logger.fdebug('[' + issno + '] invalid numeric for issue - cannot be found. Ignoring.')
                                     issno = None
                                     tstord = None
                                     invchk = "true"
                                 break
                             x+=1
+
                         if tstord is not None and issno is not None:
                             a = 0
                             ordtot = 0

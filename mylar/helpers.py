@@ -573,7 +573,16 @@ def ComicSort(comicorder=None,sequence=None,imported=None):
     if sequence:
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
-        import db, logger
+        import logger
+        #if mylar.DBCHOICE == 'postgresql':
+        #    import db_postgresql as db
+        #    myDB = db.DBConnection()
+        #    comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE ?", [mylar.OS_LANG])
+        #else:
+        #    import db
+        #    myDB = db.DBConnection()
+        #    comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        import db
         myDB = db.DBConnection()
         comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
@@ -828,9 +837,15 @@ def issuedigits(issnum):
             if len(decis) == 1:
                 decisval = int(decis) * 10
                 issaftdec = str(decisval)
-            if len(decis) >= 2:
+            elif len(decis) == 2:
                 decisval = int(decis)
                 issaftdec = str(decisval)
+            else:
+                decisval = decis
+                issaftdec = str(decisval)
+            #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
+            if issaftdec[-1:] == '.':
+                issaftdec = issaftdec[:-1]
             try:
                 int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
             except ValueError:
@@ -1060,12 +1075,22 @@ def havetotals(refreshit=None):
 
         comics = []
 
-        myDB = db.DBConnection()
 
         if refreshit is None:
+            #if mylar.DBCHOICE == 'postgresql':
+            #    import db_postgresql as db
+            #    myDB = db.DBConnection()
+            #    comiclist = myDB.select("SELECT * from comics order by ComicSortName COLLATE ?",[mylar.OS_LANG])
+            #else:
+            #    import db
+            #    myDB = db.DBConnection()
+            #    comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+            import db
+            myDB = db.DBConnection()
             comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         else:
             comiclist = []
+            myDB = db.DBConnection()
             comicref = myDB.selectone("SELECT * from comics WHERE ComicID=?", [refreshit]).fetchone()
             #refreshit is the ComicID passed from the Refresh Series to force/check numerical have totals
             comiclist.append({"ComicID":  comicref[0],
@@ -1471,7 +1496,7 @@ def int_num(s):
         return int(s)
     except ValueError:
         return float(s)
-
+    
 def listLibrary():
     import db
     library = {}
