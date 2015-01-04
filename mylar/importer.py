@@ -245,7 +245,10 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
                                    firstval = issued['issuechoice'][n]
                                 except IndexError:
                                     break
-                                cleanname = helpers.cleanName(firstval['Issue_Name'])
+                                try:
+                                    cleanname = helpers.cleanName(firstval['Issue_Name'])
+                                except:
+                                    cleanname = 'None'
                                 issid = str(firstval['Issue_ID'])
                                 issnum = str(firstval['Issue_Number'])
                                 issname = cleanname
@@ -1022,7 +1025,10 @@ def manualAnnual(manual_comicid, comicname, comicyear, comicid):
                     firstval = issued['issuechoice'][n]
                 except IndexError:
                     break
-                cleanname = helpers.cleanName(firstval['Issue_Name'])
+                try:
+                    cleanname = helpers.cleanName(firstval['Issue_Name'])
+                except:
+                    cleanname = 'None'
                 issid = str(firstval['Issue_ID'])
                 issnum = str(firstval['Issue_Number'])
                 issname = cleanname
@@ -1416,7 +1422,10 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                                    firstval = issued['issuechoice'][n]
                                 except IndexError:
                                     break
-                                cleanname = helpers.cleanName(firstval['Issue_Name'])
+                                try:
+                                    cleanname = helpers.cleanName(firstval['Issue_Name']) 
+                                except:
+                                    cleanname = 'None'
                                 issid = str(firstval['Issue_ID'])
                                 issnum = str(firstval['Issue_Number'])
                                 issname = cleanname
