@@ -130,7 +130,8 @@ def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidl
     elif type == 'comicyears':
         #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year.
         #this grabs each issue based on issueid, and then subsets the comicid for each to be used later.
-        dom = pulldetails(arcid,'comicyears',offset=1,comicidlist=comicidlist)
+        #set the offset to 0, since we're doing a filter.
+        dom = pulldetails(arcid,'comicyears',offset=0,comicidlist=comicidlist)
         return GetSeriesYears(dom)
 
 def GetComicInfo(comicid,dom):

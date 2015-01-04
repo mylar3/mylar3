@@ -143,6 +143,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         names = len( result.getElementsByTagName('name') )
                         n = 0
                         logger.fdebug('length: ' + str(names))
+                        xmlpub = None #set this incase the publisher field isn't populated in the xml
                         while ( n < names ):
                             logger.fdebug(result.getElementsByTagName('name')[n].parentNode.nodeName)
                             if result.getElementsByTagName('name')[n].parentNode.nodeName == 'story_arc':
