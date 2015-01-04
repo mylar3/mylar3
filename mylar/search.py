@@ -1032,8 +1032,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #splitst = splitst - 1
 
                     if versionfound == "yes":
+                        volfound = False
                         for tstsplit in splitit:
                             logger.fdebug('comparing ' + str(tstsplit))
+                            if volfound == True:
+                                logger.fdebug('Split Volume label detected - ie. Vol 4. Attempting to adust.')
+                                if tstsplit.isdigit():
+                                    tstsplit = 'v' + str(tstsplit)
+                                    volfound == False
                             if tstsplit.lower().startswith('v'): #tstsplit[1:].isdigit():
                                 logger.fdebug("this has a version #...let's adjust")
                                 tmpsplit = tstsplit
@@ -1042,15 +1048,19 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     if '.' in tmpsplit:
                                         tmpsplit = re.sub('.', '', tmpsplit).strip()
                                     tmpsplit = re.sub('vol','', tmpsplit.lower()).strip()
-                        
-                                if len(tmpsplit[1:]) == 4:  #v2013
-                                    logger.fdebug("Version detected as " + str(tmpsplit))
+                                    #if vol label set as 'Vol 4' it will obliterate the Vol, but pass over the '4' - set
+                                    #volfound to True so that it can loop back around.
+                                    if not tmpsplit.isdigit():
+                                        volfound = True
+                                        continue
+                                if len(tmpsplit[1:]) == 4 and tmpsplit[1:].isdigit():  #v2013
+                                    logger.fdebug("[Vxxxx] Version detected as " + str(tmpsplit))
                                     vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
-                                elif len(tmpsplit[1:]) == 1:  #v2
-                                    logger.fdebug("Version detected as " + str(tmpsplit))
+                                elif len(tmpsplit[1:]) == 1 and tmpsplit[1:].isdigit():  #v2
+                                    logger.fdebug("[Vx] Version detected as " + str(tmpsplit))
                                     vers4vol = str(tmpsplit)
                                 elif tmpsplit[1:].isdigit() and len(tmpsplit) < 4:
-                                    logger.fdebug('Version detected as ' +str(tmpsplit))
+                                    logger.fdebug('[Vxxx] Version detected as ' +str(tmpsplit))
                                     vers4vol = str(tmpsplit)
                                 else:
                                     logger.fdebug("error - unknown length for : " + str(tmpsplit))
