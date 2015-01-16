@@ -1121,7 +1121,7 @@ class WebInterface(object):
                     logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
                     return
                 # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
-                link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_ID) + '&r=' + str(mylar.NZBSU_APIKEY)
+                link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
                 logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
             elif Provider == 'dognzb':
                 if not mylar.DOGNZB:
