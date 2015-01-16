@@ -15,12 +15,13 @@
 
 import os
 import sys
-import logging
+#import logging
 import traceback
 import threading
+import platform
 import mylar
 
-from logging import handlers
+from logging import getLogger, INFO, DEBUG, StreamHandler, Formatter, Handler
 
 from mylar import helpers
 
@@ -29,9 +30,9 @@ FILENAME = 'mylar.log'
 MAX_FILES = 5
 
 # Mylar logger
-logger = logging.getLogger('mylar')
+logger = getLogger('mylar')
 
-class LogListHandler(logging.Handler):
+class LogListHandler(Handler):
     """
     Log handler for Web UI.
     """
@@ -42,6 +43,24 @@ class LogListHandler(logging.Handler):
         mylar.LOG_LIST.insert(0, (helpers.now(), message, record.levelname, record.threadName))
 
 def initLogger(verbose=1):
+    #concurrentLogHandler/0.8.7 (to deal with windows locks)
+    #since this only happens on windows boxes, if it's nix/mac use the default logger.
+    if platform.system() == 'Windows':
+        #set the path to the lib here - just to make sure it can detect cloghandler & portalocker.
+        import sys
+        sys.path.append(os.path.join(mylar.PROG_DIR, 'lib'))
+
+        try:
+            from ConcurrentLogHandler.cloghandler import ConcurrentRotatingFileHandler as RFHandler
+            mylar.LOGTYPE = 'clog'
+        except ImportError:
+            mylar.LOGTYPE = 'log'
+            from logging.handlers import RotatingFileHandler as RFHandler
+    else:
+        mylar.LOGTYPE = 'log'
+        from logging.handlers import RotatingFileHandler as RFHandler
+
+
     if mylar.MAX_LOGSIZE:
         MAX_SIZE = mylar.MAX_LOGSIZE
     else:
@@ -58,14 +77,14 @@ def initLogger(verbose=1):
 
     # Configure the logger to accept all messages
     logger.propagate = False
-    logger.setLevel(logging.DEBUG)# if verbose == 2 else logging.INFO)
+    logger.setLevel(DEBUG)# if verbose == 2 else logging.INFO)
 
     # Setup file logger
     filename = os.path.join(mylar.LOG_DIR, FILENAME)
 
-    file_formatter = logging.Formatter('%(asctime)s - %(levelname)-7s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-    file_handler = handlers.RotatingFileHandler(filename, maxBytes=MAX_SIZE, backupCount=MAX_FILES)
-    file_handler.setLevel(logging.DEBUG)
+    file_formatter = Formatter('%(asctime)s - %(levelname)-7s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
+    file_handler = RFHandler(filename, "a", maxBytes=MAX_SIZE, backupCount=MAX_FILES)
+    file_handler.setLevel(DEBUG)
     file_handler.setFormatter(file_formatter)
 
     logger.addHandler(file_handler)
@@ -79,20 +98,20 @@ def initLogger(verbose=1):
     #else:
     #    loglist_handler.setLevel(logging.INFO)
     #--
-    loglist_handler.setLevel(logging.INFO)
+    loglist_handler.setLevel(INFO)
     logger.addHandler(loglist_handler)
 
     # Setup console logger
     if verbose:
-        console_formatter = logging.Formatter('%(asctime)s - %(levelname)s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-        console_handler = logging.StreamHandler()
+        console_formatter = Formatter('%(asctime)s - %(levelname)s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
+        console_handler = StreamHandler()
         console_handler.setFormatter(console_formatter)
         #print 'verbose is ' + str(verbose)        
         #if verbose == 2:
         #    console_handler.setLevel(logging.DEBUG)
         #else:
         #    console_handler.setLevel(logging.INFO)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(INFO)
 
         logger.addHandler(console_handler)
 

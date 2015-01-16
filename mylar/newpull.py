@@ -51,7 +51,6 @@ def newpull():
                 #918 - Marvel Comics
                 #952 - Comics & Graphic Novels
                 #    - Magazines
-                #print ("titlet: " + str(headt))
                 findurl_link = headt.findAll('a', href=True)[0]
                 urlID = findurl_link.findNext(text=True)
                 issue_link = findurl_link['href']
@@ -66,13 +65,13 @@ def newpull():
                         #logger.fdebug('publisher:' + str(isspublisher))
                         found_iss = headt.findAll('td')
                         if "Home/1/1/71/920" in issue_link:
-                            logger.fdebug('Ignoring - menu option.')
+                            #logger.fdebug('Ignoring - menu option.')
                             return
                         if "PREVIEWS" in headt:
-                            logger.fdebug('Ignoring: ' + found_iss[0])
+                            #logger.fdebug('Ignoring: ' + found_iss[0])
                             break
                         if "MAGAZINES" in headt:
-                            logger.fdebug('End.')
+                            #logger.fdebug('End.')
                             endthis = True
                             break
                         if len(found_iss) > 0:
@@ -104,7 +103,7 @@ def newpull():
                 if pl['publisher'] == oldpub:
                     exceptln = str(pl['ID']) + "\t" + str(pl['name']) + "\t" + str(pl['price'])
                 else:
-                    exceptln = pl['publisher']
+                    exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + str(pl['name']) + "\t" + str(pl['price'])
 
                 for lb in breakhtml:
                     exceptln = re.sub(lb,'', exceptln).strip()

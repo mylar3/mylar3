@@ -269,10 +269,11 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                                 else:
                                     logger.fdebug("false decimal represent. Chunking to extra word.")
                                     cn = cn + cs[i] + " "
-                                    break
-                            issue = cs[i]
-                            logger.fdebug("issue detected : " + str(issue))
-                            idetected = 'yes'
+                                    #break
+                            else:
+                                issue = cs[i]
+                                logger.fdebug("issue detected : " + str(issue))
+                                idetected = 'yes'
 
                         elif '\#' in cs[i] or decimaldetect == 'yes':
                             logger.fdebug("issue detected: " + str(cs[i]))

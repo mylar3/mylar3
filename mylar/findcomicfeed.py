@@ -129,8 +129,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                         if cName.lower().startswith('for'):
                             pass
                         else:
-                            #this is the crap we ignore. Continue
-                            logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
+                            #this is the crap we ignore. Continue (commented else, as it spams the logs)
+                            #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
                             continue
                     logger.fdebug('match.')
                     if IssDateFix != "no":

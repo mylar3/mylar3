@@ -421,12 +421,14 @@ class PostProcessor(object):
                         # At this point, let's just drop it into the Comic Location folder and forget about it..
                         if 'S' in sandwich:
                             self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
-                            logger.info(module + 'One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
+                            logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
                             if mylar.STORYARCDIR:
                                 storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
                                 self._log("StoryArc Directory set to : " + storyarcd)
+                                logger.info(module + ' Story Arc Directory set to : ' + storyarcd)
                             else:
                                 self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
+                                logger.info(module + ' Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
    
                         else:
                             self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
@@ -497,12 +499,13 @@ class PostProcessor(object):
                             grab_dst = os.path.join(grdst, ofilename)
 
                         self._log("Destination Path : " + grab_dst)
+
                         logger.info(module + ' Destination Path : ' + grab_dst)
                         grab_src = os.path.join(self.nzb_folder, ofilename)
                         self._log("Source Path : " + grab_src)
                         logger.info(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + ' Moving ' + str(ofilename) + ' into directory : ' + str(grdst))
+                        logger.info(module + ' Moving ' + str(ofilename) + ' into directory : ' + str(grab_dst))
 
                         try:
                             shutil.move(grab_src, grab_dst)
@@ -623,6 +626,7 @@ class PostProcessor(object):
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
                 iss_decval = issuenum[iss_find+1:]
+                if iss_decval.endswith('.'): iss_decval = iss_decval[:-1]
                 if int(iss_decval) == 0:
                     iss = iss_b4dec
                     issdec = int(iss_decval)
@@ -771,9 +775,9 @@ class PostProcessor(object):
                 try:
                     import cmtagmylar
                     if ml is None:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid)
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion)
                     else:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, manual="yes", filename=ml['ComicLocation'])
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion, manual="yes", filename=ml['ComicLocation'])
 
                 except ImportError:
                     logger.fdebug(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')

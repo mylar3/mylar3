@@ -598,6 +598,18 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
         logger.info('Returning to Future-Check module to complete the add & remove entry.')
         return 
 
+    if imported == 'yes':
+        logger.info('Successfully imported : ' + comic['ComicName'])
+        #now that it's moved / renamed ... we remove it from importResults or mark as completed.
+
+        results = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
+        if results is not None:
+            for result in results:
+                controlValue = {"impID":    result['impid']}
+                newValue = {"Status":           "Imported",
+                            "ComicID":          comicid}
+                myDB.upsert("importresults", newValue, controlValue)
+
     if calledfrom == 'addbyid':
         logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
         return

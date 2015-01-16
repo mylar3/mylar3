@@ -511,19 +511,23 @@
 
                         <%
                                 if annual['Status'] == 'Skipped':
-                                        grade = 'Z'
+                                        agrade = 'Z'
                                 elif annual['Status'] == 'Wanted':
-                                        grade = 'X'
+                                        agrade = 'X'
                                 elif annual['Status'] == 'Snatched':
-                                        grade = 'C'
+                                        agrade = 'C'
                                 elif annual['Status'] == 'Downloaded':
-                                        grade = 'A'
+                                        agrade = 'A'
                                 elif annual['Status'] == 'Archived':
-                                        grade = 'A'
+                                        agrade = 'A'
+                                elif annual['Status'] == 'Ignored':
+                                        agrade = 'A'
+                                elif annual['Status'] == 'Failed':
+                                        agrade = 'C'
                                 else:
-                                        grade = 'A'
+                                        agrade = 'A'
                         %>
-                        <tr class="${annual['Status']} grade${grade}">
+                        <tr class="${annual['Status']} grade${agrade}">
                                 <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
                                 <% 
                                     if annual['Int_IssueNumber'] is None:

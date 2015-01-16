@@ -518,7 +518,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                            '$Annual':    'Annual'
                           }
 
-            extensions = ('.cbr', '.cbz')
+            extensions = ('.cbr', '.cbz', '.cb7')
 
             if ofilename.lower().endswith(extensions):
                 path, ext = os.path.splitext(ofilename)
@@ -574,17 +574,16 @@ def ComicSort(comicorder=None,sequence=None,imported=None):
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
         import logger
-        #if mylar.DBCHOICE == 'postgresql':
-        #    import db_postgresql as db
-        #    myDB = db.DBConnection()
-        #    comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE ?", [mylar.OS_LANG])
-        #else:
-        #    import db
-        #    myDB = db.DBConnection()
-        #    comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
-        import db
-        myDB = db.DBConnection()
-        comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        if mylar.DBCHOICE == 'postgresql':
+            import db_postgresql as db
+            myDB = db.DBConnection()
+            oscollate = mylar.OS_LANG + '.UTF8' 
+            logger.info('OS_LANG: ' + oscollate)
+            comicsort = myDB.select('SELECT * FROM comics ORDER BY ComicSortName')# COLLATE "%s"', [oscollate])
+        else:
+            import db
+            myDB = db.DBConnection()
+            comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
         comicorder = {}
         comicidlist = []
@@ -1077,17 +1076,15 @@ def havetotals(refreshit=None):
 
 
         if refreshit is None:
-            #if mylar.DBCHOICE == 'postgresql':
-            #    import db_postgresql as db
-            #    myDB = db.DBConnection()
-            #    comiclist = myDB.select("SELECT * from comics order by ComicSortName COLLATE ?",[mylar.OS_LANG])
-            #else:
-            #    import db
-            #    myDB = db.DBConnection()
-            #    comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
-            import db
-            myDB = db.DBConnection()
-            comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+            if mylar.DBCHOICE == 'postgresql':
+                import db_postgresql as db
+                myDB = db.DBConnection()
+                print 'here'
+                comiclist = myDB.select('SELECT * from comics order by ComicSortName')# COLLATE "%s"',[mylar.OS_LANG])
+            else:
+                import db
+                myDB = db.DBConnection()
+                comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         else:
             comiclist = []
             myDB = db.DBConnection()
@@ -1140,7 +1137,10 @@ def havetotals(refreshit=None):
                 percent = 0
                 totalissuess = '?'
 
-            if comic['ComicPublished'] is None or comic['ComicPublished'] == '':
+            if comic['LatestDate'] is None:
+                logger.warn(comic['ComicName'] + ' has not finished loading. Nulling some values so things display properly until they can populate.')
+                recentstatus = 'Loading'
+            elif comic['ComicPublished'] is None or comic['ComicPublished'] == '' or comic['LatestDate'] is None:
                 recentstatus = 'Unknown'
             elif comic['ForceContinuing'] == 1:
                 recentstatus = 'Continuing'
@@ -1481,13 +1481,17 @@ def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None):
     if IssueID:
         issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
         if issue is None:
-            logger.warn('Unable to locate given IssueID within the db.')
-            return None
+            issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+            if issue is None:
+                logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
+                return None
     else:
         issue = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, issuedigits(IssueNumber)]).fetchone()
         if issue is None:
-            logger.warn('Unable to locate given IssueID within the db.')
-            return None
+            issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+            if issue is None:
+                logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
+                return None
         
     return issue['IssueName']
 
@@ -1530,7 +1534,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
     import db, logger
     myDB = db.DBConnection()
 
-    logger.info('duplicate check for ' + filename)
+    logger.info('[DUPECHECK] Duplicate check for ' + filename)
     filesz = os.path.getsize(filename)
 
     if IssueID:
@@ -1538,33 +1542,71 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
     if dupchk is None:
         dupchk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
         if dupchk is None:
-            logger.info('Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
+            logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
             return
 
     if any( [ dupchk['Status'] == 'Downloaded', dupchk['Status'] == 'Archived' ] ):
-        logger.info('Existing Status already set to ' + dupchk['Status'])
+        logger.info('[DUPECHECK] Existing Status already set to ' + dupchk['Status'])
         dupsize = dupchk['ComicSize']
+        cid = []
         if dupsize is None:
-            logger.info('Existing filesize is 0 bytes as I cannot locate the orginal entry - it is probably archived.')
-            rtnval = "dupe"
+            logger.info('[DUPECHECK] Existing filesize is 0 bytes as I cannot locate the orginal entry - it is probably archived.')
+            logger.fdebug('[DUPECHECK] Checking series for unrefreshed series syndrome (USS).')
+            havechk = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+            if havechk:
+                if havechk['Have'] >= havechk['Total']:
+                    logger.info('[DUPECHECK] Series has invalid issue totals [' + str(havechk['Have']) + '/' + str(havechk['Total']) + '] Attempting to Refresh & continue post-processing this issue.')
+                    cid.append(ComicID)
+                    logger.fdebug('[DUPECHECK] ComicID: ' + str(ComicID))
+                    mylar.updater.dbUpdate(ComicIDList=cid,calledfrom='dupechk')
+                    return duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
+                else:
+                    rtnval = "dupe"            
+            else:
+                rtnval = "dupe"
         else:
-            logger.info('Existing file :' + dupchk['Location'] + ' has a filesize of : ' + str(dupsize) + ' bytes.')
+            logger.info('[DUPECHECK] Existing file :' + dupchk['Location'] + ' has a filesize of : ' + str(dupsize) + ' bytes.')
 
             #keywords to force keep / delete
             #this will be eventually user-controlled via the GUI once the options are enabled.
 
-            if int(dupsize) >= filesz:
-                logger.info('Existing filesize is greater than : ' + str(filesz) + ' bytes.')
-                rtnval = "dupe"
-            elif int(dupsize) == 0:
-                logger.info('Existing filesize is 0 as I cannot locate the original entry. Will assume it is Archived already.')
+            if int(dupsize) == 0:
+                logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry. Will assume it is Archived already.')
                 rtnval = "dupe"
             else:
-                logger.info('Existing filesize is less than : ' + str(filesz) + ' bytes. Checking configuration if I should keep this or  not.')
-                rtnval = "write"
+                logger.fdebug('[DUPECHECK] Based on duplication preferences I will retain based on : ' + mylar.DUPECONSTRAINT)
+                if 'cbr' in mylar.DUPECONSTRAINT or 'cbz' in mylar.DUPECONSTRAINT:
+                    if 'cbr' in mylar.DUPECONSTRAINT:
+                        #this has to be configured in config - either retain cbr or cbz.
+                        if dupchk['Location'].endswith('.cbz'):
+                            #keep dupechk['Location']
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in file : ' + dupchk['Location'])
+                            rtnval = "dupe"
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
+                            rtnval = "write"
+
+                    elif 'cbz' in mylar.DUPECONSTRAINT:
+                        if dupchk['Location'].endswith('.cbr'):
+                            #keep dupchk['Location']
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
+                            rtnval = "dupe"
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
+                            rtnval = "write"
+
+                if mylar.DUPECONSTRAINT == 'filesize':
+                    if filesz <= dupsize:
+                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + filename)
+                        rtnval = "dupe"
+                    else:
+                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + dupchk['Location'])
+                        rtnval = "write"
 
     else:
-        logger.info('Duplication detection returned no hits. This is not a duplicate of anything currently on your watchlist.')
+        logger.info('[DUPECHECK] Duplication detection returned no hits. This is not a duplicate of anything that I have scanned in as of yet.')
         rtnval = "write"
     return rtnval
 

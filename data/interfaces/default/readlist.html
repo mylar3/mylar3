@@ -33,7 +33,7 @@
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading# to filename</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Copy watchlisted issues to StoryArc Directory</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.COPY2ARCDIR)} /><label>Copy watchlisted issues to StoryArc Directory</label>
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
                        <input type="hidden" name="StoryArcName" value="${storyarcname}">
 
@@ -61,17 +61,26 @@
 		<tbody>
 		%for item in readlist:
                         <%
-                                if item['Status'] == 'Downloaded':
+                                if item['Status'] == 'Skipped':
+                                        grade = 'Z'
+                                elif item['Status'] == 'Wanted':
+                                        grade = 'X'
+                                elif item['Status'] == 'Snatched':
+                                        grade = 'C'
+                                elif item['Status'] == 'Downloaded':
                                         grade = 'A'
+                                elif item['Status'] == 'Archived':
+                                        grade = 'A'
+                                elif item['Status'] == 'Ignored':
+                                        grade = 'A'
+                                elif item['Status'] == 'Failed':
+                                        grade = 'C'
                                 elif item['Status'] == 'Read':
                                         grade = 'C'
                                 elif item['Status'] == 'Not Watched':
                                         grade = 'X'
-                                elif item['Status'] == 'Wanted':
-                                        grade = 'Y'
                                 else:
-                                        grade = 'U'
-
+                                        grade = 'A'
                         %>
 
                          <tr id="${item['ReadingOrder']}" class="grade${grade}">
@@ -98,9 +107,9 @@
                                 <td id="status">${item['Status']}</td>
                                 <td id="action">
                                  %if item['Status'] is None or item['Status'] == None:
-                                     <a href="queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${item['IssueYear']}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
+                                     <a href="queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
                                  %elif item['Status'] == 'Snatched':
-                                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${item['IssueYEAR']}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                                  %endif
                                 </td>
                          </tr>

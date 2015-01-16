@@ -374,7 +374,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     })
                             #logger.fdebug('year: ' + str(xmlYr) + ' - constraint met: ' + str(xmlTag) + '[' + str(xmlYr) + '] --- 4050-' + str(xmlid))
                         else:
-                            logger.fdebug('year: ' + str(xmlYr) + ' -  contraint not met. Has to be within ' + str(limityear)) 
+                            pass
+                            #logger.fdebug('year: ' + str(xmlYr) + ' -  contraint not met. Has to be within ' + str(limityear)) 
                 n+=1    
         #search results are limited to 100 and by pagination now...let's account for this.
         countResults = countResults + 100

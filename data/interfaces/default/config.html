@@ -598,10 +598,20 @@
                         </fieldset>
                         <fieldset>
                              <legend>Duplicate Handling</legend>
-                             <div class="row checkbox left clearfix">
-                             
-                             </div>
-
+                             <div class="row">
+                                 <label>Retain based on</label>
+                                 <select name="dupeconstraint">
+                                  %for x in ['filesize', 'filetype-cbr', 'filetype-cbz']:
+                                         <%
+                                                if config['dupeconstraint'] == x:
+                                                    outputselect = 'selected'
+                                                else:
+                                                    outputselect = ''
+                                          %>
+                                          <option value=${x} ${outputselect}>${x}</option>
+                                  %endfor
+                                 </select>
+                            </div>
                         </fieldset>
                         <fieldset>
                              <legend>Failed Download Handling</legend>

@@ -18,7 +18,7 @@ import mylar
 from mylar import logger
 from mylar.helpers import cvapi_check
 
-def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module=None):
+def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None):
     if module is None:
         module = ''
     module += '[META-TAGGER]'
@@ -153,11 +153,19 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
             if fcount > 1: 
                 logger.fdebug(module + ' More than one cbr/cbz within path, performing Post-Process on first file detected: ' + f)
                 break
-            shutil.move( f, comicpath )
+            if f.endswith('.cbz'):
+                logger.fdebug(module + ' .cbz file detected. Excluding from temporary directory move at this time.')
+                comicpath = downloadpath
+            else:
+                shutil.move( f, comicpath )
             filename = f  #just the filename itself
             fcount+=1
     else:
         # if the filename is identical to the parent folder, the entire subfolder gets copied since it's the first match, instead of just the file
+        #if os.path.isfile(filename):
+            #if the filename doesn't exist - force the path assuming it's the 'download path'
+        filename = os.path.join(downloadpath, filename)
+        logger.fdebug(module + ' The path where the file is that I was provided is probably wrong - modifying it to : ' + filename)
         shutil.move( filename, comicpath )
 
     try:
@@ -217,7 +225,7 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
                             shutil.rmtree( comicpath )
                             logger.fdebug(module + ' Successfully removed temporary directory: ' + comicpath)
                         else:
-                            loggger.fdebug(module + ' Unable to remove temporary directory since it is identical to the download location : ' + comicpath)
+                            logger.fdebug(module + ' Unable to remove temporary directory since it is identical to the download location : ' + comicpath)
                     logger.fdebug(module + ' new filename : ' + base)
                     nfilename = base
 
@@ -301,7 +309,10 @@ def run (dirName, nzbName=None, issueid=None, manual=None, filename=None, module
     logger.fdebug(module + ' absDirName: ' + os.path.abspath(dirName))
 
     ##set up default comictagger options here.
-    tagoptions = [ "-s", "--verbose" ]
+    if comversion is None or comversion == '':
+        comversion = 1
+    cvers = 'volume=' + str(comversion)
+    tagoptions = [ "-s", "--verbose", "-m", cvers ]
 
     ## check comictagger version - less than 1.15.beta - take your chances.
     if sys_type == 'windows':

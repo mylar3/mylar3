@@ -102,6 +102,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
 
         #print item
         #subname = os.path.join(basedir, item)
+
         subname = item
         subname = re.sub('\_', ' ', subname)
 
@@ -115,6 +116,17 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
 
         vers4year = "no"
         vers4vol = "no"
+        digitchk = 0
+
+        if sarc and mylar.READ2FILENAME:
+           logger.info('subname: ' + subname)
+           removest = subname.find('-') # the - gets removed above so we test for the first blank space...
+           logger.info('removest: ' + str(removest))
+           logger.info('removestdig: ' + str(subname[:removest-1]))
+           if subname[:removest].isdigit() and removest == 3:
+               subname = subname[4:]
+               logger.info('subname set to : ' + subname)
+
 
         for subit in subsplit:
             if subit[0].lower() == 'v':
@@ -213,8 +225,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subthis = re.sub('\s+',' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely 
-                if watchname not in subthis:
-                    logger.fdebug('[FILECHECKER] this is a false match. Ignoring this result.')
+                if watchname.lower() not in subthis.lower():
+                    logger.fdebug('[FILECHECKER] ' + watchname + ' this is a false match to ' + subthis + ' - Ignoring this result.')
                     continue
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
@@ -265,8 +277,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subthis = re.sub('\s+',' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely
-                if watchname not in subthis:
-                    logger.fdebug('[FILECHECKER] this is a false match. Ignoring this result.')
+                if watchname.lower() not in subthis.lower():
+                    logger.fdebug('[FILECHECKER] ' + watchname + ' this is a false match to ' + subthis + ' - Ignoring this result.')
                     continue
                 subthis = subthis[len(watchname):].strip()  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
@@ -379,7 +391,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 if nono in subname:
                     subcnt = subname.count(nono)
                     charpos = indices(subname,nono) # will return a list of char positions in subname
-                    #print "charpos: " + str(charpos)
+                    logger.fdebug("charpos: " + str(charpos))
                     if nono == '-':
                         i=0
                         while (i < len(charpos)):
@@ -408,20 +420,29 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 #logger.fdebug('[FILECHECKER] (str(nono) + " detected " + str(subcnt) + " times.")
                 # segment '.' having a . by itself will denote the entire string which we don't want
                     elif nono == '.':
+                        logger.fdebug('[FILECHECKER] Decimal check.')
                         x = 0
                         fndit = 0
                         dcspace = 0
-                        while x < subcnt:
-                            fndit = subname.find(nono, fndit)
-                            if subname[fndit-1:fndit].isdigit() and subname[fndit+1:fndit+2].isdigit():
-                                logger.fdebug('[FILECHECKER] decimal issue detected.')
-                                dcspace+=1
-                            x+=1
-                        if dcspace == 1:
-                            nonocount = nonocount + subcnt + dcspace                    
-                        else:
-                            subname = re.sub('\.', ' ', subname)
-                            nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
+                        while (x < len(charpos)):
+                            for x,j in enumerate(charpos):
+                                fndit = j
+                                logger.fdebug('fndit: ' + str(fndit))
+                                logger.fdebug('isdigit1: ' + subname[fndit-1:fndit])
+                                logger.fdebug('isdigit2: ' + subname[fndit+1:fndit+2])
+                                if subname[fndit-1:fndit].isdigit() and subname[fndit+1:fndit+2].isdigit():
+                                    logger.fdebug('[FILECHECKER] decimal issue detected.')
+                                    dcspace+=1
+                                else:
+                                    subname = subname[:fndit] + ' ' + subname[fndit+1:]
+                                    nonocount+=1 
+                                x+=1
+                        nonocount += (subcnt + dcspace)
+                        #if dcspace == 1:
+                        #    nonocount = nonocount + subcnt + dcspace                    
+                        #else:
+                        #    subname = re.sub('\.', ' ', subname)
+                        #    nonocount = nonocount + subcnt - 1 #(remove the extension from the length)
                     else:
                         #this is new - if it's a symbol seperated by a space on each side it drags in an extra char.
                         x = 0
@@ -581,9 +602,12 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             logger.fdebug('[FILECHECKER] ' + str(j) + ' is >= ' + str(len(subname)) + ' .End reached. ignoring remainder.')
                             break
                         elif subname[j:] == '-':
-                            if j <= len(subname) and subname[j+1].isdigit():
-                                logger.fdebug('[FILECHECKER] negative issue detected.')
-                                #detneg = "yes"
+                            try:
+                                if j <= len(subname) and subname[j+1].isdigit():
+                                    logger.fdebug('[FILECHECKER] negative issue detected.')
+                                    #detneg = "yes"
+                            except IndexError:
+                                logger.fdebug('[FILECHECKER] There was a problem parsing the information from this filename: ' + comicpath)
                         elif j > findtitlepos:
                             if subname[j:] == '#':
                                 if subname[j+1].isdigit():
@@ -593,6 +617,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             elif ('-' in watchcomic or '.' in watchcomic) and j < len(watchcomic):
                                 logger.fdebug('[FILECHECKER] - appears in series title, ignoring.')
                             else:                             
+                                digitchk = subname[j:]
                                 logger.fdebug('[FILECHECKER] special character appears outside of title - ignoring @ position: ' + str(charpos[i]))
                                 nonocount-=1
 
@@ -602,11 +627,11 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 else:
                     jtd_len = len(cchk)# + nonocount
 
-                if sarc and mylar.READ2FILENAME:
-                    removest = subname.find(' ') # the - gets removed above so we test for the first blank space...
-                    if subname[:removest].isdigit():
-                        jtd_len += removest + 1  # +1 to account for space in place of - 
-                        logger.fdebug('[FILECHECKER] adjusted jtd_len to : ' + str(removest) + ' because of story-arc reading order tags')
+#                if sarc and mylar.READ2FILENAME:
+#                    removest = subname.find(' ') # the - gets removed above so we test for the first blank space...
+#                    if subname[:removest].isdigit():
+#                        jtd_len += removest + 1  # +1 to account for space in place of - 
+#                        logger.fdebug('[FILECHECKER] adjusted jtd_len to : ' + str(removest) + ' because of story-arc reading order tags')
 
                 logger.fdebug('[FILECHECKER] nonocount [' + str(nonocount) + '] cchk [' + cchk + '] length [' + str(len(cchk)) + ']')
 
@@ -636,6 +661,68 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                            justthedigits_1 = 'Annual ' + str(justthedigits_1)
 
                 logger.fdebug('[FILECHECKER] after title removed from SUBNAME [' + justthedigits_1 + ']')
+
+                titlechk = False
+
+                if digitchk:                  
+                    try:
+                        #do the issue title check here
+                        logger.fdebug('[FILECHECKER] Possible issue title is : ' + str(digitchk))
+                        # see if it can float the digits
+                        try:
+                            st = digitchk.find('.')
+                            logger.fdebug('st:' + str(st))
+                            st_d = digitchk[:st]
+                            logger.fdebug('st_d:' + str(st_d))
+                            st_e = digitchk[st+1:]
+                            logger.fdebug('st_e:' + str(st_e))
+                            #x = int(float(st_d))
+                            #logger.fdebug('x:' + str(x))
+                            #validity check
+                            if helpers.is_number(st_d):
+                                #x2 = int(float(st_e))
+                                if helpers.is_number(st_e):
+                                    logger.fdebug('[FILECHECKER] This is a decimal issue.')
+                                else: raise ValueError
+                            else: raise ValueError
+                        except ValueError, e:
+                            if digitchk.startswith('.'):
+                                pass
+                            else:
+                                if len(justthedigits_1) >= len(digitchk):
+                                    logger.fdebug('[FILECHECKER] Removing issue title.')
+                                    justthedigits_1 = re.sub(digitchk,'', justthedigits_1).strip()
+                                    logger.fdebug('[FILECHECKER] After issue title removed [' + justthedigits_1 + ']')
+                                    titlechk = True
+                                    hyphensplit = digitchk
+                                    issue_firstword = digitchk.split()[0]
+                                    splitit = subname.split()
+                                    splitst = len(splitit)
+                                    logger.fdebug('[FILECHECKER] splitit :' + str(splitit))
+                                    logger.fdebug('[FILECHECKER] splitst :' + str(len(splitit)))
+                                    orignzb = item
+                    except:
+                    #test this out for manual post-processing items like original sin 003.3 - thor and loki 002... 
+#***************************************************************************************
+#  need to assign digitchk here for issues that don't have a title and fail the above try.
+#*************************************************************************************** 
+                         try:
+                             logger.fdebug('[FILECHECKER] justthedigits_1 len : ' + str(len(justthedigits_1)))
+                             logger.fdebug('[FILECHECKER] digitchk len : ' + str(len(digitchk)))
+                             if len(justthedigits_1) >= len(digitchk):
+                                 logger.fdebug('[FILECHECKER] Removing issue title.')
+                                 justthedigits_1 = re.sub(digitchk,'', justthedigits_1).strip()
+                                 logger.fdebug('[FILECHECKER] After issue title removed [' + justthedigits_1 + ']')
+                                 titlechk = True
+                                 hyphensplit = digitchk
+                                 issue_firstword = digitchk.split()[0]
+                                 splitit = subname.split()
+                                 splitst = len(splitit)
+                                 logger.info('[FILECHECKER] splitit :' + str(splitit))
+                                 logger.info('[FILECHECKER] splitst :' + str(len(splitit)))
+                                 orignzb = item
+                         except:
+                             pass  #(revert this back if above except doesn't work)
 
                 #remove the title if it appears
                 #findtitle = justthedigits.find('-')
@@ -771,31 +858,13 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     #print ("there are " + str(lenm) + " words.")
                     cnt = 0
                     yearmatch = "none"
-                    #vers4year = "no"
-                    #vers4vol = "no"
 
                     logger.fdebug('[FILECHECKER] subsplit : ' + str(subsplit))
-
-                    #for ct in subsplit:
-                    #    if ct.lower().startswith('v') and ct[1:].isdigit():
-                    #        logger.fdebug('[FILECHECKER] possible versioning..checking')
-                    #        #we hit a versioning # - account for it
-                    #        if ct[1:].isdigit():
-                    #            if len(ct[1:]) == 4:  #v2013
-                    #                logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
-                    #                vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
-                    #                break
-                    #            else:
-                    #                if len(ct) < 4:
-                    #                    logger.fdebug('[FILECHECKER] Version detected as ' + str(ct))
-                    #                    vers4vol = str(ct)
-                    #                    break
-                    #        logger.fdebug('[FILECHECKER] false version detection..ignoring.')
 
                     versionmatch = "false"
                     if vers4year is not "no" or vers4vol is not "no":
 
-                        if comicvolume: #is not "None" and comicvolume is not None:
+                        if comicvolume:
                             D_ComicVersion = re.sub("[^0-9]", "", comicvolume)
                             if D_ComicVersion == '':
                                 D_ComicVersion = 0
@@ -833,9 +902,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             #    logger.fdebug('[FILECHECKER] Series version detected as V1 (only series in existance with that title). Bypassing year check')
                             #    yearmatch = "true"
                             #    break
-                        if subnm[cnt][:-2] == '19' or subnm[cnt][:-2] == '20':
+                        if (subnm[cnt].startswith('19') or subnm[cnt].startswith('20')) and len(subnm[cnt]) == 4:
                             logger.fdebug('[FILECHECKER] year detected: ' + str(subnm[cnt]))
                             result_comyear = subnm[cnt]
+##### - checking to see what removing this does for the masses 
                             if int(result_comyear) <= int(maxyear) and int(result_comyear) >= int(comyear):
                                 logger.fdebug('[FILECHECKER] ' + str(result_comyear) + ' is within the series range of ' + str(comyear) + '-' + str(maxyear))
                                 #still possible for incorrect match if multiple reboots of series end/start in same year
@@ -843,8 +913,9 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 break
                             else:
                                 logger.fdebug('[FILECHECKER] ' + str(result_comyear) + ' - not right - year not within series range of ' + str(comyear) + '-' + str(maxyear))
-                                yearmatch = "false"
+                                yearmatch = "false"  #set to true for mass push check.
                                 break
+##### - end check
                         cnt+=1
                     if versionmatch == "false":
                         if yearmatch == "false":
@@ -873,6 +944,32 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                         #if the sub has an annual, let's remove it from the modwatch as well
                         modwatchcomic = re.sub('annual', '', modwatchcomic.lower())
 
+                    isstitle_chk = False
+
+                    if titlechk:
+                        issuetitle = helpers.get_issue_title(ComicID=manual['ComicID'], IssueNumber=justthedigits)
+
+                        if issuetitle:
+                            vals = []
+                            watchcomic_split = watchcomic.split()
+                            vals = mylar.search.IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstword, hyphensplit, orignzb=item)
+                            print 'vals: ' + str(vals)
+                            if vals:
+                                if vals[0]['status'] == 'continue':
+                                    continue
+                                else:
+                                    logger.fdebug('Issue title status returned of : ' + str(vals[0]['status']))  # will either be OK or pass.
+                                    splitit = vals[0]['splitit']
+                                    splitst = vals[0]['splitst']
+                                    isstitle_chk = vals[0]['isstitle_chk']
+                                    possibleissue_num = vals[0]['possibleissue_num']
+                                    #if the issue title was present and it contained a numeric, it will pull that as the issue incorrectly
+                                    if isstitle_chk == True:
+                                        justthedigits = possibleissue_num
+                                        subname = re.sub(' '.join(vals[0]['isstitle_removal']),'',subname).strip()
+                            else:
+                                logger.fdebug('No issue title.')
+
                     #tmpitem = item[:jtd_len]
                     # if it's an alphanumeric with a space, rejoin, so we can remove it cleanly just below this.
                     substring_removal = None
@@ -895,6 +992,13 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     logger.fdebug('[FILECHECKER] sub_removed: ' + str(sub_removed))
                     split_sub = sub_removed.rsplit(' ',1)[0].split(' ')  #removes last word (assuming it's the issue#)
                     split_mod = modwatchcomic.replace('_', ' ').split()   #batman
+                    i = 0
+                    newc = ''
+                    while (i < len(split_mod)):
+                        newc += split_sub[i] + ' ' 
+                        i+=1
+                    if newc:
+                        split_sub = newc.strip().split()
                     logger.fdebug('[FILECHECKER] split_sub: ' + str(split_sub))
                     logger.fdebug('[FILECHECKER] split_mod: ' + str(split_mod))
 

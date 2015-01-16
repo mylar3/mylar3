@@ -1386,7 +1386,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
             mode = 'want_ann'
             if result is None:
-                logger.info("Unable to locate IssueID - you probably should delete/refresh the series.")
+                logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
                 return
         ComicID = result['ComicID']
         comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
