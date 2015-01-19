@@ -145,6 +145,7 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
 
     logger.fdebug(module + ' Created directory @ : ' + str(comicpath))
     logger.fdebug(module + ' Filename is : ' + str(filename))
+
     if filename is None:
         filename_list = glob.glob( os.path.join( downloadpath, "*.cbz" ) )
         filename_list.extend( glob.glob( os.path.join( downloadpath, "*.cbr" ) ) )
@@ -166,7 +167,8 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
             #if the filename doesn't exist - force the path assuming it's the 'download path'
         filename = os.path.join(downloadpath, filename)
         logger.fdebug(module + ' The path where the file is that I was provided is probably wrong - modifying it to : ' + filename)
-        shutil.move( filename, comicpath )
+        shutil.move( filename, os.path.join(comicpath, os.path.split(filename)[1]) )
+        logger.fdebug(module + ' moving : ' + filename + ' to ' + os.path.join(comicpath, os.path.split(filename)[1]))
 
     try:
         filename = os.path.split(filename)[1]   # just the filename itself
@@ -207,8 +209,14 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
                         logger.warn(module + ' No zip file present')
                         return "fail"
 
-
-                    base = os.path.join(re.sub(issueid, '', comicpath), filename) #extension is already .cbz
+                    
+                    #if the temp directory is the LAST directory in the path, it's part of the CT logic path above
+                    #and can be removed to allow a copy back to the original path to work.
+                    if 'temp' in os.path.basename(os.path.normpath(comicpath)):
+                        pathbase = os.path.dirname(os.path.dirname(comicpath))
+                        base = os.path.join(pathbase, filename)
+                    else:
+                        base = os.path.join(re.sub(issueid, '', comicpath), filename) #extension is already .cbz
                     logger.fdebug(module + ' Base set to : ' + base)
                     logger.fdebug(module + ' Moving : ' + f + ' - to - ' + base)
                     shutil.move( f, base)
@@ -411,6 +419,7 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
         except OSError, e:
             logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + str(script_cmd))
 
+
         #increment CV API counter.
         mylar.CVAPI_COUNT +=1
 
@@ -442,6 +451,7 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
             logger.fdebug(module + ' Sucessfully moved file from temporary path.')
         except:
             logger.error(module + ' Unable to move file from temporary path. Deletion of temporary path halted.')
+            logger.error(module + ' attempt to move: ' + os.path.join(comicpath, nfilename) + ' to ' + os.path.join(os.path.abspath(file_dir), file_n))
             return os.path.join(comicpath, nfilename)
 
         i = 0
