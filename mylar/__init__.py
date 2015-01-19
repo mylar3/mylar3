@@ -412,7 +412,7 @@ def initialize():
             HTTP_PORT = 8090
             
         CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
-        DBCHOICE = check_setting_str(CFG, 'General', 'dbchoice', '')
+        DBCHOICE = check_setting_str(CFG, 'General', 'dbchoice', 'sqlite3')
         DBUSER = check_setting_str(CFG, 'General', 'dbuser', '')
         DBPASS = check_setting_str(CFG, 'General', 'dbpass', '')
         DBNAME = check_setting_str(CFG, 'General', 'dbname', '')
@@ -1415,59 +1415,59 @@ def dbcheck():
 
     try:
         c.execute('SELECT LastUpdated from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN LastUpdated TEXT')
 
     try:
         c.execute('SELECT QUALalt_vers from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALalt_vers TEXT')
     try:
         c.execute('SELECT QUALtype from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALtype TEXT')
     try:
         c.execute('SELECT QUALscanner from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALscanner TEXT')
     try:
         c.execute('SELECT QUALquality from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALquality TEXT')
 
     try:
         c.execute('SELECT AlternateSearch from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN AlternateSearch TEXT')
 
     try:
         c.execute('SELECT ComicVersion from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN ComicVersion TEXT')
 
     try:
         c.execute('SELECT SortOrder from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN SortOrder INTEGER')
 
     try:
         c.execute('SELECT UseFuzzy from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN UseFuzzy TEXT')
 
     try:
         c.execute('SELECT DetailURL from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN DetailURL TEXT')
 
     try:
         c.execute('SELECT ForceContinuing from comics')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN ForceContinuing INTEGER')
 
     try:
         c.execute('SELECT ComicName_Filesafe from comics')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN ComicName_Filesafe TEXT')
 
 
@@ -1475,22 +1475,22 @@ def dbcheck():
 
     try:
         c.execute('SELECT ComicSize from issues')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ComicSize TEXT')
 
     try:
         c.execute('SELECT inCacheDir from issues')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN inCacheDIR TEXT')
 
     try:
         c.execute('SELECT AltIssueNumber from issues')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN AltIssueNumber TEXT')
 
     try:
         c.execute('SELECT IssueDate_Edit from issues')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN IssueDate_Edit TEXT')
 
 
@@ -1498,79 +1498,79 @@ def dbcheck():
 
     try:
         c.execute('SELECT WatchMatch from importresults')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN WatchMatch TEXT')
 
     try:
         c.execute('SELECT IssueCount from importresults')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN IssueCount TEXT')
 
     try:
         c.execute('SELECT ComicLocation from importresults')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN ComicLocation TEXT')
 
     try:
         c.execute('SELECT ComicFilename from importresults')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN ComicFilename TEXT')
 
     try:
         c.execute('SELECT impID from importresults')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN impID TEXT')
 
     try:
         c.execute('SELECT implog from importresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN implog TEXT')
 
     try:
         c.execute('SELECT DisplayName from importresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN DisplayName TEXT')
 
     try:
         c.execute('SELECT SRID from importresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN SRID TEXT')
 
     try:
         c.execute('SELECT ComicID from importresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN ComicID TEXT')
 
     try:
         c.execute('SELECT IssueID from importresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN IssueID TEXT')
 
     ## -- Readlist Table --
 
     try:
         c.execute('SELECT inCacheDIR from readlist')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN inCacheDIR TEXT')
 
     try:
         c.execute('SELECT Location from readlist')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN Location TEXT')
 
     try:
         c.execute('SELECT IssueDate from readlist')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN IssueDate TEXT')
 
     try:
         c.execute('SELECT SeriesYear from readlist')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN SeriesYear TEXT')
 
     try:
         c.execute('SELECT ComicID from readlist')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN ComicID TEXT')
 
 
@@ -1578,7 +1578,7 @@ def dbcheck():
 
     try:
         c.execute('SELECT ComicID from weekly')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE weekly ADD COLUMN ComicID TEXT')
 
 
@@ -1586,17 +1586,17 @@ def dbcheck():
 
     try:
         c.execute('SELECT SARC from nzblog')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE nzblog ADD COLUMN SARC TEXT')
 
     try:
         c.execute('SELECT PROVIDER from nzblog')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE nzblog ADD COLUMN PROVIDER TEXT')
 
     try:
         c.execute('SELECT ID from nzblog')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE nzblog ADD COLUMN ID TEXT')
 
 
@@ -1604,23 +1604,23 @@ def dbcheck():
 
     try:
         c.execute('SELECT Location from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN Location TEXT')
 
     try:
         c.execute('SELECT ComicSize from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN ComicSize TEXT')
 
     try:
         c.execute('SELECT Int_IssueNumber from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN Int_IssueNumber INT')
 
     try:
         c.execute('SELECT ComicName from annuals')
         annual_update = "no"
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN ComicName TEXT')
         annual_update = "yes"
 
@@ -1630,22 +1630,22 @@ def dbcheck():
 
     try:
         c.execute('SELECT ReleaseDate from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN ReleaseDate TEXT')
 
     try:
         c.execute('SELECT ReleaseComicID from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN ReleaseComicID TEXT')
 
     try:
         c.execute('SELECT ReleaseComicName from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN ReleaseComicName TEXT')
 
     try:
         c.execute('SELECT IssueDate_Edit from annuals')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN IssueDate_Edit TEXT')
 
 
@@ -1653,7 +1653,7 @@ def dbcheck():
   
     try:
         c.execute('SELECT Provider from snatched')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE snatched ADD COLUMN Provider TEXT')
 
 
@@ -1661,7 +1661,7 @@ def dbcheck():
 
     try:
         c.execute('SELECT DisplayComicName from upcoming')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE upcoming ADD COLUMN DisplayComicName TEXT')
 
 
@@ -1669,48 +1669,48 @@ def dbcheck():
 
     try:
         c.execute('SELECT ComicID from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN ComicID TEXT')
 
     try:
         c.execute('SELECT StoreDate from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN StoreDate TEXT')
 
     try:
         c.execute('SELECT IssueDate from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN IssueDate TEXT')
 
     try:
         c.execute('SELECT Publisher from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN Publisher TEXT')
 
     try:
         c.execute('SELECT IssuePublisher from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN IssuePublisher TEXT')
 
     try:
         c.execute('SELECT IssueName from readinglist')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN IssueName TEXT')
 
     ## -- searchresults Table --
     try:
         c.execute('SELECT SRID from searchresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE searchresults ADD COLUMN SRID TEXT')
 
     try:
         c.execute('SELECT Series from searchresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE searchresults ADD COLUMN Series TEXT')
 
     try:
         c.execute('SELECT sresults from searchresults')
-    except:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE searchresults ADD COLUMN sresults TEXT')
 
 
@@ -1719,7 +1719,7 @@ def dbcheck():
     #value in the sql so we can display it in the details screen for everyone to wonder at.
     try:
         c.execute('SELECT not_updated_db from comics')
-    except c_error:
+    except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN not_updated_db TEXT')
 
 # -- not implemented just yet ;)
@@ -1729,12 +1729,12 @@ def dbcheck():
     # MetaData will hold the MetaData itself in tuple format
 #    try:
 #        c.execute('SELECT MetaData_Present from comics')
-#    except c_error:
+#    except sqlite3.OperationalError:
 #        c.execute('ALTER TABLE importresults ADD COLUMN MetaData_Present TEXT')
 
 #    try:
 #        c.execute('SELECT MetaData from importresults')
-#    except c_error:
+#    except sqlite3.OperationalError:
 #        c.execute('ALTER TABLE importresults ADD COLUMN MetaData TEXT')
 
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
