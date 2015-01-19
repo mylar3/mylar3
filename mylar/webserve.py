@@ -3791,6 +3791,8 @@ class WebInterface(object):
     downloadthis.exposed = True
 
     def IssueInfo(self, filelocation):
+        filelocation = filelocation.encode('ASCII')
+        filelocation = urllib.unquote_plus(filelocation).decode('utf8')
         issuedetails = helpers.IssueDetails(filelocation)
         #print str(issuedetails)
         issueinfo = '<table width="500"><tr><td>'
