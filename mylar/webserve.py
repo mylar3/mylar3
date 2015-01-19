@@ -339,8 +339,21 @@ class WebInterface(object):
         # used when a choice is selected to 'add story arc' via the searchresults screen (via the story arc search).
         # arclist contains ALL the issueid's in sequence, along with the issue titles.
         # call the function within cv.py to grab all the issueid's and return all the issue data
+        module = '[STORY ARC]'
+        myDB = db.DBConnection()
+        #check if it already exists.
+        arc_chk = myDB.select('SELECT * FROM readinglist WHERE CV_ArcID=?', [arcid])
+        if arc_chk is None:
+            logger.fdebug(module + ' No match in db based on ComicVine ID. Making sure and checking against Story Arc Name.')
+            arc_chk = myDB.select('SELECT * FROM readinglist WHERE StoryArc=?', [storyarcname])
+            if arc_chk is not None:
+                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
+                raise cherrypy.HTTPRedirect("readlist")
+        else:
+            logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
+            raise cherrypy.HTTPRedirect("readlist")
         arc_results = mylar.cv.getComic(comicid=None, type='issue', arcid=arcid, arclist=arclist)
-        logger.info('arcresults: ' + str(arc_results))
+        logger.fdebug(module + ' Arcresults: ' + str(arc_results))
         if len(arc_results) > 0:
             import random
 
@@ -382,7 +395,7 @@ class WebInterface(object):
                         int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
                     elif u'\xbd' in issnum:
                         int_issnum = .5 * 1000
-                        logger.info('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
+                        logger.fdebug(module + ' 1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
                     elif u'\xbc' in issnum:
                         int_issnum = .25 * 1000
                     elif u'\xbe' in issnum:
@@ -415,7 +428,7 @@ class WebInterface(object):
 #                           int_issnum = str(issnum)
                             int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                         except ValueError:
-                            logger.error('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+                            logger.error(module + ' This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                             updater.no_searchresults(comicid)
                             return
                     else:
@@ -423,8 +436,8 @@ class WebInterface(object):
                             x = float(issnum)
                             #validity check
                             if x < 0:
-                                logger.info('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
-                                logger.fdebug('value of x is : ' + str(x))
+                                logger.fdebug(module + ' I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
+                                logger.fdebug(module + ' value of x is : ' + str(x))
                                 int_issnum = (int(x)*1000) - 1
                             else: raise ValueError
                         except ValueError, e:
@@ -441,9 +454,9 @@ class WebInterface(object):
                                         isschk = float(issno)
                                     except ValueError, e:
                                         if len(issnum) == 1 and issnum.isalpha():
-                                            logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
+                                            logger.fdebug(module + ' Detected lone alpha issue. Attempting to figure this out.')
                                             break
-                                        logger.fdebug('invalid numeric for issue - cannot be found. Ignoring.')
+                                        logger.fdebug(module + ' Invalid numeric for issue - cannot be found. Ignoring.')
                                         issno = None
                                         tstord = None
                                         invchk = "true"
@@ -460,10 +473,10 @@ class WebInterface(object):
                                         a+=1
                                     int_issnum = (int(issno) * 1000) + ordtot
                             elif invchk == "true":
-                                logger.fdebug('this does not have an issue # that I can parse properly.')
+                                logger.fdebug(module + ' This does not have an issue # that I can parse properly.')
                                 return
                             else:
-                                logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
+                                logger.error(module + ' ' + str(issnum) + ' This has an alpha-numeric in the issue # which I cannot account for.')
                                 return
 
                 issuedata.append({"ComicID":            comicid,
@@ -482,9 +495,7 @@ class WebInterface(object):
             comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
             #logger.info('comicid_results: ' + str(comicid_results))
 
-            logger.fdebug('initiating issue updating - just the info')
-
-            myDB = db.DBConnection()
+            logger.fdebug(module + ' Initiating issue updating - just the info')
 
             for AD in issuedata:
                 seriesYear = 'None'
@@ -520,7 +531,7 @@ class WebInterface(object):
                 myDB.upsert("readinglist", newVals, newCtrl)
 
         #run the Search for Watchlist matches now.
-        logger.fdebug('Now searching your watchlist for matches belonging to this story arc.')
+        logger.fdebug(module + ' Now searching your watchlist for matches belonging to this story arc.')
         self.ArcWatchlist(storyarcid)
         raise cherrypy.HTTPRedirect("detailReadlist?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
     

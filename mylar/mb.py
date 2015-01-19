@@ -276,7 +276,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             'haveit':               haveit
                             })
 
-                    logger.info(arclist)
+                    logger.fdebug('IssueID\'s that are a part of ' + xmlTag + ' : ' + str(arclist))
     
                 else:
                     xmlcnt = result.getElementsByTagName('count_of_issues')[0].firstChild.wholeText

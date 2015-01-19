@@ -299,20 +299,48 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
-            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = ' AU'
-            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = ' AI'
-            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.INH'
-            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
-                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
-                issuenum = re.sub("[^0-9]", "", issuenum)
-                issue_except = '.NOW'
+            issue_exceptions = ['AU',
+                                'INH',
+                                'NOW',
+                                'AI',
+                                'A',
+                                'B',
+                                'C',
+                                'X',
+                                'O']
+            valid_spaces = ('.','-')
+            for issexcept in issue_exceptions:
+                if issexcept.lower() in issuenum.lower():
+                    logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
+                    if any(v in issuenum for v in valid_spaces):
+                        logger.fdebug('character space denoted as : ' + iss_space)
+                    else:
+                        logger.fdebug('character space not denoted.')
+                        iss_space = ''                        
+#                    if issexcept == 'INH': 
+#                       issue_except = '.INH'
+                    if issexcept == 'NOW':
+                       if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
+#                       issue_except = '.NOW'
 
+                    issue_except = iss_space + issexcept
+                    logger.fdebug('issue_except denoted as : ' + issue_except)
+                    issuenum = re.sub("[^0-9]", "", issuenum)
+                    break
+
+#            if 'au' in issuenum.lower() and issuenum[:1].isdigit():
+#                issue_except = ' AU'
+#            elif 'ai' in issuenum.lower() and issuenum[:1].isdigit():
+#                issuenum = re.sub("[^0-9]", "", issuenum)
+#                issue_except = ' AI'
+#            elif 'inh' in issuenum.lower() and issuenum[:1].isdigit():
+#                issuenum = re.sub("[^0-9]", "", issuenum)
+#                issue_except = '.INH'
+#            elif 'now' in issuenum.lower() and issuenum[:1].isdigit():
+#                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
+#                issuenum = re.sub("[^0-9]", "", issuenum)
+#                issue_except = '.NOW'
+                
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
@@ -347,19 +375,23 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
             prettycomiss = None
 
-            try:
-                x = float(issueno)
-                #validity check
-                if x < 0:
-                    logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
-                    prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
-                elif x >= 0:
-                    pass
-                else:
-                    raise ValueError
-            except ValueError, e:
-                logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
-                return
+            if issueno.isalpha():
+                logger.fdebug('issue detected as an alpha.')
+                prettycomiss = str(issueno)
+            else:
+                try:
+                    x = float(issueno)
+                    #validity check
+                    if x < 0:
+                        logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
+                        prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
+                    elif x >= 0:
+                        pass
+                    else:
+                        raise ValueError
+                except ValueError, e:
+                    logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
+                    return
 
             if prettycomiss is None and len(str(issueno)) > 0:
                 logger.info('here')

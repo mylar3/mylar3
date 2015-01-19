@@ -1266,9 +1266,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 nzbname = searchresult[0]['nzbname']
                                 sent_to = searchresult[0]['sent_to']
 
-                            #send out the notifications for the snatch.
-                            notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
-
                             foundc = "yes"
                             done = True
                             break
@@ -1289,6 +1286,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
             if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
             updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID, nzbid, tmpprov)
+            #send out the notifications for the snatch.
+            notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
             prov_count == 0
             #break
             return foundc
@@ -1782,12 +1781,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     if directsend is None:
         return return_val
     else:
-        #send out notifications for on snatch.
-        notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         #update the db on the snatch.
         logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
         if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
-        updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)     
+        updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)
+        #send out notifications for on snatch after the updater incase notification fails (it would bugger up the updater/pp scripts)
+        notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         return
 
 def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
