@@ -441,7 +441,7 @@
                                                 %endif
 
                                                 %if mylar.ENABLE_META:
-                                                    <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}',$(this),'table')" data-success="${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
+                                                    <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}',$(this),'table')" data-success="${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
                                                 %endif
                                         %endif
 <!--

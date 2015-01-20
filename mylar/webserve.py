@@ -3829,7 +3829,11 @@ class WebInterface(object):
             issueinfo += 'Editor: ' + issuedetails[0]['editor'] + '</br>'
         issueinfo += '</td></tr>'
         #issueinfo += '<img src="interfaces/default/images/rename.png" height="25" width="25"></td></tr>'
-        issueinfo += '<tr><td>Summary: ' + issuedetails[0]['summary'] + '</br></td></tr>'
+        if len(issuedetails[0]['summary']) > 1000:
+            issuesumm = issuedetails[0]['summary'][:1000] + '...'
+        else:
+            issuesumm = issuedetails[0]['summary']
+        issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
         issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
         issueinfo += '</td></tr></table>'
         return issueinfo
@@ -3840,11 +3844,11 @@ class WebInterface(object):
         #return json_dump
     IssueInfo.exposed = True
 
-    def manual_metatag(self, dirName, issueid, filename, comicid):
+    def manual_metatag(self, dirName, issueid, filename, comicid, comversion):
         module = '[MANUAL META-TAGGING]'
         try:
             import cmtagmylar
-            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename)
+            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=comversion)
         except ImportError:
             logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/ directory.')
             metaresponse = "fail"
@@ -3861,13 +3865,14 @@ class WebInterface(object):
 
     def group_metatag(self, dirName, ComicID):
         myDB = db.DBConnection()
+        cinfo = myDB.selectone('SELECT ComicVersion FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         groupinfo = myDB.select('SELECT * FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
         for ginfo in groupinfo:
             logger.info('tagging : ' + str(ginfo))
-            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']), ComicID)
+            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'])
         logger.info('Finished doing a complete series (re)tagging of metadata.')
     group_metatag.exposed = True
 

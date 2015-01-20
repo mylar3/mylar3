@@ -318,7 +318,8 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
 
     ##set up default comictagger options here.
     if comversion is None or comversion == '':
-        comversion = 1
+        comversion = '1'
+    comversion = re.sub('[^0-9]', '', comversion).strip()
     cvers = 'volume=' + str(comversion)
     tagoptions = [ "-s", "--verbose", "-m", cvers ]
 
