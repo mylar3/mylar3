@@ -292,6 +292,15 @@
                                        <a href="#" title="Seperate multiple entries with ##"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                        <small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small>
                                    </div>
+
+<!--
+                                   <div class="row">
+                                       <label>Alternate File-Naming</label>
+                                       <input type="text" name="alt_filename" value="${comic['AlternateFileName']}" size="90">
+                                       <a href="#" title="Alternate File Naming"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                       <small>Alternate file-naming to be used when post-processing / renaming files instead of the actual title.</small>
+                                   </div>
+-->
                                 <div class="row">
                                         <%
                                              year_options = "Default - Keep the Year as is\nYear Removal - Remove issue publication year from searches (dangerous)\nFuzzy the Year - Increase & Decrease the issue publication year by one"
@@ -429,7 +438,7 @@
                                             %if linky:
                                             <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                <a href="#issue-box" onclick="return runMetaIssue('${linky}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
+                                                <a href="#issue-box" onclick="return runMetaIssue('${linky |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
                                                     <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
@@ -571,7 +580,7 @@
                                             %if linky:
                                               <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the annual" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
                                                     <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
@@ -690,7 +699,7 @@
 
         <script>
         function runMetaIssue(filelink) {
-              alert(filelink);
+              // alert(filelink);
               $.ajax({
                  type: "GET",
                  url: "IssueInfo",
