@@ -723,6 +723,11 @@ class PostProcessor(object):
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
             self._log("Series: " + series)
             logger.fdebug(module + ' Series: ' + str(series))
+            if comicnzb['AlternateFileName']:
+                seriesfilename = comicnzb['AlternateFileName'].encode('ascii', 'ignore').strip()
+                logger.fdebug(module + ' Alternate File Naming has been enabled for this series. Will rename series to : ' + seriesfilename)
+            else:
+                seriesfilename = series
             seriesyear = comicnzb['ComicYear']
             self._log("Year: " + seriesyear)
             logger.fdebug(module + ' Year: '  + str(seriesyear))
@@ -828,7 +833,7 @@ class PostProcessor(object):
         #rename file and move to new path
         #nfilename = series + " " + issueno + " (" + seriesyear + ")"
 
-            file_values = {'$Series':    series,
+            file_values = {'$Series':    seriesfilename,
                            '$Issue':     prettycomiss,
                            '$Year':      issueyear,
                            '$series':    series.lower(),
@@ -859,19 +864,19 @@ class PostProcessor(object):
                 except:
                     logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
                     odir = self.nzb_folder
-                logger.fdebug(module + ' odir: ' + str(odir))
-                logger.fdebug(module + ' ofilename: ' + str(ofilename))
+                logger.fdebug(module + ' odir: ' + odir)
+                logger.fdebug(module + ' ofilename: ' + ofilename)
 
             else:
                 if pcheck == "fail":
                     otofilename = ml['ComicLocation']
-                logger.fdebug(module + ' otofilename:' + str(otofilename))
+                logger.fdebug(module + ' otofilename:' + otofilename)
                 odir, ofilename = os.path.split(otofilename)
-                logger.fdebug(module + ' odir: ' + str(odir))
-                logger.fdebug(module + ' ofilename: ' + str(ofilename))
+                logger.fdebug(module + ' odir: ' + odir)
+                logger.fdebug(module + ' ofilename: ' + ofilename)
                 path, ext = os.path.splitext(ofilename)
-                logger.fdebug(module + ' path: ' + str(path))
-                logger.fdebug(module + ' ext:' + str(ext))
+                logger.fdebug(module + ' path: ' + path)
+                logger.fdebug(module + ' ext:' + ext)
 
             if ofilename is None:
                 logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + str(self.nzb_folder) + ' exists and is the correct location.')
@@ -880,8 +885,8 @@ class PostProcessor(object):
                 return self.queue.put(self.valreturn)
             self._log("Original Filename: " + ofilename)
             self._log("Original Extension: " + ext)
-            logger.fdebug(module + ' Original Filname: ' + str(ofilename))
-            logger.fdebug(module + ' Original Extension: ' + str(ext))
+            logger.fdebug(module + ' Original Filename: ' + ofilename)
+            logger.fdebug(module + ' Original Extension: ' + ext)
 
             if mylar.FILE_FORMAT == '' or not mylar.RENAME_FILES:
                 self._log("Rename Files isn't enabled...keeping original filename.")
@@ -911,26 +916,26 @@ class PostProcessor(object):
                 dst = os.path.join(comlocation, (nfilename + ext.lower()))
             self._log("Source:" + src)
             self._log("Destination:" +  dst)
-            logger.fdebug(module + ' Source: ' + str(src))
-            logger.fdebug(module + ' Destination: ' + str(dst))
+            logger.fdebug(module + ' Source: ' + src)
+            logger.fdebug(module + ' Destination: ' + dst)
 
             if ml is None:
                 #downtype = for use with updater on history table to set status to 'Downloaded'
                 downtype = 'True'
                 #non-manual run moving/deleting...
                 logger.fdebug(module + ' self.nzb_folder: ' + self.nzb_folder)
-                logger.fdebug(module + ' odir: ' + str(odir))
-                logger.fdebug(module + ' ofilename:' + str(ofilename))
-                logger.fdebug(module + ' nfilename:' + str(nfilename + ext))
+                logger.fdebug(module + ' odir: ' + odir)
+                logger.fdebug(module + ' ofilename:' + ofilename)
+                logger.fdebug(module + ' nfilename:' + nfilename + ext)
                 if mylar.RENAME_FILES:
                     if str(ofilename) != str(nfilename + ext):
-                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, str(ofilename)) + ' ..to.. ' + os.path.join(odir,str(nfilename + ext)))
-                        os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir,str(nfilename + ext)))
+                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir,nfilename + ext))
+                        os.rename(os.path.join(odir, ofilename), os.path.join(odir,nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
                 #src = os.path.join(self.nzb_folder, str(nfilename + ext))
-                src = os.path.join(odir, str(nfilename + ext))
+                src = os.path.join(odir, nfilename + ext)
                 try:
                     shutil.move(src, dst)
                 except (OSError, IOError):
@@ -965,8 +970,8 @@ class PostProcessor(object):
                         os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir ,str(nfilename + ext)))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
-                src = os.path.join(odir, str(nfilename + ext))
-                logger.fdebug(module + ' odir src : ' + os.path.join(odir, str(nfilename + ext)))
+                src = os.path.join(odir, nfilename + ext)
+                logger.fdebug(module + ' odir src : ' + os.path.join(odir, nfilename + ext))
                 logger.fdebug(module + ' Moving ' + src + ' ... to ... ' + dst)
                 try:
                     shutil.move(src, dst)

@@ -345,6 +345,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
                 iss_decval = issuenum[iss_find+1:]
+                if iss_decval.endswith('.'): 
+                    iss_decval = iss_decval[:-1]
                 if int(iss_decval) == 0:
                     iss = iss_b4dec
                     issdec = int(iss_decval)
@@ -451,6 +453,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('Publisher: ' + str(publisher))
             series = comicnzb['ComicName']
             logger.fdebug('Series: ' + str(series))
+            if comicnzb['AlternateFileName']:
+                seriesfilename = comicnzb['AlternateFileName']
+                logger.fdebug('Alternate File Naming has been enabled for this series. Will rename series title to : ' + seriesfilename)
+            else:
+                seriesfilename = series
             seriesyear = comicnzb['ComicYear']
             logger.fdebug('Year: '  + str(seriesyear))
             comlocation = comicnzb['ComicLocation']
@@ -526,18 +533,18 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
-            series = series.encode('ascii', 'ignore').strip()
+            seriesfilename = seriesfilename.encode('ascii', 'ignore').strip()
             filebad = [':',',','/','?','!','\''] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
-                if dbd in series:
+                if dbd in seriesfilename:
                     if dbd == '/': repthechar = '-'
                     else: repthechar = ''
-                    series = series.replace(dbd,repthechar)
-                    logger.fdebug('Altering series name due to filenaming restrictions: ' + series)
+                    seriesfilename = seriesfilename.replace(dbd,repthechar)
+                    logger.fdebug('Altering series name due to filenaming restrictions: ' + seriesfilename)
            
             publisher = re.sub('!','', publisher)
 
-            file_values = {'$Series':    series,
+            file_values = {'$Series':    seriesfilename,
                            '$Issue':     prettycomiss,
                            '$Year':      issueyear,
                            '$series':    series.lower(),

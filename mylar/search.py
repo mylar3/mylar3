@@ -933,10 +933,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         continue
 
                     #changed this from '' to ' '
-                    comic_iss_b4 = re.sub('[\-\:\,\?\!]', ' ', str(comic_andiss))
+                    comic_iss_b4 = re.sub('[\-\:\,\?\!]', ' ', comic_andiss)
+                    comic_iss_b4 = re.sub('\'', '', comic_iss_b4)
                     comic_iss = comic_iss_b4.replace('.',' ')
                     #if issue_except: comic_iss = re.sub(issue_except.lower(), '', comic_iss)
-                    logger.fdebug("adjusted nzb comic and issue: " + str(comic_iss))
+                    logger.fdebug("adjusted nzb comic and issue: " + comic_iss)
 
                     splitit = comic_iss.split(None)
                     #something happened to dognzb searches or results...added a '.' in place of spaces

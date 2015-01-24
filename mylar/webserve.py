@@ -425,7 +425,6 @@ class WebInterface(object):
                             decisval = decis
                             issaftdec = str(decisval)
                         try:
-#                           int_issnum = str(issnum)
                             int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
                         except ValueError:
                             logger.error(module + ' This has no issue # for me to get - Either a Graphic Novel or one-shot.')
@@ -2806,13 +2805,19 @@ class WebInterface(object):
         myDB = db.DBConnection()
         results = myDB.select("SELECT * FROM importresults WHERE WatchMatch is Null OR WatchMatch LIKE 'C%' group by ComicName COLLATE NOCASE")
         #this is to get the count of issues;
+        res = []
+        countit = []
         for result in results:
-            countthis = myDB.select("SELECT count(*) FROM importresults WHERE ComicName=?", [result['ComicName']])
-            countit = countthis[0][0]
-            ctrlVal = {"ComicName":  result['ComicName']}
-            newVal = {"IssueCount":       countit}
+            res.append(result)
+        for x in res:
+            countthis = myDB.select("SELECT count(*) FROM importresults WHERE ComicName=?", [x['ComicName']])
+            countit.append({"ComicName": x['ComicName'],
+                            "IssueCount": countthis[0][0]})
+        for ct in countit:
+            ctrlVal = {"ComicName":  ct['ComicName']}
+            newVal = {"IssueCount":  ct['IssueCount']}
             myDB.upsert("importresults", newVal, ctrlVal)
-            #logger.info("counted " + str(countit) + " issues for " + str(result['ComicName']))
+        #logger.info("counted " + str(countit) + " issues for " + str(result['ComicName']))
         #need to reload results now
         results = myDB.select("SELECT * FROM importresults WHERE WatchMatch is Null OR WatchMatch LIKE 'C%' group by ComicName COLLATE NOCASE")
         watchresults = myDB.select("SELECT * FROM importresults WHERE WatchMatch is not Null AND WatchMatch NOT LIKE 'C%' group by ComicName COLLATE NOCASE")
@@ -3298,25 +3303,25 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, alt_filename=None):
         myDB = db.DBConnection()
-#--- this is for multipe search terms............
+#--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
         ffs_alt = []
         if '##' in alt_search:
             ffs = alt_search.find('##')
             ffs_alt.append(alt_search[:ffs])
             ffs_alt_st = str(ffs_alt[0])
-            print ("ffs_alt: " + str(ffs_alt[0]))
+            logger.fdebug("ffs_alt: " + str(ffs_alt[0]))
 
         ffs_test = alt_search.split('##')
         if len(ffs_test) > 0:
-            print("ffs_test names: " + str(len(ffs_test)))
+            logger.fdebug("ffs_test names: " + str(len(ffs_test)))
             ffs_count = len(ffs_test)
             n=1
             while (n < ffs_count):
                 ffs_alt.append(ffs_test[n])
-                print("adding : " + str(ffs_test[n]))
+                logger.fdebug("adding : " + str(ffs_test[n]))
                #print("ffs_alt : " + str(ffs_alt))
                 ffs_alt_st = str(ffs_alt_st) + "..." + str(ffs_test[n])
                 n+=1
@@ -3382,6 +3387,11 @@ class WebInterface(object):
             newValues['ForceContinuing'] = 0
         else:
             newValues['ForceContinuing'] = 1
+
+        if alt_filename is None or alt_filename == 'None':
+            newValues['AlternateFileName'] = "None"
+        else:
+            newValues['AlternateFileName'] = str(alt_filename)
 
         #force the check/creation of directory com_location here
         if os.path.isdir(str(com_location)):
