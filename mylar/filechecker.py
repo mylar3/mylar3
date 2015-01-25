@@ -447,10 +447,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                         fndit = 0
                         blspc = 0
                         if nono == '#':
-                            logger.info('# detected.')
                             fndit = subname.find(nono)
                             if subname[fndit+1].isdigit():
-                                logger.info('# detected before digits - assuming issue number.')
                                 subname = re.sub('#','',subname)
                             continue
                         while x < subcnt:

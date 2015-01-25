@@ -37,9 +37,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     unaltered_ComicName = None
     if filesafe:
         if filesafe != ComicName and mode != 'want_ann':
-            logger.info('[SEARCH] altering ComicName to search-safe Name : ' + filesafe)
+            logger.info('[SEARCH] Special Characters exist within Series Title. Enabling search-safe Name : ' + filesafe)
+            if AlternateSearch is None or AlternateSearch == 'None':
+                AlternateSearch = filesafe
+            else:
+                AlternateSearch += '##' + filesafe
             unaltered_ComicName = ComicName
-            ComicName = filesafe
+            #ComicName = filesafe
+    logger.info('AlternateSearch is : ' + AlternateSearch)
     if ComicYear == None: ComicYear = '2014'
     else: ComicYear = str(ComicYear)[:4]
     if Publisher == 'IDW Publishing': Publisher = 'IDW'
@@ -464,7 +469,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
-                    bb = rsscheck.torrents(pickfeed='KAT',seriesname=cmname,issue=mod_isssearch)
+                    bb = rsscheck.torrents(pickfeed='KAT',seriesname=cmname,issue=mod_isssearch)#cmname,issue=mod_isssearch)
                     rss = "no"
                     #if bb is not None: logger.fdebug("results: " + str(bb))
                 elif nzbprov != 'experimental':
@@ -1018,6 +1023,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     watchcomic_split = helpers.cleanName(str(findcomic))
                     if '&' in watchcomic_split: watchcomic_split = re.sub('[/&]','and', watchcomic_split)
                     watchcomic_nonsplit = re.sub('[\-\:\,\.\?]', ' ', watchcomic_split)
+                    watchcomic_nonsplit = re.sub('\'', '', watchcomic_nonsplit)
                     watchcomic_split = watchcomic_nonsplit.split(None)
                       
                     logger.fdebug(str(splitit) + " nzb series word count: " + str(splitst))
@@ -1288,7 +1294,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
             updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID, nzbid, tmpprov)
             #send out the notifications for the snatch.
-            notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
+            notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
             prov_count == 0
             #break
             return foundc
@@ -1787,7 +1793,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
         updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)
         #send out notifications for on snatch after the updater incase notification fails (it would bugger up the updater/pp scripts)
-        notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
+        notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
         return
 
 def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):

@@ -51,6 +51,7 @@ DAEMON = False
 PIDFILE= None
 CREATEPID = False
 SAFESTART = False
+AUTO_UPDATE = False
 
 SCHED = Scheduler()
 
@@ -104,6 +105,9 @@ HTTP_HOST = None
 HTTP_USERNAME = None
 HTTP_PASSWORD = None
 HTTP_ROOT = None
+ENABLE_HTTPS = False
+HTTPS_CERT = None
+HTTPS_KEY = None
 HTTPS_FORCE_ON = False
 API_ENABLED = False
 API_KEY = None
@@ -373,7 +377,7 @@ def initialize():
     with INIT_LOCK:
     
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
-                queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, \
+                queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
@@ -410,6 +414,11 @@ def initialize():
             
         if HTTP_PORT < 21 or HTTP_PORT > 65535:
             HTTP_PORT = 8090
+
+        if HTTPS_CERT == '':
+            HTTPS_CERT = os.path.join(DATA_DIR, 'server.crt')
+        if HTTPS_KEY == '':
+            HTTPS_KEY = os.path.join(DATA_DIR, 'server.key')
             
         CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
         DBCHOICE = check_setting_str(CFG, 'General', 'dbchoice', 'sqlite3')
@@ -427,10 +436,14 @@ def initialize():
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
         HTTP_ROOT = check_setting_str(CFG, 'General', 'http_root', '/')
+        ENABLE_HTTPS = bool(check_setting_int(CFG, 'General', 'enable_https', 0))
+        HTTPS_CERT = check_setting_str(CFG, 'General', 'https_cert', '')
+        HTTPS_KEY = check_setting_str(CFG, 'General', 'https_key', '')      
         HTTPS_FORCE_ON = bool(check_setting_int(CFG, 'General', 'https_force_on', 0))
         API_ENABLED = bool(check_setting_int(CFG, 'General', 'api_enabled', 0))
         API_KEY = check_setting_str(CFG, 'General', 'api_key', '') 
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
+        AUTO_UPDATE = bool(check_setting_int(CFG, 'General', 'auto_update', 0))
         LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 0))
         if LOGVERBOSE:
             VERBOSE = 2
@@ -924,6 +937,11 @@ def initialize():
         else:
             LATEST_VERSION = CURRENT_VERSION
 
+#        if AUTO_UPDATE:
+#            if CURRENT_VERSION != LATEST_VERSION and INSTALL_TYPE != 'win' and COMMITS_BEHIND > 0:
+#                logger.info('Auto-updating has been enabled. Attempting to auto-update.')
+#                SIGNAL = 'update'
+
         #check for syno_fix here
         if SYNO_FIX:
             parsepath = os.path.join(DATA_DIR, 'bs4', 'builder', '_lxml.py')
@@ -1100,10 +1118,14 @@ def config_write():
     new_config['General']['http_username'] = HTTP_USERNAME
     new_config['General']['http_password'] = HTTP_PASSWORD
     new_config['General']['http_root'] = HTTP_ROOT
+    new_config['General']['enable_https'] = int(ENABLE_HTTPS)
+    new_config['General']['https_cert'] = HTTPS_CERT
+    new_config['General']['https_key'] = HTTPS_KEY
     new_config['General']['https_force_on'] = int(HTTPS_FORCE_ON)
     new_config['General']['api_enabled'] = int(API_ENABLED)
     new_config['General']['api_key'] = API_KEY   
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
+    new_config['General']['auto_update'] = int(AUTO_UPDATE)
     new_config['General']['log_dir'] = LOG_DIR
     new_config['General']['max_logsize'] = MAX_LOGSIZE
     new_config['General']['logverbose'] = int(LOGVERBOSE)

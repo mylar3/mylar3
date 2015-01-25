@@ -789,8 +789,9 @@ def nzbdbsearch(seriesname,issue,comicid=None,nzbprov=None,searchYear=None,Comic
     return nzbinfo
              
 def torsend2client(seriesname, issue, seriesyear, linkit, site):
-    logger.info('matched on ' + str(seriesname))
-    filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
+    logger.info('matched on ' + seriesname)
+    filename = helpers.filesafe(seriesname)
+    #filename = re.sub('[\'\!\@\#\$\%\:\;\/\\=\?\.]', '',seriesname)
     filename = re.sub(' ', '_', filename)
     filename += "_" + str(issue) + "_" + str(seriesyear)
     if site == 'CBT':

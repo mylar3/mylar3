@@ -1232,8 +1232,14 @@ class WebInterface(object):
             raise cherrypy.HTTPRedirect("pullist")
             #return
         elif mode == 'want' or mode == 'want_ann' or manualsearch:
-            cdname = myDB.selectone("SELECT ComicName, ComicName_Filesafe from comics where ComicID=?", [ComicID]).fetchone()
-            ComicName = cdname['ComicName_Filesafe']
+            cdname = myDB.selectone("SELECT * from comics where ComicID=?", [ComicID]).fetchone()
+            ComicName_Filesafe = cdname['ComicName_Filesafe']
+            SeriesYear = cdname['ComicYear']
+            AlternateSearch = cdname['AlternateSearch']
+            Publisher = cdname['ComicPublisher']
+            UseAFuzzy = cdname['UseFuzzy']
+            ComicVersion = cdname['ComicVersion']
+            ComicName = cdname['ComicName']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -1273,13 +1279,13 @@ class WebInterface(object):
             storedate = issues['IssueDate']
         else:
             storedate = issues['ReleaseDate']
-        miy = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
-        SeriesYear = miy['ComicYear']
-        AlternateSearch = miy['AlternateSearch']
-        Publisher = miy['ComicPublisher']
-        UseAFuzzy = miy['UseFuzzy']
-        ComicVersion = miy['ComicVersion']
-        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=miy['ComicName_Filesafe'])
+        #miy = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
+        #SeriesYear = miy['ComicYear']
+        #AlternateSearch = miy['AlternateSearch']
+        #Publisher = miy['ComicPublisher']
+        #UseAFuzzy = miy['UseFuzzy']
+        #ComicVersion = miy['ComicVersion']
+        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -3120,9 +3126,13 @@ class WebInterface(object):
                     "http_user" : mylar.HTTP_USERNAME,
                     "http_port" : mylar.HTTP_PORT,
                     "http_pass" : mylar.HTTP_PASSWORD,
+                    "enable_https" : helpers.checked(mylar.ENABLE_HTTPS),
+                    "https_cert" : mylar.HTTPS_CERT,
+                    "https_key" : mylar.HTTPS_KEY,
                     "api_enabled" : helpers.checked(mylar.API_ENABLED),
                     "api_key"   : mylar.API_KEY,
                     "launch_browser" : helpers.checked(mylar.LAUNCH_BROWSER),
+                    "auto_update" : helpers.checked(mylar.AUTO_UPDATE),
                     "logverbose" : helpers.checked(mylar.LOGVERBOSE),
                     "max_logsize" : mylar.MAX_LOGSIZE,
                     "annuals_on" : helpers.checked(mylar.ANNUALS_ON), 
@@ -3438,7 +3448,7 @@ class WebInterface(object):
     readOptions.exposed = True
 
     
-    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, api_enabled=0, api_key=None, launch_browser=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
+    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
@@ -3454,9 +3464,13 @@ class WebInterface(object):
         mylar.HTTP_PORT = http_port
         mylar.HTTP_USERNAME = http_username
         mylar.HTTP_PASSWORD = http_password
+        mylar.ENABLE_HTTPS = enable_https
+        mylar.HTTPS_CERT = https_cert
+        mylar.HTTPS_KEY = https_key
         mylar.API_ENABLED = api_enabled
         mylar.API_KEY = api_key
         mylar.LAUNCH_BROWSER = launch_browser
+        mylar.AUTO_UPDATE = auto_update
         mylar.LOGVERBOSE = logverbose
         mylar.ANNUALS_ON = int(annuals_on)
         mylar.MAX_LOGSIZE = max_logsize

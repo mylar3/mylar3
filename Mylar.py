@@ -15,6 +15,8 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import os, sys, locale
+import errno
+import shutil
 import time
 import threading
 import signal
@@ -64,6 +66,7 @@ def main():
     parser.add_argument('-q', '--quiet', action='store_true', help='Turn off console logging')
     parser.add_argument('-d', '--daemon', action='store_true', help='Run as a daemon')
     parser.add_argument('-p', '--port', type=int, help='Force mylar to run on a specified port')
+    parser.add_argument('-b', '--backup', action='store_true', help='Will automatically backup & keep the last 2 copies of the .db & ini files prior to startup')
     parser.add_argument('--datadir', help='Specify a directory where to store your data files')
     parser.add_argument('--config', help='Specify a config file to use')
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
@@ -84,7 +87,6 @@ def main():
     #        versioncheck.update()
     #    except Exception, e:
     #        sys.exit('Mylar failed to update.')
-
 
     if args.daemon:
         if sys.platform == 'win32':
@@ -142,6 +144,47 @@ def main():
     # Put the database in the DATA_DIR
     mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
     
+    # backup the db and configs before they load.
+    if args.backup:
+        print '[AUTO-BACKUP] Backing up .db and config.ini files for safety.'
+        backupdir = os.path.join(mylar.DATA_DIR, 'backup')
+
+        try:
+            os.makedirs(backupdir)
+            print '[AUTO-BACKUP] Directory does not exist for backup - creating : ' + backupdir
+        except OSError as exception:
+            if exception.errno != errno.EEXIST:
+                print '[AUTO-BACKUP] Directory already exists.'
+                raise
+
+        i = 0
+        while (i < 2):
+            if i == 0:
+                ogfile = mylar.DB_FILE
+                back = os.path.join(backupdir, 'mylar.db')
+                back_1 = os.path.join(backupdir, 'mylar.db.1')
+            else:
+                ogfile = mylar.CONFIG_FILE
+                back = os.path.join(backupdir, 'config.ini')
+                back_1 = os.path.join(backupdir, 'config.ini.1')
+
+            try:
+                print '[AUTO-BACKUP] Now Backing up mylar.db file'
+                if os.path.isfile(back_1):
+                    print '[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.'
+                    os.remove(back_1)
+                if os.path.isfile(back):
+                    print '[AUTO-BACKUP] Now renaming ' + back + ' to ' + back_1
+                    shutil.move(back, back_1)
+                print '[AUTO-BACKUP] Now copying db file to ' + back
+                shutil.copy(ogfile, back)    
+  
+            except OSError as exception:
+                if exception.errno != errno.EXIST:
+                    raise
+
+            i+=1
+
     mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
 
     # Rename the main thread
@@ -160,16 +203,32 @@ def main():
     else:
         http_port = int(mylar.HTTP_PORT)
         
+    # Check if pyOpenSSL is installed. It is required for certificate generation
+    # and for CherryPy.
+    if mylar.ENABLE_HTTPS:
+        try:
+            import OpenSSL
+        except ImportError:
+            logger.warn("The pyOpenSSL module is missing. Install this " \
+                "module to enable HTTPS. HTTPS will be disabled.")
+            mylar.ENABLE_HTTPS = False
+
+    # Try to start the server. Will exit here is address is already in use.
+    web_config = {
+        'http_port': http_port,
+        'http_host': mylar.HTTP_HOST,
+        'http_root': mylar.HTTP_ROOT,
+        'enable_https': mylar.ENABLE_HTTPS,
+        'https_cert': mylar.HTTPS_CERT,
+        'https_key': mylar.HTTPS_KEY,
+        'http_username': mylar.HTTP_USERNAME,
+        'http_password': mylar.HTTP_PASSWORD,
+    }
+
     # Try to start the server. 
-    webstart.initialize({
-                    'http_port':        http_port,
-                    'http_host':        mylar.HTTP_HOST,
-                    'http_root':        mylar.HTTP_ROOT,
-                    'http_username':    mylar.HTTP_USERNAME,
-                    'http_password':    mylar.HTTP_PASSWORD,
-            })
+    webstart.initialize(web_config)
     
-    logger.info('Starting Mylar on port: %i' % http_port)
+    #logger.info('Starting Mylar on port: %i' % http_port)
     
     if mylar.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.HTTP_HOST, http_port, mylar.HTTP_ROOT)

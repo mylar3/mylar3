@@ -54,7 +54,7 @@
                          <div align="center">
                             <label><strong>Mylar is free to use,</br>
                             but you can contribute and support the development</br>
-                            by giving a donation</strong></label></br></br>
+                            by buying me a coffee (or several)</strong></label></br></br>
                          </div>
                          <div style="width: 55%; margin: 0px auto;">
                             <a href="https://flattr.com/submit/auto?user_id=evilhero&url=https://github.com/evilhero/mylar&title=Mylar%20Donation%description=Supporting&20the%development%20of%20Mylar&language=en_CA&hidden=1&category=software" target="_blank">
@@ -120,9 +120,27 @@
 	            		   <input type="text" name="http_host" value="${config['http_host']}" size="30">
 	            		   <small>e.g. localhost or 0.0.0.0</small>
 	            		</div> 
+                                <div class="row">
+                                    <label>HTTP Port</label>
+                                    <input type="text" name="http_port" value="${config['http_port']}" size="10">
+                                <div>
 	            		<div class="row">
-	            		      <label>HTTP Port</label>
-	            		      <input type="text" name="http_port" value="${config['http_port']}" size="10">
+                                    <div class="row checkbox">
+                                        <input type="checkbox" name="enable_https" id="enable_https" value="1" ${config['enable_https']} />
+                                        <label title="Enable HTTPS for web server for encrypted communication">
+                                            Enable HTTPS
+                                        </label>
+                                    </div>
+                                    <div id="https_options">
+                                        <div class="row">
+                                             <label>HTTPS Cert</label>
+                                             <input type="text" title="the FULL path to the certificate" name="https_cert" value="${config['https_cert']}" size="30">
+                                        </div>
+                                        <div class="row">
+                                             <label>HTTPS Key</label>
+                                             <input type="text" title="the FULL path to the key" name="https_key" value="${config['https_key']}" size="30">
+                                        </div>
+                                     </div>
 	            		 </div>
 	            		 <div class="row">
 	            		     <label>HTTP Username</label>
@@ -136,6 +154,7 @@
                                  <div class="row checkbox">
                                     <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
                                  </div>
+
 <!--
                                  <div class="row checkbox">
                                     <input type="checkbox" name="logverbose" value="2" ${config['logverbose']} /> <label>Verbose Logging</label>
@@ -150,6 +169,12 @@
                                     <input type="checkbox" name="cvapifix" value="1" ${config['cvapifix']} /> <label>Comicvine URL Fix</label>
                                     <br/><small>*Use this if CV's URL has changed*</small>
                                  </div>
+<!--
+                                 <div class="row checkbox">
+                                    <input type="checkbox" name="auto_update" value="1" ${config['auto_update']} /> <label>Automatic Updates</label>
+                                    <br/><small>Install new updates with no intervention</small>
+                                 </div>
+-->
             		 </fieldset>
                          <fieldset>
                              <legend>Annual Handling</legend>
@@ -1149,7 +1174,24 @@
                             $('#api_key').val(data);
                     });
                 });
-
+                if ($("#enable_https").is(":checked"))
+                        {
+                            $("#https_options").show();
+                        }
+                else
+                        {
+                            $("#https_options").hide();
+                        }
+                $("#enable_https").click(function(){
+                        if ($("#enable_https").is(":checked"))
+                        {
+                            $("#https_options").slideDown();
+                        }
+                        else
+                        {
+                            $("#https_options").slideUp();
+                        }
+                });
                 $('#sab_apikey').click(function(){ $('#sab_apikey').select() });
                 $("#find_sabapi").click(function(){
                     $.get('findsabAPI',
@@ -1185,6 +1227,7 @@
 		});
 		initActions();
                 initConfigCheckbox("#launch_browser");
+                initConfigCheckbox("#enable_https");
                 initConfigCheckbox("#enable_api");
                 initConfigCheckbox("#usenewznab");
 		initConfigCheckbox("#usenzbsu");

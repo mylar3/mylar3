@@ -19,19 +19,60 @@ import sys
 import cherrypy
 
 import mylar
-
+from mylar import logger
 from mylar.webserve import WebInterface
+from mylar.helpers import create_https_certificates
 
-def initialize(options={}):
+def initialize(options):
 
+    # HTTPS stuff stolen from sickbeard
+    enable_https = options['enable_https']
+    https_cert = options['https_cert']
+    https_key = options['https_key']
 
-    cherrypy.config.update({
-                'log.screen':           False,
-                'server.thread_pool':   10,
-                'server.socket_port':   options['http_port'],
-                'server.socket_host':   options['http_host'],
-                'engine.autoreload_on': False,
-        })
+    if enable_https:
+        # If either the HTTPS certificate or key do not exist, try to make
+        # self-signed ones.
+        if not (https_cert and os.path.exists(https_cert)) or not (https_key and os.path.exists(https_key)):
+            if not create_https_certificates(https_cert, https_key):
+                logger.warn("Unable to create certificate and key. Disabling " \
+                    "HTTPS")
+                enable_https = False
+
+        if not (os.path.exists(https_cert) and os.path.exists(https_key)):
+            logger.warn("Disabled HTTPS because of missing certificate and " \
+                "key.")
+            enable_https = False
+
+    options_dict = {
+        'server.socket_port': options['http_port'],
+        'server.socket_host': options['http_host'],
+        'server.thread_pool': 10,
+        'tools.encode.on': True,
+        'tools.encode.encoding': 'utf-8',
+        'tools.decode.on': True,
+        'log.screen': False,
+        'engine.autoreload.on': False,
+    }
+
+    if enable_https:
+        options_dict['server.ssl_certificate'] = https_cert
+        options_dict['server.ssl_private_key'] = https_key
+        protocol = "https"
+    else:
+        protocol = "http"
+
+    logger.info("Starting Mylar on %s://%s:%d/", protocol,
+        options['http_host'], options['http_port'])
+    cherrypy.config.update(options_dict)
+
+#    cherrypy.config.update({
+#                'log.screen':           False,
+#                'server.thread_pool':   10,
+#                'server.socket_port':   options['http_port'],
+#                'server.socket_host':   options['http_host'],
+#                'engine.autoreload_on': False,
+#        })
 
     conf = {
         '/': {
@@ -55,7 +96,7 @@ def initialize(options={}):
         },
         '/favicon.ico':{
             'tools.staticfile.on': True,
-            'tools.staticfile.filename': "images/favicon.ico"
+            'tools.staticfile.filename': os.path.join(os.path.abspath(os.curdir), 'images' + os.sep + 'favicon.ico')
         },
         '/cache':{
             'tools.staticdir.on': True,
@@ -70,7 +111,7 @@ def initialize(options={}):
             'tools.auth_basic.checkpassword':  cherrypy.lib.auth_basic.checkpassword_dict(
                     {options['http_username']:options['http_password']})
         })
-        
+        conf['/api'] = {'tools.auth_basic.on': False}
 
     # Prevent time-outs
     cherrypy.engine.timeout_monitor.unsubscribe()

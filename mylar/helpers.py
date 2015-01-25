@@ -1649,6 +1649,42 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
         rtnval = "write"
     return rtnval
 
+def create_https_certificates(ssl_cert, ssl_key):
+    """
+    Create a pair of self-signed HTTPS certificares and store in them in
+    'ssl_cert' and 'ssl_key'. Method assumes pyOpenSSL is installed.
+
+    This code is stolen from SickBeard (http://github.com/midgetspy/Sick-Beard).
+    """
+
+    from mylar import logger
+
+    from OpenSSL import crypto
+    from lib.certgen import createKeyPair, createCertRequest, createCertificate, \
+        TYPE_RSA, serial
+
+    # Create the CA Certificate
+    cakey = createKeyPair(TYPE_RSA, 2048)
+    careq = createCertRequest(cakey, CN="Certificate Authority")
+    cacert = createCertificate(careq, (careq, cakey), serial, (0, 60 * 60 * 24 * 365 * 10)) # ten years
+
+    pkey = createKeyPair(TYPE_RSA, 2048)
+    req = createCertRequest(pkey, CN="Mylar")
+    cert = createCertificate(req, (cacert, cakey), serial, (0, 60 * 60 * 24 * 365 * 10)) # ten years
+
+    # Save the key and certificate to disk
+    try:
+        with open(ssl_key, "w") as fp:
+            fp.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, pkey))
+        with open(ssl_cert, "w") as fp:
+            fp.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
+    except IOError as e:
+        logger.error("Error creating SSL key and certificate: %s", e)
+        return False
+
+    return True
+
+
 from threading import Thread
 
 class ThreadWithReturnValue(Thread):
