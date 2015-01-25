@@ -44,7 +44,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 AlternateSearch += '##' + filesafe
             unaltered_ComicName = ComicName
             #ComicName = filesafe
-    logger.info('AlternateSearch is : ' + AlternateSearch)
+            #logger.info('AlternateSearch is : ' + AlternateSearch)
     if ComicYear == None: ComicYear = '2014'
     else: ComicYear = str(ComicYear)[:4]
     if Publisher == 'IDW Publishing': Publisher = 'IDW'
