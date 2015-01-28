@@ -421,7 +421,7 @@ def rssdbupdate(feeddata,i,type):
 
     #let's add the entries into the db so as to save on searches
     #also to build up the ID's ;)
-    x = 1
+    x = 0
     while x <= i:
         try:
             dataval = feeddata[x]
