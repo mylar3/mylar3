@@ -97,10 +97,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
              
         if item == 'cover.jpg' or item == 'cvinfo': continue
         if not item.lower().endswith(extensions):
-            logger.fdebug('[FILECHECKER] filename not a valid cbr/cbz - ignoring: ' + item)
+            #logger.fdebug('[FILECHECKER] filename not a valid cbr/cbz - ignoring: ' + item)
             continue
 
-        print item
+        #print item
         #subname = os.path.join(basedir, item)
 
         subname = item
@@ -451,6 +451,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             if subname[fndit+1].isdigit():
                                 subname = re.sub('#','',subname)
                             continue
+
                         while x < subcnt:
                             fndit = subname.find(nono, fndit)
                             #print ("space before check: " + str(subname[fndit-1:fndit]))
