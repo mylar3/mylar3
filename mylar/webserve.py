@@ -342,10 +342,10 @@ class WebInterface(object):
         module = '[STORY ARC]'
         myDB = db.DBConnection()
         #check if it already exists.
-        arc_chk = myDB.select('SELECT * FROM readinglist WHERE CV_ArcID=?', [arcid])
+        arc_chk = myDB.selectone('SELECT * FROM readinglist WHERE CV_ArcID=?', [arcid]).fetchone()
         if arc_chk is None:
             logger.fdebug(module + ' No match in db based on ComicVine ID. Making sure and checking against Story Arc Name.')
-            arc_chk = myDB.select('SELECT * FROM readinglist WHERE StoryArc=?', [storyarcname])
+            arc_chk = myDB.selectone('SELECT * FROM readinglist WHERE StoryArc=?', [storyarcname]).fetchone()
             if arc_chk is not None:
                 logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
                 raise cherrypy.HTTPRedirect("readlist")
@@ -1929,13 +1929,15 @@ class WebInterface(object):
     manageComics.exposed = True
     
     def manageIssues(self, **kwargs):
-        print 'here'
-        print kwargs
+        #print kwargs
         status = kwargs['status']
+        results = []
         myDB = db.DBConnection()
         issues = myDB.select('SELECT * from issues WHERE Status=?', [status])
-
-        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=issues)
+        for iss in issues:
+            results.append(iss)
+        annuals = myDB.select('SELECT * from annuals WHERE Status=?', [status])
+        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results)
     manageIssues.exposed = True
     
     def manageNew(self):
