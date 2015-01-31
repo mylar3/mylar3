@@ -1508,7 +1508,7 @@ def nzbname_create(provider, title=None, info=None):
             IssueNumber = info[0]['IssueNumber']
             comyear = info[0]['comyear']
             #pretty this biatch up.
-            BComicName = re.sub('[\:\,\/\?]', '', str(ComicName))
+            BComicName = re.sub('[\:\,\/\?\']', '', str(ComicName))
             Bl_ComicName = re.sub('[\&]', 'and', str(BComicName))
             if u'\xbd' in IssueNumber:
                 str_IssueNumber = '0.5'
@@ -1531,7 +1531,7 @@ def nzbname_create(provider, title=None, info=None):
         nzbname = re.sub(" ", ".", nzbname)
         #gotta replace & or escape it
         nzbname = re.sub("\&", 'and', nzbname)
-        nzbname = re.sub('[\,\:\?]', '', nzbname)
+        nzbname = re.sub('[\,\:\?\']', '', nzbname)
         if nzbname.lower().endswith('.torrent'):
             nzbname = re.sub('.torrent', '', nzbname)
 
@@ -1544,7 +1544,7 @@ def nzbname_create(provider, title=None, info=None):
         logger.fdebug('[SEARCHER] nzbname (space to .): ' + nzbname)
         #gotta replace & or escape it
         nzbname = re.sub("\&", 'and', nzbname)
-        nzbname = re.sub('[\,\:\?]', '', nzbname)
+        nzbname = re.sub('[\,\:\?\']', '', nzbname)
         extensions = ('.cbr', '.cbz')
         logger.fdebug('[SEARCHER] end nzbname: ' + nzbname)
 
