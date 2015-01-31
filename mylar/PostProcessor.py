@@ -723,11 +723,11 @@ class PostProcessor(object):
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
             self._log("Series: " + series)
             logger.fdebug(module + ' Series: ' + str(series))
-            if comicnzb['AlternateFileName']:
+            if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
+                seriesfilename = series
+            else:
                 seriesfilename = comicnzb['AlternateFileName'].encode('ascii', 'ignore').strip()
                 logger.fdebug(module + ' Alternate File Naming has been enabled for this series. Will rename series to : ' + seriesfilename)
-            else:
-                seriesfilename = series
             seriesyear = comicnzb['ComicYear']
             self._log("Year: " + seriesyear)
             logger.fdebug(module + ' Year: '  + str(seriesyear))

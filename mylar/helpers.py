@@ -453,11 +453,11 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('Publisher: ' + str(publisher))
             series = comicnzb['ComicName']
             logger.fdebug('Series: ' + str(series))
-            if comicnzb['AlternateFileName']:
+            if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
+                seriesfilename = series
+            else:
                 seriesfilename = comicnzb['AlternateFileName']
                 logger.fdebug('Alternate File Naming has been enabled for this series. Will rename series title to : ' + seriesfilename)
-            else:
-                seriesfilename = series
             seriesyear = comicnzb['ComicYear']
             logger.fdebug('Year: '  + str(seriesyear))
             comlocation = comicnzb['ComicLocation']
@@ -1118,7 +1118,6 @@ def havetotals(refreshit=None):
             if mylar.DBCHOICE == 'postgresql':
                 import db_postgresql as db
                 myDB = db.DBConnection()
-                print 'here'
                 comiclist = myDB.select('SELECT * from comics order by ComicSortName')# COLLATE "%s"',[mylar.OS_LANG])
             else:
                 import db
