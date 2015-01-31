@@ -25,6 +25,7 @@ import os.path
 import subprocess
 import time
 import lib.simplejson as simplejson
+import json
 
 # This was obviously all taken from headphones with great appreciation :)
 
@@ -301,64 +302,47 @@ class PUSHBULLET:
         
         http_handler = HTTPSConnection("api.pushbullet.com")
 
-        #possible needed for update.
-        #if method == 'GET':
-        #    uri = '/v2/devices'
-        #else:
-        #    method = 'POST'
-        #    uri = '/v2/pushes'
-
-        #authString = base64.encodestring('%s:' % (self.apikey)).replace('\n', '')
-
-        #if method == 'GET':
-        #    http_handler.request(method, uri, None, headers={'Authorization': 'Basic %s:' % authString})
-        #else:
-        #    if snatched:
-        #        if snatched[-1] == '.': snatched = snatched[:-1]
-        #        event = snline
-        #        message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
-        #    else:
-        #        event = prline + ' complete!'
-        #        message = prline2
-
-        #    data = {'device_iden': self.deviceid,
-        #            'type': "note",
-        #            'title': event.encode('utf-8'), #"mylar",
-        #            'body': message.encode('utf-8') }
-
-        #    http_handler.request(method, uri, body=urlencode(data), headers={'Authorization': 'Basic %s' % authString})
-
-        if snatched:
-            if snatched[-1] == '.': snatched = snatched[:-1]
-            event = snline
-            message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
+        if method == 'GET':
+            uri = '/v2/devices'
         else:
-            event = prline + ' complete!'
-            message = prline2
+            method = 'POST'
+            uri = '/v2/pushes'
 
-        data = {'device_iden': mylar.PUSHBULLET_DEVICEID,
-                'type': "note",
-                'title': event,
-                'body': message.encode("utf-8")}
+        authString = base64.b64encode(self.apikey + ":")
+
+        if method == 'GET':
+            http_handler.request(method, uri, None, headers={'Authorization': 'Basic %s:' % authString})
+        else:
+            if snatched:
+                if snatched[-1] == '.': snatched = snatched[:-1]
+                event = snline
+                message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
+            else:
+                event = prline + ' complete!'
+                message = prline2
+
+            data = {'type': "note", #'device_iden': self.deviceid,
+                    'title': event.encode('utf-8'), #"mylar",
+                    'body': message.encode('utf-8') }
 
         http_handler.request("POST",
-                                "/api/pushes",
-                                headers = {'Content-type': "application/x-www-form-urlencoded",
-                                           'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":") },
-                                body = urlencode(data))
+                                "/v2/pushes",
+                                headers = {'Content-type': "application/json",
+                                           'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":")},
+                                body = json.dumps(data))
 
         response = http_handler.getresponse()
         request_body = response.read()
         request_status = response.status
-        logger.fdebug(u"PushBullet response status: %r" % request_status)
-        logger.fdebug(u"PushBullet response headers: %r" % response.getheaders())
-        logger.fdebug(u"PushBullet response body: %r" % response.read())
+        #logger.fdebug(u"PushBullet response status: %r" % request_status)
+        #logger.fdebug(u"PushBullet response headers: %r" % response.getheaders())
+        #logger.fdebug(u"PushBullet response body: %r" % response.read())
 
         if request_status == 200:
             if method == 'GET':
                 return request_body
             else:
-                logger.fdebug(module + ' PushBullet notifications sent.')
+                logger.info(module + ' PushBullet notifications sent.')
                 return True
         elif request_status >= 400 and request_status < 500:
             logger.error(module + ' PushBullet request failed: %s' % response.reason)

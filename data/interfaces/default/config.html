@@ -954,10 +954,11 @@
                                     </div>
                                     <div class="row">
                                         <label>API Key</label><input type="text" name="pushbullet_apikey" value="${config['pushbullet_apikey']}" size="50">
+                                        <small>Warning: Will send to ALL your pushbullet devices</small>
                                     </div>
                                     <div class="row">
-                                        <label>Device ID</label><input type="text" name="pushbullet_deviceid" value="${config['pushbullet_deviceid']}" size="50">
-<!--                                    <label>Pushbullet device list</label>
+<!--                                    <label>Device ID</label><input type="text" name="pushbullet_deviceid" value="${config['pushbullet_deviceid']}" size="50">
+                                        <label>Pushbullet device list</label>
                                         <select name="pushbullet_device_list" id="pushbullet_device_list"></select>
                                         <input type="hidden" id="pushbullet_deviceid" value="${config['pushbullet_deviceid']}" />
                                         <input type="button" class="btn" value="Update device list" id="getPushbulletDevices" />

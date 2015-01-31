@@ -1820,7 +1820,7 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
     if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
         logger.info(u"Sending Pushbullet notification")
         pushbullet = notifiers.PUSHBULLET()
-        pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov)
+        pushbullet.notify(snline=snline,snatched=nzbname,sent_to=sent_to,prov=nzbprov,method='POST')
 
     return
 
