@@ -642,32 +642,36 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 stdate = IssueDate
                         else:
                             stdate = StoreDate
-                        #logger.fdebug('Posting date of : ' + str(pubdate))
                         # convert it to a tuple
                         dateconv = email.utils.parsedate_tz(pubdate)
-                        #logger.fdebug('dateconv of : ' + str(dateconv))
                         # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
                         if dateconv[-1] is not None:
                             postdate_int = time.mktime(dateconv[:len(dateconv)-1]) - dateconv[-1]
                         else:
                             postdate_int = time.mktime(dateconv[:len(dateconv)-1])
-                        #logger.fdebug('postdate_int of : ' + str(postdate_int))
-                        #logger.fdebug('Issue date of : ' + str(stdate))
                         #convert it to a Thu, 06 Feb 2014 00:00:00 format
                         issue_convert = datetime.datetime.strptime(stdate.rstrip(), '%Y-%m-%d')
-                        #logger.fdebug('issue_convert:' + str(issue_convert))
-                        #issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
                         # to get past different locale's os-dependent dates, let's convert it to a generic datetime format
-                        stamp = time.mktime(issue_convert.timetuple())
-                        #logger.fdebug('stamp: ' + str(stamp))
-                        issconv = format_date_time(stamp)
-                        #logger.fdebug('issue date is :' + str(issconv))
+                        try:
+                            stamp = time.mktime(issue_convert.timetuple())
+                            issconv = format_date_time(stamp)
+                        except OverflowError:
+                            logger.fdebug('Error attempting to convert the timestamp into a generic format. Probably due to the epoch limiation.')
+                            issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
                         #convert it to a tuple
                         econv = email.utils.parsedate_tz(issconv)
-                        #logger.fdebug('econv:' + str(econv))
                         #convert it to a numeric and drop the GMT/Timezone
-                        issuedate_int = time.mktime(econv[:len(econv)-1])
-                        #logger.fdebug('issuedate_int:' + str(issuedate_int))
+                        try:
+                            issuedate_int = time.mktime(econv[:len(econv)-1])
+                        except OverflowError:
+                            logger.fdebug('Unable to convert timestamp to integer format. Forcing things through.')
+                            isyear = econv[1]
+                            epochyr = '1970'
+                            if int(isyear) <= int(epochyr):
+                                tm = datetime.datetime(1970,1,1)
+                                issuedate_int = int(time.mktime(tm.timetuple()))
+                            else:
+                                continue
                         if postdate_int < issuedate_int:
                             logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
                             continue
