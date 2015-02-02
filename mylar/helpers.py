@@ -1592,7 +1592,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
             logger.fdebug('[DUPECHECK] Checking series for unrefreshed series syndrome (USS).')
             havechk = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
             if havechk:
-                if havechk['Have'] >= havechk['Total']:
+                if havechk['Have'] > havechk['Total']:
                     logger.info('[DUPECHECK] Series has invalid issue totals [' + str(havechk['Have']) + '/' + str(havechk['Total']) + '] Attempting to Refresh & continue post-processing this issue.')
                     cid.append(ComicID)
                     logger.fdebug('[DUPECHECK] ComicID: ' + str(ComicID))
@@ -1637,10 +1637,10 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
 
                 if mylar.DUPECONSTRAINT == 'filesize':
                     if filesz <= dupsize:
-                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + filename)
+                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
                         rtnval = "dupe"
                     else:
-                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + dupchk['Location'])
+                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
                         rtnval = "write"
 
     else:

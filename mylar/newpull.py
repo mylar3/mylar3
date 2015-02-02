@@ -23,8 +23,11 @@ def newpull():
         soup = BeautifulSoup (pageresponse)
         getthedate = soup.findAll("div", {"class": "Headline"})[0]
         #the date will be in the FIRST ahref
-        getdate_link = getthedate('a')[0]
-        newdates = getdate_link.findNext(text=True).strip()
+        try:
+            getdate_link = getthedate('a')[0]
+            newdates = getdate_link.findNext(text=True).strip()
+        except IndexError:
+            newdates = getthedate.findNext(text=True).strip()
         logger.fdebug('New Releases date detected as : ' + re.sub('New Releases For', '', newdates).strip())
         cntlinks = soup.findAll('tr')
         lenlinks = len(cntlinks)
@@ -43,7 +46,10 @@ def newpull():
 
         while (x < lenlinks):
             headt = cntlinks[x] #iterate through the hrefs pulling out only results.
-            if '?stockItemID=' in str(headt):
+            if 'STK669382' in str(headt):
+                x+=1
+                continue
+            elif '?stockItemID=' in str(headt):
                 #914 - Dark Horse Comics
                 #915 - DC Comics
                 #916 - IDW Publishing
