@@ -341,7 +341,7 @@ class PostProcessor(object):
 
                 #replace spaces
                 nzbname = re.sub(' ', '.', str(nzbname))
-                nzbname = re.sub('[\,\:\?]', '', str(nzbname))
+                nzbname = re.sub('[\,\:\?\']', '', str(nzbname))
                 nzbname = re.sub('[\&]', 'and', str(nzbname))
 
                 logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
