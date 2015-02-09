@@ -143,6 +143,9 @@ h3 {
 p.center {
   text-align: center;
 }
+p.tab {
+  margin-left: 40px;
+}
 hr {
   border: 0;
   border-top: 1px solid #cccccc;

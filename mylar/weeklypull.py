@@ -446,7 +446,7 @@ def pullit(forcecheck=None):
     os.remove( str(pullpath) + "newreleases.txt" )
     pullitcheck(forcecheck=forcecheck)
 
-def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepull=None, issue=None):
+def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):
     if futurepull is None:
         logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
     else:
@@ -491,7 +491,7 @@ def pullitcheck(comic1off_name=None,comic1off_id=None,forcecheck=None, futurepul
         cur = con.cursor()
         # if it's a one-off check (during an add series), load the comicname here and ignore below.
         if comic1off_name:
-            logger.fdebug("this is a one-off" + comic1off_name)
+            logger.fdebug("This is a one-off for " + comic1off_name + '[ latest issue: ' + str(issue) + ' ]')
             lines.append(comic1off_name.strip())
             unlines.append(comic1off_name.strip())
             comicid.append(comic1off_id)

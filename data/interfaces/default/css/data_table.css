@@ -263,6 +263,21 @@ table.display tr.even.gradeU {
 	background-color: #eee;
 }
 
+table.display tr.odd.gradeP {
+        background-color: #68FC68;
+}
+
+table.display tr.even.gradeP {
+        background-color: #68FC68;
+}
+
+table.display tr.odd.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display tr.even.gradeD {
+        background-color: #C7EFC7;
+}
 
 table.display tr.odd.gradeZ {
 	background-color: #FAFAFA;
@@ -280,6 +295,8 @@ table.display tr.gradeA td,
 table.display tr.gradeC td,
 table.display tr.gradeX td,
 table.display tr.gradeU td,
+table.display tr.gradeP td,
+table.display tr.gradeD td,
 table.display tr.gradeZ td {border-bottom: 1px solid #FFF;}
 table.display tr:last-child td {
 	border-bottom: 1px solid #eee;

@@ -527,6 +527,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     latestiss = issuedata['LatestIssue']
     latestdate = issuedata['LatestDate']
     lastpubdate = issuedata['LastPubDate']
+    series_status = issuedata['SeriesStatus']
     #move the files...if imported is not empty & not futurecheck (meaning it's not from the mass importer.)
     if imported is None or imported == 'None' or imported == 'futurecheck':
         pass
@@ -545,36 +546,60 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     statafter = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
     logger.fdebug('issue: ' + str(latestiss) + ' status after chk :' + str(statafter['Status']))
 
+    logger.fdebug('pullupd: ' + str(pullupd))
+    logger.fdebug('lastpubdate: ' + str(lastpubdate))
+    logger.fdebug('series_status: ' + str(series_status))
     if pullupd is None:
     # lets' check the pullist for anything at this time as well since we're here.
     # do this for only Present comics....
         if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present' and series_status == 'Active': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
             chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid,str(latestiss)]).fetchone()
-            logger.fdebug('latestissue status: ' + chkstats['Status'])
-            if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
-                logger.info('Checking this week pullist for new issues of ' + comic['ComicName'])
-                if comic['ComicName'] != comicname_filesafe:
-                    cn_pull = comicname_filesafe
-                else: 
-                    cn_pull = comic['ComicName']
-                updater.newpullcheck(cn_pull, comicid, issue=latestiss)
+            if chkstats is None:
+                if mylar.ANNUALS_ON:
+                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [comicid, latestiss]).fetchone()
 
-        #here we grab issues that have been marked as wanted above...
-  
-                results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])
-                if results:
-                    logger.info('Attempting to grab wanted issues for : '  + comic['ComicName'])
-    
-                    for result in results:
-                        logger.fdebug('Searching for : ' + str(result['Issue_Number']))
-                        logger.fdebug('Status of : ' + str(result['Status']))
-                        search.searchforissue(result['IssueID'])
-                else: logger.info('No issues marked as wanted for ' + comic['ComicName'])
+            if chkstats:
+                logger.fdebug('latestissue status: ' + chkstats['Status'])
+                if chkstats['Status'] == 'Skipped' or chkstats['Status'] == 'Wanted' or chkstats['Status'] == 'Snatched':
+                    logger.info('Checking this week pullist for new issues of ' + comic['ComicName'])
+                    if comic['ComicName'] != comicname_filesafe:
+                        cn_pull = comicname_filesafe
+                    else: 
+                        cn_pull = comic['ComicName']
+                    updater.newpullcheck(ComicName=cn_pull,ComicID=comicid,issue=latestiss)
 
-                logger.info('Finished grabbing what I could.')
-            else:
-                logger.info('Already have the latest issue : #' + str(latestiss))
+            #here we grab issues that have been marked as wanted above...
+                    results = []  
+                    issresults = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])
+                    if issresults:
+                        for issr in issresults:
+                            results.append({'IssueID':       issr['IssueID'],
+                                            'Issue_Number':  issr['Issue_Number'],
+                                            'Status':        issr['Status']
+                                           })
+                    if mylar.ANNUALS_ON:
+                        an_results = myDB.select("SELECT * FROM annuals WHERE ComicID=? AND Status='Wanted'", [comicid])
+                        if an_results:
+                            for ar in an_results:
+                                results.append({'IssueID':       ar['IssueID'],
+                                                'Issue_Number':  ar['Issue_Number'],
+                                                'Status':        ar['Status']
+                                               })
+
+
+                    if results:
+                        logger.info('Attempting to grab wanted issues for : '  + comic['ComicName'])
+        
+                        for result in results:
+                            logger.fdebug('Searching for : ' + str(result['Issue_Number']))
+                            logger.fdebug('Status of : ' + str(result['Status']))
+                            search.searchforissue(result['IssueID'])
+                    else: logger.info('No issues marked as wanted for ' + comic['ComicName'])
+
+                    logger.info('Finished grabbing what I could.')
+                else:
+                    logger.info('Already have the latest issue : #' + str(latestiss))
 
     if chkwant is not None:
         #if this isn't None, this is being called from the futureupcoming list
@@ -1350,6 +1375,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     importantdates['LatestIssue'] = latestiss
     importantdates['LatestDate'] = latestdate
     importantdates['LastPubDate'] = lastpubdate
+    importantdates['SeriesStatus'] = 'Active'
 
     if calledfrom == 'weekly':
         return weeklyissue_check

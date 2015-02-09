@@ -264,6 +264,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(altissuenumber)]).fetchone()
     if issuechk is None:
         if futurepull is None:
+            og_status = None
             logger.fdebug(adjComicName + ' Issue: ' + str(IssueNumber) + ' not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.')
             # we need to either decrease the total issue count, OR indicate that an issue is upcoming.
             upco_results = myDB.select("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?",[ComicID])
@@ -298,36 +299,53 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             nKey = {"ComicID": ComicID}
             nVal = {"Status": "Wanted"}
             myDB.upsert("future", nVal, nKey)
+            return
 
     if issuechk is not None:
         if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
+            og_status = issuechk['Status']
             #check for 'out-of-whack' series here.
             whackness = dbUpdate([ComicID], calledfrom='weekly')
             if whackness == True:
+                if any( [issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched'] ):
+                    logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
                 logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
                 dbUpdate([ComicID])
                 issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
+                if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
+                    logger.fdebug('Forcibly changing status of ' + issuechk['Status'] + ' back to ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to stop repeated downloads.')
+                else:
+                    logger.fdebug('[' + issuechk['Status'] + '] / [' + og_status + '] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.')
+                    og_status = issuechk['Status']
             else:
                 logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
 
             logger.fdebug('Available to be marked for download - checking...' + adjComicName + ' Issue: ' + str(issuechk['Issue_Number']))
-            logger.fdebug('...Existing status: ' + str(issuechk['Status']))
+            logger.fdebug('...Existing status: ' + og_status)
             control = {"IssueID":   issuechk['IssueID']}
             newValue['IssueID'] = issuechk['IssueID']
-            if issuechk['Status'] == "Snatched":
+            if og_status == "Snatched":
                 values = { "Status":   "Snatched"}
                 newValue['Status'] = "Snatched"
-            elif issuechk['Status'] == "Downloaded":
+            elif og_status == "Downloaded":
                 values = { "Status":    "Downloaded"}
                 newValue['Status'] = "Downloaded"
                 #if the status is Downloaded and it's on the pullist - let's mark it so everyone can bask in the glory
 
-            elif issuechk['Status'] == "Wanted":
+            elif og_status == "Wanted":
                 values = { "Status":    "Wanted"}
                 newValue['Status'] = "Wanted"            
-            elif issuechk['Status'] == "Archived":
+            elif og_status == "Archived":
                 values = { "Status":    "Archived"}
                 newValue['Status'] = "Archived"
+            elif og_status == 'Failed':
+                if mylar.FAILED_DOWNLOAD_HANDLING:
+                    if mylar.FAILED_AUTO:
+                        values = { "Status":   "Wanted" }
+                    else:
+                        values = { "Status":   "Failed" }
+                else:
+                    values = { "Status":   "Skipped" }
             else:
                 values = { "Status":    "Skipped"}
                 newValue['Status'] = "Skipped"
@@ -338,18 +356,18 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
     if mylar.AUTOWANT_UPCOMING:
         #for issues not in db - to be added to Upcoming table.
-        if issuechk is None:
+        if og_status is None:
             newValue['Status'] = "Wanted"
             logger.fdebug('...Changing Status to Wanted and throwing it in the Upcoming section since it is not published yet.')
         #this works for issues existing in DB...        
-        elif issuechk['Status'] == "Skipped":
+        elif og_status == "Skipped":
             newValue['Status'] = "Wanted"
             values = {"Status":  "Wanted"}
             logger.fdebug('...New status of Wanted')
-        elif issuechk['Status'] == "Wanted":
+        elif og_status == "Wanted":
             logger.fdebug('...Status already Wanted .. not changing.')
         else:
-            logger.fdebug('...Already have issue - keeping existing status of : ' + str(issuechk['Status']))
+            logger.fdebug('...Already have issue - keeping existing status of : ' + og_status)
 
     if issuechk is None:
         myDB.upsert("upcoming", newValue, controlValue)
@@ -376,9 +394,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         else:
             myDB.upsert("issues", values, control)
 
-        if issuechk['Status'] == 'Downloaded' or issuechk['Status'] == 'Archived' or issuechk['Status'] == 'Snatched': 
+        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched'] ): 
             logger.fdebug('updating Pull-list to reflect status.')
-            downstats = {"Status":  issuechk['Status'],
+            downstats = {"Status":  og_status,
                          "ComicID": issuechk['ComicID']}
             return downstats
 
@@ -425,7 +443,7 @@ def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None,altissuenumb
 
 def newpullcheck(ComicName, ComicID, issue=None):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    mylar.weeklypull.pullitcheck(ComicName, ComicID, issue)
+    mylar.weeklypull.pullitcheck(comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
     return
 
 def no_searchresults(ComicID):
@@ -805,25 +823,31 @@ def forceRescan(ComicID,archive=None,module=None):
                                         logger.fdebug('[DUPECHECK-CBZ PRIORITY] [#' + reiss['Issue_Number'] + '] Retaining newly scanned in filename : ' + tmpfc['ComicFilename'])
                                         removedupe = True
 
-                                if mylar.DUPECONSTRAINT == 'filesize':
-                                    if tmpfc['ComicSize'] <= di['filesize']:
-                                        logger.fdebug('[DUPECHECK-FILESIZE PRIORITY] [#' + reiss['Issue_Number'] + '] Retaining currently scanned in filename : ' + di['filename'])
-                                        issuedupe = "yes"
-                                        break
-                                    else:
-                                        logger.fdebug('[DUPECHECK-FILESIZE PRIORITY] [#' + reiss['Issue_Number'] + '] Retaining newly scanned in filename : ' + tmpfc['ComicFilename'])
-                                        removedupe = True
-
-                                if removedupe:
-                                    #need to remove the entry from issuedupechk so can add new one.
-                                    #tuple(y for y in x if y) for x in a
-                                    issuedupe_temp = []
-                                    for x in issuedupechk:
-                                        if x['filename'] != di['filename']:
-                                            issuedupe_temp.append(x)
-                                    issuedupechk = issuedupe_temp
-                                    foundchk = False
+                            if mylar.DUPECONSTRAINT == 'filesize':
+                                if tmpfc['ComicSize'] <= di['filesize']:
+                                    logger.fdebug('[DUPECHECK-FILESIZE PRIORITY] [#' + reiss['Issue_Number'] + '] Retaining currently scanned in filename : ' + di['filename'])
+                                    issuedupe = "yes"
                                     break
+                                else:
+                                    logger.fdebug('[DUPECHECK-FILESIZE PRIORITY] [#' + reiss['Issue_Number'] + '] Retaining newly scanned in filename : ' + tmpfc['ComicFilename'])
+                                    removedupe = True
+
+                            if removedupe:
+                                #need to remove the entry from issuedupechk so can add new one.
+                                #tuple(y for y in x if y) for x in a
+                                issuedupe_temp = []
+                                tmphavefiles = 0
+                                for x in issuedupechk:
+                                    logger.fdebug('Comparing x: ' + x['filename'] + ' to di:' + di['filename'])
+                                    if x['filename'] != di['filename']:
+                                        logger.fdebug('Matched.')
+                                        issuedupe_temp.append(x)
+                                        tmphavefiles+=1
+                                issuedupechk = issuedupe_temp
+                                havefiles = tmphavefiles
+                                logger.fdebug(issuedupechk)
+                                foundchk = False
+                                break
 
                     if issuedupe == "no":
 
@@ -1089,7 +1113,7 @@ def forceRescan(ComicID,archive=None,module=None):
                 else:
                     if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
                         if os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
-                            logger.info('Issues found within multiple destination directory location')
+                            #logger.fdebug('Issue(s) currently exist and found within multiple destination directory location')
                             continue
                     #print "Changing status from Downloaded to Archived - cannot locate file"
                     controlValue = {"IssueID":   down['IssueID']}

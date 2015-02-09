@@ -67,7 +67,20 @@
 		%for issue in issues:
 			<tr>
 				<td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" /></td>
-				<td id="name"><span title="${issue['ComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
+                                <% 
+                                     try:
+                                         if issue['ReleaseComicName']:
+                                             annual = True
+                                         else:
+                                             annual = False
+                                     except:
+                                         annual = False
+                                %>
+                                %if annual:
+                                    <td id="name"><span title="${issue['ReleaseComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ReleaseComicName']}</a></td>
+                                %else:
+	                            <td id="name"><span title="${issue['ComicName']}"></span><a href="comicDetails?ComicID=${issue['ComicID']}">${issue['ComicName']}</a></td>
+                                %endif
                                 <td id="int_issue">${issue['Int_IssueNumber']}</td>
 				<td id="issue">${issue['Issue_Number']}</td>
 				<td id="pubdate">${issue['IssueDate']}</td>

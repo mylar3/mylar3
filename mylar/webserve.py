@@ -326,7 +326,6 @@ class WebInterface(object):
         logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
         if comicid.startswith('4050-'): comicid = re.sub('4050-','', comicid)
         threading.Thread(target=importer.addComictoDB, args=[comicid,mismatch,None,imported,ogcname]).start()
-        print calledby
         if calledby == True or calledby == 'True':
            return
         elif calledby == 'web-import':

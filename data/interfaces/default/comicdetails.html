@@ -146,11 +146,11 @@
                                                archive_path = 'None'
                                         %>
                                         %if os.path.exists(archive_path) and archive_path != comic['ComicLocation']:
-                                            <label><big>Directories</big><br/>
-                                            <norm>Primary: ${comic['ComicLocation']}</norm></label>
-                                            <norm>Secondary: ${archive_path}</norm></label>
+                                            <label><big>Directories:</big></label><br/>
+                                            <p class="tab"><norm>Primary: ${comic['ComicLocation']}</norm><br/>
+                                            <norm>Secondary: ${archive_path}</norm></label></p>
                                         %else:
-                                            <label><big>Directory</big><br/>
+                                            <label><big>Directory:</big><br/>
                                             <norm>${comic['ComicLocation']}</norm></label>
                                         %endif
                                     %else:
@@ -343,7 +343,6 @@
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
-                        <option value="Downloaded">Downloaded</option>
                         <option value="Archived">Archived</option>
                         <option value="Ignored">Ignored</option>
                         %if mylar.FAILED_DOWNLOAD_HANDLING:
