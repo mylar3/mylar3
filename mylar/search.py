@@ -533,7 +533,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         except Exception, e:
                             logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
                             data = False
-                        #logger.info('data: ' + data)
+
                         if data:
                             bb = feedparser.parse(data)
                         else:
@@ -1276,7 +1276,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 nzbid = searchresult[0]['nzbid']
                                 nzbname = searchresult[0]['nzbname']
                                 sent_to = searchresult[0]['sent_to']
-
+                                alt_nzbname = searchresult[0]['alt_nzbname']
                             foundc = "yes"
                             done = True
                             break
@@ -1294,10 +1294,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         findloop+=1
         if foundc == "yes":
             foundcomic.append("yes")
-            logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-            if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
-            updater.nzblog(IssueID, nzbname, ComicName, SARC, IssueArcID, nzbid, tmpprov)
-            #send out the notifications for the snatch.
+            if alt_nzbname is None or alt_nzbname == '':
+                logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
+                if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
+                updater.nzblog(IssueID, nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov)
+            else:
+                logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname) + '[' + alt_nzbname + ']')
+                if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
+                updater.nzblog(IssueID, nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov, alt_nzbname=alt_nzbname)
+
+#            #send out the notifications for the snatch.
             notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
             prov_count == 0
             #break
@@ -1560,6 +1566,7 @@ def nzbname_create(provider, title=None, info=None):
     return nzbname
 
 def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None):
+    alt_nzbname = None
 
     #load in the details of the issue from the tuple.
     ComicName = comicinfo[0]['ComicName']
@@ -1612,6 +1619,61 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         path_parts = url_parts[2].rpartition('/')
         nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
     elif nzbprov == 'dognzb':
+        if link:
+            opener = urllib.FancyURLopener({})
+            opener.addheaders = []
+            opener.addheader('User-Agent', str(mylar.USER_AGENT))
+            nzo_info = {}
+            filen = None
+            try:
+                fn, header = opener.retrieve(link)
+            except:
+                fn = None
+
+            for tup in header.items():
+               try:
+                   item = tup[0].lower()
+                   value = tup[1].strip()
+               except:
+                   continue
+               if item in ('category_id', 'x-dnzb-category'):
+                   category = value
+               elif item in ('x-dnzb-moreinfo',):
+                   nzo_info['more_info'] = value
+               elif item in ('x-dnzb-name',):
+                   filen = value
+                   if not filen.endswith('.nzb'):
+                       filen += '.nzb'
+                   nzo_info['filename'] = filen
+               elif item == 'x-dnzb-propername':
+                   nzo_info['propername'] = value
+               elif item == 'x-dnzb-episodename':
+                   nzo_info['episodename'] = value
+               elif item == 'x-dnzb-year':
+                   nzo_info['year'] = value
+               elif item == 'x-dnzb-failure':
+                   nzo_info['failure'] = value
+               elif item == 'x-dnzb-details':
+                   nzo_info['details'] = value
+               elif item in ('content-length',):
+                   try:
+                       ivalue = int(value)
+                   except:
+                       ivalue = 0
+                   length = ivalue
+                   nzo_info['length'] = length
+
+               if not filen:
+                   for item in tup:
+                       if "filename=" in item:
+                           filen = item[item.index("filename=") + 9:].strip(';').strip('"')
+
+            logger.info('nzo_info:' + str(nzo_info))
+            if re.sub('.nzb','', filen.lower()).strip() != re.sub('.nzb','', nzbname.lower()).strip():
+                alt_nzbname = re.sub('.nzb','', filen).strip()
+                logger.info('filen: ' + filen + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
+
+
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/',1)[1]
@@ -1784,18 +1846,24 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             
     #nzbid, nzbname, sent_to
     return_val = []
-    return_val.append({"nzbid":    nzbid,
-                       "nzbname":  nzbname,
-                       "sent_to":  sent_to})
+    return_val.append({"nzbid":       nzbid,
+                       "nzbname":     nzbname,
+                       "sent_to":     sent_to,
+                       "alt_nzbname": alt_nzbname})
 
     #if it's a directsend link (ie. via a retry).
     if directsend is None:
         return return_val
     else:
         #update the db on the snatch.
-        logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
-        if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
-        updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)
+        if alt_nzbname is None or alt_nzbname == '':
+            logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname))
+            if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
+            updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov)
+        else:
+            logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname) + ' [' + alt_nzbname + ']')
+            if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
+            updater.nzblog(IssueID, nzbname, ComicName, SARC=None, IssueArcID=None, id=nzbid, prov=tmpprov, alt_nzbname=alt_nzbname)
         #send out notifications for on snatch after the updater incase notification fails (it would bugger up the updater/pp scripts)
         notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
         return

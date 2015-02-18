@@ -456,15 +456,15 @@ def no_searchresults(ComicID):
                 "LatestIssue":  "Error"}    
     myDB.upsert("comics", newValue, controlValue)
 
-def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, prov=None):
+def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, prov=None, alt_nzbname=None):
     myDB = db.DBConnection()
 
-    newValue = {"NZBName":  NZBName}
+    newValue = {'NZBName':  NZBName}
 
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
        #give it a generic ID above the last one so it doesn't throw an error later.
-       print "SARC detected as: " + str(SARC)
+       logger.fdebug("Story Arc (SARC) detected as: " + str(SARC))
        if mylar.HIGHCOUNT == 0:
            IssueID = '900000'
        else: 
@@ -480,10 +480,23 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
 
     if id:
         logger.info('setting the nzbid for this download grabbed by ' + prov + ' in the nzblog to : ' + str(id))
-        newValue["ID"] = id
+        newValue['ID'] = id
 
+    if alt_nzbname:
+        logger.info('setting the alternate nzbname for this download grabbed by ' + prov + ' in the nzblog to : ' + alt_nzbname)
+        newValue['AltNZBName'] = alt_nzbname
+
+    #check if it exists already in the log.
+    chkd = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider=?', [IssueID, prov]).fetchone()
+    if chkd is None:
+        pass
+    else:
+        if chkd['AltNZBName'] is None or chkd['AltNZBName'] == '':
+            #we need to wipe the entry so we can re-update with the alt-nzbname if required
+            myDB.action('DELETE FROM nzblog WHERE IssueID=? and Provider=?', [IssueID, prov])
+            logger.fdebug('Deleted stale entry from nzblog for IssueID: ' + str(IssueID) + ' [' + prov + ']')       
     myDB.upsert("nzblog", newValue, controlValue)
-
+    
 
 def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.

@@ -343,22 +343,23 @@ class PostProcessor(object):
                 nzbname = re.sub(' ', '.', str(nzbname))
                 nzbname = re.sub('[\,\:\?\']', '', str(nzbname))
                 nzbname = re.sub('[\&]', 'and', str(nzbname))
+                nzbname = re.sub('_', '.', str(nzbname))
 
                 logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
 #                if mylar.USE_NZBGET==1:
 #                    nzbname=self.nzb_name
                 self._log("nzbname: " + str(nzbname))
    
-                nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname,nzbname]).fetchone()
 
                 if nzbiss is None:
                     self._log("Failure - could not initially locate nzbfile in my database to rename.")
                     logger.fdebug(module + ' Failure - could not locate nzbfile initially')
                     # if failed on spaces, change it all to decimals and try again.
-                    nzbname = re.sub('_', '.', str(nzbname))
+                    nzbname = re.sub('[\(\)]', '', str(nzbname))
                     self._log("trying again with this nzbname: " + str(nzbname))
                     logger.fdebug(module + ' Trying to locate nzbfile again with nzbname of : ' + str(nzbname))
-                    nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=?", [nzbname]).fetchone()
+                    nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname,nzbname]).fetchone()
                     if nzbiss is None:
                         logger.error(module + ' Unable to locate downloaded file to rename. PostProcessing aborted.')
                         self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
