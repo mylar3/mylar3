@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #  This file is part of Headphones.
 #
 #  Headphones is free software: you can redistribute it and/or modify
@@ -76,7 +79,7 @@ def initialize(options):
 
     conf = {
         '/': {
-            'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')        
+            'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')
         },
         '/interfaces':{
             'tools.staticdir.on': True,
@@ -100,10 +103,11 @@ def initialize(options):
         },
         '/cache':{
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': mylar.CACHE_DIR
+            'tools.staticdir.dir': mylar.CACHE_DIR,
+            'tools.auth_basic.on': False
         }
     }
-    
+
     if options['http_password'] != "":
         conf['/'].update({
             'tools.auth_basic.on': True,
@@ -115,16 +119,14 @@ def initialize(options):
 
     # Prevent time-outs
     cherrypy.engine.timeout_monitor.unsubscribe()
-    
+
     cherrypy.tree.mount(WebInterface(), options['http_root'], config = conf)
-    
+
     try:
         cherrypy.process.servers.check_port(options['http_host'], options['http_port'])
         cherrypy.server.start()
     except IOError:
         print 'Failed to start on port: %i. Is something else running?' % (options['http_port'])
         sys.exit(0)
-    
+
     cherrypy.server.wait()
-    
-    

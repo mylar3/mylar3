@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -370,12 +373,12 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
     else:
         logger.debug(item_name + " -> ******")
     return my_val
-    
+
 
 def initialize():
 
     with INIT_LOCK:
-    
+
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
                 queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
@@ -392,7 +395,7 @@ def initialize():
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, COPY2ARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
-                
+
         if __INITIALIZED__:
             return False
 
@@ -403,7 +406,7 @@ def initialize():
         CheckSection('NZBsu')
         CheckSection('DOGnzb')
         CheckSection('Raw')
-        CheckSection('Experimental')        
+        CheckSection('Experimental')
         CheckSection('Newznab')
         CheckSection('Torrents')
         # Set global variables based on config file or use defaults
@@ -411,7 +414,7 @@ def initialize():
             HTTP_PORT = check_setting_int(CFG, 'General', 'http_port', 8090)
         except:
             HTTP_PORT = 8090
-            
+
         if HTTP_PORT < 21 or HTTP_PORT > 65535:
             HTTP_PORT = 8090
 
@@ -419,7 +422,7 @@ def initialize():
             HTTPS_CERT = os.path.join(DATA_DIR, 'server.crt')
         if HTTPS_KEY == '':
             HTTPS_KEY = os.path.join(DATA_DIR, 'server.key')
-            
+
         CONFIG_VERSION = check_setting_str(CFG, 'General', 'config_version', '')
         DBCHOICE = check_setting_str(CFG, 'General', 'dbchoice', 'sqlite3')
         DBUSER = check_setting_str(CFG, 'General', 'dbuser', '')
@@ -438,10 +441,10 @@ def initialize():
         HTTP_ROOT = check_setting_str(CFG, 'General', 'http_root', '/')
         ENABLE_HTTPS = bool(check_setting_int(CFG, 'General', 'enable_https', 0))
         HTTPS_CERT = check_setting_str(CFG, 'General', 'https_cert', '')
-        HTTPS_KEY = check_setting_str(CFG, 'General', 'https_key', '')      
+        HTTPS_KEY = check_setting_str(CFG, 'General', 'https_key', '')
         HTTPS_FORCE_ON = bool(check_setting_int(CFG, 'General', 'https_force_on', 0))
         API_ENABLED = bool(check_setting_int(CFG, 'General', 'api_enabled', 0))
-        API_KEY = check_setting_str(CFG, 'General', 'api_key', '') 
+        API_KEY = check_setting_str(CFG, 'General', 'api_key', '')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
         AUTO_UPDATE = bool(check_setting_int(CFG, 'General', 'auto_update', 0))
         LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 0))
@@ -451,16 +454,16 @@ def initialize():
             VERBOSE = 1
         MAX_LOGSIZE = check_setting_int(CFG, 'General', 'max_logsize', 1000000)
         if not MAX_LOGSIZE:
-            MAX_LOGSIZE = 1000000        
+            MAX_LOGSIZE = 1000000
         GIT_PATH = check_setting_str(CFG, 'General', 'git_path', '')
         LOG_DIR = check_setting_str(CFG, 'General', 'log_dir', '')
         if not CACHE_DIR:
             CACHE_DIR = check_setting_str(CFG, 'General', 'cache_dir', '')
-        
+
         CHECK_GITHUB = bool(check_setting_int(CFG, 'General', 'check_github', 1))
         CHECK_GITHUB_ON_STARTUP = bool(check_setting_int(CFG, 'General', 'check_github_on_startup', 1))
         CHECK_GITHUB_INTERVAL = check_setting_int(CFG, 'General', 'check_github_interval', 360)
-        
+
         DESTINATION_DIR = check_setting_str(CFG, 'General', 'destination_dir', '')
         MULTIPLE_DEST_DIRS = check_setting_str(CFG, 'General', 'multiple_dest_dirs', '')
         CREATE_FOLDERS = bool(check_setting_int(CFG, 'General', 'create_folders', 1))
@@ -606,7 +609,7 @@ def initialize():
         ENABLE_CBT = bool(check_setting_int(CFG, 'Torrents', 'enable_cbt', 0))
         CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '')
         SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
-   
+
         #this needs to have it's own category - for now General will do.
         NZB_DOWNLOADER = check_setting_int(CFG, 'General', 'nzb_downloader', 0)
         #legacy support of older config - reload into old values for consistency.
@@ -680,7 +683,7 @@ def initialize():
 
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
         ALTEXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'altexperimental', 1))
-        if EXPERIMENTAL: 
+        if EXPERIMENTAL:
             PR.append('Experimental')
             PR_NUM +=1
 
@@ -712,7 +715,7 @@ def initialize():
         elif CONFIG_VERSION == '5':
             EN_NUM = 5   #addition of Newznab UID
         else:
-            EN_NUM = 3   
+            EN_NUM = 3
 
         EXTRA_NEWZNABS = list(itertools.izip(*[itertools.islice(flattened_newznabs, i, None, EN_NUM) for i in range(EN_NUM)]))
 
@@ -730,14 +733,14 @@ def initialize():
             #update the configV and write the config.
             CONFIG_VERSION = '5'
             config_write()
-        
+
         #to counteract the loss of the 1st newznab entry because of a switch, let's rewrite to the tuple
         if NEWZNAB_HOST and CONFIG_VERSION:
             EXTRA_NEWZNABS.append((NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, int(NEWZNAB_ENABLED)))
             #PR_NUM +=1
             # Need to rewrite config here and bump up config version
             CONFIG_VERSION = '5'
-            config_write()        
+            config_write()
 
         #print 'PR_NUM:' + str(PR_NUM)
         if NEWZNAB:
@@ -754,7 +757,7 @@ def initialize():
         flattened_provider_order = check_setting_str(CFG, 'General', 'provider_order', [], log=False)
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flattened_provider_order, i, None, 2) for i in range(2)]))
 
-        if len(flattened_provider_order) == 0:       
+        if len(flattened_provider_order) == 0:
             #priority provider sequence in order#, ProviderName
             #print('creating provider sequence order now...')
             TMPPR_NUM = 0
@@ -791,7 +794,7 @@ def initialize():
                         #print 'provider already exists at : ' + str(new_order_seqnum) + ' -- ' + str(PR[TMPPR_NUM])
                     TMPPR_NUM +=1
 
-                 
+
         #this isn't ready for primetime just yet...
         #print 'Provider Order is:' + str(PROV_ORDER)
 
@@ -814,9 +817,9 @@ def initialize():
             folder_values = { 'series' : 'Series', 'publisher':'Publisher', 'year' : 'Year', 'first' : 'First', 'lowerfirst' : 'first' }
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
-            
+
             CONFIG_VERSION = '1'
-            
+
         if CONFIG_VERSION == '1':
 
             from mylar.helpers import replace_all
@@ -837,10 +840,10 @@ def initialize():
                                 'publisher':    '$publisher',
                                 'year':         '$year',
                                 'first':        '$first'
-                            }   
+                            }
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
-            
+
             CONFIG_VERSION = '2'
 
         if 'http://' not in SAB_HOST[:7] and 'https://' not in SAB_HOST[:8]:
@@ -1024,7 +1027,7 @@ def initialize():
         # Store the original umask
         UMASK = os.umask(0)
         os.umask(UMASK)
-                                    
+
         __INITIALIZED__ = True
         return True
 
@@ -1033,10 +1036,10 @@ def daemonize():
     if threading.activeCount() != 1:
         logger.warn('There are %r active threads. Daemonizing may cause \
                         strange behavior.' % threading.enumerate())
-    
+
     sys.stdout.flush()
     sys.stderr.flush()
-    
+
     # Do first fork
     try:
         pid = os.fork()
@@ -1048,7 +1051,7 @@ def daemonize():
             os._exit(0)
     except OSError, e:
         sys.exit("1st fork failed: %s [%d]" % (e.strerror, e.errno))
-        
+
     os.setsid()
 
     # Make sure I can read my own files and shut out others
@@ -1070,7 +1073,7 @@ def daemonize():
     si = open('/dev/null', "r")
     so = open('/dev/null', "a+")
     se = open('/dev/null', "a+")
-    
+
     os.dup2(si.fileno(), sys.stdin.fileno())
     os.dup2(so.fileno(), sys.stdout.fileno())
     os.dup2(se.fileno(), sys.stderr.fileno())
@@ -1086,8 +1089,8 @@ def launch_browser(host, port, root):
 
     if host == '0.0.0.0':
         host = 'localhost'
-    
-    try:    
+
+    try:
         webbrowser.open('http://%s:%i%s' % (host, port, root))
     except Exception, e:
         logger.error('Could not launch browser: %s' % e)
@@ -1123,7 +1126,7 @@ def config_write():
     new_config['General']['https_key'] = HTTPS_KEY
     new_config['General']['https_force_on'] = int(HTTPS_FORCE_ON)
     new_config['General']['api_enabled'] = int(API_ENABLED)
-    new_config['General']['api_key'] = API_KEY   
+    new_config['General']['api_key'] = API_KEY
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
     new_config['General']['auto_update'] = int(AUTO_UPDATE)
     new_config['General']['log_dir'] = LOG_DIR
@@ -1134,7 +1137,7 @@ def config_write():
     new_config['General']['annuals_on'] = int(ANNUALS_ON)
     new_config['General']['cv_only'] = int(CV_ONLY)
     new_config['General']['cv_onetimer'] = int(CV_ONETIMER)
-    new_config['General']['cvapifix'] = int(CVAPIFIX)    
+    new_config['General']['cvapifix'] = int(CVAPIFIX)
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
     new_config['General']['check_github_interval'] = CHECK_GITHUB_INTERVAL
@@ -1332,9 +1335,9 @@ def config_write():
     new_config['Raw']['raw_groups'] = RAW_GROUPS
 
     new_config.write()
-    
+
 def start():
-    
+
     global __INITIALIZED__, started
         #dbUpdateScheduler, searchScheduler, RSSScheduler, \
         #WeeklyScheduler, VersionScheduler, FolderMonitorScheduler
@@ -1342,7 +1345,7 @@ def start():
     with INIT_LOCK:
 
         if __INITIALIZED__:
-    
+
             # Start our scheduled background tasks
             #from mylar import updater, search, PostProcessor
 
@@ -1369,7 +1372,7 @@ def start():
                 #RSSScheduler.thread.start()
                 logger.info('Initiating startup-RSS feed checks.')
                 rsscheck.tehMain()
-        
+
 
             #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
             logger.info('Checking for existance of Weekly Comic listing...')
@@ -1378,7 +1381,7 @@ def start():
             #now the scheduler (check every 24 hours)
             SCHED.add_interval_job(weeklypull.pullit, hours=24)
             #WeeklyScheduler.thread.start()
-        
+
             #let's do a run at the Wanted issues here (on startup) if enabled.
             if NZB_STARTUP_SEARCH:
                 threading.Thread(target=search.searchforissue).start()
@@ -1386,7 +1389,7 @@ def start():
             if CHECK_GITHUB:
                 #VersionScheduler.thread.start()
                 SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
-        
+
             #run checkFolder every X minutes (basically Manual Run Post-Processing)
             if ENABLE_CHECK_FOLDER:
                 if DOWNLOAD_SCAN_INTERVAL >0:
@@ -1396,9 +1399,9 @@ def start():
                 else:
                     logger.error('You need to specify a monitoring time for the check folder option to work')
             SCHED.start()
-        
+
         started = True
-    
+
 def dbcheck():
     #if DBCHOICE == 'postgresql':
     #    import psycopg2
@@ -1407,10 +1410,10 @@ def dbcheck():
     #else:
 
     conn = sqlite3.connect(DB_FILE)
-    c_error = 'sqlite3.OperationalError' 
+    c_error = 'sqlite3.OperationalError'
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
@@ -1431,7 +1434,7 @@ def dbcheck():
 
     csv_load()
 
-    
+
     #add in the late players to the game....
     # -- Comics Table --
 
@@ -1496,6 +1499,16 @@ def dbcheck():
         c.execute('SELECT AlternateFileName from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN AlternateFileName TEXT')
+
+    try:
+        c.execute('SELECT ComicImageURL from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN ComicImageURL TEXT')
+
+    try:
+        c.execute('SELECT ComicImageALTURL from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN ComicImageALTURL TEXT')
 
     # -- Issues Table --
 
@@ -1680,7 +1693,7 @@ def dbcheck():
 
 
     ## -- Snatched Table --
-  
+
     try:
         c.execute('SELECT Provider from snatched')
     except sqlite3.OperationalError:
@@ -1750,7 +1763,7 @@ def dbcheck():
 
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
-    #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the 
+    #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
     #value in the sql so we can display it in the details screen for everyone to wonder at.
     try:
         c.execute('SELECT not_updated_db from comics')
@@ -1781,7 +1794,7 @@ def dbcheck():
 
     logger.info('Correcting Null entries that make the main page break on startup.')
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
-        
+
 
     conn.commit()
     c.close()
@@ -1815,7 +1828,7 @@ def csv_load():
                         shutil.copy(os.path.join(DATA_DIR,"custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
                     except (OSError,IOError):
                         logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure _sample.csv is present and/or check permissions.')
-                        return  
+                        return
                 else:
                     logger.error('Could not locate ' + str(EXCEPTIONS[i]) + ' file. Make sure it is in datadir: ' + DATA_DIR)
                 break
@@ -1839,7 +1852,7 @@ def csv_load():
         i+=1
 
     conn.commit()
-    c.close()    
+    c.close()
 
 #def halt():
 #    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
@@ -1904,7 +1917,7 @@ def shutdown(restart=False, update=False):
     cherrypy.engine.exit()
 
     SCHED.shutdown(wait=False)
-    
+
     config_write()
 
     if not restart and not update:
@@ -1914,12 +1927,12 @@ def shutdown(restart=False, update=False):
         try:
             versioncheck.update()
         except Exception, e:
-            logger.warn('Mylar failed to update: %s. Restarting.' % e) 
+            logger.warn('Mylar failed to update: %s. Restarting.' % e)
 
     if CREATEPID:
         logger.info('Removing pidfile %s' % PIDFILE)
         os.remove(PIDFILE)
-        
+
     if restart:
         logger.info('Mylar is restarting...')
         popen_list = [sys.executable, FULL_PATH]
@@ -1928,5 +1941,5 @@ def shutdown(restart=False, update=False):
             popen_list += ['--nolaunch']
         logger.info('Restarting Mylar with ' + str(popen_list))
         subprocess.Popen(popen_list, cwd=os.getcwd())
-        
+
     os._exit(0)

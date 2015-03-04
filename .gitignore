@@ -1,6 +1,12 @@
 mylar.db
 config.ini
-*.pyc
+*.py[co]
 .idea
 logs
 .AppleDouble
+cache/
+custom_exceptions.csv
+Thumbs.db
+*.torrent
+ehtumbs.db
+Thumbs.db
