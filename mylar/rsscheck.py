@@ -46,7 +46,7 @@ def tehMain(forcerss=None):
             torrents(pickfeed='1')
             torrents(pickfeed='4')
     logger.info('[RSS] Initiating RSS Feed Check for NZB Providers.')
-    nzbs()    
+    nzbs(forcerss=forcerss)
     logger.info('[RSS] RSS Feed Check/Update Complete')
     logger.info('[RSS] Watchlist Check for new Releases')
     mylar.search.searchforissue(rsscheck='yes')
@@ -243,7 +243,8 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         return katinfo
     return
 
-def nzbs(provider=None):
+def nzbs(provider=None, forcerss=False):
+
     nzbprovider = []
     nzbp = 0
     if mylar.NZBSU == 1:
@@ -289,6 +290,8 @@ def nzbs(provider=None):
     while (nzbpr >= 0 ):
         if nzbprovider[nzbpr] == 'experimental':
             max_entries = "50"
+            if forcerss:
+                max_entries = "250"
             feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=" + max_entries + "&more=1", agent=user_agent)
 
             totNum = len(feed.entries)
@@ -344,7 +347,11 @@ def nzbs(provider=None):
             elif nzbprovider[nzbpr] == 'nzb.su':
                 if mylar.NZBSU_UID is None:
                     mylar.NZBSU_UID = '1'
-                feed = 'http://api.nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY
+                if forcerss:
+                    num_items = "&num=100"
+                else:
+                    num_items = ""  # default is 25
+                feed = 'http://api.nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY + num_items
                 feedme = feedparser.parse(feed, agent=user_agent)
                 site = nzbprovider[nzbpr]
                 feedthis.append({"feed":   feedme,
@@ -356,7 +363,11 @@ def nzbs(provider=None):
             elif nzbprovider[nzbpr] == 'dognzb':
                 if mylar.DOGNZB_UID is None:
                     mylar.DOGNZB_UID = '1'
-                feed = 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030'
+                if forcerss:
+                    num_items = "&num=100"
+                else:
+                    num_items = ""  # default is 25
+                feed = 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items
                 feedme = feedparser.parse(feed, agent=user_agent)
                 site = nzbprovider[nzbpr]
                 ft+=1
@@ -868,4 +879,4 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 if __name__ == '__main__':
     #torrents(sys.argv[1])
     #torrentdbsearch(sys.argv[1], sys.argv[2], sys.argv[3])
-    nzbs(sys.argv[1])
+    nzbs(provider=sys.argv[1])
