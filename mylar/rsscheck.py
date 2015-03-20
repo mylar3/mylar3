@@ -284,9 +284,12 @@ def nzbs(provider=None):
     totNum = 0
     nonexp = "no"
    
+    user_agent = str(mylar.USER_AGENT)
+
     while (nzbpr >= 0 ):
         if nzbprovider[nzbpr] == 'experimental':
-            feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=50&more=1")
+            max_entries = "50"
+            feed = feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=" + max_entries + "&more=1", agent=user_agent)
 
             totNum = len(feed.entries)
             site = 'experimental'
@@ -330,7 +333,7 @@ def nzbs(provider=None):
                             newznabcat = newznab_host[3][newzst+1:]
                     # 11-21-2014: added &num=100 to return 100 results (or maximum) - unsure of cross-reliablity
                     feed = newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&&r=' + newznab_host[2].rstrip()
-                    feedme = feedparser.parse(feed)
+                    feedme = feedparser.parse(feed, agent=user_agent)
                     site = newznab_host[0].rstrip()
                     feedthis.append({"feed":     feedme,
                                      "site":     site})
@@ -342,7 +345,7 @@ def nzbs(provider=None):
                 if mylar.NZBSU_UID is None:
                     mylar.NZBSU_UID = '1'
                 feed = 'http://api.nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY
-                feedme = feedparser.parse(feed)
+                feedme = feedparser.parse(feed, agent=user_agent)
                 site = nzbprovider[nzbpr]
                 feedthis.append({"feed":   feedme,
                                  "site":   site })
@@ -354,7 +357,7 @@ def nzbs(provider=None):
                 if mylar.DOGNZB_UID is None:
                     mylar.DOGNZB_UID = '1'
                 feed = 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030'
-                feedme = feedparser.parse(feed)
+                feedme = feedparser.parse(feed, agent=user_agent)
                 site = nzbprovider[nzbpr]
                 ft+=1
                 nonexp = "yes"
