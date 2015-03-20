@@ -12,6 +12,23 @@ from StringIO import StringIO
 import mylar
 from mylar import db, logger, ftpsshup, helpers
 
+def _start_newznab_attr(self, attrsD):
+    logger.fdebug('RSS newznab attributes', str(attrsD))
+    context = self._getContext()
+
+    context.setdefault('newznab', feedparser.FeedParserDict())
+    context['newznab'].setdefault('tags', feedparser.FeedParserDict())
+
+    name = attrsD.get('name')
+    value = attrsD.get('value')
+
+    if name == 'category':
+        context['newznab'].setdefault('categories', []).append(value)
+    else:
+        context['newznab'][name] = value
+
+feedparser._FeedParserMixin._start_newznab_attr = _start_newznab_attr
+
 def tehMain(forcerss=None):
     logger.info('RSS Feed Check was last run at : ' + str(mylar.RSS_LASTRUN))
     firstrun = "no"
@@ -391,11 +408,9 @@ def nzbs(provider=None, forcerss=False):
                 if site == 'dognzb':
                     #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
                     tmpsz = 0
-                    #for attr in entry['newznab:attrib']:
-                    #    if attr('@name') == 'size':
-                    #        tmpsz = attr['@value']
-                    #        logger.fdebug('size retrieved as ' + str(tmpsz))
-                    #        break
+                    if 'newznab' in entry and 'size' in entry['newznab']:
+                        tmpsz = entry['newznab']['size']
+
                     feeddata.append({
                                'Site':     site,
                                'Title':    entry.title,    #ft['feed'].entries[i].title,
