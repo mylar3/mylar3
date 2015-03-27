@@ -1,19 +1,10 @@
 #!/usr/local/bin/python
 
-import paramiko
 import os
 import time
 
 import mylar
 from mylar import logger
-
-class FastTransport(paramiko.Transport):
-    def __init__(self, sock):
-        super(FastTransport, self).__init__(sock)
-        self.window_size = 2147483647
-        self.packetizer.REKEY_BYTES = pow(2, 40)
-        self.packetizer.REKEY_PACKETS = pow(2, 40)
-
 
 def putfile(localpath,file):    #localpath=full path to .torrent (including filename), file=filename of torrent
 
@@ -77,6 +68,15 @@ def putfile(localpath,file):    #localpath=full path to .torrent (including file
     return "pass"
 
 def sendfiles(filelist):
+    try:
+        import paramiko
+    except ImportError:
+        logger.fdebug('paramiko not found on system. Please install manually in order to use seedbox option')
+        logger.fdebug('get it at https://github.com/paramiko/paramiko')
+        logger.fdebug('to install: python setup.py install')
+        logger.fdebug('aborting send.')
+        return
+
     fhost = mylar.TAB_HOST.find(':')
     host = mylar.TAB_HOST[:fhost] 
     port = int(mylar.TAB_HOST[fhost+1:])
@@ -84,7 +84,7 @@ def sendfiles(filelist):
     logger.fdebug('Destination: ' + host)
     logger.fdebug('Using SSH port : ' + str(port))
 
-    transport = FastTransport((host, port))
+    transport = paramiko.Transport((host, port))
 
     password = mylar.TAB_PASS 
     username = mylar.TAB_USER 
@@ -92,7 +92,6 @@ def sendfiles(filelist):
 
     sftp = paramiko.SFTPClient.from_transport(transport)
 
-    import sys
     remotepath = mylar.TAB_DIRECTORY
     logger.fdebug('remote path set to ' + remotepath)
    
@@ -151,7 +150,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                     sftp.close()
                     transport.close()
                     #reload the transport here cause it locked up previously.
-                    transport = FastTransport((host, port))
+                    transport = paramiko.Transport((host, port))
                     transport.connect(username=mylar.TAB_USER, password=mylar.TAB_PASS)
                     sftp = paramiko.SFTPClient.from_transport(transport)
                     count+=1
@@ -180,7 +179,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                         sftp.close()
                         transport.close()
                         #reload the transport here cause it locked up previously.
-                        transport = FastTransport((host, port))
+                        transport = paramiko.Transport((host, port))
                         transport.connect(username=mylar.TAB_USER, password=mylar.TAB_PASS)
                         sftp = paramiko.SFTPClient.from_transport(transport)
                         count+=1
