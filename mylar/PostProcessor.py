@@ -24,7 +24,6 @@ import logging
 import mylar
 import subprocess
 import urllib2
-import sqlite3
 from xml.dom.minidom import parseString
 
 
@@ -259,10 +258,10 @@ class PostProcessor(object):
                                 if 'annual' in temploc.lower():
                                     biannchk = re.sub('-', '', temploc.lower()).strip()
                                     if 'biannual' in biannchk:
-                                        logger.info(module + ' Bi-Annual detected.')
+                                        logger.fdebug(module + ' Bi-Annual detected.')
                                         fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                     else:
-                                        logger.info(module + ' Annual detected.')
+                                        logger.fdebug(module + ' Annual detected.')
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     annchk = "yes"
                                     issuechk = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'],fcdigit]).fetchone()
@@ -341,7 +340,7 @@ class PostProcessor(object):
 
                 #replace spaces
                 nzbname = re.sub(' ', '.', str(nzbname))
-                nzbname = re.sub('[\,\:\?\']', '', str(nzbname))
+                nzbname = re.sub('[\,\:\?\'\(\)]', '', str(nzbname))
                 nzbname = re.sub('[\&]', 'and', str(nzbname))
                 nzbname = re.sub('_', '.', str(nzbname))
 
@@ -552,15 +551,18 @@ class PostProcessor(object):
                     logger.info(module + ' No matches for Manual Run ... exiting.')
                     return
 
+                i = 1
                 for ml in manual_list:
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
                     dupthis = helpers.duplicate_filecheck(ml['ComicLocation'], ComicID=comicid, IssueID=issueid)
                     if dupthis == "write":
-                        self.Process_next(comicid,issueid,issuenumOG,ml)
+                        stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
+                        self.Process_next(comicid,issueid,issuenumOG,ml,stat)
                         dupthis = None
-                logger.info(module + ' Manual post-processing completed.')
+                    i+=1
+                logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
                 return
             else:
                 comicid = issuenzb['ComicID']
@@ -578,7 +580,8 @@ class PostProcessor(object):
                     return self.queue.put(self.valreturn)
 
 
-    def Process_next(self,comicid,issueid,issuenumOG,ml=None):
+    def Process_next(self,comicid,issueid,issuenumOG,ml=None,stat=None):
+            if stat is None: stat = ' [1/1]'
             module = self.module
             annchk = "no"
             extensions = ('.cbr', '.cbz')
@@ -598,12 +601,11 @@ class PostProcessor(object):
                 issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid,comicid]).fetchone()
                 annchk = "yes"
             if annchk == "no":
-                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' issue: ' + str(issuenzb['Issue_Number']))
+                logger.info(module + stat + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' issue: ' + issuenzb['Issue_Number'])
             else:
-                logger.info(module + ' Starting Post-Processing for ' + issuenzb['ReleaseComicName'] + ' issue: ' + str(issuenzb['Issue_Number']))
+                logger.info(module + stat + ' Starting Post-Processing for ' + issuenzb['ReleaseComicName'] + ' issue: ' + issuenzb['Issue_Number'])
             logger.fdebug(module + ' issueid: ' + str(issueid))
-            logger.fdebug(module + ' issuenumOG: ' + str(issuenumOG))
-
+            logger.fdebug(module + ' issuenumOG: ' + issuenumOG)
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
@@ -622,6 +624,16 @@ class PostProcessor(object):
                 if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.NOW'
+
+            elif u'\xbd' in issuenum:
+                issuenum = '0.5'
+            elif u'\xbc' in issuenum:
+                issuenum = '0.25'
+            elif u'\xbe' in issuenum:
+                issuenum = '0.75'
+            elif u'\u221e' in issuenum:
+                #issnum = utf-8 will encode the infinity symbol without any help
+                issuenum = 'infinity'
 
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
@@ -646,7 +658,7 @@ class PostProcessor(object):
                     logger.fdebug(module + ' Issue Number: ' + str(iss))
             else:
                 iss = issuenum
-                issueno = str(iss)
+                issueno = iss
 
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0": 
@@ -1013,20 +1025,20 @@ class PostProcessor(object):
             
             if annchk == "no":
                 updater.foundsearch(comicid, issueid, down=downtype, module=module)
-                dispiss = 'issue: ' + str(issuenumOG)
+                dispiss = 'issue: ' + issuenumOG
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module)
                 if 'annual' not in series.lower():
-                    dispiss = 'annual issue: ' + str(issuenumOG)
+                    dispiss = 'annual issue: ' + issuenumOG
                 else:
-                    dispiss = str(issuenumOG)
+                    dispiss = issuenumOG
 
             #force rescan of files
             updater.forceRescan(comicid,module=module)
 
             if mylar.WEEKFOLDER:
                 #if enabled, will *copy* the post-processed file to the weeklypull list folder for the given week.
-                weeklypull.weekly_singlecopy(comicid,issuenum,str(nfilename+ext),dst,module=module)
+                weeklypull.weekly_singlecopy(comicid,issuenum,str(nfilename+ext),dst,module=module,issueid=issueid)
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:

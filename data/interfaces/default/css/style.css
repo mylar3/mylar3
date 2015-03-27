@@ -797,7 +797,18 @@ div#searchbar .mini-icon {
   background-color: #ffb0b0;
   height: 30px;
 }
-
+.Snatched {
+  background-color: #ebf5ff;
+  height: 30px;
+}
+.Failed {
+  background-color: #ff5858;
+  height: 30px;
+}
+.Ignored {
+  background-color: #fff5cc;
+  height: 30px;
+}
 .comictable legend {
   font-size: 14px
   font-weight: bold;
@@ -906,21 +917,27 @@ div#artistheader h2 a {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
 }
 #read_detail th#options {
-  min-width: 150px;
+  max-width: 150px;
   text-align: left;
 }
 #read_detail th#comicname {
   min-width: 300px;
   text-align: left;
 }
-#read_detail th#issue,
-#read_detail th#status {
-  min-width: 30px;
+#read_detail th#issue {
+  max-width: 25px;
   text-align: center;
 }
-#read_detail th#issueyear {
-  min-width: 40px;
+#read_detail th#issueyear,
+#read_detail th#status,
+#read_detail th#statuschange {
+  max-width: 50px;
   text-align: center;
+}
+#read_detail th#select {
+  max-width: 10px;
+  text-align: left;
+  vertical-align: middle;
 }
 #read_detail td#comicname {
   min-width: 300px;
@@ -928,20 +945,63 @@ div#artistheader h2 a {
   vertical-align: middle;
   font-size: 12px;
 }
-#read_detail td#status,
 #read_detail td#issue {
-  min-width: 30px;
+  max-width: 25px;
   text-align: left;
   vertical-align: middle;
 }
-#read_detail td#issueyear{
-  min-width: 40px;
-  text-align: left;
+#read_detail td#issueyear,
+#read_detail td#status,
+#read_detail td#statuschange {
+  max-width: 50px;
+  text-align: center;
   vertical-align: middle;
 }
 #read_detail td#options {
-  min-width: 150px;
+  max-width: 150px;
   text-align: left;
+  vertical-align: middle;
+}
+#read_detail td#select {
+  max-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#storyarcs th#options {
+  max-width: 100px;
+  text-align: left;
+}
+#storyarcs th#storyarc {
+  min-width: 300px;
+  text-align: left;
+}
+#storyarcs th#years {
+  max-width: 40px;
+  text-align: center;
+}
+#storyarcs th#have {
+  max-width: 42px;
+  text-align: center;
+}
+#storyarcs td#storyarc {
+  min-width: 300px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#storyarcs td#years {
+  max-width: 40px;
+  text-align: left;
+  vertical-align: middle;
+}
+#storyarcs td#options {
+  max-width: 100px;
+  text-align: left;
+  vertical-align: middle;
+}
+#storyarcs td#have {
+  max-width: 42px;
+  text-align: center;
   vertical-align: middle;
 }
 #weekly_pull th#publisher {
@@ -1141,7 +1201,7 @@ div#artistheader h2 a {
   text-align: left;
 }
 #series_table th#have {
-  text-align: center;
+  text-align: left;
 }
 #series_table td#publisher {
   min-width: 100px;
@@ -1171,141 +1231,9 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#markalbum {
-  position: relative;
-  top: 25px;
-  display: inline-block;
-}
-#albumheader {
-  margin-top: 50px;
-  min-height: 200px;
-}
-#albumheader #albumImg {
-  background: #ffffff url("../images/loader_black.gif") center no-repeat;
-  border: 5px solid #FFF;
-  -moz-box-shadow: 1px 1px 2px 0 #555555;
-  -webkit-box-shadow: 1px 1px 2px 0 #555555;
-  -o-box-shadow: 1px 1px 2px 0 #555555;
-  box-shadow: 1px 1px 2px 0 #555555;
-  float: left;
-  height: 200px;
-  margin-bottom: 30px;
-  margin-right: 25px;
-  overflow: hidden;
-  text-indent: -3000px;
-  width: 200px;
-}
-#albumheader p {
-  font-size: 16px;
-  line-height: 24px;
-  margin-bottom: 10px;
-}
-#albumheader h1 a {
-  display: inline-block;
-  font-size: 32px;
-  line-height: 35px;
-  margin-bottom: 3px;
-  font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
-}
-#albumheader h2 a {
-  display: inline-block;
-  font-style: italic;
-  font-weight: 400;
-  margin-bottom: 5px;
-  font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
-}
-#albumheader .albuminfo {
-  margin-left: 210px;
-}
-#albumheader .albuminfo li {
-  border-right: 1px dotted #ccc;
-  float: left;
-  font-size: 16px;
-  font-weight: bold;
-  list-style: none;
-  margin-right: 10px;
-  padding-right: 10px;
-}
-#albumheader .albuminfo li:last-child {
-  border: none;
-}
-#album_table {
-  background-color: #FFF;
-}
-#album_table th#select {
-  min-width: 10px;
-  text-align: left;
-  vertical-align: middle;
-}
-#album_table th#select input {
-  vertical-align: middle;
-}
-#album_table th#reldate {
-  min-width: 70px;
-  text-align: center;
-  width: 175px;
-}
-#album_table th#status,
-#album_table th#albumart {
-  min-width: 50px;
-  text-align: left;
-}
-#album_table th#status {
-  min-width: 80px;
-  text-align: center;
-  width: 175px;
-}
-#album_table th#wantlossless {
-  min-width: 80px;
-  text-align: center;
-  width: 80px;
-}
-#album_table td#albumart img {
-  background: #FFF;
-  border: 1px solid #ccc;
-  padding: 3px;
-}
-#album_table td#status a#wantlossless {
-  white-space: nowrap;
-}
 #manageheader {
   margin-top: 45px;
   margin-bottom: 0;
-}
-#track_wrapper {
-  font-size: 16px;
-  padding-top: 20px;
-  width: 100%;
-}
-#track_table th#number {
-  min-width: 10px;
-  text-align: right;
-}
-#track_table th#name {
-  min-width: 350px;
-  text-align: center;
-}
-#track_table th#location {
-  text-align: center;
-  width: 250px;
-}
-#track_table td {
-  border-bottom: 1px solid #FFFFFF;
-}
-#track_table td#number {
-  text-align: right;
-  vertical-align: middle;
-}
-#track_table td#name {
-  font-size: 15px;
-  text-align: left;
-  vertical-align: middle;
-}
-#track_table td#location {
-  font-size: 11px;
-  line-height: normal;
-  text-align: center;
-  vertical-align: middle;
 }
 #history_table {
   background-color: #FFF;
@@ -1514,31 +1442,110 @@ div#artistheader h2 a {
   min-width: 95px;
   vertical-align: middle;
 }
-
-.progress-container {
-  background: #FFF;
-  border: 1px solid #ccc;
-  float: left;
-  height: 14px;
-  margin: 2px 5px 2px 0;
-  padding: 1px;
-  width: 100px;
+DIV.progress-container
+{
+	position: relative;
+	width: 100px;
+	height: 18px;
+	margin: 2px 5px 2px 0;
+	float: left;
+        border:1px solid #ccc;
+	background-color: #F7F7F7;
+	background-image: -moz-linear-gradient(top, whiteSmoke, #F9F9F9);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(whiteSmoke), to(#F9F9F9));
+	background-image: -webkit-linear-gradient(top, whiteSmoke, #F9F9F9);
+	background-image: -o-linear-gradient(top, whiteSmoke, #F9F9F9);
+	background-image: linear-gradient(to bottom, whiteSmoke, #F9F9F9);
+	background-repeat: repeat-x;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	border-radius: 4px;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff5f5f5', endColorstr='#fff9f9f9', GradientType=0);
+	-webkit-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	-moz-box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
-.progress-container  > div {
-  background-image: -moz-linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: -webkit-linear-gradient(#a3e532, #90cc2a) !important;
-  background-image: -o-linear-gradient(#a3e532, #90cc2a) !important;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
-  -ms-filter: progid:dximagetransform.microsoft.gradient(startColorstr=#fafafa, endColorstr=#eaeaea) !important;
-  height: 14px;
+DIV.progress-container > DIV
+{
+	background-color: #0EBEED;
+	height: 18px;
+	-webkit-border-radius: 4px;
+	-moz-border-radius: 4px;
+	text-align: center;
+	z-index: 900;
+}
+.danger > DIV
+{
+	background-color: #DD514C;
+	background-image: -moz-linear-gradient(top, #EE5F5B, #C43C35);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#EE5F5B), to(#C43C35));
+	background-image: -webkit-linear-gradient(top, #EE5F5B, #C43C35);
+	background-image: -o-linear-gradient(top, #EE5F5B, #C43C35);
+	background-image: linear-gradient(to bottom, #EE5F5B, #C43C35);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffee5f5b', endColorstr='#ffc43c35', GradientType=0);
+}
+.warning > DIV
+{
+	background-color: #FAA732;
+	background-image: -moz-linear-gradient(top, #FBB450, #F89406);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#FBB450), to(#F89406));
+	background-image: -webkit-linear-gradient(top, #FBB450, #F89406);
+	background-image: -o-linear-gradient(top, #FBB450, #F89406);
+	background-image: linear-gradient(to bottom, #FBB450, #F89406);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fffbb450', endColorstr='#fff89406', GradientType=0);
+}
+.complete > DIV
+{
+	background-color: #5EB95E;
+	background-image: -moz-linear-gradient(top, #62C462, #57A957);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#62C462), to(#57A957));
+	background-image: -webkit-linear-gradient(top, #62C462, #57A957);
+	background-image: -o-linear-gradient(top, #62C462, #57A957);
+	background-image: linear-gradient(to bottom, #62C462, #57A957);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff62c462', endColorstr='#ff57a957', GradientType=0);
+}
+.missing > DIV
+{
+	background-color: #4BB1CF;
+	background-image: -moz-linear-gradient(top, #5BC0DE, #339BB9);
+	background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#5BC0DE), to(#339BB9));
+	background-image: -webkit-linear-gradient(top, #5BC0DE, #339BB9);
+	background-image: -o-linear-gradient(top, #5BC0DE, #339BB9);
+	background-image: linear-gradient(to bottom, #5BC0DE, #339BB9);
+	background-repeat: repeat-x;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff5bc0de', endColorstr='#ff339bb9', GradientType=0);
 }
 .havetracks {
-  font-size: 11px;
+  font-size: 12px;
   line-height: normal;
   margin-left: 36px;
-  padding-bottom: 3px;
+  padding-bottom: 30px;
   vertical-align: middle;
+}
+.progressbar-back-text
+{
+	font-size: 12px;
+	vertical-align: middle;
+	background-color: transparent;
+	position: absolute;
+	text-align: center;
+	width: 100%;
+	text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+	z-index: 800;
+}
+.progressbar-front-text
+{
+	font-size: 12px;
+	vertical-align: text-top;
+	background-color: transparent;
+        display: block;
+	width: 100%;
+	position: absolute;
+	color: #000000;
+	overflow: hidden;
 }
 #version {
   color: #999;
@@ -1691,34 +1698,11 @@ div#artistheader h2 a {
 .clearfix:after {
   clear: both;
 }
-#album_table th#albumname,
-#album_table th#artistname,
 #upcoming_table th#comicname,
 #wanted_table th#comicname {
   min-width: 150px;
   text-align: center;
 }
-#album_table th#type,
-#track_table th#duration {
-  min-width: 100px;
-  text-align: center;
-  width: 175px;
-}
-#album_table th#bitrate,
-#album_table th#albumformat {
-  min-width: 60px;
-  text-align: center;
-}
-#album_table td#select,
-#album_table td#albumart {
-  text-align: left;
-  vertical-align: middle;
-}
-#album_table td#albumname,
-#album_table td#artistname,
-#album_table td#reldate,
-#album_table td#type,
-#track_table td#duration,
 #upcoming_table td#select,
 #upcoming_table td#status,
 #wanted_table td#select,
@@ -1726,31 +1710,11 @@ div#artistheader h2 a {
   text-align: center;
   vertical-align: middle;
 }
-#album_table td#status,
-#album_table td#bitrate,
-#album_table td#albumformat,
-#album_table td#wantlossless {
-  font-size: 13px;
-  text-align: center;
-  vertical-align: middle;
-}
-div#albumheader .albuminfo li span,
-div#artistheader h3 span {
-  font-weight: 400;
-}
-#track_table th#bitrate,
-#track_table th#format,
 #upcoming_table th#type,
 #wanted_table th#type,
 #searchresults_table th#score {
   min-width: 75px;
   text-align: center;
-}
-#track_table td#bitrate,
-#track_table td#format {
-  font-size: 12px;
-  text-align: center;
-  vertical-align: middle;
 }
 #history_table td#status,
 #history_table td#action {
@@ -1758,13 +1722,6 @@ div#artistheader h3 span {
   text-align: center;
   vertical-align: middle;
 }
-#upcoming_table td#albumart img,
-#wanted_table td#albumart img {
-  background: #FFF;
-  border: 1px solid #ccc;
-  padding: 3px;
-}
-#upcoming_table th#albumart,
 #wanted_table th#albumart {
   min-width: 50px;
   text-align: center;

@@ -1,0 +1,149 @@
+<%inherit file="base.html"/>
+<%!
+        import os
+        import mylar
+	from mylar import db
+        from mylar.helpers import checked
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+		<div id="subhead_menu">
+                        <a id="menu_link_refresh" href="readlist">Reading List Management</a>
+		</div>
+	</div>	
+</%def>
+
+<%def name="body()">
+	<div id="paddingheader">
+		<h1 class="clearfix"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Reading List"/>Story Arc Management</h1>
+	</div>
+        <div id="tabs">
+                <ul>
+                        <li><a href="#tabs-1">Options</a></li>
+                </ul>
+
+          <div id="tabs-1">
+            <table class="configtable">
+             <tr>
+             <td>
+              <form action="searchit" method="get">
+               <fieldset>
+                <legend>Add StoryArc</legend>
+                    <input type="hidden" name="type" value="story_arc">
+                    <input type="text" value="" placeholder="Search for Story Arc" onfocus="if(this.value==this.defaultValue)  this.value='';" name="name" />
+                    <span class="mini-icon"></span>
+                    <input type="submit" value="Search"/>
+               </fieldset>
+              </form>
+              <form action="importReadlist" method="get">
+               <fieldset>
+                    <input type="text" value="" runat="server" placeholder="Enter full path to .cbl file to import" onfocus="if
+                    (this.value==this.defaultValue) this.value='';" name="filename" size="40" />
+                    <input type="submit" value="Import">
+               </fieldset>
+              </form>
+             </td>
+             <td>
+                 <form action="readOptions" id="chkoptions" method="GET">
+                   <fieldset>
+                     <legend>Options</legend>
+                     <div class="row checkbox left clearfix">
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Arcs in Grabbag Directory?</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label>
+                     </div>
+                   </fieldset>
+                   <div>
+                        <input type="submit" value="Update"/>
+                   </div>
+                 </form>
+              </td>
+             </tr>
+            </table>
+          </div>
+         </div>
+
+                <div class="table_wrapper">
+
+                  <table class="display" id="storyarcs">
+
+                      <thead>
+                            <tr>
+                                <th id="storyarc">Story Arc</th>
+                                <th id="years">Span Years</th>
+                                <th id="have">Have</th>
+                                <th id="options">Options</th>
+                            </tr>
+                     </thead>
+                     <tbody>
+                         %for item in arclist:
+                                 <%
+                                         if item['percent'] == 101:
+                                                 css = '<div class=\"progress-container warning\">'
+                                         if item['percent'] == 100:
+                                                 css = '<div class=\"progress-container complete\">'
+                                         if item['percent'] < 100:
+                                                 css = '<div class=\"progress-container missing\">'
+
+                                         grade = 'A'
+
+                                  %>
+
+                            <tr class="grade${grade}">
+                                <td id="storyarc"><a href="detailStoryArc?StoryArcID=${item['StoryArcID']}&StoryArcName=${item['StoryArc']}">${item['StoryArc']}</a></td>
+                                <td id="years">${item['SpanYears']}</td>
+                                <td id="have"><span title="${item['percent']}"></span>${css}<div style="width:${item['percent']}%"><span class="progressbar-front-text">${item['Have']}/${item['Total']}</span></div></td>
+                                <td id="options">
+                                   <a title="Remove from Story Arc Watchlist" onclick="doAjaxCall('removefromreadlist?StoryArcID=${item['StoryArcID']}',$(this),'table')" data-success="Sucessfully removed ${item['StoryArc']} from list."><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
+                                </td>
+                            </tr>
+                         %endfor
+                     </tbody>
+             </table>
+           </div>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+
+        <script type="text/javascript">
+        $("#menu_link_scan").click(function() {
+            $('#chkoptions').submit();
+            return true;
+        });
+        </script>
+        <script>
+        function initThisPage() {
+
+                $(function() {
+                        $( "#tabs" ).tabs();
+                });
+                initActions();
+                $('#storyarcs').dataTable({
+                        "bDestroy": true,
+                        "oLanguage": {
+                                "sLengthMenu":"Show _MENU_ items per page",
+                                "sEmptyTable": "<em>No History to Display</em>",
+                                "sInfo":"Showing _START_ to _END_ of _TOTAL_ items",
+                                "sInfoEmpty":"Showing 0 to 0 of 0 items",
+                                "sInfoFiltered":"(filtered from _MAX_ total items)"},
+                        "iDisplayLength": 25,
+                        "sPaginationType": "full_numbers",
+                        "aaSorting": []
+
+                });
+                resetFilters("arclist");
+        }
+
+        $(document).ready(function() {
+                initThisPage();
+                initActions();
+        });
+        </script>
+</%def>

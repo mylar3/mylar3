@@ -184,6 +184,7 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
             base = os.path.splitext( f )[0]
             shutil.move( f, base + ".cbz" )
             logger.fdebug(module + ' {0}: renaming {1} to be a cbz'.format( scriptname, os.path.basename( f ) ))
+            filename = base + '.cbz'
 
     if file_extension_fixing:
         if filename.endswith('.cbz'):

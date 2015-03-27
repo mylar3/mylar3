@@ -29,7 +29,7 @@ import datetime
 import shutil
 
 import mylar 
-from mylar import db, updater, helpers, logger, newpull
+from mylar import db, updater, helpers, logger, newpull, importer, mb
 
 def pullit(forcecheck=None):
     myDB = db.DBConnection()
@@ -451,6 +451,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
         logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
     else:
         logger.info('Checking the Future Releases list for upcoming comics I am watching for...')
+
     myDB = db.DBConnection()
 
     not_t = ['TP',
@@ -482,36 +483,45 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
     b_list = []
     comicid = []
 
-    mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
-
-    con = sqlite3.connect(str(mylardb))
-
-    with con:
-
-        cur = con.cursor()
-        # if it's a one-off check (during an add series), load the comicname here and ignore below.
-        if comic1off_name:
-            logger.fdebug("This is a one-off for " + comic1off_name + '[ latest issue: ' + str(issue) + ' ]')
-            lines.append(comic1off_name.strip())
-            unlines.append(comic1off_name.strip())
-            comicid.append(comic1off_id)
-            latestissue.append(issue)
-            w = 1            
+    # if it's a one-off check (during an add series), load the comicname here and ignore below.
+    if comic1off_name:
+        logger.fdebug("This is a one-off for " + comic1off_name + '[ latest issue: ' + str(issue) + ' ]')
+        lines.append(comic1off_name.strip())
+        unlines.append(comic1off_name.strip())
+        comicid.append(comic1off_id)
+        latestissue.append(issue)
+        w = 1            
+    else:
+        #let's read in the comic.watchlist from the db here
+        #cur.execute("SELECT ComicID, ComicName_Filesafe, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics WHERE Status = 'Active'")
+        weeklylist = []
+        comiclist = myDB.select("SELECT * FROM comics WHERE Status='Active'")
+        if comiclist is None:
+            pass
         else:
-            #let's read in the comic.watchlist from the db here
-            cur.execute("SELECT ComicID, ComicName_Filesafe, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics WHERE Status = 'Active'")
-            while True:
-                watchd = cur.fetchone()
-                #print ("watchd: " + str(watchd))
-                if watchd is None:
-                    break
-                if 'Present' in watchd[4] or (helpers.now()[:4] in watchd[4]) or watchd[6] == 1:
-                 # this gets buggered up when series are named the same, and one ends in the current
-                 # year, and the new series starts in the same year - ie. Avengers
-                 # lets' grab the latest issue date and see how far it is from current
-                 # anything > 45 days we'll assume it's a false match ;)
-                    logger.fdebug("ComicName: " + watchd[1])
-                    latestdate = watchd[5]
+
+            for weekly in comiclist:
+                #assign it.
+                weeklylist.append({"ComicName": weekly['ComicName'],
+                                   "ComicID":   weekly['ComicID'],
+                                   "ComicName_Filesafe": weekly['ComicName_Filesafe'],
+                                   "ComicYear": weekly['ComicYear'],
+                                   "ComicPublisher": weekly['ComicPublisher'],
+                                   "ComicPublished": weekly['ComicPublished'],
+                                   "LatestDate": weekly['LatestDate'],
+                                   "LatestIssue": weekly['LatestIssue'],
+                                   "ForceContinuing": weekly['ForceContinuing'],
+                                   "AlternateSearch": weekly['AlternateSearch']})
+
+        if len(weeklylist) > 0:
+            for week in weeklylist:
+                if 'Present' in week['ComicPublished'] or (helpers.now()[:4] in week['ComicPublished']) or week['ForceContinuing'] == 1:
+                    # this gets buggered up when series are named the same, and one ends in the current
+                    # year, and the new series starts in the same year - ie. Avengers
+                    # lets' grab the latest issue date and see how far it is from current
+                    # anything > 45 days we'll assume it's a false match ;)
+                    logger.fdebug("ComicName: " + week['ComicName'])
+                    latestdate = week['LatestDate']
                     logger.fdebug("latestdate:  " + str(latestdate))
                     if latestdate[8:] == '':
                         logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day for continuation.")
@@ -523,25 +533,25 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                     logger.fdebug("c_date : " + str(c_date) + " ... n_date : " + str(n_date))
                     recentchk = (n_date - c_date).days
                     logger.fdebug("recentchk: " + str(recentchk) + " days")
-                    chklimit = helpers.checkthepub(watchd[0])
+                    chklimit = helpers.checkthepub(week['ComicID'])
                     logger.fdebug("Check date limit set to : " + str(chklimit))
                     logger.fdebug(" ----- ")
-                    if recentchk < int(chklimit) or watchd[6] == 1:
-                        if watchd[6] == 1:
+                    if recentchk < int(chklimit) or week['ForceContinuing'] == 1:
+                        if week['ForceContinuing'] == 1:
                             logger.fdebug('Forcing Continuing Series enabled for series...')
                         # let's not even bother with comics that are not in the Present.
-                        a_list.append(watchd[1])
-                        b_list.append(watchd[2])
-                        comicid.append(watchd[0])
-                        pubdate.append(watchd[4])
-                        latestissue.append(watchd[8])
+                        a_list.append(week['ComicName_Filesafe'])
+                        b_list.append(week['ComicYear'])
+                        comicid.append(week['ComicID'])
+                        pubdate.append(week['ComicPublished'])
+                        latestissue.append(week['LatestIssue'])
                         lines.append(a_list[w].strip())
                         unlines.append(a_list[w].strip())
                         w+=1   # we need to increment the count here, so we don't count the same comics twice (albeit with alternate names)
 
                         #here we load in the alternate search names for a series and assign them the comicid and
                         #alternate names
-                        Altload = helpers.LoadAlternateSearchNames(watchd[7], watchd[0])
+                        Altload = helpers.LoadAlternateSearchNames(week['AlternateSearch'], week['ComicID'])
                         if Altload == 'no results':
                             pass
                         else:
@@ -556,10 +566,10 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                     break
                                 cleanedname = altval['AlternateName']
                                 a_list.append(altval['AlternateName'])
-                                b_list.append(watchd[2])
+                                b_list.append(week['ComicYear'])
                                 comicid.append(alt_cid)
-                                pubdate.append(watchd[4])
-                                latestissue.append(watchd[8])
+                                pubdate.append(week['ComicPublished'])
+                                latestissue.append(week['LatestIssue'])
                                 lines.append(a_list[w+wc].strip())
                                 unlines.append(a_list[w+wc].strip())
                                 logger.fdebug('loading in Alternate name for ' + str(cleanedname))
@@ -567,17 +577,6 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                 wc+=1
                             w+=wc
 
-                #-- to be removed - 
-                        #print ( "Comic:" + str(a_list[w]) + " Year: " + str(b_list[w]) )
-                        #if "WOLVERINE AND THE X-MEN" in str(a_list[w]): a_list[w] = "WOLVERINE AND X-MEN"
-                        #lines.append(a_list[w].strip())
-                        #unlines.append(a_list[w].strip())
-                        #llen.append(a_list[w].splitlines())
-                        #ccname.append(a_list[w].strip())
-                        #tmpwords = a_list[w].split(None)
-                        #ltmpwords = len(tmpwords)
-                        #ltmp = 1
-                #-- end to be removed
                     else:
                         logger.fdebug("Determined to not be a Continuing series at this time.")    
         cnt = int(w-1)
@@ -900,7 +899,7 @@ def checkthis(datecheck,datestatus,usedate):
 
     return valid_check
 
-def weekly_singlecopy(comicid, issuenum, file, path, module=None):
+def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
     if module is None:
         module = ''
     module += '[WEEKLY-PULL]'
@@ -946,5 +945,152 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None):
         return
 
     logger.info(module + ' Sucessfully copied to ' + desfile.encode('utf-8').strip() )
+
+    if mylar.SEND2READ:
+        logger.info(module + " Send to Reading List enabled for new pulls. Adding to your readlist in the status of 'Added'")
+        if issueid is None:
+            chkthis = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?',[comicid, helpers.issuedigits(issuenum)]).fetchone()
+            annchk = myDB.selectone('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?',[comicid, helpers.issuedigits(issuenum)]).fetchone()
+            if chkthis is None and annchk is None:
+                logger.warn(module + ' Unable to locate issue within your series watchlist.')
+                return
+            if chkthis is None:
+                issueid = annchk['IssueID']
+            elif annchk is None:
+                issueid = chkthis['IssueID']
+            else:
+                #if issue number exists in issues and annuals for given series, break down by year.
+                #get pulldate.
+                pullcomp = pulldate[:4]
+                isscomp = chkthis['ReleaseDate'][:4]
+                anncomp = annchk['ReleaseDate'][:4]
+                logger.info(module + ' Comparing :' + str(pullcomp) + ' to issdate: ' + str(isscomp) + ' to annyear: ' + str(anncomp))
+                if int(pullcomp) == int(isscomp) and int(pullcomp) != int(anncomp):
+                    issueid = chkthis['IssueID']            
+                elif int(pullcomp) == int(anncomp) and int(pullcomp) != int(isscomp):
+                    issueid = annchk['IssueID']
+                else:
+                    if 'annual' in file.lower():
+                        issueid = annchk['IssueID']
+                    else:
+                        logger.info(module + ' Unsure as to the exact issue this is. Not adding to the Reading list at this time.')
+                        return                    
+        read = mylar.readinglist.Readinglist(issueid)
+        read.addtoreadlist()
+    return
+
+def future_check():
+    # this is the function that will check the futureupcoming table
+    # for series that have yet to be released and have no CV data associated with it
+    # ie. #1 issues would fall into this as there is no series data to poll against until it's released.
+    # Mylar will look for #1 issues, and in finding any will do the following:
+    # - check comicvine to see if the series data has been released and / or issue data
+    # - will automatically import the series (Add A Series) upon finding match
+    # - will then proceed to mark the issue as Wanted, then remove from the futureupcoming table
+    # - will then attempt to download the issue(s) in question.
+
+    # future to-do
+    # specify whether you want to 'add a series (Watch For)' or 'mark an issue as a one-off download'.
+    # currently the 'add series' option in the futurepulllist will attempt to add a series as per normal.
+    myDB = db.DBConnection()
+    chkfuture = myDB.select("SELECT * FROM futureupcoming WHERE IssueNumber='1' OR IssueNumber='0'") #is not NULL")
+    if chkfuture is None:
+        logger.info("There are not any series on your future-list that I consider to be a NEW series")
+        return
+
+    cflist = []
+    #load in the values on an entry-by-entry basis into a tuple, so that we can query the sql clean again.
+    for cf in chkfuture:
+        cflist.append({"ComicName":   cf['ComicName'],
+                       "IssueDate":   cf['IssueDate'],
+                       "IssueNumber": cf['IssueNumber'],   #this should be all #1's as the sql above limits the hits.
+                       "Publisher":   cf['Publisher'],
+                       "Status":      cf['Status']})
+        logger.fdebug('cflist: ' + str(cflist))
+    #now we load in
+    if len(cflist) == 0:
+        logger.info('No series have been marked as being on auto-watch.')
+        return
+    logger.info('I will be looking to see if any information has been released for ' + str(len(cflist)) + ' series that are NEW series')
+    #limit the search to just the 'current year' since if it's anything but a #1, it should have associated data already.
+    #limittheyear = []
+    #limittheyear.append(cf['IssueDate'][-4:])
+    for ser in cflist:
+        matched = False
+        theissdate = ser['IssueDate'][-4:]
+        if not theissdate.startswith('20'):
+            theissdate = ser['IssueDate'][:4]
+        logger.info('looking for new data for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(theissdate) + ')')
+        searchresults, explicit = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=theissdate, explicit='all')
+        #logger.info('[' + ser['ComicName'] + '] searchresults: ' + str(searchresults))
+        if len(searchresults) > 1:
+            logger.info('publisher: ' + str(ser['Publisher']))
+            logger.info('More than one result returned - this may have to be a manual add')
+            matches = []
+            for sr in searchresults:
+                tmpsername = re.sub('[\'\*\^\%\$\#\@\!\-\/\,\.\:\(\)]','', ser['ComicName']).strip()
+                tmpsrname = re.sub('[\'\*\^\%\$\#\@\!\-\/\,\.\:\(\)]','', sr['name']).strip()
+                if tmpsername.lower() == tmpsrname.lower() and len(tmpsername) <= len(tmpsrname):
+                    logger.info('name & lengths matched : ' + sr['name'])
+                    if str(sr['comicyear']) == str(theissdate):
+                        logger.info('matched to : ' + str(theissdate))
+                        matches.append(sr)
+            if len(matches) == 1:
+                logger.info('Narrowed down to one series as a direct match: ' + matches[0]['name'] + '[' + str(matches[0]['comicid']) + ']')
+                cid = matches[0]['comicid']
+                matched = True
+        elif len(searchresults) == 1:
+            matched = True
+            cid = searchresults[0]['comicid']
+        else:
+            logger.info('No series information available as of yet for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(theissdate) + ')')
+            continue
+
+        if matched:
+            #we should probably load all additional issues for the series on the futureupcoming list that are marked as Wanted and then
+            #throw them to the importer as a tuple, and once imported the import can run the additional search against them.
+            #now we scan for additional issues of the same series on the upcoming list and mark them accordingly.
+            chkthewanted = []
+            chkwant = myDB.select("SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber != '1' AND Status='Wanted'", [ser['ComicName']])
+            if chkwant is None:
+                logger.info('No extra issues to mark at this time for ' + ser['ComicName'])
+            else:
+                for chk in chkwant:
+                    chkthewanted.append({"ComicName":   chk['ComicName'],
+                                         "IssueDate":   chk['IssueDate'],
+                                         "IssueNumber": chk['IssueNumber'],   #this should be all #1's as the sql above limits the hits.
+                                         "Publisher":   chk['Publisher'],
+                                         "Status":      chk['Status']})
+
+                logger.info('Marking ' + str(len(chkthewanted)) + ' additional issues as Wanted from ' + ser['ComicName'] + ' series as requested.')
+
+            future_check_add(cid, ser, chkthewanted, theissdate)
+
+    logger.info('Finished attempting to auto-add new series.')
+    return
+
+def future_check_add(comicid, serinfo, chkthewanted=None, theissdate=None):
+    #In order to not error out when adding series with absolutely NO issue data, we need to 'fakeup' some values
+    #latestdate = the 'On sale' date from the futurepull-list OR the Shipping date if not available.
+    #latestiss = the IssueNumber for the first issue (this should always be #1, but might change at some point)
+    ser = serinfo
+    if theissdate is None:
+        theissdate = ser['IssueDate'][-4:]
+        if not theissdate.startswith('20'):
+            theissdate = ser['IssueDate'][:4]
+
+    latestissueinfo = []
+    latestissueinfo.append({"latestdate": ser['IssueDate'],
+                            "latestiss":  ser['IssueNumber']})
+    logger.fdebug('sending latestissueinfo from future as : ' + str(latestissueinfo))
+    chktheadd = importer.addComictoDB(comicid, "no", chkwant=chkthewanted, latestissueinfo=latestissueinfo, calledfrom="futurecheck")
+
+    if chktheadd != 'Exists':
+       logger.info('Sucessfully imported ' + ser['ComicName'] + ' (' + str(theissdate) + ')')
+
+    myDB = db.DBConnection()
+    myDB.action('DELETE from futureupcoming WHERE ComicName=?', [ser['ComicName']])
+    logger.info('Removed ' + ser['ComicName'] + ' (' + str(theissdate) + ') from the future upcoming list as it is now added.')
+
     return
 

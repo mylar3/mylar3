@@ -8,7 +8,9 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-			<a id="menu_link_delete" href="#">Sync</a>
+                        %if mylar.TAB_ENABLE:
+  			    <a id="menu_link_delete" onclick="doAjaxCall('syncfiles',$(this),'table')" data-success="Successfully sent issues to your device">Sync</a>
+                        %endif
 			<a id="menu_link_delete" href="#">Remove Read</a>
 			<a id="menu_link_delete" href="#">Clear File Cache</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ReadGetWanted?StoryArcID=${storyarcid}',$(this),'table')" data-success="Searching for Missing StoryArc Issues">Search for Missing</a>
@@ -19,14 +21,20 @@
 
 <%def name="body()">
 	<div id="paddingheader">
-		<h1 class="clearfix"><a href="readlist"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Reading List"/>Reading List Management</a></h1>
+		<h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Story Arc Management"/>Story Arc Management</a></h1>
 	</div>
          <center><h1>${storyarcname}</h1></center>        
-          <table class="configtable">
+         <div id="tabs">
+                <ul>
+                        <li><a href="#tabs-1">Options</a></li>
+                </ul>
+
+          <div id="tabs-1">
+
+            <table class="configtable">
                <tr>
                 <form action="readOptions" id="chkoptions" method="GET">
                    <fieldset>
-                     <legend>Options</legend>
                      <div class="row checkbox left clearfix">
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><br/>
                          <small>Arcs in StoryArc Directory: <% sdir = os.path.join(mylar.DESTINATION_DIR, "StoryArcs") %>${sdir}</small><br/>
@@ -44,9 +52,9 @@
                          </div>
                  </form>
                </tr>
-        </table>
-
-
+           </table>
+          </div>
+         </div>
 	<table class="display" id="read_detail">
 		<thead>
 			<tr>
@@ -80,7 +88,7 @@
                                 elif item['Status'] == 'Not Watched':
                                         grade = 'X'
                                 else:
-                                        grade = 'A'
+                                        grade = 'Z'
                         %>
 
                          <tr id="${item['ReadingOrder']}" class="grade${grade}">
@@ -107,7 +115,7 @@
                                 <td id="status">${item['Status']}</td>
                                 <td id="action">
                                  %if item['Status'] is None or item['Status'] == None:
-                                     <a href="queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
+                                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
                                  %elif item['Status'] == 'Snatched':
                                      <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                                  %endif
@@ -124,9 +132,7 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-<!--    
-        <script src="js/libs/jquery.dataTables.rowReordering.js"></script>
--->
+    
         <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
@@ -134,8 +140,11 @@
         });
         </script>
 	<script>
-
 	function initThisPage() {
+                $(function() {
+                        $( "#tabs" ).tabs();
+                });
+                initActions();
 		$('#read_detail').dataTable(
                         {
 			        "bDestroy": true,
@@ -149,14 +158,6 @@
 			        "sPaginationType": "full_numbers",
 			        "aaSorting": []
                         });
-//
-//                }).rowReordering({
-//                                    sAjax: "reOrder",
-//                                    fnAlert: function(text){
-//                                           alert("Order cannot be changed.\n" + text);
-//                                    }
-//                                  });
-//
 		        resetFilters("item");
 	}
 

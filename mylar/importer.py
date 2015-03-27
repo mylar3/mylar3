@@ -535,6 +535,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
     lastpubdate = issuedata['LastPubDate']
     series_status = issuedata['SeriesStatus']
     #move the files...if imported is not empty & not futurecheck (meaning it's not from the mass importer.)
+    logger.info('imported is : ' + str(imported))
     if imported is None or imported == 'None' or imported == 'futurecheck':
         pass
     else:
@@ -1357,7 +1358,14 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         else:
             lastpubdate = str(ltmonth) + ' ' + str(ltyear)
 
-        publishfigure = str(stmonth) + ' ' + str(styear) + ' - ' + str(lastpubdate)
+        if stmonth == '?' and ('?' in lastpubdate and '0000' in lastpubdate):
+            lastpubdate = 'Present'
+            newpublish = True
+            publishfigure = str(styear) + ' - ' + str(lastpubdate)
+        else:
+            newpublish = False
+            publishfigure = str(stmonth) + ' ' + str(styear) + ' - ' + str(lastpubdate)
+
         if stmonth == '?' and styear == '?' and lastpubdate =='0000' and comicIssues == '0':
             logger.info('No available issue data - I believe this is a NEW series.')
             latestdate = latestissueinfo[0]['latestdate']
@@ -1370,7 +1378,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     controlValueStat = {"ComicID":     comicid}
 
     newValueStat = {"Status":          "Active",
+                    "Total":           comicIssues,
                     "ComicPublished":  publishfigure,
+                    "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
@@ -1396,6 +1406,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
 def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissue_check):
         annualids = []   #to be used to make sure an ID isn't double-loaded
         annload = []
+        anncnt = 0
 
         nowdate = datetime.datetime.now()
         nowtime = nowdate.strftime("%Y%m%d")

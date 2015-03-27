@@ -115,8 +115,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 newznabs+=1
                 logger.fdebug("newznab name:" + str(newznab_host[0]) + " @ " + str(newznab_host[1]))
 
-    logger.fdebug('newznab hosts: ' + str(newznab_hosts))
-    logger.fdebug('nzbprovider: ' + str(nzbprovider))
+    #logger.fdebug('newznab hosts: ' + str(newznab_hosts))
+    logger.fdebug('nzbprovider(s): ' + str(nzbprovider))
     # --------
     logger.fdebug("there are : " + str(torp) + " torrent providers you have selected.")
     torpr = torp - 1
@@ -448,23 +448,18 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + str(findcomic) + " : " + str(mod_isssearch))
                     bb = rsscheck.torrentdbsearch(findcomic,mod_isssearch,ComicID,nzbprov)
                     rss = "yes"
-                    if bb is not None: logger.fdebug("bb results: " + str(bb))
+                    #if bb is not None: logger.fdebug("bb results: " + str(bb))
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch) + " (" + str(ComicYear) + ")")
                     bb = rsscheck.nzbdbsearch(findcomic,mod_isssearch,ComicID,nzbprov,ComicYear,ComicVersion)
                     rss = "yes"
-                    if bb is not None: logger.fdebug("bb results: " +  str(bb))
+                    #if bb is not None: logger.fdebug("bb results: " +  str(bb))
             #this is the API calls
             else:
                 #CBT is redudant now since only RSS works 
                 # - just getting it ready for when it's not redudant :)
                 if nzbprov == 'CBT':
-                #    cmname = re.sub("%20", " ", str(comsrc))
-                #    logger.fdebug("Sending request to [CBT] RSS for " + str(cmname) + " : " + str(mod_isssearch))
-                #    bb = rsscheck.torrentdbsearch(cmname,mod_isssearch,ComicID)
-                #    rss = "yes"
-                #    if bb is not None: logger.fdebug("results: " + str(bb))
                     bb = "no results"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
@@ -718,8 +713,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     vers4vol = "no"
                     versionfound = "no"
 
-                    if 'cover only' in cleantitle.lower():
-                        logger.fdebug("Ignoring title as Cover Only detected.")
+                    if any( ['cover only' in cleantitle.lower(), 'variant' in cleantitle.lower()] ):
+                        logger.fdebug("Ignoring title as Cover/Variant Only detected.")
                         cleantitle = "abcdefghijk 0 (1901).cbz"
                         continue
 
@@ -1302,7 +1297,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 logger.fdebug("Found matching comic...preparing to send to Updater with IssueID: " + str(IssueID) + " and nzbname: " + str(nzbname) + '[' + alt_nzbname + ']')
                 if '[RSS]' in tmpprov : tmpprov = re.sub('\[RSS\]','', tmpprov).strip()
                 updater.nzblog(IssueID, nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov, alt_nzbname=alt_nzbname)
-
 #            #send out the notifications for the snatch.
             notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
             prov_count == 0
@@ -1322,9 +1316,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
     if not issueid or rsscheck:
 
         if rsscheck:
-            logger.info(u"Initiating RSS Search Scan at scheduled interval of " + str(mylar.RSS_CHECKINTERVAL) + " minutes.")
+            logger.info(u"Initiating Search Scan at scheduled interval of " + str(mylar.RSS_CHECKINTERVAL) + " minutes.")
         else:
-            logger.info(u"Initiating NZB Search scan at requested interval of " + str(mylar.SEARCH_INTERVAL) + " minutes.")
+            logger.info(u"Initiating Search scan at requested interval of " + str(mylar.SEARCH_INTERVAL) + " minutes.")
 
         myDB = db.DBConnection()
 
@@ -1335,7 +1329,10 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             stloop+=1
         while (stloop > 0):
             if stloop == 1:
-                issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
+                if mylar.FAILED_DOWNLOAD_HANDLING and mylar.FAILED_AUTO:
+                    issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
+                else:
+                    issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
                 for iss in issues_1:
                     results.append({'ComicID':       iss['ComicID'],
                                     'IssueID':       iss['IssueID'],
@@ -1345,7 +1342,10 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
                                     'mode':          'want'
                                    })
             elif stloop == 2:
-                issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
+                if mylar.FAILED_DOWNLOAD_HANDLING and mylar.FAILED_AUTO:
+                    issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
+                else:
+                    issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
                 for iss in issues_2:
                     results.append({'ComicID':       iss['ComicID'],
                                     'IssueID':       iss['IssueID'],
@@ -1554,8 +1554,7 @@ def nzbname_create(provider, title=None, info=None):
         logger.fdebug('[SEARCHER] nzbname (space to .): ' + nzbname)
         #gotta replace & or escape it
         nzbname = re.sub("\&", 'and', nzbname)
-        nzbname = re.sub('[\,\:\?\']', '', nzbname)
-        extensions = ('.cbr', '.cbz')
+        nzbname = re.sub('[\,\:\?\'\(\)]', '', nzbname)
         logger.fdebug('[SEARCHER] end nzbname: ' + nzbname)
 
 
@@ -1596,6 +1595,67 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #if sab priority isn't selected, default to Normal (0)
         nzbgetpriority = "0"
 
+    if link and (nzbprov != 'KAT' and nzbprov != 'CBT'):
+        opener = urllib.FancyURLopener({})
+        opener.addheaders = []
+        opener.addheader('User-Agent', str(mylar.USER_AGENT))
+        nzo_info = {}
+        filen = None
+        try:
+            fn, header = opener.retrieve(link)
+        except:
+            fn = None
+        for tup in header.items():
+           try:
+               item = tup[0].lower()
+               value = tup[1].strip()
+           except:
+               continue
+           if item in ('category_id', 'x-dnzb-category'):
+               category = value
+           elif item in ('x-dnzb-moreinfo',):
+               nzo_info['more_info'] = value
+           elif item in ('x-dnzb-name',):
+               filen = value
+               nzo_info['filename'] = filen
+           elif item == 'x-dnzb-propername':
+               nzo_info['propername'] = value
+           elif item == 'x-dnzb-episodename':
+               nzo_info['episodename'] = value
+           elif item == 'x-dnzb-year':
+               nzo_info['year'] = value
+           elif item == 'x-dnzb-failure':
+               nzo_info['failure'] = value
+           elif item == 'x-dnzb-details':
+               nzo_info['details'] = value
+           elif item in ('content-length',):
+               try:
+                   ivalue = int(value)
+               except:
+                   ivalue = 0
+               length = ivalue
+               nzo_info['length'] = length
+
+           if not filen:
+               for item in tup:
+                   if "filename=" in item:
+                       filen = item[item.index("filename=") + 9:].strip(';').strip('"')
+        logger.fdebug('nzo_info:' + str(nzo_info))
+
+        #convert to a generic type of format to help with post-processing.
+        filen = re.sub('.cbr', '', filen).strip()
+        filen = re.sub('.cbz', '', filen).strip()
+        filen = re.sub("\&", 'and', filen)
+        filen = re.sub('[\,\:\?\'\(\)]', '', filen)
+
+
+        if re.sub('.nzb','', filen.lower()).strip() != re.sub('.nzb','', nzbname.lower()).strip():
+            alt_nzbname = re.sub('.nzb','', filen).strip()
+            alt_nzbname = re.sub('[\s+]', ' ', alt_nzbname)
+            alt_nzbname = re.sub('[\s\_]', '.', alt_nzbname)
+            logger.info('filen: ' + alt_nzbname + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
+
+
     #check if nzb is in do not download list
     if nzbprov == 'experimental':
         #id is located after the /download/ portion
@@ -1619,61 +1679,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         path_parts = url_parts[2].rpartition('/')
         nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
     elif nzbprov == 'dognzb':
-        if link:
-            opener = urllib.FancyURLopener({})
-            opener.addheaders = []
-            opener.addheader('User-Agent', str(mylar.USER_AGENT))
-            nzo_info = {}
-            filen = None
-            try:
-                fn, header = opener.retrieve(link)
-            except:
-                fn = None
-
-            for tup in header.items():
-               try:
-                   item = tup[0].lower()
-                   value = tup[1].strip()
-               except:
-                   continue
-               if item in ('category_id', 'x-dnzb-category'):
-                   category = value
-               elif item in ('x-dnzb-moreinfo',):
-                   nzo_info['more_info'] = value
-               elif item in ('x-dnzb-name',):
-                   filen = value
-                   if not filen.endswith('.nzb'):
-                       filen += '.nzb'
-                   nzo_info['filename'] = filen
-               elif item == 'x-dnzb-propername':
-                   nzo_info['propername'] = value
-               elif item == 'x-dnzb-episodename':
-                   nzo_info['episodename'] = value
-               elif item == 'x-dnzb-year':
-                   nzo_info['year'] = value
-               elif item == 'x-dnzb-failure':
-                   nzo_info['failure'] = value
-               elif item == 'x-dnzb-details':
-                   nzo_info['details'] = value
-               elif item in ('content-length',):
-                   try:
-                       ivalue = int(value)
-                   except:
-                       ivalue = 0
-                   length = ivalue
-                   nzo_info['length'] = length
-
-               if not filen:
-                   for item in tup:
-                       if "filename=" in item:
-                           filen = item[item.index("filename=") + 9:].strip(';').strip('"')
-
-            logger.info('nzo_info:' + str(nzo_info))
-            if re.sub('.nzb','', filen.lower()).strip() != re.sub('.nzb','', nzbname.lower()).strip():
-                alt_nzbname = re.sub('.nzb','', filen).strip()
-                logger.info('filen: ' + filen + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
-
-
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/',1)[1]

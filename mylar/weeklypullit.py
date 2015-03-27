@@ -28,4 +28,5 @@ class Weekly():
     def run(self):
         logger.info('[WEEKLY] Checking Weekly Pull-list for new releases/updates')
         mylar.weeklypull.pullit()
+        mylar.weeklypull.future_check()
         return

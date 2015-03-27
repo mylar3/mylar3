@@ -53,7 +53,6 @@ def tehMain(forcerss=None):
     logger.info('[RSS] Watchlist Check complete.')
     if forcerss:
         logger.info('Successfully ran RSS Force Check.')
-
     return
 
 def torrents(pickfeed=None,seriesname=None,issue=None):

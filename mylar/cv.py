@@ -16,6 +16,7 @@
 import sys
 import os
 import re
+import time
 import logger
 import string
 import urllib
@@ -134,8 +135,13 @@ def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidl
         dom = pulldetails(arcid,'comicyears',offset=0,comicidlist=comicidlist)
         return GetSeriesYears(dom)
 
-def GetComicInfo(comicid,dom):
-
+def GetComicInfo(comicid,dom,safechk=None):
+    if safechk is None:
+        #safetycheck when checking comicvine. If it times out, increment the chk on retry attempts up until 5 tries then abort.
+        safechk = 1
+    elif safechk > 4:
+        logger.error('Unable to add / refresh the series due to inablity to retrieve data from ComicVine. You might want to try abit later and/or make sure ComicVine is up.')
+        return
     #comicvine isn't as up-to-date with issue counts..
     #so this can get really buggered, really fast.
     tracks = dom.getElementsByTagName('issue')
@@ -189,8 +195,16 @@ def GetComicInfo(comicid,dom):
         comic['ComicYear'] = dom.getElementsByTagName('start_year')[0].firstChild.wholeText
     except:
         comic['ComicYear'] = '0000'
-    comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText
 
+    try:
+        comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText
+    except:
+        #this should never be an exception. If it is, it's probably due to CV timing out - so let's sleep for abit then retry.
+        logger.warn('Unable to retrieve URL for volume. This is usually due to a timeout to CV, or going over the API. Retrying again in 10s.')
+        time.sleep(10)
+        safechk +=1
+        GetComicInfo(comicid, dom, safechk)
+        
     desdeck = 0
     #the description field actually holds the Volume# - so let's grab it
     try:

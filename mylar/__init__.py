@@ -37,7 +37,7 @@ from lib.configobj import ConfigObj
 
 import cherrypy
 
-from mylar import logger, versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers #versioncheckit, searchit, weeklypullit, dbupdater, scheduler
+from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, dbupdater, PostProcessor, helpers, scheduler #versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers, scheduler
 
 FULL_PATH = None
 PROG_DIR = None
@@ -65,13 +65,14 @@ WRITELOCK = False
 LOGTYPE = None
 
 ## for use with updated scheduler (not working atm)
-#INIT_LOCK = Lock()
-#dbUpdateScheduler = None
-#searchScheduler = None
-#RSSScheduler = None
-#WeeklyScheduler = None
-#VersionScheduler = None
-#FolderMonitorScheduler = None
+INIT_LOCK = Lock()
+dbUpdateScheduler = None
+searchScheduler = None
+RSSScheduler = None
+WeeklyScheduler = None
+VersionScheduler = None
+FolderMonitorScheduler = None
+
 QUEUE = Queue.Queue()
 
 DATA_DIR = None
@@ -278,6 +279,12 @@ CV_ONETIMER = 1
 GRABBAG_DIR = None
 HIGHCOUNT = 0
 READ2FILENAME = 0
+SEND2READ = 0
+TAB_ENABLE = 0
+TAB_HOST = None
+TAB_USER = None
+TAB_PASS = None
+TAB_DIRECTORY = None
 STORYARCDIR = 0
 COPY2ARCDIR = 0
 
@@ -378,7 +385,6 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
                 queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
@@ -393,7 +399,7 @@ def initialize():
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, STORYARCDIR, COPY2ARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
 
         if __INITIALIZED__:
@@ -523,6 +529,12 @@ def initialize():
         HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
+        SEND2READ = bool(check_setting_int(CFG, 'General', 'send2read', 0))
+        TAB_ENABLE = bool(check_setting_int(CFG, 'General', 'tab_enable', 0))
+        TAB_HOST = check_setting_str(CFG, 'General', 'tab_host', '')
+        TAB_USER = check_setting_str(CFG, 'General', 'tab_user', '')
+        TAB_PASS = check_setting_str(CFG, 'General', 'tab_pass', '')
+        TAB_DIRECTORY = check_setting_str(CFG, 'General', 'tab_directory', '')
         STORYARCDIR = bool(check_setting_int(CFG, 'General', 'storyarcdir', 0))
         COPY2ARCDIR = bool(check_setting_int(CFG, 'General', 'copy2arcdir', 0))
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
@@ -981,48 +993,48 @@ def initialize():
 
         #start the db write only thread here.
         #this is a thread that continually runs in the background as the ONLY thread that can write to the db.
-#        logger.info('Starting Write-Only thread.')
+        #logger.info('Starting Write-Only thread.')
         #db.WriteOnly()
 
         #initialize the scheduler threads here.
-        #dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
-#                                                cycleTime=datetime.timedelta(hours=48),
-#                                                runImmediately=False,
-#                                                threadName="DBUPDATE")
+        dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
+                                                cycleTime=datetime.timedelta(hours=48),
+                                                runImmediately=False,
+                                                threadName="DBUPDATE")
 
-#        if NZB_STARTUP_SEARCH:
-#            searchrunmode = True
-#        else:
-#            searchrunmode = False
+        if NZB_STARTUP_SEARCH:
+            searchrunmode = True
+        else:
+            searchrunmode = False
 
-        #searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
-#                                              cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
-#                                              threadName="SEARCH",
-#                                              runImmediately=searchrunmode)
+        searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
+                                              cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
+                                              threadName="SEARCH",
+                                              runImmediately=searchrunmode)
 
-        #RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
- #                                          cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
- #                                          threadName="RSSCHECK",
- #                                          runImmediately=True,
- #                                          delay=30)
+        RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
+                                           cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
+                                           threadName="RSSCHECK",
+                                           runImmediately=True,
+                                           delay=30)
 
-        #WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
- #                                             cycleTime=datetime.timedelta(hours=24),
- #                                             threadName="WEEKLYCHECK",
- #                                             runImmediately=True,
- #                                             delay=10)
+        WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
+                                              cycleTime=datetime.timedelta(hours=24),
+                                              threadName="WEEKLYCHECK",
+                                              runImmediately=True,
+                                              delay=10)
 
-        #VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
- #                                              cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
- #                                              threadName="VERSIONCHECK",
- #                                              runImmediately=True)
+        VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
+                                               cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
+                                               threadName="VERSIONCHECK",
+                                               runImmediately=False)
 
 
-        #FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
-#                                                     cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
-#                                                     threadName="FOLDERMONITOR",
-#                                                     runImmediately=True,
-#                                                     delay=60)
+        FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
+                                                     cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
+                                                     threadName="FOLDERMONITOR",
+                                                     runImmediately=True,
+                                                     delay=60)
 
         # Store the original umask
         UMASK = os.umask(0)
@@ -1186,6 +1198,12 @@ def config_write():
     new_config['General']['grabbag_dir'] = GRABBAG_DIR
     new_config['General']['highcount'] = HIGHCOUNT
     new_config['General']['read2filename'] = int(READ2FILENAME)
+    new_config['General']['send2read'] = int(SEND2READ)
+    new_config['General']['tab_enable'] = int(TAB_ENABLE)
+    new_config['General']['tab_host'] = TAB_HOST
+    new_config['General']['tab_user'] = TAB_USER
+    new_config['General']['tab_pass'] = TAB_PASS
+    new_config['General']['tab_directory'] = TAB_DIRECTORY
     new_config['General']['storyarcdir'] = int(STORYARCDIR)
     new_config['General']['copy2arcdir'] = int(COPY2ARCDIR)
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
@@ -1338,9 +1356,9 @@ def config_write():
 
 def start():
 
-    global __INITIALIZED__, started
-        #dbUpdateScheduler, searchScheduler, RSSScheduler, \
-        #WeeklyScheduler, VersionScheduler, FolderMonitorScheduler
+    global __INITIALIZED__, started, \
+        dbUpdateScheduler, searchScheduler, RSSScheduler, \
+        WeeklyScheduler, VersionScheduler, FolderMonitorScheduler
 
     with INIT_LOCK:
 
@@ -1350,52 +1368,51 @@ def start():
             #from mylar import updater, search, PostProcessor
 
 
-            SCHED.add_interval_job(updater.dbUpdate, hours=48)
-            SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
+            #SCHED.add_interval_job(updater.dbUpdate, hours=48)
+            #SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
 
             #start the db updater scheduler
-            #logger.info('Initializing the DB Updater.')
-            #dbUpdateScheduler.thread.start()
+            logger.info('Initializing the DB Updater.')
+            dbUpdateScheduler.thread.start()
 
             #start the search scheduler
-            #searchScheduler.thread.start()
+            searchScheduler.thread.start()
 
             helpers.latestdate_fix()
 
             #start the ComicVine API Counter here.
             logger.info('Initiating the ComicVine API Checker to report API hits every 5 minutes.')
-            SCHED.add_interval_job(helpers.cvapi_check, minutes=5)
+            #SCHED.add_interval_job(helpers.cvapi_check, minutes=5)
 
             #initiate startup rss feeds for torrents/nzbs here...
             if ENABLE_RSS:
-                SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
-                #RSSScheduler.thread.start()
+                #SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
+                RSSScheduler.thread.start()
                 logger.info('Initiating startup-RSS feed checks.')
-                rsscheck.tehMain()
-
+                #rsscheck.tehMain()
 
             #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
             logger.info('Checking for existance of Weekly Comic listing...')
-            PULLNEW = 'no'  #reset the indicator here.
-            threading.Thread(target=weeklypull.pullit).start()
+            #PULLNEW = 'no'  #reset the indicator here.
+            #threading.Thread(target=weeklypull.pullit).start()
             #now the scheduler (check every 24 hours)
-            SCHED.add_interval_job(weeklypull.pullit, hours=24)
-            #WeeklyScheduler.thread.start()
-
+            #SCHED.add_interval_job(weeklypull.pullit, hours=24)
+            WeeklyScheduler.thread.start()
+        
             #let's do a run at the Wanted issues here (on startup) if enabled.
-            if NZB_STARTUP_SEARCH:
-                threading.Thread(target=search.searchforissue).start()
+            #if NZB_STARTUP_SEARCH:
+            #    threading.Thread(target=search.searchforissue).start()
 
             if CHECK_GITHUB:
-                #VersionScheduler.thread.start()
-                SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
+                VersionScheduler.thread.start()
+                #SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
 
             #run checkFolder every X minutes (basically Manual Run Post-Processing)
             if ENABLE_CHECK_FOLDER:
                 if DOWNLOAD_SCAN_INTERVAL >0:
                     logger.info('Enabling folder monitor for : ' + str(CHECK_FOLDER) + ' every ' + str(DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
-                    #FolderMonitorScheduler.thread.start()
-                    SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
+                    FolderMonitorScheduler.thread.start()
+                    #SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
                 else:
                     logger.error('You need to specify a monitoring time for the check folder option to work')
             SCHED.start()
@@ -1413,7 +1430,7 @@ def dbcheck():
     c_error = 'sqlite3.OperationalError'
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, NewPublish TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
@@ -1421,13 +1438,13 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
     conn.commit
     c.close
     #new
@@ -1447,14 +1464,17 @@ def dbcheck():
         c.execute('SELECT QUALalt_vers from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALalt_vers TEXT')
+
     try:
         c.execute('SELECT QUALtype from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALtype TEXT')
+
     try:
         c.execute('SELECT QUALscanner from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN QUALscanner TEXT')
+
     try:
         c.execute('SELECT QUALquality from comics')
     except sqlite3.OperationalError:
@@ -1509,6 +1529,11 @@ def dbcheck():
         c.execute('SELECT ComicImageALTURL from comics')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN ComicImageALTURL TEXT')
+
+    try:
+        c.execute('SELECT NewPublish from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN NewPublish TEXT')
 
     # -- Issues Table --
 
@@ -1612,6 +1637,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readlist ADD COLUMN ComicID TEXT')
 
+    try:
+        c.execute('SELECT StatusChange from readlist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readlist ADD COLUMN StatusChange TEXT')
 
     ## -- Weekly Table --
 
@@ -1641,7 +1670,7 @@ def dbcheck():
     try:
         c.execute('SELECT AltNZBName from nzblog')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE nzblog ADD COLUMN ALTNZBName TEXT')
+        c.execute('ALTER TABLE nzblog ADD COLUMN AltNZBName TEXT')
 
     ## -- Annuals Table --
 
@@ -1761,6 +1790,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE searchresults ADD COLUMN sresults TEXT')
 
+    try:
+        c.execute('SELECT ogcname from searchresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE searchresults ADD COLUMN ogcname TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
@@ -1854,65 +1887,65 @@ def csv_load():
     conn.commit()
     c.close()
 
-#def halt():
-#    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
-#        VersionScheduler, FolderMonitorScheduler, started
+def halt():
+    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
+        VersionScheduler, FolderMonitorScheduler, started
 
-#    with INIT_LOCK:
+    with INIT_LOCK:
 
-#        if __INITIALIZED__:
+        if __INITIALIZED__:
 
-#            logger.info(u"Aborting all threads")
+            logger.info(u"Aborting all threads")
 
             # abort all the threads
 
-#            dbUpdateScheduler.abort = True
-#            logger.info(u"Waiting for the DB UPDATE thread to exit")
-#            try:
-#                dbUpdateScheduler.thread.join(10)
-#            except:
-#                pass
+            dbUpdateScheduler.abort = True
+            logger.info(u"Waiting for the DB UPDATE thread to exit")
+            try:
+                dbUpdateScheduler.thread.join(10)
+            except:
+                pass
 
-#            searchScheduler.abort = True
-#            logger.info(u"Waiting for the SEARCH thread to exit")
-#            try:
-#                searchScheduler.thread.join(10)
-#            except:
-#                pass
+            searchScheduler.abort = True
+            logger.info(u"Waiting for the SEARCH thread to exit")
+            try:
+                searchScheduler.thread.join(10)
+            except:
+                pass
 
-#            RSSScheduler.abort = True
-#            logger.info(u"Waiting for the RSS CHECK thread to exit")
-#            try:
-#                RSSScheduler.thread.join(10)
-#            except:
-#                pass
+            RSSScheduler.abort = True
+            logger.info(u"Waiting for the RSS CHECK thread to exit")
+            try:
+                RSSScheduler.thread.join(10)
+            except:
+                pass
 
-#            WeeklyScheduler.abort = True
-#            logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
-#            try:
-#                WeeklyScheduler.thread.join(10)
-#            except:
-#                pass
+            WeeklyScheduler.abort = True
+            logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
+            try:
+                WeeklyScheduler.thread.join(10)
+            except:
+                pass
 
-#            VersionScheduler.abort = True
-#            logger.info(u"Waiting for the VERSION CHECK thread to exit")
-#            try:
-#                VersionScheduler.thread.join(10)
-#            except:
-#                pass
+            VersionScheduler.abort = True
+            logger.info(u"Waiting for the VERSION CHECK thread to exit")
+            try:
+                VersionScheduler.thread.join(10)
+            except:
+                pass
 
-#            FolderMonitorScheduler.abort = True
-#            logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
-#            try:
-#                FolderMonitorScheduler.thread.join(10)
-#            except:
-#                pass
+            FolderMonitorScheduler.abort = True
+            logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
+            try:
+                FolderMonitorScheduler.thread.join(10)
+            except:
+                pass
 
-#            __INITIALIZED__ = False
+            __INITIALIZED__ = False
 
 def shutdown(restart=False, update=False):
 
-    #halt()
+    halt()
 
     cherrypy.engine.exit()
 

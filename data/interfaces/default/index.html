@@ -23,6 +23,13 @@
 		<tbody>
 		%for comic in comics:
 			<%
+                                if comic['percent'] == 101:
+                                        css = '<div class=\"progress-container warning\">'
+                                if comic['percent'] == 100:
+                                        css = '<div class=\"progress-container complete\">'
+                                if comic['percent'] < 100:
+                                        css = '<div class=\"progress-container missing\">'
+
 				if comic['Status'] == 'Paused':
 					grade = 'X'
 				elif comic['Status'] == 'Loading':
@@ -31,6 +38,7 @@
                                         grade = 'X'
                                 else:
                                         grade = 'A'
+
 			%>
 			<tr class="grade${grade}">
 				<td id="publisher">${comic['ComicPublisher']}</td>
@@ -38,7 +46,7 @@
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>
-				<td id="have"><span title="${comic['percent']}"></span><div class="progress-container"><div style="background-color:#a3e532; height:14px; width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
+				<td id="have"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><span class="progressbar-front-text">${comic['haveissues']}/${comic['totalissues']}</span></div></td>
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
@@ -80,7 +88,7 @@
                                 "bStateSave": true,
                                 "iDisplayLength": 25,
                                 "sPaginationType": "full_numbers",
-                                "aaSorting": []
+                                "aaSorting": [[6,'asc'],[7,'asc']]
 		        });
 		        resetFilters("comic");
 	}

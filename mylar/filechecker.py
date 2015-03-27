@@ -621,7 +621,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             elif ('-' in watchcomic or '.' in watchcomic) and j < len(watchcomic):
                                 logger.fdebug('[FILECHECKER] - appears in series title, ignoring.')
                             else:                             
-                                digitchk = subname[j-1:]
+                                digitchk = re.sub('#','', subname[j-1:]).strip()
                                 logger.fdebug('[FILECHECKER] special character appears outside of title - ignoring @ position: ' + str(charpos[i]))
                                 nonocount-=1
 
@@ -651,7 +651,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 logger.fdebug('[FILECHECKER] after title removed from FILENAME [' + str(item[jtd_len:]) + ']')
                 logger.fdebug('[FILECHECKER] creating just the digits using SUBNAME, pruning first [' + str(jtd_len) + '] chars from [' + subname + ']')
 
-                justthedigits_1 = subname[jtd_len:].strip()
+                justthedigits_1 = re.sub('#','', subname[jtd_len:]).strip()
 
                 if enable_annual:
                     logger.fdebug('enable annual is on')

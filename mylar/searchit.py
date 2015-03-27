@@ -19,12 +19,11 @@ import mylar
 
 from mylar import logger
 
-#import threading
-
 class CurrentSearcher():
-    def __init__(self):
+    def __init__(self, **kwargs):
         pass
 
     def run(self):
+
         logger.info('[SEARCH] Running Search for Wanted.')
         mylar.search.searchforissue()

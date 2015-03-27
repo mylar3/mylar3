@@ -816,6 +816,8 @@ def cleanhtml(raw_html):
 
 def issuedigits(issnum):
     import db, logger
+    
+    int_issnum = None
 
     try:
         tst = issnum.isdigit()
@@ -833,27 +835,36 @@ def issuedigits(issnum):
         #    logger.error('This is not an issue number - not enough numerics to parse')
         #    int_issnum = 999999999999999
         #    return int_issnum
-        if 'au' in issnum.lower() and issnum[:1].isdigit():
-            int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-        elif 'ai' in issnum.lower() and issnum[:1].isdigit():
-            int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-        elif 'inh' in issnum.lower():
-            remdec = issnum.find('.')  #find the decimal position.
-            if remdec == -1:
+        try:
+            if 'au' in issnum.lower() and issnum[:1].isdigit():
+                int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
+            elif 'ai' in issnum.lower() and issnum[:1].isdigit():
+                int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+            elif 'inh' in issnum.lower() or 'now' in issnum.lower():
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
                 #if no decimal, it's all one string
                 #remove the last 3 characters from the issue # (INH)
-                int_issnum = (int(issnum[:-3]) * 1000) + ord('i') + ord('n') + ord('h')
-            else:
-                int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-        elif 'now' in issnum.lower():
-            if '!' in issnum: issnum = re.sub('\!', '', issnum)
-            remdec = issnum.find('.')  #find the decimal position.
-            if remdec == -1:
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('i') + ord('n') + ord('h')
+                else:
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
+            elif 'now' in issnum.lower():
+                if '!' in issnum: issnum = re.sub('\!', '', issnum)
+                remdec = issnum.find('.')  #find the decimal position.
+                if remdec == -1:
                 #if no decimal, it's all one string 
                 #remove the last 3 characters from the issue # (NOW)
-                int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
-            else:
-                int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
+                else:
+                    int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+
+        except ValueError as e:
+            logger.error('[' + issnum + '] Unable to properly determine the issue number. Error: %s', e)
+            return 9999999999
+
+        if int_issnum is not None:
+            return int_issnum
+
         elif u'\xbd' in issnum:
             int_issnum = .5 * 1000
         elif u'\xbc' in issnum:
@@ -953,11 +964,11 @@ def checkthepub(ComicID):
         return mylar.BIGGIE_PUB
     else:
         for publish in publishers:
-            if publish in str(pubchk['ComicPublisher']).lower():
-                logger.fdebug('Biggie publisher detected - ' + str(pubchk['ComicPublisher']))
+            if publish in pubchk['ComicPublisher'].lower():
+                logger.fdebug('Biggie publisher detected - ' + pubchk['ComicPublisher'])
                 return mylar.BIGGIE_PUB
 
-        logger.fdebug('Indie publisher detected - ' + str(pubchk['ComicPublisher']))
+        logger.fdebug('Indie publisher detected - ' + pubchk['ComicPublisher'])
         return mylar.INDIE_PUB
 
 def annual_update():
@@ -1113,7 +1124,6 @@ def havetotals(refreshit=None):
 
         comics = []
 
-
         if refreshit is None:
             if mylar.DBCHOICE == 'postgresql':
                 import db_postgresql as db
@@ -1170,7 +1180,7 @@ def havetotals(refreshit=None):
             try:
                 percent = (haveissues*100.0)/totalissues
                 if percent > 100:
-                    percent = 100
+                    percent = 101
             except (ZeroDivisionError, TypeError):
                 percent = 0
                 totalissuess = '?'
@@ -1187,10 +1197,13 @@ def havetotals(refreshit=None):
                 c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
                 n_date = datetime.date.today()
                 recentchk = (n_date - c_date).days
-                if recentchk < 55:
+                if comic['NewPublish']:
                     recentstatus = 'Continuing'
                 else:
-                    recentstatus = 'Ended'
+                    if recentchk < 55:
+                        recentstatus = 'Continuing'
+                    else:
+                        recentstatus = 'Ended'
             else:
                 recentstatus = 'Ended'
 
@@ -1202,7 +1215,7 @@ def havetotals(refreshit=None):
                            "ComicImage":      comic['ComicImage'],
                            "LatestIssue":     comic['LatestIssue'],
                            "LatestDate":      comic['LatestDate'],
-                           "ComicPublished":  comic['ComicPublished'],
+                           "ComicPublished":  re.sub('(N)','',comic['ComicPublished']).strip(),
                            "Status":          comic['Status'],
                            "recentstatus":    recentstatus,
                            "percent":         percent,
@@ -1214,7 +1227,8 @@ def havetotals(refreshit=None):
 
 def cvapi_check(web=None):
     import logger
-    if web is None: logger.fdebug('[ComicVine API] ComicVine API Check Running...')
+    #if web is None: 
+    #    logger.fdebug('[ComicVine API] ComicVine API Check Running...')
     if mylar.CVAPI_TIME is None or mylar.CVAPI_TIME == '':
         c_date = now()
         c_obj_date = datetime.datetime.strptime(c_date,"%Y-%m-%d %H:%M:%S")
@@ -1224,14 +1238,14 @@ def cvapi_check(web=None):
             c_obj_date = datetime.datetime.strptime(mylar.CVAPI_TIME,"%Y-%m-%d %H:%M:%S")
         else:
             c_obj_date = mylar.CVAPI_TIME
-    if web is None: logger.fdebug('[ComicVine API] API Start Monitoring Time (~15mins): ' + str(mylar.CVAPI_TIME))
+    #if web is None: logger.fdebug('[ComicVine API] API Start Monitoring Time (~15mins): ' + str(mylar.CVAPI_TIME))
     now_date = now()
     n_date = datetime.datetime.strptime(now_date,"%Y-%m-%d %H:%M:%S")
-    if web is None: logger.fdebug('[ComicVine API] Time now: ' + str(n_date))
+    #if web is None: logger.fdebug('[ComicVine API] Time now: ' + str(n_date))
     absdiff = abs(n_date - c_obj_date)
     mins = round(((absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0),2)
     if mins < 15:
-        if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' / ' + str(mylar.CVAPI_MAX) + ' in ' + str(mins) + ' minutes.')
+        #if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' / ' + str(mylar.CVAPI_MAX) + ' in ' + str(mins) + ' minutes.')
         if mylar.CVAPI_COUNT > mylar.CVAPI_MAX:
             cvleft = 15 - mins
             if web is None: logger.warn('[ComicVine API] You have already hit your API limit (' + str(mylar.CVAPI_MAX) + ' with ' + str(cvleft) + ' minutes. Best be slowing down, cowboy.')
@@ -1239,7 +1253,7 @@ def cvapi_check(web=None):
         mylar.CVAPI_COUNT = 0
         c_date = now()
         mylar.CVAPI_TIME = datetime.datetime.strptime(c_date,"%Y-%m-%d %H:%M:%S")
-        if web is None: logger.info('[ComicVine API] 15 minute API interval resetting [' + str(mylar.CVAPI_TIME) + ']. Resetting API count to : ' + str(mylar.CVAPI_COUNT))
+        #if web is None: logger.info('[ComicVine API] 15 minute API interval resetting [' + str(mylar.CVAPI_TIME) + ']. Resetting API count to : ' + str(mylar.CVAPI_COUNT))
 
     if web is None:
         return        
@@ -1548,9 +1562,10 @@ def listLibrary():
     for row in list:
         library[row['ComicID']] = row['ComicID']
     # Add the annuals
-    list = myDB.select("SELECT ReleaseComicId,ComicID FROM Annuals")
-    for row in list:
-        library[row['ReleaseComicId']] = row['ComicID']
+    if mylar.ANNUALS_ON:
+        list = myDB.select("SELECT ReleaseComicId,ComicID FROM Annuals")
+        for row in list:
+            library[row['ReleaseComicId']] = row['ComicID']
     return library
 
 def incr_snatched(ComicID):
@@ -1609,39 +1624,44 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
             #this will be eventually user-controlled via the GUI once the options are enabled.
 
             if int(dupsize) == 0:
-                logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry. Will assume it is Archived already.')
-                rtnval = "dupe"
-            else:
-                logger.fdebug('[DUPECHECK] Based on duplication preferences I will retain based on : ' + mylar.DUPECONSTRAINT)
-                if 'cbr' in mylar.DUPECONSTRAINT or 'cbz' in mylar.DUPECONSTRAINT:
-                    if 'cbr' in mylar.DUPECONSTRAINT:
-                        #this has to be configured in config - either retain cbr or cbz.
-                        if dupchk['Location'].endswith('.cbz'):
-                            #keep dupechk['Location']
-                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in file : ' + dupchk['Location'])
-                            rtnval = "dupe"
-                        else:
-                            #keep filename
-                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
-                            rtnval = "write"
+                logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry.')
+                if dupchk['Status'] == 'Archived':
+                    logger.info('[DUPECHECK] Assuming issue is Archived.')
+                    rtnval = "dupe"
+                    return
+                else:
+                    logger.info('[DUPECHECK] Assuming 0-byte file - this one is gonna get hammered.')
 
-                    elif 'cbz' in mylar.DUPECONSTRAINT:
-                        if dupchk['Location'].endswith('.cbr'):
-                            #keep dupchk['Location']
-                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                            rtnval = "dupe"
-                        else:
-                            #keep filename
-                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                            rtnval = "write"
-
-                if mylar.DUPECONSTRAINT == 'filesize':
-                    if filesz <= dupsize:
-                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
+            logger.fdebug('[DUPECHECK] Based on duplication preferences I will retain based on : ' + mylar.DUPECONSTRAINT)
+            if 'cbr' in mylar.DUPECONSTRAINT or 'cbz' in mylar.DUPECONSTRAINT:
+                if 'cbr' in mylar.DUPECONSTRAINT:
+                    #this has to be configured in config - either retain cbr or cbz.
+                    if dupchk['Location'].endswith('.cbz'):
+                        #keep dupechk['Location']
+                        logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in file : ' + dupchk['Location'])
                         rtnval = "dupe"
                     else:
-                        logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
+                        #keep filename
+                        logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
                         rtnval = "write"
+
+                elif 'cbz' in mylar.DUPECONSTRAINT:
+                    if dupchk['Location'].endswith('.cbr'):
+                        #keep dupchk['Location']
+                        logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
+                        rtnval = "dupe"
+                    else:
+                        #keep filename
+                        logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
+                        rtnval = "write"
+
+            if mylar.DUPECONSTRAINT == 'filesize':
+                if filesz <= int(dupsize) and int(dupsize) != 0:
+                    logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
+                    rtnval = "dupe"
+                else:
+                    logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
+                    rtnval = "write"
 
     else:
         logger.info('[DUPECHECK] Duplication detection returned no hits. This is not a duplicate of anything that I have scanned in as of yet.')
@@ -1682,7 +1702,6 @@ def create_https_certificates(ssl_cert, ssl_key):
         return False
 
     return True
-
 
 from threading import Thread
 

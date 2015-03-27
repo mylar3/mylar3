@@ -184,7 +184,7 @@ def update():
         try:
             logger.info('Downloading update from: '+tar_download_url)
             data = urllib2.urlopen(tar_download_url)
-        except (IOError, URLError):
+        except (IOError, urllib2.URLError):
             logger.error("Unable to retrieve new version from "+tar_download_url+", can't update")
             return
 

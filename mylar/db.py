@@ -59,9 +59,9 @@ class WriteOnly:
                 if sqlResult:
                     mylarQueue.task_done()
                     return sqlResult            
-            #else:
-            #    time.sleep(1)
-            #    logger.fdebug('[' + str(thisthread) + '] sleeping until active.')
+            else:
+                time.sleep(1)
+                #logger.fdebug('[' + str(thisthread) + '] sleeping until active.')
 
 class DBConnection:
 
@@ -159,6 +159,7 @@ class DBConnection:
 
 
     def upsert(self, tableName, valueDict, keyDict):
+        thisthread = threading.currentThread().name
 
         changesBefore = self.connection.total_changes
         
@@ -174,10 +175,10 @@ class DBConnection:
             self.action(query, valueDict.values() + keyDict.values())
 
 
-       # else:
-       #     logger.info('[' + str(thisthread) + '] db is currently locked for writing. Queuing this action until it is free')
-       #     logger.info('Table: ' + str(tableName) + ' Values: ' + str(valueDict) + ' Keys: ' + str(keyDict))
-       #     self.queue.put( (tableName, valueDict, keyDict) )
-       #     #assuming this is coming in from a seperate thread, so loop it until it's free to write.
-       #     #self.queuesend()
+        #else:
+        #    logger.info('[' + str(thisthread) + '] db is currently locked for writing. Queuing this action until it is free')
+        #    logger.info('Table: ' + str(tableName) + ' Values: ' + str(valueDict) + ' Keys: ' + str(keyDict))
+        #    self.queue.put( (tableName, valueDict, keyDict) )
+        #    #assuming this is coming in from a seperate thread, so loop it until it's free to write.
+        #    #self.queuesend()
 
