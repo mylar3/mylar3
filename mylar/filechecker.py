@@ -122,7 +122,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
            logger.info('subname: ' + subname)
            removest = subname.find('-') # the - gets removed above so we test for the first blank space...
            logger.info('removest: ' + str(removest))
-           logger.info('removestdig: ' + str(subname[:removest-1]))
+           logger.info('removestdig: ' + subname[:removest-1])
            if subname[:removest].isdigit() and removest == 3:
                subname = subname[4:]
                logger.info('subname set to : ' + subname)
@@ -203,10 +203,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         if bracketsinseries == 'True':
             logger.fdebug('[FILECHECKER] modifying subname to accomodate brackets within series title.')
             subnm_mod2 = re.findall('[^()]+', subname[bracket_length_en:])
-            logger.fdebug('[FILECHECKER] subnm_mod : ' + str(subnm_mod2))
+            logger.fdebug('[FILECHECKER] subnm_mod : ' + subnm_mod2)
             
             subnm_mod = re.sub('[\(\)]',' ', subname[:bracket_length_en]) + str(subname[bracket_length_en+1:])
-            logger.fdebug('[FILECHECKER] modified subname is now : ' + str(subnm_mod))
+            logger.fdebug('[FILECHECKER] modified subname is now : ' + subnm_mod)
             subname = subnm_mod
 
         subnm = re.findall('[^()]+', subname)
@@ -229,7 +229,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     continue
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
-                logger.fdebug('[FILECHECKER] new subname: ' + str(subthis))
+                logger.fdebug('[FILECHECKER] new subname: ' + subthis)
                 if subthis.startswith('('):
                     # if it startswith a bracket, then it's probably a year - let's check.
                     for i in subthis.split():
@@ -240,7 +240,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
                                 subname = re.sub('\(\)', '', subname).strip()
                                 subname = watchcomic + ' ' + subname
-                                logger.fdebug('[FILECHECKER] new subname reversed: ' + str(subname))
+                                logger.fdebug('[FILECHECKER] new subname reversed: ' + subname)
                                 break
                 else:
                     subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\2 (\\3)', subthis)
@@ -281,7 +281,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     continue
                 subthis = subthis[len(watchname):].strip()  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
-                logger.fdebug('[FILECHECKER] new subname: ' + str(subthis))
+                logger.fdebug('[FILECHECKER] new subname: ' + subthis)
                 if subthis.startswith('('):
                     # if it startswith a bracket, then it's probably a year and the format is incorrect to continue - let's check.
                     for i in subthis.split():
@@ -291,7 +291,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 logger.fdebug('[FILECHECKER] Year detected: ' + str(tmpi))
                                 subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
                                 subname = re.sub('\(\)', '', subname).strip()
-                                logger.fdebug('[FILECHECKER] Flipping the issue with the year: ' + str(subname))
+                                logger.fdebug('[FILECHECKER] Flipping the issue with the year: ' + subname)
                                 break
                 else:                        
                     numcheck = re.findall('[19\d{2}|20\d{2}]', subthis)
@@ -304,7 +304,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 subname = watchname + ' ' + subname
                 subname = re.sub('\s+', ' ', subname).strip()
 
-                logger.fdebug('[FILECHECKER] New subname reversed: ' + str(subname))
+                logger.fdebug('[FILECHECKER] New subname reversed: ' + subname)
                 subnm = re.findall('[^()]+', subname)
 
 
@@ -325,19 +325,19 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     if submod == ' ':
                         pass
                     else:
-                        logger.fdebug('[FILECHECKER] ' + str(cnt) + ". Bracket Word: " + str(submod))
+                        logger.fdebug('[FILECHECKER] ' + str(cnt) + ". Bracket Word: " + submod)
 
                     if Publisher.lower() in submod.lower() and cnt >= 1:
-                        logger.fdebug('[FILECHECKER] Publisher detected within title : ' + str(submod))
+                        logger.fdebug('[FILECHECKER] Publisher detected within title : ' + submod)
                         logger.fdebug('[FILECHECKER] cnt is : ' + str(cnt) + ' --- Publisher is: ' + Publisher)
                         #-strip publisher if exists here-
                         pub_removed = submod
                         logger.fdebug('[FILECHECKER] removing publisher from title')
                         subname_pubremoved = re.sub(pub_removed, '', subname)
-                        logger.fdebug('[FILECHECKER] pubremoved : ' + str(subname_pubremoved))
+                        logger.fdebug('[FILECHECKER] pubremoved : ' + subname_pubremoved)
                         subname_pubremoved = re.sub('\(\)', '', subname_pubremoved) #remove empty brackets
                         subname_pubremoved = re.sub('\s+', ' ', subname_pubremoved) #remove spaces > 1
-                        logger.fdebug('[FILECHECKER] blank brackets removed: ' + str(subname_pubremoved))
+                        logger.fdebug('[FILECHECKER] blank brackets removed: ' + subname_pubremoved)
                         subnm = re.findall('[^()]+', subname_pubremoved)
                         break
                     cnt+=1
@@ -376,7 +376,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         if len(subnm) == 1:
             # if it still has no year (brackets), check setting and either assume no year needed.
             subname = subname                
-        logger.fdebug('[FILECHECKER] subname no brackets: ' + str(subname))
+        logger.fdebug('[FILECHECKER] subname no brackets: ' + subname)
         nonocount = 0
         charpos = 0
         detneg = "no"
@@ -408,7 +408,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                     logger.fdebug('[FILECHECKER] up to - :' + subname[:j+1].replace('-', ' '))
                                     logger.fdebug('[FILECHECKER] after -  :' + subname[j+1:])
                                     subname = subname[:j+1].replace('-', '') + subname[j+1:]
-                                    logger.fdebug('[FILECHECKER] new subname is : ' +  str(subname))
+                                    logger.fdebug('[FILECHECKER] new subname is : ' +  subname)
                                     should_restart = True
                                     leavehyphen = True
                             i+=1
@@ -481,9 +481,9 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         modwatchcomic = re.sub('\&', ' and ', modwatchcomic)
         if ' the ' in modwatchcomic.lower() or modwatchcomic.lower().startswith('the '):
             modwatchcomic = re.sub("\\bthe\\b", "", modwatchcomic.lower())
-            logger.fdebug('[FILECHECKER] new modwatchcomic: ' + str(modwatchcomic))
+            logger.fdebug('[FILECHECKER] new modwatchcomic: ' + modwatchcomic)
             detectthe_mod = True
-        modwatchcomic = re.sub('\s+', ' ', str(modwatchcomic)).strip()
+        modwatchcomic = re.sub('\s+', ' ', modwatchcomic).strip()
         if '&' in subname:
             logger.fdebug('[FILECHECKER] detected & in subname')
             subname = re.sub('\&', ' and ', subname) 
@@ -491,7 +491,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         if ' the ' in subname.lower() or subname.lower().startswith('the '):
             subname = re.sub("\\bthe\\b", "", subname.lower())
             detectthe_sub = True
-        subname = re.sub('\s+', ' ', str(subname)).strip()
+        subname = re.sub('\s+', ' ', subname).strip()
 
         AS_Alt = []
         AS_Tuple = []
@@ -534,7 +534,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         #if '_' in subname:
         #    subname = subname.replace('_', ' ')
         logger.fdebug('[FILECHECKER] AS_Alt : ' + str(AS_Alt))
-        logger.fdebug('[FILECHECKER] watchcomic:' + str(modwatchcomic) + ' ..comparing to found file: ' + str(subname))
+        logger.fdebug('[FILECHECKER] watchcomic:' + modwatchcomic + ' ..comparing to found file: ' + subname)
         if modwatchcomic.lower() in subname.lower() or any(x.lower() in subname.lower() for x in AS_Alt):
             #if the alternate search name is almost identical, it won't match up because it will hit the 'normal' first.
             #not important for series' matches, but for annuals, etc it is very important.
@@ -570,8 +570,8 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 logger.fdebug('[FILECHECKER] AS_Tuple : ' + str(AS_Tuple))
                 annual_comicid = None
                 for ATS in AS_Tuple:
-                    logger.fdebug('[FILECHECKER] ' + str(ATS['AS_Alternate']) + ' comparing to ' + str(subname[:len(ATS['AS_Alternate'])])) #str(modwatchcomic))
-                    if ATS['AS_Alternate'].lower().strip() == str(subname[:len(ATS['AS_Alternate'])]).lower().strip(): #modwatchcomic
+                    logger.fdebug('[FILECHECKER] ' + str(ATS['AS_Alternate']) + ' comparing to ' + subname[:len(ATS['AS_Alternate'])]) #str(modwatchcomic))
+                    if ATS['AS_Alternate'].lower().strip() == subname[:len(ATS['AS_Alternate'])].lower().strip(): #modwatchcomic
                         logger.fdebug('[FILECHECKER] Associating ComiciD : ' + str(ATS['ComicID']))
                         annual_comicid = str(ATS['ComicID'])
                         modwatchcomic = ATS['AS_Alternate']
@@ -601,7 +601,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     for i,j in enumerate(charpos):
                         logger.fdebug('i,j:' + str(i) + ',' + str(j))
                         logger.fdebug(str(len(subname)) + ' - subname: ' + subname)
-                        logger.fdebug("digitchk: " + str(subname[j-1:]))
+                        logger.fdebug("digitchk: " + subname[j-1:])
                         if j >= len(subname):
                             logger.fdebug('[FILECHECKER] ' + str(j) + ' is >= ' + str(len(subname)) + ' .End reached. ignoring remainder.')
                             break
@@ -659,16 +659,16 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                        logger.fdebug('annual comicid is ' + str(annual_comicid))
                        if 'biannual' in modwatchcomic.lower():
                            logger.fdebug('bi annual detected')
-                           justthedigits_1 = 'BiAnnual ' + str(justthedigits_1)
+                           justthedigits_1 = 'BiAnnual ' + justthedigits_1
                        else:
                            logger.fdebug('annual detected')
-                           justthedigits_1 = 'Annual ' + str(justthedigits_1)
+                           justthedigits_1 = 'Annual ' + justthedigits_1
 
                 logger.fdebug('[FILECHECKER] after title removed from SUBNAME [' + justthedigits_1 + ']')
 
                 titlechk = False
 
-                if digitchk:                  
+                if digitchk:
                     try:
                         #do the issue title check here
                         logger.fdebug('[FILECHECKER] Possible issue title is : ' + str(digitchk))
@@ -693,7 +693,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             if digitchk.startswith('.'):
                                 pass
                             else:
-                                if len(justthedigits_1) >= len(digitchk):
+                                if len(justthedigits_1) >= len(digitchk) and len(digitchk) > 3:
                                     logger.fdebug('[FILECHECKER] Removing issue title.')
                                     justthedigits_1 = re.sub(digitchk,'', justthedigits_1).strip()
                                     logger.fdebug('[FILECHECKER] After issue title removed [' + justthedigits_1 + ']')
@@ -713,7 +713,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                          try:
                              logger.fdebug('[FILECHECKER] justthedigits_1 len : ' + str(len(justthedigits_1)))
                              logger.fdebug('[FILECHECKER] digitchk len : ' + str(len(digitchk)))
-                             if len(justthedigits_1) >= len(digitchk):
+                             if len(justthedigits_1) >= len(digitchk) and len(digitchk) > 3:
                                  logger.fdebug('[FILECHECKER] Removing issue title.')
                                  justthedigits_1 = re.sub(digitchk,'', justthedigits_1).strip()
                                  logger.fdebug('[FILECHECKER] After issue title removed [' + justthedigits_1 + ']')
@@ -863,7 +863,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     cnt = 0
                     yearmatch = "none"
 
-                    logger.fdebug('[FILECHECKER] subsplit : ' + str(subsplit))
+                    logger.fdebug('[FILECHECKER] subsplit : ' + subsplit)
 
                     versionmatch = "false"
                     if vers4year is not "no" or vers4vol is not "no":
@@ -900,14 +900,14 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                         if subnm[cnt] == ' ':
                             pass
                         else:
-                            logger.fdebug('[FILECHECKER] ' + str(cnt) + ' Bracket Word: ' + str(subnm[cnt]))
+                            logger.fdebug('[FILECHECKER] ' + str(cnt) + ' Bracket Word: ' + subnm[cnt])
 
                             #if ComVersChk == 0:
                             #    logger.fdebug('[FILECHECKER] Series version detected as V1 (only series in existance with that title). Bypassing year check')
                             #    yearmatch = "true"
                             #    break
                         if (subnm[cnt].startswith('19') or subnm[cnt].startswith('20')) and len(subnm[cnt]) == 4:
-                            logger.fdebug('[FILECHECKER] year detected: ' + str(subnm[cnt]))
+                            logger.fdebug('[FILECHECKER] year detected: ' + subnm[cnt])
                             result_comyear = subnm[cnt]
 ##### - checking to see what removing this does for the masses 
                             if int(result_comyear) <= int(maxyear) and int(result_comyear) >= int(comyear):
@@ -985,15 +985,15 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             #get the last 2 words so that we can remove them cleanly
                             substring_removal = ' '.join(subname.split(' ')[-2:])
                             substring_join = ''.join(subname.split(' ')[-2:])
-                            logger.fdebug('[FILECHECKER] substring_removal: ' + str(substring_removal))
-                            logger.fdebug('[FILECHECKER] substring_join: ' + str(substring_join))
+                            logger.fdebug('[FILECHECKER] substring_removal: ' + substring_removal)
+                            logger.fdebug('[FILECHECKER] substring_join: ' + substring_join)
                             break
 
                     if substring_removal is not None:
                         sub_removed = subname.replace('_', ' ').replace(substring_removal, substring_join)
                     else:
                         sub_removed = subname.replace('_', ' ')
-                    logger.fdebug('[FILECHECKER] sub_removed: ' + str(sub_removed))
+                    logger.fdebug('[FILECHECKER] sub_removed: ' + sub_removed)
                     split_sub = sub_removed.rsplit(' ',1)[0].split(' ')  #removes last word (assuming it's the issue#)
                     split_mod = modwatchcomic.replace('_', ' ').split()   #batman
                     i = 0
