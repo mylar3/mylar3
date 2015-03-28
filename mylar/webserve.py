@@ -2079,7 +2079,7 @@ class WebInterface(object):
                     myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
                 elif action == 'Send':
                     logger.fdebug('Queuing ' + mi['Location'] + ' to send to tablet.')
-                    sendtablet_queue.append({"filename": mi['Location'],
+                    sendtablet_queue.append({"filepath": mi['Location'],
                                              "issueid":  IssueID,
                                              "comicid":  mi['ComicID']})
         if len(sendtablet_queue) > 0:

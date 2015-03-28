@@ -68,6 +68,7 @@ def putfile(localpath,file):    #localpath=full path to .torrent (including file
     return "pass"
 
 def sendfiles(filelist):
+
     try:
         import paramiko
     except ImportError:
@@ -97,10 +98,7 @@ def sendfiles(filelist):
    
     if len(filelist) > 0:
         logger.info('Initiating send for ' + str(len(filelist)) + ' files...')
-        logger.info(sftp)
-        logger.info(filelist)
-        logger.info(transport)
-        sendtohome(sftp, remotepath, filelist, transport)
+        return sendtohome(sftp, remotepath, filelist, transport)
 
 
 def sendtohome(sftp, remotepath, filelist, transport):
@@ -109,6 +107,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
     port = int(mylar.TAB_HOST[fhost+1:])
 
     successlist = []
+    filestotal = len(filelist)
 
     for files in filelist:
         tempfile = files['filename']
@@ -131,10 +130,18 @@ def sendtohome(sftp, remotepath, filelist, transport):
 
         remdir = remotepath
 
-        localsend = os.path.join(files['filepath'], files['filename'])
+        localsend = files['filepath']
         logger.info('Sending : ' + localsend)
         remotesend = os.path.join(remdir,filename)
         logger.info('To : ' + remotesend)
+
+        try:
+            sftp.stat(remotesend)
+        except IOError, e:
+            if e[0] == 2:
+                filechk = False
+        else:
+            filechk = True
 
         if not filechk:
             sendcheck = False
@@ -142,7 +149,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
  
             while sendcheck == False:
                 try:
-                    sftp.put(localsend, remotesend)
+                    sftp.put(localsend, remotesend)#, callback=printTotals)
                     sendcheck = True
                 except Exception, e:
                     logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__,e))
@@ -164,7 +171,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
         else:
             logger.info('file already exists - checking if complete or not.')
             filesize = sftp.stat(remotesend).st_size
-            if not filesize == files['filesize']:
+            if not filesize == os.path.getsize(files['filepath']):
                 logger.info('file not complete - attempting to resend')
                 sendcheck = False
                 count = 1
@@ -198,7 +205,11 @@ def sendtohome(sftp, remotepath, filelist, transport):
     sftp.close()
     transport.close()
     logger.fdebug('Upload of readlist complete.')
-    return
+    return successlist
+
+#def printTotals(transferred, toBeTransferred):
+#    percent = transferred / toBeTransferred
+#    logger.info("Transferred: " + str(transferred) + " Out of " + str(toBeTransferred))
 
 #if __name__ == '__main__':
 #    putfile(sys.argv[1])

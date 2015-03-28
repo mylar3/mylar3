@@ -143,7 +143,7 @@ class Readinglist(object):
                 return
 
             for rlist in rl:
-                readlist.append({"filename": rlist['Location'],
+                readlist.append({"filepath": rlist['Location'],
                                  "issueid":  rlist['IssueID'],
                                  "comicid":  rlist['ComicID']})
 
@@ -153,77 +153,82 @@ class Readinglist(object):
         if len(readlist) > 0:
 
             for clist in readlist:
-                if clist['filename'] == 'None' or clist['filename'] is None:
-                    logger.warn(module + ' There was a problem with ComicID/IssueID: [' + clist['comicid'] + '/' + clist['issueid'] + ']. I cannot locate the file in the given location (try re-adding to your readlist)')
+                if clist['filepath'] == 'None' or clist['filepath'] is None:
+                    logger.warn(module + ' There was a problem with ComicID/IssueID: [' + clist['comicid'] + '/' + clist['issueid'] + ']. I cannot locate the file in the given location (try re-adding to your readlist)[' + clist['filepath'] + ']')
                     continue
                 else:
-                    multiplecid = False
-                    for x in cidlist:
-                        if clist['comicid'] == x['comicid']:
-                            comicid = x['comicid']
-                            comiclocation = x['location']
-                            multiplecid = True
+#                    multiplecid = False
+#                    for x in cidlist:
+#                        if clist['comicid'] == x['comicid']:
+#                            comicid = x['comicid']
+#                            comiclocation = x['location']
+#                            multiplecid = True
 
-                    if multiplecid == False:
-                        cid = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [clist['comicid']]).fetchone()
-                        if cid is None:
-                            continue
-                        else:
-                            comiclocation = cid['ComicLocation']
-                            comicid = cid['ComicID']
+#                    if multiplecid == False:
+#                        cid = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [clist['comicid']]).fetchone()
+#                        if cid is None:
+#                            continue
+#                        else:
+#                            comiclocation = cid['ComicLocation']
+#                            comicid = cid['ComicID']
 
-                    if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation)) != comiclocation:
-                        logger.fdebug(module + ' Multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
-                        logger.fdebug(module + ' Dir: ' + comiclocation)
-                        logger.fdebug(module + ' Os.path.basename: ' + os.path.basename(comiclocation))
-                        pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
-                        if os.path.exists(os.path.join(pathdir, clist['filename'])):
+#                    if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation)) != comiclocation:
+#                        logger.fdebug(module + ' Multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
+#                        logger.fdebug(module + ' Dir: ' + comiclocation)
+#                        logger.fdebug(module + ' Os.path.basename: ' + os.path.basename(comiclocation))
+#                        pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+                     if os.path.exists(clist['filepath']):
                             sendlist.append({"issueid":  clist['issueid'],
-                                             "filepath": pathdir,
-                                             "filename": clist['filename']})
-                        else:
-                            if os.path.exists(os.path.join(comiclocation, clist['filename'])):
-                                sendlist.append({"issueid":   clist['issueid'],
-                                                 "filepath":  comiclocation,
-                                                 "filename":  clist['filename']})
-                    else:
-                        if os.path.exists(os.path.join(comiclocation, clist['filename'])):
-                            sendlist.append({"issueid":   clist['issueid'],
-                                             "filepath":  comiclocation,
-                                             "filename":  clist['filename']})
-                        else:
-                            logger.warn(module + ' ' + clist['filename'] + ' does not exist in the location I expect [' + comiclocation + ']. Remove from the Reading List and Re-add and/or confirm the file exists in the specified location')
-                            continue
+                                             "filepath": clist['filepath'],
+                                             "filename": os.path.split(clist['filepath'])[1]})
+#                     else:
+#                         if os.path.exists(os.path.join(comiclocation, clist['filename'])):
+#                                sendlist.append({"issueid":   clist['issueid'],
+#                                                 "filepath":  comiclocation,
+#                                                 "filename":  clist['filename']})
+#                    else:
+#                        if os.path.exists(os.path.join(comiclocation, clist['filename'])):
+#                            sendlist.append({"issueid":   clist['issueid'],
+#                                             "filepath":  comiclocation,
+#                                             "filename":  clist['filename']})
+                     else:
+                         logger.warn(module + ' ' + clist['filepath'] + ' does not exist in the given location. Remove from the Reading List and Re-add and/or confirm the file exists in the specified location')
+                         continue
 
-                    #cidlist is just for this reference loop to not make unnecessary db calls if the comicid has already been processed.
-                    cidlist.append({"comicid":   clist['comicid'],
-                                    "issueid":   clist['issueid'],
-                                    "location":  comiclocation})  #store the comicid so we don't make multiple sql requests
+#                    #cidlist is just for this reference loop to not make unnecessary db calls if the comicid has already been processed.
+#                    cidlist.append({"comicid":   clist['comicid'],
+#                                    "issueid":   clist['issueid'],
+#                                    "location":  comiclocation})  #store the comicid so we don't make multiple sql requests
 
             if len(sendlist) == 0:
                 logger.info(module + ' Nothing to send from your readlist')
                 return
 
-            logger.info(module + ' Preparing to send ' + str(len(sendlist)) + ' issues to your reading device.')
+            logger.info(module + ' ' + str(len(sendlist)) + ' issues will be sent to your reading device.')
 
             # test if IP is up.
-#            import shlex
-#            import subprocess
+            import shlex
+            import subprocess
 
-#            cmdstring = str('ping -c1 ' + str(mylar.TAB_HOST))
-#            cmd = shlex.split(cmdstring)
-#            try:
-#                output = subprocess.check_output(cmd)
-#            except subprocess.CalledProcessError,e:
-#                logger.info('The host {0} is not Reachable at this time.'.format(cmd[-1]))
-#                return
-#            else:
-#                logger.info('The host {0} is Reachable. Preparing to send files.'.format(cmd[-1]))
+            #fhost = mylar.TAB_HOST.find(':')
+            host = mylar.TAB_HOST[:mylar.TAB_HOST.find(':')]
+
+            cmdstring = str('ping -c1 ' + str(host))
+            cmd = shlex.split(cmdstring)
+            try:
+                output = subprocess.check_output(cmd)
+            except subprocess.CalledProcessError,e:
+                logger.info(module + ' The host {0} is not Reachable at this time.'.format(cmd[-1]))
+                return
+            else:
+                logger.info(module + ' The host {0} is Reachable. Preparing to send files.'.format(cmd[-1]))
 
             success = mylar.ftpsshup.sendfiles(sendlist)
+
             if len(success) > 0:
                 for succ in success:
                     newCTRL = {"issueid":  succ['issueid']}
-                    newVAL = {"Status": 'Downloaded'}
+                    newVAL = {"Status": 'Downloaded',
+                              "StatusChange": helpers.today()}
                     myDB.upsert("readlist", newVAL, newCTRL)
 
