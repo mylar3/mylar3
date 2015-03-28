@@ -85,8 +85,9 @@ class FailedProcessor(object):
 
             #replace spaces
             nzbname = re.sub(' ', '.', str(nzbname))
-            nzbname = re.sub('[\,\:\?]', '', str(nzbname))
+            nzbname = re.sub('[\,\:\?\'\(\)]', '', str(nzbname))
             nzbname = re.sub('[\&]', 'and', str(nzbname))
+            nzbname = re.sub('_', '.', str(nzbname))
 
             logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
             self._log("nzbname: " + str(nzbname))
