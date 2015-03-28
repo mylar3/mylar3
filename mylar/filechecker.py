@@ -863,7 +863,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     cnt = 0
                     yearmatch = "none"
 
-                    logger.fdebug('[FILECHECKER] subsplit : ' + subsplit)
+                    #logger.fdebug('[FILECHECKER] subsplit : ' + subsplit)
 
                     versionmatch = "false"
                     if vers4year is not "no" or vers4vol is not "no":
