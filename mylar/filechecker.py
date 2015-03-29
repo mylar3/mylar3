@@ -203,10 +203,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         if bracketsinseries == 'True':
             logger.fdebug('[FILECHECKER] modifying subname to accomodate brackets within series title.')
             subnm_mod2 = re.findall('[^()]+', subname[bracket_length_en:])
-            logger.fdebug('[FILECHECKER] subnm_mod : ' + subnm_mod2)
+            #logger.fdebug('[FILECHECKER] subnm_mod : ' + subnm_mod2)
             
             subnm_mod = re.sub('[\(\)]',' ', subname[:bracket_length_en]) + str(subname[bracket_length_en+1:])
-            logger.fdebug('[FILECHECKER] modified subname is now : ' + subnm_mod)
+            #logger.fdebug('[FILECHECKER] modified subname is now : ' + subnm_mod)
             subname = subnm_mod
 
         subnm = re.findall('[^()]+', subname)
