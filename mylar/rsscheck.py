@@ -263,74 +263,47 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
 
 def nzbs(provider=None, forcerss=False):
 
+    feedthis = []
+
+    def _parse_feed(site, url):
+        logger.fdebug('[RSS] Fetching items from ' + site)
+        feedme = feedparser.parse(url, agent=str(mylar.USER_AGENT))
+        feedthis.append({"site": site,
+                         "feed": feedme})
+
     newznab_hosts = []
 
     if mylar.NEWZNAB == 1:
         for newznab_host in mylar.EXTRA_NEWZNABS:
-            if newznab_host[4] == '1' or newznab_host[4] == 1:
+            logger.fdebug('[RSS] newznab name: ' + str(newznab_host[0]) + ' - enabled: ' + str(newznab_host[4]))
+            if str(newznab_host[4]) == '1':
                 newznab_hosts.append(newznab_host)
-                logger.fdebug('newznab name: ' + str(newznab_host[0]) + ' - enabled: ' + str(newznab_host[4]))
 
     providercount = len(newznab_hosts) + int(mylar.EXPERIMENTAL == 1) + int(mylar.NZBSU == 1) + int(mylar.DOGNZB == 1)
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
-    feeddata = []
-    feedthis = []
-
-    user_agent = str(mylar.USER_AGENT)
-
     if mylar.EXPERIMENTAL == 1:
-        site = 'experimental'
-        logger.fdebug('[RSS] Fetching items from ' + site)
-        if forcerss:
-            max_entries = "250"
-        else:
-            max_entries = "50"
-        feed = 'http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=' + max_entries + '&more=1'
-        feedme = feedparser.parse(feed, agent=user_agent)
-        feedthis.append({"site": site,
-                         "feed": feedme})
+        max_entries = "250" if forcerss else "50"
+        _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=' + max_entries + '&more=1')
 
     if mylar.NZBSU == 1:
-        if mylar.NZBSU_UID is None:
-            mylar.NZBSU_UID = '1'
-        if forcerss:
-            num_items = "&num=100"
-        else:
-            num_items = ""  # default is 25
-        feed = 'http://api.nzb.su/rss?t=7030&dl=1&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY + num_items
-        feedme = feedparser.parse(feed, agent=user_agent)
-        feedthis.append({"site": 'nzb.su',
-                         "feed": feedme})
+        num_items = "&num=100" if forcerss else ""  # default is 25
+        _parse_feed('nzb.su', 'http://api.nzb.su/rss?t=7030&dl=1&i=' + (mylar.NZBSU_UID or '1') + '&r=' + mylar.NZBSU_APIKEY + num_items)
 
     if mylar.DOGNZB == 1:
-        if forcerss:
-            num_items = "&num=100"
-        else:
-            num_items = ""  # default is 25
-        feed = 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items
-        feedme = feedparser.parse(feed, agent=user_agent)
-        feedthis.append({"site": 'dognzb',
-                         "feed": feedme})
+        num_items = "&num=100" if forcerss else ""  # default is 25
+        _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items)
 
     for newznab_host in newznab_hosts:
         site = newznab_host[0].rstrip()
-        if newznab_host[3] is None:
-            newznabuid = '1'
-            newznabcat = '7030'
-        else:
-            if '#' not in newznab_host[3]:
-                newznabuid = newznab_host[3]
-                newznabcat = '7030'
-            else:
-                newzst = newznab_host[3].find('#')
-                newznabuid = newznab_host[3][:newzst]
-                newznabcat = newznab_host[3][newzst + 1:]
+        (newznabuid, _, newznabcat) = (newznab_host[3] or '').partition('#')
+        newznabuid = newznabuid or '1'
+        newznabcat = newznabcat or '7030'
+
         # 11-21-2014: added &num=100 to return 100 results (or maximum) - unsure of cross-reliablity
-        feed = newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&&r=' + newznab_host[2].rstrip()
-        feedme = feedparser.parse(feed, agent=user_agent)
-        feedthis.append({"site": site,
-                         "feed": feedme})
+        _parse_feed(site, newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&&r=' + newznab_host[2].rstrip())
+
+    feeddata = []
 
     for ft in feedthis:
         site = ft['site']
@@ -370,7 +343,7 @@ def nzbs(provider=None, forcerss=False):
         logger.info('[RSS] (' + site + ') ' + str(len(ft['feed'].entries)) + ' entries indexed.')
 
     i = len(feeddata)
-    if i > 0:
+    if i:
         logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
         rssdbupdate(feeddata, i, 'usenet')
     return
