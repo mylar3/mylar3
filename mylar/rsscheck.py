@@ -4,7 +4,7 @@ import os, sys
 import re
 import lib.feedparser as feedparser
 #import urllib2
-import requests
+import lib.requests as requests
 import ftpsshup
 import datetime
 import gzip
