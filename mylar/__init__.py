@@ -30,6 +30,7 @@ import shutil
 import Queue
 import platform
 import locale
+import re
 from threading import Lock, Thread
 
 from lib.apscheduler.scheduler import Scheduler
@@ -47,7 +48,6 @@ SIGNAL = None
 
 SYS_ENCODING = None
 OS_DETECT = platform.system()
-OS_LANG, OS_ENCODING = locale.getdefaultlocale()
 
 VERBOSE = 1
 DAEMON = False
@@ -235,7 +235,6 @@ NZBSU_UID = None
 NZBSU_APIKEY = None
 
 DOGNZB = False
-DOGNZB_UID = None
 DOGNZB_APIKEY = None
 
 NEWZNAB = False
@@ -306,6 +305,8 @@ CT_TAG_CBL = 1
 CT_CBZ_OVERWRITE = 0
 UNRAR_CMD = None
 
+UPCOMING_SNATCHED = 1
+
 ENABLE_RSS = 0
 RSS_CHECKINTERVAL = 20
 RSS_LASTRUN = None
@@ -331,8 +332,13 @@ SEEDBOX_WATCHDIR = None
 ENABLE_TORRENT_SEARCH = 0
 ENABLE_KAT = 0
 KAT_PROXY = None
-ENABLE_CBT = 0
-CBT_PASSKEY = None
+
+ENABLE_32P = 0
+PASSKEY_32P = None
+RSSFEED_32P = None
+USERID_32P = None
+AUTH_32P = None
+AUTHKEY_32P = None
 
 SNATCHEDTORRENT_NOTIFY = 0
 
@@ -385,18 +391,18 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, OS_LANG, OS_ENCODING, \
+        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
                 queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, API_ENABLED, API_KEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
-                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_UID, DOGNZB_APIKEY, \
+                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
                 ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_CBT, CBT_PASSKEY, SNATCHEDTORRENT_NOTIFY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, PASSKEY_32P, RSSFEED_32P, AUTHKEY_32P, USERID_32P, AUTH_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
@@ -594,7 +600,8 @@ def initialize():
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
         UNRAR_CMD = check_setting_str(CFG, 'General', 'unrar_cmd', '')
-
+        
+        UPCOMING_SNATCHED = bool(check_setting_int(CFG, 'General', 'upcoming_snatched', 1))
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
 
@@ -618,8 +625,46 @@ def initialize():
         ENABLE_TORRENT_SEARCH = bool(check_setting_int(CFG, 'Torrents', 'enable_torrent_search', 0))
         ENABLE_KAT = bool(check_setting_int(CFG, 'Torrents', 'enable_kat', 0))
         KAT_PROXY = check_setting_str(CFG, 'Torrents', 'kat_proxy', '')
-        ENABLE_CBT = bool(check_setting_int(CFG, 'Torrents', 'enable_cbt', 0))
-        CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '')
+
+        ENABLE_CBT = check_setting_str(CFG, 'Torrents', 'enable_cbt', '-1')
+        if ENABLE_CBT != '-1':
+            ENABLE_32P = bool(check_setting_int(CFG, 'Torrents', 'enable_cbt', 0))
+            print 'Converting CBT settings to 32P - ENABLE_32P: ' + str(ENABLE_32P)
+        else:
+            ENABLE_32P = bool(check_setting_int(CFG, 'Torrents', 'enable_32p', 0))
+                        
+        CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '-1')
+        if CBT_PASSKEY != '-1':
+            PASSKEY_32P = CBT_PASSKEY
+            print 'Converting CBT settings to 32P - PASSKEY_32P: ' + str(PASSKEY_32P)
+        else:
+            PASSKEY_32P = check_setting_str(CFG, 'Torrents', 'passkey_32p', '')
+
+        RSSFEED_32P = check_setting_str(CFG, 'Torrents', 'rssfeed_32p', '')
+
+        #parse out the keys.
+        if ENABLE_32P and len(RSSFEED_32P) > 1:
+            userid_st = RSSFEED_32P.find('&user')
+            userid_en = RSSFEED_32P.find('&',userid_st+1)
+            if userid_en == -1: 
+                USERID_32P = RSSFEED_32P[userid_st+6:]
+            else: 
+                USERID_32P = RSSFEED_32P[userid_st+6:userid_en]
+
+            auth_st = RSSFEED_32P.find('&auth')
+            auth_en = RSSFEED_32P.find('&',auth_st+1)
+            if auth_en == -1: 
+                AUTH_32P = RSSFEED_32P[auth_st+6:]
+            else:
+                AUTH_32P = RSSFEED_32P[auth_st+6:auth_en]
+
+            authkey_st = RSSFEED_32P.find('&authkey')
+            authkey_en = RSSFEED_32P.find('&',authkey_st+1)
+            if authkey_en == -1:
+                AUTHKEY_32P = RSSFEED_32P[authkey_st+9:]
+            else:
+                AUTHKEY_32P = RSSFEED_32P[authkey_st+9:authkey_en]
+
         SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
 
         #this needs to have it's own category - for now General will do.
@@ -665,8 +710,8 @@ def initialize():
 
         #add torrents to provider counter.
         if ENABLE_TORRENT_SEARCH:
-            if ENABLE_CBT:
-                PR.append('cbt')
+            if ENABLE_32P:
+                PR.append('32p')
                 PR_NUM +=1
             if ENABLE_KAT:
                 PR.append('kat')
@@ -681,7 +726,6 @@ def initialize():
             PR_NUM +=1
 
         DOGNZB = bool(check_setting_int(CFG, 'DOGnzb', 'dognzb', 0))
-        DOGNZB_UID = check_setting_str(CFG, 'DOGnzb', 'dognzb_uid', '')
         DOGNZB_APIKEY = check_setting_str(CFG, 'DOGnzb', 'dognzb_apikey', '')
         if DOGNZB:
             PR.append('dognzb')
@@ -800,10 +844,10 @@ def initialize():
                     if not any(d.get("provider",None) == str(PR[TMPPR_NUM]) for d in PROV_ORDER):
                         new_order_seqnum = len(PROV_ORDER)
                         #print 'new provider should be : ' + str(new_order_seqnum) + ' -- ' + str(PR[TMPPR_NUM])
-                        PROV_ORDER.append({"order_seq":  new_order_seqnum,
+                        PROV_ORDER.append({"order_seq":  str(new_order_seqnum),
                                            "provider":   str(PR[TMPPR_NUM])})
-                        #else:
-                        #print 'provider already exists at : ' + str(new_order_seqnum) + ' -- ' + str(PR[TMPPR_NUM])
+                    #else:
+                    #    print 'provider already exists at : ' + str(new_order_seqnum) + ' -- ' + str(PR[TMPPR_NUM])
                     TMPPR_NUM +=1
 
 
@@ -815,8 +859,10 @@ def initialize():
         else:
             flatt_providers = []
             for pro in PROV_ORDER:
+                #print pro
                 for key, value in pro.items():
-                    flatt_providers.append(str(value))
+                    #print key, value
+                    flatt_providers.append(re.sub('cbt','32p',value))
 
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flatt_providers, i, None, 2) for i in range(2)]))
         #print 'text provider order is: ' + str(PROVIDER_ORDER)
@@ -984,8 +1030,6 @@ def initialize():
             helpers.updateComicLocation()
 
         #logger.fdebug('platform detected as : ' + OS_DETECT)
-        #logger.fdebug('language detected as : ' + OS_LANG)
-        #logger.fdebug('encoding detected as : ' + OS_ENCODING)
 
         #Ordering comics here
         logger.info('Remapping the sorting to allow for new additions.')
@@ -1231,7 +1275,7 @@ def config_write():
     new_config['General']['unrar_cmd'] = UNRAR_CMD
     new_config['General']['indie_pub'] = INDIE_PUB
     new_config['General']['biggie_pub'] = BIGGIE_PUB
-
+    new_config['General']['upcoming_snatched'] = int(UPCOMING_SNATCHED)
     new_config['General']['enable_rss'] = int(ENABLE_RSS)
     new_config['General']['rss_checkinterval'] = RSS_CHECKINTERVAL
     new_config['General']['rss_lastrun'] = RSS_LASTRUN
@@ -1267,8 +1311,9 @@ def config_write():
     new_config['Torrents']['enable_torrent_search'] = int(ENABLE_TORRENT_SEARCH)
     new_config['Torrents']['enable_kat'] = int(ENABLE_KAT)
     new_config['Torrents']['kat_proxy'] = KAT_PROXY
-    new_config['Torrents']['enable_cbt'] = int(ENABLE_CBT)
-    new_config['Torrents']['cbt_passkey'] = CBT_PASSKEY
+    new_config['Torrents']['enable_32p'] = int(ENABLE_32P)
+    new_config['Torrents']['passkey_32p'] = PASSKEY_32P
+    new_config['Torrents']['rssfeed_32p'] = RSSFEED_32P
     new_config['Torrents']['snatchedtorrent_notify'] = int(SNATCHEDTORRENT_NOTIFY)
     new_config['SABnzbd'] = {}
     #new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
@@ -1297,7 +1342,6 @@ def config_write():
 
     new_config['DOGnzb'] = {}
     new_config['DOGnzb']['dognzb'] = int(DOGNZB)
-    new_config['DOGnzb']['dognzb_uid'] = DOGNZB_UID
     new_config['DOGnzb']['dognzb_apikey'] = DOGNZB_APIKEY
 
     new_config['Experimental'] = {}

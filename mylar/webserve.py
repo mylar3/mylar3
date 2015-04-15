@@ -945,19 +945,13 @@ class WebInterface(object):
     issue_edit.exposed=True
  
     def force_rss(self):
-        logger.info('attempting to run RSS Check Forcibly')
-        forcerss = True
-        threading.Thread(target=mylar.rsscheck.tehMain, args=[True]).start()
+        logger.info('Attempting to run RSS Check Forcibly')
+        #forcerss = True
+        #threading.Thread(target=mylar.rsscheck.tehMain, args=[True]).start()
         #this is for use with the new scheduler not in place yet.
-        #forcethis = mylar.rsscheckit.tehMain(forcerss=True)
-        #forcerun = forcethis.run()
-        #if forcerun:
-        #    logger.info('Successfully ran RSS Force Check.')
-        #    return
-        #---
-
+        forcethis = mylar.rsscheckit.tehMain(forcerss=True)
+        threading.Thread(target=forcethis.run).start()
         return
-
     force_rss.exposed = True
 
     def markannuals(self, ann_action=None, **args):
@@ -1079,22 +1073,21 @@ class WebInterface(object):
 
         #now we break it down by provider to recreate the link.
         #torrents first.
-        if Provider == 'CBT' or Provider == 'KAT':
+        if Provider == '32P' or Provider == 'KAT':
             if not mylar.ENABLE_TORRENT_SEARCH:
                logger.error('Torrent Providers are not enabled - unable to process retry request until provider is re-enabled.')
                return
 
-            if Provider == 'CBT':
-                if not mylar.ENABLE_CBT:
-                    logger.error('CBT is not enabled - unable to process retry request until provider is re-enabled.')
+            if Provider == '32P':
+                if not mylar.ENABLE_32P:
+                    logger.error('32P is not enabled - unable to process retry request until provider is re-enabled.')
                     return
-                # format - http://comicbt.com/download.php?torrent=48064            
-                link = 'http://comicbt.com/download.php?torrent=' + str(id)
+                link = str(id)
+
             elif Provider == 'KAT':
                 if not mylar.ENABLE_KAT:
                     logger.error('KAT is not enabled - unable to process retry request until provider is re-enabled.')
                     return
-                # format - http://torcache.net/torrent/63194E7328FD9D0AA15795CCA74D4C4995AEDD92.torrent?title=[kickass.to]low.001.2014.digital.zone.empire.cbr.ne
                 link = 'http://torcache.net/torrent/' + str(id) + '.torrent'
 
             logger.fdebug("sending .torrent to watchdir.")
@@ -1692,8 +1685,12 @@ class WebInterface(object):
 
         futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate','ComicName','IssueNumber'), reverse=True)
 
+        issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
+        if mylar.UPCOMING_SNATCHED:
+            issues += myDB.select("SELECT * from issues WHERE Status='Snatched'")
+        if mylar.FAILED_DOWNLOAD_HANDLING:
+            issues += myDB.select("SELECT * from issues WHERE Status='Failed'")
 
-        issues = myDB.select("SELECT * from issues WHERE Status='Wanted' OR Status='Snatched' OR Status='Failed'")
 #       isscnt = myDB.select("SELECT COUNT(*) FROM issues WHERE Status='Wanted' OR Status='Snatched'")
         isCounts = {}
         isCounts[1] = 0   #1 wanted
@@ -1707,7 +1704,11 @@ class WebInterface(object):
         if mylar.ANNUALS_ON:
             #let's add the annuals to the wanted table so people can see them
             #ComicName wasn't present in db initially - added on startup chk now.
-            annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted' OR Status='Snatched' OR Status='Failed'")
+            annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted'")
+            if mylar.UPCOMING_SNATCHED:
+                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Snatched'")
+            if mylar.FAILED_DOWNLOAD_HANDLING:
+                annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Failed'")
 #           anncnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE Status='Wanted' OR Status='Snatched'")
 #           ann_cnt = anncnt[0][0]
             ann_list += annuals_list
@@ -1727,8 +1728,6 @@ class WebInterface(object):
         isCounts = {"Wanted" : str(isCounts[1]),
                     "Snatched" : str(isCounts[2]),
                     "Failed"   : str(isCounts[3])}
-
-        print isCounts
 
         iss_cnt = int(isCounts['Wanted'])
         wantedcount = iss_cnt# + ann_cnt
@@ -1815,6 +1814,12 @@ class WebInterface(object):
             issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [comicid])
         comfiles = []
         filefind = 0
+        if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
+            logger.fdebug('multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
+            logger.fdebug('dir: ' + comicdir)
+            logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
+            pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+
         for root, dirnames, filenames in os.walk(comicdir):
             for filename in filenames:
                 if filename.lower().endswith(extensions):
@@ -3185,7 +3190,6 @@ class WebInterface(object):
                     "nzbsu_uid" : mylar.NZBSU_UID,
                     "nzbsu_api" : mylar.NZBSU_APIKEY,
                     "use_dognzb" : helpers.checked(mylar.DOGNZB),
-                    "dognzb_uid" : mylar.DOGNZB_UID, 
                     "dognzb_api" : mylar.DOGNZB_APIKEY,
                     "use_experimental" : helpers.checked(mylar.EXPERIMENTAL),
                     "use_newznab" : helpers.checked(mylar.NEWZNAB),
@@ -3210,8 +3214,9 @@ class WebInterface(object):
                     "seedbox_pass" : mylar.SEEDBOX_PASS,
                     "enable_torrent_search" : helpers.checked(mylar.ENABLE_TORRENT_SEARCH),
                     "enable_kat" : helpers.checked(mylar.ENABLE_KAT),
-                    "enable_cbt" : helpers.checked(mylar.ENABLE_CBT),
-                    "cbt_passkey" : mylar.CBT_PASSKEY,
+                    "enable_32p" : helpers.checked(mylar.ENABLE_32P),
+                    "passkey_32p" : mylar.PASSKEY_32P,
+                    "rssfeed_32p" : mylar.RSSFEED_32P,
                     "snatchedtorrent_notify" : helpers.checked(mylar.SNATCHEDTORRENT_NOTIFY),
                     "destination_dir" : mylar.DESTINATION_DIR,
                     "create_folders" : helpers.checked(mylar.CREATE_FOLDERS),
@@ -3475,9 +3480,9 @@ class WebInterface(object):
     def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
-        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_uid=None, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, check_folder=None, enable_check_folder=0, 
-        enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_cbt=0, cbt_passkey=None, snatchedtorrent_notify=0,
+        enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, passkey_32p=None, rssfeed_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
@@ -3531,7 +3536,6 @@ class WebInterface(object):
         mylar.NZBSU_UID = nzbsu_uid
         mylar.NZBSU_APIKEY = nzbsu_apikey
         mylar.DOGNZB = dognzb
-        mylar.DOGNZB_UID = dognzb_uid
         mylar.DOGNZB_APIKEY = dognzb_apikey
         mylar.RAW = raw
         mylar.RAW_PROVIDER = raw_provider
@@ -3557,8 +3561,9 @@ class WebInterface(object):
         mylar.SEEDBOX_PASS = seedbox_pass
         mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
         mylar.ENABLE_KAT = int(enable_kat)
-        mylar.ENABLE_CBT = int(enable_cbt)
-        mylar.CBT_PASSKEY = cbt_passkey
+        mylar.ENABLE_32P = int(enable_32p)
+        mylar.PASSKEY_32P = passkey_32p
+        mylar.RSSFEED_32P = rssfeed_32p
         mylar.SNATCHEDTORRENT_NOTIFY = int(snatchedtorrent_notify)
         mylar.PREFERRED_QUALITY = int(preferred_quality)
         mylar.MOVE_FILES = move_files

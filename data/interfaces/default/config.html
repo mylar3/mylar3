@@ -469,11 +469,6 @@
                                 </div>
                                 <div class="config">
                                         <div class="row">
-                                            <label>DOGNZB UID</label>
-                                            <input type="text" name="dognzb_uid" value="${config['dognzb_uid']}" size="15">
-                                            <small>( only needed for RSS feed )</small>
-                                        </div>
-                                        <div class="row">
                                                 <label>DOGNZB API</label>
                                                 <input type="text" name="dognzb_apikey" value="${config['dognzb_api']}" size="36">
                                          </div>
@@ -499,12 +494,19 @@
                                                 <input id="enable_kat" type="checkbox" name="enable_kat" value=1 ${config['enable_kat']} /><label>Enable KAT</label>
                                          </div>
                                          <div class="row checkbox left clearfix">
-                                                <input id="enable_cbt" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_cbt" value=1 ${config['enable_cbt']} /><label>Enable CBT</label>
+                                                <input id="enable_32p" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_32p" value=1 ${config['enable_32p']} /><label>Enable 32P</label>
                                          </div>
                                          <div class="config">                                           
+                                             <div class="row">
                                                 <label>&nbspPasskey</label>
-                                                <input type="text" name="cbt_passkey" value="${config['cbt_passkey']}" size="36">
-                                         </div>
+                                                <input type="text" name="passkey_32p" value="${config['passkey_32p']}" size="36">
+                                             </div>
+                                             <div class="row">
+                                                <label>&nbspRSS feed</label>
+                                                <input type="text" name="rssfeed_32p" value="${config['rssfeed_32p']}" size="36">
+                                                <small>( enter in the full url for any CURRENT 32P RSS feed )</small>
+                                                <small>( Currently will only montior NEW releases feed - more to come )</small>
+                                             </div>
                                          </div>
                                 </div>
                         </fieldset>
@@ -1238,7 +1240,7 @@
                 initConfigCheckbox("#torrent_local");
                 initConfigCheckbox("#torrent_seedbox");
                 initConfigCheckbox("#enable_torrent_search");
-                initConfigCheckbox("#enable_cbt");
+                initConfigCheckbox("#enable_32p");
                 initConfigCheckbox("#enable_rss");
 		initConfigCheckbox("#useexperimental");
 		initConfigCheckbox("#useraw");

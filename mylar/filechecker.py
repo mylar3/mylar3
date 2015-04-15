@@ -957,7 +957,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                             vals = []
                             watchcomic_split = watchcomic.split()
                             vals = mylar.search.IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstword, hyphensplit, orignzb=item)
-                            print 'vals: ' + str(vals)
+                            logger.fdebug('vals: ' + str(vals))
                             if vals:
                                 if vals[0]['status'] == 'continue':
                                     continue

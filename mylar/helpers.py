@@ -396,7 +396,6 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     return
 
             if prettycomiss is None and len(str(issueno)) > 0:
-                logger.info('here')
                 #if int(issueno) < 0:
                 #    self._log("issue detected is a negative")
                 #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
@@ -613,16 +612,9 @@ def ComicSort(comicorder=None,sequence=None,imported=None):
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
         import logger
-        if mylar.DBCHOICE == 'postgresql':
-            import db_postgresql as db
-            myDB = db.DBConnection()
-            oscollate = mylar.OS_LANG + '.UTF8' 
-            logger.info('OS_LANG: ' + oscollate)
-            comicsort = myDB.select('SELECT * FROM comics ORDER BY ComicSortName')# COLLATE "%s"', [oscollate])
-        else:
-            import db
-            myDB = db.DBConnection()
-            comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
+        import db
+        myDB = db.DBConnection()
+        comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
         comicorder = {}
         comicidlist = []
@@ -1123,19 +1115,12 @@ def havetotals(refreshit=None):
         import db, logger
 
         comics = []
+        myDB = db.DBConnection()
 
         if refreshit is None:
-            if mylar.DBCHOICE == 'postgresql':
-                import db_postgresql as db
-                myDB = db.DBConnection()
-                comiclist = myDB.select('SELECT * from comics order by ComicSortName')# COLLATE "%s"',[mylar.OS_LANG])
-            else:
-                import db
-                myDB = db.DBConnection()
-                comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+            comiclist = myDB.select('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         else:
             comiclist = []
-            myDB = db.DBConnection()
             comicref = myDB.selectone("SELECT * from comics WHERE ComicID=?", [refreshit]).fetchone()
             #refreshit is the ComicID passed from the Refresh Series to force/check numerical have totals
             comiclist.append({"ComicID":  comicref[0],
@@ -1299,7 +1284,7 @@ def IssueDetails(filelocation, IssueID=None):
                #print str(data)
                issuetag = 'xml'
             #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
-            elif '000.jpg' in infile or '000.png' in infile or '00.jpg' in infile:
+            elif '000.jpg' in infile or '000.png' in infile or '00.jpg' in infile or '00.png' in infile:
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR,'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
@@ -1598,7 +1583,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
             logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
             return
 
-    if any( [ dupchk['Status'] == 'Downloaded', dupchk['Status'] == 'Archived' ] ):
+    if dupchk['Status'] == 'Downloaded' or dupchk['Status'] == 'Archived':
         logger.info('[DUPECHECK] Existing Status already set to ' + dupchk['Status'])
         dupsize = dupchk['ComicSize']
         cid = []
@@ -1702,6 +1687,18 @@ def create_https_certificates(ssl_cert, ssl_key):
         return False
 
     return True
+
+def torrent_create(site, linkid):
+    if site == '32P':
+        pass
+    elif site == 'KAT':
+        if 'http' in linkid:
+            #if it's being passed here with the http alread in, then it's an old rssdb entry and we can take it as is.
+            url = linkid
+        else:
+            url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
+
+    return url
 
 from threading import Thread
 

@@ -63,7 +63,7 @@
 				<td id="filename"><a href="comicDetails?ComicID=${item['ComicID']}">${item['ComicName']}</a></td>
                                 <td id="issue">${item['Issue_Number']}</td>
 				<td id="status">${item['Status']}
-                                %if item['Provider'] == 'CBT' or item['Provider'] == 'KAT':
+                                %if item['Provider'] == '32P' or item['Provider'] == 'KAT' or item['Provider'] == 'CBT':
                                     <img src="interfaces/default/images/torrent-icon.png" height="20" width="20" title="${item['Provider']}" />
                                 %else:
                                     %if item['Status'] != 'Downloaded' and item['Status'] != 'Post-Processed':

@@ -551,8 +551,9 @@ class PostProcessor(object):
                     logger.info(module + ' No matches for Manual Run ... exiting.')
                     return
 
-                i = 1
+                i = 0
                 for ml in manual_list:
+                    i+=1
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
@@ -561,7 +562,6 @@ class PostProcessor(object):
                         stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
                         self.Process_next(comicid,issueid,issuenumOG,ml,stat)
                         dupthis = None
-                    i+=1
                 logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
                 return
             else:
@@ -590,7 +590,7 @@ class PostProcessor(object):
             comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             issuenzb = myDB.selectone("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid,comicid]).fetchone()
             if ml is not None and mylar.SNATCHEDTORRENT_NOTIFY:
-                snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=?) AND Status='Snatched'", [issueid,comicid,'KAT','CBT']).fetchone() 
+                snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=?) AND Status='Snatched'", [issueid,comicid,'KAT','32P']).fetchone() 
                 if snatchnzb is None:
                     logger.fdebug(module + ' Was not downloaded with Mylar and the usage of torrents. Disabling torrent manual post-processing completion notification.')
                 else:
