@@ -3,8 +3,6 @@
 import os, sys
 import re
 import lib.feedparser as feedparser
-#import urllib2
-import lib.requests as requests
 import ftpsshup
 import datetime
 import gzip
@@ -12,6 +10,11 @@ from StringIO import StringIO
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers
+
+try:
+    import requests
+except ImportError:
+    import lib.requests as requests
 
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
