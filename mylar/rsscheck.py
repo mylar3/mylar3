@@ -3,6 +3,7 @@
 import os, sys
 import re
 import lib.feedparser as feedparser
+import lib.requests as requests
 import ftpsshup
 import datetime
 import gzip
@@ -11,10 +12,6 @@ from StringIO import StringIO
 import mylar
 from mylar import db, logger, ftpsshup, helpers
 
-try:
-    import requests
-except ImportError:
-    import lib.requests as requests
 
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
@@ -764,8 +761,13 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if not verify:
         #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
-        from requests.packages.urllib3.exceptions import InsecureRequestWarning
-        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+        try:
+            from requests.packages.urllib3.exceptions import InsecureRequestWarning
+            requests.packages.urllib3.disable_warnings()
+        except ImportError:
+            from urllib3.exceptions import InsecureRequestWarning
+            urllib3.disable_warnings()
+
 
     try:
         r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
