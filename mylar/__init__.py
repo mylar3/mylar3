@@ -862,7 +862,11 @@ def initialize():
                 #print pro
                 for key, value in pro.items():
                     #print key, value
-                    flatt_providers.append(re.sub('cbt','32p',value))
+                    try:
+                        flatt_providers.append(re.sub('cbt','32p',value))
+                    except TypeError:
+                        #if the value is None (no Name specified for Newznab entry), break out now
+                        continue                         
 
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flatt_providers, i, None, 2) for i in range(2)]))
         #print 'text provider order is: ' + str(PROVIDER_ORDER)
