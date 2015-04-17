@@ -320,6 +320,7 @@ def addComictoDB(comicid,mismatch=None,pullupd=None,imported=None,ogcname=None,c
         comicdir = comicname_filesafe
         series = comicdir
         publisher = re.sub('!','',comic['ComicPublisher']) # thanks Boom!
+        publisher = helpers.filesafe(publisher)
         year = SeriesYear
         comversion = comic['ComicVersion']
         if comversion is None:

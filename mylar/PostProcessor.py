@@ -731,7 +731,7 @@ class PostProcessor(object):
 #            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher)
-            logger.fdebug(module + ' Publisher: ' + str(publisher))
+            logger.fdebug(module + ' Publisher: ' + publisher)
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
             self._log("Series: " + series)
@@ -983,8 +983,8 @@ class PostProcessor(object):
                         os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir ,str(nfilename + ext)))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
-                src = os.path.join(odir, nfilename + ext)
-                logger.fdebug(module + ' odir src : ' + os.path.join(odir, nfilename + ext))
+                src = os.path.join(odir, ofilename)
+                logger.fdebug(module + ' odir src : ' + os.path.join(odir, ofilename + ext))
                 logger.fdebug(module + ' Moving ' + src + ' ... to ... ' + dst)
                 try:
                     shutil.move(src, dst)

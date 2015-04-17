@@ -48,10 +48,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if ComicYear == None: ComicYear = '2014'
     else: ComicYear = str(ComicYear)[:4]
     if Publisher == 'IDW Publishing': Publisher = 'IDW'
-    logger.fdebug('Publisher is : ' + str(Publisher))
+    logger.fdebug('Publisher is : ' + Publisher)
 
     issuetitle = helpers.get_issue_title(IssueID)
-    logger.info('Issue Title given as : ' + str(issuetitle))
+    logger.info('Issue Title given as : ' + issuetitle)
 
     if mode == 'want_ann':
         logger.info("Annual issue search detected. Appending to issue #")
@@ -1661,6 +1661,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                    if "filename=" in item:
                        filen = item[item.index("filename=") + 9:].strip(';').strip('"')
         logger.fdebug('nzo_info:' + str(nzo_info))
+
+        if filen is None and mylar.FAILED_DOWNLOAD_HANDLING:
+            logger.fdebug('[FAILED_DOWNLOAD] [' + str(tmpprov) + '] Marked as a bad download : ' + str(link))
+            return "downloadchk-fail"
 
         #convert to a generic type of format to help with post-processing.
         filen = re.sub('.cbr', '', filen).strip()
