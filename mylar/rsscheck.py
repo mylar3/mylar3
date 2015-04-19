@@ -90,7 +90,8 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         else:
             kat_url = mylar.KAT_PROXY + '/'
     else:
-        kat_url = 'http://kat.ph/'
+        #switched to https.
+        kat_url = 'https://kat.ph/'
 
     if pickfeed == 'KAT':
         #we need to cycle through both categories (comics & other) - so we loop.
@@ -761,13 +762,20 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if not verify:
         #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
+        #disable SSL warnings - too many 'warning' messages about invalid certificates
         try:
+            from lib.requests.packages.urllib3 import disable_warnings
+            disable_warnings()       
+        except ImportError:
+            #this is probably not necessary and redudant, but leaving in for the time being.
             from requests.packages.urllib3.exceptions import InsecureRequestWarning
             requests.packages.urllib3.disable_warnings()
-        except ImportError:
-            from urllib3.exceptions import InsecureRequestWarning
-            urllib3.disable_warnings()
-
+            try:
+                from urllib3.exceptions import InsecureRequestWarning
+                urllib3.disable_warnings()
+            except ImportError:
+                logger.warn('[EPIC FAILURE] Cannot load the requests module')
+                return "fail"
 
     try:
         r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
