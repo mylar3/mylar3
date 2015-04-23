@@ -244,7 +244,7 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
                     newlink = re.sub('&id=','', link[linkst:linken]).strip()
                     feeddata.append({
                                    'site':     picksite,
-                                   'title':    str(series).lstrip() + ' ' + str(vol) + ' #' + str(issue), 
+                                   'title':    series.lstrip() + ' ' + vol + ' #' + issue, 
                                    'volume':   vol,      # not stored by mylar yet.
                                    'issue':    issue,    # not stored by mylar yet.
                                    'link':     newlink,  #just the id for the torrent

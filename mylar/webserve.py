@@ -3639,6 +3639,11 @@ class WebInterface(object):
             if kwarg.startswith('newznab_name'):
                 newznab_number = kwarg[12:]
                 newznab_name = kwargs['newznab_name' + newznab_number]
+                if newznab_name == "":
+                    newznab_name = kwargs['newznab_host' + newznab_number]
+                    if newznab_name == "":
+                        logger.fdebug('Blank newznab provider has been entered - removing.')
+                        continue
                 newznab_host = kwargs['newznab_host' + newznab_number]
                 newznab_api = kwargs['newznab_api' + newznab_number]
                 newznab_uid = kwargs['newznab_uid' + newznab_number]

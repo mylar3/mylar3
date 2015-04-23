@@ -804,7 +804,10 @@ def initialize():
                 #print ens[0]
                 #print 'enabled:' + str(ens[4])
                 if ens[4] == '1': # if newznabs are enabled
-                    PR.append(ens[0])
+                    if ens[0] == "":
+                        PR.append(ens[1])
+                    else:
+                        PR.append(ens[0])
                     PR_NUM +=1
 
 

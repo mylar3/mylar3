@@ -462,7 +462,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             else:
                 #32P is redudant now since only RSS works 
                 # - just getting it ready for when it's not redudant :)
-                if nzbprov == '32P':
+                if nzbprov == '':
+                    bb = "no results"
+                elif nzbprov == '32P':
                     bb = "no results"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
@@ -1511,6 +1513,13 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts):
                                     newznab_info.append({"provider":     np,
                                                          "info": newznab_host})
                                     break
+                                else:
+                                    if newznab_host[0] == "":
+                                        if newznab_host[1].lower() == pr_order[1].lower():
+                                            prov_order.append(np) #newznab_host)
+                                            newznab_info.append({"provider":     np,
+                                                                 "info": newznab_host})
+                                            break
                         elif pr_order[1].lower() in np.lower():
                             prov_order.append(pr_order[1])
                             break
