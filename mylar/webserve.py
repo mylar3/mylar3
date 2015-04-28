@@ -85,6 +85,7 @@ class WebInterface(object):
         lastno = mylar.COMICSORT['LastOrderNo']
         lastid = mylar.COMICSORT['LastOrderID']
         series = {}
+
         if skipno == 0:
             #it's a blank db, let's just null the values and go.
             series['Current'] = None
@@ -1426,7 +1427,7 @@ class WebInterface(object):
         wantedcount = 0
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
-            w_results = myDB.select("SELECT PUBLISHER, ISSUE, COMIC, STATUS from weekly")
+            w_results = myDB.select("SELECT * from weekly")
             for weekly in w_results:
                 x = None
                 try:
@@ -1442,6 +1443,8 @@ class WebInterface(object):
                                            "ISSUE"      : weekly['ISSUE'],
                                            "COMIC"      : weekly['COMIC'],
                                            "STATUS"     : weekly['STATUS'],
+                                           "COMICID"    : weekly['ComicID'],
+                                           "ISSUEID"    : weekly['IssueID'],
                                            "AUTOWANT"   : False
                                          })
                     else:
@@ -1451,6 +1454,8 @@ class WebInterface(object):
                                            "ISSUE"      : weekly['ISSUE'],
                                            "COMIC"      : weekly['COMIC'],
                                            "STATUS"     : weekly['STATUS'],
+                                           "COMICID"    : weekly['ComicID'],
+                                           "ISSUEID"    : weekly['IssueID'],
                                            "AUTOWANT"   : True
                                          })
                         else:
@@ -1459,6 +1464,8 @@ class WebInterface(object):
                                            "ISSUE"      : weekly['ISSUE'],
                                            "COMIC"      : weekly['COMIC'],
                                            "STATUS"     : weekly['STATUS'],
+                                           "COMICID"    : weekly['ComicID'],
+                                           "ISSUEID"    : weekly['IssueID'],
                                            "AUTOWANT"   : False
                                          })
                             
@@ -3601,6 +3608,8 @@ class WebInterface(object):
         mylar.MINSIZE = minsize
         mylar.USE_MAXSIZE = use_maxsize
         mylar.MAXSIZE = maxsize
+        if folder_format.startswith('/'): 
+            folder_format = re.sub('/', '', folder_format).strip()
         mylar.FOLDER_FORMAT = folder_format
         mylar.FILE_FORMAT = file_format
         mylar.DESTINATION_DIR = destination_dir

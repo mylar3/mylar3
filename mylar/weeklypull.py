@@ -45,7 +45,7 @@ def pullit(forcecheck=None):
         except (sqlite3.OperationalError, TypeError),msg:
             logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
             myDB.action("DROP TABLE weekly")    
-            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)")
+            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text)")
             pulldate = '00000000'
             logger.fdebug(u"Table re-created, trying to populate")
     else:
@@ -406,7 +406,7 @@ def pullit(forcecheck=None):
 
     #cursor.execute('drop table if exists weekly;')
     myDB.action("drop table if exists weekly")
-    myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text)")
+    myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text)")
 
     #cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text);")
     #connection.commit()
@@ -790,12 +790,20 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                                 statusupdate = updater.upcoming_update(ComicID=ComicID, ComicName=ComicName, IssueNumber=ComicIssue, IssueDate=ComicDate, forcecheck=forcecheck, futurepull='yes', altissuenumber=altissuenum)
 
                                             # here we update status of weekly table...
-                                            if statusupdate is not None:
-                                                cstatus = statusupdate['Status']
-                                                cstatusid = statusupdate['ComicID']
-                                            else:
-                                                cstatus = None
+                                            try:
+                                                if statusupdate is not None:
+                                                    cstatusid = []
+                                                    cstatus = statusupdate['Status']
+                                                    cstatusid = {"ComicID": statusupdate['ComicID'],
+                                                                 "IssueID": statusupdate['IssueID']}
+                                                    
+                                                else:
+                                                    cstatus = None
+                                                    cstatusid = None
+                                            except:
                                                 cstatusid = None
+                                                cstatus = None
+
                                             #set the variable fp to denote updating the futurepull list ONLY
                                             if futurepull is None: 
                                                 fp = None
@@ -917,7 +925,11 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
         logger.info(module + ' Error determining current weekly pull-list date - you should refresh the pull-list manually probably.')
         return
 
-    chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND ISSUE=?',[comicid, issuenum]).fetchone()
+    if issueid is None:
+       chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND ISSUE=?',[comicid, issuenum]).fetchone()
+    else:
+       chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND IssueID=?',[comicid, issueid]).fetchone()
+
     if chkit is None:
         logger.fdebug(module + ' ' + file + ' is not on the weekly pull-list or it is a one-off download that is not supported as of yet.')
         return
@@ -947,6 +959,11 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
     logger.info(module + ' Sucessfully copied to ' + desfile.encode('utf-8').strip() )
 
     if mylar.SEND2READ:
+        send2read(comicid, issueid, issuenum)
+
+def send2read(comicid, issueid, issuenum):
+    module = '[READLIST]'
+    if mylar.SEND2READ:
         logger.info(module + " Send to Reading List enabled for new pulls. Adding to your readlist in the status of 'Added'")
         if issueid is None:
             chkthis = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?',[comicid, helpers.issuedigits(issuenum)]).fetchone()
@@ -975,7 +992,7 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
                     else:
                         logger.info(module + ' Unsure as to the exact issue this is. Not adding to the Reading list at this time.')
                         return                    
-        read = mylar.readinglist.Readinglist(issueid)
+        read = mylar.readinglist.Readinglist(IssueID=issueid)
         read.addtoreadlist()
     return
 

@@ -30,7 +30,40 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
     myDB = db.DBConnection()
     #print "comicidlist:" + str(ComicIDList)
     if ComicIDList is None:
-        comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+        if mylar.UPDATE_ENDED:
+            logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
+            comiclist = []
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            for comlist in completelist:
+                if comlist['LatestDate'] is None:
+                    recentstatus = 'Loading'
+                elif comlist['ComicPublished'] is None or comlist['ComicPublished'] == '' or comlist['LatestDate'] is None:
+                    recentstatus = 'Unknown'
+                elif comlist['ForceContinuing'] == 1:
+                    recentstatus = 'Continuing'
+                elif 'present' in comlist['ComicPublished'].lower() or ( helpers.today()[:4] in comlist['LatestDate']):
+                    latestdate = comlist['LatestDate']
+                    c_date = datetime.date(int(latestdate[:4]),int(latestdate[5:7]),1)
+                    n_date = datetime.date.today()
+                    recentchk = (n_date - c_date).days
+                    if comlist['NewPublish']:
+                        recentstatus = 'Continuing'
+                    else:
+                        if recentchk < 55:
+                            recentstatus = 'Continuing'
+                        else:
+                            recentstatus = 'Ended'
+                else:
+                    recentstatus = 'Ended'
+
+                if recentstatus == 'Continuing':
+                    comiclist.append({"LatestDate":    comlist['LatestDate'],
+                                      "LastUpdated":   comlist['LastUpdated'],
+                                      "ComicID":       comlist['ComicID'],
+                                      "ComicName":     comlist['ComicName']})
+
+        else:
+            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
     else:
         comiclist = ComicIDList
 
@@ -41,9 +74,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
 
     for comic in comiclist:
         if ComicIDList is None:
-            ComicID = comic[2]
-            ComicName = comic[3]
-            c_date = comic[1]
+            ComicID = comic['ComicID']
+            ComicName = comic['ComicName']
+            c_date = comic['LastUpdated']
             if c_date is None:
                 logger.error(ComicName + ' failed during a previous add /refresh as it has no Last Update timestamp. Forcing refresh now.')
             else:
@@ -320,12 +353,12 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd)
                 else: mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck')#mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
             else:
-                #if 'annual' in ComicName.lower():
-                #    logger.fdebug('Annual detected - refreshing series.')
-                #    mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck', issuetype='annual')
-                #else:
                 logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
-                return
+                logger.fdebug('linking ComicID to Pull-list to reflect status.')
+                downstats = {"ComicID": ComicID,
+                             "IssueID": None,
+                             "Status": None}
+                return downstats
         else:
             # if futurepull is not None, let's just update the status and ComicID
             # NOTE: THIS IS CREATING EMPTY ENTRIES IN THE FUTURE TABLE. ???
@@ -404,6 +437,12 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
     if issuechk is None:
         myDB.upsert("upcoming", newValue, controlValue)
+        logger.fdebug('updating Pull-list to reflect status.')
+        downstats = {"Status":  newValue['Status'],
+                     "ComicID": ComicID,
+                     "IssueID": None}
+        return downstats
+
     else:
         logger.fdebug('--attempt to find errant adds to Wanted list')
         logger.fdebug('UpcomingNewValue: ' + str(newValue))
@@ -427,10 +466,11 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         else:
             myDB.upsert("issues", values, control)
 
-        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched'] ): 
+        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched', og_status == 'Wanted'] ): 
             logger.fdebug('updating Pull-list to reflect status.')
             downstats = {"Status":  og_status,
-                         "ComicID": issuechk['ComicID']}
+                         "ComicID": issuechk['ComicID'],
+                         "IssueID": issuechk['IssueID']}
             return downstats
 
 
@@ -454,14 +494,27 @@ def weekly_update(ComicName,IssueNumber,CStatus,CID,futurepull=None,altissuenumb
     if issuecheck is not None:
         controlValue = { "COMIC":         str(ComicName),
                          "ISSUE":         str(IssueNumber)}
+
+        try:
+            if CID['IssueID']:
+                cidissueid = CID['IssueID']
+            else:
+                cidissueid = None
+        except:
+            cidissueid = None
+
         if CStatus:
-            newValue = {"STATUS":             CStatus,
-                        "ComicID":            CID}
+            newValue = {"STATUS":      CStatus}
+
         else:
             if mylar.AUTOWANT_UPCOMING:
-                newValue = {"STATUS":             "Wanted"}
+                newValue = {"STATUS":      "Wanted"}
             else:
-                newValue = {"STATUS":             "Skipped"}
+                newValue = {"STATUS":      "Skipped"}
+
+        #setting this here regardless, as it will be a match for a watchlist hit at this point anyways - so link it here what's availalbe.
+        newValue['ComicID'] = CID['ComicID']
+        newValue['IssueID'] = cidissueid
 
         if futurepull is None:
             myDB.upsert("weekly", newValue, controlValue)
@@ -661,6 +714,16 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                 myDB.upsert("annuals", newValue, controlValue)
             else:
                 myDB.upsert("issues", newValue, controlValue)
+
+        #this will update the weeklypull list immediately after post-processing to reflect the new status.
+        chkit = myDB.selectone("SELECT * FROM weekly WHERE ComicID=? AND IssueID=? AND Status='Snatched'",[ComicID, IssueID]).fetchone()
+
+        if chkit is not None:
+      
+            ctlVal = {"ComicID":  ComicID,
+                      "IssueID":  IssueID}
+            newVal = {"Status":   "Downloaded"}
+            myDB.upsert("weekly", newVal, ctlVal)
 
         logger.info(module + ' Updating Status (' + downstatus + ') now complete for ' + ComicName + ' issue: ' + IssueNum)
     return

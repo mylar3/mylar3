@@ -72,7 +72,13 @@
 			<tr class="grade${grade}">
                                 %if pullfilter is True:
                                         <td class="publisher">${weekly['PUBLISHER']}</td>
-				        <td class="comicname">${weekly['COMIC']}</td>
+                                        <td class="comicname">
+                                        %if weekly['COMICID'] == '' or weekly['COMICID'] is None:
+                                             ${weekly['COMIC']}
+                                        %else:
+                                             <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
+                                        %endif
+                                        </td>
                                         <td class="comicnumber">${weekly['ISSUE']}</td>
                                         %if weekly['AUTOWANT']:
              	                             <td class="status">Auto-Want

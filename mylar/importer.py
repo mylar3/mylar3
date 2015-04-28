@@ -1301,7 +1301,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
                                               "Issue_Number":       issnum,
                                               "IssueDate":          issdate,
-                                              "ReleaseDate":        storedate})
+                                              "ReleaseDate":        storedate,
+                                              "ComicID":            comicid,
+                                              "IssueID":            issid})
 
             issuedata.append({"ComicID":            comicid,
                               "IssueID":            issid,
