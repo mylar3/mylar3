@@ -227,6 +227,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 if watchname.lower() not in subthis.lower():
                     logger.fdebug('[FILECHECKER] ' + watchname + ' this is a false match to ' + subthis + ' - Ignoring this result.')
                     continue
+                ogsubthis = subthis
                 subthis = subthis[len(watchname):]  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
                 logger.fdebug('[FILECHECKER] new subname: ' + subthis)
@@ -243,7 +244,27 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                                 logger.fdebug('[FILECHECKER] new subname reversed: ' + subname)
                                 break
                 else:
-                    subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\2 (\\3)', subthis)
+                    year = None
+                    for i in subthis.split():
+                        if ('20' in i or '19' in i):
+                            if i.isdigit():
+                                year = i[:4]
+                        else:
+                            findyr20 = i.find('20')
+                            if findyr20:
+                                styear = i[findyr20:4].strip()
+                            findyr19 = i.find('19')
+                            if findyr19:
+                                styear = i[findyr19:4].strip()
+                            if styear.isdigit() and len(styear) == 4:
+                                year = styear
+                                logger.fdebug('[FILECHECKER] stf is : ' + str(styear))
+                    if year:
+                        subname = re.sub('(.*)[\s+|_+](19\d{2}|20\d{2})(.*)', '\\1 \\2 (\\3)', subthis)
+                    else:
+                        #unable to find year in filename
+                        logger.fdebug('[FILECHECKER] Unable to detect year within filename. Continuing as is and assuming this is a volume 1 and will work itself out later.')
+                        subname = ogsubthis              
 
                 subnm = re.findall('[^()]+', subname)
             else:
@@ -735,53 +756,56 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 #    logger.fdebug('[FILECHECKER] ("removed title from name - is now : " + str(justthedigits))
 
                 justthedigits = justthedigits_1.split(' ', 1)[0]
-            
                 digitsvalid = "false"
-   
-                for jdc in list(justthedigits):
-                    #logger.fdebug('[FILECHECKER] ('jdc:' + str(jdc))
-                    if not jdc.isdigit():
-                        #logger.fdebug('[FILECHECKER] ('alpha')
-                        jdc_start = justthedigits.find(jdc)
-                        alpha_isschk = justthedigits[jdc_start:]
-                        #logger.fdebug('[FILECHECKER] ('alpha_isschk:' + str(alpha_isschk))
-                        for issexcept in issue_exceptions:
-                            if issexcept.lower() in alpha_isschk.lower() and len(alpha_isschk) <= len(issexcept):
-                                logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION : [' + justthedigits + ']')
-                                digitsvalid = "true"
-                                break
-                    if digitsvalid == "true": break
 
-                try:
-                    tmpthedigits = justthedigits_1.split(' ', 1)[1]
-                    logger.fdebug('[FILECHECKER] If the series has a decimal, this should be a number [' + tmpthedigits + ']')
-                    if 'cbr' in tmpthedigits.lower() or 'cbz' in tmpthedigits.lower():
-                        tmpthedigits = tmpthedigits[:-3].strip()
-                        logger.fdebug('[FILECHECKER] Removed extension - now we should just have a number [' + tmpthedigits + ']')
-                    poss_alpha = tmpthedigits
-                    if poss_alpha.isdigit():
+                if not justthedigits.isdigit():
+                    logger.fdebug('[FILECHECKER] Invalid character found in filename after item removal - cannot find issue # with this present. Temporarily removing it from the comparison to be able to proceed.')
+                    justthedigits = justthedigits_1.split(' ', 1)[1]            
+                    if justthedigits.isdigit():
                         digitsvalid = "true"
-                        if (justthedigits.lower() == 'annual' and 'annual' not in watchcomic.lower()) or (annual_comicid is not None):
-                            logger.fdebug('[FILECHECKER] ANNUAL DETECTED ['  + poss_alpha + ']')
-                            justthedigits += ' ' + poss_alpha
+
+                if not digitsvalid:
+                    for jdc in list(justthedigits):
+                        if not jdc.isdigit():
+                            jdc_start = justthedigits.find(jdc)
+                            alpha_isschk = justthedigits[jdc_start:]
+                            for issexcept in issue_exceptions:
+                                if issexcept.lower() in alpha_isschk.lower() and len(alpha_isschk) <= len(issexcept):
+                                    logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION : [' + justthedigits + ']')
+                                    digitsvalid = "true"
+                                    break
+                        if digitsvalid == "true": break
+
+                    try:
+                        tmpthedigits = justthedigits_1.split(' ', 1)[1]
+                        logger.fdebug('[FILECHECKER] If the series has a decimal, this should be a number [' + tmpthedigits + ']')
+                        if 'cbr' in tmpthedigits.lower() or 'cbz' in tmpthedigits.lower():
+                            tmpthedigits = tmpthedigits[:-3].strip()
+                            logger.fdebug('[FILECHECKER] Removed extension - now we should just have a number [' + tmpthedigits + ']')
+                        poss_alpha = tmpthedigits
+                        if poss_alpha.isdigit():
+                            digitsvalid = "true"
+                            if (justthedigits.lower() == 'annual' and 'annual' not in watchcomic.lower()) or (annual_comicid is not None):
+                                logger.fdebug('[FILECHECKER] ANNUAL DETECTED ['  + poss_alpha + ']')
+                                justthedigits += ' ' + poss_alpha
+                            else:
+                                justthedigits += '.' + poss_alpha
+                                logger.fdebug('[FILECHECKER] DECIMAL ISSUE DETECTED [' + justthedigits + ']')
                         else:
-                            justthedigits += '.' + poss_alpha
-                            logger.fdebug('[FILECHECKER] DECIMAL ISSUE DETECTED [' + justthedigits + ']')
-                    else:
-                        for issexcept in issue_exceptions:
-                            decimalexcept = False
-                            if '.' in issexcept:
-                                decimalexcept = True
-                                issexcept = issexcept[1:] #remove the '.' from comparison...
-                            if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
-                                if decimalexcept:
-                                    issexcept = '.' + issexcept
-                                justthedigits += issexcept #poss_alpha
-                                logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
-                                digitsvalid = "true"
-                                break
-                except:
-                    tmpthedigits = None
+                            for issexcept in issue_exceptions:
+                                decimalexcept = False
+                                if '.' in issexcept:
+                                    decimalexcept = True
+                                    issexcept = issexcept[1:] #remove the '.' from comparison...
+                                if issexcept.lower() in poss_alpha.lower() and len(poss_alpha) <= len(issexcept):
+                                    if decimalexcept:
+                                        issexcept = '.' + issexcept
+                                    justthedigits += issexcept #poss_alpha
+                                    logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION. COMBINING : [' + justthedigits + ']')
+                                    digitsvalid = "true"
+                                    break
+                    except:
+                        tmpthedigits = None
 
     #            justthedigits = justthedigits.split(' ', 1)[0]
    
