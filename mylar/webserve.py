@@ -2125,7 +2125,7 @@ class WebInterface(object):
     markasRead.exposed = True
 
     def addtoreadlist(self, IssueID):
-        read = readinglist.Readinglist(IssueID)
+        read = readinglist.Readinglist(IssueID=IssueID)
         read.addtoreadlist()
         return
         #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % readlist['ComicID'])
