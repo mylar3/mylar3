@@ -757,12 +757,15 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
 
                 justthedigits = justthedigits_1.split(' ', 1)[0]
                 digitsvalid = "false"
-
+ 
                 if not justthedigits.isdigit():
                     logger.fdebug('[FILECHECKER] Invalid character found in filename after item removal - cannot find issue # with this present. Temporarily removing it from the comparison to be able to proceed.')
-                    justthedigits = justthedigits_1.split(' ', 1)[1]            
-                    if justthedigits.isdigit():
-                        digitsvalid = "true"
+                    try:
+                        justthedigits = justthedigits_1.split(' ', 1)[1]
+                        if justthedigits.isdigit():
+                            digitsvalid = "true"
+                    except:
+                        pass
 
                 if not digitsvalid:
                     for jdc in list(justthedigits):
@@ -1056,6 +1059,10 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     else:
                         logger.fdebug('[FILECHECKER] failure - not an exact match.')
                         continue
+
+                if comicsize == 0:
+                    logger.fdebug('[FILECHECKER] Size of given file is 0 bytes. Ignoring.')
+                    continue
 
                 if manual:
                     #print item
