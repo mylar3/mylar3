@@ -725,7 +725,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                                 altvalues = loaditup(watchcomic, comicid[cnt], altissuenum, chktype)
                                                 if altvalues == 'no results':
                                                     logger.fdebug('No alternate Issue numbering - something is probably wrong somewhere.')
-                                                    pass
+                                                    break
 
                                                 validcheck = checkthis(altvalues[0]['issuedate'], altvalues[0]['status'], usedate)
                                                 if validcheck == False:

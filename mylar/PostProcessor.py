@@ -24,6 +24,7 @@ import logging
 import mylar
 import subprocess
 import urllib2
+import sys
 from xml.dom.minidom import parseString
 
 
@@ -80,7 +81,7 @@ class PostProcessor(object):
 
     def _log(self, message, level=logger.message):  #level=logger.MESSAGE):
         """
-        A wrapper for the internal logger which also keeps track of messages and saves them to a string for $
+        A wrapper for the internal logger which also keeps track of messages and saves them to a string for sabnzbd post-processing logging functions.
 
         message: The string to log (unicode)
         level: The log level to use (optional)
@@ -94,23 +95,39 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the pre script
         """
+        logger.fdebug("initiating pre script detection.")
         self._log("initiating pre script detection.")
+        logger.fdebug("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS)
         self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS)
 #        for currentScriptName in mylar.PRE_SCRIPTS:
-        currentScriptName = str(mylar.PRE_SCRIPTS).decode("string_escape")
-        self._log("pre script detected...enabling: " + str(currentScriptName))
+        with open(mylar.PRE_SCRIPTS, 'r') as f:
+            first_line = f.readline()
+
+        if mylar.PRE_SCRIPTS.endswith('.sh'):
+            shell_cmd = re.sub('#!','', first_line).strip()
+            if shell_cmd == '' or shell_cmd is None:
+                shell_cmd = '/bin/bash'
+        else:
+            #forces mylar to use the executable that it was run with to run the extra script.
+            shell_cmd = sys.executable
+
+        currentScriptName = shell_cmd + ' ' + str(mylar.PRE_SCRIPTS).decode("string_escape")
+        logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
+        logger.fdebug("cmd to be executed: " + str(script_cmd))
         self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
-        self._log(u"Executing command "+str(script_cmd))
-        self._log(u"Absolute path to script: "+script_cmd[0])
+        logger.fdebug(u"Executing command "+str(script_cmd))
+        logger.fdebug(u"Absolute path to script: "+script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
+            logger.fdebug(u"Script result: " + out)
             self._log(u"Script result: " + out)
         except OSError, e:
+           logger.warn(u"Unable to run pre_script: " + str(script_cmd))
            self._log(u"Unable to run pre_script: " + str(script_cmd))
 
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
@@ -119,23 +136,39 @@ class PostProcessor(object):
 
         ep_obj: The object to use when calling the extra script
         """
+        logger.fdebug("initiating extra script detection.")
         self._log("initiating extra script detection.")
+        logger.fdebug("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS)
         self._log("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS)
 #        for curScriptName in mylar.EXTRA_SCRIPTS:
-        curScriptName = str(mylar.EXTRA_SCRIPTS).decode("string_escape")
-        self._log("extra script detected...enabling: " + str(curScriptName))
+        with open(mylar.EXTRA_SCRIPTS, 'r') as f:
+            first_line = f.readline()
+
+        if mylar.EXTRA_SCRIPTS.endswith('.sh'):
+            shell_cmd = re.sub('#!','', first_line)
+            if shell_cmd == '' or shell_cmd is None:
+                shell_cmd = '/bin/bash'
+        else:
+            #forces mylar to use the executable that it was run with to run the extra script.
+            shell_cmd = sys.executable
+
+        curScriptName = shell_cmd + ' ' + str(mylar.EXTRA_SCRIPTS).decode("string_escape")
+        logger.fdebug("extra script detected...enabling: " + str(curScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
+        logger.fdebug("cmd to be executed: " + str(script_cmd))
         self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
-        self._log(u"Executing command "+str(script_cmd))
-        self._log(u"Absolute path to script: "+script_cmd[0])
+        logger.fdebug(u"Executing command "+str(script_cmd))
+        logger.fdebug(u"Absolute path to script: "+script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
+            logger.fdebug(u"Script result: " + out)
             self._log(u"Script result: " + out)
         except OSError, e:
+            logger.warn(u"Unable to run extra_script: " + str(script_cmd))
             self._log(u"Unable to run extra_script: " + str(script_cmd))
 
 
@@ -339,10 +372,19 @@ class PostProcessor(object):
                     nzbname = re.sub(str(ext), '', str(nzbname))
 
                 #replace spaces
-                nzbname = re.sub(' ', '.', str(nzbname))
-                nzbname = re.sub('[\,\:\?\'\(\)]', '', str(nzbname))
-                nzbname = re.sub('[\&]', 'and', str(nzbname))
-                nzbname = re.sub('_', '.', str(nzbname))
+                # let's change all space to decimals for simplicity
+                logger.fdebug('[NZBNAME]: ' + nzbname)
+                #gotta replace & or escape it
+                nzbname = re.sub("\&", 'and', nzbname)
+                nzbname = re.sub('[\,\:\?\']', '', nzbname)
+                nzbname = re.sub('[\(\)]', ' ', nzbname)
+                logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
+                nzbname = re.sub('.cbr', '', nzbname).strip()
+                nzbname = re.sub('.cbz', '', nzbname).strip()
+                nzbname = re.sub('\s+',' ', nzbname)  #make sure we remove the extra spaces.
+                logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces): ' + nzbname)
+                nzbname = re.sub('[\s\_]', '.', nzbname)
+                logger.fdebug('[NZBNAME] end nzbname (spaces to dots): ' + nzbname)
 
                 logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
 #                if mylar.USE_NZBGET==1:
@@ -1122,12 +1164,18 @@ class PostProcessor(object):
 
 class FolderCheck():
 
-    def run(self):
-        module = '[FOLDER-CHECK]'
+    def __init__(self):
+        import Queue
         import PostProcessor, logger
+
+        self.module = '[FOLDER-CHECK]'
+        self.queue = Queue.Queue()
+
+    def run(self):
         #monitor a selected folder for 'snatched' files that haven't been processed
-        logger.info(module + ' Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
-        PostProcess = PostProcessor.PostProcessor('Manual Run', mylar.CHECK_FOLDER)
+        #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
+        logger.info(self.module + ' Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
+        PostProcess = PostProcessor('Manual Run', mylar.CHECK_FOLDER, queue=self.queue)
         result = PostProcess.Process()
-        logger.info(module + ' Finished checking for newly snatched downloads')
+        logger.info(self.module + ' Finished checking for newly snatched downloads')
 

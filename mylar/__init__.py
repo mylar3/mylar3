@@ -287,7 +287,6 @@ TAB_DIRECTORY = None
 STORYARCDIR = 0
 COPY2ARCDIR = 0
 
-CVAPIFIX = 0
 CVURL = None
 WEEKFOLDER = 0
 LOCMOVE = 0
@@ -335,12 +334,14 @@ ENABLE_KAT = 0
 KAT_PROXY = None
 
 ENABLE_32P = 0
-PASSKEY_32P = None
+MODE_32P = None  #0 = legacymode, #1 = authmode
+KEYS_32P = None
 RSSFEED_32P = None
-USERID_32P = None
-AUTH_32P = None
+PASSKEY_32P = None
+USERNAME_32P = None
+PASSWORD_32P = None
 AUTHKEY_32P = None
-
+FEEDINFO_32P = None
 SNATCHEDTORRENT_NOTIFY = 0
 
 def CheckSection(sec):
@@ -403,10 +404,10 @@ def initialize():
                 ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, PASSKEY_32P, RSSFEED_32P, AUTHKEY_32P, USERID_32P, AUTH_32P, SNATCHEDTORRENT_NOTIFY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CVAPIFIX, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
 
         if __INITIALIZED__:
@@ -523,9 +524,6 @@ def initialize():
             #default to ComicLocation
             GRABBAG_DIR = DESTINATION_DIR
         WEEKFOLDER = bool(check_setting_int(CFG, 'General', 'weekfolder', 0))
-        CVAPIFIX = bool(check_setting_int(CFG, 'General', 'cvapifix', 0))
-        if CVAPIFIX is None:
-            CVAPIFIX = 0
         LOCMOVE = bool(check_setting_int(CFG, 'General', 'locmove', 0))
         if LOCMOVE is None:
             LOCMOVE = 0
@@ -634,38 +632,52 @@ def initialize():
             print 'Converting CBT settings to 32P - ENABLE_32P: ' + str(ENABLE_32P)
         else:
             ENABLE_32P = bool(check_setting_int(CFG, 'Torrents', 'enable_32p', 0))
-                        
-        CBT_PASSKEY = check_setting_str(CFG, 'Torrents', 'cbt_passkey', '-1')
-        if CBT_PASSKEY != '-1':
-            PASSKEY_32P = CBT_PASSKEY
-            print 'Converting CBT settings to 32P - PASSKEY_32P: ' + str(PASSKEY_32P)
-        else:
-            PASSKEY_32P = check_setting_str(CFG, 'Torrents', 'passkey_32p', '')
+
+        MODE_32P = check_setting_int(CFG, 'Torrents', 'mode_32p', 0)
+        #legacy support of older config - reload into old values for consistency.
+        try:
+            if MODE_32P != 0 and MODE_32P != 1:
+                #default to Legacy mode
+                MODE_32P = 0
+        except:
+            MODE_32P = 0
 
         RSSFEED_32P = check_setting_str(CFG, 'Torrents', 'rssfeed_32p', '')
+        PASSKEY_32P = check_setting_str(CFG, 'Torrents', 'passkey_32p', '')
 
-        #parse out the keys.
-        if ENABLE_32P and len(RSSFEED_32P) > 1:
-            userid_st = RSSFEED_32P.find('&user')
-            userid_en = RSSFEED_32P.find('&',userid_st+1)
-            if userid_en == -1: 
-                USERID_32P = RSSFEED_32P[userid_st+6:]
-            else: 
-                USERID_32P = RSSFEED_32P[userid_st+6:userid_en]
+        if MODE_32P == 0 and RSSFEED_32P is not None:
 
-            auth_st = RSSFEED_32P.find('&auth')
-            auth_en = RSSFEED_32P.find('&',auth_st+1)
-            if auth_en == -1: 
-                AUTH_32P = RSSFEED_32P[auth_st+6:]
-            else:
-                AUTH_32P = RSSFEED_32P[auth_st+6:auth_en]
+            #parse out the keys.
+            if ENABLE_32P and len(RSSFEED_32P) > 1:
+                userid_st = RSSFEED_32P.find('&user')
+                userid_en = RSSFEED_32P.find('&',userid_st+1)
+                if userid_en == -1:
+                    USERID_32P = RSSFEED_32P[userid_st+6:]
+                else:
+                    USERID_32P = RSSFEED_32P[userid_st+6:userid_en]
 
-            authkey_st = RSSFEED_32P.find('&authkey')
-            authkey_en = RSSFEED_32P.find('&',authkey_st+1)
-            if authkey_en == -1:
-                AUTHKEY_32P = RSSFEED_32P[authkey_st+9:]
-            else:
-                AUTHKEY_32P = RSSFEED_32P[authkey_st+9:authkey_en]
+                auth_st = RSSFEED_32P.find('&auth')
+                auth_en = RSSFEED_32P.find('&',auth_st+1)
+                if auth_en == -1:
+                    AUTH_32P = RSSFEED_32P[auth_st+6:]
+                else:
+                    AUTH_32P = RSSFEED_32P[auth_st+6:auth_en]
+
+                authkey_st = RSSFEED_32P.find('&authkey')
+                authkey_en = RSSFEED_32P.find('&',authkey_st+1)
+                if authkey_en == -1:
+                    AUTHKEY_32P = RSSFEED_32P[authkey_st+9:]
+                else:
+                    AUTHKEY_32P = RSSFEED_32P[authkey_st+9:authkey_en]
+
+                KEYS_32P = {}
+                KEYS_32P = {"user":    USERID_32P,
+                             "auth":    AUTH_32P,
+                             "authkey": AUTHKEY_32P,
+                             "passkey": PASSKEY_32P}
+             
+        USERNAME_32P = check_setting_str(CFG, 'Torrents', 'username_32p', '')
+        PASSWORD_32P = check_setting_str(CFG, 'Torrents', 'password_32p', '')
 
         SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
 
@@ -856,7 +868,6 @@ def initialize():
                     TMPPR_NUM +=1
 
 
-        #this isn't ready for primetime just yet...
         #print 'Provider Order is:' + str(PROV_ORDER)
 
         if PROV_ORDER is None:
@@ -864,17 +875,14 @@ def initialize():
         else:
             flatt_providers = []
             for pro in PROV_ORDER:
-                #print pro
-                for key, value in pro.items():
-                    #print key, value
-                    try:
-                        flatt_providers.append(re.sub('cbt','32p',value))
-                    except TypeError:
-                        #if the value is None (no Name specified for Newznab entry), break out now
-                        continue                         
+                try:
+                    provider_seq = re.sub('cbt','32p', pro['provider'])
+                    flatt_providers.extend([pro['order_seq'], provider_seq])
+                except TypeError:
+                    #if the value is None (no Name specified for Newznab entry), break out now
+                    continue                         
 
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flatt_providers, i, None, 2) for i in range(2)]))
-        #print 'text provider order is: ' + str(PROVIDER_ORDER)
         config_write()
 
         # update folder formats in the config & bump up config version
@@ -971,18 +979,6 @@ def initialize():
         except Exception, e:
             logger.error('Cannot connect to the database: %s' % e)
 
-        # With the addition of NZBGet, it's possible that both SAB and NZBget are unchecked initially.
-        # let's force default SAB.
-        #if NZB_DOWNLOADER == None:
-        #    logger.info('No Download Option selected - default to SABnzbd.')
-        #    NZB_DOWNLOADER = 0
-        #    USE_SABNZBD = 1
-        #else:
-        #    logger.info('nzb_downloader is set to : ' + str(NZB_DOWNLOADER))
-        #if USE_NZBGET == 0 and USE_SABNZBD == 0 :
-        #    logger.info('No Download Server option given - defaulting to SABnzbd.')
-        #    USE_SABNZBD = 1
-
         # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION = versioncheck.getVersion()
@@ -1027,13 +1023,8 @@ def initialize():
             else:
                 logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
-        #CV sometimes points to the incorrect DNS - here's the fix.
-        if CVAPIFIX == 1:
-            CVURL = 'http://beta.comicvine.com/api/'
-            logger.info('CVAPIFIX enabled: ComicVine set to beta API site')
-        else:
-            CVURL = 'http://api.comicvine.com/'
-            logger.info('CVAPIFIX disabled: Comicvine set to normal API site')
+        #set the default URL for ComicVine API here.
+        CVURL = 'http://api.comicvine.com/'
 
         if LOCMOVE:
             helpers.updateComicLocation()
@@ -1202,7 +1193,6 @@ def config_write():
     new_config['General']['annuals_on'] = int(ANNUALS_ON)
     new_config['General']['cv_only'] = int(CV_ONLY)
     new_config['General']['cv_onetimer'] = int(CV_ONETIMER)
-    new_config['General']['cvapifix'] = int(CVAPIFIX)
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
     new_config['General']['check_github_interval'] = CHECK_GITHUB_INTERVAL
@@ -1322,8 +1312,11 @@ def config_write():
     new_config['Torrents']['enable_kat'] = int(ENABLE_KAT)
     new_config['Torrents']['kat_proxy'] = KAT_PROXY
     new_config['Torrents']['enable_32p'] = int(ENABLE_32P)
+    new_config['Torrents']['mode_32p'] = int(MODE_32P)
     new_config['Torrents']['passkey_32p'] = PASSKEY_32P
     new_config['Torrents']['rssfeed_32p'] = RSSFEED_32P
+    new_config['Torrents']['username_32p'] = USERNAME_32P
+    new_config['Torrents']['password_32p'] = PASSWORD_32P
     new_config['Torrents']['snatchedtorrent_notify'] = int(SNATCHEDTORRENT_NOTIFY)
     new_config['SABnzbd'] = {}
     #new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)

@@ -452,9 +452,9 @@ def run (dirName, nzbName=None, issueid=None, comversion=None, manual=None, file
             #shutil.move( nfilename, os.path.join(os.path.abspath(dirName),file_n))
             logger.fdebug(module + ' Sucessfully moved file from temporary path.')
         except:
-            logger.error(module + ' Unable to move file from temporary path. Deletion of temporary path halted.')
+            logger.error(module + ' Unable to move file from temporary path [' + os.path.join(comicpath, nfilename) + ']. Deletion of temporary path halted.')
             logger.error(module + ' attempt to move: ' + os.path.join(comicpath, nfilename) + ' to ' + os.path.join(os.path.abspath(file_dir), file_n))
-            return os.path.join(comicpath, nfilename)
+            return os.path.join(os.path.abspath(file_dir), file_n)  #os.path.join(comicpath, nfilename)
 
         i = 0
 

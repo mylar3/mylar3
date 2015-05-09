@@ -30,7 +30,7 @@ import sqlite3
 import cherrypy
 
 import mylar
-from mylar import logger, helpers, db, mb, albumart, cv, parseit, filechecker, search, updater, moveit, comicbookdb
+from mylar import logger, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
 
 
 def is_exists(comicid):

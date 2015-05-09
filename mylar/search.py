@@ -27,6 +27,7 @@ import getopt
 import re
 import time
 import urlparse
+from urlparse import urljoin
 from xml.dom.minidom import parseString
 import urllib2
 import email.utils
@@ -51,7 +52,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     logger.fdebug('Publisher is : ' + Publisher)
 
     issuetitle = helpers.get_issue_title(IssueID)
-    logger.info('Issue Title given as : ' + issuetitle)
+    if issuetitle:
+        logger.info('Issue Title given as : ' + issuetitle)
+    else:
+        logger.fdebug('Issue Title not found. Setting to None.')
 
     if mode == 'want_ann':
         logger.info("Annual issue search detected. Appending to issue #")
@@ -63,14 +67,15 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     if IssueID is None:
         #one-off the download.
-        print ("ComicName: " + ComicName)
-        print ("Issue: " + str(IssueNumber))        
-        print ("Year: " + str(ComicYear))
-        print ("IssueDate:" + str(IssueDate))
+        logger.fdebug('One-Off Search parameters:')
+        logger.fdebug("ComicName: " + ComicName)
+        logger.fdebug("Issue: " + str(IssueNumber))        
+        logger.fdebug("Year: " + str(ComicYear))
+        logger.fdebug("IssueDate:" + str(IssueDate))
     if SARC:
-        print ("Story-ARC issue!")
-        print ("Story-ARC: " + str(SARC))
-        print ("IssueArcID: " + str(IssueArcID))
+        logger.fdebug("Story-ARC Search parameters:")
+        logger.fdebug("Story-ARC: " + str(SARC))
+        logger.fdebug("IssueArcID: " + str(IssueArcID))
 
     torprovider = []
     torp = 0
@@ -683,8 +688,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
 # -- end size constaints.
 
-
-                    thisentry = entry['title']
+                    if '(digital first)' in entry['title'].lower():
+                        dig_moving = re.sub('\(digital first\)', '', entry['title'].lower()).strip()
+                        dig_moving = re.sub('[\s+]', ' ', dig_moving)
+                        dig_mov_end = dig_moving + ' (Digital First)'
+                        thisentry = dig_mov_end
+                    else:
+                        thisentry = entry['title']
                     logger.fdebug("Entry: " + thisentry)
                     cleantitle = thisentry
 
@@ -1282,7 +1292,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             nzbname = nzbname_create(nzbprov, info=comicinfo, title=entry['title'])
 
                             #generate the send-to and actually send the nzb / torrent.
-                            searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov)
+                            searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov, newznab=newznab_host)
 
                             if searchresult == 'downloadchk-fail':
                                 continue
@@ -1576,24 +1586,23 @@ def nzbname_create(provider, title=None, info=None):
 
     else:
         # let's change all space to decimals for simplicity
-        nzbname = re.sub('\s+',' ', title)  #make sure we remove the extra spaces.
         logger.fdebug('[SEARCHER] entry[title]: ' + title)
+        #gotta replace & or escape it
+        nzbname = re.sub("\&", 'and', title)
+        nzbname = re.sub('[\,\:\?\']', '', nzbname)
+        nzbname = re.sub('[\(\)]', ' ', nzbname)
+        logger.fdebug('[SEARCHER] nzbname (remove chars): ' + nzbname)
+        nzbname = re.sub('.cbr', '', nzbname).strip()
+        nzbname = re.sub('.cbz', '', nzbname).strip()
+        nzbname = re.sub('\s+',' ', nzbname)  #make sure we remove the extra spaces.
         logger.fdebug('[SEARCHER] nzbname (\s): ' + nzbname)
         nzbname = re.sub(' ', '.', nzbname)
-        logger.fdebug('[SEARCHER] nzbname (space to .): ' + nzbname)
-        #gotta replace & or escape it
-        nzbname = re.sub("\&", 'and', nzbname)
-        nzbname = re.sub('[\,\:\?\'\(\)]', '', nzbname)
         logger.fdebug('[SEARCHER] end nzbname: ' + nzbname)
-
-
-    nzbname = re.sub('.cbr', '', nzbname).strip()
-    nzbname = re.sub('.cbz', '', nzbname).strip()
 
     logger.fdebug("nzbname used for post-processing:" + nzbname)
     return nzbname
 
-def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None):
+def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None, newznab=None):
     alt_nzbname = None
 
     #load in the details of the issue from the tuple.
@@ -1624,113 +1633,111 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #if sab priority isn't selected, default to Normal (0)
         nzbgetpriority = "0"
 
+    nzbid = generate_id(nzbprov, link)
+
     if link and (nzbprov != 'KAT' and nzbprov != '32P'):
-        opener = urllib.FancyURLopener({})
-        opener.addheaders = []
-        opener.addheader('User-Agent', str(mylar.USER_AGENT))
+
+        #generate nzbid here.
+
         nzo_info = {}
         filen = None
+
+        payload = None
+        headers = {'User-Agent': str(mylar.USER_AGENT)}
+        #link doesn't have the apikey - add it and use ?t=get for newznab based.
+
+        if nzbprov == 'newznab':
+            #need to basename the link so it just has the id/hash.
+            #rss doesn't store apikey, have to put it back.
+            name_newznab = newznab[0].rstrip()
+            host_newznab = newznab[1].rstrip()
+            if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
+                host_newznab_fix = str(host_newznab) + "/"
+            else: 
+                host_newznab_fix = host_newznab
+
+            apikey = newznab[2].rstrip()
+            down_url = host_newznab_fix + 'api'
+
+            payload = {'t': 'get',
+                       'id': str(nzbid),
+                       'apikey': str(apikey)}
+
+            logger.info('payload:' + str(payload))
+
+        elif nzbprov == 'dognzb':
+            #dognzb - need to add back in the dog apikey
+            down_url = urljoin(link, str(mylar.DOGNZB_APIKEY))
+        else:
+            #experimental - direct link.
+            down_url = link
+            headers = None
+
+        logger.info('download url:' + down_url)
+            
+        import lib.requests as requests
+        
         try:
-            fn, header = opener.retrieve(link)
-        except:
-            fn = None
-        for tup in header.items():
-           try:
-               item = tup[0].lower()
-               value = tup[1].strip()
-           except:
-               continue
-           if item in ('category_id', 'x-dnzb-category'):
-               category = value
-           elif item in ('x-dnzb-moreinfo',):
-               nzo_info['more_info'] = value
-           elif item in ('x-dnzb-name',):
-               filen = value
-               nzo_info['filename'] = filen
-           elif item == 'x-dnzb-propername':
-               nzo_info['propername'] = value
-           elif item == 'x-dnzb-episodename':
-               nzo_info['episodename'] = value
-           elif item == 'x-dnzb-year':
-               nzo_info['year'] = value
-           elif item == 'x-dnzb-failure':
-               nzo_info['failure'] = value
-           elif item == 'x-dnzb-details':
-               nzo_info['details'] = value
-           elif item in ('content-length',):
-               try:
-                   ivalue = int(value)
-               except:
-                   ivalue = 0
-               length = ivalue
-               nzo_info['length'] = length
+            r = requests.get(down_url, params=payload, headers=headers)
 
-           if not filen:
-               for item in tup:
-                   if "filename=" in item:
-                       filen = item[item.index("filename=") + 9:].strip(';').strip('"')
-        logger.fdebug('nzo_info:' + str(nzo_info))
+        except Exception, e:
+            logger.warn('Error fetching data from %s: %s' % (tmpprov, e))
+            return "sab-fail"
 
-        if filen is None and mylar.FAILED_DOWNLOAD_HANDLING:
-            logger.fdebug('[FAILED_DOWNLOAD] [' + str(tmpprov) + '] Marked as a bad download : ' + str(link))
-            return "downloadchk-fail"
+        try:
+            nzo_info['filename'] = r.headers['x-dnzb-name']
+            filen = r.headers['x-dnzb-name']
+        except KeyError:
+            filen = None
+        try:
+            nzo_info['propername'] = r.headers['x-dnzb-propername']
+        except KeyError:
+            pass
+        try:
+            nzo_info['failure'] = r.headers['x-dnzb-failure']
+        except KeyError:
+            pass
+        try:
+            nzo_info['details'] = r.headers['x-dnzb-details']
+        except KeyError:
+            pass
 
-        #convert to a generic type of format to help with post-processing.
-        filen = re.sub('.cbr', '', filen).strip()
-        filen = re.sub('.cbz', '', filen).strip()
-        filen = re.sub("\&", 'and', filen)
-        filen = re.sub('[\,\:\?\'\(\)]', '', filen)
+        if filen is None:
+            try:
+                filen = r.headers['content-disposition'][r.headers['content-disposition'].index("filename=") + 9:].strip(';').strip('"')
+            except:
+                pass
 
-
-        if re.sub('.nzb','', filen.lower()).strip() != re.sub('.nzb','', nzbname.lower()).strip():
-            alt_nzbname = re.sub('.nzb','', filen).strip()
-            alt_nzbname = re.sub('[\s+]', ' ', alt_nzbname)
-            alt_nzbname = re.sub('[\s\_]', '.', alt_nzbname)
-            logger.info('filen: ' + alt_nzbname + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
-
-
-    #check if nzb is in do not download list
-    if nzbprov == 'experimental':
-        #id is located after the /download/ portion
-        url_parts = urlparse.urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbtempid = path_parts[0].rpartition('/')
-        nzblen = len(nzbtempid)
-        nzbid = nzbtempid[nzblen-1]
-    elif nzbprov == '32P':
-        #32P just has the torrent id stored.
-        nzbid = link
-    elif nzbprov == 'KAT':
-        if 'http' not in link:
-            nzbid = link
+        if filen is None:
+            logger.error('Unable to download nzb from link: ' + str(link))
         else:
-            #for users that already have the cache in place.
-            url_parts = urlparse.urlparse(link)
-            path_parts = url_parts[2].rpartition('/')
-            nzbtempid = path_parts[2]
-            nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
-    elif nzbprov == 'nzb.su':
-        url_parts = urlparse.urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
-    elif nzbprov == 'dognzb':
-        url_parts = urlparse.urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbid = path_parts[0].rsplit('/',1)[1]
-    elif nzbprov == 'newznab':
-        #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
-        tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
-        if tmpid == '' or tmpid is None:
-            nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
-        else:
-            # for the geek in all of us...
-            st = tmpid.find('&id')
-            end = tmpid.find('&',st+1)
-            nzbid = re.sub('&id=','', tmpid[st:end]).strip()
+            #convert to a generic type of format to help with post-processing.
+            filen = re.sub("\&", 'and', filen)
+            filen = re.sub('[\,\:\?\']', '', filen)
+            filen = re.sub('[\(\)]', ' ', filen)
+            logger.fdebug('[FILENAME] filename (remove chars): ' + filen)
+            filen = re.sub('.cbr', '', filen).strip()
+            filen = re.sub('.cbz', '', filen).strip()
+            filen = re.sub('\s+',' ', filen)  #make sure we remove the extra spaces.
+            logger.fdebug('[FILENAME] nzbname (\s): ' + filen)
+            filen = re.sub(' ', '.', filen)
+            logger.fdebug('[FILENAME] end nzbname: ' + filen)
+
+            if re.sub('.nzb','', filen.lower()).strip() != re.sub('.nzb','', nzbname.lower()).strip():
+                alt_nzbname = re.sub('.nzb','', filen).strip()
+                alt_nzbname = re.sub('[\s+]', ' ', alt_nzbname)
+                alt_nzbname = re.sub('[\s\_]', '.', alt_nzbname)
+                logger.info('filen: ' + alt_nzbname + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
 
 
     if mylar.FAILED_DOWNLOAD_HANDLING:
         if nzbid is not None:
+            try:
+                # only nzb providers will have a filen, try it and pass exception
+                if filen is None:
+                    return FailedMark(ComicID=ComicID, IssueID=IssueID, id=nzbid, nzbname=nzbname, prov=nzbprov)
+            except:
+                pass
             call_the_fail = Failed.FailedProcessor(nzb_name=nzbname, id=nzbid, issueid=IssueID, comicid=ComicID, prov=tmpprov)
             check_the_fail = call_the_fail.failed_check()
             if check_the_fail == 'Failed':
@@ -1739,6 +1746,13 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 #continue
             elif check_the_fail == 'Good':
                 logger.fdebug('[FAILED_DOWNLOAD_CHECKER] This is not in the failed downloads list. Will continue with the download.')
+    else:
+        try:
+            # only nzb providers will have a filen, try it and pass exception
+            if filen is None:
+                return "sab-fail"
+        except:
+            pass
 
     logger.fdebug('issues match!')
     logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + IssueNumber + " using " + str(tmpprov) )
@@ -1749,12 +1763,27 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #if mylar.USE_SABNZBD:
         #    linkit = linkit.replace("&", "%26")
         linkapi = linkstart + linkit
+        if nzbprov == 'newznab':
+            apikey = newznab[2].rstrip()
+            if '#' in newznab[3].rstrip():
+                uidstart = newznab[3].find('#')
+                uid = newznab[3][:uidstart]
+            else:
+                uid = newznab[3].strip()
+
+            fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
+        else:
+            fileURL = urllib.quote_plus(linkapi + '&r=' + apikey) # + '&i=' + uid + '&r=' + apikey)
+    elif nzbprov == 'dognzb':
+        linkapi = down_url
+        fileURL = urllib.quote_plus(down_url)
     else:
         # this should work for every other provider
         #linkstart = linkstart.replace("&", "%26")
         linkapi = linkstart
 
-    fileURL = urllib.quote_plus(linkapi)
+        fileURL = urllib.quote_plus(linkapi)
+
     logger.fdebug("link given by: " + str(nzbprov))
     #logger.fdebug("link: " + str(linkstart))
     #logger.fdebug("linkforapi: " + str(linkapi))
@@ -1875,11 +1904,28 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #final build of send-to-SAB
             logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
 
+            logger.info('sab-to-send:' + str(tmpapi))
+
             try:
-                urllib2.urlopen(tmpapi)
-            except urllib2.URLError:
-                logger.error(u"Unable to send nzb file to SABnzbd")
+                from lib.requests.packages.urllib3 import disable_warnings
+                disable_warnings()
+            except:
+                logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
+
+            import lib.requests as requests
+
+            try:
+                requests.put(tmpapi, verify=False)
+            except:
+                logger.error('Unable to send nzb file to SABnzbd')
                 return "sab-fail"
+
+#         this works for non-http sends to sab (when both sab AND provider are non-https)
+#            try:
+#                urllib2.urlopen(tmpapi)
+#            except urllib2.URLError:
+#                logger.error(u"Unable to send nzb file to SABnzbd")
+#                return "sab-fail"
 
             sent_to = "SABnzbd+"
             logger.info(u"Successfully sent nzb file to SABnzbd")
@@ -1944,7 +1990,8 @@ def FailedMark(IssueID, ComicID, id, nzbname, prov):
         FailProcess = Failed.FailedProcessor(issueid=IssueID, comicid=ComicID, id=id, nzb_name=nzbname, prov=prov)
         Markit = FailProcess.markFailed()
 
-        return "torrent-fail"
+        if prov == '32P' or prov == 'KAT': return "torrent-fail"
+        else: return "downloadchk-fail"
 
 def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstword, hyphensplit, orignzb=None):
         vals = []
@@ -2074,3 +2121,45 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
                              "status":   'ok'})
                 return vals
         return
+
+def generate_id(nzbprov, link):
+    logger.fdebug('[' + nzbprov + '] link: ' + str(link))
+    if nzbprov == 'experimental':
+        #id is located after the /download/ portion
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbtempid = path_parts[0].rpartition('/')
+        nzblen = len(nzbtempid)
+        nzbid = nzbtempid[nzblen-1]
+    elif nzbprov == '32P':
+        #32P just has the torrent id stored.
+        nzbid = link
+    elif nzbprov == 'KAT':
+        if 'http' not in link:
+            nzbid = link
+        else:
+            #for users that already have the cache in place.
+            url_parts = urlparse.urlparse(link)
+            path_parts = url_parts[2].rpartition('/')
+            nzbtempid = path_parts[2]
+            nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
+    elif nzbprov == 'nzb.su':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
+    elif nzbprov == 'dognzb':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[2].rpartition('/')
+        nzbid = path_parts[0].rsplit('/',1)[1]
+    elif nzbprov == 'newznab':
+        #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
+        tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
+        if tmpid == '' or tmpid is None:
+            nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+        else:
+            # for the geek in all of us...
+            st = tmpid.find('&id')
+            end = tmpid.find('&',st+1)
+            nzbid = re.sub('&id=','', tmpid[st:end]).strip()
+
+    return nzbid

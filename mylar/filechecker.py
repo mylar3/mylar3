@@ -147,13 +147,18 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     vers4vol = volrem
                     break
                 elif subit.lower()[:3] == 'vol':
-                    #if in format vol.2013 etc
-                    #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
-                    logger.fdebug('[FILECHECKER] volume indicator detected as version #:' + str(subit))
-                    subname = re.sub(subit, '', subname)
-                    volrem = subit
-                    vers4year = "yes"
-                    
+                    tsubit = re.sub('vol','', subit.lower())
+                    try:
+                        if any( [ tsubit.isdigit(), len(tsubit) > 5 ] ):
+                            #if in format vol.2013 etc
+                            #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
+                            logger.fdebug('[FILECHECKER] volume indicator detected as version #:' + str(subit))
+                            subname = re.sub(subit, '', subname)
+                            volrem = subit
+                            vers4year = "yes"
+                    except:
+                        continue                    
+
         #check if a year is present in series title (ie. spider-man 2099)
         #also check if decimal present in series title (ie. batman beyond 2.0)
         #- check if brackets present in series title
@@ -192,22 +197,28 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 bracket_length_st = watchcomic.find('(')
                 bracket_length_en = watchcomic.find(')', bracket_length_st)
                 bracket_length = bracket_length_en - bracket_length_st
-                bracket_word = watchcomic[bracket_length_st:bracket_length_en]
+                bracket_word = watchcomic[bracket_length_st:bracket_length_en+1]
                 logger.fdebug('[FILECHECKER] bracketinseries: ' + str(bracket_word))
 
         logger.fdebug('[FILECHECKER] numberinseries: ' + str(numberinseries))
         logger.fdebug('[FILECHECKER] decimalinseries: ' + str(decimalinseries))
         logger.fdebug('[FILECHECKER] bracketinseries: ' + str(bracketsinseries))
 
+        #iniitate the alternate list here so we can add in the different flavours based on above
+        AS_Alt = []
+
         #remove the brackets..
         if bracketsinseries == 'True':
             logger.fdebug('[FILECHECKER] modifying subname to accomodate brackets within series title.')
-            subnm_mod2 = re.findall('[^()]+', subname[bracket_length_en:])
-            #logger.fdebug('[FILECHECKER] subnm_mod : ' + subnm_mod2)
-            
-            subnm_mod = re.sub('[\(\)]',' ', subname[:bracket_length_en]) + str(subname[bracket_length_en+1:])
-            #logger.fdebug('[FILECHECKER] modified subname is now : ' + subnm_mod)
-            subname = subnm_mod
+            #subnm_mod2 = re.findall('[^()]+', subname[bracket_length_en:])
+            #logger.fdebug('[FILECHECKER] subnm_mod : ' + str(subnm_mod2))
+            #subnm_mod = re.sub('[\(\)]',' ', subname[:bracket_length_st]) + str(subname[bracket_length_en:])
+            #logger.fdebug('[FILECHECKER] subnm_mod_st: ' + str(subname[:bracket_length_st]))
+            #logger.fdebug('[FILECHECKER] subnm_mod_en: ' + str(subname[bracket_length_en:]))
+            #logger.fdebug('[FILECHECKER] modified subname is now : ' + str(subnm_mod))
+            if bracket_word in subname:
+                nobrackets_word = re.sub('[\(\)]','', bracket_word).strip()
+                subname = re.sub(nobrackets_word, '', subname).strip()
 
         subnm = re.findall('[^()]+', subname)
         logger.fdebug('[FILECHECKER] subnm len : ' + str(len(subnm)))
@@ -514,7 +525,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
             detectthe_sub = True
         subname = re.sub('\s+', ' ', subname).strip()
 
-        AS_Alt = []
+        #AS_Alt = []
         AS_Tuple = []
         if AlternateSearch is not None:
             chkthealt = AlternateSearch.split('##')
@@ -758,7 +769,7 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                 justthedigits = justthedigits_1.split(' ', 1)[0]
                 digitsvalid = "false"
  
-                if not justthedigits.isdigit():
+                if not justthedigits.isdigit() and 'annual' not in justthedigits.lower():
                     logger.fdebug('[FILECHECKER] Invalid character found in filename after item removal - cannot find issue # with this present. Temporarily removing it from the comparison to be able to proceed.')
                     try:
                         justthedigits = justthedigits_1.split(' ', 1)[1]
@@ -767,17 +778,18 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
                     except:
                         pass
 
-                if not digitsvalid:
-                    for jdc in list(justthedigits):
-                        if not jdc.isdigit():
-                            jdc_start = justthedigits.find(jdc)
-                            alpha_isschk = justthedigits[jdc_start:]
-                            for issexcept in issue_exceptions:
-                                if issexcept.lower() in alpha_isschk.lower() and len(alpha_isschk) <= len(issexcept):
-                                    logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION : [' + justthedigits + ']')
-                                    digitsvalid = "true"
-                                    break
-                        if digitsvalid == "true": break
+                if digitsvalid == "false":
+                    if 'annual' not in justthedigits.lower():
+                        for jdc in list(justthedigits):
+                            if not jdc.isdigit():
+                                jdc_start = justthedigits.find(jdc)
+                                alpha_isschk = justthedigits[jdc_start:]
+                                for issexcept in issue_exceptions:
+                                    if issexcept.lower() in alpha_isschk.lower() and len(alpha_isschk) <= len(issexcept):
+                                        logger.fdebug('[FILECHECKER] ALPHANUMERIC EXCEPTION : [' + justthedigits + ']')
+                                        digitsvalid = "true"
+                                        break
+                            if digitsvalid == "true": break
 
                     try:
                         tmpthedigits = justthedigits_1.split(' ', 1)[1]

@@ -143,20 +143,19 @@
 </div>
 </%def>
 <%def name="javascriptIncludes()">
-	<script>
+        <script>
+        function addScanAction() {
+                $('#autoadd').append('<input type="hidden" name="scan" value=1 />');
+        };
 
-                function addScanAction() {
-                        $('#autoadd').append('<input type="hidden" name="scan" value=1 />');
-                };
+        function initThisPage() {
+	        jQuery( "#tabs" ).tabs();
+		initActions();
+                initConfigCheckbox("#imp_move");
 
-		function initThisPage() {
-			jQuery( "#tabs" ).tabs();
-			initActions();
-                        initConfigCheckbox("#imp_move");
-
-		};
-		$(document).ready(function() {
-			initThisPage();
-		});
+	};
+	$(document).ready(function() {
+		initThisPage();
+	});
 	</script>
 </%def>

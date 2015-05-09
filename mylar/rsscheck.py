@@ -10,7 +10,7 @@ import gzip
 from StringIO import StringIO
 
 import mylar
-from mylar import db, logger, ftpsshup, helpers
+from mylar import db, logger, ftpsshup, helpers, auth32p
 
 
 def _start_newznab_attr(self, attrsD):
@@ -29,54 +29,10 @@ def _start_newznab_attr(self, attrsD):
 
 feedparser._FeedParserMixin._start_newznab_attr = _start_newznab_attr
 
-def tehMain(forcerss=None):
-    logger.info('RSS Feed Check was last run at : ' + str(mylar.RSS_LASTRUN))
-    firstrun = "no"
-    #check the last run of rss to make sure it's not hammering.
-    if mylar.RSS_LASTRUN is None or mylar.RSS_LASTRUN == '' or mylar.RSS_LASTRUN == '0' or forcerss == True:
-        logger.info('RSS Feed Check First Ever Run.')
-        firstrun = "yes"
-        mins = 0
-    else:
-        c_obj_date = datetime.datetime.strptime(mylar.RSS_LASTRUN, "%Y-%m-%d %H:%M:%S")
-        n_date = datetime.datetime.now()
-        absdiff = abs(n_date - c_obj_date)
-        mins = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0  #3600 is for hours.
-
-    if firstrun == "no" and mins < int(mylar.RSS_CHECKINTERVAL):
-        logger.fdebug('RSS Check has taken place less than the threshold - not initiating at this time.')
-        return
-
-    mylar.RSS_LASTRUN = helpers.now()
-    logger.fdebug('Updating RSS Run time to : ' + str(mylar.RSS_LASTRUN))
-    mylar.config_write()
-
-    #function for looping through nzbs/torrent feed
-    if mylar.ENABLE_TORRENT_SEARCH: #and mylar.ENABLE_TORRENTS:
-        logger.info('[RSS] Initiating Torrent RSS Check.')
-        if mylar.ENABLE_KAT:
-            logger.info('[RSS] Initiating Torrent RSS Feed Check on KAT.')
-            torrents(pickfeed='3')
-            torrents(pickfeed='6')
-        if mylar.ENABLE_CBT:
-            logger.info('[RSS] Initiating Torrent RSS Feed Check on CBT.')
-            torrents(pickfeed='1')
-            #torrents(pickfeed='4')
-    logger.info('[RSS] Initiating RSS Feed Check for NZB Providers.')
-    nzbs(forcerss=forcerss)
-    logger.info('[RSS] RSS Feed Check/Update Complete')
-    logger.info('[RSS] Watchlist Check for new Releases')
-    mylar.search.searchforissue(rsscheck='yes')
-    logger.info('[RSS] Watchlist Check complete.')
-    if forcerss:
-        logger.info('Successfully ran RSS Force Check.')
-    return
-
-def torrents(pickfeed=None,seriesname=None,issue=None):
+def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
     if pickfeed is None:
         return
 
-    passkey = mylar.PASSKEY_32P 
     srchterm = None
 
     if seriesname:
@@ -121,46 +77,53 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
         feedtype = None
 
         if pickfeed == "1" and mylar.ENABLE_32P:      # 32pages new releases feed.
-            if mylar.RSSFEED_32P is None or mylar.RSSFEED_32P == 'None' or mylar.RSSFEED_32P == '':
-                logger.error('[RSS] Warning - you NEED to enter in an RSS Feed URL for 32P in order to use the rss feeds (it can be any feed, it just needs ALL of your keys in the link)')
+            if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
+                logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')
                 lp=+1
                 continue
-            feed = 'http://32pag.es/feeds.php?feed=torrents_all&user=' + mylar.USERID_32P + '&auth=' + mylar.AUTH_32P + '&passkey=' + mylar.PASSKEY_32P + '&authkey=' + mylar.AUTHKEY_32P
+            feed = 'https://32pag.es/feeds.php?feed=torrents_all&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey']
             feedtype = ' from the New Releases RSS Feed for comics'
         elif pickfeed == "2" and srchterm is not None:    # kat.ph search
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
         elif pickfeed == "3":    # kat.ph rss feed
             feed = kat_url + "usearch/category%3Acomics%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
             feedtype = ' from the New Releases RSS Feed for comics'
-        elif pickfeed == "4":    #cbt follow link
-            feed = "http://comicbt.com/rss.php?action=follow&passkey=" + str(passkey) + "&type=dl"
-            feedtype = ' from your 32P Followlist RSS Feed'
+        elif pickfeed == "4":    #32p search
+            if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
+                logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')
+                lp=+1
+                continue
+            if mylar.MODE_32P == 0:
+                logger.warn('[32P] Searching is not available in 32p Legacy mode. Switch to Auth mode to use the search functionality.')
+                lp=+1
+                continue
+            return
         elif pickfeed == "5" and srchterm is not None:    # kat.ph search (category:other since some 0-day comics initially get thrown there until categorized)
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Aother%20seeds%3A1/?rss=1"
         elif pickfeed == "6":    # kat.ph rss feed (category:other so that we can get them quicker if need-be)
             feed = kat_url + "usearch/.cbr%20category%3Aother%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
             feedtype = ' from the New Releases for category Other RSS Feed that contain comics' 
-        elif pickfeed == "7":    # 32p series link
-#           seriespage = "http://comicbt.com/series.php?passkey=" + str(passkey)
-            feed = "http://comicbt.com/rss.php?action=series&series=" + str(seriesno) + "&passkey=" + str(passkey)
+        elif int(pickfeed) >=7 and feedinfo is not None:
+            #personal 32P notification feeds.
+            #get the info here
+            feed = 'https://32pag.es/feeds.php?feed=' + feedinfo['feed'] + '&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey'] + '&name=' + feedinfo['feedname']
+            feedtype = ' from your Personal Notification Feed : ' + feedinfo['feedname']
+ 
         else:
             logger.error('invalid pickfeed denoted...')
             return
 
-        #print 'feed URL: ' + str(feed)
+        #logger.info('feed URL: ' + str(feed))
   
-        if pickfeed == "7": # we need to get the series # first
-            seriesSearch(seriespage, seriesname)
-
         feedme = feedparser.parse(feed)
 
         if pickfeed == "3" or pickfeed == "6" or pickfeed == "2" or pickfeed == "5":
             picksite = 'KAT'
-        elif pickfeed == "1" or pickfeed == "4":
+        elif pickfeed == "1" or pickfeed == "4" or int(pickfeed) > 7: 
             picksite = '32P'
 
         i = 0
-    
+        logger.fdebug('results: ' + str(feedme))
         for entry in feedme['entries']:
             if pickfeed == "3" or pickfeed == "6":
                 tmpsz = feedme.entries[i].enclosures[0]
@@ -182,8 +145,8 @@ def torrents(pickfeed=None,seriesname=None,issue=None):
                                'size':     tmpsz['length']
                                })
   
-            elif pickfeed == "1" or pickfeed == "4":
-                if pickfeed == "1":
+            elif pickfeed == "1" or pickfeed == "4" or int(pickfeed) > 7:
+                if pickfeed == "1" or int(pickfeed) > 7:
                     tmpdesc = feedme.entries[i].description
                     st_pub = feedme.entries[i].title.find('(')
                     st_end = feedme.entries[i].title.find(')')
@@ -577,8 +540,9 @@ def torrentdbsearch(seriesname,issue,comicid=None,nzbprov=None):
 
             if tor['Site'] == '32P':
                 st_pub = rebuiltline.find('(')
-                st_end = rebuiltline.find(')')
-                rebuiltline = rebuiltline[st_end+1:]
+                if st_pub < 2 and st_pub != -1:
+                    st_end = rebuiltline.find(')')
+                    rebuiltline = rebuiltline[st_end+1:]
 
             tortheinfo.append({
                           'title':   rebuiltline, #cttitle,
@@ -731,7 +695,20 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
     if site == '32P':
         url = 'https://32pag.es/torrents.php'
 
-        verify = False
+        verify = True
+
+        if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
+            logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
+            return "fail"
+        elif mylar.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
+            if mylar.MODE_32P == 1:
+                feed32p = auth32p.info32p(reauthenticate=True)
+                feedinfo = feed32p.authenticate()
+            else:
+                logger.warn('[32P] Unavailable to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
+                return "fail"
+        else:
+            logger.fdebug('[32P-AUTHENTICATION] 32P Authentication already done. Attempting to use existing keys.')
 
         payload = {'action':       'download',
                    'torrent_pass': mylar.PASSKEY_32P,
@@ -758,8 +735,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         payload = None
         verify = False
 
-    #logger.info('payload set to : ' + str(payload))
-
     if not verify:
         #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
         #disable SSL warnings - too many 'warning' messages about invalid certificates
@@ -782,7 +757,21 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     except Exception, e:
         logger.warn('Error fetching data from %s: %s' % (site, e))
-        return "fail"
+        if site == '32P':
+            if mylar.MODE_32P == 1:
+                logger.info('Attempting to re-authenticate against 32P and poll new keys as required.')
+                feed32p = auth32p.info32p(reauthenticate=True)
+                feedinfo = feed32p.authenticate()
+                try:
+                    r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+                except Exception, e:
+                    logger.warn('Error fetching data from %s: %s' % (site, e))
+                    return "fail"
+            else:
+                logger.warn('[32P] Unable to authenticate using existing RSS Feed given. Make sure that you have provided a CURRENT feed from 32P')
+                return "fail"
+        else:
+            return "fail"
 
     if site == 'KAT':
         if r.headers.get('Content-Encoding') == 'gzip':

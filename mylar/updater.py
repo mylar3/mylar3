@@ -228,23 +228,26 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                     logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
 
                     issuesnew = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
-                    if mylar.ANNUALS_ON:
-                        annualsnew = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
 
-                    newiss = []
                     if mylar.AUTOWANT_UPCOMING:
                         newstatus = "Wanted"
                     else:
                         newstatus = "Skipped"
 
+                    newiss = []
+
                     for iss in issuesnew:
                          newiss.append({"IssueID":      iss['IssueID'],
                                         "Status":       newstatus,
                                         "Annual":       False})
-                    for ann in annualsnew:
-                         newiss.append({"IssueID":      iss['IssueID'],
-                                        "Status":       newstatus,
-                                        "Annual":       True})
+
+                    if mylar.ANNUALS_ON:
+                        annualsnew = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
+
+                        for ann in annualsnew:
+                             newiss.append({"IssueID":      iss['IssueID'],
+                                            "Status":       newstatus,
+                                            "Annual":       True})
 
                     if len(newiss) > 0:
                          for newi in newiss:
@@ -408,10 +411,13 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 if mylar.FAILED_DOWNLOAD_HANDLING:
                     if mylar.FAILED_AUTO:
                         values = { "Status":   "Wanted" }
+                        newValue['Status'] = "Wanted"
                     else:
                         values = { "Status":   "Failed" }
+                        newValue['Status'] = "Failed"
                 else:
                     values = { "Status":   "Skipped" }
+                    newValue['Status'] = "Skipped"
             else:
                 values = { "Status":    "Skipped"}
                 newValue['Status'] = "Skipped"
@@ -466,7 +472,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         else:
             myDB.upsert("issues", values, control)
 
-        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched', og_status == 'Wanted'] ): 
+        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched', og_status == 'Wanted', newValue['Status'] == 'Wanted'] ): 
             logger.fdebug('updating Pull-list to reflect status.')
             downstats = {"Status":  og_status,
                          "ComicID": issuechk['ComicID'],
@@ -828,6 +834,7 @@ def forceRescan(ComicID,archive=None,module=None):
     issID_to_ignore = []
     issID_to_ignore.append(str(ComicID))
     issID_to_write = []
+    ANNComicID = None
 
     while (fn < fccnt):  
         haveissue = "no"
@@ -1048,7 +1055,7 @@ def forceRescan(ComicID,archive=None,module=None):
 
                     #this will detect duplicate filenames within the same directory.
                     for di in annualdupechk:
-                        if di['fcdigit'] == fcdigit:
+                        if di['fcdigit'] == fcdigit and di['issueid'] == reann['IssueID']:
                             #base off of config - base duplication keep on filesize or file-type (or both)
                             logger.fdebug('[DUPECHECK] Duplicate issue detected [' + di['filename'] + '] [' + tmpfc['ComicFilename'] + ']')
                             # mylar.DUPECONSTRAINT = 'filesize' / 'filetype-cbr' / 'filetype-cbz'
@@ -1174,11 +1181,13 @@ def forceRescan(ComicID,archive=None,module=None):
 
                     issID_to_ignore.append(str(iss_id))
    
-                    if 'annual' in temploc.lower():
+                    if ANNComicID:
+#                   if 'annual' in temploc.lower():
                         #issID_to_write.append({"tableName":        "annuals",
                         #                       "newValueDict":     newValueDict,
                         #                       "controlValueDict": controlValueDict})
                         myDB.upsert("annuals", newValueDict, controlValueDict)
+                        ANNComicID = None
                     else:
                         #issID_to_write.append({"tableName":        "issues",
                         #                       "valueDict":     newValueDict,
@@ -1315,10 +1324,11 @@ def forceRescan(ComicID,archive=None,module=None):
         logger.fdebug(module + ' havefiles: ' + str(havefiles))
         logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
-        
+    #combined total for dispay total purposes only.       
     combined_total = iscnt + anncnt #(rescan['Total'] + anncnt)
 
     #let's update the total count of comics that was found.
+    #store just the total of issues, since annuals gets tracked seperately.
     controlValueStat = {"ComicID":     rescan['ComicID']}
     newValueStat = {"Have":            havefiles,
                     "Total":           iscnt}
