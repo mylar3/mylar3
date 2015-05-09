@@ -1019,14 +1019,16 @@ class PostProcessor(object):
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
                 downtype = 'PP'
                 #Manual Run, this is the portion.
+                src = os.path.join(odir, ofilename)
                 if mylar.RENAME_FILES:
                     if str(ofilename) != str(nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, str(ofilename)) + ' ..to.. ' + os.path.join(odir, self.nzb_folder,str(nfilename + ext)))
                         os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir ,str(nfilename + ext)))
+                        src = os.path.join(odir, str(nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
-                src = os.path.join(odir, ofilename)
-                logger.fdebug(module + ' odir src : ' + os.path.join(odir, ofilename + ext))
+
+                logger.fdebug(module + ' odir src : ' + src)
                 logger.fdebug(module + ' Moving ' + src + ' ... to ... ' + dst)
                 try:
                     shutil.move(src, dst)
