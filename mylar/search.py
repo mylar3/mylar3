@@ -1771,7 +1771,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             else:
                 uid = newznab[3].strip()
 
-            fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
+            if all( ['&r=' not in linkapi, '&i=' not in linkapi] ):
+                fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
+            else:
+                fileURL = urllib.quote_plus(linkapi)
         else:
             fileURL = urllib.quote_plus(linkapi + '&r=' + apikey) # + '&i=' + uid + '&r=' + apikey)
     elif nzbprov == 'dognzb':
@@ -1779,7 +1782,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         fileURL = urllib.quote_plus(down_url)
     else:
         # this should work for every other provider
-        #linkstart = linkstart.replace("&", "%26")
         linkapi = linkstart
 
         fileURL = urllib.quote_plus(linkapi)
