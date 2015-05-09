@@ -381,10 +381,10 @@ class PostProcessor(object):
                 logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
                 nzbname = re.sub('.cbr', '', nzbname).strip()
                 nzbname = re.sub('.cbz', '', nzbname).strip()
+                nzbname = re.sub('\_', ' ', nzbname)
                 nzbname = re.sub('\s+',' ', nzbname)  #make sure we remove the extra spaces.
-                logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces): ' + nzbname)
-                nzbname = re.sub('[\s\_]', '.', nzbname)
-                logger.fdebug('[NZBNAME] end nzbname (spaces to dots): ' + nzbname)
+                logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
+                nzbname = re.sub('\s', '.', nzbname)
 
                 logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
 #                if mylar.USE_NZBGET==1:
