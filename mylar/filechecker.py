@@ -119,13 +119,13 @@ def listFiles(dir,watchcomic,Publisher,AlternateSearch=None,manual=None,sarc=Non
         digitchk = 0
 
         if sarc and mylar.READ2FILENAME:
-           logger.info('subname: ' + subname)
+           logger.fdebug('[SARC] subname: ' + subname)
            removest = subname.find('-') # the - gets removed above so we test for the first blank space...
-           logger.info('removest: ' + str(removest))
-           logger.info('removestdig: ' + subname[:removest-1])
+           logger.fdebug('[SARC] Checking filename for Reading Order sequence - removest: ' + str(removest))
+           logger.fdebug('removestdig: ' + subname[:removest-1])
            if subname[:removest].isdigit() and removest == 3:
                subname = subname[4:]
-               logger.info('subname set to : ' + subname)
+               logger.fdebug('[SARC] Removed Reading Order sequence from subname. Now set to : ' + subname)
 
 
         for subit in subsplit:

@@ -381,7 +381,7 @@ class PostProcessor(object):
                 logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
                 nzbname = re.sub('.cbr', '', nzbname).strip()
                 nzbname = re.sub('.cbz', '', nzbname).strip()
-                nzbname = re.sub('\_', ' ', nzbname)
+                nzbname = re.sub('[\.\_]', ' ', nzbname).strip()
                 nzbname = re.sub('\s+',' ', nzbname)  #make sure we remove the extra spaces.
                 logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
                 nzbname = re.sub('\s', '.', nzbname)

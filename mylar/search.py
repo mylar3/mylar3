@@ -48,9 +48,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             #logger.info('AlternateSearch is : ' + AlternateSearch)
     if ComicYear == None: ComicYear = '2014'
     else: ComicYear = str(ComicYear)[:4]
-    if Publisher == 'IDW Publishing': Publisher = 'IDW'
-    logger.fdebug('Publisher is : ' + Publisher)
-
+    if Publisher:
+        if Publisher == 'IDW Publishing': Publisher = 'IDW'
+        logger.fdebug('Publisher is : ' + Publisher)
     issuetitle = helpers.get_issue_title(IssueID)
     if issuetitle:
         logger.info('Issue Title given as : ' + issuetitle)
@@ -1594,6 +1594,7 @@ def nzbname_create(provider, title=None, info=None):
         logger.fdebug('[SEARCHER] nzbname (remove chars): ' + nzbname)
         nzbname = re.sub('.cbr', '', nzbname).strip()
         nzbname = re.sub('.cbz', '', nzbname).strip()
+        nzbname = re.sub('[\.\_]', ' ', nzbname).strip()
         nzbname = re.sub('\s+',' ', nzbname)  #make sure we remove the extra spaces.
         logger.fdebug('[SEARCHER] nzbname (\s): ' + nzbname)
         nzbname = re.sub(' ', '.', nzbname)
@@ -1771,7 +1772,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             else:
                 uid = newznab[3].strip()
 
-            if all( ['&r=' not in linkapi, '&i=' not in linkapi] ):
+            if any( ['&r=' not in linkapi, '&i=' not in linkapi, '&apikey=' not in linkapi] ):
                 fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
             else:
                 fileURL = urllib.quote_plus(linkapi)

@@ -553,6 +553,10 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
 
     newValue = {'NZBName':  NZBName}
 
+    if SARC:
+       IssueID = 'S' + str(IssueArcID)
+       newValue['SARC'] = SARC
+
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
        #give it a generic ID above the last one so it doesn't throw an error later.
@@ -562,10 +566,6 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
        else: 
            IssueID = int(mylar.HIGHCOUNT) + 1
        
-       if SARC:
-           IssueID = 'S' + str(IssueArcID)
-           newValue['SARC'] = SARC
-
     controlValue = {"IssueID":  IssueID,
                     "Provider": prov}
 

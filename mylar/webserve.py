@@ -2445,6 +2445,7 @@ class WebInterface(object):
                 issue = myDB.selectone("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'],m_arc['match_issue']]).fetchone()
                 if issue is None: pass
                 else:
+
                     logger.fdebug("issue: " + str(issue['Issue_Number']) + "..." + str(m_arc['match_issue']))
 #                   if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
                     if issue['Issue_Number'] == m_arc['match_issue']:
@@ -2525,14 +2526,26 @@ class WebInterface(object):
                     s_issueid = want['IssueID'] #None
                     stdate = want['StoreDate']
                     issdate = want['IssueDate']
-                    logger.info("-- NOT a watched series queue.")
-                    logger.info(want['ComicName'] + " -- #" + str(want['IssueNumber']))
-                    logger.info(u"Story Arc : " + str(SARC) + " queueing the selected issue...")
-                    logger.info(u"IssueArcID : " + str(IssueArcID))
-                    logger.info(u"ComicID: " + str(s_comicid) + " --- IssueID: " + str(s_issueid))  # no comicid in issues table.
-                    logger.info(u"StoreDate: " + str(stdate) + " --- IssueDate: " + str(issdate))
+                    logger.fdebug("-- NOT a watched series queue.")
+                    logger.fdebug(want['ComicName'] + " -- #" + str(want['IssueNumber']))
+                    logger.fdebug(u"Story Arc : " + str(SARC) + " queueing the selected issue...")
+                    logger.fdebug(u"IssueArcID : " + str(IssueArcID))
+                    logger.fdebug(u"ComicID: " + str(s_comicid) + " --- IssueID: " + str(s_issueid))  # no comicid in issues table.
+                    logger.fdebug(u"StoreDate: " + str(stdate) + " --- IssueDate: " + str(issdate))
                     #logger.info(u'Publisher: ' + want['Publisher'])  <-- no publisher in issues table.
-                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=want['IssueYear'], SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID)
+                    issueyear = want['IssueYEAR']
+                    logger.fdebug('IssueYear: ' + str(issueyear))
+                    if issueyear is None or issueyear == 'None':
+                        try:
+                            logger.fdebug('issdate:' + str(issdate))
+                            issueyear = issdate[:4]
+                            if not issueyear.startswith('19') and not issueyear.startswith('20'):
+                                issueyear = stdate[:4]
+                        except:
+                            issueyear = stdate[:4]
+
+                    logger.fdebug('ComicYear: ' + str(want['SeriesYear']))
+                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=issueyear, SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
@@ -2549,7 +2562,7 @@ class WebInterface(object):
                     logger.fdebug('not sucessfully found.')
                     stupdate.append({"Status":     "Wanted",
                                      "IssueArcID": IssueArcID,
-                                     "IssueID":    "None"})
+                                     "IssueID":    s_issueid})
 
         watchlistchk = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND Status='Wanted'", [StoryArcID])
         if watchlistchk is not None:
@@ -2560,25 +2573,39 @@ class WebInterface(object):
                 IssueArcID = watchchk['IssueArcID']
                 if issuechk is None:
                     # none means it's not a 'watched' series
-                    s_comicid = None
-                    s_issueid = None
+                    try:
+                        s_comicid = watchchk['ComicID']
+                    except:
+                        s_comicid = None
+
+                    try:
+                        s_issueid = watchchk['IssueID']
+                    except:
+                        s_issueid = None
+
                     logger.fdebug("-- NOT a watched series queue.")
                     logger.fdebug(watchchk['ComicName'] + " -- #" + str(watchchk['IssueNumber']))
-                    logger.info(u"Story Arc : " + str(SARC) + " queueing up the selected issue...")
-                    logger.info(u"IssueArcID : " + str(IssueArcID))
+                    logger.fdebug(u"Story Arc : " + str(SARC) + " queueing up the selected issue...")
+                    logger.fdebug(u"IssueArcID : " + str(IssueArcID))
                     try:
                         issueyear = watchchk['IssueYEAR']
                         logger.fdebug('issueYEAR : ' + issueyear)
                     except:
-                        issueyear = watchchk['StoreDate'][:4]
-                    logger.info('issueyear : ' + str(issueyear))
-                    logger.info('comicname : ' + watchchk['ComicName'])
-                    logger.info('issuenumber : ' + watchchk['IssueNumber'])
-                    logger.info('comicyear : ' + watchchk['SeriesYear'])
+                        try:
+                            issueyear = watchchk['IssueDate'][:4]
+                        except:
+                            issueyear = watchchk['StoreDate'][:4]
+
+                    stdate = watchchk['StoreDate']
+                    issdate = watchchk['IssueDate']
+                    logger.fdebug('issueyear : ' + str(issueyear))
+                    logger.fdebug('comicname : ' + watchchk['ComicName'])
+                    logger.fdebug('issuenumber : ' + watchchk['IssueNumber'])
+                    logger.fdebug('comicyear : ' + watchchk['SeriesYear'])
                     #logger.info('publisher : ' + watchchk['IssuePublisher']) <-- no publisher in table
-                    logger.info('SARC : ' + SARC)
-                    logger.info('IssueArcID : ' + IssueArcID)
-                    foundcom, prov = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=issueyear, SeriesYear=watchchk['SeriesYear'], Publisher='None', SARC=SARC, IssueArcID=IssueArcID)
+                    logger.fdebug('SARC : ' + SARC)
+                    logger.fdebug('IssueArcID : ' + IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=issueyear, SeriesYear=watchchk['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
@@ -2602,7 +2629,8 @@ class WebInterface(object):
                 ctrlVal = {'IssueArcID':  st['IssueArcID']}
                 newVal = {'Status':   st['Status']}
                 if st['IssueID']:
-                    logger.fdebug('issueid:' + str(st['IssueID']))
+                    if st['IssueID']:
+                        logger.fdebug('issueid:' + str(st['IssueID']))
                     newVal['IssueID'] = st['IssueID']
                 myDB.upsert("readinglist", newVal, ctrlVal)
     ReadGetWanted.exposed = True
@@ -3973,3 +4001,7 @@ class WebInterface(object):
         read = readinglist.Readinglist()
         threading.Thread(target=read.syncreading).start()
     syncfiles.exposed = True
+
+    def search_32p(self, search=None):
+        mylar.rsscheck.torrents(pickfeed='4', seriesname=search)
+    search_32p.exposed = True
