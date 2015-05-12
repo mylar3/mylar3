@@ -599,6 +599,16 @@ class PostProcessor(object):
                     comicid = ml['ComicID']
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
+                    #check to see if file is still being written to.
+                    while True:
+                        waiting = False
+                        ctime = max(os.path.getctime(ml['ComicLocation']), os.path.getmtime(ml['ComicLocation']))
+                        if time.time() > ctime > time.time() - 15:
+                            time.sleep(max(time.time() - ctime, 0))
+                            waiting = True
+                        else:
+                            break
+                      
                     dupthis = helpers.duplicate_filecheck(ml['ComicLocation'], ComicID=comicid, IssueID=issueid)
                     if dupthis == "write":
                         stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
