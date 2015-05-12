@@ -1647,18 +1647,22 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         headers = {'User-Agent': str(mylar.USER_AGENT)}
         #link doesn't have the apikey - add it and use ?t=get for newznab based.
 
-        if nzbprov == 'newznab':
+        if nzbprov == 'newznab' or nzbprov == 'nzb.su':
             #need to basename the link so it just has the id/hash.
             #rss doesn't store apikey, have to put it back.
-            name_newznab = newznab[0].rstrip()
-            host_newznab = newznab[1].rstrip()
-            if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
-                host_newznab_fix = str(host_newznab) + "/"
-            else: 
-                host_newznab_fix = host_newznab
+            if nzbprov == 'newznab':
+                name_newznab = newznab[0].rstrip()
+                host_newznab = newznab[1].rstrip()
+                if host_newznab[len(host_newznab)-1:len(host_newznab)] != '/':
+                    host_newznab_fix = str(host_newznab) + "/"
+                else: 
+                    host_newznab_fix = host_newznab
 
-            apikey = newznab[2].rstrip()
-            down_url = host_newznab_fix + 'api'
+                apikey = newznab[2].rstrip()
+                down_url = host_newznab_fix + 'api'
+            else:
+                down_url = 'https://api.nzb.su/api'
+                apikey = mylar.NZBSU_APIKEY
 
             payload = {'t': 'get',
                        'id': str(nzbid),
@@ -1772,12 +1776,13 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             else:
                 uid = newznab[3].strip()
 
-            if any( ['&r=' not in linkapi, '&i=' not in linkapi, '&apikey=' not in linkapi] ):
+            if any( ['&r=' not in linkapi, '&i=' not in linkapi ] ) and ('&apikey=' not in linkapi):
                 fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
             else:
                 fileURL = urllib.quote_plus(linkapi)
         else:
-            fileURL = urllib.quote_plus(linkapi + '&r=' + apikey) # + '&i=' + uid + '&r=' + apikey)
+            #for nzb.su
+            fileURL = urllib.quote_plus(downurl + '&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY)
     elif nzbprov == 'dognzb':
         linkapi = down_url
         fileURL = urllib.quote_plus(down_url)
@@ -1866,7 +1871,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
             tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
             server = ServerProxy(tmpapi)
-            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, linkapi)
+            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, fileURL)
             sent_to = "NZBGet"
             if send_to_nzbget is True:
                 logger.info("Successfully sent nzb to NZBGet!")
@@ -1907,7 +1912,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #final build of send-to-SAB
             logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi,'&')))
 
-            logger.info('sab-to-send:' + str(tmpapi))
+            logger.fdebug('sab-to-send:' + str(tmpapi))
 
             try:
                 from lib.requests.packages.urllib3 import disable_warnings
