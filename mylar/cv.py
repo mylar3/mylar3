@@ -22,6 +22,7 @@ import string
 import urllib2
 import lib.feedparser
 import mylar
+import platform
 from mylar.helpers import cvapi_check
 from bs4 import BeautifulSoup as Soup
 import httplib
@@ -35,6 +36,10 @@ def patch_http_response_read(func):
 
     return inner
 httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+
+if platform.python_version() == '2.7.6':
+    httplib.HTTPConnection._http_vsn = 10
+    httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None):
     #import easy to use xml parser called minidom:

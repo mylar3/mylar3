@@ -18,6 +18,7 @@ from __future__ import with_statement
 import re
 import time
 import threading
+import platform
 import urllib, urllib2
 from xml.dom.minidom import parseString, Element
 
@@ -37,6 +38,10 @@ def patch_http_response_read(func):
 
     return inner
 httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+
+if platform.python_version() == '2.7.6':
+    httplib.HTTPConnection._http_vsn = 10
+    httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 def pullsearch(comicapi,comicquery,offset,explicit,type):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
