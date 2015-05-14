@@ -17,17 +17,18 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, importer, search, PostProcessor, versioncheck, logger
+from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
 import lib.simplejson as simplejson
 import cherrypy
 import os
 import urllib2
 import cache
 import imghdr
+from operator import itemgetter
 from cherrypy.lib.static import serve_file
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs',
-            'findComic', 'findIssue', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
+            'findComic', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
             'addIssue', 'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'getVersion', 'checkGithub',
             'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt']
 
@@ -102,7 +103,7 @@ class Api(object):
         else:
             return self.data
 
-    def _dic_from_query(self,query):
+    def _dic_from_query(self, query):
 
         myDB = db.DBConnection()
         rows = myDB.select(query)
@@ -116,12 +117,10 @@ class Api(object):
         return rows_as_dic
 
     def _getIndex(self, **kwargs):
-
         self.data = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         return
 
     def _getComic(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -134,7 +133,7 @@ class Api(object):
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + self.id + '"')
         else: annuals = None
 
-        self.data = { 'comic': comic, 'issues': issues, 'annuals': annuals }
+        self.data = {'comic': comic, 'issues': issues, 'annuals': annuals}
         return
 
     def _getHistory(self, **kwargs):
@@ -210,14 +209,13 @@ class Api(object):
             self.id = kwargs['id']
 
         try:
-            importer.addReleaseById(self.id)
+            importer.addComictoDB(self.id)
         except Exception, e:
             self.data = e
 
         return
 
     def _queueIssue(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -231,7 +229,6 @@ class Api(object):
         search.searchforissue(self.id)
 
     def _unqueueIssue(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -264,11 +261,11 @@ class Api(object):
 
     def _getVersion(self, **kwargs):
         self.data = {
-            'git_path' : mylar.GIT_PATH,
-            'install_type' : mylar.INSTALL_TYPE,
-            'current_version' : mylar.CURRENT_VERSION,
-            'latest_version' : mylar.LATEST_VERSION,
-            'commits_behind' : mylar.COMMITS_BEHIND,
+            'git_path': mylar.GIT_PATH,
+            'install_type': mylar.INSTALL_TYPE,
+            'current_version': mylar.CURRENT_VERSION,
+            'latest_version': mylar.LATEST_VERSION,
+            'commits_behind': mylar.COMMITS_BEHIND,
         }
 
     def _checkGithub(self, **kwargs):
@@ -295,7 +292,6 @@ class Api(object):
         self.data = cache.getArtwork(ComicID=self.id)
 
     def _getIssueArt(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -305,7 +301,6 @@ class Api(object):
         self.data = cache.getArtwork(IssueID=self.id)
 
     def _getComicInfo(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -315,7 +310,6 @@ class Api(object):
         self.data = cache.getInfo(ComicID=self.id)
 
     def _getIssueInfo(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -325,7 +319,6 @@ class Api(object):
         self.data = cache.getInfo(IssueID=self.id)
 
     def _getArt(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -365,3 +358,33 @@ class Api(object):
                     self.data = 'Failed return a image'
             else:
                 self.data = 'Failed to return a image'
+
+    def _findComic(self, name, issue=None, type_=None, mode=None, explisit=None, serinfo=None):
+        # set defaults
+        if type_ is None:
+            type_ = 'comic'
+        if mode is None:
+            mode = 'series'
+
+        # Dont do shit if name is missing
+        if len(name) == 0:
+            self.data = 'Missing a Comic name'
+            return
+
+        if type_ == 'comic' and mode == 'series':
+            searchresults, explisit = mb.findComic(name, mode, issue=issue)
+        elif type_ == 'comic' and mode == 'pullseries':
+            pass
+        elif type_ == 'comic' and mode == 'want':
+            searchresults, explisit = mb.findComic(name, mode, issue)
+        elif type_ == 'story_arc':
+            searchresults, explisit = mb.findComic(name, mode, issue=None, explisit='explisit', type='story_arc')
+
+        searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
+        self.data = searchresults
+        print self.data
+
+    def _downloadIssue(self, id=None, path=None):
+        # todo
+        pass
+
