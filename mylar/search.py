@@ -1778,19 +1778,24 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             if any( ['&r=' not in linkapi, '&i=' not in linkapi ] ) and ('&apikey=' not in linkapi):
                 fileURL = urllib.quote_plus(linkapi + '&i=' + uid + '&r=' + apikey)
+                nzbURL = str(linkapi) + '&i=' + str(uid) + '&r=' + str(apikey)
             else:
                 fileURL = urllib.quote_plus(linkapi)
+                nzbURL = linkapi
         else:
             #for nzb.su
             fileURL = urllib.quote_plus(downurl + '&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY)
+            nzbURL = downurl + '&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
+
     elif nzbprov == 'dognzb':
         linkapi = down_url
         fileURL = urllib.quote_plus(down_url)
+        nzbURL = linkapi
     else:
         # this should work for every other provider
         linkapi = linkstart
-
         fileURL = urllib.quote_plus(linkapi)
+        nzbURL = linkapi
 
     logger.fdebug("link given by: " + str(nzbprov))
     #logger.fdebug("link: " + str(linkstart))
@@ -1871,7 +1876,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
             tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
             server = ServerProxy(tmpapi)
-            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, fileURL)
+            send_to_nzbget = server.appendurl(nzbname + ".nzb", str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, nzbURL)
             sent_to = "NZBGet"
             if send_to_nzbget is True:
                 logger.info("Successfully sent nzb to NZBGet!")
