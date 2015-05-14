@@ -697,12 +697,17 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         verify = True
 
         if mylar.MODE_32P == 0:
-            if mylar.KEYS_32P is None or mylar.AUTHKEY_32P is None or mylar.PASSKEY_32P is None:
-                logger.warn('[32P] Unble to use  to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
-                return "fail"
+            if mylar.KEYS_32P is None or mylar.PASSKEY_32P is None:
+                logger.warn('[32P] Unable to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
+                mylar.KEYS_32P = helpers.parse_32pfeed(mylar.FEED_32P)
+                if mylar.KEYS_32P is None or mylar.KEYS_32P == '':
+                    return "fail"
+                else:
+                    logger.fdebug('[32P-AUTHENTICATION] 32P (Legacy) Authentication Successful. Re-establishing keys.')
+                    mylar.AUTHKEY_32P = mylar.KEYS_32P['authkey']
             else:
                 logger.fdebug('[32P-AUTHENTICATION] 32P (Legacy) Authentication already done. Attempting to use existing keys.')
-
+                mylar.AUTHKEY_32P = mylar.KEYS_32P['authkey']
         else:
             if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
                 logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
