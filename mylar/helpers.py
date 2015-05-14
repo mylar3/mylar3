@@ -605,6 +605,7 @@ def apiremove(apistring, type):
         #match = value_regex.search(apistring)
         apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apistring)        
 
+    #need to remove the urlencoded-portions as well in future
     return apiremoved
 
 def ComicSort(comicorder=None,sequence=None,imported=None):
@@ -1699,6 +1700,38 @@ def torrent_create(site, linkid):
             url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
 
     return url
+
+def parse_32pfeed(rssfeedline):
+    KEYS_32P = {}
+    if mylar.ENABLE_32P and len(rssfeedline) > 1:
+        userid_st = rssfeedline.find('&user')
+        userid_en = rssfeedline.find('&',userid_st+1)
+        if userid_en == -1:
+            USERID_32P = rssfeedline[userid_st+6:]
+        else:
+            USERID_32P = rssfeedline[userid_st+6:userid_en]
+
+        auth_st = rssfeedline.find('&auth')
+        auth_en = rssfeedline.find('&',auth_st+1)
+        if auth_en == -1:
+            AUTH_32P = rssfeedline[auth_st+6:]
+        else:
+            AUTH_32P = rssfeedline[auth_st+6:auth_en]
+
+        authkey_st = rssfeedline.find('&authkey')
+        authkey_en = rssfeedline.find('&',authkey_st+1)
+        if authkey_en == -1:
+            AUTHKEY_32P = rssfeedline[authkey_st+9:]
+        else:
+            AUTHKEY_32P = rssfeedline[authkey_st+9:authkey_en]
+
+        KEYS_32P = {"user":    USERID_32P,
+                    "auth":    AUTH_32P,
+                    "authkey": AUTHKEY_32P,
+                    "passkey": mylar.PASSKEY_32P}
+
+    return KEYS_32P
+
 
 from threading import Thread
 

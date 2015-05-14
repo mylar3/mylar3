@@ -63,10 +63,10 @@ class tehMain():
                 if mylar.ENABLE_32P:
                     logger.info('[RSS] Initiating Torrent RSS Feed Check on 32P.')
                     if mylar.MODE_32P == 0:
+                        logger.fdebug('[RSS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
                         if any( [mylar.PASSKEY_32P is None, mylar.PASSKEY_32P == '', mylar.RSSFEED_32P is None, mylar.RSSFEED_32P == ''] ):
                             logger.error('[RSS] Unable to validate information from provided RSS Feed. Verify that the feed provided is a current one.')
                         else:
-                            logger.fdebug('[RSS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
                             rsscheck.torrents(pickfeed='1', feedinfo=mylar.KEYS_32P)
                     else:
                         logger.fdebug('[RSS] 32P mode set to Auth mode. Monitoring all personal notification feeds & New Releases feed')
@@ -76,6 +76,9 @@ class tehMain():
                             if mylar.KEYS_32P is None:
                                 feed32p = auth32p.info32p()
                                 feedinfo = feed32p.authenticate()
+                            else:
+                                feedinfo = mylar.FEEDINFO_32P
+
                             if len(feedinfo) >0:
                                 rsscheck.torrents(pickfeed='1', feedinfo=feedinfo[0])
                                 x = 0

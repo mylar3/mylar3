@@ -77,10 +77,6 @@ def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
         feedtype = None
 
         if pickfeed == "1" and mylar.ENABLE_32P:      # 32pages new releases feed.
-            if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
-                logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')
-                lp=+1
-                continue
             feed = 'https://32pag.es/feeds.php?feed=torrents_all&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey']
             feedtype = ' from the New Releases RSS Feed for comics'
         elif pickfeed == "2" and srchterm is not None:    # kat.ph search
@@ -97,6 +93,9 @@ def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
                 logger.warn('[32P] Searching is not available in 32p Legacy mode. Switch to Auth mode to use the search functionality.')
                 lp=+1
                 continue
+            #searchit = auth32p.info32p(searchterm=seriesname)
+            #searchresults = searchit.authenticate()
+            #logger.info('search results: ' + str(searchresults))
             return
         elif pickfeed == "5" and srchterm is not None:    # kat.ph search (category:other since some 0-day comics initially get thrown there until categorized)
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Aother%20seeds%3A1/?rss=1"
@@ -123,7 +122,7 @@ def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
             picksite = '32P'
 
         i = 0
-        logger.fdebug('results: ' + str(feedme))
+
         for entry in feedme['entries']:
             if pickfeed == "3" or pickfeed == "6":
                 tmpsz = feedme.entries[i].enclosures[0]
@@ -151,15 +150,15 @@ def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
                     st_pub = feedme.entries[i].title.find('(')
                     st_end = feedme.entries[i].title.find(')')
                     pub = feedme.entries[i].title[st_pub+1:st_end] # +1 to not include (
-                    logger.fdebug('publisher: ' + re.sub("'",'', pub).strip())  #publisher sometimes is given within quotes for some reason, strip 'em.
+                    #logger.fdebug('publisher: ' + re.sub("'",'', pub).strip())  #publisher sometimes is given within quotes for some reason, strip 'em.
                     vol_find = feedme.entries[i].title.find('vol.')
                     series = feedme.entries[i].title[st_end+1:vol_find].strip()
-                    logger.fdebug('series title: ' + series)
+                    #logger.fdebug('series title: ' + series)
                     iss_st = feedme.entries[i].title.find(' - ', vol_find)
                     vol = re.sub('\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
-                    logger.fdebug('volume #: ' + str(vol))
+                    #logger.fdebug('volume #: ' + str(vol))
                     issue = feedme.entries[i].title[iss_st+3:].strip()
-                    logger.fdebug('issue # : ' + str(issue))
+                    #logger.fdebug('issue # : ' + str(issue))
 
                     #break it down to get the Size since it's available on THIS 32P feed only so far.
                     #when it becomes available in the new feeds, this will be working, for now it just nulls out.
@@ -220,7 +219,7 @@ def torrents(pickfeed=None,seriesname=None,issue=None,feedinfo=None):
         if feedtype is None:
             logger.info('[' + picksite + '] there were ' + str(i) + ' results..')
         else:
-            logger.info('[' + picksite + '] there were ' + str(i) + ' results ' + feedtype)
+            logger.info('[' + picksite + '] there were ' + str(i) + ' results' + feedtype)
 
         totalcount += i
         lp +=1
@@ -697,18 +696,26 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
         verify = True
 
-        if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
-            logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
-            return "fail"
-        elif mylar.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
-            if mylar.MODE_32P == 1:
+        if mylar.MODE_32P == 0:
+            if mylar.KEYS_32P is None or mylar.AUTHKEY_32P is None or mylar.PASSKEY_32P is None:
+                logger.warn('[32P] Unble to use  to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
+                return "fail"
+            else:
+                logger.fdebug('[32P-AUTHENTICATION] 32P (Legacy) Authentication already done. Attempting to use existing keys.')
+
+        else:
+            if any( [mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == ''] ):
+                logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
+                return "fail"
+            elif mylar.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
+                logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication enabled. Keys have not been established yet, attempting to gather.')
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
+                if mylar.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
+                    logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
+                    return "fail"
             else:
-                logger.warn('[32P] Unavailable to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
-                return "fail"
-        else:
-            logger.fdebug('[32P-AUTHENTICATION] 32P Authentication already done. Attempting to use existing keys.')
+                logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication already done. Attempting to use existing keys.')
 
         payload = {'action':       'download',
                    'torrent_pass': mylar.PASSKEY_32P,

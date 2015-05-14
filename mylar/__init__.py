@@ -646,36 +646,9 @@ def initialize():
         PASSKEY_32P = check_setting_str(CFG, 'Torrents', 'passkey_32p', '')
 
         if MODE_32P == 0 and RSSFEED_32P is not None:
-
             #parse out the keys.
-            if ENABLE_32P and len(RSSFEED_32P) > 1:
-                userid_st = RSSFEED_32P.find('&user')
-                userid_en = RSSFEED_32P.find('&',userid_st+1)
-                if userid_en == -1:
-                    USERID_32P = RSSFEED_32P[userid_st+6:]
-                else:
-                    USERID_32P = RSSFEED_32P[userid_st+6:userid_en]
-
-                auth_st = RSSFEED_32P.find('&auth')
-                auth_en = RSSFEED_32P.find('&',auth_st+1)
-                if auth_en == -1:
-                    AUTH_32P = RSSFEED_32P[auth_st+6:]
-                else:
-                    AUTH_32P = RSSFEED_32P[auth_st+6:auth_en]
-
-                authkey_st = RSSFEED_32P.find('&authkey')
-                authkey_en = RSSFEED_32P.find('&',authkey_st+1)
-                if authkey_en == -1:
-                    AUTHKEY_32P = RSSFEED_32P[authkey_st+9:]
-                else:
-                    AUTHKEY_32P = RSSFEED_32P[authkey_st+9:authkey_en]
-
-                KEYS_32P = {}
-                KEYS_32P = {"user":    USERID_32P,
-                             "auth":    AUTH_32P,
-                             "authkey": AUTHKEY_32P,
-                             "passkey": PASSKEY_32P}
-             
+            KEYS_32P = helpers.parse_32pfeed(RSSFEED_32P)
+           
         USERNAME_32P = check_setting_str(CFG, 'Torrents', 'username_32p', '')
         PASSWORD_32P = check_setting_str(CFG, 'Torrents', 'password_32p', '')
 
