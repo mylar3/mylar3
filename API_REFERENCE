@@ -8,7 +8,7 @@ There are no error codes yet, but will be added soon.
 General structure:
 http://localhost:8090 + HTTP_ROOT + /api?apikey=$apikey&cmd=$command
 
-Data returned in json format. 
+Data returned in json format.
 If executing a command like "delComic" or "addComic" you'll get back an "OK", else, you'll get the data you requested
 
 $commands&parameters[&optionalparameters]:
@@ -60,3 +60,5 @@ shutdown (shut down mylar)
 restart (restart mylar)
 update (update mylar - you may want to check the install type in get version and not allow this if type==exe)
 
+downloadIssue&id=$issueid (download that isse to your browser)
+findComic&name=$comicname (Find comics)

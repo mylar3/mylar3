@@ -25,12 +25,12 @@ import urllib2
 import cache
 import imghdr
 from operator import itemgetter
-from cherrypy.lib.static import serve_file
+from cherrypy.lib.static import serve_file, serve_download
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs',
             'findComic', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
             'addIssue', 'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'getVersion', 'checkGithub',
-            'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt']
+            'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue']
 
 
 class Api(object):
@@ -40,6 +40,8 @@ class Api(object):
         self.cmd = None
         self.id = None
         self.img = None
+        self.file = None
+        self.filename = None
         self.kwargs = None
         self.data = None
         self.callback = None
@@ -89,7 +91,9 @@ class Api(object):
             if 'callback' not in self.kwargs:
                 if self.img:
                     return serve_file(path=self.img, content_type='image/jpeg')
-                if type(self.data) == type(''):
+                if self.file and self.filename:
+                    return serve_download(path=self.file, name=self.filename)
+                if isinstance(self.data, basestring):
                     return self.data
                 else:
                     cherrypy.response.headers['Content-Type'] = "application/json"
@@ -104,7 +108,6 @@ class Api(object):
             return self.data
 
     def _dic_from_query(self, query):
-
         myDB = db.DBConnection()
         rows = myDB.select(query)
 
@@ -131,7 +134,8 @@ class Api(object):
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + self.id + '"order by Int_IssueNumber DESC')
         if mylar.ANNUALS_ON:
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + self.id + '"')
-        else: annuals = None
+        else:
+            annuals = None
 
         self.data = {'comic': comic, 'issues': issues, 'annuals': annuals}
         return
@@ -282,7 +286,6 @@ class Api(object):
         mylar.SIGNAL = 'update'
 
     def _getArtistArt(self, **kwargs):
-
         if 'id' not in kwargs:
             self.data = 'Missing parameter: id'
             return
@@ -382,9 +385,40 @@ class Api(object):
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         self.data = searchresults
-        print self.data
 
-    def _downloadIssue(self, id=None, path=None):
-        # todo
-        pass
+    def _downloadIssue(self, id):
+        if not id:
+            self.data = 'You need to provide a issueid'
+            return
 
+        self.id = id
+        # Fetch a list of dicts from issues table
+        i = self._dic_from_query('SELECT * from issues WHERE issueID="' + self.id + '"')
+
+        if not len(i):
+            self.data = 'Couldnt find a issue with issueID %s' % self.id
+            return
+
+        # issueid is unique so it should one dict in the list
+        issue = i[0]
+
+        issuelocation = issue.get('Location', None)
+
+        # Check the issue is downloaded
+        if issuelocation is not None:
+            # Find the comic location
+            comic = self._dic_from_query('SELECT * from comics WHERE comicID="' + issue['ComicID'] + '"')[0]
+            comiclocation = comic.get('ComicLocation')
+            f = os.path.join(comiclocation, issuelocation)
+            if not os.path.isfile(f):
+                if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                    pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+                    f = os.path.join(pathdir, issuelocation)
+                    self.file = f
+                    self.filename = issuelocation
+            else:
+                self.file = f
+                self.filename = issuelocation
+        else:
+            self.data = 'You need to download that issue first'
+            return
