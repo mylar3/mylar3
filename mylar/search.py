@@ -1390,6 +1390,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
         new = True
 
+        #to-do: re-order the results list so it's most recent to least recent.
+
         for result in results:
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             if comic is None:
@@ -1668,22 +1670,30 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                        'id': str(nzbid),
                        'apikey': str(apikey)}
 
+            verify = False  #unsure if verify should be set to True for nzb.su or not.
+
             logger.info('payload:' + str(payload))
 
         elif nzbprov == 'dognzb':
             #dognzb - need to add back in the dog apikey
             down_url = urljoin(link, str(mylar.DOGNZB_APIKEY))
+            verify = False
+
         else:
             #experimental - direct link.
             down_url = link
             headers = None
+            verify = False
 
-        logger.info('download url:' + down_url)
-            
+        if payload is None:
+            logger.info('Download URL: ' + str(down_url) + ' [VerifySSL:' + str(verify) + ']')
+        else:
+            logger.info('Download URL: ' + down_url + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
+
         import lib.requests as requests
         
         try:
-            r = requests.get(down_url, params=payload, headers=headers)
+            r = requests.get(down_url, params=payload, verify=verify, headers=headers)
 
         except Exception, e:
             logger.warn('Error fetching data from %s: %s' % (tmpprov, e))
@@ -1714,7 +1724,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 pass
 
         if filen is None:
-            logger.error('Unable to download nzb from link: ' + str(link))
+            if payload is None:
+                logger.error('Unable to download nzb from link: ' + str(down_url) + ' [' + link + ']')
+            else:
+                errorlink = down_url + urllib.urlencode(payload)
+                logger.error('Unable to download nzb from link: ' + str(errorlink) + ' [' + link + ']')
         else:
             #convert to a generic type of format to help with post-processing.
             filen = re.sub("\&", 'and', filen)
@@ -2157,9 +2171,7 @@ def generate_id(nzbprov, link):
             nzbtempid = path_parts[2]
             nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
     elif nzbprov == 'nzb.su':
-        url_parts = urlparse.urlparse(link)
-        path_parts = url_parts[2].rpartition('/')
-        nzbid = re.sub('.nzb&amp','', path_parts[2]).strip()
+        nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
     elif nzbprov == 'dognzb':
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
