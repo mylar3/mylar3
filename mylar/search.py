@@ -1663,7 +1663,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 apikey = newznab[2].rstrip()
                 down_url = host_newznab_fix + 'api'
             else:
-                down_url = 'https://api.nzb.su/api'
+                down_url = 'https://api.nzb.su/api?'
                 apikey = mylar.NZBSU_APIKEY
 
             payload = {'t': 'get',
@@ -1691,6 +1691,13 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.info('Download URL: ' + down_url + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
 
         import lib.requests as requests
+
+        if down_url.startswith('https'):
+            try:
+                from lib.requests.packages.urllib3 import disable_warnings
+                disable_warnings()
+            except:
+                logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
         
         try:
             r = requests.get(down_url, params=payload, verify=verify, headers=headers)
