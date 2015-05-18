@@ -1662,15 +1662,15 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
                 apikey = newznab[2].rstrip()
                 down_url = host_newznab_fix + 'api'
+                verify = False
             else:
                 down_url = 'https://api.nzb.su/api?'
                 apikey = mylar.NZBSU_APIKEY
+                verify = True  #unsure if verify should be set to True for nzb.su or not.
 
             payload = {'t': 'get',
                        'id': str(nzbid),
                        'apikey': str(apikey)}
-
-            verify = False  #unsure if verify should be set to True for nzb.su or not.
 
             logger.info('payload:' + str(payload))
 
