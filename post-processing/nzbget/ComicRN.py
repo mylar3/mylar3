@@ -13,7 +13,7 @@
 
 import sys, os
 import autoProcessComics
-comicrn_version = "1.0"
+comicrn_version = "1.01"
 
 # NZBGet V11+
 # Check if the script is called from nzbget 11.0 or later
@@ -46,11 +46,11 @@ if os.environ.has_key('NZBOP_SCRIPTDIR') and not os.environ['NZBOP_VERSION'][0:5
             print 'Download of "%s" has successfully completed.' % (os.environ['NZBPP_NZBNAME'])
             failit = 0
 
-    result = autoProcessComics.processIssue(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'], failed=failit)
+    result = autoProcessComics.processIssue(os.environ['NZBPP_DIRECTORY'], os.environ['NZBPP_NZBNAME'], failed=failit, comicrn_version=comicrn_version)
 
 
 elif len(sys.argv) == NZBGET_NO_OF_ARGUMENTS:
-   result = autoProcessComics.processIssue(sys.argv[1], sys.argv[2], sys.argv[3])
+   result = autoProcessComics.processIssue(sys.argv[1], sys.argv[2], sys.argv[3], comicrn_version=comicrn_version)
 	
 if result == 0:
     if os.environ.has_key('NZBOP_SCRIPTDIR'): # log success for nzbget

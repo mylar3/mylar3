@@ -12,7 +12,7 @@
 import sys
 import autoProcessComics
 
-comicrn_version = "1.0"
+comicrn_version = "1.01"
 
 #the code.
 if len(sys.argv) < 2:

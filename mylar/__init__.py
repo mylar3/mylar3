@@ -312,7 +312,7 @@ RSS_CHECKINTERVAL = 20
 RSS_LASTRUN = None
 
 #these are used to set the comparison against the post-processing scripts
-STATIC_COMICRN_VERSION = "1.0"
+STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "1.0"
 
 FAILED_DOWNLOAD_HANDLING = 0
