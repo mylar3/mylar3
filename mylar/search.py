@@ -1805,8 +1805,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 nzbURL = linkapi
         else:
             #for nzb.su
-            fileURL = urllib.quote_plus(downurl + '&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY)
-            nzbURL = downurl + '&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
+            fileURL = urllib.quote_plus(down_url + '&i=' + mylar.NZBSU_UID + '&r=' + mylar.NZBSU_APIKEY)
+            nzbURL = down_url + '&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
 
     elif nzbprov == 'dognzb':
         linkapi = down_url
