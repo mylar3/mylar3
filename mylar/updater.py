@@ -459,7 +459,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                        "ComicName":        issuechk['ComicName'],
                        "Status":           newValue['Status'],
                        "IssueNumber":      issuechk['Issue_Number']}
-            logger.fdebug('updating date in upcoming table to : ' + str(newValue['IssueDate']))
+            logger.fdebug('updating date in upcoming table to : ' + str(newValue['IssueDate']) + '[' + newValue['Status'] + ']')
             logger.fdebug('ComicID:' + str(controlValue))
             myDB.upsert("upcoming", dateVal, controlValue)
             logger.fdebug('Temporarily putting the Issue Date for ' + str(issuechk['Issue_Number']) + ' to ' + str(newValue['IssueDate']))
@@ -472,11 +472,16 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         else:
             myDB.upsert("issues", values, control)
 
-        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched', og_status == 'Wanted', newValue['Status'] == 'Wanted'] ): 
-            logger.fdebug('updating Pull-list to reflect status.')
-            downstats = {"Status":  og_status,
-                         "ComicID": issuechk['ComicID'],
-                         "IssueID": issuechk['IssueID']}
+        if any( [og_status == 'Downloaded', og_status == 'Archived', og_status == 'Snatched', og_status == 'Wanted', newValue['Status'] == 'Wanted'] ):
+            logger.fdebug('updating Pull-list to reflect status change: ' + og_status + '[' + newValue['Status'] + ']')
+            if og_status != 'Skipped': 
+                downstats = {"Status":  og_status,
+                             "ComicID": issuechk['ComicID'],
+                             "IssueID": issuechk['IssueID']}
+            else:
+                downstats = {"Status":  newValue['Status'],
+                             "ComicID": issuechk['ComicID'],
+                             "IssueID": issuechk['IssueID']}
             return downstats
 
 
@@ -677,6 +682,18 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "Status":          "Snatched"
                                }
         myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+
+        #this will update the weeklypull list immediately after sntaching to reflect the new status.
+        #-is ugly, should be linked directly to other table (IssueID should be populated in weekly pull at this point hopefully).
+        chkit = myDB.selectone("SELECT * FROM weekly WHERE ComicID=? AND IssueID=?",[ComicID, IssueID]).fetchone()
+
+        if chkit is not None:
+
+            ctlVal = {"ComicID":  ComicID,
+                      "IssueID":  IssueID}
+            newVal = {"Status":   "Snatched"}
+            myDB.upsert("weekly", newVal, ctlVal)
+
         logger.info(module + ' Updated the status (Snatched) complete for ' + ComicName + ' Issue: ' + str(IssueNum))
     else:
         if down == 'PP':
