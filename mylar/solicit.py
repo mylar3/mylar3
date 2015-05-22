@@ -29,7 +29,7 @@ def solicit(month, year):
     mnloop = 0
     upcoming = []
 
-    publishers = {'DC Comics':'DC Comics', 'DC\'s': 'DC Comics', 'Marvel':'Marvel Comics', 'Image':'Image Comics', 'IDW':'IDW Publishing', 'Dark Horse':'Dark Horse'}
+    publishers = {'DC Comics': 'DC Comics', 'DC\'s': 'DC Comics', 'Marvel': 'Marvel Comics', 'Image': 'Image Comics', 'IDW': 'IDW Publishing', 'Dark Horse': 'Dark Horse'}
 
 
 # -- this is no longer needed (testing)
@@ -47,7 +47,7 @@ def solicit(month, year):
 
         #using the solicits+datestring leaves out some entries occasionally
         #should use http://www.comicbookresources.com/tag/solicitations
-        #then just use the logic below but instead of datestring, find the month term and 
+        #then just use the logic below but instead of datestring, find the month term and
         #go ahead up to +5 months.
 
     if month > 0:
@@ -82,7 +82,7 @@ def solicit(month, year):
 
         #logger.info('datestring:' + datestring)
         #logger.info('checking:' + pagelinks)
-        pageresponse = urllib2.urlopen ( pagelinks )
+        pageresponse = urllib2.urlopen (pagelinks)
         soup = BeautifulSoup (pageresponse)
         cntlinks = soup.findAll('h3')
         lenlinks = len(cntlinks)
@@ -103,7 +103,7 @@ def solicit(month, year):
                 headName = headt.findNext(text=True)
                 #print ('headName: ' + headName)
                 if 'Image' in headName: print 'IMAGE FOUND'
-                if not all( ['Marvel' in headName, 'DC' in headName, 'Image' in headName] ) and ('Solicitations' in headName or 'Solicits' in headName):
+                if not all(['Marvel' in headName, 'DC' in headName, 'Image' in headName]) and ('Solicitations' in headName or 'Solicits' in headName):
                    # test for month here (int(month) + 5)
                     if not any(d.get('month', None) == str(headName).lower() for d in monthlist):
                         for mt in monthlist:
@@ -126,29 +126,29 @@ def solicit(month, year):
                                     #publish.append( headName[:pubstart].strip() )
                                 abc = headt.findAll('a', href=True)[0]
                                 ID_som = abc['href']  #first instance will have the right link...
-                                resultURL.append( ID_som )
+                                resultURL.append(ID_som)
                                 #print '(' + str(cnt) + ') [ ' + publish[cnt] + '] Link URL: ' + resultURL[cnt]
                                 cnt+=1
 
                     else:
                         logger.info('incorrect month - not using.')
-                       
+
             x+=1
 
         if cnt == 0:
             return #break  # no results means, end it
 
-        loopthis = (cnt-1)
-        #this loops through each 'found' solicit page 
+        loopthis = (cnt -1)
+        #this loops through each 'found' solicit page
         #shipdate = str(month_string) + '-' + str(year)  - not needed.
-        while ( loopthis >= 0 ):
+        while (loopthis >= 0):
             #print 'loopthis is : ' + str(loopthis)
             #print 'resultURL is : ' + str(resultURL[loopthis])
             shipdate = str(resultmonth[loopthis]) + '-' + str(resultyear[loopthis])
             upcoming += populate(resultURL[loopthis], publish[loopthis], shipdate)
             loopthis -=1
 
-    logger.info( str(len(upcoming)) + ' upcoming issues discovered.' )
+    logger.info(str(len(upcoming)) + ' upcoming issues discovered.')
 
     newfl = mylar.CACHE_DIR + "/future-releases.txt"
     newtxtfile = open(newfl, 'wb')
@@ -165,7 +165,7 @@ def solicit(month, year):
     newtxtfile.close()
 
 
-    logger.fdebug( 'attempting to populate future upcoming...' )
+    logger.fdebug('attempting to populate future upcoming...')
 
     mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
 
@@ -173,7 +173,7 @@ def solicit(month, year):
     cursor = connection.cursor()
 
     # we should extract the issues that are being watched, but no data is available yet ('Watch For' status)
-    # once we get the data, store it, wipe the existing table, retrieve the new data, populate the data into 
+    # once we get the data, store it, wipe the existing table, retrieve the new data, populate the data into
     # the table, recheck the series against the current watchlist and then restore the Watch For data.
 
 
@@ -204,11 +204,11 @@ def solicit(month, year):
     mylar.weeklypull.pullitcheck(futurepull="yes")
     #.end
 
-def populate(link,publisher,shipdate):
+def populate(link, publisher, shipdate):
     #this is the secondary url call to populate
     input = 'http://www.comicbookresources.com/' + link
     #print 'checking ' + str(input)
-    response = urllib2.urlopen ( input )
+    response = urllib2.urlopen (input)
     soup = BeautifulSoup (response)
     abc = soup.findAll('p')
     lenabc = len(abc)
@@ -222,7 +222,7 @@ def populate(link,publisher,shipdate):
     prev_chk = False
 
     while (i < lenabc):
-        titlet = abc[i] #iterate through the p pulling out only results. 
+        titlet = abc[i] #iterate through the p pulling out only results.
         titlet_next = titlet.findNext(text=True)
         #print ("titlet: " + str(titlet))
         if "/prev_img.php?pid" in str(titlet) and titlet_next is None:
@@ -247,7 +247,7 @@ def populate(link,publisher,shipdate):
 
         if prev_chk == True:
             tempName = titlet.findNext(text=True)
-            if not any( [' TPB' in tempName, 'HC' in tempName, 'GN-TPB' in tempName, 'for $1' in tempName.lower(), 'subscription variant' in tempName.lower(), 'poster' in tempName.lower() ] ):
+            if not any([' TPB' in tempName, 'HC' in tempName, 'GN-TPB' in tempName, 'for $1' in tempName.lower(), 'subscription variant' in tempName.lower(), 'poster' in tempName.lower()]):
                 if '#' in tempName[:50]:
                     #tempName = tempName.replace(u'.',u"'")
                     tempName = tempName.encode('ascii', 'replace')    #.decode('utf-8')
@@ -255,8 +255,8 @@ def populate(link,publisher,shipdate):
                         tempName = tempName.replace('???', ' ')
                     stissue = tempName.find('#')
                     endissue = tempName.find(' ', stissue)
-                    if tempName[stissue+1] == ' ':   #if issue has space between # and number, adjust.
-                        endissue = tempName.find(' ', stissue+2)
+                    if tempName[stissue +1] == ' ':   #if issue has space between # and number, adjust.
+                        endissue = tempName.find(' ', stissue +2)
                     if endissue == -1: endissue = len(tempName)
                     issue = tempName[stissue:endissue].lstrip(' ')
                     if ':'in issue: issue = re.sub(':', '', issue).rstrip()
@@ -269,15 +269,15 @@ def populate(link,publisher,shipdate):
                         #print ('multiple issues detected. Splitting.')
                         ststart = issue.find('-')
                         issue1 = issue[:ststart]
-                        issue2 = '#' + str(issue[ststart+1:])
+                        issue2 = '#' + str(issue[ststart +1:])
 
                     if '&' in exinfo:
                         #print ('multiple issues detected. Splitting.')
                         ststart = exinfo.find('&')
                         issue1 = issue   # this detects fine
-                        issue2 = '#' + str(exinfo[ststart+1:])
+                        issue2 = '#' + str(exinfo[ststart +1:])
                         if '& ' in issue2: issue2 = re.sub("&\\b", "", issue2)
-                        exinfo = exinfo.replace(exinfo[ststart+1:len(issue2)], '').strip()
+                        exinfo = exinfo.replace(exinfo[ststart +1:len(issue2)], '').strip()
                         if exinfo == '&': exinfo = 'N/A'
 
                     comic = tempName[:stissue].strip()
@@ -289,11 +289,11 @@ def populate(link,publisher,shipdate):
                     issuedate = shipdate
                     if 'on sale' in str(titlet).lower():
                         onsale_start = str(titlet).lower().find('on sale') + 8
-                        onsale_end = str(titlet).lower().find('<br>',onsale_start)
+                        onsale_end = str(titlet).lower().find('<br>', onsale_start)
                         thedate = str(titlet)[onsale_start:onsale_end]
                         m = None
 
-                        basemonths = {'january':'1','jan':'1','february':'2','feb':'2','march':'3','mar':'3','april':'4','apr':'4','may':'5','june':'6','july':'7','august':'8','aug':'8','september':'9','sept':'9','october':'10','oct':'10','november':'11','nov':'11','december':'12','dec':'12'}
+                        basemonths = {'january': '1', 'jan': '1', 'february': '2', 'feb': '2', 'march': '3', 'mar': '3', 'april': '4', 'apr': '4', 'may': '5', 'june': '6', 'july': '7', 'august': '8', 'aug': '8', 'september': '9', 'sept': '9', 'october': '10', 'oct': '10', 'november': '11', 'nov': '11', 'december': '12', 'dec': '12'}
                         for month in basemonths:
                             if month in thedate.lower():
                                 m = basemonths[month]
@@ -302,7 +302,7 @@ def populate(link,publisher,shipdate):
 
                         if m is not None:
                             theday = len(month) + 1  # account for space between month & day
-                            thedaystart = thedate[theday:(theday+2)].strip() # day numeric won't exceed 2
+                            thedaystart = thedate[theday:(theday +2)].strip() # day numeric won't exceed 2
                             if len(str(thedaystart)) == 1:
                                 thedaystart = '0' + str(thedaystart)
                             if len(str(m)) == 1:
@@ -312,13 +312,13 @@ def populate(link,publisher,shipdate):
                         logger.info('[' + comic + '] On sale :' + str(thedate))
                         exinfo += ' [' + str(thedate) + ']'
                         issuedate = thedate
-                    
+
 
                     if issue1:
                         upcome.append({
                             'Shipdate': issuedate,
                             'Publisher': publisher.upper(),
-                            'Issue':   re.sub('#', '',issue1).lstrip(),
+                            'Issue':   re.sub('#', '', issue1).lstrip(),
                             'Comic':   comic.upper(),
                             'Extra':   exinfo.upper()
                         })
@@ -336,7 +336,7 @@ def populate(link,publisher,shipdate):
                             #print ('Comic: ' + comic)
                             #print('issue#: ' + re.sub('#', '', issue2))
                             #print ('extra info: ' + exinfo)
-                    else:          
+                    else:
                         upcome.append({
                             'Shipdate': issuedate,
                             'Publisher': publisher.upper(),

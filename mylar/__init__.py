@@ -599,7 +599,7 @@ def initialize():
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
         UNRAR_CMD = check_setting_str(CFG, 'General', 'unrar_cmd', '')
-        
+
         UPCOMING_SNATCHED = bool(check_setting_int(CFG, 'General', 'upcoming_snatched', 1))
         UPDATE_ENDED = bool(check_setting_int(CFG, 'General', 'update_ended', 0))
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
@@ -648,7 +648,7 @@ def initialize():
         if MODE_32P == 0 and RSSFEED_32P is not None:
             #parse out the keys.
             KEYS_32P = helpers.parse_32pfeed(RSSFEED_32P)
-           
+
         USERNAME_32P = check_setting_str(CFG, 'Torrents', 'username_32p', '')
         PASSWORD_32P = check_setting_str(CFG, 'Torrents', 'password_32p', '')
 
@@ -808,7 +808,7 @@ def initialize():
             #print('creating provider sequence order now...')
             TMPPR_NUM = 0
             PROV_ORDER = []
-            while TMPPR_NUM < PR_NUM :
+            while TMPPR_NUM < PR_NUM:
                 PROV_ORDER.append({"order_seq":  TMPPR_NUM,
                                    "provider":   str(PR[TMPPR_NUM])})
                 TMPPR_NUM +=1
@@ -831,7 +831,7 @@ def initialize():
                 TMPPR_NUM = 0
                 while (TMPPR_NUM < PR_NUM):
                     #print 'checking entry #' + str(TMPPR_NUM) + ': ' + str(PR[TMPPR_NUM])
-                    if not any(d.get("provider",None) == str(PR[TMPPR_NUM]) for d in PROV_ORDER):
+                    if not any(d.get("provider", None) == str(PR[TMPPR_NUM]) for d in PROV_ORDER):
                         new_order_seqnum = len(PROV_ORDER)
                         #print 'new provider should be : ' + str(new_order_seqnum) + ' -- ' + str(PR[TMPPR_NUM])
                         PROV_ORDER.append({"order_seq":  str(new_order_seqnum),
@@ -849,11 +849,11 @@ def initialize():
             flatt_providers = []
             for pro in PROV_ORDER:
                 try:
-                    provider_seq = re.sub('cbt','32p', pro['provider'])
+                    provider_seq = re.sub('cbt', '32p', pro['provider'])
                     flatt_providers.extend([pro['order_seq'], provider_seq])
                 except TypeError:
                     #if the value is None (no Name specified for Newznab entry), break out now
-                    continue                         
+                    continue
 
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flatt_providers, i, None, 2) for i in range(2)]))
         config_write()
@@ -861,8 +861,8 @@ def initialize():
         # update folder formats in the config & bump up config version
         if CONFIG_VERSION == '0':
             from mylar.helpers import replace_all
-            file_values = { 'issue':  'Issue', 'title': 'Title', 'series' : 'Series', 'year' : 'Year' }
-            folder_values = { 'series' : 'Series', 'publisher':'Publisher', 'year' : 'Year', 'first' : 'First', 'lowerfirst' : 'first' }
+            file_values = {'issue':  'Issue', 'title': 'Title', 'series': 'Series', 'year': 'Year'}
+            folder_values = {'series': 'Series', 'publisher': 'Publisher', 'year': 'Year', 'first': 'First', 'lowerfirst': 'first'}
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
 
@@ -872,7 +872,7 @@ def initialize():
 
             from mylar.helpers import replace_all
 
-            file_values = { 'Issue':        '$Issue',
+            file_values = {'Issue':        '$Issue',
                             'Title':        '$Title',
                             'Series':       '$Series',
                             'Year':         '$Year',
@@ -880,7 +880,7 @@ def initialize():
                             'series':       '$series',
                             'year':         '$year'
                             }
-            folder_values = {   'Series':       '$Series',
+            folder_values = {'Series':       '$Series',
                                 'Publisher':    '$Publisher',
                                 'Year':         '$Year',
                                 'First':        '$First',
@@ -965,7 +965,7 @@ def initialize():
         else:
            vers = 'D'
 
-        USER_AGENT = 'Mylar/'+str(hash)+'('+vers+') +http://www.github.com/evilhero/mylar/'
+        USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
 
         # Check for new versions
         if CHECK_GITHUB_ON_STARTUP:
@@ -1418,7 +1418,7 @@ def start():
             #now the scheduler (check every 24 hours)
             #SCHED.add_interval_job(weeklypull.pullit, hours=24)
             WeeklyScheduler.thread.start()
-        
+
             #let's do a run at the Wanted issues here (on startup) if enabled.
             #if NZB_STARTUP_SEARCH:
             #    threading.Thread(target=search.searchforissue).start()
@@ -1878,12 +1878,12 @@ def csv_load():
         if not os.path.exists(EXCEPTIONS_FILE):
             try:
                 csvfile = open(str(EXCEPTIONS_FILE), "rb")
-            except (OSError,IOError):
+            except (OSError, IOError):
                 if i == 1:
                     logger.info('No Custom Exceptions found - Using base exceptions only. Creating blank custom_exceptions for your personal use.')
                     try:
-                        shutil.copy(os.path.join(DATA_DIR,"custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
-                    except (OSError,IOError):
+                        shutil.copy(os.path.join(DATA_DIR, "custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
+                    except (OSError, IOError):
                         logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure _sample.csv is present and/or check permissions.')
                         return
                 else:

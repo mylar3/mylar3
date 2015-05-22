@@ -29,30 +29,30 @@ def sabnzbd():
        r = requests.get(sabline + 'config/general/')
        soup = BeautifulSoup(r.content)
        #lenlinks = len(cntlinks)
-       cnt1 = len(soup.findAll("div", {"class" : "field-pair alt"}))
-       cnt2 = len(soup.findAll("div", {"class" : "field-pair"}))
+       cnt1 = len(soup.findAll("div", {"class": "field-pair alt"}))
+       cnt2 = len(soup.findAll("div", {"class": "field-pair"}))
 
        cnt = int(cnt1 + cnt2)
        n = 0
        n_even = -1
        n_odd = -1
-       while ( n < cnt ):
+       while (n < cnt):
            if n%2==0:
                n_even+=1
-               resultp = soup.findAll("div", {"class" : "field-pair"})[n_even]
+               resultp = soup.findAll("div", {"class": "field-pair"})[n_even]
            else:
                n_odd+=1
-               resultp = soup.findAll("div", {"class" : "field-pair alt"})[n_odd]
+               resultp = soup.findAll("div", {"class": "field-pair alt"})[n_odd]
 
-           if resultp.find("label", {"for" : "nzbkey"}):
+           if resultp.find("label", {"for": "nzbkey"}):
                #logger.fdebug resultp
                try:
-                   result = resultp.find("input", {"type" : "text"})
+                   result = resultp.find("input", {"type": "text"})
 
                except:
                    continue
                if result['id'] == "nzbkey":
-                   nzbkey = result['value']             
+                   nzbkey = result['value']
                    logger.fdebug('found SABnzbd NZBKey: ' + str(nzbkey))
                    return nzbkey
            n+=1

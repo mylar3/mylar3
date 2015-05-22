@@ -5,13 +5,14 @@ from bs4 import BeautifulSoup
 import mylar
 from mylar import logger
 
+
 class info32p(object):
 
     def __init__(self, reauthenticate=False, searchterm=None):
 
         self.module = '[32P-AUTHENTICATION]'
         self.url = 'https://32pag.es/login.php'
-        self.payload = {'username': mylar.USERNAME_32P, 
+        self.payload = {'username': mylar.USERNAME_32P,
                         'password': mylar.PASSWORD_32P}
         self.headers = {'Content-type': 'application/x-www-form-urlencoded',
                         'Accept-Charset': 'utf-8',
@@ -50,8 +51,8 @@ class info32p(object):
                 logger.info('[32P] Successfully authenticated. Initiating search for : ' + self.searchterm)
                 return self.search32p(s)
             soup = BeautifulSoup(r.content)
-            all_script = soup.find_all("script", {"src":False})
-            all_script2 = soup.find_all("link", {"rel":"alternate"})
+            all_script = soup.find_all("script", {"src": False})
+            all_script2 = soup.find_all("link", {"rel": "alternate"})
 
             for ind_s in all_script:
                 all_value = str(ind_s)
@@ -62,13 +63,13 @@ class info32p(object):
                     if al == 'authkey':
                         auth_found = True
                     elif auth_found == True and al != '=':
-                        authkey = re.sub('["/;]','', al).strip()
+                        authkey = re.sub('["/;]', '', al).strip()
                         auth_found = False
                         logger.fdebug(self.module + ' Authkey found: ' + str(authkey))
                     if al == 'userid':
                         user_found = True
                     elif user_found == True and al != '=':
-                        userid = re.sub('["/;]','', al).strip()
+                        userid = re.sub('["/;]', '', al).strip()
                         user_found = False
                         logger.fdebug(self.module + ' Userid found: ' + str(userid))
 
@@ -79,23 +80,23 @@ class info32p(object):
                 alurl = al['href']
                 if 'auth=' in alurl and 'torrents_notify' in alurl and not authfound:
                     f1 = alurl.find('auth=')
-                    f2 = alurl.find('&',f1+1)
-                    auth = alurl[f1+5:f2]
+                    f2 = alurl.find('&', f1 + 1)
+                    auth = alurl[f1 +5:f2]
                     logger.fdebug(self.module + ' Auth:' + str(auth))
                     authfound = True
                     p1 = alurl.find('passkey=')
-                    p2 = alurl.find('&',p1+1)
-                    passkey = alurl[p1+8:p2]
+                    p2 = alurl.find('&', p1 + 1)
+                    passkey = alurl[p1 +8:p2]
                     logger.fdebug(self.module + ' Passkey:' + str(passkey))
                     if self.reauthenticate: break
 
                 if 'torrents_notify' in alurl and ('torrents_notify_' + str(passkey)) not in alurl:
                     notifyname_st = alurl.find('name=')
-                    notifyname_en = alurl.find('&',notifyname_st+1)
+                    notifyname_en = alurl.find('&', notifyname_st +1)
                     if notifyname_en == -1: notifyname_en = len(alurl)
-                    notifyname = alurl[notifyname_st+5:notifyname_en]
+                    notifyname = alurl[notifyname_st +5:notifyname_en]
                     notifynumber_st = alurl.find('torrents_notify_')
-                    notifynumber_en = alurl.find('_', notifynumber_st+17)
+                    notifynumber_en = alurl.find('_', notifynumber_st +17)
                     notifynumber = alurl[notifynumber_st:notifynumber_en]
                     logger.fdebug(self.module + ' [NOTIFICATION: ' + str(notifyname) + '] Notification ID: ' + str(notifynumber))
 

@@ -46,8 +46,7 @@ class Api(object):
         self.data = None
         self.callback = None
 
-
-    def checkParams(self,*args,**kwargs):
+    def checkParams(self, *args, **kwargs):
 
         if not mylar.API_ENABLED:
             self.data = 'API not enabled'

@@ -6,7 +6,7 @@ import time
 import mylar
 from mylar import logger
 
-def putfile(localpath,file):    #localpath=full path to .torrent (including filename), file=filename of torrent
+def putfile(localpath, file):    #localpath=full path to .torrent (including filename), file=filename of torrent
 
     try:
         import paramiko
@@ -17,7 +17,7 @@ def putfile(localpath,file):    #localpath=full path to .torrent (including file
         logger.fdebug('aborting send.')
         return "fail"
 
-    host = mylar.SEEDBOX_HOST   
+    host = mylar.SEEDBOX_HOST
     port = int(mylar.SEEDBOX_PORT)   #this is usually 22
     transport = paramiko.Transport((host, port))
 
@@ -45,7 +45,7 @@ def putfile(localpath,file):    #localpath=full path to .torrent (including file
             return "fail"
 
     sendcheck = False
-    
+
     while sendcheck == False:
         try:
             sftp.put(localpath, rempath)
@@ -79,23 +79,23 @@ def sendfiles(filelist):
         return
 
     fhost = mylar.TAB_HOST.find(':')
-    host = mylar.TAB_HOST[:fhost] 
-    port = int(mylar.TAB_HOST[fhost+1:])
+    host = mylar.TAB_HOST[:fhost]
+    port = int(mylar.TAB_HOST[fhost +1:])
 
     logger.fdebug('Destination: ' + host)
     logger.fdebug('Using SSH port : ' + str(port))
 
     transport = paramiko.Transport((host, port))
 
-    password = mylar.TAB_PASS 
-    username = mylar.TAB_USER 
+    password = mylar.TAB_PASS
+    username = mylar.TAB_USER
     transport.connect(username = username, password = password)
 
     sftp = paramiko.SFTPClient.from_transport(transport)
 
     remotepath = mylar.TAB_DIRECTORY
     logger.fdebug('remote path set to ' + remotepath)
-   
+
     if len(filelist) > 0:
         logger.info('Initiating send for ' + str(len(filelist)) + ' files...')
         return sendtohome(sftp, remotepath, filelist, transport)
@@ -104,7 +104,7 @@ def sendfiles(filelist):
 def sendtohome(sftp, remotepath, filelist, transport):
     fhost = mylar.TAB_HOST.find(':')
     host = mylar.TAB_HOST[:fhost]
-    port = int(mylar.TAB_HOST[fhost+1:])
+    port = int(mylar.TAB_HOST[fhost +1:])
 
     successlist = []
     filestotal = len(filelist)
@@ -126,13 +126,13 @@ def sendtohome(sftp, remotepath, filelist, transport):
             filename = tempfile.replace('\0ff1a', '-')
 
         #now we encode the structure to ascii so we can write directories/filenames without error.
-        filename = tempfile.encode('ascii','ignore')
+        filename = tempfile.encode('ascii', 'ignore')
 
         remdir = remotepath
 
         localsend = files['filepath']
         logger.info('Sending : ' + localsend)
-        remotesend = os.path.join(remdir,filename)
+        remotesend = os.path.join(remdir, filename)
         logger.info('To : ' + remotesend)
 
         try:
@@ -146,13 +146,13 @@ def sendtohome(sftp, remotepath, filelist, transport):
         if not filechk:
             sendcheck = False
             count = 1
- 
+
             while sendcheck == False:
                 try:
                     sftp.put(localsend, remotesend)#, callback=printTotals)
                     sendcheck = True
                 except Exception, e:
-                    logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__,e))
+                    logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
                     logger.info('Forcibly closing connection and attempting to reconnect')
                     sftp.close()
                     transport.close()
@@ -181,7 +181,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                         sftp.put(localsend, remotesend)
                         sendcheck = True
                     except Exception, e:
-                        logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__,e))
+                        logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
                         logger.info('Forcibly closing connection and attempting to reconnect')
                         sftp.close()
                         transport.close()

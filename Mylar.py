@@ -32,8 +32,10 @@ try:
 except ImportError:
     import lib.argparse as argparse
 
+
 def handler_sigterm(signum, frame):
     mylar.SIGNAL = 'shutdown'
+
 
 def main():
 
@@ -42,10 +44,10 @@ def main():
         mylar.FULL_PATH = os.path.abspath(sys.executable)
     else:
         mylar.FULL_PATH = os.path.abspath(__file__)
-    
+
     mylar.PROG_DIR = os.path.dirname(mylar.FULL_PATH)
     mylar.ARGS = sys.argv[1:]
-    
+
     # From sickbeard
     mylar.SYS_ENCODING = None
 
@@ -58,7 +60,7 @@ def main():
     # for OSes that are poorly configured I'll just force UTF-8
     if not mylar.SYS_ENCODING or mylar.SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
         mylar.SYS_ENCODING = 'UTF-8'
-    
+
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Comic Book add-on for SABnzbd+')
 
@@ -73,14 +75,14 @@ def main():
     parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
     parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
     #parser.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
-    
+
     args = parser.parse_args()
 
     if args.verbose:
         mylar.VERBOSE = 2
     elif args.quiet:
         mylar.VERBOSE = 0
-    
+
     #if args.update:
     #    print('Attempting to update Mylar so things can work again...')
     #    try:
@@ -92,10 +94,10 @@ def main():
         if sys.platform == 'win32':
             print "Daemonize not supported under Windows, starting normally"
         else:
-            mylar.DAEMON=True
-            mylar.VERBOSE=0
+            mylar.DAEMON = True
+            mylar.VERBOSE = 0
 
-    if args.pidfile :
+    if args.pidfile:
         mylar.PIDFILE = str(args.pidfile)
 
         # If the pidfile already exists, mylar may still be running, so exit
@@ -112,17 +114,16 @@ def main():
         else:
             logger.warn("Not running in daemon mode. PID file creation disabled.")
 
-
     if args.datadir:
         mylar.DATA_DIR = args.datadir
     else:
         mylar.DATA_DIR = mylar.PROG_DIR
-            
+
     if args.config:
         mylar.CONFIG_FILE = args.config
     else:
         mylar.CONFIG_FILE = os.path.join(mylar.DATA_DIR, 'config.ini')
-        
+
     if args.safe:
         mylar.SAFESTART = True
     else:
@@ -136,14 +137,14 @@ def main():
     #        raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
 
     filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
-    
+
     # Make sure the DATA_DIR is writeable
     if not os.access(mylar.DATA_DIR, os.W_OK):
         raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
-    
+
     # Put the database in the DATA_DIR
     mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
-    
+
     # backup the db and configs before they load.
     if args.backup:
         print '[AUTO-BACKUP] Backing up .db and config.ini files for safety.'
@@ -177,22 +178,22 @@ def main():
                     print '[AUTO-BACKUP] Now renaming ' + back + ' to ' + back_1
                     shutil.move(back, back_1)
                 print '[AUTO-BACKUP] Now copying db file to ' + back
-                shutil.copy(ogfile, back)    
-  
+                shutil.copy(ogfile, back)
+
             except OSError as exception:
                 if exception.errno != errno.EXIST:
                     raise
 
-            i+=1
+            i += 1
 
     mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
 
     # Rename the main thread
     threading.currentThread().name = "MAIN"
-    
+
     # Read config & start logging
     mylar.initialize()
-        
+
     if mylar.DAEMON:
         mylar.daemonize()
 
@@ -202,7 +203,7 @@ def main():
         logger.info('Starting Mylar on foced port: %i' % http_port)
     else:
         http_port = int(mylar.HTTP_PORT)
-        
+
     # Check if pyOpenSSL is installed. It is required for certificate generation
     # and for CherryPy.
     if mylar.ENABLE_HTTPS:
@@ -225,19 +226,19 @@ def main():
         'http_password': mylar.HTTP_PASSWORD,
     }
 
-    # Try to start the server. 
+    # Try to start the server.
     webstart.initialize(web_config)
-    
+
     #logger.info('Starting Mylar on port: %i' % http_port)
-    
+
     if mylar.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.HTTP_HOST, http_port, mylar.HTTP_ROOT)
-        
+
     # Start the background threads
     mylar.start()
 
     signal.signal(signal.SIGTERM, handler_sigterm)
-    
+
     while True:
         if not mylar.SIGNAL:
             try:
@@ -252,9 +253,9 @@ def main():
                 mylar.shutdown(restart=True)
             else:
                 mylar.shutdown(restart=True, update=True)
-            
+
             mylar.SIGNAL = None
-            
+
     return
 
 if __name__ == "__main__":

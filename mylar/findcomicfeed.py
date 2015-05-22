@@ -27,9 +27,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     encodeSearch = urllib.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
-    joinSearch = "+".join(splitSearch)+"+"+searchIssue
-    searchIsOne = "0"+searchIssue
-    searchIsTwo = "00"+searchIssue
+    joinSearch = "+".join(splitSearch) +"+" +searchIssue
+    searchIsOne = "0" +searchIssue
+    searchIsTwo = "00" +searchIssue
 
     if mylar.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
     elif mylar.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
@@ -39,7 +39,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
     regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?')
 
-    
+
     #logger.fdebug('searchName:' + searchName)
     #logger.fdebug('regexName:' + regexName)
 
@@ -82,7 +82,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             "link":      urlParse["href"],
                             "length":    urlParse["length"],
                             "pubdate":   feed.entries[countUp].updated})
-    	    countUp=countUp+1
+    	    countUp=countUp +1
         logger.fdebug('keypair: ' + str(keyPair))
 
 
@@ -94,10 +94,10 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         regExOne = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, searchYear)
 
         #Sometimes comics aren't actually published the same year comicVine says - trying to adjust for these cases
-        regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
-        regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
-        regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)+1)
-        regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear)-1)
+        regExTwo = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
+        regExThree = "(%s\\s*(0)?(0)?%s\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
+        regExFour = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) +1)
+        regExFive = "(%s\\s*(0)?(0)?%s\\s*\\(.*?\\)\\s*\\(%s\\))" %(regexName, searchIssue, int(searchYear) -1)
 
         regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
@@ -118,7 +118,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 #                while regExCount < len(regexList):
 #                    regExTest = re.findall(regexList[regExCount], subs, flags=re.IGNORECASE)
 #                    regExCount = regExCount +1
-#                    if regExTest:   
+#                    if regExTest:
 #                        logger.fdebug(title)
 #                        entries.append({
 #                                  'title':   subs,
@@ -146,11 +146,11 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                     if (searchYear in subs or ComicYearFix in subs) and noYear == 'True':
                         #this would occur on the next check in the line, if year exists and
                         #the noYear check in the first check came back valid append it
-                        subs = noYearline + ' (' + searchYear + ')'                  
+                        subs = noYearline + ' (' + searchYear + ')'
                         noYear = 'False'
 
                     if noYear == 'False':
-                        
+
                         entries.append({
                                   'title':     subs,
                                   'link':      entry['link'],
@@ -158,11 +158,11 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                                   'length':    entry['length']
                                   })
                         break  # break out so we don't write more shit.
-              
+
 #    if len(entries) >= 1:
     if tallycount >= 1:
         mres['entries'] = entries
-        return mres 
+        return mres
     else:
         logger.fdebug("No Results Found")
         return "no results"

@@ -4,7 +4,7 @@ import os
 import shutil
 
 
-def movefiles(comicid,comlocation,ogcname,imported=None):
+def movefiles(comicid, comlocation, ogcname, imported=None):
     myDB = db.DBConnection()
     logger.fdebug('comlocation is : ' + str(comlocation))
     logger.fdebug('original comicname is : ' + str(ogcname))
@@ -16,17 +16,17 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
             srcimp = impr['ComicLocation']
             orig_filename = impr['ComicFilename']
             orig_iss = impr['impID'].rfind('-')
-            orig_iss = impr['impID'][orig_iss+1:]
+            orig_iss = impr['impID'][orig_iss +1:]
             logger.fdebug("Issue :" + str(orig_iss))
             #before moving check to see if Rename to Mylar structure is enabled.
             if mylar.IMP_RENAME and mylar.FILE_FORMAT != '':
                 logger.fdebug("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
                 renameit = helpers.rename_param(comicid, impr['ComicName'], orig_iss, orig_filename)
                 nfilename = renameit['nfilename']
-                dstimp = os.path.join(comlocation,nfilename)
+                dstimp = os.path.join(comlocation, nfilename)
             else:
                 logger.fdebug("Renaming files not enabled, keeping original filename(s)")
-                dstimp = os.path.join(comlocation,orig_filename)
+                dstimp = os.path.join(comlocation, orig_filename)
 
             logger.info("moving " + str(srcimp) + " ... to " + str(dstimp))
             try:
@@ -40,11 +40,11 @@ def movefiles(comicid,comlocation,ogcname,imported=None):
     if results is not None:
         for result in results:
             controlValue = {"impID":    result['impid']}
-            newValue = {"Status":           "Imported" }
+            newValue = {"Status":           "Imported"}
             myDB.upsert("importresults", newValue, controlValue)
     return
 
-def archivefiles(comicid,ogcname):
+def archivefiles(comicid, ogcname):
     myDB = db.DBConnection()
     # if move files isn't enabled, let's set all found comics to Archive status :)
     result = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
@@ -53,5 +53,5 @@ def archivefiles(comicid,ogcname):
         ogdir = result['Location']
         origdir = os.path.join(os.path.dirname(ogdir))
 
-        updater.forceRescan(comicid,archive=origdir) #send to rescanner with archive mode turned on
+        updater.forceRescan(comicid, archive=origdir) #send to rescanner with archive mode turned on
 

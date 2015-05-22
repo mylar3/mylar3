@@ -21,44 +21,45 @@ import lib.simplejson as simplejson
 import mylar
 from mylar import db, helpers, logger
 
+
 class Cache(object):
     """
-    This class deals with getting, storing and serving up artwork (album 
+    This class deals with getting, storing and serving up artwork (album
     art, artist images, etc) and info/descriptions (album info, artist descrptions)
-    to and from the cache folder. This can be called from within a web interface, 
+    to and from the cache folder. This can be called from within a web interface,
     for example, using the helper functions getInfo(id) and getArtwork(id), to utilize the cached
     images rather than having to retrieve them every time the page is reloaded.
-    
+
     So you can call cache.getArtwork(id) which will return an absolute path
     to the image file on the local machine, or if the cache directory
     doesn't exist, or can not be written to, it will return a url to the image.
-    
+
     Call cache.getInfo(id) to grab the artist/album info; will return the text description
-    
+
     The basic format for art in the cache is <musicbrainzid>.<date>.<ext>
     and for info it is <musicbrainzid>.<date>.txt
     """
     mylar.CACHE_DIR = os.path.join(str(mylar.PROG_DIR), 'cache/')
 
     path_to_art_cache = os.path.join(mylar.CACHE_DIR, 'artwork')
-    
+
     id = None
-    id_type = None # 'comic' or 'issue' - set automatically depending on whether ComicID or IssueID is passed
-    query_type = None # 'artwork','thumb' or 'info' - set automatically
-    
+    id_type = None  # 'comic' or 'issue' - set automatically depending on whether ComicID or IssueID is passed
+    query_type = None  # 'artwork','thumb' or 'info' - set automatically
+
     artwork_files = []
     thumb_files = []
-    
+
     artwork_errors = False
     artwork_url = None
-    
+
     thumb_errors = False
     thumb_url = None
-    
+
     def __init__(self):
-        
+
         pass
-        
+
     def _exists(self, type):
 
         self.artwork_files = glob.glob(os.path.join(self.path_to_art_cache, self.id + '*'))
@@ -70,9 +71,9 @@ class Cache(object):
                 return True
             else:
                 return False
-                
+
         elif type == 'thumb':
-            
+
             if self.thumb_files:
                 return True
             else:
@@ -81,38 +82,38 @@ class Cache(object):
     def _get_age(self, date):
         # There's probably a better way to do this
         split_date = date.split('-')
-        days_old = int(split_date[0])*365 + int(split_date[1])*30 + int(split_date[2])
-        
+        days_old = int(split_date[0]) *365 + int(split_date[1]) *30 + int(split_date[2])
+
         return days_old
-        
-    
+
+
     def _is_current(self, filename=None, date=None):
-        
+
         if filename:
             base_filename = os.path.basename(filename)
             date = base_filename.split('.')[1]
-        
+
         # Calculate how old the cached file is based on todays date & file date stamp
         # helpers.today() returns todays date in yyyy-mm-dd format
         if self._get_age(helpers.today()) - self._get_age(date) < 30:
             return True
         else:
             return False
-            
+
     def get_artwork_from_cache(self, ComicID=None, imageURL=None):
         '''
         Pass a comicvine id to this function (either ComicID or IssueID)
         '''
-        
+
         self.query_type = 'artwork'
-        
+
         if ComicID:
             self.id = ComicID
             self.id_type = 'comic'
         else:
             self.id = IssueID
             self.id_type = 'issue'
-        
+
         if self._exists('artwork') and self._is_current(filename=self.artwork_files[0]):
             return self.artwork_files[0]
         else:
@@ -155,18 +156,16 @@ class Cache(object):
                     self.artwork_url = image_url
 
 
-                
 def getArtwork(ComicID=None, imageURL=None):
-    
+
     c = Cache()
-    artwork_path = c.get_artwork_from_cache(ComicID,imageURL)
-    logger.info('artwork path at : ' + str(artwork_path))    
+    artwork_path = c.get_artwork_from_cache(ComicID, imageURL)
+    logger.info('artwork path at : ' + str(artwork_path))
     if not artwork_path:
         return None
-    
+
     if artwork_path.startswith('http://'):
         return artwork_path
     else:
         artwork_file = os.path.basename(artwork_path)
         return "cache/artwork/" + artwork_file
-        

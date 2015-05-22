@@ -5,8 +5,8 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Mylar is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the 
-#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public 
+#  Mylar is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+#  implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
 #  License for more details.
 #
 #  You should have received a copy of the GNU General Public License
@@ -27,6 +27,7 @@ from mylar.helpers import cvapi_check
 from bs4 import BeautifulSoup as Soup
 import httplib
 
+
 def patch_http_response_read(func):
     def inner(*args):
         try:
@@ -41,7 +42,8 @@ if platform.python_version() == '2.7.6':
     httplib.HTTPConnection._http_vsn = 10
     httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
-def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None):
+
+def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist=None):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
@@ -53,7 +55,7 @@ def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None
 
     if type == 'comic':
         if not comicid.startswith('4050-'): comicid = '4050-' + comicid
-        PULLURL= mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
+        PULLURL = mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
     elif type == 'issue':
         if mylar.CV_ONLY:
             cv_type = 'issues'
@@ -80,7 +82,7 @@ def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None
     #download the file:
     file = urllib2.urlopen(PULLURL)
     #increment CV API counter.
-    mylar.CVAPI_COUNT +=1
+    mylar.CVAPI_COUNT += 1
     #convert to string:
     data = file.read()
     #close file because we dont need it anymore:
@@ -91,8 +93,8 @@ def pulldetails(comicid,type,issueid=None,offset=1,arclist=None,comicidlist=None
     return dom
 
 
-def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidlist=None):
-    if type == 'issue': 
+def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None):
+    if type == 'issue':
         offset = 1
         issue = {}
         ndic = []
@@ -107,7 +109,7 @@ def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidl
         else:
             id = comicid
             islist = None
-        searched = pulldetails(id,'issue',None,0,islist)
+        searched = pulldetails(id, 'issue', None, 0, islist)
         if searched is None: return False
         totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
         logger.fdebug("there are " + str(totalResults) + " search results...")
@@ -119,8 +121,8 @@ def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidl
             if countResults > 0:
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
-                searched = pulldetails(id,'issue',None,offsetcount,islist)
-            issuechoice,tmpdate = GetIssuesInfo(id,searched,arcid)
+                searched = pulldetails(id, 'issue', None, offsetcount, islist)
+            issuechoice, tmpdate = GetIssuesInfo(id, searched, arcid)
             if tmpdate < firstdate:
                 firstdate = tmpdate
             ndic = ndic + issuechoice
@@ -133,22 +135,22 @@ def getComic(comicid,type,issueid=None,arc=None,arcid=None,arclist=None,comicidl
         return issue
 
     elif type == 'comic':
-        dom = pulldetails(comicid,'comic',None,1)
-        return GetComicInfo(comicid,dom)
-    elif type == 'firstissue': 
-        dom = pulldetails(comicid,'firstissue',issueid,1)
-        return GetFirstIssue(issueid,dom)
+        dom = pulldetails(comicid, 'comic', None, 1)
+        return GetComicInfo(comicid, dom)
+    elif type == 'firstissue':
+        dom = pulldetails(comicid, 'firstissue', issueid, 1)
+        return GetFirstIssue(issueid, dom)
     elif type == 'storyarc':
-        dom = pulldetails(arc,'storyarc',None,1)   
-        return GetComicInfo(issueid,dom)
+        dom = pulldetails(arc, 'storyarc', None, 1)
+        return GetComicInfo(issueid, dom)
     elif type == 'comicyears':
         #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year.
         #this grabs each issue based on issueid, and then subsets the comicid for each to be used later.
         #set the offset to 0, since we're doing a filter.
-        dom = pulldetails(arcid,'comicyears',offset=0,comicidlist=comicidlist)
+        dom = pulldetails(arcid, 'comicyears', offset=0, comicidlist=comicidlist)
         return GetSeriesYears(dom)
 
-def GetComicInfo(comicid,dom,safechk=None):
+def GetComicInfo(comicid, dom, safechk=None):
     if safechk is None:
         #safetycheck when checking comicvine. If it times out, increment the chk on retry attempts up until 5 tries then abort.
         safechk = 1
@@ -182,13 +184,13 @@ def GetComicInfo(comicid,dom,safechk=None):
     # where [0] denotes the number of the name field(s)
     # where nodeName denotes the parentNode : ComicName = results, publisher = publisher, issues = issue
     try:
-        names = len( dom.getElementsByTagName('name') )
+        names = len(dom.getElementsByTagName('name'))
         n = 0
-        while ( n < names ):
+        while (n < names):
             if dom.getElementsByTagName('name')[n].parentNode.nodeName == 'results':
                 try:
                     comic['ComicName'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
-                    comic['ComicName'] = comic['ComicName'].rstrip() 
+                    comic['ComicName'] = comic['ComicName'].rstrip()
                 except:
                     logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible AND that you have provided your OWN ComicVine API key.')
                     return
@@ -199,7 +201,7 @@ def GetComicInfo(comicid,dom,safechk=None):
                 except:
                     comic['ComicPublisher'] = "Unknown"
 
-            n+=1  
+            n += 1
     except:
         logger.warn('Something went wrong retrieving from ComicVine. Ensure your API is up-to-date and that comicvine is accessible')
         return
@@ -217,7 +219,7 @@ def GetComicInfo(comicid,dom,safechk=None):
         time.sleep(10)
         safechk +=1
         GetComicInfo(comicid, dom, safechk)
-        
+
     desdeck = 0
     #the description field actually holds the Volume# - so let's grab it
     try:
@@ -269,29 +271,29 @@ def GetComicInfo(comicid,dom,safechk=None):
                 #increased to 10 to allow for text numbering (+5 max)
                 #sometimes it's volume 5 and ocassionally it's fifth volume.
                 if i == 0:
-                    vfind = comicDes[v_find:v_find+15]   #if it's volume 5 format
-                    basenums = {'zero':'0','one':'1','two':'2','three':'3','four':'4','five':'5','six':'6','seven':'7','eight':'8','nine':'9','ten':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
+                    vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
+                    basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
                     logger.fdebug('volume X format - ' + str(i) + ': ' + vfind)
                 else:
                     vfind = comicDes[:v_find]   # if it's fifth volume format
-                    basenums = {'zero':'0','first':'1','second':'2','third':'3','fourth':'4','fifth':'5','sixth':'6','seventh':'7','eighth':'8','nineth':'9','tenth':'10','i':'1','ii':'2','iii':'3','iv':'4','v':'5'}
+                    basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
                     logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
                 volconv = ''
                 for nums in basenums:
                     if nums in vfind.lower():
                         sconv = basenums[nums]
                         vfind = re.sub(nums, sconv, vfind.lower())
-                        break        
+                        break
                 #logger.info('volconv: ' + str(volconv))
 
                 #now we attempt to find the character position after the word 'volume'
                 if i == 0:
                     volthis = vfind.lower().find('volume')
-                    volthis = volthis + 6 # add on the actual word to the position so that we can grab the subsequent digit
-                    vfind = vfind[volthis:volthis+4] #grab the next 4 characters ;)
+                    volthis = volthis + 6  # add on the actual word to the position so that we can grab the subsequent digit
+                    vfind = vfind[volthis:volthis + 4]  # grab the next 4 characters ;)
                 elif i == 1:
                     volthis = vfind.lower().find('volume')
-                    vfind = vfind[volthis-4:volthis] #grab the next 4 characters ;)
+                    vfind = vfind[volthis - 4:volthis]  # grab the next 4 characters ;)
 
                 if '(' in vfind:
                     #bracket detected in versioning'
@@ -303,17 +305,17 @@ def GetComicInfo(comicid,dom,safechk=None):
                     comic['ComicVersion'] = ledigit
                     logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
                     break
-                i+=1
+                i += 1
             else:
-                i+=1
+                i += 1
 
         if comic['ComicVersion'] == 'noversion':
             logger.fdebug('comic[ComicVersion]:' + str(comic['ComicVersion']))
-            desdeck -=1
+            desdeck -= 1
         else:
             break
 
-    if vari == "yes": 
+    if vari == "yes":
         comic['ComicIssues'] = str(cntit)
     else:
         comic['ComicIssues'] = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
@@ -338,7 +340,7 @@ def GetComicInfo(comicid,dom,safechk=None):
 #    comic['comicchoice'] = comicchoice
     return comic
 
-def GetIssuesInfo(comicid,dom,arcid=None):
+def GetIssuesInfo(comicid, dom, arcid=None):
     subtracks = dom.getElementsByTagName('issue')
     if not mylar.CV_ONLY:
         cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
@@ -349,7 +351,7 @@ def GetIssuesInfo(comicid,dom,arcid=None):
             logger.fdebug("CV's count is wrong, I counted different...going with my count for physicals" + str(len(subtracks)))
             cntiss = len(subtracks) # assume count of issues is wrong, go with ACTUAL physical api count
         cntiss = int(cntiss)
-        n = cntiss-1
+        n = cntiss -1
     else:
         n = int(len(subtracks))
     tempissue = {}
@@ -364,7 +366,7 @@ def GetIssuesInfo(comicid,dom,arcid=None):
 
             issue['Issue_ID'] = dom.getElementsByTagName('id')[n].firstChild.wholeText
             issue['Issue_Number'] = dom.getElementsByTagName('issue_number')[n].firstChild.wholeText
-            
+
             issuech.append({
                 'Issue_ID':                issue['Issue_ID'],
                 'Issue_Number':            issue['Issue_Number'],
@@ -372,7 +374,7 @@ def GetIssuesInfo(comicid,dom,arcid=None):
                 })
         else:
             try:
-                totnames = len( subtrack.getElementsByTagName('name') )
+                totnames = len(subtrack.getElementsByTagName('name'))
                 tot = 0
                 while (tot < totnames):
                     if subtrack.getElementsByTagName('name')[tot].parentNode.nodeName == 'volume':
@@ -382,19 +384,19 @@ def GetIssuesInfo(comicid,dom,arcid=None):
                             tempissue['Issue_Name'] = subtrack.getElementsByTagName('name')[tot].firstChild.wholeText
                         except:
                             tempissue['Issue_Name'] = None
-                    tot+=1
+                    tot += 1
             except:
                 tempissue['ComicName'] = 'None'
 
             try:
-                totids = len( subtrack.getElementsByTagName('id') )
+                totids = len(subtrack.getElementsByTagName('id'))
                 idt = 0
                 while (idt < totids):
                     if subtrack.getElementsByTagName('id')[idt].parentNode.nodeName == 'volume':
                         tempissue['Comic_ID'] = subtrack.getElementsByTagName('id')[idt].firstChild.wholeText
                     elif subtrack.getElementsByTagName('id')[idt].parentNode.nodeName == 'issue':
                         tempissue['Issue_ID'] = subtrack.getElementsByTagName('id')[idt].firstChild.wholeText
-                    idt+=1
+                    idt += 1
             except:
                 tempissue['Issue_Name'] = 'None'
 
@@ -435,12 +437,12 @@ def GetIssuesInfo(comicid,dom,arcid=None):
 
             if tempissue['CoverDate'] < firstdate and tempissue['CoverDate'] != '0000-00-00':
                 firstdate = tempissue['CoverDate']
-        n-=1
+        n-= 1
 
     #issue['firstdate'] = firstdate
     return issuech, firstdate
 
-def GetFirstIssue(issueid,dom):
+def GetFirstIssue(issueid, dom):
     #if the Series Year doesn't exist, get the first issue and take the date from that
     try:
         first_year = dom.getElementsByTagName('cover_date')[0].firstChild.wholeText
@@ -462,7 +464,7 @@ def GetSeriesYears(dom):
     serieslist = []
     for dm in series:
         try:
-            totids = len( dm.getElementsByTagName('id') )
+            totids = len(dm.getElementsByTagName('id'))
             idc = 0
             while (idc < totids):
                 if dm.getElementsByTagName('id')[idc].parentNode.nodeName == 'volume':
@@ -475,7 +477,7 @@ def GetSeriesYears(dom):
         tempseries['Series'] = 'None'
         tempseries['Publisher'] = 'None'
         try:
-            totnames = len( dm.getElementsByTagName('name') )
+            totnames = len(dm.getElementsByTagName('name'))
             namesc = 0
             while (namesc < totnames):
                 if dm.getElementsByTagName('name')[namesc].parentNode.nodeName == 'volume':
@@ -492,13 +494,13 @@ def GetSeriesYears(dom):
             logger.warn('There was a problem retrieving the start year for a particular series within the story arc.')
             tempseries['SeriesYear'] = '0000'
 
-
         serieslist.append({"ComicID":    tempseries['ComicID'],
                            "ComicName":  tempseries['Series'],
                            "SeriesYear": tempseries['SeriesYear'],
                            "Publisher": tempseries['Publisher']})
 
     return serieslist
+
 
 def drophtml(html):
     from bs4 import BeautifulSoup

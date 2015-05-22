@@ -106,7 +106,7 @@ def initLogger(verbose=1):
         console_formatter = Formatter('%(asctime)s - %(levelname)s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
         console_handler = StreamHandler()
         console_handler.setFormatter(console_formatter)
-        #print 'verbose is ' + str(verbose)        
+        #print 'verbose is ' + str(verbose)
         #if verbose == 2:
         #    console_handler.setLevel(logging.DEBUG)
         #else:

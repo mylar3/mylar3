@@ -15,17 +15,18 @@
 
 from mylar import db
 
+
 def getCachedArt(albumid):
-    
+
     from mylar import cache
-    
+
     c = cache.Cache()
-    
+
     artwork_path = c.get_artwork_from_cache(ComicID=comicid)
-    
+
     if not artwork_path:
         return None
-    
+
     if artwork_path.startswith('http://'):
         artwork = urllib.urlopen(artwork_path).read()
         return artwork

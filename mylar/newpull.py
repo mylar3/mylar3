@@ -19,7 +19,7 @@ from mylar import logger
 def newpull():
         pagelinks = "http://www.previewsworld.com/Home/1/1/71/952"
 
-        pageresponse = urllib2.urlopen ( pagelinks )
+        pageresponse = urllib2.urlopen (pagelinks)
         soup = BeautifulSoup (pageresponse)
         getthedate = soup.findAll("div", {"class": "Headline"})[0]
         #the date will be in the FIRST ahref
@@ -42,7 +42,7 @@ def newpull():
         endthis = False
         pull_list = []
 
-        publishers = {'914':'DARK HORSE COMICS', '915':'DC COMICS', '916':'IDW PUBLISHING', '917':'IMAGE COMICS', '918':'MARVEL COMICS', '952':'COMICS & GRAPHIC NOVELS'}
+        publishers = {'914': 'DARK HORSE COMICS', '915': 'DC COMICS', '916': 'IDW PUBLISHING', '917': 'IMAGE COMICS', '918': 'MARVEL COMICS', '952': 'COMICS & GRAPHIC NOVELS'}
 
         while (x < lenlinks):
             headt = cntlinks[x] #iterate through the hrefs pulling out only results.
@@ -64,7 +64,7 @@ def newpull():
                 if issue_lk == -1:
                     continue
                 #headName = headt.findNext(text=True)
-                publisher_id = issue_link[issue_lk-3:issue_lk] 
+                publisher_id = issue_link[issue_lk -3:issue_lk]
                 for pub in publishers:
                     if pub == publisher_id:
                         isspublisher = publishers[pub]
@@ -85,7 +85,7 @@ def newpull():
                                               "name":      found_iss[1].findNext(text=True),
                                               "price":     found_iss[2],
                                               "publisher": isspublisher,
-                                              "ID"       : urlID})                       
+                                              "ID": urlID})
 
                 if endthis == True: break
             x+=1
@@ -95,7 +95,7 @@ def newpull():
         try:
             csvfile = open(str(except_file), 'rb')
             csvfile.close()
-        except (OSError,IOError):
+        except (OSError, IOError):
             logger.fdebug('file does not exist - continuing.')
         else:
             logger.fdebug('file exists - removing.')
@@ -112,10 +112,10 @@ def newpull():
                     exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + str(pl['name']) + "\t" + str(pl['price'])
 
                 for lb in breakhtml:
-                    exceptln = re.sub(lb,'', exceptln).strip()
+                    exceptln = re.sub(lb, '', exceptln).strip()
 
-                exceptline = exceptln.decode('utf-8','ignore')
-                f.write('%s\n' % (exceptline.encode('ascii','replace').strip()))
+                exceptline = exceptln.decode('utf-8', 'ignore')
+                f.write('%s\n' % (exceptline.encode('ascii', 'replace').strip()))
                 oldpub = pl['publisher']
 
 

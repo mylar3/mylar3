@@ -37,7 +37,7 @@ class PROWL:
     def __init__(self):
         self.enabled = mylar.PROWL_ENABLED
         self.keys = mylar.PROWL_KEYS
-        self.priority = mylar.PROWL_PRIORITY   
+        self.priority = mylar.PROWL_PRIORITY
         pass
 
     def conf(self, options):
@@ -52,12 +52,12 @@ class PROWL:
         module += '[NOTIFIER]'
 
         http_handler = HTTPSConnection("api.prowlapp.com")
-                                                
+
         data = {'apikey': mylar.PROWL_KEYS,
                 'application': 'Mylar',
                 'event': event,
                 'description': message.encode("utf-8"),
-                'priority': mylar.PROWL_PRIORITY }
+                'priority': mylar.PROWL_PRIORITY}
 
         http_handler.request("POST",
                                 "/publicapi/add",
@@ -69,7 +69,7 @@ class PROWL:
         if request_status == 200:
                 logger.info(module + ' Prowl notifications sent.')
                 return True
-        elif request_status == 401: 
+        elif request_status == 401:
                 logger.info(module + ' Prowl auth failed: %s' % response.reason)
                 return False
         else:
@@ -87,19 +87,19 @@ class PROWL:
         self.priority = priority
 
         self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')
-        
+
 class NMA:
 
     def __init__(self):
-    
+
         self.apikey = mylar.NMA_APIKEY
         self.priority = mylar.NMA_PRIORITY
-        
+
     def _send(self, data, module):
-        
+
         url_data = urllib.urlencode(data)
         url = 'https://www.notifymyandroid.com/publicapi/notify'
-        
+
         req = urllib2.Request(url, url_data)
 
         try:
@@ -109,18 +109,18 @@ class NMA:
             return
 
         response = handle.read().decode(mylar.SYS_ENCODING)
-        
-        return response     
-        
+
+        return response
+
     def notify(self, snline=None, prline=None, prline2=None, snatched_nzb=None, sent_to=None, prov=None, module=None):
 
         if module is None:
             module = ''
-        module += '[NOTIFIER]'    
+        module += '[NOTIFIER]'
 
         apikey = self.apikey
         priority = self.priority
-        
+
         if snatched_nzb:
             if snatched_nzb[-1] == '\.': snatched_nzb = snatched_nzb[:-1]
             event = snline
@@ -128,14 +128,14 @@ class NMA:
         else:
             event = prline
             description = prline2
-    
-        data = { 'apikey': apikey, 'application':'Mylar', 'event': event, 'description': description, 'priority': priority}
+
+        data = {'apikey': apikey, 'application': 'Mylar', 'event': event, 'description': description, 'priority': priority}
 
         logger.info(module + ' Sending notification request to NotifyMyAndroid')
-        request = self._send(data,module)
-        
+        request = self._send(data, module)
+
         if not request:
-            logger.warn(module + ' Error sending notification request to NotifyMyAndroid')        
+            logger.warn(module + ' Error sending notification request to NotifyMyAndroid')
 
 # 2013-04-01 Added Pushover.net notifications, based on copy of Prowl class above.
 # No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
@@ -154,9 +154,9 @@ class PUSHOVER:
         # device - option for specifying which of your registered devices Mylar should send to. No option given, it sends to all devices on Pushover (default)
         # URL / URL_TITLE (both for use with the COPS/OPDS server I'm building maybe?)
         # Sound - name of soundfile to override default sound choice
-    
+
     # not sure if this is needed for Pushover
-    
+
     #def conf(self, options):
     # return cherrypy.config['config'].get('Pushover', options)
 
@@ -168,12 +168,12 @@ class PUSHOVER:
         module += '[NOTIFIER]'
 
         http_handler = HTTPSConnection("api.pushover.net:443")
-                                                
+
         data = {'token': mylar.PUSHOVER_APIKEY,
                 'user': mylar.PUSHOVER_USERKEY,
                 'message': message.encode("utf-8"),
                 'title': event,
-                'priority': mylar.PUSHOVER_PRIORITY }
+                'priority': mylar.PUSHOVER_PRIORITY}
 
         http_handler.request("POST",
                                 "/1/messages.json",
@@ -210,7 +210,7 @@ class PUSHOVER:
 
 class BOXCAR:
 
-    #new BoxCar2 API   
+    #new BoxCar2 API
     def __init__(self):
 
         self.url = 'https://new.boxcar.io/api/notifications'
@@ -299,7 +299,7 @@ class PUSHBULLET:
         if module is None:
             module = ''
         module += '[NOTIFIER]'
-        
+
         http_handler = HTTPSConnection("api.pushbullet.com")
 
         if method == 'GET':
@@ -323,7 +323,7 @@ class PUSHBULLET:
 
             data = {'type': "note", #'device_iden': self.deviceid,
                     'title': event.encode('utf-8'), #"mylar",
-                    'body': message.encode('utf-8') }
+                    'body': message.encode('utf-8')}
 
         http_handler.request("POST",
                                 "/v2/pushes",
