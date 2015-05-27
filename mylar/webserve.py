@@ -334,37 +334,66 @@ class WebInterface(object):
            raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addbyid.exposed = True
 
-    def addStoryArc(self, storyarcname, storyarcyear, storyarcpublisher, storyarcissues, arcid, arclist, desc, image):
+    def addStoryArc_thread(self, **kwargs):
+        threading.Thread(target=self.addStoryArc, kwargs=kwargs).start()
+    addStoryArc_thread.exposed = True
+
+    def addStoryArc(self, arcid, arcrefresh=False, cvarcid=None, arclist=None, storyarcname=None, storyarcyear=None, storyarcpublisher=None, storyarcissues=None, desc=None, image=None):
         # used when a choice is selected to 'add story arc' via the searchresults screen (via the story arc search).
         # arclist contains ALL the issueid's in sequence, along with the issue titles.
         # call the function within cv.py to grab all the issueid's and return all the issue data
         module = '[STORY ARC]'
         myDB = db.DBConnection()
         #check if it already exists.
-        arc_chk = myDB.selectone('SELECT * FROM readinglist WHERE CV_ArcID=?', [arcid]).fetchone()
-        if arc_chk is None:
-            logger.fdebug(module + ' No match in db based on ComicVine ID. Making sure and checking against Story Arc Name.')
-            arc_chk = myDB.selectone('SELECT * FROM readinglist WHERE StoryArc=?', [storyarcname]).fetchone()
-            if arc_chk is not None:
-                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
-                raise cherrypy.HTTPRedirect("readlist")
+        if cvarcid is None:
+            arc_chk = myDB.select('SELECT * FROM readinglist WHERE StoryArcID=?', [arcid])
         else:
-            logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
-            raise cherrypy.HTTPRedirect("readlist")
+            arc_chk = myDB.select('SELECT * FROM readinglist WHERE CV_ArcID=?', [cvarcid])
+        if arc_chk is None:
+            if arcrefresh:
+                logger.warn(module + ' Unable to retrieve Story Arc ComicVine ID from the db. Unable to refresh Story Arc at this time. You probably have to delete/readd the story arc this one time for Refreshing to work properly.')
+                return
+            else:
+                logger.fdebug(module + ' No match in db based on ComicVine ID. Making sure and checking against Story Arc Name.')
+                arc_chk = myDB.select('SELECT * FROM readinglist WHERE StoryArc=?', [storyarcname])
+                if arc_chk is None:
+                    logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist!')
+                    raise cherrypy.HTTPRedirect("readlist")
+        else:
+            if arcrefresh: #cvarcid must be present here as well..
+                logger.info(module + '[' + str(arcid) + '] Successfully found Story Arc ComicVine ID [4045-' + str(cvarcid) + '] within db. Preparing to refresh Story Arc.')
+                # we need to store the existing arc values that are in the db, so we don't create duplicate entries or mess up items.
+                iss_arcids = []
+                for issarc in arc_chk:
+                    iss_arcids.append({"IssueArcID":  issarc['IssueArcID'],
+                                       "IssueID":     issarc['IssueID']})
+                arcinfo = mb.storyarcinfo(cvarcid)
+                if len(arcinfo) > 1:
+                    arclist = arcinfo['arclist']
+                else:
+                    logger.warn(module + ' Unable to retrieve issue details at this time. Something is probably wrong.')
+                    return
+#            else:
+#                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
+#                raise cherrypy.HTTPRedirect("readlist")
         arc_results = mylar.cv.getComic(comicid=None, type='issue', arcid=arcid, arclist=arclist)
         logger.fdebug(module + ' Arcresults: ' + str(arc_results))
         if len(arc_results) > 0:
             import random
 
             issuedata = []
-            storyarcid = str(random.randint(1000, 9999)) + str(storyarcissues)
+            if storyarcissues is None:
+                storyarcissues = len(arc_results)
+            if arcid is None:
+                storyarcid = str(random.randint(1000,9999)) + str(storyarcissues)
+            else:
+                storyarcid = arcid
             n = 0
             cidlist = ''
             iscnt = int(storyarcissues)
             while (n <= iscnt):
                 try:
                     arcval = arc_results['issuechoice'][n]
-                    #print arcval
                 except IndexError:
                     break
                 comicname = arcval['ComicName']
@@ -376,7 +405,14 @@ class WebInterface(object):
                         cidlist += str(comicid)
                     else:
                         cidlist += '|' + str(comicid)
-                st_issueid = str(storyarcid) + "_" + str(random.randint(1000, 9999))
+                #don't recreate the st_issueid if it's a refresh and the issueid already exists (will create duplicates otherwise)
+                st_issueid = None
+                if arcrefresh:
+                    for aid in iss_arcids:
+                        if aid['IssueID'] == issid:
+                            st_issueid = aid['IssueArcID']
+                if st_issueid is None:
+                    st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
                 issnum = arcval['Issue_Number']
                 issdate = str(arcval['Issue_Date'])
                 storedate = str(arcval['Store_Date'])
@@ -491,7 +527,6 @@ class WebInterface(object):
                 n+=1
 
             comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
-            #logger.info('comicid_results: ' + str(comicid_results))
 
             logger.fdebug(module + ' Initiating issue updating - just the info')
 
@@ -524,15 +559,18 @@ class WebInterface(object):
                            "IssueDate":      AD['IssueDate'],
                            "StoreDate":      AD['ReleaseDate'],
                            "SeriesYear":     seriesYear,
-                           "IssuePublisher": issuePublisher}
+                           "IssuePublisher": issuePublisher,
+                           "CV_ArcID":       arcid}
 
                 myDB.upsert("readinglist", newVals, newCtrl)
 
         #run the Search for Watchlist matches now.
         logger.fdebug(module + ' Now searching your watchlist for matches belonging to this story arc.')
         self.ArcWatchlist(storyarcid)
-        raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
-
+        if arcrefresh:
+            return
+        else:
+            raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
     addStoryArc.exposed = True
 
     def wanted_Export(self):
@@ -803,14 +841,12 @@ class WebInterface(object):
                     logger.fdebug('checking annual db')
                     for annthis in annual_load:
                         if not any(d['ReleaseComicID'] == annthis['ReleaseComicID'] for d in annload):
-                            #print 'matched on annual'
                             annload.append({
                                   'ReleaseComicID':   annthis['ReleaseComicID'],
                                   'ReleaseComicName': annthis['ReleaseComicName'],
                                   'ComicID':          annthis['ComicID'],
                                   'ComicName':        annthis['ComicName']
                                   })
-                            #print 'added annual'
                     issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                 #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
                 logger.fdebug("Deleting all issue data.")
@@ -1383,12 +1419,10 @@ class WebInterface(object):
     failed_handling.exposed = True
 
     def archiveissue(self, IssueID, comicid):
-        print 'marking issue : ' + str(IssueID)
         myDB = db.DBConnection()
         issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
         annchk = 'no'
         if issue is None:
-            print 'issue is none'
             if mylar.ANNUALS_ON:
                 issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
                 comicname = issann['ReleaseComicName']
@@ -1396,11 +1430,8 @@ class WebInterface(object):
                 annchk = 'yes'
                 comicid = issann['ComicID']
         else:
-            print 'issue not none'
             comicname = issue['ComicName']
-            print comicname
             issue = issue['Issue_Number']
-            print issue
         logger.info(u"Marking " + comicname + " issue # " + str(issue) + " as archived...")
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Archived'}
@@ -1778,7 +1809,6 @@ class WebInterface(object):
         for skippy in skipped2:
             mvcontroldict = {"IssueID":    skippy['IssueID']}
             mvvalues = {"Status":         "Wanted"}
-            #print ("Changing issue " + str(skippy['Issue_Number']) + " to Wanted.")
             myDB.upsert("issues", mvvalues, mvcontroldict)
             issuestowanted.append(skippy['IssueID'])
             issuesnumwant.append(skippy['Issue_Number'])
@@ -1875,7 +1905,6 @@ class WebInterface(object):
     manageComics.exposed = True
 
     def manageIssues(self, **kwargs):
-        #print kwargs
         status = kwargs['status']
         results = []
         myDB = db.DBConnection()
@@ -2052,14 +2081,20 @@ class WebInterface(object):
                             "percent":     percent,
                             "Have":        havearc,
                             "SpanYears":   spanyears,
-                            "Total":       al['TotalIssues']})
+                            "Total":       al['TotalIssues'],
+                            "CV_ArcID":    al['CV_ArcID']})
         return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist)
     storyarc_main.exposed = True
 
     def detailStoryArc(self, StoryArcID, StoryArcName):
         myDB = db.DBConnection()
         arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
-        return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID)
+        try:
+            cvarcid = arcinfo[0]['CV_ArcID']
+        except:
+            cvarcid = None
+
+        return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid)
     detailStoryArc.exposed = True
 
     def markreads(self, action=None, **args):
@@ -2309,14 +2344,15 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarc))
     importReadlist.exposed = True
 
-    #Story Arc Ascension...welcome to the next level :)
-    def ArcWatchlist(self, StoryArcID=None):
+    def ArcWatchlist(self,StoryArcID=None):
         myDB = db.DBConnection()
         if StoryArcID:
             ArcWatch = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=?", [StoryArcID])
         else:
             ArcWatch = myDB.select("SELECT * FROM readinglist")
-        if ArcWatch is None: logger.info("No Story Arcs to search")
+
+        if ArcWatch is None:
+            logger.info("No Story Arcs to search")
         else:
             Comics = myDB.select("SELECT * FROM comics")
 
@@ -2324,15 +2360,15 @@ class WebInterface(object):
             wantedlist = []
 
             sarc_title = None
-            showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show
-
+            showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show 
             for arc in ArcWatch:
-                logger.fdebug("arc: " + arc['storyarc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
+                sarc_title = arc['StoryArc']
+                logger.fdebug("arc: " + arc['StoryArc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
                 #cycle through the story arcs here for matches on the watchlist
 
-                if sarc_title != arc['storyarc']:
+                if sarc_title != arc['StoryArc']:
                     if mylar.STORYARCDIR:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['storyarc'])
+                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['StoryArc'])
                     else:
                         dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
 
@@ -2349,7 +2385,7 @@ class WebInterface(object):
                 mod_arc = re.sub(r'\s', '', mod_arc)
                 matcheroso = "no"
                 for comic in Comics:
-                    logger.fdebug("comic: " + comic['ComicName'])
+                    #logger.fdebug("comic: " + comic['ComicName'])
                     mod_watch = re.sub('[\:\,\'\/\-\&\%\$\#\@\!\*\+\.]', '', comic['ComicName'])
                     mod_watch = re.sub('\\bthe\\b', '', mod_watch.lower())
                     mod_watch = re.sub('\\band\\b', '', mod_watch.lower())
@@ -2384,8 +2420,8 @@ class WebInterface(object):
                                 logger.fdebug("Issue: " + str(arc['IssueNumber']))
                                 logger.fdebug("IssueArcID: " + str(arc['IssueArcID']))
                                 #gather the matches now.
-                                arc_match.append({
-                                    "match_storyarc":      arc['storyarc'],
+                                arc_match.append({ 
+                                    "match_storyarc":      arc['StoryArc'],
                                     "match_name":          arc['ComicName'],
                                     "match_id":            isschk['ComicID'],
                                     "match_issue":         arc['IssueNumber'],
@@ -2403,7 +2439,7 @@ class WebInterface(object):
                          "IssueYear":      arc['IssueYear']})
 
                     if mylar.STORYARCDIR:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['storyarc'])
+                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['StoryArc'])
                     else:
                         dstloc = mylar.GRABBAG_DIR
                     logger.fdebug('destination location set to  : ' + dstloc)
@@ -2411,7 +2447,8 @@ class WebInterface(object):
                     filechk = filechecker.listFiles(dstloc, arc['ComicName'], Publisher=None, sarc='true')
                     fn = 0
                     fccnt = filechk['comiccount']
-                    while (fn < fccnt):
+                    logger.fdebug('files in directory: ' + str(fccnt))
+                    while (fn < fccnt) and fccnt != 0:
                         haveissue = "no"
                         issuedupe = "no"
                         try:
@@ -2436,10 +2473,7 @@ class WebInterface(object):
                             myDB.upsert("readinglist", newVal, ctrlVal)
                         fn+=1
 
-                sarc_title = arc['storyarc']
-
             logger.fdebug("we matched on " + str(len(arc_match)) + " issues")
-
             for m_arc in arc_match:
                 #now we cycle through the issues looking for a match.
                 issue = myDB.selectone("SELECT * FROM issues where ComicID=? and Issue_Number=?", [m_arc['match_id'], m_arc['match_issue']]).fetchone()
@@ -2463,8 +2497,8 @@ class WebInterface(object):
                                               "ComicID":        m_arc['match_id']}
                                 myDB.upsert("readlist", shownewVal, showctrlVal)
 
-                            myDB.upsert("readinglist", newVal, ctrlVal)
-                            logger.info("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                            myDB.upsert("readinglist",newVal,ctrlVal)
+                            logger.fdebug("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
                             if issue['Status'] == 'Downloaded':
                                 issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
                                 logger.fdebug('source location set to  : ' + issloc)

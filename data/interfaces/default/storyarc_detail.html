@@ -15,6 +15,9 @@
 			<a id="menu_link_delete" href="#">Clear File Cache</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ReadGetWanted?StoryArcID=${storyarcid}',$(this),'table')" data-success="Searching for Missing StoryArc Issues">Search for Missing</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Searching for matches on Watchlist">Search for Watchlist matches</a> 
+                        %if cvarcid:
+                            <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a> 
+                        %endif
 		</div>
 	</div>	
 </%def>

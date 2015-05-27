@@ -80,11 +80,12 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
 
 def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
-    #with mb_lock:
-    comiclist = []
+    #with mb_lock:       
     comicResults = None
     comicLibrary = listLibrary()
-
+    comiclist = []
+    arcinfolist = []
+    
     chars = set('!?*')
     if any((c in chars) for c in name):
         name = '"' +name +'"'
@@ -197,102 +198,37 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                     xmlid = result.getElementsByTagName('id')[0].firstChild.wholeText
 
                     if xmlid is not None:
-                        #respawn to the exact id for the story arc and count the # of issues present.
-                        ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
-                        logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
-                        if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
-                            cvapi_check()
-                        try:
-                            file = urllib2.urlopen(ARCPULL_URL)
-                        except urllib2.HTTPError, err:
-                            logger.error('err : ' + str(err))
-                            logger.error('There was a major problem retrieving data from ComicVine - on their end.')
-                            return
+                        arcinfolist = storyarcinfo(xmlid)
+                        comiclist.append({
+                                'name':                 xmlTag,
+                                'comicyear':            arcinfolist['comicyear'],
+                                'comicid':              xmlid,
+                                'cvarcid':              xmlid,
+                                'url':                  xmlurl,
+                                'issues':               arcinfolist['issues'],
+                                'comicimage':           arcinfolist['comicimage'],
+                                'publisher':            xmlpub,
+                                'description':          arcinfolist['description'],
+                                'deck':                 arcinfolist['deck'],
+                                'arclist':              arcinfolist['arclist'],
+                                'haveit':               arcinfolist['haveit']
+                                })
+                    else:
+                        comiclist.append({
+                                'name':                 xmlTag,
+                                'comicyear':            arcyear,
+                                'comicid':              xmlid,
+                                'url':                  xmlurl,
+                                'issues':               issuecount,
+                                'comicimage':           xmlimage,
+                                'publisher':            xmlpub,
+                                'description':          xmldesc,
+                                'deck':                 xmldeck,
+                                'arclist':              arclist,
+                                'haveit':               haveit
+                                })
 
-                        mylar.CVAPI_COUNT +=1
-                        arcdata = file.read()
-                        file.close()
-                        arcdom = parseString(arcdata)
-
-                        try:
-                            logger.fdebug('story_arc ascension')
-                            issuecount = len(arcdom.getElementsByTagName('issue'))
-                            issuedom = arcdom.getElementsByTagName('issue')
-                            isc = 0
-                            arclist = ''
-                            for isd in issuedom:
-                                zeline = isd.getElementsByTagName('id')
-                                isdlen = len(zeline)
-                                isb = 0
-                                while (isb < isdlen):
-                                    if isc == 0:
-                                        arclist = str(zeline[isb].firstChild.wholeText).strip()
-                                    else:
-                                        arclist += '|' + str(zeline[isb].firstChild.wholeText).strip()
-                                    isb+=1
-
-                                isc+=1
-
-                        except:
-                            logger.fdebug('unable to retrive issue count - nullifying value.')
-                            issuecount = 0
-
-                        try:
-                            firstid = None
-                            arcyear = None
-                            fid = len (arcdom.getElementsByTagName('id'))
-                            fi = 0
-                            while (fi < fid):
-                                if arcdom.getElementsByTagName('id')[fi].parentNode.nodeName == 'first_appeared_in_issue':
-                                    if not arcdom.getElementsByTagName('id')[fi].firstChild.wholeText == xmlid:
-                                        logger.fdebug('hit it.')
-                                        firstid = arcdom.getElementsByTagName('id')[fi].firstChild.wholeText
-                                        break # - dont' break out here as we want to gather ALL the issue ID's since it's here
-                                fi+=1
-                            logger.fdebug('firstid: ' + str(firstid))
-                            if firstid is not None:
-                                firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
-                                logger.fdebug('success')
-                                arcyear = cv.GetFirstIssue(firstid, firstdom)
-                        except:
-                            logger.fdebug('Unable to retrieve first issue details. Not caclulating at this time.')
-
-                        if (arcdom.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
-                            xmlimage = arcdom.getElementsByTagName('super_url')[0].firstChild.wholeText
-                        else:
-                            xmlimage = "cache/blankcover.jpg"
-
-                        try:
-                            xmldesc = arcdom.getElementsByTagName('desc')[0].firstChild.wholeText
-                        except:
-                            xmldesc = "None"
-
-                        try:
-                            xmldeck = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
-                        except:
-                            xmldeck = "None"
-
-                        if xmlid in comicLibrary:
-                            haveit = comicLibrary[xmlid]
-                        else:
-                            haveit = "No"
-
-                    comiclist.append({
-                            'name':                 xmlTag,
-                            'comicyear':            arcyear,
-                            'comicid':              xmlid,
-                            'url':                  xmlurl,
-                            'issues':               issuecount,
-                            'comicimage':           xmlimage,
-                            'publisher':            xmlpub,
-                            'description':          xmldesc,
-                            'deck':                 xmldeck,
-                            'arclist':              arclist,
-                            'haveit':               haveit
-                            })
-
-                    logger.fdebug('IssueID\'s that are a part of ' + xmlTag + ' : ' + str(arclist))
-
+                        logger.fdebug('IssueID\'s that are a part of ' + xmlTag + ' : ' + str(arclist))
                 else:
                     xmlcnt = result.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
                     #here we can determine what called us, and either start gathering all issues or just limited ones.
@@ -396,3 +332,111 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         countResults = countResults + 100
 
     return comiclist, explicit
+
+def storyarcinfo(xmlid):
+
+    comicLibrary = listLibrary()
+
+    arcinfo = {}
+
+    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API is None or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
+        comicapi = mylar.DEFAULT_CVAPI
+    else:
+        comicapi = mylar.COMICVINE_API
+
+    #respawn to the exact id for the story arc and count the # of issues present.
+    ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
+    logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
+    if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
+        cvapi_check()
+    try:
+        file = urllib2.urlopen(ARCPULL_URL)
+    except urllib2.HTTPError, err:
+        logger.error('err : ' + str(err))
+        logger.error('There was a major problem retrieving data from ComicVine - on their end.')
+        return
+
+    mylar.CVAPI_COUNT +=1
+    arcdata = file.read()
+    file.close()
+    arcdom = parseString(arcdata)
+
+    try:
+        logger.fdebug('story_arc ascension')
+        issuecount = len( arcdom.getElementsByTagName('issue') )
+        issuedom = arcdom.getElementsByTagName('issue')
+        isc = 0
+        arclist = ''
+        for isd in issuedom:
+            zeline = isd.getElementsByTagName('id')
+            isdlen = len( zeline )
+            isb = 0
+            while ( isb < isdlen):
+                if isc == 0:
+                    arclist = str(zeline[isb].firstChild.wholeText).strip()
+                else:
+                    arclist += '|' + str(zeline[isb].firstChild.wholeText).strip()
+                isb+=1
+
+            isc+=1
+
+    except:
+        logger.fdebug('unable to retrive issue count - nullifying value.')
+        issuecount = 0
+
+    try:
+        firstid = None
+        arcyear = None
+        fid = len ( arcdom.getElementsByTagName('id') )
+        fi = 0
+        while (fi < fid):
+            if arcdom.getElementsByTagName('id')[fi].parentNode.nodeName == 'first_appeared_in_issue':
+                if not arcdom.getElementsByTagName('id')[fi].firstChild.wholeText == xmlid:
+                    logger.fdebug('hit it.')
+                    firstid = arcdom.getElementsByTagName('id')[fi].firstChild.wholeText
+                    break # - dont' break out here as we want to gather ALL the issue ID's since it's here
+            fi+=1
+        logger.fdebug('firstid: ' + str(firstid))
+        if firstid is not None:
+            firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
+            logger.fdebug('success')
+            arcyear = cv.GetFirstIssue(firstid,firstdom)
+    except:
+        logger.fdebug('Unable to retrieve first issue details. Not caclulating at this time.')
+
+    if (arcdom.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
+        xmlimage = arcdom.getElementsByTagName('super_url')[0].firstChild.wholeText
+    else:
+        xmlimage = "cache/blankcover.jpg"
+
+    try:
+        xmldesc = arcdom.getElementsByTagName('desc')[0].firstChild.wholeText
+    except:
+        xmldesc = "None"
+
+    try:
+        xmldeck = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
+    except:
+        xmldeck = "None"
+
+    if xmlid in comicLibrary:
+        haveit = comicLibrary[xmlid]
+    else:
+        haveit = "No"
+
+    arcinfo = {
+            #'name':                 xmlTag,    #theese four are passed into it only when it's a new add
+            #'url':                  xmlurl,    #needs to be modified for refreshing to work completely.
+            #'publisher':            xmlpub,
+            'comicyear':            arcyear,
+            'comicid':              xmlid,
+            'issues':               issuecount,
+            'comicimage':           xmlimage,
+            'description':          xmldesc,
+            'deck':                 xmldeck,
+            'arclist':              arclist,
+            'haveit':               haveit
+            }
+
+    return arcinfo

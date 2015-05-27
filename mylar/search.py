@@ -32,6 +32,7 @@ from xml.dom.minidom import parseString
 import urllib2
 import email.utils
 import datetime
+import shutil
 from wsgiref.handlers import format_date_time
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None):
@@ -1716,7 +1717,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if payload is None:
             logger.info('Download URL: ' + str(down_url) + ' [VerifySSL:' + str(verify) + ']')
         else:
-            logger.info('Download URL: ' + down_url + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
+            logger.info('Download URL: ' + down_url + '?' + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
 
         import lib.requests as requests
 

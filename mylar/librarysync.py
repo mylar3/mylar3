@@ -48,19 +48,14 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
     comic_list = []
     comiccnt = 0
-    extensions = ('cbr', 'cbz')
+    extensions = ('cbr','cbz')
     for r, d, f in os.walk(dir):
-        #for directory in d[:]:
-        #    if directory.startswith("."):
-        #        d.remove(directory)
         for files in f:
             if any(files.lower().endswith('.' + x.lower()) for x in extensions):
                 comic = files
                 comicpath = os.path.join(r, files)
                 comicsize = os.path.getsize(comicpath)
-                print "Comic: " + comic
-                print "Comic Path: " + comicpath
-                print "Comic Size: " + str(comicsize)
+                logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
 
                 # We need the unicode path to use for logging, inserting into database
                 unicode_comic_path = comicpath.decode(mylar.SYS_ENCODING, 'replace')
@@ -73,7 +68,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                 comic_list.append(comic_dict)
 
         logger.info("I've found a total of " + str(comiccnt) + " comics....analyzing now")
-        logger.info("comiclist: " + str(comic_list))
+        #logger.info("comiclist: " + str(comic_list))
     myDB = db.DBConnection()
 
     #let's load in the watchlist to see if we have any matches.
@@ -136,38 +131,38 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 #    datemonth = {'one':1,'two':2,'three':3,'four':4,'five':5,'six':6,'seven':7,'eight':8,'nine':9,'ten':10,'eleven':$
 #    #search for number as text, and change to numeric
 #    for numbs in basnumbs:
-#        #print ("numbs:" + str(numbs))
+#        #logger.fdebug("numbs:" + str(numbs))
 #        if numbs in ComicName.lower():
 #            numconv = basnumbs[numbs]
-#            #print ("numconv: " + str(numconv))
+#            #logger.fdebug("numconv: " + str(numconv))
 
 
     for i in comic_list:
-        print i['ComicFilename']
+        logger.fdebug('Analyzing : ' + i['ComicFilename'])
 
-        #if mylar.IMP_METADATA:
-        #logger.info('metatagging checking enabled.')
-        #if read tags is enabled during import, check here.
-        #if i['ComicLocation'].endswith('.cbz'):
-        #    logger.info('Attempting to read tags present in filename: ' + str(i['ComicLocation']))
-        #    issueinfo = helpers.IssueDetails(i['ComicLocation'])
-        #    if issueinfo is None:
-        #        pass
-        #    else:
-        #        logger.info('Successfully retrieved some tags. Lets see what I can figure out.')
-        #        comicname = issueinfo[0]['series']
-        #        logger.fdebug('Series Name: ' + comicname)
-        #        issue_number = issueinfo[0]['issue_number']
-        #        logger.fdebug('Issue Number: ' + str(issue_number))
-        #        issuetitle = issueinfo[0]['title']
-        #        logger.fdebug('Issue Title: ' + issuetitle)
-        #        issueyear = issueinfo[0]['year']
-        #        logger.fdebug('Issue Year: ' + str(issueyear))
-        #        # if used by ComicTagger, Notes field will have the IssueID.
-        #        issuenotes = issueinfo[0]['notes']
-        #        logger.fdebug('Notes: ' + issuenotes)
-
-
+        if mylar.IMP_METADATA:
+            logger.info('metatagging checking enabled.')
+            #if read tags is enabled during import, check here.
+            if i['ComicLocation'].endswith('.cbz'):
+                logger.info('Attempting to read tags present in filename: ' + i['ComicLocation'])
+                issueinfo = helpers.IssueDetails(i['ComicLocation'])
+                if issueinfo is None:
+                    pass
+                else:
+                    logger.info('Successfully retrieved some tags. Lets see what I can figure out.')
+                    comicname = issueinfo[0]['series']
+                    logger.fdebug('Series Name: ' + comicname)
+                    issue_number = issueinfo[0]['issue_number']
+                    logger.fdebug('Issue Number: ' + str(issue_number))
+                    issuetitle = issueinfo[0]['title']
+                    logger.fdebug('Issue Title: ' + issuetitle)
+                    issueyear = issueinfo[0]['year']
+                    logger.fdebug('Issue Year: ' + str(issueyear))
+                    # if used by ComicTagger, Notes field will have the IssueID.
+                    issuenotes = issueinfo[0]['notes']
+                    logger.fdebug('Notes: ' + issuenotes)
+            else:            
+                logger.info(i['ComicLocation'] + ' is not in a metatagged format (cbz). Bypassing reading of the metatags')
         comfilename = i['ComicFilename']
         comlocation = i['ComicLocation']
         #let's clean up the filename for matching purposes
@@ -294,16 +289,16 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     while (findcn < len(cnsplit)):
                         cname = cname + cs[findcn] + " "
                         findcn+=1
-                    cname = cname[:len(cname) -1] # drop the end space...
-                    print ("assuming name is : " + cname)
+                    cname = cname[:len(cname)-1] # drop the end space...
+                    logger.fdebug('assuming name is : ' + cname)
                     com_NAME = cname
-                    print ("com_NAME : " + com_NAME)
+                    logger.fdebug('com_NAME : ' + com_NAME)
                     yearmatch = "True"
                 else:
                     logger.fdebug('checking ' + m[cnt])
                     # we're assuming that the year is in brackets (and it should be damnit)
                     if m[cnt][:-2] == '19' or m[cnt][:-2] == '20':
-                        print ("year detected: " + str(m[cnt]))
+                        logger.fdebug('year detected: ' + str(m[cnt]))
                         ydetected = 'yes'
                         result_comyear = m[cnt]
                     elif m[cnt][:3].lower() in datelist:
@@ -388,7 +383,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                             scount+=1
                         #elif ':' in splitit[n] or '-' in splitit[n]:
                         #    splitrep = splitit[n].replace('-', '')
-                        #    print ("non-character keyword...skipped on " + splitit[n])
+                        #    logger.fdebug("non-character keyword...skipped on " + splitit[n])
                     elif str(splitit[n]).lower().startswith('v'):
                         logger.fdebug("possible versioning..checking")
                         #we hit a versioning # - account for it
@@ -460,11 +455,11 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             "comfilename": comfilename,
             "comlocation": comlocation.decode(mylar.SYS_ENCODING)
                                    })
-        logger.fdebug('import_by_ids: ' + str(import_by_comicids))
+    #logger.fdebug('import_by_ids: ' + str(import_by_comicids))
 
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice
-        print ("watchchoice: " + str(watchchoice))
+        #logger.fdebug("watchchoice: " + str(watchchoice))
 
         logger.info("I have found " + str(watchfound) + " out of " + str(comiccnt) + " comics for series that are being watched.")
         wat = 0
@@ -472,25 +467,25 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 
         if watchfound > 0:
             if mylar.IMP_MOVE:
-                logger.info("You checked off Move Files...so that's what I'm going to do")
+                logger.info('You checked off Move Files...so that\'s what I am going to do') 
                 #check to see if Move Files is enabled.
                 #if not being moved, set the archive bit.
-                print("Moving files into appropriate directory")
-                while (wat < watchfound):
+                logger.fdebug('Moving files into appropriate directory')
+                while (wat < watchfound): 
                     watch_the_list = watchchoice['watchlist'][wat]
                     watch_comlocation = watch_the_list['ComicLocation']
                     watch_comicid = watch_the_list['ComicID']
                     watch_comicname = watch_the_list['ComicName']
                     watch_comicyear = watch_the_list['ComicYear']
                     watch_comiciss = watch_the_list['ComicIssue']
-                    print ("ComicLocation: " + str(watch_comlocation))
+                    logger.fdebug('ComicLocation: ' + watch_comlocation)
                     orig_comlocation = watch_the_list['OriginalLocation']
-                    orig_filename = watch_the_list['OriginalFilename']
-                    print ("Orig. Location: " + str(orig_comlocation))
-                    print ("Orig. Filename: " + str(orig_filename))
+                    orig_filename = watch_the_list['OriginalFilename'] 
+                    logger.fdebug('Orig. Location: ' + orig_comlocation)
+                    logger.fdebug('Orig. Filename: ' + orig_filename)
                     #before moving check to see if Rename to Mylar structure is enabled.
                     if mylar.IMP_RENAME:
-                        print("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
+                        logger.fdebug('Renaming files according to configuration details : ' + str(mylar.FILE_FORMAT))
                         renameit = helpers.rename_param(watch_comicid, watch_comicname, watch_comicyear, watch_comiciss)
                         nfilename = renameit['nfilename']
 
@@ -498,12 +493,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                         if str(watch_comicid) not in comicids:
                             comicids.append(watch_comicid)
                     else:
-                        print("Renaming files not enabled, keeping original filename(s)")
+                        logger.fdebug('Renaming files not enabled, keeping original filename(s)')
                         dst_path = os.path.join(watch_comlocation, orig_filename)
 
                     #os.rename(os.path.join(self.nzb_folder, str(ofilename)), os.path.join(self.nzb_folder,str(nfilename + ext)))
                     #src = os.path.join(, str(nfilename + ext))
-                    print ("I'm going to move " + str(orig_comlocation) + " to .." + str(dst_path))
+                    logger.fdebug('I am going to move ' + orig_comlocation + ' to ' + dst_path)
                     try:
                         shutil.move(orig_comlocation, dst_path)
                     except (OSError, IOError):
@@ -515,16 +510,16 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     watch_the_list = watchchoice['watchlist'][wat]
                     watch_comicid = watch_the_list['ComicID']
                     watch_issue = watch_the_list['ComicIssue']
-                    print ("ComicID: " + str(watch_comicid))
-                    print ("Issue#: " + str(watch_issue))
+                    logger.fdebug('ComicID: ' + str(watch_comicid))
+                    logger.fdebug('Issue#: ' + str(watch_issue))
                     issuechk = myDB.selectone("SELECT * from issues where ComicID=? AND INT_IssueNumber=?", [watch_comicid, watch_issue]).fetchone()
                     if issuechk is None:
-                        print ("no matching issues for this comic#")
+                        logger.fdebug('No matching issues for this comic#')
                     else:
-                        print("...Existing status: " + str(issuechk['Status']))
+                        logger.fdebug('...Existing status: ' + str(issuechk['Status']))
                         control = {"IssueID":   issuechk['IssueID']}
                         values = {"Status":   "Archived"}
-                        print ("...changing status of " + str(issuechk['Issue_Number']) + " to Archived ")
+                        logger.fdebug('...changing status of ' + str(issuechk['Issue_Number']) + ' to Archived ')
                         myDB.upsert("issues", values, control)
                         if str(watch_comicid) not in comicids:
                             comicids.append(watch_comicid)
@@ -533,14 +528,14 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             else:
                 c_upd = len(comicids)
                 c = 0
-                while (c < c_upd):
-                    print ("Rescanning.. " + str(c))
-                    updater.forceRescan(c)
+                while (c < c_upd ):
+                    logger.fdebug('Rescanning.. ' + str(c))
+                    updater.forceRescan(c) 
         if not len(import_by_comicids):
             return "Completed"
     if len(import_by_comicids) > 0:
         import_comicids['comic_info'] = import_by_comicids
-        print ("import comicids: " + str(import_by_comicids))
+        logger.fdebug('import comicids: ' + str(import_by_comicids))
         return import_comicids, len(import_by_comicids)
 
 
@@ -596,5 +591,3 @@ def scanLibrary(scan=None, queue=None):
         valreturn.append({"somevalue":  'self.ie',
                           "result":     'success'})
         return queue.put(valreturn)
-        #raise cherrypy.HTTPRedirect("importResults")
-

@@ -146,8 +146,9 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                     volrem = subit
                     vers4vol = volrem
                     break
-                elif subit.lower()[:3] == 'vol':
+                elif subit.lower()[:3] == 'vol' or subit.lower()[:4] == 'vol.':
                     tsubit = re.sub('vol', '', subit.lower())
+                    tsubit = re.sub('vol.', '', subit.lower())
                     try:
                         if any([tsubit.isdigit(), len(tsubit) > 5]):
                             #if in format vol.2013 etc
@@ -679,8 +680,8 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 #justthedigits = item[jtd_len:]
 
                 logger.fdebug('[FILECHECKER] final jtd_len to prune [' + str(jtd_len) + ']')
-                logger.fdebug('[FILECHECKER] before title removed from FILENAME [' + str(item) + ']')
-                logger.fdebug('[FILECHECKER] after title removed from FILENAME [' + str(item[jtd_len:]) + ']')
+                logger.fdebug('[FILECHECKER] before title removed from FILENAME [' + item + ']')
+                logger.fdebug('[FILECHECKER] after title removed from FILENAME [' + item[jtd_len:] + ']')
                 logger.fdebug('[FILECHECKER] creating just the digits using SUBNAME, pruning first [' + str(jtd_len) + '] chars from [' + subname + ']')
 
                 justthedigits_1 = re.sub('#', '', subname[jtd_len:]).strip()
@@ -703,15 +704,15 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 if digitchk:
                     try:
                         #do the issue title check here
-                        logger.fdebug('[FILECHECKER] Possible issue title is : ' + str(digitchk))
+                        logger.fdebug('[FILECHECKER] Possible issue title is : ' + digitchk)
                         # see if it can float the digits
                         try:
                             st = digitchk.find('.')
                             logger.fdebug('st:' + str(st))
                             st_d = digitchk[:st]
-                            logger.fdebug('st_d:' + str(st_d))
+                            logger.fdebug('st_d:' + st_d)
                             st_e = digitchk[st +1:]
-                            logger.fdebug('st_e:' + str(st_e))
+                            logger.fdebug('st_e:' + st_e)
                             #x = int(float(st_d))
                             #logger.fdebug('x:' + str(x))
                             #validity check
@@ -725,8 +726,13 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                             if digitchk.startswith('.'):
                                 pass
                             else:
-                                if len(justthedigits_1) >= len(digitchk) and len(digitchk) > 3:
-                                    logger.fdebug('[FILECHECKER] Removing issue title.')
+                                # account for series in the format of Series - Issue#
+                                if digitchk.startswith('-') and digitchk[1] == ' ':
+                                    logger.fdebug('[FILECHECKER] Detected hyphen (-) as a separator. Removing for comparison.')
+                                    digitchk = digitchk[2:]
+                                    justthedigits_1 = re.sub('- ', '', justthedigits_1).strip()
+                                elif len(justthedigits_1) >= len(digitchk) and len(digitchk) > 3:
+                                    logger.fdebug('[FILECHECKER][CATCH-1] Removing issue title.')
                                     justthedigits_1 = re.sub(digitchk, '', justthedigits_1).strip()
                                     logger.fdebug('[FILECHECKER] After issue title removed [' + justthedigits_1 + ']')
                                     titlechk = True
@@ -734,7 +740,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                                     issue_firstword = digitchk.split()[0]
                                     splitit = subname.split()
                                     splitst = len(splitit)
-                                    logger.fdebug('[FILECHECKER] splitit :' + str(splitit))
+                                    logger.fdebug('[FILECHECKER] splitit :' + splitit)
                                     logger.fdebug('[FILECHECKER] splitst :' + str(len(splitit)))
                                     orignzb = item
                     except:
@@ -754,8 +760,8 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                                  issue_firstword = digitchk.split()[0]
                                  splitit = subname.split()
                                  splitst = len(splitit)
-                                 logger.info('[FILECHECKER] splitit :' + str(splitit))
-                                 logger.info('[FILECHECKER] splitst :' + str(len(splitit)))
+                                 logger.fdebug('[FILECHECKER] splitit :' + splitit)
+                                 logger.fdebug('[FILECHECKER] splitst :' + str(len(splitit)))
                                  orignzb = item
                          except:
                              pass  #(revert this back if above except doesn't work)
@@ -844,12 +850,28 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                                 x = float(justthedigits)
                                 #validity check
                                 if x < 0:
-                                    logger.fdebug("I've encountered a negative issue #: " + str(justthedigits) + ". Trying to accomodate.")
+                                    logger.fdebug("I've encountered a negative issue #: " + justthedigits + ". Trying to accomodate.")
                                     digitsvalid = "true"
                                 else: raise ValueError
                             except ValueError, e:
-                                    logger.fdebug('Probably due to an incorrect match - I cannot determine the issue number from given issue #: ' + str(justthedigits))
-
+                                if u'\xbd' in justthedigits:
+                                    justthedigits = re.sub(u'\xbd', '0.5', justthedigits).strip()
+                                    logger.fdebug('[FILECHECKER][UNICODE DETECTED] issue detected :' + u'\xbd')
+                                    digitsvalid = "true"
+                                elif u'\xbc' in justthedigits:
+                                    justthedigits = re.sub(u'\xbc', '0.25', justthedigits).strip()
+                                    logger.fdebug('[FILECHECKER][UNICODE DETECTED] issue detected :' + u'\xbc')
+                                    digitsvalid = "true"
+                                elif u'\xbe' in justthedigits:
+                                    justthedigits = re.sub(u'\xbe', '0.75', justthedigits).strip()
+                                    logger.fdebug('[FILECHECKER][UNICODE DETECTED] issue detected :' + u'\xbe')
+                                    digitsvalid = "true"
+                                elif u'\u221e' in justthedigits:
+                                    #issnum = utf-8 will encode the infinity symbol without any help
+                                    logger.fdebug('[FILECHECKER][UNICODE DETECTED] issue detected :' + u'\u221e')
+                                    digitsvalid = "true"
+                                else:
+                                    logger.fdebug('Probably due to an incorrect match - I cannot determine the issue number from given issue #: ' + justthedigits)
 
                 logger.fdebug('[FILECHECKER] final justthedigits [' + justthedigits + ']')
                 if digitsvalid == "false":

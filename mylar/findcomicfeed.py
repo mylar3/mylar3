@@ -82,7 +82,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             "link":      urlParse["href"],
                             "length":    urlParse["length"],
                             "pubdate":   feed.entries[countUp].updated})
-    	    countUp=countUp +1
+            countUp=countUp +1
         logger.fdebug('keypair: ' + str(keyPair))
 
 

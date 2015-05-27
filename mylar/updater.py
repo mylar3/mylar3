@@ -993,11 +993,11 @@ def forceRescan(ComicID, archive=None, module=None):
                             logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = str(tmpfc['ComicFilename'])
+                            isslocation = tmpfc['ComicFilename']
                             issSize = str(tmpfc['ComicSize'])
-                            logger.fdebug(module + ' .......filename: ' + str(isslocation))
-                            logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))
-                            # to avoid duplicate issues which screws up the count...let's store the filename issues then
+                            logger.fdebug(module + ' .......filename: ' + isslocation)
+                            logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
+                            # to avoid duplicate issues which screws up the count...let's store the filename issues then 
                             # compare earlier...
                             issuedupechk.append({'fcdigit':   fcdigit,
                                                  'filename':  tmpfc['ComicFilename'],

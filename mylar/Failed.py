@@ -284,4 +284,3 @@ class FailedProcessor(object):
         myDB.upsert("failed", Vals, ctrlVal)
 
         logger.info(module + ' Successfully marked as Failed.')
-
