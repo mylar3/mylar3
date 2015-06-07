@@ -30,7 +30,7 @@ from cherrypy.lib.static import serve_file, serve_download
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs',
             'findComic', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
             'addIssue', 'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'getVersion', 'checkGithub',
-            'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue']
+            'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'downloadNZB']
 
 
 class Api(object):
@@ -48,28 +48,30 @@ class Api(object):
 
     def checkParams(self, *args, **kwargs):
 
-        if not mylar.API_ENABLED:
-            self.data = 'API not enabled'
-            return
-        if not mylar.API_KEY:
-            self.data = 'API key not generated'
-            return
-        if len(mylar.API_KEY) != 32:
-            self.data = 'API key not generated correctly'
-            return
-
         if 'apikey' not in kwargs:
             self.data = 'Missing api key'
             return
 
-        if kwargs['apikey'] != mylar.API_KEY:
+        if 'cmd' not in kwargs:
+            self.data = 'Missing parameter: cmd'
+            return
+
+        if not mylar.API_ENABLED:
+            if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
+               self.data = 'API not enabled'
+               return
+
+        if kwargs['apikey'] != mylar.API_KEY and kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
             self.data = 'Incorrect API key'
             return
         else:
             self.apikey = kwargs.pop('apikey')
 
-        if 'cmd' not in kwargs:
-            self.data = 'Missing parameter: cmd'
+        if not mylar.API_KEY:
+            self.data = 'API key not generated'
+            return
+        if len(mylar.API_KEY) != 32:
+            self.data = 'API key not generated correctly'
             return
 
         if kwargs['cmd'] not in cmd_list:
@@ -84,7 +86,7 @@ class Api(object):
     def fetchData(self):
 
         if self.data == 'OK':
-            logger.info('Recieved API command: ' + self.cmd)
+            logger.fdebug('Recieved API command: ' + self.cmd)
             methodToCall = getattr(self, "_" + self.cmd)
             result = methodToCall(**self.kwargs)
             if 'callback' not in self.kwargs:
@@ -421,3 +423,18 @@ class Api(object):
         else:
             self.data = 'You need to download that issue first'
             return
+
+    def _downloadNZB(self, nzbname):
+        if not nzbname:
+            self.data = 'You need to provide a nzbname'
+            return
+
+        self.nzbname = nzbname
+        f = os.path.join(mylar.CACHE_DIR, nzbname)
+        if os.path.isfile(f):
+            self.file = f
+            self.filename = nzbname
+        else:
+            self.data = 'NZBname does not exist within the cache directory. Unable to retrieve.'
+            return
+

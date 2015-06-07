@@ -47,10 +47,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             unaltered_ComicName = ComicName
             #ComicName = filesafe
             #logger.info('AlternateSearch is : ' + AlternateSearch)
-    if ComicYear == None: ComicYear = '2014'
-    else: ComicYear = str(ComicYear)[:4]
+    if ComicYear == None:
+        ComicYear = str(datetime.datetime.now().year)
+    else:
+        ComicYear = str(ComicYear)[:4]
     if Publisher:
-        if Publisher == 'IDW Publishing': Publisher = 'IDW'
+        if Publisher == 'IDW Publishing':
+            Publisher = 'IDW'
         logger.fdebug('Publisher is : ' + Publisher)
     issuetitle = helpers.get_issue_title(IssueID)
     if issuetitle:
@@ -1673,7 +1676,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         nzo_info = {}
         filen = None
-
+        nzbmega = False
         payload = None
         headers = {'User-Agent': str(mylar.USER_AGENT)}
         #link doesn't have the apikey - add it and use ?t=get for newznab based.
@@ -1689,17 +1692,25 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 else:
                     host_newznab_fix = host_newznab
 
-                apikey = newznab[2].rstrip()
-                down_url = host_newznab_fix + 'api'
-                verify = False
+                if 'warp?x=' in link:
+                    logger.fdebug('NZBMegaSearch url detected. Adjusting...')
+                    nzbmega = True
+                else:
+                    apikey = newznab[2].rstrip()
+                    down_url = host_newznab_fix + 'api'
+                    verify = False
             else:
                 down_url = 'https://api.nzb.su/api?'
                 apikey = mylar.NZBSU_APIKEY
                 verify = True  #unsure if verify should be set to True for nzb.su or not.
 
-            payload = {'t': 'get',
-                       'id': str(nzbid),
-                       'apikey': str(apikey)}
+            if nzbmega == True:
+                down_url = link
+                verify = False               
+            else:
+                payload = {'t': 'get',
+                           'id': str(nzbid),
+                           'apikey': str(apikey)}
 
             logger.fdebug('payload:' + str(payload))
 
@@ -1763,7 +1774,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             if payload is None:
                 logger.error('Unable to download nzb from link: ' + str(down_url) + ' [' + link + ']')
             else:
-                errorlink = down_url + urllib.urlencode(payload)
+                errorlink = down_url + '?' + urllib.urlencode(payload)
                 logger.error('Unable to download nzb from link: ' + str(errorlink) + ' [' + link + ']')
         else:
             #convert to a generic type of format to help with post-processing.
@@ -1784,17 +1795,16 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 alt_nzbname = re.sub('[\s\_]', '.', alt_nzbname)
                 logger.info('filen: ' + alt_nzbname + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
 
-            #make sure the cache directory exists - if not, create it.
-            tmppath = mylar.CACHE_DIR
-            if os.path.exists(tmppath):
-                logger.fdebug("cache directory successfully found at : " + str(tmppath))
+            #make sure the cache directory exists - if not, create it (used for storing nzbs).
+            if os.path.exists(mylar.CACHE_DIR):
+                logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR)
                 pass
             else:
                 #let's make the dir.
-                logger.fdebug("couldn't locate cache directory, attempting to create at : " + str(mylar.CACHE_DIR))
+                logger.fdebug("Could not locate Cache Directory, attempting to create at : " + mylar.CACHE_DIR)
                 try:
-                    os.makedirs(str(mylar.CACHE_DIR))
-                    logger.info(u"Cache Directory successfully created at: " + str(mylar.CACHE_DIR))
+                    os.makedirs(mylar.CACHE_DIR)
+                    logger.info("Temporary NZB Download Directory successfully created at: " + mylar.CACHE_DIR)
                 except OSError.e:
                     if e.errno != errno.EEXIST:
                         raise
@@ -1844,14 +1854,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     if mylar.USE_BLACKHOLE and nzbprov != '32P' and nzbprov != 'KAT':
         logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
         if os.path.exists(mylar.BLACKHOLE_DIR):
-            # Add a user-agent
-            #request = urllib2.Request(linkapi) #(str(mylar.BLACKHOLE_DIR) + str(filenamenzb))
-            #request.add_header('User-Agent', str(mylar.USER_AGENT))
-            #try:
-            #    opener = helpers.urlretrieve(urllib2.urlopen(request), str(mylar.BLACKHOLE_DIR) + str(nzbname) + '.nzb')
-            #except Exception, e:
-            #    logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
-            #    return "blackhole-fail"
             #copy the nzb from nzbpath to blackhole dir.
             try:
                 shutil.move(nzbpath, os.path.join(mylar.BLACKHOLE_DIR, nzbname))
@@ -1930,13 +1932,36 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi, '&')))
 
-            SABtype = "&mode=addlocalfile&name="
+            SABtype = "&mode=addurl&name="
+            #generate the api key to download here and then kill it immediately after.
+            if mylar.DOWNLOAD_APIKEY is None:
+                import hashlib, random
+                mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
+
+            if mylar.ENABLE_HTTPS:
+                proto = 'https://'
+            else:
+                proto = 'http://'
+
+            if mylar.HTTP_ROOT is None:
+                hroot = '/'
+            elif mylar.HTTP_ROOT.endswith('/'):
+                hroot = mylar.HTTP_ROOT
+            else:
+                if mylar.HTTP_ROOT != '/':
+                    hroot = mylar.HTTP_ROOT + '/'
+                else:
+                    hroot = mylar.HTTP_ROOT
+
+            fileURL = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
+
             tmpapi = tmpapi + SABtype
-
             logger.fdebug("...selecting API type: " + str(tmpapi))
-            tmpapi = tmpapi + urllib.quote_plus(nzbpath)
 
-            logger.fdebug("...attaching nzb provider link: " + str(helpers.apiremove(tmpapi, '$')))
+            
+            tmpapi = tmpapi + urllib.quote_plus(fileURL)
+
+            logger.fdebug("...attaching nzb via internal Mylar API: " + str(helpers.apiremove(tmpapi, '$')))
             # determine SAB priority
             if mylar.SAB_PRIORITY:
                 tmpapi = tmpapi + "&priority=" + sabpriority
@@ -1969,6 +1994,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 requests.put(tmpapi, verify=False)
             except:
                 logger.error('Unable to send nzb file to SABnzbd')
+                mylar.DOWNLOAD_APIKEY = None
                 return "sab-fail"
 
 #         this works for non-http sends to sab (when both sab AND provider are non-https)
@@ -2205,7 +2231,9 @@ def generate_id(nzbprov, link):
     elif nzbprov == 'newznab':
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
-        if tmpid == '' or tmpid is None:
+        if 'warp' in urlparse.urlparse(link)[2] and 'x=' in tmpid:
+            nzbid = os.path.splitext(link)[0].rsplit('x=',1)[1]
+        elif tmpid == '' or tmpid is None:
             nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
         else:
             # for the geek in all of us...

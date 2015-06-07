@@ -961,15 +961,16 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                         if subnm[cnt] == ' ':
                             pass
                         else:
-                            logger.fdebug('[FILECHECKER] ' + str(cnt) + ' Bracket Word: ' + subnm[cnt])
+                            strip_sub = subnm[cnt].strip()
+                            logger.fdebug('[FILECHECKER] ' + str(cnt) + ' Bracket Word: ' + strip_sub + '/' + str(len(strip_sub)))
 
                             #if ComVersChk == 0:
                             #    logger.fdebug('[FILECHECKER] Series version detected as V1 (only series in existance with that title). Bypassing year check')
                             #    yearmatch = "true"
                             #    break
-                        if (subnm[cnt].startswith('19') or subnm[cnt].startswith('20')) and len(subnm[cnt]) == 4:
-                            logger.fdebug('[FILECHECKER] year detected: ' + subnm[cnt])
-                            result_comyear = subnm[cnt]
+                        if any([strip_sub.startswith('19'), strip_sub.startswith('20')]) and len(strip_sub) == 4:
+                            logger.fdebug('[FILECHECKER] year detected: ' + strip_sub)
+                            result_comyear = strip_sub
 ##### - checking to see what removing this does for the masses
                             if int(result_comyear) <= int(maxyear) and int(result_comyear) >= int(comyear):
                                 logger.fdebug('[FILECHECKER] ' + str(result_comyear) + ' is within the series range of ' + str(comyear) + '-' + str(maxyear))

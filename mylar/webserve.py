@@ -416,102 +416,105 @@ class WebInterface(object):
                 issnum = arcval['Issue_Number']
                 issdate = str(arcval['Issue_Date'])
                 storedate = str(arcval['Store_Date'])
-                if issnum.isdigit():
-                    int_issnum = int(issnum) * 1000
-                else:
-                    if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
-                        issnum = re.sub('\.', '', issnum)
-                        #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-                    if 'au' in issnum.lower():
-                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-                    elif 'inh' in issnum.lower():
-                        int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-                    elif 'now' in issnum.lower():
-                        int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
-                    elif u'\xbd' in issnum:
-                        int_issnum = .5 * 1000
-                        logger.fdebug(module + ' 1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
-                    elif u'\xbc' in issnum:
-                        int_issnum = .25 * 1000
-                    elif u'\xbe' in issnum:
-                        int_issnum = .75 * 1000
-                    elif u'\u221e' in issnum:
-                        #issnum = utf-8 will encode the infinity symbol without any help
-                        int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
-                    elif '.' in issnum or ',' in issnum:
-                        if ',' in issnum: issnum = re.sub(',', '.', issnum)
-                        issst = str(issnum).find('.')
-                        #logger.fdebug("issst:" + str(issst))
-                        if issst == 0:
-                            issb4dec = 0
-                        else:
-                            issb4dec = str(issnum)[:issst]
-                        #logger.fdebug("issb4dec:" + str(issb4dec))
-                        #if the length of decimal is only 1 digit, assume it's a tenth
-                        decis = str(issnum)[issst +1:]
-                        #logger.fdebug("decis:" + str(decis))
-                        if len(decis) == 1:
-                            decisval = int(decis) * 10
-                            issaftdec = str(decisval)
-                        elif len(decis) == 2:
-                            decisval = int(decis)
-                            issaftdec = str(decisval)
-                        else:
-                            decisval = decis
-                            issaftdec = str(decisval)
-                        try:
-                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-                        except ValueError:
-                            logger.error(module + ' This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                            updater.no_searchresults(comicid)
-                            return
-                    else:
-                        try:
-                            x = float(issnum)
-                            #validity check
-                            if x < 0:
-                                logger.fdebug(module + ' I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
-                                logger.fdebug(module + ' value of x is : ' + str(x))
-                                int_issnum = (int(x) *1000) - 1
-                            else: raise ValueError
-                        except ValueError, e:
-                            x = 0
-                            tstord = None
-                            issno = None
-                            invchk = "false"
-                            while (x < len(issnum)):
-                                if issnum[x].isalpha():
-                                    #take first occurance of alpha in string and carry it through
-                                    tstord = issnum[x:].rstrip()
-                                    issno = issnum[:x].rstrip()
-                                    try:
-                                        isschk = float(issno)
-                                    except ValueError, e:
-                                        if len(issnum) == 1 and issnum.isalpha():
-                                            logger.fdebug(module + ' Detected lone alpha issue. Attempting to figure this out.')
-                                            break
-                                        logger.fdebug(module + ' Invalid numeric for issue - cannot be found. Ignoring.')
-                                        issno = None
-                                        tstord = None
-                                        invchk = "true"
-                                    break
-                                x+=1
-                            if tstord is not None and issno is not None:
-                                a = 0
-                                ordtot = 0
-                                if len(issnum) == 1 and issnum.isalpha():
-                                    int_issnum = ord(tstord.lower())
-                                else:
-                                    while (a < len(tstord)):
-                                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                        a+=1
-                                    int_issnum = (int(issno) * 1000) + ordtot
-                            elif invchk == "true":
-                                logger.fdebug(module + ' This does not have an issue # that I can parse properly.')
-                                return
-                            else:
-                                logger.error(module + ' ' + str(issnum) + ' This has an alpha-numeric in the issue # which I cannot account for.')
-                                return
+
+                int_issnum = helpers.issuedigits(issnum)
+
+#                if issnum.isdigit():
+#                    int_issnum = int(issnum) * 1000
+#                else:
+#                    if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
+#                        issnum = re.sub('\.', '', issnum)
+#                        #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
+#                    if 'au' in issnum.lower():
+#                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
+#                    elif 'inh' in issnum.lower():
+#                        int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
+#                    elif 'now' in issnum.lower():
+#                        int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+#                    elif u'\xbd' in issnum:
+#                        int_issnum = .5 * 1000
+#                        logger.fdebug(module + ' 1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
+#                    elif u'\xbc' in issnum:
+#                        int_issnum = .25 * 1000
+#                    elif u'\xbe' in issnum:
+#                        int_issnum = .75 * 1000
+#                    elif u'\u221e' in issnum:
+#                        #issnum = utf-8 will encode the infinity symbol without any help
+#                        int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
+#                    elif '.' in issnum or ',' in issnum:
+#                        if ',' in issnum: issnum = re.sub(',', '.', issnum)
+#                        issst = str(issnum).find('.')
+#                        #logger.fdebug("issst:" + str(issst))
+#                        if issst == 0:
+#                            issb4dec = 0
+#                        else:
+#                            issb4dec = str(issnum)[:issst]
+#                        #logger.fdebug("issb4dec:" + str(issb4dec))
+#                        #if the length of decimal is only 1 digit, assume it's a tenth
+#                        decis = str(issnum)[issst +1:]
+#                        #logger.fdebug("decis:" + str(decis))
+#                        if len(decis) == 1:
+#                            decisval = int(decis) * 10
+#                            issaftdec = str(decisval)
+#                        elif len(decis) == 2:
+#                            decisval = int(decis)
+#                            issaftdec = str(decisval)
+#                        else:
+#                            decisval = decis
+#                            issaftdec = str(decisval)
+#                        try:
+#                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
+#                        except ValueError:
+#                            logger.error(module + ' This has no issue # for me to get - Either a Graphic Novel or one-shot.')
+#                            updater.no_searchresults(comicid)
+#                            return
+#                    else:
+#                        try:
+#                            x = float(issnum)
+#                            #validity check
+#                            if x < 0:
+#                                logger.fdebug(module + ' I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
+#                                logger.fdebug(module + ' value of x is : ' + str(x))
+#                                int_issnum = (int(x) *1000) - 1
+#                            else: raise ValueError
+#                        except ValueError, e:
+#                            x = 0
+#                            tstord = None
+#                            issno = None
+#                            invchk = "false"
+#                            while (x < len(issnum)):
+#                                if issnum[x].isalpha():
+#                                    #take first occurance of alpha in string and carry it through
+#                                    tstord = issnum[x:].rstrip()
+#                                    issno = issnum[:x].rstrip()
+#                                    try:
+#                                        isschk = float(issno)
+#                                    except ValueError, e:
+#                                        if len(issnum) == 1 and issnum.isalpha():
+#                                            logger.fdebug(module + ' Detected lone alpha issue. Attempting to figure this out.')
+#                                            break
+#                                        logger.fdebug(module + ' Invalid numeric for issue - cannot be found. Ignoring.')
+#                                        issno = None
+#                                        tstord = None
+#                                        invchk = "true"
+#                                    break
+#                                x+=1
+#                            if tstord is not None and issno is not None:
+#                                a = 0
+#                                ordtot = 0
+#                                if len(issnum) == 1 and issnum.isalpha():
+#                                    int_issnum = ord(tstord.lower())
+#                                else:
+#                                    while (a < len(tstord)):
+#                                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+#                                        a+=1
+#                                    int_issnum = (int(issno) * 1000) + ordtot
+#                            elif invchk == "true":
+#                                logger.fdebug(module + ' This does not have an issue # that I can parse properly.')
+#                                return
+#                            else:
+#                                logger.error(module + ' ' + str(issnum) + ' This has an alpha-numeric in the issue # which I cannot account for.')
+#                                return
 
                 issuedata.append({"ComicID":            comicid,
                                   "IssueID":            issid,
@@ -545,22 +548,23 @@ class WebInterface(object):
                         issuePublisher = cid['Publisher']
                         break
 
-                newCtrl = {"IssueArcID":     AD['IssueArcID'],
-                           "StoryArcID":     AD['StoryArcID']}
-                newVals = {"ComicID":        AD['ComicID'],
-                           "IssueID":        AD['IssueID'],
-                           "StoryArc":       storyarcname,
-                           "ComicName":      AD['ComicName'],
-                           "IssueName":      IssueName,
-                           "IssueNumber":    AD['Issue_Number'],
-                           "Publisher":      storyarcpublisher,
-                           "TotalIssues":    storyarcissues,
-                           "ReadingOrder":   AD['ReadingOrder'],
-                           "IssueDate":      AD['IssueDate'],
-                           "StoreDate":      AD['ReleaseDate'],
-                           "SeriesYear":     seriesYear,
-                           "IssuePublisher": issuePublisher,
-                           "CV_ArcID":       arcid}
+                newCtrl = {"IssueArcID":      AD['IssueArcID'],
+                           "StoryArcID":      AD['StoryArcID']}
+                newVals = {"ComicID":         AD['ComicID'],
+                           "IssueID":         AD['IssueID'],
+                           "StoryArc":        storyarcname,
+                           "ComicName":       AD['ComicName'],
+                           "IssueName":       IssueName,
+                           "IssueNumber":     AD['Issue_Number'],
+                           "Publisher":       storyarcpublisher,
+                           "TotalIssues":     storyarcissues,
+                           "ReadingOrder":    AD['ReadingOrder'],
+                           "IssueDate":       AD['IssueDate'],
+                           "StoreDate":       AD['ReleaseDate'],
+                           "SeriesYear":      seriesYear,
+                           "IssuePublisher":  issuePublisher,
+                           "CV_ArcID":        arcid,
+                           "Int_IssueNumber": AD['Int_IssueNumber']}
 
                 myDB.upsert("readinglist", newVals, newCtrl)
 
@@ -797,7 +801,6 @@ class WebInterface(object):
         comicsToAdd = [ComicID]
         logger.fdebug("Refreshing comic: %s" % comicsToAdd)
         threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
-        #threading.Thread(target=self.refreshArtist, kwargs=kwargs).start()
     refreshSeries.exposed = True
 
     def refreshArtist(self, ComicID):
@@ -1108,6 +1111,21 @@ class WebInterface(object):
         id = chk_log['ID']
         fullprov = chk_log['PROVIDER'] #the full newznab name if it exists will appear here as 'sitename (newznab)'
 
+        if all([ComicYear is not None, ComicYear != 'None']) and all([IssueID is not None, IssueID != 'None']):
+            getYear = myDB.selectone('SELECT IssueDate, ReleaseDate FROM Issues WHERE IssueID=?', [IssueID]).fetchone()
+            if getYear is None:
+                logger.warn('Unable to retrieve valid Issue Date for Retry of Issue (Try to refresh the series and then try again.')
+                return
+            if getYear['IssueDate'][:4] == '0000':
+                if getYear['ReleaseDate'][:4] == '0000':
+                    logger.warn('Unable to retrieve valid Issue Date for Retry of Issue (Try to refresh the series and then try again.')
+                    return
+                else:
+                    ComicYear = getYear['ReleaseDate'][:4]
+            else:
+                ComicYear = getYear['IssueDate'][:4]
+
+
         #now we break it down by provider to recreate the link.
         #torrents first.
         if Provider == '32P' or Provider == 'KAT':
@@ -1141,7 +1159,6 @@ class WebInterface(object):
                 modcomicname = ComicName
             else:
                 modcomicname = ComicName + ' Annual'
-
 
             comicinfo = []
             comicinfo.append({"ComicName":     ComicName,
@@ -1193,12 +1210,13 @@ class WebInterface(object):
                             link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
                             logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
                             logger.info('link : ' + str(link))
+                            newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3])
                             break
                         else:
                             logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
                             return
 
-            sendit = search.searcher(Provider, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True)
+            sendit = search.searcher(Provider, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
     retryissue.exposed = True
 
     def queueit(self, **kwargs):
@@ -2367,8 +2385,12 @@ class WebInterface(object):
                 #cycle through the story arcs here for matches on the watchlist
 
                 if sarc_title != arc['StoryArc']:
+                    arcdir = helpers.filesafe(arc['StoryArc'])
+                    if mylar.REPLACE_SPACES:
+                        arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
+
                     if mylar.STORYARCDIR:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['StoryArc'])
+                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
                     else:
                         dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
 
@@ -3246,6 +3268,7 @@ class WebInterface(object):
                     "sab_cat": mylar.SAB_CATEGORY,
                     "sab_priority": mylar.SAB_PRIORITY,
                     "sab_directory": mylar.SAB_DIRECTORY,
+                    "sab_to_mylar": helpers.checked(mylar.SAB_TO_MYLAR),
                     "nzbget_host": mylar.NZBGET_HOST,
                     "nzbget_port": mylar.NZBGET_PORT,
                     "nzbget_user": mylar.NZBGET_USERNAME,
@@ -3550,7 +3573,7 @@ class WebInterface(object):
 
 
     def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
-        nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, log_dir=None, log_level=0, blackhole_dir=None,
+        nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, check_folder=None, enable_check_folder=0,
@@ -3594,6 +3617,7 @@ class WebInterface(object):
             mylar.SAB_APIKEY = sab_apikey
         mylar.SAB_CATEGORY = sab_category
         mylar.SAB_PRIORITY = sab_priority
+        mylar.SAB_TO_MYLAR = sab_to_mylar
         mylar.SAB_DIRECTORY = sab_directory
         mylar.NZBGET_HOST = nzbget_host
         mylar.NZBGET_USERNAME = nzbget_username

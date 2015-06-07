@@ -285,11 +285,6 @@
                                      <a href="#" style="float:right" type="button" id="find_sabapi" data-success="Sucessfully retrieved SABnzbd API" data-error="Error auto-populating SABnzbd API"><span class="ui-icon ui-icon-extlink"></span>Get API</a>
                                      </div>
                                 </div>
-                                <div class="row">
-                                    <label>SABnzbd Download Directory</label>
-                                    <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36" />
-                                    <small>Where your SAB downloads go... (optional)</small>
-                                </div>
 
 	                        <div class="row">
 	                        <label>SABnzbd Category:</label>
@@ -309,6 +304,19 @@
                                                 %endfor
                                                 </select>
                                 </div>
+
+                                <div class="row checkbox left clearfix">
+                                    <input id="sab_to_mylar" type="checkbox" onclick="initConfigCheckbox($(this));" name="sab_to_mylar" value="1" ${config['sab_to_mylar']} /><label>Are Mylar / SABnzbd on seperate machines</label>
+                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>This is *ONLY* required if Mylar and SABnzbd are on seperate machines, otherwise don't touch it</small>
+                                </div>
+                                <div class="config">
+                                    <div class="row">
+                                        <label>SABnzbd Download Directory</label>
+                                        <input type="text" name="sab_directory" value="${config['sab_directory']}" size="36" />
+                                        <small>Where your SAB downloads go (required for PP)</small>
+                                    </div>
+                                </div>
+
 <!--
                                 <div class="row">
                                      <a href="#" style="float:right" type="button" onclick="doAjaxCall('addAction();SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
@@ -1301,6 +1309,7 @@
                 initConfigCheckbox("#launch_browser");
                 initConfigCheckbox("#enable_https");
                 initConfigCheckbox("#enable_api");
+                initConfigCheckbox("#sab_to_mylar");
                 initConfigCheckbox("#usenewznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
