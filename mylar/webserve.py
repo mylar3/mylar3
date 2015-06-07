@@ -1166,6 +1166,8 @@ class WebInterface(object):
                               "comyear":       ComicYear,
                               "modcomicname":  modcomicname})
 
+            newznabinfo = None
+
             if Provider == 'nzb.su':
                 if not mylar.NZBSU:
                     logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
