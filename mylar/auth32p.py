@@ -39,7 +39,7 @@ class info32p(object):
             try:
                 s.get(self.url, verify=verify)
             except requests.exceptions.SSLError as e:
-                logger.error(self.module + ' Unable to establish connection to 32P: ' + e)
+                logger.error(self.module + ' Unable to establish connection to 32P: ' + str(e))
 
             # post to the login form
             r = s.post(self.url, data=self.payload, verify=verify)
