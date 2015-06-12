@@ -45,6 +45,7 @@ class Api(object):
         self.kwargs = None
         self.data = None
         self.callback = None
+        self.apitype = None
 
     def checkParams(self, *args, **kwargs):
 
@@ -61,16 +62,29 @@ class Api(object):
                self.data = 'API not enabled'
                return
 
-        if kwargs['apikey'] != mylar.API_KEY and kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
+        if kwargs['apikey'] != mylar.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
             self.data = 'Incorrect API key'
             return
         else:
+            if kwargs['apikey'] == mylar.API_KEY:
+                self.apitype = 'normal'
+            elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
+                self.apitype = 'download'
+            logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
             self.apikey = kwargs.pop('apikey')
 
-        if not mylar.API_KEY:
+        if not([mylar.API_KEY, mylar.DOWNLOAD_APIKEY]):
             self.data = 'API key not generated'
             return
-        if len(mylar.API_KEY) != 32:
+
+        if self.apitype:
+            if self.apitype == 'normal' and len(mylar.API_KEY) != 32:
+                self.data = 'API key not generated correctly'
+                return
+            if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
+                self.data = 'Download API key not generated correctly'
+                return
+        else:
             self.data = 'API key not generated correctly'
             return
 
