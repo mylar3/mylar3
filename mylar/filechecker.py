@@ -258,6 +258,8 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 else:
                     year = None
                     for i in subthis.split():
+                        if len(i.strip()) != 4:
+                            continue
                         if ('20' in i or '19' in i):
                             if i.isdigit():
                                 year = i[:4]
