@@ -569,7 +569,7 @@ class PostProcessor(object):
                                                               
                                 logger.fdebug(module + ' readingorder#: ' + str(ml['ReadingOrder']))
                                 if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
-                                elif int(ml['ReadingOrder']) > 10 and int(ml['ReadingOrder']) < 99: readord = "0" + str(ml['ReadingOrder'])
+                                elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                                 else: readord = str(ml['ReadingOrder'])
                                 dfilename = str(readord) + "-" + ofilename
                             else:
@@ -781,7 +781,7 @@ class PostProcessor(object):
                             if mylar.READ2FILENAME:
                                 logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
                                 if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
-                                elif int(arcdata['ReadingOrder']) > 10 and int(arcdata['ReadingOrder']) < 99: readord = "0" + str(arcdata['ReadingOrder'])
+                                elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
                                 else: readord = str(arcdata['ReadingOrder'])
                                 dfilename = str(readord) + "-" + ofilename
                             else:
@@ -1370,7 +1370,7 @@ class PostProcessor(object):
 
                             logger.fdebug(module + ' readingorder#: ' + str(arcinfo['ReadingOrder']))
                             if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
-                            elif int(arcinfo['ReadingOrder']) > 10 and int(arcinfo['ReadingOrder']) < 99: readord = "0" + str(arcinfo['ReadingOrder'])
+                            elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
                             else: readord = str(arcinfo['ReadingOrder'])
                             dfilename = str(readord) + "-" + os.path.split(dst)[1]
                         else:
