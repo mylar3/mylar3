@@ -1177,8 +1177,9 @@ def traverse_directories(dir):
                 direc = ''
             else:
                 direc = dirname
-                if '.AppleDouble' in direc:
+                if '.AppleDouble' in direc or 'extras' in direc.lower():
                     #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
+                    #Ignore 'extras' directory within series folder
                     continue
 
             filelist.append({"directory":  direc,
