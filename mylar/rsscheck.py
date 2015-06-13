@@ -93,9 +93,6 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 logger.warn('[32P] Searching is not available in 32p Legacy mode. Switch to Auth mode to use the search functionality.')
                 lp=+1
                 continue
-            #searchit = auth32p.info32p(searchterm=seriesname)
-            #searchresults = searchit.authenticate()
-            #logger.info('search results: ' + str(searchresults))
             return
         elif pickfeed == "5" and srchterm is not None:  # kat.ph search (category:other since some 0-day comics initially get thrown there until categorized)
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Aother%20seeds%3A1/?rss=1"
@@ -694,8 +691,12 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
     if site == '32P':
         url = 'https://32pag.es/torrents.php'
 
-        verify = True
+        if mylar.VERIFY_32P == 1 or mylar.VERIFY_32P == True:
+            verify = True
+        else:
+            verify = False
 
+        logger.fdebug('[32P] Verify SSL set to : ' + str(verify))
         if mylar.MODE_32P == 0:
             if mylar.KEYS_32P is None or mylar.PASSKEY_32P is None:
                 logger.warn('[32P] Unable to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')

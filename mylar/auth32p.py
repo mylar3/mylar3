@@ -25,7 +25,12 @@ class info32p(object):
         feedinfo = []
 
         with requests.session() as s:
-            verify = True
+            if mylar.VERIFY_32P == 1 or mylar.VERIFY_32P == True:
+                verify = True
+            else:
+                verify = False
+
+            logger.fdebug('[32P] Verify SSL set to : ' + str(verify))
 
             if not verify:
             #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displa$
