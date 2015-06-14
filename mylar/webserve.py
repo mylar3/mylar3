@@ -1087,11 +1087,14 @@ class WebInterface(object):
 
         confirmedsnatch = False
         for cs in chk_snatch:
-            if cs['Status'] == 'Snatched':
+            if cs['Provider'] == 'CBT':
+                logger.info('Invalid provider attached to download (CBT). I cannot find this on 32P, so ignoring this result.')
+            elif cs['Status'] == 'Snatched':
                 logger.info('Located snatched download:')
                 logger.info('--Referencing : ' + cs['Provider'] + ' @ ' + str(cs['DateAdded']))
                 Provider = cs['Provider']
                 confirmedsnatch = True
+                break
             elif (cs['Status'] == 'Post-Processed' or cs['Status'] == 'Downloaded') and confirmedsnatch == True:
                 logger.info('Issue has already been Snatched, Downloaded & Post-Processed.')
                 logger.info('You should be using Manual Search or Mark Wanted - not retry the same download.')
@@ -1102,7 +1105,7 @@ class WebInterface(object):
             chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
         except:
             logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
-            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=?', [IssueID]).fetchone()
+            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider != "CBT"', [IssueID]).fetchone()
 
         if chk_log is None:
             logger.info('Unable to locate provider information from nzblog - if you wiped the log, you have to search/download as per normal')
@@ -1642,9 +1645,8 @@ class WebInterface(object):
     add2futurewatchlist.exposed = True
 
     def future_check(self):
-        weeklypull.future_check
+        weeklypull.future_check()
         raise cherrypy.HTTPRedirect("upcoming")
-
     future_check.exposed = True
 
     def filterpull(self):
@@ -2382,26 +2384,23 @@ class WebInterface(object):
             sarc_title = None
             showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show 
             for arc in ArcWatch:
+                #cycle through the story arcs here for matches on the watchlist
+                arcdir = helpers.filesafe(arc['StoryArc'])
+                if mylar.REPLACE_SPACES:
+                    arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
+                if mylar.STORYARCDIR:
+                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
+                else:
+                    dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
+
+#               if sarc_title != arc['StoryArc']:
+
+                if not os.path.isdir(dstloc):
+                    logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
+                    filechecker.validateAndCreateDirectory(dstloc, True)
+
                 sarc_title = arc['StoryArc']
                 logger.fdebug("arc: " + arc['StoryArc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
-                #cycle through the story arcs here for matches on the watchlist
-
-                if sarc_title != arc['StoryArc']:
-                    arcdir = helpers.filesafe(arc['StoryArc'])
-                    if mylar.REPLACE_SPACES:
-                        arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
-
-                    if mylar.STORYARCDIR:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
-                    else:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
-
-                    if os.path.isdir(dstloc):
-                        logger.info('Validating Directory (' + dstloc + '). Already exists! Continuing...')
-                    else:
-                        logger.fdebug('Updated Directory does not exist! - attempting to create now.')
-                        filechecker.validateAndCreateDirectory(dstloc, True)
-
 
                 mod_arc = re.sub('[\:/,\'\/\-\&\%\$\#\@\!\*\+\.]', '', arc['ComicName'])
                 mod_arc = re.sub('\\bthe\\b', '', mod_arc.lower())
@@ -2445,14 +2444,15 @@ class WebInterface(object):
                                 logger.fdebug("IssueArcID: " + str(arc['IssueArcID']))
                                 #gather the matches now.
                                 arc_match.append({ 
-                                    "match_storyarc":      arc['StoryArc'],
-                                    "match_name":          arc['ComicName'],
-                                    "match_id":            isschk['ComicID'],
-                                    "match_issue":         arc['IssueNumber'],
-                                    "match_issuearcid":    arc['IssueArcID'],
-                                    "match_seriesyear":    comic['ComicYear'],
-                                    "match_readingorder":  arc['ReadingOrder'],
-                                    "match_filedirectory": comic['ComicLocation']})
+                                    "match_storyarc":          arc['StoryArc'],
+                                    "match_name":              arc['ComicName'],
+                                    "match_id":                isschk['ComicID'],
+                                    "match_issue":             arc['IssueNumber'],
+                                    "match_issuearcid":        arc['IssueArcID'],
+                                    "match_seriesyear":        comic['ComicYear'],
+                                    "match_readingorder":      arc['ReadingOrder'],
+                                    "match_filedirectory":     comic['ComicLocation'],
+                                    "destination_location":    dstloc})
                                 matcheroso = "yes"
                                 break
                 if matcheroso == "no":
@@ -2462,10 +2462,6 @@ class WebInterface(object):
                          "IssueNumber":    arc['IssueNumber'],
                          "IssueYear":      arc['IssueYear']})
 
-                    if mylar.STORYARCDIR:
-                        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arc['StoryArc'])
-                    else:
-                        dstloc = mylar.GRABBAG_DIR
                     logger.fdebug('destination location set to  : ' + dstloc)
 
                     filechk = filechecker.listFiles(dstloc, arc['ComicName'], Publisher=None, sarc='true')
@@ -2526,32 +2522,28 @@ class WebInterface(object):
                             if issue['Status'] == 'Downloaded':
                                 issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
                                 logger.fdebug('source location set to  : ' + issloc)
-                                if mylar.STORYARCDIR:
-                                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', m_arc['match_storyarc'])
-                                else:
-                                    dstloc = mylar.GRABBAG_DIR
 
-                                logger.fdebug('destination location set to  : ' + dstloc)
+                                logger.fdebug('Destination location set to  : ' + m_arc['destination_location'])
 
                                 if mylar.COPY2ARCDIR:
-                                    logger.fdebug('attempting to copy into StoryArc directory')
+                                    logger.fdebug('Attempting to copy into StoryArc directory')
                                     #copy into StoryArc directory...
                                     if os.path.isfile(issloc):
+                                        if mylar.READ2FILENAME:
+                                            readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
+                                            dfilename = str(readorder) + "-" + issue['Location']
+                                        else:
+                                            dfilename = issue['Location']
+
+                                        dstloc = os.path.join(m_arc['destination_location'], dfilename)
+
                                         if not os.path.isfile(dstloc):
-                                            if mylar.READ2FILENAME:
-                                                readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
-                                                dfilename = str(readorder) + "-" + issue['Location']
-                                            else:
-                                                dfilename = issue['Location']
-
-                                            dstloc = os.path.join(dstloc, dfilename)
-
-                                            logger.fdebug('copying ' + issloc + ' to ' + dstloc)
+                                            logger.fdebug('Copying ' + issloc + ' to ' + dstloc)
                                             shutil.copy(issloc, dstloc)
                                         else:
-                                            logger.fdebug('destination file exists: ' + dstloc)
+                                            logger.fdebug('Destination file exists: ' + dstloc)
                                     else:
-                                        logger.fdebug('source file does not exist: ' + issloc)
+                                        logger.fdebug('Source file does not exist: ' + issloc)
 
                         else:
                             logger.fdebug("We don't have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
