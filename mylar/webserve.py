@@ -34,7 +34,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, version, librarysync, moveit, Failed, readinglist #,rsscheck
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist #,rsscheck
 
 import lib.simplejson as simplejson
 
@@ -3405,7 +3405,7 @@ class WebInterface(object):
                     "unrar_cmd": mylar.UNRAR_CMD,
                     "failed_download_handling": helpers.checked(mylar.FAILED_DOWNLOAD_HANDLING),
                     "failed_auto": helpers.checked(mylar.FAILED_AUTO),
-                    "branch": version.MYLAR_VERSION,
+                    "branch": mylar.GIT_BRANCH,
                     "br_type": mylar.INSTALL_TYPE,
                     "br_version": mylar.versioncheck.getVersion()[0],
                     "py_version": platform.python_version(),

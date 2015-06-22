@@ -16,7 +16,7 @@
 import platform, subprocess, re, os, urllib2, tarfile
 
 import mylar
-from mylar import logger, version
+from mylar import logger
 
 import lib.requests as requests
 import re
@@ -63,7 +63,7 @@ def runGit(args):
 
 def getVersion():
 
-    if version.MYLAR_VERSION.startswith('win32build'):
+    if mylar.GIT_BRANCH is not None and mylar.GIT_BRANCH.startswith('win32build'):
 
         mylar.INSTALL_TYPE = 'win'
 

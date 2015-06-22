@@ -940,10 +940,12 @@ def initialize():
         else:
             hash = "unknown"
 
-        if version.MYLAR_VERSION == 'master':
+        if GIT_BRANCH == 'master':
             vers = 'M'
-        else:
+        elif GIT_BRANCH == 'development':
            vers = 'D'
+        else:
+           vers = 'NONE'
 
         USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
 

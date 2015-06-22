@@ -99,7 +99,7 @@
                         </div>
 			<div id="version">
 				Version: <em>${mylar.CURRENT_VERSION}</em>
-				%if version.MYLAR_VERSION != 'master':
+				%if mylar.GIT_BRANCH != 'master':
 				(${version.MYLAR_VERSION})
 				%endif
                                 <br/>
