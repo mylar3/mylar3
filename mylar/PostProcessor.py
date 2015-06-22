@@ -620,12 +620,6 @@ class PostProcessor(object):
                     fd, ext = os.path.splitext(nzbname)
                     self._log("Removed extension from nzb: " + ext)
                     nzbname = re.sub(str(ext), '', str(nzbname))
-                else:
-                    logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format. PostProcessing aborted.')
-                    self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
-                    self.valreturn.append({"self.log": self.log,
-                                           "mode": 'stop'})
-                    return self.queue.put(self.valreturn)
 
                 #replace spaces
                 # let's change all space to decimals for simplicity
