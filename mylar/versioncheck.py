@@ -148,7 +148,7 @@ def checkGithub():
 
     # See how many commits behind we are
     if mylar.CURRENT_VERSION:
-        logger.info('Comparing currently installed version with latest github version')
+        logger.fdebug('Comparing currently installed version [' + mylar.CURRENT_VERSION + '] with latest github version [' + mylar.LATEST_VERSION +']')
         url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.GIT_USER, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
 
         try:
