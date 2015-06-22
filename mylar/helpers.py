@@ -1230,11 +1230,13 @@ def cvapi_check(web=None):
     #if web is None: logger.fdebug('[ComicVine API] Time now: ' + str(n_date))
     absdiff = abs(n_date - c_obj_date)
     mins = round(((absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0), 2)
+    apivalid = True
     if mins < 15:
         #if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' / ' + str(mylar.CVAPI_MAX) + ' in ' + str(mins) + ' minutes.')
-        if mylar.CVAPI_COUNT > mylar.CVAPI_MAX:
+        if mylar.CVAPI_COUNT + 5 > mylar.CVAPI_MAX:
             cvleft = 15 - mins
-            if web is None: logger.warn('[ComicVine API] You have already hit your API limit (' + str(mylar.CVAPI_MAX) + ' with ' + str(cvleft) + ' minutes. Best be slowing down, cowboy.')
+            if web is None: logger.warn('[ComicVine API] You have already hit your API limit (' + str(mylar.CVAPI_MAX) + ' with ' + str(cvleft) + ' minutes left out of 15 minutes. Best be slowing down, cowboy.')
+            apivalid = False
     elif mins > 15:
         mylar.CVAPI_COUNT = 0
         c_date = now()
@@ -1242,7 +1244,7 @@ def cvapi_check(web=None):
         #if web is None: logger.info('[ComicVine API] 15 minute API interval resetting [' + str(mylar.CVAPI_TIME) + ']. Resetting API count to : ' + str(mylar.CVAPI_COUNT))
 
     if web is None:
-        return
+        return apivalid
     else:
         line = str(mylar.CVAPI_COUNT) + ' hits / ' + str(mins) + ' minutes'
         return line
@@ -1273,7 +1275,7 @@ def IssueDetails(filelocation, IssueID=None):
 
     cover = "notfound"
     issuetag = None
-
+    pic_extensions = ('.jpg','.png','.webp')
     modtime = os.path.getmtime(dstlocation)
 
     with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
@@ -1285,13 +1287,13 @@ def IssueDetails(filelocation, IssueID=None):
                #print str(data)
                issuetag = 'xml'
             #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
-            elif '000.jpg' in infile or '000.png' in infile or '00.jpg' in infile or '00.png' in infile:
+            elif any(['000.' in infile, '00.' in infile]) and infile.endswith(pic_extensions):
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
                local_file.close
                cover = "found"
-            elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]):
+            elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensiosn):
                logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
                altlist = ('00a', '00b', '00c', '00d', '00e')
                for alt in altlist:
@@ -1302,7 +1304,7 @@ def IssueDetails(filelocation, IssueID=None):
                        cover = "found"
                        break
 
-            elif ('001.jpg' in infile or '001.png' in infile) and cover == "notfound":
+            elif ('001.jpg' in infile or '001.png' in infile or '001.webp' in infile) and cover == "notfound":
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))

@@ -18,10 +18,11 @@ import platform, subprocess, re, os, urllib2, tarfile
 import mylar
 from mylar import logger, version
 
-import lib.simplejson as simplejson
+import lib.requests as requests
+import re
 
-user = "evilhero"
-branch = "development"
+#user = "evilhero"
+#branch = "development"
 
 def runGit(args):
 
@@ -67,7 +68,7 @@ def getVersion():
         mylar.INSTALL_TYPE = 'win'
 
         # Don't have a way to update exe yet, but don't want to set VERSION to None
-        return 'Windows Install'
+        return 'Windows Install', 'None'
 
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
@@ -76,7 +77,7 @@ def getVersion():
 
         if not output:
             logger.error('Couldn\'t find latest installed version.')
-            return None
+            cur_commit_hash = None
 
         #branch_history, err = runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 5")
         #bh = []
@@ -84,13 +85,35 @@ def getVersion():
         #bh.append(branch_history.split('\n'))
         #print ("bh1: " + bh[0])
 
-        cur_commit_hash = output.strip()
+        cur_commit_hash = str(output).strip()
 
         if not re.match('^[a-z0-9]+$', cur_commit_hash):
             logger.error('Output does not look like a hash, not using it')
-            return None
+            cur_commit_hash = None
 
-        return cur_commit_hash
+        if mylar.GIT_BRANCH:
+            branch = mylar.GIT_BRANCH
+
+        else:
+            branch = None
+
+            branch_name, err = runGit('branch --contains ' + cur_commit_hash) #rev-parse --abbrev-ref HEAD')
+            for line in branch_name.split('\n'):
+                if '*' in line:
+                    branch = re.sub('[\*\n]','',line).strip()
+                    break
+            
+
+            if not branch and mylar.GIT_BRANCH:
+                logger.warn('Unable to retrieve branch name [' + branch + '] from git. Setting branch to configuration value of : ' + mylar.GIT_BRANCH)
+                branch = mylar.GIT_BRANCH
+            if not branch:
+                logger.warn('Could not retrieve branch name [' + branch + '] form git. Defaulting to Master.')
+                branch = 'master'
+            else:
+                logger.info('Branch detected & set to : ' + branch)
+
+        return cur_commit_hash, branch
 
     else:
 
@@ -99,25 +122,24 @@ def getVersion():
         version_file = os.path.join(mylar.PROG_DIR, 'version.txt')
 
         if not os.path.isfile(version_file):
-            return None
+            return None, 'master'
 
-        fp = open(version_file, 'r')
-        current_version = fp.read().strip(' \n\r')
-        fp.close()
+        with open(version_file, 'r') as f:
+            current_version = f.read().strip(' \n\r')
 
         if current_version:
-            return current_version
+            return current_version, GIT_BRANCH
         else:
-            return None
+            return None, 'master'
 
 def checkGithub():
 
     # Get the latest commit available from github
-    url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (user, branch)
+    url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (mylar.GIT_USER, mylar.GIT_BRANCH)
     logger.info ('Retrieving latest version information from github')
     try:
-        result = urllib2.urlopen(url).read()
-        git = simplejson.JSONDecoder().decode(result)
+        response = requests.get(url, verify=True)
+        git = response.json()
         mylar.LATEST_VERSION = git['sha']
     except:
         logger.warn('Could not get the latest commit from github')
@@ -127,11 +149,11 @@ def checkGithub():
     # See how many commits behind we are
     if mylar.CURRENT_VERSION:
         logger.info('Comparing currently installed version with latest github version')
-        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (user, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
+        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.GIT_USER, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
 
         try:
-            result = urllib2.urlopen(url).read()
-            git = simplejson.JSONDecoder().decode(result)
+            response = requests.get(url, verify=True)
+            git = response.json()
             mylar.COMMITS_BEHIND = git['total_commits']
         except:
             logger.warn('Could not get commits behind from github')
@@ -161,41 +183,43 @@ def update():
 
     elif mylar.INSTALL_TYPE == 'git':
 
-        output, err = runGit('pull origin ' + version.MYLAR_VERSION)
+        output, err = runGit('pull origin ' + mylar.GIT_BRANCH)
 
         if not output:
             logger.error('Couldn\'t download latest version')
 
         for line in output.split('\n'):
-
+           
             if 'Already up-to-date.' in line:
                 logger.info('No update available, not updating')
                 logger.info('Output: ' + str(output))
             elif line.endswith('Aborting.'):
                 logger.error('Unable to update from git: ' +line)
                 logger.info('Output: ' + str(output))
-
+        
     else:
 
-        tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (user, branch)
+        tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (mylar.GIT_USER, mylar.GIT_BRANCH)
         update_dir = os.path.join(mylar.PROG_DIR, 'update')
         version_path = os.path.join(mylar.PROG_DIR, 'version.txt')
 
         try:
-            logger.info('Downloading update from: ' +tar_download_url)
-            data = urllib2.urlopen(tar_download_url)
+            logger.info('Downloading update from: ' + tar_download_url)
+            response = requests.get(tar_download_url, verify=True, stream=True)
         except (IOError, urllib2.URLError):
-            logger.error("Unable to retrieve new version from " +tar_download_url +", can't update")
+            logger.error("Unable to retrieve new version from " + tar_download_url + ", can't update")
             return
 
         #try sanitizing the name here...
-        download_name = data.geturl().split('/')[-1].split('?')[0]
+        download_name = mylar.GIT_BRANCH + '-github' #data.geturl().split('/')[-1].split('?')[0]
         tar_download_path = os.path.join(mylar.PROG_DIR, download_name)
 
         # Save tar to disk
-        f = open(tar_download_path, 'wb')
-        f.write(data.read())
-        f.close()
+        with open(tar_download_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
 
         # Extract the tar to update folder
         logger.info('Extracing file' + tar_download_path)
@@ -227,9 +251,8 @@ def update():
 
         # Update version.txt
         try:
-            ver_file = open(version_path, 'w')
-            ver_file.write(mylar.LATEST_VERSION)
-            ver_file.close()
+            with open(version_path, 'w') as f:
+                f.write(str(mylar.LATEST_VERSION))
         except IOError, e:
-            logger.error(u"Unable to write current version to version.txt, update not complete: " +ex(e))
+            logger.error("Unable to write current version to version.txt, update not complete: " +ex(e))
             return

@@ -113,6 +113,7 @@ ENABLE_HTTPS = False
 HTTPS_CERT = None
 HTTPS_KEY = None
 HTTPS_FORCE_ON = False
+HOST_RETURN = None
 API_ENABLED = False
 API_KEY = None
 DOWNLOAD_APIKEY = None
@@ -123,6 +124,8 @@ INSTALL_TYPE = None
 CURRENT_VERSION = None
 LATEST_VERSION = None
 COMMITS_BEHIND = None
+GIT_USER = 'evilhero'
+GIT_BRANCH = None
 USER_AGENT = None
 SEARCH_DELAY = 1
 
@@ -397,8 +400,8 @@ def initialize():
 
     with INIT_LOCK:
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
-                queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
-                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
+                queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
+                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
@@ -460,6 +463,7 @@ def initialize():
         HTTPS_CERT = check_setting_str(CFG, 'General', 'https_cert', '')
         HTTPS_KEY = check_setting_str(CFG, 'General', 'https_key', '')
         HTTPS_FORCE_ON = bool(check_setting_int(CFG, 'General', 'https_force_on', 0))
+        HOST_RETURN = check_setting_str(CFG, 'General', 'host_return', '')
         API_ENABLED = bool(check_setting_int(CFG, 'General', 'api_enabled', 0))
         API_KEY = check_setting_str(CFG, 'General', 'api_key', '')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
@@ -480,6 +484,7 @@ def initialize():
         CHECK_GITHUB = bool(check_setting_int(CFG, 'General', 'check_github', 1))
         CHECK_GITHUB_ON_STARTUP = bool(check_setting_int(CFG, 'General', 'check_github_on_startup', 1))
         CHECK_GITHUB_INTERVAL = check_setting_int(CFG, 'General', 'check_github_interval', 360)
+        GIT_USER = check_setting_str(CFG, 'General', 'git_user', 'evilhero')
 
         DESTINATION_DIR = check_setting_str(CFG, 'General', 'destination_dir', '')
         MULTIPLE_DEST_DIRS = check_setting_str(CFG, 'General', 'multiple_dest_dirs', '')
@@ -860,7 +865,7 @@ def initialize():
                     continue
 
         PROVIDER_ORDER = list(itertools.izip(*[itertools.islice(flatt_providers, i, None, 2) for i in range(2)]))
-        config_write()
+#       config_write()
 
         # update folder formats in the config & bump up config version
         if CONFIG_VERSION == '0':
@@ -900,7 +905,6 @@ def initialize():
 
         if 'http://' not in SAB_HOST[:7] and 'https://' not in SAB_HOST[:8]:
             SAB_HOST = 'http://' + SAB_HOST
-            #print ("SAB_HOST:" + SAB_HOST)
 
         if not LOG_DIR:
             LOG_DIR = os.path.join(DATA_DIR, 'logs')
@@ -926,13 +930,30 @@ def initialize():
             logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
             logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
 
+        # Get the currently installed version - returns None, 'win32' or the git hash
+        # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
+        CURRENT_VERSION, GIT_BRANCH = versioncheck.getVersion()
+        config_write()
+
+        if CURRENT_VERSION is not None:
+            hash = CURRENT_VERSION[:7]
+        else:
+            hash = "unknown"
+
+        if version.MYLAR_VERSION == 'master':
+            vers = 'M'
+        else:
+           vers = 'D'
+
+        USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
+
         # verbatim DB module.
         logger.info('[DB Module] Loading : ' + DBCHOICE + ' as the database module to use.')
 
         # Put the cache dir in the data dir for now
         if not CACHE_DIR:
             CACHE_DIR = os.path.join(str(DATA_DIR), 'cache')
-        #logger.info("cache set to : " + str(CACHE_DIR))
+
         if not os.path.exists(CACHE_DIR):
             try:
                os.makedirs(CACHE_DIR)
@@ -956,30 +977,15 @@ def initialize():
         except Exception, e:
             logger.error('Cannot connect to the database: %s' % e)
 
-        # Get the currently installed version - returns None, 'win32' or the git hash
-        # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
-        CURRENT_VERSION = versioncheck.getVersion()
-        if CURRENT_VERSION is not None:
-            hash = CURRENT_VERSION[:7]
-        else:
-            hash = "unknown"
-
-        if version.MYLAR_VERSION == 'master':
-            vers = 'M'
-        else:
-           vers = 'D'
-
-        USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
-
-        # Check for new versions
-        if CHECK_GITHUB_ON_STARTUP:
-            try:
-                LATEST_VERSION = versioncheck.checkGithub()
-            except:
-                LATEST_VERSION = CURRENT_VERSION
-        else:
-            LATEST_VERSION = CURRENT_VERSION
-
+        # Check for new versions (autoupdate)
+#        if CHECK_GITHUB_ON_STARTUP:
+#            try:
+#                LATEST_VERSION = versioncheck.checkGithub()
+#            except:
+#                LATEST_VERSION = CURRENT_VERSION
+#        else:
+#            LATEST_VERSION = CURRENT_VERSION
+#
 #        if AUTO_UPDATE:
 #            if CURRENT_VERSION != LATEST_VERSION and INSTALL_TYPE != 'win' and COMMITS_BEHIND > 0:
 #                logger.info('Auto-updating has been enabled. Attempting to auto-update.')
@@ -1158,6 +1164,7 @@ def config_write():
     new_config['General']['https_cert'] = HTTPS_CERT
     new_config['General']['https_key'] = HTTPS_KEY
     new_config['General']['https_force_on'] = int(HTTPS_FORCE_ON)
+    new_config['General']['host_return'] = HOST_RETURN
     new_config['General']['api_enabled'] = int(API_ENABLED)
     new_config['General']['api_key'] = API_KEY
     new_config['General']['launch_browser'] = int(LAUNCH_BROWSER)
@@ -1173,7 +1180,8 @@ def config_write():
     new_config['General']['check_github'] = int(CHECK_GITHUB)
     new_config['General']['check_github_on_startup'] = int(CHECK_GITHUB_ON_STARTUP)
     new_config['General']['check_github_interval'] = CHECK_GITHUB_INTERVAL
-
+    new_config['General']['git_user'] = GIT_USER
+    new_config['General']['git_branch'] = GIT_BRANCH
     new_config['General']['destination_dir'] = DESTINATION_DIR
     new_config['General']['multiple_dest_dirs'] = MULTIPLE_DEST_DIRS
     new_config['General']['create_folders'] = int(CREATE_FOLDERS)

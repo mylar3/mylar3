@@ -78,7 +78,9 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     #logger.info('PULLURL: ' + PULLURL)
     #CV API Check here.
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
-        cvapi_check()
+        chkit = cvapi_check()
+        if chkit == False:
+            return "apireached"
     #download the file:
     file = urllib2.urlopen(PULLURL)
     #increment CV API counter.
@@ -110,7 +112,10 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
             id = comicid
             islist = None
         searched = pulldetails(id, 'issue', None, 0, islist)
-        if searched is None: return False
+        if searched is None:
+            return False
+        elif searched == 'apireached': 
+            return 'apireached'
         totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
         logger.fdebug("there are " + str(totalResults) + " search results...")
         if not totalResults:
@@ -122,6 +127,8 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
                 searched = pulldetails(id, 'issue', None, offsetcount, islist)
+                if searched == 'apireached':
+                    return 'apireached'
             issuechoice, tmpdate = GetIssuesInfo(id, searched, arcid)
             if tmpdate < firstdate:
                 firstdate = tmpdate
@@ -136,18 +143,26 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
 
     elif type == 'comic':
         dom = pulldetails(comicid, 'comic', None, 1)
+        if dom == 'apireached':
+            return 'apireached'
         return GetComicInfo(comicid, dom)
     elif type == 'firstissue':
         dom = pulldetails(comicid, 'firstissue', issueid, 1)
+        if dom == 'apireached':
+            return 'apireached'
         return GetFirstIssue(issueid, dom)
     elif type == 'storyarc':
         dom = pulldetails(arc, 'storyarc', None, 1)
+        if dom == 'apireached':
+            return 'apireached'
         return GetComicInfo(issueid, dom)
     elif type == 'comicyears':
         #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year.
         #this grabs each issue based on issueid, and then subsets the comicid for each to be used later.
         #set the offset to 0, since we're doing a filter.
         dom = pulldetails(arcid, 'comicyears', offset=0, comicidlist=comicidlist)
+        if dom == 'apireached':
+            return 'apireached'
         return GetSeriesYears(dom)
 
 def GetComicInfo(comicid, dom, safechk=None):

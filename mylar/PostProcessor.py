@@ -620,6 +620,12 @@ class PostProcessor(object):
                     fd, ext = os.path.splitext(nzbname)
                     self._log("Removed extension from nzb: " + ext)
                     nzbname = re.sub(str(ext), '', str(nzbname))
+                else:
+                    logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format. PostProcessing aborted.')
+                    self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
 
                 #replace spaces
                 # let's change all space to decimals for simplicity
@@ -728,12 +734,20 @@ class PostProcessor(object):
                             self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
 
                         odir = None
+                        ofilename = None
                         for root, dirnames, filenames in os.walk(self.nzb_folder):
                             for filename in filenames:
                                 if filename.lower().endswith(extensions):
                                     odir = root
                                     ofilename = filename
                                     path, ext = os.path.splitext(ofilename)
+
+                        if ofilename is None:
+                            logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format. PostProcessing aborted.')
+                            self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
+                            self.valreturn.append({"self.log": self.log,
+                                                   "mode": 'stop'})
+                            return self.queue.put(self.valreturn)
 
                         if odir is None:
                             odir = self.nzb_folder
@@ -1168,6 +1182,7 @@ class PostProcessor(object):
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
             if ml is None:
+                ofilename = None
                 for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
                     for filename in filenames:
                         if filename.lower().endswith(extensions):
@@ -1183,6 +1198,13 @@ class PostProcessor(object):
                 except:
                     logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
                     odir = self.nzb_folder
+
+                if ofilename is None:
+                    self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
+                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
                 logger.fdebug(module + ' odir: ' + odir)
                 logger.fdebug(module + ' ofilename: ' + ofilename)
 

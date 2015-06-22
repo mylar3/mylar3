@@ -146,7 +146,11 @@
                 <tbody>
                     %for f_nodata in future_nodata_upcoming:
                             <tr class="gradeZ">
-                                    <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
+                                    %if f_nodata['ComicID'] is not None:
+                                        <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
+                                    %else:
+                                        <td id="comicname">${f_nodata['ComicName']}</td>
+                                    %endif
                                     <td id="issuenumber">${f_nodata['IssueNumber']}</td>
                                     <td id="reldate">${f_nodata['IssueDate']}</td>
                                     <td id="status">${f_nodata['Status']}</td>

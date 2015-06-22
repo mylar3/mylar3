@@ -1938,22 +1938,39 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 import hashlib, random
                 mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
 
-            if mylar.ENABLE_HTTPS:
-                proto = 'https://'
-            else:
-                proto = 'http://'
-
-            if mylar.HTTP_ROOT is None:
-                hroot = '/'
-            elif mylar.HTTP_ROOT.endswith('/'):
-                hroot = mylar.HTTP_ROOT
-            else:
-                if mylar.HTTP_ROOT != '/':
-                    hroot = mylar.HTTP_ROOT + '/'
+            #generate the mylar host address if applicable.
+            if mylar.HOST_RETURN:
+                #from lib.pystun import as stun
+                #sip = '0.0.0.0'
+                #port = int(mylar.HTTP_PORT)
+                #try:
+                #    nat_type, ext_ip, ext_port = stun.get_ip_info(sip,port)
+                #except:
+                #    logger.warn('Unable to retrieve External IP.')
+                
+                if mylar.HOST_RETURN.endswith('/'):
+                    mylar_host = mylar.HOST_RETURN
                 else:
-                    hroot = mylar.HTTP_ROOT
+                    mylar_host = mylar.HOST_RETURN + '/'
+        
+            else:
+                if mylar.ENABLE_HTTPS:
+                    proto = 'https://'
+                else:
+                    proto = 'http://'
 
-            fileURL = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
+                if mylar.HTTP_ROOT is None:
+                    hroot = '/'
+                elif mylar.HTTP_ROOT.endswith('/'):
+                    hroot = mylar.HTTP_ROOT
+                else:
+                    if mylar.HTTP_ROOT != '/':
+                        hroot = mylar.HTTP_ROOT + '/'
+                    else:
+                        hroot = mylar.HTTP_ROOT
+                mylar_host = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot
+
+            fileURL = mylar_host + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
 
             tmpapi = tmpapi + SABtype
             logger.fdebug("...selecting API type: " + str(tmpapi))
