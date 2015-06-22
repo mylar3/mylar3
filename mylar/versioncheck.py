@@ -128,8 +128,14 @@ def getVersion():
             current_version = f.read().strip(' \n\r')
 
         if current_version:
-            return current_version, GIT_BRANCH
+            if mylar.GIT_BRANCH:
+                logger.info('Branch detected & set to : ' + mylar.GIT_BRANCH)
+                return current_version, mylar.GIT_BRANCH
+            else:
+                logger.warn('No branch specified within config - manually specify, but will default to Master branch.')
+                return current_version, 'master'
         else:
+            logger.warn('Unable to determine which commit is currently being run. Defaulting to Master branch.')
             return None, 'master'
 
 def checkGithub():
