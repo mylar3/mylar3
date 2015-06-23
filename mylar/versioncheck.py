@@ -16,7 +16,7 @@
 import platform, subprocess, re, os, urllib2, tarfile
 
 import mylar
-from mylar import logger
+from mylar import logger, version
 
 import lib.requests as requests
 import re
@@ -122,21 +122,39 @@ def getVersion():
         version_file = os.path.join(mylar.PROG_DIR, 'version.txt')
 
         if not os.path.isfile(version_file):
-            return None, 'master'
-
-        with open(version_file, 'r') as f:
-            current_version = f.read().strip(' \n\r')
+            current_version = None
+        else:
+            with open(version_file, 'r') as f:
+                current_version = f.read().strip(' \n\r')
 
         if current_version:
             if mylar.GIT_BRANCH:
                 logger.info('Branch detected & set to : ' + mylar.GIT_BRANCH)
                 return current_version, mylar.GIT_BRANCH
             else:
-                logger.warn('No branch specified within config - manually specify, but will default to Master branch.')
-                return current_version, 'master'
+                logger.warn('No branch specified within config - will attempt to poll version from mylar')
+                try:
+                    branch = version.MYLAR_VERSION
+                    logger.info('Branch detected & set to : ' + branch)
+                except:
+                    branch = 'master'
+                    logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
+                return current_version, branch
         else:
+            if mylar.GIT_BRANCH:
+                logger.info('Branch detected & set to : ' + mylar.GIT_BRANCH)
+                return current_version, mylar.GIT_BRANCH
+            else:
+                logger.warn('No branch specified within config - will attempt to poll version from mylar')
+                try:
+                    branch = version.MYLAR_VERSION
+                    logger.info('Branch detected & set to : ' + branch)
+                except:
+                    branch = 'master'
+                    logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
+                return current_version, branch
+
             logger.warn('Unable to determine which commit is currently being run. Defaulting to Master branch.')
-            return None, 'master'
 
 def checkGithub():
 
