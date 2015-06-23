@@ -9,14 +9,14 @@
         <div id="subhead_container">
                 <div id="subhead_menu">
                     %if explicit == 'loose':
-                        <a id="menu_link_delete" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=loose">Search ALL terms</a>
-                        <a id="menu_link_delete" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
+                        <a id="menu_link_retry" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=loose">Search ALL terms</a>
+                        <a id="menu_link_retry" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
                     %elif explicit == 'explicit':
-                        <a id="menu_link_delete" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
-                        <a id="menu_link_delete" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=all">Search ALL terms</a>
+                        <a id="menu_link_retry" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
+                        <a id="menu_link_retry" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=all">Search ALL terms</a>
                     %elif explicit == 'all':
-                        <a id="menu_link_delete" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
-                        <a id="menu_link_delete" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
+                        <a id="menu_link_retry" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
+                        <a id="menu_link_retry" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
                     %endif
                 </div>
         </div>
@@ -112,7 +112,7 @@
         </script>
 
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-	
+
 	<script>
         function initThisPage(){
 
@@ -122,7 +122,7 @@
 			       "bDestroy": true,
 			       "aoColumnDefs": [
 			         { 'bSortable': false, 'aTargets': [ 0,3 ] }
-			       ],	
+			       ],
 			       "oLanguage": {
 			     	       "sLengthMenu":"Show _MENU_ results per page",
 				       "sEmptyTable": "No results",
