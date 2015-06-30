@@ -524,8 +524,17 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                     latestdate = week['LatestDate']
                     logger.fdebug("latestdate:  " + str(latestdate))
                     if latestdate[8:] == '':
-                        logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day for continuation.")
-                        latest_day = '01'
+                        if '-' in latestdate[:4] and not latestdate.startswith('20'):
+                        #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
+                            st_date = latestdate.find('-')
+                            st_remainder = latestdate[st_date+1:]
+                            st_year = latestdate[:st_date]
+                            year = '20' + st_year
+                            latestdate = str(year) + '-' + str(st_remainder)
+                            logger.fdebug('year set to: ' + latestdate)
+                        else:
+                            logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day for continuation.")
+                            latest_day = '01'
                     else:
                         latest_day = latestdate[8:]
                     c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), int(latest_day))
@@ -907,7 +916,8 @@ def checkthis(datecheck, datestatus, usedate):
 
     return valid_check
 
-def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
+def weekly_check(comicid, issuenum, file=None, path=None, module=None, issueid=None):
+
     if module is None:
         module = ''
     module += '[WEEKLY-PULL]'
@@ -935,7 +945,15 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
         return
 
     logger.info(module + ' Issue found on weekly pull-list.')
+    if mylar.WEEKFOLDER:
+        weekly_singlecopy(comicid, issuenum, file, path, pulldate)
+    if mylar.SEND2READ:
+        send2read(comicid, issueid, issuenum)
+    return
 
+def weekly_singlecopy(comicid, issuenum, file, path, pulldate):
+
+    module = '[WEEKLY-PULL COPY]'
     if mylar.WEEKFOLDER:
         desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
         dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True, module=module)
@@ -957,11 +975,10 @@ def weekly_singlecopy(comicid, issuenum, file, path, module=None, issueid=None):
         return
 
     logger.info(module + ' Sucessfully copied to ' + desfile.encode('utf-8').strip())
-
-    if mylar.SEND2READ:
-        send2read(comicid, issueid, issuenum)
+    return
 
 def send2read(comicid, issueid, issuenum):
+
     module = '[READLIST]'
     if mylar.SEND2READ:
         logger.info(module + " Send to Reading List enabled for new pulls. Adding to your readlist in the status of 'Added'")

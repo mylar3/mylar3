@@ -239,7 +239,7 @@ def decimal_issue(iss):
         deciss = (int(iss_b4dec) * 1000) + issdec
     return deciss, dec_except
 
-def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None):
+def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None, arc=False):
             import db, logger
             myDB = db.DBConnection()
             logger.fdebug('comicid: ' + str(comicid))
@@ -266,14 +266,24 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             if issueid is None:
                 logger.fdebug('annualize is ' + str(annualize))
-                if annualize is None:
-                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                if arc:
+                    #this has to be adjusted to be able to include story arc issues that span multiple arcs
+                    chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                 else:
-                    chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    if annualize is None:
+                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    else:
+                        chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
 
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
-                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                    if arc:
+                        chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                    else:
+                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        if annualize:
+                            chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+
                     if chkissue is None:
                         if chkissue is None:
                             logger.error('Invalid Issue_Number - please validate.')
@@ -286,17 +296,60 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             #use issueid to get publisher, series, year, issue number
             logger.fdebug('issueid is now : ' + str(issueid))
-            issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
-            if issuenzb is None:
-                logger.fdebug('not an issue, checking against annuals')
-                issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
+            if arc:
+                issuenzb = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND IssueID=? AND StoryArc=?", [comicid, issueid, arc]).fetchone()
+            else:
+                issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
                 if issuenzb is None:
-                    logger.fdebug('Unable to rename - cannot locate issue id within db')
-                    return
+                    logger.fdebug('not an issue, checking against annuals')
+                    issuenzb = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
+                    if issuenzb is None:
+                        logger.fdebug('Unable to rename - cannot locate issue id within db')
+                        return
+                    else:
+                        annualize = True
+
+            if issuenzb is None:
+                logger.fdebug('Unable to rename - cannot locate issue id within db')
+                return
+
+            #remap the variables to a common factor.
+            if arc:
+                issuenum = issuenzb['IssueNumber']
+                issuedate = issuenzb['IssueDate']
+                publisher = issuenzb['IssuePublisher']
+                series = issuenzb['ComicName']
+                seriesfilename = series   #Alternate FileNaming is not available with story arcs.
+                seriesyear = issuenzb['SeriesYear']
+                arcdir = filesafe(issuenzb['StoryArc'])
+                if mylar.REPLACE_SPACES:
+                    arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
+                if mylar.STORYARCDIR:
+                    storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", arcdir)
+                    logger.fdebug('Story Arc Directory set to : ' + storyarcd)
                 else:
-                    annualize = True
+                    logger.fdebug('Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
+                    storyarcd = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
+
+                comlocation = storyarcd
+                comversion = None   #need to populate this.
+
+            else:
+                issuenum = issuenzb['Issue_Number']
+                issuedate = issuenzb['IssueDate']
+                comicnzb= myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
+                publisher = comicnzb['ComicPublisher']
+                series = comicnzb['ComicName']
+                if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
+                    seriesfilename = series
+                else:
+                    seriesfilename = comicnzb['AlternateFileName']
+                    logger.fdebug('Alternate File Naming has been enabled for this series. Will rename series title to : ' + seriesfilename)
+                seriesyear = comicnzb['ComicYear']
+                comlocation = comicnzb['ComicLocation']
+                comversion = comicnzb['ComicVersion']
+
             #comicid = issuenzb['ComicID']
-            issuenum = issuenzb['Issue_Number']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
             issue_exceptions = ['AU',
@@ -443,25 +496,14 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
 
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
-            issueyear = issuenzb['IssueDate'][:4]
-            month = issuenzb['IssueDate'][5:7].replace('-', '').strip()
+            issueyear = issuedate[:4]
+            month = issuedate[5:7].replace('-', '').strip()
             month_name = fullmonth(month)
             logger.fdebug('Issue Year : ' + str(issueyear))
-            comicnzb= myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
-            publisher = comicnzb['ComicPublisher']
             logger.fdebug('Publisher: ' + str(publisher))
-            series = comicnzb['ComicName']
             logger.fdebug('Series: ' + str(series))
-            if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
-                seriesfilename = series
-            else:
-                seriesfilename = comicnzb['AlternateFileName']
-                logger.fdebug('Alternate File Naming has been enabled for this series. Will rename series title to : ' + seriesfilename)
-            seriesyear = comicnzb['ComicYear']
             logger.fdebug('Year: '  + str(seriesyear))
-            comlocation = comicnzb['ComicLocation']
             logger.fdebug('Comic Location: ' + str(comlocation))
-            comversion = comicnzb['ComicVersion']
             if comversion is None:
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
@@ -1180,6 +1222,14 @@ def havetotals(refreshit=None):
                 recentstatus = 'Continuing'
             elif 'present' in comic['ComicPublished'].lower() or (today()[:4] in comic['LatestDate']):
                 latestdate = comic['LatestDate']
+                #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
+                if '-' in latestdate[:3]:
+                    st_date = latestdate.find('-')
+                    st_remainder = latestdate[st_date+1:]
+                    st_year = latestdate[:st_date]
+                    year = '20' + st_year
+                    latestdate = str(year) + '-' + str(st_remainder)
+                    logger.fdebug('year set to: ' + latestdate)
                 c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
                 n_date = datetime.date.today()
                 recentchk = (n_date - c_date).days
