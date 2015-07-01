@@ -2857,6 +2857,7 @@ class WebInterface(object):
         if filename is None:
             mylar.WEEKFOLDER = int(weekfolder)
             mylar.config_write()
+            raise cherrypy.HTTPRedirect("pullist")
 
         # this will download all downloaded comics from the weekly pull list and throw them
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
@@ -3350,6 +3351,8 @@ class WebInterface(object):
                     "create_folders": helpers.checked(mylar.CREATE_FOLDERS),
                     "chmod_dir": mylar.CHMOD_DIR,
                     "chmod_file": mylar.CHMOD_FILE,
+                    "chowner": mylar.CHOWNER,
+                    "chgroup": mylar.CHGROUP,
                     "replace_spaces": helpers.checked(mylar.REPLACE_SPACES),
                     "replace_char": mylar.REPLACE_CHAR,
                     "use_minsize": helpers.checked(mylar.USE_MINSIZE),
@@ -3616,7 +3619,7 @@ class WebInterface(object):
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
         tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, **kwargs):
         mylar.COMICVINE_API = comicvine_api
         mylar.HTTP_HOST = http_host
@@ -3762,6 +3765,8 @@ class WebInterface(object):
         mylar.LOG_LEVEL = log_level
         mylar.CHMOD_DIR = chmod_dir
         mylar.CHMOD_FILE = chmod_file
+        mylar.CHOWNER = chowner
+        mylar.CHGROUP = chgroup
         # Handle the variable config options. Note - keys with False values aren't getting passed
 
         mylar.EXTRA_NEWZNABS = []
@@ -4048,12 +4053,16 @@ class WebInterface(object):
 
         if metaresponse == "fail":
             logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
+            return
         elif metaresponse == "unrar error":
              logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
+             return
              #launch failed download handling here.
         else:
              logger.info(module + ' Sucessfully wrote metadata to .cbz (' + os.path.split(metaresponse)[1] + ') - Continuing..')
-             updater.forceRescan(comicid)
+
+        updater.forceRescan(comicid)
+
     manual_metatag.exposed = True
 
     def group_metatag(self, dirName, ComicID):

@@ -1155,6 +1155,7 @@ def validateAndCreateDirectory(dir, create=False, module=None):
                     permission = int(mylar.CHMOD_DIR, 8)
                     os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
                     os.makedirs(dir.rstrip(), permission)
+                    setperms(dir.rstrip(), True)
                 except OSError:
                     raise SystemExit(module + ' Could not create directory: ' + dir + '. Exiting....')
                 return True
@@ -1199,3 +1200,46 @@ def crc(filename):
 
     #speed in lieu of memory (file into memory entirely)
     return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
+
+def setperms(path, dir=False):
+
+    if 'windows' not in mylar.OS_DETECT.lower():
+
+        try:
+            os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
+            if mylar.CHOWNER:
+                if not mylar.CHOWNER.isdigit():
+                    from pwd import getpwnam
+                    chowner = getpwnam(mylar.CHOWNER)[2]
+                else:
+                    chowner = mylar.CHOWNER
+
+                if not mylar.CHGROUP.isdigit():
+                    from grp import getgrnam
+                    chgroup = getgrnam(mylar.CHGROUP)[2]
+                else:
+                    chgroup = mylar.CHGROUP
+
+                if dir:
+                    permission = int(mylar.CHMOD_DIR, 8)
+                    os.chmod(path, permission)
+                    os.chown(path, chowner, chgroup)
+   
+                else:
+                    for root, dirs, files in os.walk(path):
+                        for momo in dirs:
+                            permission = int(mylar.CHMOD_DIR, 8)
+                            os.chmod(os.path.join(root, momo), permission)
+                            os.chown(os.path.join(root, momo), chowner, chgroup)
+                        for momo in files:
+                            permission = int(mylar.CHMOD_FILE, 8)
+                            os.chmod(os.path.join(root, momo), permission)
+                            os.chown(os.path.join(root, momo), chowner, chgroup)
+
+            logger.info('Successfully changed ownership and permissions [' + str(mylar.CHOWNER) + ':' + str(mylar.CHGROUP) + '] / [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
+
+        except OSError:
+            logger.error('Could not change permissions : ' + path + '. Exiting...')
+
+    return
+

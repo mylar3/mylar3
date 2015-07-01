@@ -1370,6 +1370,9 @@ def forceRescan(ComicID, archive=None, module=None):
                     "Total":           iscnt}
 
     myDB.upsert("comics", newValueStat, controlValueStat)
+    #enforce permissions
+    logger.fdebug(module + ' Ensuring permissions/ownership enforced for series: ' + rescan['ComicName'])
+    filechecker.setperms(rescan['ComicLocation'])
     logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, snatched ' + str(snatchedcount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state [ Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total) + ' ]')
 
     return

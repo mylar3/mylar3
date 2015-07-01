@@ -79,7 +79,9 @@ class tehMain():
                             else:
                                 feedinfo = mylar.FEEDINFO_32P
 
-                            if len(feedinfo) >0:
+                            if feedinfo is None or len(feedinfo) == 0:
+                                logger.error('[RSS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
+                            else:
                                 rsscheck.torrents(pickfeed='1', feedinfo=feedinfo[0])
                                 x = 0
                                 #assign personal feeds for 32p > +8
@@ -87,8 +89,7 @@ class tehMain():
                                     x+=1
                                     pfeed_32p = str(7 + x)
                                     rsscheck.torrents(pickfeed=pfeed_32p, feedinfo=fi)
-                            else:
-                                logger.error('[RSS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
+
             logger.info('[RSS] Initiating RSS Feed Check for NZB Providers.')
             rsscheck.nzbs(forcerss=self.forcerss)
             logger.info('[RSS] RSS Feed Check/Update Complete')

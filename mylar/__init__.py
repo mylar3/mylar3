@@ -143,6 +143,8 @@ DESTINATION_DIR = None   #if M_D_D_ is enabled, this will be the DEFAULT for wri
 MULTIPLE_DEST_DIRS = None  #Nothing will ever get written to these dirs - just for scanning, unless it's metatagging/renaming.
 CHMOD_DIR = None
 CHMOD_FILE = None
+CHOWNER = None
+CHGROUP = None
 USENET_RETENTION = None
 CREATE_FOLDERS = True
 
@@ -414,7 +416,7 @@ def initialize():
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
 
         if __INITIALIZED__:
             return False
@@ -491,6 +493,8 @@ def initialize():
         CREATE_FOLDERS = bool(check_setting_int(CFG, 'General', 'create_folders', 1))
         CHMOD_DIR = check_setting_str(CFG, 'General', 'chmod_dir', '0777')
         CHMOD_FILE = check_setting_str(CFG, 'General', 'chmod_file', '0660')
+        CHOWNER = check_setting_str(CFG, 'General', 'chowner', '')
+        CHGROUP = check_setting_str(CFG, 'General', 'chgroup', '')
         USENET_RETENTION = check_setting_int(CFG, 'General', 'usenet_retention', '1500')
         ALT_PULL = bool(check_setting_int(CFG, 'General', 'alt_pull', 0))
         SEARCH_INTERVAL = check_setting_int(CFG, 'General', 'search_interval', 360)
@@ -926,7 +930,7 @@ def initialize():
             logprog = 'Rotational Log Handler (default)'
 
         logger.fdebug('Logger set to use : ' + logprog)
-        if LOGTYPE == 'log' and platform.system() == 'Windows':
+        if LOGTYPE == 'log' and OS_DETECT == 'Windows':
             logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
             logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
 
@@ -1189,6 +1193,8 @@ def config_write():
     new_config['General']['create_folders'] = int(CREATE_FOLDERS)
     new_config['General']['chmod_dir'] = CHMOD_DIR
     new_config['General']['chmod_file'] = CHMOD_FILE
+    new_config['General']['chowner'] = CHOWNER
+    new_config['General']['chgroup'] = CHGROUP
     new_config['General']['usenet_retention'] = USENET_RETENTION
     new_config['General']['alt_pull'] = int(ALT_PULL)
     new_config['General']['search_interval'] = SEARCH_INTERVAL

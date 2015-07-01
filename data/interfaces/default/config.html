@@ -246,6 +246,18 @@
                                     <input type="text" name="chmod_file" value="${config['chmod_file']}" size="50">
                                     <small>Permissions on created/moved directories</small>
                                 </div>
+                                %if 'windows' not in mylar.OS_DETECT:
+                                    <div class="row">
+                                        <label>Owner</label>
+                                        <input type="text" name="chowner" value="${config['chowner']}" size="50">
+                                        <small>Set Ownership of files/directories (name OR uid)</small>
+                                    </div>
+                                    <div class="row">
+                                        <label>Group</label>
+                                        <input type="text" name="chgroup" value="${config['chgroup']}" size="50">
+                                        <small>Set Group Ownership of files/directories (name OR gid)</small>
+                                    </div>
+                                %endif 
 
 	                </fieldset>
                 </td>

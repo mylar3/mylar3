@@ -460,6 +460,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
             shutil.copy(coverfile, comiclocal)
+            filechecker.setperms(comiclocal)
         except IOError as e:
             logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
 
@@ -526,7 +527,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if not os.path.exists(os.path.join(comlocation, "cvinfo")) or mylar.CV_ONETIMER:
             with open(os.path.join(comlocation, "cvinfo"), "w") as text_file:
                 text_file.write(str(comic['ComicURL']))
-
+                
     logger.info('Updating complete for: ' + comic['ComicName'])
 
     if calledfrom == 'weekly':

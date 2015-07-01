@@ -540,7 +540,7 @@ class PostProcessor(object):
                             else:
                                 logger.fdebug(module + ' Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
                                 storyarcd = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
-                                grdst = mylar.DESTINATION_DIR
+                                grdst = storyarcd
 
                             #tag the meta.
                             if mylar.ENABLE_META:
@@ -564,6 +564,15 @@ class PostProcessor(object):
 
                             filechecker.validateAndCreateDirectory(grdst, True, module=module)
 
+                            dfilename = ofilename
+
+                            #send to renamer here if valid.
+                            if mylar.RENAME_FILES:
+                                renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], ofilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
+                                if renamed_file:
+                                    dfilename = renamed_file['nfilename']
+                                    logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
+                   
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.READ2FILENAME:
                                                               
@@ -571,9 +580,9 @@ class PostProcessor(object):
                                 if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                                 elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                                 else: readord = str(ml['ReadingOrder'])
-                                dfilename = str(readord) + "-" + ofilename
+                                dfilename = str(readord) + "-" + dfilename
                             else:
-                                dfilename = ofilename
+                                dfilename = dfilename
 
                             grab_dst = os.path.join(grdst, dfilename)
 
@@ -1324,6 +1333,7 @@ class PostProcessor(object):
                 #tidyup old path
                 try:
                     if os.path.isdir(odir) and odir != self.nzb_folder:
+                        logger.fdebug(module + 'self.nzb_folder: ' + self.nzb_folder)
                         # check to see if the directory is empty or not.
                         if not os.listdir(odir):
                             logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
@@ -1336,13 +1346,16 @@ class PostProcessor(object):
                     logger.fdebug(module + ' Failed to remove temporary directory (' + odir + ') - Processing will continue, but manual removal is necessary')
 
             #Hopefully set permissions on downloaded file
-            try:
-                permission = int(mylar.CHMOD_FILE, 8)
-                os.umask(0)
-                os.chmod(dst.rstrip(), permission)
-            except OSError:
-                logger.error(module + ' Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : ' + dst)
-                logger.fdebug(module + ' Continuing post-processing but unable to change file permissions in ' + dst)
+            if mylar.OS_DETECT != 'windows':
+                filechecker.setperms(dst.rstrip())
+            else:
+                try:
+                    permission = int(mylar.CHMOD_FILE, 8)
+                    os.umask(0)
+                    os.chmod(dst.rstrip(), permission)
+                except OSError:
+                    logger.error(module + ' Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : ' + dst)
+                    logger.fdebug(module + ' Continuing post-processing but unable to change file permissions in ' + dst)
 
             #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -1420,9 +1433,10 @@ class PostProcessor(object):
             except:
                 pass
 
-            if mylar.WEEKFOLDER:
-                #if enabled, will *copy* the post-processed file to the weeklypull list folder for the given week.
-                weeklypull.weekly_singlecopy(comicid, issuenum, str(nfilename +ext), dst, module=module, issueid=issueid)
+            if mylar.WEEKFOLDER or mylar.SEND2READ:
+                #mylar.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
+                #mylar.SEND2READ = will add the post-processed file to the readinglits
+                weeklypull.weekly_check(comicid, issuenum, file=str(nfilename +ext), path=dst, module=module, issueid=issueid)
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:

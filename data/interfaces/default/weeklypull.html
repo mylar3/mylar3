@@ -31,8 +31,8 @@
           <form action="MassWeeklyDownload" method="GET" id="MassDownload">
              <fieldset>
                   <div class="row">
-                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory</label>
-                       <small>Create ${weekfold}</small>
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory</label> 
+                       <small>Create weekly folder (${weekfold})</small>
                  </div>
 
                <input type="hidden" name="pulldate" value=${pulldate}>
@@ -117,7 +117,18 @@
 	<script>
 
         function initThisPage() {
-
+                $("#weekfolder").click(function(){
+                        if ($("#weekfolder").is(":checked"))
+                        {
+                            $("#MassDownload").submit();
+                            return true;
+                        }
+                        else
+                        {
+                            $("#MassDownload").submit();
+                            return true;
+                        }
+                });
                 initActions();
                 $('#pull_table').dataTable (
                         {
@@ -136,7 +147,7 @@
                                 "bStateSave": true,
                                 "iDisplayLength": 25,
                                 "sPaginationType": "full_numbers",
-                                "aaSorting": [[0, 'desc'],[1, 'asc']]
+                                "aaSorting": [[0, 'desc']]
                         });
                         resetFilters("weekly");
                         setTimeout(function(){
