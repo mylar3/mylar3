@@ -27,7 +27,7 @@ import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
 
-cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs',
+cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs', 'clearLogs',
             'findComic', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
             'addIssue', 'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'getVersion', 'checkGithub',
             'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'downloadNZB']
@@ -168,7 +168,13 @@ class Api(object):
         return
 
     def _getLogs(self, **kwargs):
-        pass
+        self.data = mylar.LOG_LIST
+        return
+
+   def _clearLogs(self, **kwargs):
+        mylar.LOG_LIST = []
+        self.data = 'Cleared log'
+        return
 
     def _delComic(self, **kwargs):
         if 'id' not in kwargs:
