@@ -171,7 +171,7 @@ class Api(object):
         self.data = mylar.LOG_LIST
         return
 
-   def _clearLogs(self, **kwargs):
+    def _clearLogs(self, **kwargs):
         mylar.LOG_LIST = []
         self.data = 'Cleared log'
         return
