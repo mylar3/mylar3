@@ -1207,7 +1207,11 @@ def setperms(path, dir=False):
 
         try:
             os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
-            if mylar.CHOWNER:
+            if mylar.CHGROUP:
+                if mylar.CHOWNER is None or mylar.CHOWNER == 'None' or mylar.CHOWNER == '':
+                    import getpass
+                    mylar.CHOWNER = getpass.getuser()
+
                 if not mylar.CHOWNER.isdigit():
                     from pwd import getpwnam
                     chowner = getpwnam(mylar.CHOWNER)[2]
@@ -1224,19 +1228,29 @@ def setperms(path, dir=False):
                     permission = int(mylar.CHMOD_DIR, 8)
                     os.chmod(path, permission)
                     os.chown(path, chowner, chgroup)
-   
                 else:
                     for root, dirs, files in os.walk(path):
                         for momo in dirs:
                             permission = int(mylar.CHMOD_DIR, 8)
-                            os.chmod(os.path.join(root, momo), permission)
                             os.chown(os.path.join(root, momo), chowner, chgroup)
+                            os.chmod(os.path.join(root, momo), permission)
                         for momo in files:
                             permission = int(mylar.CHMOD_FILE, 8)
-                            os.chmod(os.path.join(root, momo), permission)
                             os.chown(os.path.join(root, momo), chowner, chgroup)
+                            os.chmod(os.path.join(root, momo), permission)
 
-            logger.info('Successfully changed ownership and permissions [' + str(mylar.CHOWNER) + ':' + str(mylar.CHGROUP) + '] / [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
+                logger.info('Successfully changed ownership and permissions [' + str(mylar.CHOWNER) + ':' + str(mylar.CHGROUP) + '] / [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
+
+            else:
+                for root, dirs, files in os.walk(path):
+                    for momo in dirs:
+                        permission = int(mylar.CHMOD_DIR, 8)
+                        os.chmod(os.path.join(root, momo), permission)
+                    for momo in files:
+                        permission = int(mylar.CHMOD_FILE, 8)
+                        os.chmod(os.path.join(root, momo), permission)
+
+                logger.info('Successfully changed permissions [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
 
         except OSError:
             logger.error('Could not change permissions : ' + path + '. Exiting...')
