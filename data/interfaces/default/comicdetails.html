@@ -9,7 +9,18 @@
 	<div id="subhead_container">
 		<div id="subhead_menu">
                         <a id="menu_link_refresh" onclick="doAjaxCall('refreshSeries?ComicID=${comic['ComicID']}', $(this),'table')" href="#" data-success="${comic['ComicName']} is being refreshed">Refresh Comic</a>
-                        <a id="menu_link_delete" href="deleteArtist?ComicID=${comic['ComicID']}">Delete Comic</a>
+                        <a id="menu_link_delete" href="#">Delete Comic</a>
+                           <div id="dialog" title="Delete Series Confirmation" style="display:none" class="configtable">
+                              <form action="deleteSeries" method="GET" style="vertical-align: middle; text-align: center">
+                                  </br><input type="submit" value="Delete Series">
+                                  <div class="row checkbox left clearfix">
+                                      </br>
+                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="delete_dir" id="deleteCheck" value="1" ${comicConfig['delete_dir']} /><label>Remove directory when deleting Series?</label>
+                                  </div>
+                                  <input type="hidden" name="ComicID" value=${comic['ComicID']}>
+                              </form>
+                           </div>
+
                         %if mylar.RENAME_FILES:
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
                         %endif
@@ -18,9 +29,9 @@
                             <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?dirName=${comic['ComicLocation'] |u}&ComicID=${comic['ComicID']}', $(this),'table')" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
                         %if comic['Status'] == 'Paused':
-                                <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
+                                <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeSeries?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
                         %else:
-                                <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseArtist?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} paused">Pause Comic</a>
+                                <a id="menu_link_pauze" href="#" onclick="doAjaxCall('pauseSeries?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} paused">Pause Comic</a>
                         %endif
                         %if annuals:
                                 <a id="menu_link_delete" href="annualDelete?comicid=${comic['ComicID']}">Delete Annuals</a>
@@ -58,8 +69,9 @@
 			<li><a href="#tabs-1">Comic Details</a></li>
 			<li><a href="#tabs-2">Download settings</a></li>
                         <li><a href="#tabs-3">Edit Settings</a></li>
-		</ul>
-		<div id="tabs-1">
+                </ul>
+	
+       <div id="tabs-1">
 		
 		
         <table class="comictable" summary="Comic Details">
@@ -77,39 +89,39 @@
                        %elif comic['ComicPublisher'] == 'Marvel':
                         <img src="interfaces/default/images/publisherlogos/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Image':
-                       <img src="interfaces/default/images/publisherlogos/logo-imagecomics.png" align="right" alt="Image" height="100" width="50" />
+                        <img src="interfaces/default/images/publisherlogos/logo-imagecomics.png" align="right" alt="Image" height="100" width="50" />
                        %elif comic['ComicPublisher'] == 'Dark Horse Comics' or comic['ComicPublisher'] == 'Dark Horse':
-                       <img src="interfaces/default/images/publisherlogos/logo-darkhorse.png" align="right" alt="Darkhorse" height="100" width="75" />
+                        <img src="interfaces/default/images/publisherlogos/logo-darkhorse.png" align="right" alt="Darkhorse" height="100" width="75" />
                        %elif comic['ComicPublisher'] == 'IDW Publishing':
-                       <img src="interfaces/default/images/publisherlogos/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Icon':
-   <img src="interfaces/default/images/publisherlogos/logo-iconcomics.png" align="right" alt="Icon" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-iconcomics.png" align="right" alt="Icon" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Red5':
-   <img src="interfaces/default/images/publisherlogos/logo-red5comics.png" align="right" alt="Red5" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-red5comics.png" align="right" alt="Red5" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Vertigo':
-   <img src="interfaces/default/images/publisherlogos/logo-vertigo.jpg" align="right" alt="Vertigo" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-vertigo.jpg" align="right" alt="Vertigo" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'ShadowLine':
-  <img src="interfaces/default/images/publisherlogos/logo-shadowline.png" align="right" alt="Shadowline" height="75" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-shadowline.png" align="right" alt="Shadowline" height="75" width="100"/>
                        %elif comic['ComicPublisher'] == 'Archie Comics':
-   <img src="interfaces/default/images/publisherlogos/logo-archiecomics.jpg" align="right" alt="Archie" height="75" width="75"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-archiecomics.jpg" align="right" alt="Archie" height="75" width="75"/>
                        %elif comic['ComicPublisher'] == 'Oni Press':
-   <img src="interfaces/default/images/publisherlogos/logo-onipress.png" align="right" alt="Oni Press" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-onipress.png" align="right" alt="Oni Press" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Tokyopop':
-   <img src="interfaces/default/images/publisherlogos/logo-tokyopop.jpg" align="right" alt="Tokyopop" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-tokyopop.jpg" align="right" alt="Tokyopop" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Midtown Comics':
-   <img src="interfaces/default/images/publisherlogos/logo-midtowncomics.jpg" align="right" alt="Midtown" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-midtowncomics.jpg" align="right" alt="Midtown" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Boom! Studios':
-   <img src="interfaces/default/images/publisherlogos/logo-boom.jpg" align="right" alt="Boom!" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-boom.jpg" align="right" alt="Boom!" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Skybound':
-   <img src="interfaces/default/images/publisherlogos/logo-skybound.jpg" align="right" alt="Skybound" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-skybound.jpg" align="right" alt="Skybound" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Vertigo':
-   <img src="interfaces/default/images/publisherlogos/logo-dynamite.jpg" align="right" alt="Dynamite" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-dynamite.jpg" align="right" alt="Dynamite" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Top Cow':
-   <img src="interfaces/default/images/publisherlogos/logo-topcow.gif" align="right" alt="Top Cow" height="75" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-topcow.gif" align="right" alt="Top Cow" height="75" width="100"/>
                        %elif comic['ComicPublisher'] == 'Dynamite Entertainment':
-   <img src="interfaces/default/images/publisherlogos/logo-dynamite.png" align="right" alt="Dynamite" height="50" width="100"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-dynamite.png" align="right" alt="Dynamite" height="50" width="100"/>
                        %elif comic['ComicPublisher'] == 'Cartoon Books':
-   <img src="interfaces/default/images/publisherlogos/logo-cartoonbooks.jpg" align="right" alt="Cartoon Books" height="75" width="90"/>
+                        <img src="interfaces/default/images/publisherlogos/logo-cartoonbooks.jpg" align="right" alt="Cartoon Books" height="75" width="90"/>
                        %endif     
         		 <fieldset>
                                 <div>
@@ -359,7 +371,7 @@
           <table class="display" id="issue_table">
                 <thead>
                         <tr>
-                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" name="issues" class="checkbox" /></th>
                                 <th id="int_issuenumber">IntIssNum</th>
                                 <th id="issuenumber">Number</th>
                                 <th id="issuename">Name</th>
@@ -467,6 +479,9 @@
              </form>
              </div>
 
+
+     <div class="table_wrapper">
+
             %if annuals:
             <h1>Annuals</h1>
              %for aninfo in annualinfo:
@@ -501,7 +516,7 @@
            -->
                    <thead>
                         <tr>
-                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="ann_action" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
                                 <th id="aint_issuenumber">Int_IssNumber</th>
                                 <th id="aissuenumber">Number</th>
                                 <th id="aissuename">Name</th>
@@ -533,7 +548,7 @@
                                         agrade = 'A'
                         %>
                         <tr class="${annual['Status']} grade${agrade}">
-                                <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
+                                <td id="ann_action"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
                                 <% 
                                     if annual['Int_IssueNumber'] is None:
                                         annual_Number = annual['Int_IssueNumber']
@@ -624,7 +639,7 @@
                              </form>
                         </div>
             %endif
-
+         </div>
 </%def>
 
 <%def name="headIncludes()">
@@ -713,52 +728,12 @@
         </script>
 
         <script>
-        $(function() {
-          function log( message ) {
-            $( "<div>" ).text( message ).prependTo( "#log" );
-            $( "#log" ).scrollTop( 0 );
-          }
-
-          $( "#annseries" ).autocomplete({
-            source: function( request, response ) {
-              $.ajax({
-                url: "http://api.comicvine.com/search?",
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                data: {
-                  resources: "volume",
-                  format: "json",
-                  api_key: "",
-                  query: request.term
-                },
-                success: function( data ) {
-                  alert("success");
-                  response( $.map( data.results, function( item ) {
-                    return {
-                      label: item.name + (item.id),
-                      value: item.name
-                    }
-                  }));
-                },
-                error: function( data ) {
-                    alert("error");
-                }
-              });
-            },
-            minLength: 2,
-            select: function( event, ui ) {
-              log( ui.item ?
-                "Selected: " + ui.item.label :
-                "Nothing selected, input was " + this.value);
-            },
-            open: function() {
-              $( this ).removeClass( "ui-corner-all" ).addClass( "ui-corner-top" );
-            },
-            close: function() {
-              $( this ).removeClass( "ui-corner-top" ).addClass( "ui-corner-all" );
-            }
-          });
-        });
+        function openDelete() {
+            $("#dialog").dialog({modal:true});
+        };
+        function deleteDirCheck() {
+            return document.getElementById("deleteCheck").checked;
+        }
         </script>
 
         <script>
@@ -796,30 +771,12 @@
             });
         }
 
-	hideServerDivs = function () {
-		$("#customoptions").slideUp();
-		$("#hpserveroptions").slideUp();
-	};
-	
-	handleNewSelection = function () {
-	
-		hideServerDivs();
-		
-		switch ($(this).val()) {
-			case 'custom':
-				$("#customoptions").slideDown();
-			break;
-			case 'mylar':
-				$("#hpserveroptions").slideDown();
-			break;
-		}
-	};
-
         function initThisPage(){
 
                 $(function() {
                         $( "#tabs" ).tabs();
                 });
+                $("#menu_link_delete").click(openDelete);
                 initActions();
                 $('#issue_table').dataTable(
                         {

@@ -16,7 +16,7 @@
 from __future__ import division
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker
 
 import lib.feedparser as feedparser
 import urllib
@@ -474,6 +474,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 if nzbprov == '':
                     bb = "no results"
                 elif nzbprov == '32P':
+                    #cmname = re.sub("%20", " ", str(comsrc))
+                    #bb = rsscheck.torrents(pickfeed='4', seriesname=cmname, issue=mod_isssearch)
+                    #rss = "no"
+                    #logger.info('bb returned: ' + str(bb))
                     bb = "no results"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
@@ -752,44 +756,64 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                        ComVersChk = 0
 
                     ctchk = cleantitle.split()
+                    volfound = False
+                    vol_label = None
+                    fndcomicversion = None
                     for ct in ctchk:
-                       if ct.lower().startswith('v') and ct[1:].isdigit():
-                            logger.fdebug("possible versioning..checking")
-                            #we hit a versioning # - account for it
-                            if ct[1:].isdigit():
-                                if len(ct[1:]) == 4:  #v2013
-                                    logger.fdebug("Version detected as " + str(ct))
-                                    vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
-                                    #cleantitle = re.sub(ct, "(" + str(vers4year) + ")", cleantitle)
-                                    #logger.fdebug("volumized cleantitle : " + cleantitle)
-                                    versionfound = "yes"
-                                    break
+                        if any([ct.lower().startswith('v') and ct[1:].isdigit(), ct.lower()[:3] == 'vol', volfound == True]):
+                            if volfound == True:
+                                logger.fdebug('Split Volume label detected - ie. Vol 4. Attempting to adust.')
+                                if ct.isdigit():
+                                    vol_label = vol_label + ' ' + str(ct)
+                                    ct = 'v' + str(ct)
+                                    volfound == False
+                                    cleantitle = re.sub(vol_label, ct, cleantitle).strip()
+                            tmpsplit = ct
+                            if tmpsplit.lower().startswith('vol'):
+                                logger.fdebug('volume detected - stripping and re-analzying for volume label.')
+                                if '.' in tmpsplit:
+                                    tmpsplit = re.sub('.', '', tmpsplit).strip()
+                                tmpsplit = re.sub('vol', '', tmpsplit.lower()).strip()
+                                #if vol label set as 'Vol 4' it will obliterate the Vol, but pass over the '4' - set
+                                #volfound to True so that it can loop back around.
+                                if not tmpsplit.isdigit():
+                                    vol_label = ct  #store the wording of how the Vol is defined so we can skip it later on.
+                                    volfound = True
+                                    continue
+
+                            if len(tmpsplit[1:]) == 4 and tmpsplit[1:].isdigit():  #v2013
+                                logger.fdebug("[Vxxxx] Version detected as " + str(tmpsplit))
+                                vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
+                                fndcomicversion = str(tmpsplit)
+                            elif len(tmpsplit[1:]) == 1 and tmpsplit[1:].isdigit():  #v2
+                                logger.fdebug("[Vx] Version detected as " + str(tmpsplit))
+                                vers4vol = str(tmpsplit)
+                                fndcomicversion = str(tmpsplit)
+                            elif tmpsplit[1:].isdigit() and len(tmpsplit) < 4:
+                                logger.fdebug('[Vxxx] Version detected as ' +str(tmpsplit))
+                                vers4vol = str(tmpsplit)
+                                fndcomicversion = str(tmpsplit)
+                            elif tmpsplit.isdigit() and len(tmpsplit) <=4:
+                                # this stuff is necessary for 32P volume manipulation
+                                if len(tmpsplit) == 4:
+                                    vers4year = "yes"
+                                    fndcomicversion = str(tmpsplit)
+                                elif len(tmpsplit) == 1:
+                                    vers4vol = str(tmpsplit)
+                                    fndcomicversion = str(tmpsplit)
+                                elif len(tmpsplit) < 4:
+                                    vers4vol = str(tmpsplit)
+                                    fndcomicversion = str(tmpsplit)
                                 else:
-                                    if len(ct) < 4:
-                                        logger.fdebug("Version detected as " + str(ct))
-                                        vers4vol = str(ct)
-                                        versionfound = "yes"
-                                        break
-
-                            logger.fdebug("false version detection..ignoring.")
-
-                       elif ct.lower()[:3] == 'vol':
-                            #if in format vol.2013/vol2013/vol01/vol.1, etc
-                            ct = re.sub('vol', '', ct.lower())
-                            if '.' in ct: re.sub('.', '', ct).strip()
-                            if ct.lower()[4:].isdigit():
-                                logger.fdebug('volume indicator detected as version #:' + str(ct))
-                                vers4year = "yes"
-                                versionfound = "yes"
-                                break
+                                    logger.fdebug("error - unknown length for : " + str(tmpsplit))
+                                    continue
                             else:
-                                vers4vol = ct
-                                versionfound = "yes"
-                                logger.fdebug('volume indicator detected as version #:' + str(vers4vol))
-                                break
+                                logger.fdebug("error - unknown length for : " + str(tmpsplit))
+                                continue
 
-                            logger.fdebug("false version detection..ignoring.")
-
+                        if fndcomicversion:
+                            versionfound = "yes"                            
+                            break
 
                     if len(re.findall('[^()]+', cleantitle)) == 1 or 'cover only' in cleantitle.lower():
                         #some sites don't have (2013) or whatever..just v2 / v2013. Let's adjust:
@@ -1064,112 +1088,113 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #splitst = splitst - 1
 
                     if versionfound == "yes":
-                        volfound = False
-                        for tstsplit in splitit:
-                            logger.fdebug('comparing ' + str(tstsplit))
-                            if volfound == True:
-                                logger.fdebug('Split Volume label detected - ie. Vol 4. Attempting to adust.')
-                                if tstsplit.isdigit():
-                                    tstsplit = 'v' + str(tstsplit)
-                                    volfound == False
-                            if tstsplit.lower().startswith('v'): #tstsplit[1:].isdigit():
-                                logger.fdebug("this has a version #...let's adjust")
-                                tmpsplit = tstsplit
-                                if tmpsplit.lower().startswith('vol'):
-                                    logger.fdebug('volume detected - stripping and re-analzying for volume label.')
-                                    if '.' in tmpsplit:
-                                        tmpsplit = re.sub('.', '', tmpsplit).strip()
-                                    tmpsplit = re.sub('vol', '', tmpsplit.lower()).strip()
-                                    #if vol label set as 'Vol 4' it will obliterate the Vol, but pass over the '4' - set
-                                    #volfound to True so that it can loop back around.
-                                    if not tmpsplit.isdigit():
-                                        volfound = True
-                                        continue
-                                if len(tmpsplit[1:]) == 4 and tmpsplit[1:].isdigit():  #v2013
-                                    logger.fdebug("[Vxxxx] Version detected as " + str(tmpsplit))
-                                    vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
-                                elif len(tmpsplit[1:]) == 1 and tmpsplit[1:].isdigit():  #v2
-                                    logger.fdebug("[Vx] Version detected as " + str(tmpsplit))
-                                    vers4vol = str(tmpsplit)
-                                elif tmpsplit[1:].isdigit() and len(tmpsplit) < 4:
-                                    logger.fdebug('[Vxxx] Version detected as ' +str(tmpsplit))
-                                    vers4vol = str(tmpsplit)
-                                elif tmpsplit.isdigit() and len(tmpsplit) <=4:
-                                    # this stuff is necessary for 32P volume manipulation
-                                    if len(tmpsplit) == 4:
-                                        vers4year = "yes"
-                                    elif len(tmpsplit) == 1:
-                                        vers4vol = str(tmpsplit)
-                                    elif len(tmpsplit) < 4:
-                                        vers4vol = str(tmpsplit)
-                                    else:
-                                        logger.fdebug("error - unknown length for : " + str(tmpsplit))
-                                        continue
-                                else:
-                                    logger.fdebug("error - unknown length for : " + str(tmpsplit))
-                                    continue
+#                        volfound = False
+#                        vol_label = None
+#                        for tstsplit in splitit:
+#                            logger.fdebug('comparing ' + str(tstsplit))
+#                            if volfound == True:
+#                                logger.fdebug('Split Volume label detected - ie. Vol 4. Attempting to adust.')
+#                                if tstsplit.isdigit():
+#                                    vol_label = vol_label + ' ' + str(tstsplit)
+#                                    tstsplit = 'v' + str(tstsplit)
+#                                    volfound == False
+#                            if tstsplit.lower().startswith('v'): #tstsplit[1:].isdigit():
+#                                logger.fdebug("this has a version #...let's adjust")
+#                                tmpsplit = tstsplit
+#                                if tmpsplit.lower().startswith('vol'):
+#                                    logger.fdebug('volume detected - stripping and re-analzying for volume label.')
+#                                    if '.' in tmpsplit:
+#                                        tmpsplit = re.sub('.', '', tmpsplit).strip()
+#                                    tmpsplit = re.sub('vol', '', tmpsplit.lower()).strip()
+#                                    #if vol label set as 'Vol 4' it will obliterate the Vol, but pass over the '4' - set
+#                                    #volfound to True so that it can loop back around.
+#                                    if not tmpsplit.isdigit():
+#                                        vol_label = tstsplit  #store the wording of how the Vol is defined so we can skip it later on.
+#                                        volfound = True
+#                                        continue
+#                                if len(tmpsplit[1:]) == 4 and tmpsplit[1:].isdigit():  #v2013
+#                                    logger.fdebug("[Vxxxx] Version detected as " + str(tmpsplit))
+#                                    vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
+#                                elif len(tmpsplit[1:]) == 1 and tmpsplit[1:].isdigit():  #v2
+#                                    logger.fdebug("[Vx] Version detected as " + str(tmpsplit))
+#                                    vers4vol = str(tmpsplit)
+#                                elif tmpsplit[1:].isdigit() and len(tmpsplit) < 4:
+#                                    logger.fdebug('[Vxxx] Version detected as ' +str(tmpsplit))
+#                                    vers4vol = str(tmpsplit)
+#                                elif tmpsplit.isdigit() and len(tmpsplit) <=4:
+#                                    # this stuff is necessary for 32P volume manipulation
+#                                    if len(tmpsplit) == 4:
+#                                        vers4year = "yes"
+#                                    elif len(tmpsplit) == 1:
+#                                        vers4vol = str(tmpsplit)
+#                                    elif len(tmpsplit) < 4:
+#                                        vers4vol = str(tmpsplit)
+#                                    else:
+#                                        logger.fdebug("error - unknown length for : " + str(tmpsplit))
+#                                        continue
+#                                else:
+#                                    logger.fdebug("error - unknown length for : " + str(tmpsplit))
+#                                    continue
 
-                                logger.fdebug("volume detection commencing - adjusting length.")
+                        logger.fdebug("volume detection commencing - adjusting length.")
 
-                                logger.fdebug("watch comicversion is " + str(ComicVersion))
-                                fndcomicversion = str(tstsplit)
-                                logger.fdebug("version found: " + str(fndcomicversion))
-                                logger.fdebug("vers4year: " + str(vers4year))
-                                logger.fdebug("vers4vol: " + str(vers4vol))
+                        logger.fdebug("watch comicversion is " + str(ComicVersion))
+                        logger.fdebug("version found: " + str(fndcomicversion))
+                        logger.fdebug("vers4year: " + str(vers4year))
+                        logger.fdebug("vers4vol: " + str(vers4vol))
 
-                                if vers4year is not "no" or vers4vol is not "no":
+                        if vers4year is not "no" or vers4vol is not "no":
 
-                                    #if the volume is None, assume it's a V1 to increase % hits
-                                    if ComVersChk == 0:
-                                        D_ComicVersion = 1
-                                    else:
-                                        D_ComicVersion = ComVersChk
+                            #if the volume is None, assume it's a V1 to increase % hits
+                            if ComVersChk == 0:
+                                D_ComicVersion = 1
+                            else:
+                                D_ComicVersion = ComVersChk
 
-                                #if this is a one-off, SeriesYear will be None and cause errors.
-                                if SeriesYear is None:
-                                    S_ComicVersion = 0
-                                else:
-                                    S_ComicVersion = str(SeriesYear)
+                        #if this is a one-off, SeriesYear will be None and cause errors.
+                        if SeriesYear is None:
+                            S_ComicVersion = 0
+                        else:
+                            S_ComicVersion = str(SeriesYear)
 
-                                F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
-                                #if the found volume is a vol.0, up it to vol.1 (since there is no V0)
-                                if F_ComicVersion == '0':
-                                    #need to convert dates to just be yyyy-mm-dd and do comparison, time operator in the below calc as well which probably throws off some accuracy.
-                                    if postdate_int >= issuedate_int and nzbprov == '32P':
-                                        logger.fdebug('32P torrent discovery. Store date (' + str(stdate) + ') is before posting date (' + str(pubdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
-                                        F_ComicVersion = D_ComicVersion
-                                    else:
-                                        F_ComicVersion = '1'
+                        F_ComicVersion = re.sub("[^0-9]", "", fndcomicversion)
+                        #if the found volume is a vol.0, up it to vol.1 (since there is no V0)
+                        if F_ComicVersion == '0':
+                            #need to convert dates to just be yyyy-mm-dd and do comparison, time operator in the below calc as well which probably throws off some accuracy.
+                            if postdate_int >= issuedate_int and nzbprov == '32P':
+                                logger.fdebug('32P torrent discovery. Store date (' + str(stdate) + ') is before posting date (' + str(pubdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
+                                F_ComicVersion = D_ComicVersion
+                            else:
+                                F_ComicVersion = '1'
 
-                                logger.fdebug("FCVersion: " + str(F_ComicVersion))
-                                logger.fdebug("DCVersion: " + str(D_ComicVersion))
-                                logger.fdebug("SCVersion: " + str(S_ComicVersion))
+                        logger.fdebug("FCVersion: " + str(F_ComicVersion))
+                        logger.fdebug("DCVersion: " + str(D_ComicVersion))
+                        logger.fdebug("SCVersion: " + str(S_ComicVersion))
 
-                                #here's the catch, sometimes annuals get posted as the Pub Year
-                                # instead of the Series they belong to (V2012 vs V2013)
-                                if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
-                                    logger.fdebug("We matched on versions for annuals " + str(fndcomicversion))
-                                    scount+=1
-                                    cvers = "true"
+                        #here's the catch, sometimes annuals get posted as the Pub Year
+                        # instead of the Series they belong to (V2012 vs V2013)
+                        if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
+                            logger.fdebug("We matched on versions for annuals " + str(fndcomicversion))
+                            scount+=1
+                            cvers = "true"
 
-                                elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
-                                    logger.fdebug("We matched on versions..." + str(fndcomicversion))
-                                    scount+=1
-                                    cvers = "true"
+                        elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
+                            logger.fdebug("We matched on versions..." + str(fndcomicversion))
+                            scount+=1
+                            cvers = "true"
 
-                                else:
-                                    logger.fdebug("Versions wrong. Ignoring possible match.")
-                                    scount = 0
-                                    cvers = "false"
+                        else:
+                            logger.fdebug("Versions wrong. Ignoring possible match.")
+                            scount = 0
+                            cvers = "false"
 
-                                if cvers == "true":
-                                    #since we matched on versions, let's remove it entirely to improve matching.
-                                    logger.fdebug('Removing versioning from nzb filename to improve matching algorithims.')
-                                    cissb4vers = re.sub(tstsplit, "", comic_iss_b4).strip()
-                                    logger.fdebug('New b4split : ' + str(cissb4vers))
-                                    splitit = cissb4vers.split(None)
-                                    splitst -=1
-                                    break
+                        if cvers == "true":
+                            #since we matched on versions, let's remove it entirely to improve matching.
+                            logger.fdebug('Removing versioning [' + fndcomicversion + '] from nzb filename to improve matching algorithims.')
+                            cissb4vers = re.sub(fndcomicversion, "", comic_iss_b4).strip()
+                            logger.fdebug('New b4split : ' + str(cissb4vers))
+                            splitit = cissb4vers.split(None)
+                            splitst -=1
 
                     #do an initial check
                     initialchk = 'ok'
@@ -1623,7 +1648,7 @@ def nzbname_create(provider, title=None, info=None):
         logger.fdebug('[SEARCHER] entry[title]: ' + title)
         #gotta replace & or escape it
         nzbname = re.sub("\&", 'and', title)
-        nzbname = re.sub('[\,\:\?\']', '', nzbname)
+        nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
         nzbname = re.sub('[\(\)]', ' ', nzbname)
         logger.fdebug('[SEARCHER] nzbname (remove chars): ' + nzbname)
         nzbname = re.sub('.cbr', '', nzbname).strip()
@@ -1797,17 +1822,17 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             #make sure the cache directory exists - if not, create it (used for storing nzbs).
             if os.path.exists(mylar.CACHE_DIR):
-                logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR)
-                pass
+                logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR + ". Ensuring proper permissions.")
+                #enforce the permissions here to ensure the lower portion writes successfully
+                filechecker.setperms(mylar.CACHE_DIR, True)
             else:
                 #let's make the dir.
                 logger.fdebug("Could not locate Cache Directory, attempting to create at : " + mylar.CACHE_DIR)
                 try:
-                    os.makedirs(mylar.CACHE_DIR)
+                    filechecker.validateAndCreateDirectory(mylar.CACHE_DIR, True)
                     logger.info("Temporary NZB Download Directory successfully created at: " + mylar.CACHE_DIR)
-                except OSError.e:
-                    if e.errno != errno.EEXIST:
-                        raise
+                except OSError:
+                    raise
 
             #save the nzb grabbed, so we can bypass all the 'send-url' crap.
             if not nzbname.endswith('.nzb'):
@@ -1860,7 +1885,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             except (OSError, IOError):
                 logger.warn('Failed to move nzb into blackhole directory - check blackhole directory and/or permissions.')
                 return "blackhole-fail"
-
             logger.fdebug("filename saved to your blackhole as : " + nzbname)
             logger.info(u"Successfully sent .nzb to your Blackhole directory : " + os.path.join(mylar.BLACKHOLE_DIR, nzbname))
             sent_to = "your Blackhole Directory"
@@ -1939,37 +1963,69 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
 
             #generate the mylar host address if applicable.
+            if mylar.ENABLE_HTTPS:
+                proto = 'https://'
+            else:
+                proto = 'http://'
+
+            if mylar.HTTP_ROOT is None:
+                hroot = '/'
+            elif mylar.HTTP_ROOT.endswith('/'):
+                hroot = mylar.HTTP_ROOT
+            else:
+                if mylar.HTTP_ROOT != '/':
+                    hroot = mylar.HTTP_ROOT + '/'
+                else:
+                    hroot = mylar.HTTP_ROOT
+
+            if mylar.LOCAL_IP is None:
+                #if mylar's local, get the local IP using socket.
+                try:
+                    import socket
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(('8.8.8.8', 80))
+                    mylar.LOCAL_IP = s.getsockname()[0]
+                    s.close()
+                except:
+                    logger.warn('Unable to determine local IP. Defaulting to host address for Mylar provided as : ' + str(mylar.HTTP_HOST))
+
             if mylar.HOST_RETURN:
-                #from lib.pystun import as stun
-                #sip = '0.0.0.0'
-                #port = int(mylar.HTTP_PORT)
-                #try:
-                #    nat_type, ext_ip, ext_port = stun.get_ip_info(sip,port)
-                #except:
-                #    logger.warn('Unable to retrieve External IP.')
-                
+                #mylar has the return value already provided (easier and will work if it's right)
                 if mylar.HOST_RETURN.endswith('/'):
                     mylar_host = mylar.HOST_RETURN
                 else:
                     mylar_host = mylar.HOST_RETURN + '/'
-        
-            else:
-                if mylar.ENABLE_HTTPS:
-                    proto = 'https://'
-                else:
-                    proto = 'http://'
 
-                if mylar.HTTP_ROOT is None:
-                    hroot = '/'
-                elif mylar.HTTP_ROOT.endswith('/'):
-                    hroot = mylar.HTTP_ROOT
+            elif mylar.SAB_TO_MYLAR:
+                #if sab & mylar are on different machines, check to see if they are local or external IP's provided for host.
+                if mylar.HTTP_HOST == 'localhost' or mylar.HTTP_HOST == '0.0.0.0':
+                    #if mylar's local, use the local IP already assigned to LOCAL_IP.
+                    mylar_host = proto + str(mylar.LOCAL_IP) + ':' + str(mylar.HTTP_PORT) + hroot
                 else:
-                    if mylar.HTTP_ROOT != '/':
-                        hroot = mylar.HTTP_ROOT + '/'
+                    if mylar.EXT_IP is None:
+                        #if mylar isn't local, get the external IP using pystun.
+                        import lib.pystun as stun
+                        sip = mylar.HTTP_HOST
+                        port = int(mylar.HTTP_PORT)
+                        try:
+                            nat_type, ext_ip, ext_port = stun.get_ip_info(sip,port)
+                            mylar_host = proto + str(ext_ip) + ':' + str(mylar.HTTP_PORT) + hroot
+                            mylar.EXT_IP = ext_ip
+                        except:
+                            logger.warn('Unable to retrieve External IP - try using the host_return option in the config.ini.')
+                            mylar_host = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot
                     else:
-                        hroot = mylar.HTTP_ROOT
-                mylar_host = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot
+                        mylar_host = proto + str(mylar.EXT_IP) + ':' + str(mylar.HTTP_PORT) + hroot
 
+            else:
+                #if all else fails, drop it back to the basic host:port and try that.
+                if mylar.LOCAL_IP is None:
+                    tmp_host = mylar.HTTP_HOST
+                else:
+                    tmp_host = mylar.LOCAL_IP
+                mylar_host = proto + str(tmp_host) + ':' + str(mylar.HTTP_PORT) + hroot
+
+                    
             fileURL = mylar_host + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
 
             tmpapi = tmpapi + SABtype

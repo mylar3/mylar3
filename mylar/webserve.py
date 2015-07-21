@@ -34,7 +34,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist #,rsscheck
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers #,rsscheck
 
 import lib.simplejson as simplejson
 
@@ -145,16 +145,21 @@ class WebInterface(object):
                }
         usethefuzzy = comic['UseFuzzy']
         skipped2wanted = "0"
-        if usethefuzzy is None: usethefuzzy = "0"
+        if usethefuzzy is None:
+            usethefuzzy = "0"
         force_continuing = comic['ForceContinuing']
-        if force_continuing is None: force_continuing = 0
+        if force_continuing is None:
+            force_continuing = 0
+        if mylar.DELETE_REMOVE_DIR is None:
+            mylar.DELETE_REMOVE_DIR = 0    
         comicConfig = {
                     "comiclocation": mylar.COMIC_LOCATION,
                     "fuzzy_year0": helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1": helpers.radio(int(usethefuzzy), 1),
                     "fuzzy_year2": helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted": helpers.checked(skipped2wanted),
-                    "force_continuing": helpers.checked(force_continuing)
+                    "force_continuing": helpers.checked(force_continuing),
+                    "delete_dir": helpers.checked(mylar.DELETE_REMOVE_DIR)
                }
         if mylar.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
@@ -762,38 +767,51 @@ class WebInterface(object):
                 logger.warn('Failed Download Handling is not enabled. Leaving Failed Download as-is.')
     post_process.exposed = True
 
-    def pauseArtist(self, ComicID):
+    def pauseSeries(self, ComicID):
         logger.info(u"Pausing comic: " + ComicID)
         myDB = db.DBConnection()
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Paused'}
         myDB.upsert("comics", newValueDict, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
-    pauseArtist.exposed = True
+    pauseSeries.exposed = True
 
-    def resumeArtist(self, ComicID):
+    def resumeSeries(self, ComicID):
         logger.info(u"Resuming comic: " + ComicID)
         myDB = db.DBConnection()
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Active'}
         myDB.upsert("comics", newValueDict, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
-    resumeArtist.exposed = True
+    resumeSeries.exposed = True
 
-    def deleteArtist(self, ComicID):
+    def deleteSeries(self, ComicID, delete_dir=None):
+        print delete_dir
         myDB = db.DBConnection()
         comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
         if comic['ComicName'] is None: ComicName = "None"
         else: ComicName = comic['ComicName']
+        seriesdir = comic['ComicLocation']
         logger.info(u"Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
         if mylar.ANNUALS_ON:
             myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
+        if delete_dir: #mylar.DELETE_REMOVE_DIR:
+            logger.fdebug('Remove directory on series removal enabled.')
+            if os.path.exists(seriesdir):
+                logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
+                try:
+                    shutil.rmtree(seriesdir)
+                except:
+                    logger.warn('Unable to remove directory after removing series from Mylar.')
+            else:
+                logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)            
+
         helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
-    deleteArtist.exposed = True
+    deleteSeries.exposed = True
 
     def wipenzblog(self, ComicID=None, IssueID=None):
         myDB = db.DBConnection()
@@ -4079,7 +4097,6 @@ class WebInterface(object):
     group_metatag.exposed = True
 
     def CreateFolders(self, createfolders=None):
-        print 'createfolders is ' + str(createfolders)
         if createfolders:
             mylar.CREATE_FOLDERS = int(createfolders)
             mylar.config_write()
@@ -4105,5 +4122,50 @@ class WebInterface(object):
     syncfiles.exposed = True
 
     def search_32p(self, search=None):
-        mylar.rsscheck.torrents(pickfeed='4', seriesname=search)
+        return mylar.rsscheck.torrents(pickfeed='4', seriesname=search)
     search_32p.exposed = True
+
+    def testNMA(self):
+        nma = notifiers.NMA()
+        result = nma.test_notify()
+        if result:
+            return "Successfully sent NMA test -  check to make sure it worked"
+        else:
+            return "Error sending test message to NMA"
+    testNMA.exposed = True
+
+    def testprowl(self):
+        prowl = notifiers.prowl()
+        result = prowl.test_notify()
+        if result:
+            return "Successfully sent Prowl test -  check to make sure it worked"
+        else:
+            return "Error sending test message to Prowl"
+    testprowl.exposed = True
+
+    def testboxcar(self):
+        boxcar = notifiers.boxcar()
+        result = boxcar.test_notify()
+        if result:
+            return "Successfully sent Boxcar test -  check to make sure it worked"
+        else:
+            return "Error sending test message to Boxcar"
+    testboxcar.exposed = True
+
+    def testpushover(self):
+        pushover = notifiers.pushover()
+        result = pushover.test_notify()
+        if result:
+            return "Successfully sent Pushover test -  check to make sure it worked"
+        else:
+            return "Error sending test message to Pushover"
+    testpushover.exposed = True
+
+    def testpushbullet(self):
+        pushbullet = notifiers.pushbullet()
+        result = pushbullet.test_notify()
+        if result:
+            return "Successfully sent Pushbullet test -  check to make sure it worked"
+        else:
+            return "Error sending test message to Pushbullet"
+    testpushbullet.exposed = True

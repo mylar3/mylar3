@@ -899,13 +899,16 @@
                                                      <div class="row">
                                                          <label>API key</label><input type="text" name="prowl_keys" value="${config['prowl_keys']}" size="50">
                                                      </div>
-                                                        <div class="row checkbox">
-                                                             <input type="checkbox" name="prowl_onsnatch" value="1" ${config['prowl_onsnatch']} /><label>Notify on snatch?</label>
-                                                        </div>
-                                                        <div class="row">
-                                                                <label>Priority (-2,-1,0,1 or 2):</label>
-                                                                   <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
-                                                        </div>
+                                                     <div class="row checkbox">
+                                                         <input type="checkbox" name="prowl_onsnatch" value="1" ${config['prowl_onsnatch']} /><label>Notify on snatch?</label>
+                                                     </div>
+                                                     <div class="row">
+                                                         <label>Priority (-2,-1,0,1 or 2):</label>
+                                                         <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
+                                                     </div>
+                                                     <div class="row">
+                                                         <input type="button" value="Test PROWL" id="prowl_test" />
+                                                     </div>
                                                  </div>
                                         </fieldset>
                      <fieldset>
@@ -923,8 +926,8 @@
                                     <small>Separate multiple api keys with commas</small>
                             </div>
                             <div class="row">
-                            <label>Priority</label>
-                            <select name="nma_priority">
+                                <label>Priority</label>
+                                <select name="nma_priority">
                                         %for x in [-2,-1,0,1,2]:
                                                 <%
                                                         if config['nma_priority'] == x:	
@@ -943,19 +946,22 @@
                                                         else:
                                                                 nma_priority_value = 'Emergency'
                                                 %>
-                                <option value=${x} ${nma_priority_selected}>${nma_priority_value}</option>
+                                            <option value=${x} ${nma_priority_selected}>${nma_priority_value}</option>
                                         %endfor
                                 </select>
-                                </div>
+                            </div>
+                            <div class="row">
+                                    <input type="button" value="Test NMA" id="nma_test" />
+                            </div>
                         </div>
                      </fieldset>
                                         
                                         <fieldset>
-                                                 <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
-                                                 <div class="row checkbox">
-                                                    <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
-                                                 </div>
-                                                 <div id="pushoveroptions">
+                                             <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
+                                             <div class="row checkbox">
+                                                 <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
+                                             </div>
+                                             <div id="pushoveroptions">
                                                    <div class="row">
                                                        <label>API key</label><input type="text" title="Leave blank if you don't have your own API (recommended to get your own)" name="pushover_apikey" value="${config['pushover_apikey']}" size="50">
                                                    </div>
@@ -969,7 +975,10 @@
                                                        <label>Priority (-2,-1,0,1 or 2):</label>
                                                        <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
                                                    </div>
-                                                 </div>
+                                                   <div class="row">
+                                                        <input type="button" value="Test Pushover" id="pushover_test" />
+                                                   </div>
+                                             </div>
                                         </fieldset>            
                      <fieldset>
                         <h3><img src="interfaces/default/images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
@@ -983,6 +992,9 @@
                                     </div>
                                     <label>Boxcar Token</label>
                                     <input type="text" name="boxcar_token" value="${config['boxcar_token']}" size="30">
+                                    <div class="row">
+                                        <input type="button" value="Test Boxcar" id="boxcar_test" />
+                                   </div>
                             </div>
                         </div>
                      </fieldset>
@@ -1006,6 +1018,9 @@
                                         <input type="hidden" id="pushbullet_deviceid" value="${config['pushbullet_deviceid']}" />
                                         <input type="button" class="btn" value="Update device list" id="getPushbulletDevices" />
 -->
+                                    </div>
+                                    <div class="row">
+                                         <input type="button" value="Test Pushbullet" id="pushbullet_test" />
                                     </div>
                                 </div>
                             </fieldset>
@@ -1286,6 +1301,35 @@
                         $('#autoadd').append('<input type="hidden" name="tsab" value=1 />');
                 };
 
+                $('#nma_test').click(function () {
+                    $.get("/testNMA",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#prowl_test').click(function () {
+                    $.get("/testprowl",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#pushover_test').click(function () {
+                    $.get("/testpushover",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#boxcar_test').click(function () {
+                    $.get("/testboxcar",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#pushbullet_test').click(function () {
+                    $.get("/testpushbullet",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
 
 		$(function() {
 			$( "#tabs" ).tabs();

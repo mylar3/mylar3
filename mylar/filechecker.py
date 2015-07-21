@@ -1239,7 +1239,7 @@ def setperms(path, dir=False):
                             os.chown(os.path.join(root, momo), chowner, chgroup)
                             os.chmod(os.path.join(root, momo), permission)
 
-                logger.info('Successfully changed ownership and permissions [' + str(mylar.CHOWNER) + ':' + str(mylar.CHGROUP) + '] / [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
+                logger.fdebug('Successfully changed ownership and permissions [' + str(mylar.CHOWNER) + ':' + str(mylar.CHGROUP) + '] / [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
 
             else:
                 for root, dirs, files in os.walk(path):
@@ -1250,7 +1250,7 @@ def setperms(path, dir=False):
                         permission = int(mylar.CHMOD_FILE, 8)
                         os.chmod(os.path.join(root, momo), permission)
 
-                logger.info('Successfully changed permissions [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
+                logger.fdebug('Successfully changed permissions [' + str(mylar.CHMOD_DIR) + ' / ' + str(mylar.CHMOD_FILE) + ']')
 
         except OSError:
             logger.error('Could not change permissions : ' + path + '. Exiting...')

@@ -174,10 +174,10 @@ class PostProcessor(object):
 
     def Process(self):
             module = self.module
-            self._log("nzb name: " + str(self.nzb_name))
-            self._log("nzb folder: " + str(self.nzb_folder))
-            logger.fdebug(module + ' nzb name: ' + str(self.nzb_name))
-            logger.fdebug(module + ' nzb folder: ' + str(self.nzb_folder))
+            self._log("nzb name: " + self.nzb_name)
+            self._log("nzb folder: " + self.nzb_folder)
+            logger.fdebug(module + ' nzb name: ' + self.nzb_name)
+            logger.fdebug(module + ' nzb folder: ' + self.nzb_folder)
             if mylar.USE_SABNZBD==0:
                 logger.fdebug(module + ' Not using SABnzbd')
             elif mylar.USE_SABNZBD != 0 and self.nzb_name == 'Manual Run':
@@ -606,7 +606,7 @@ class PostProcessor(object):
                                 logger.warn(module + ' Failed to remove temporary directory - check directory and manually re-run.')
                                 return
 
-                            logger.fdebug(module + ' Removed temporary directory : ' + str(self.nzb_folder))
+                            logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
 
                             #delete entry from nzblog table
                             IssArcID = 'S' + str(ml['IssueArcID'])
@@ -635,7 +635,7 @@ class PostProcessor(object):
                 logger.fdebug('[NZBNAME]: ' + nzbname)
                 #gotta replace & or escape it
                 nzbname = re.sub("\&", 'and', nzbname)
-                nzbname = re.sub('[\,\:\?\']', '', nzbname)
+                nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
                 nzbname = re.sub('[\(\)]', ' ', nzbname)
                 logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
                 nzbname = re.sub('.cbr', '', nzbname).strip()
@@ -830,7 +830,7 @@ class PostProcessor(object):
                             logger.debug(module + ' Failed to remove temporary directory - check directory and manually re-run.')
                             return
 
-                        logger.debug(module + ' Removed temporary directory : ' + str(self.nzb_folder))
+                        logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
                         self._log("Removed temporary directory : " + self.nzb_folder)
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -1223,7 +1223,7 @@ class PostProcessor(object):
                 logger.fdebug(module + ' ext:' + ext)
 
             if ofilename is None:
-                logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + str(self.nzb_folder) + ' exists and is the correct location.')
+                logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + self.nzb_folder + ' exists and is the correct location.')
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop'})
                 return self.queue.put(self.valreturn)
@@ -1302,7 +1302,7 @@ class PostProcessor(object):
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                self._log("Removed temporary directory : " + str(self.nzb_folder))
+                self._log("Removed temporary directory : " + self.nzb_folder)
                 logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'

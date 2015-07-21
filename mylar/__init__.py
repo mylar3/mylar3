@@ -104,6 +104,8 @@ DONATEBUTTON = True
 PULLNEW = None
 ALT_PULL = False
 
+LOCAL_IP = None
+EXT_IP = None
 HTTP_PORT = None
 HTTP_HOST = None
 HTTP_USERNAME = None
@@ -147,6 +149,7 @@ CHOWNER = None
 CHGROUP = None
 USENET_RETENTION = None
 CREATE_FOLDERS = True
+DELETE_REMOVE_DIR = False
 
 ADD_COMICS = False
 COMIC_DIR = None
@@ -402,8 +405,8 @@ def initialize():
 
     with INIT_LOCK:
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
-                queue, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
-                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, \
+                queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
+                CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
@@ -491,6 +494,7 @@ def initialize():
         DESTINATION_DIR = check_setting_str(CFG, 'General', 'destination_dir', '')
         MULTIPLE_DEST_DIRS = check_setting_str(CFG, 'General', 'multiple_dest_dirs', '')
         CREATE_FOLDERS = bool(check_setting_int(CFG, 'General', 'create_folders', 1))
+        DELETE_REMOVE_DIR = bool(check_setting_int(CFG, 'General', 'delete_remove_dir', 0))
         CHMOD_DIR = check_setting_str(CFG, 'General', 'chmod_dir', '0777')
         CHMOD_FILE = check_setting_str(CFG, 'General', 'chmod_file', '0660')
         CHOWNER = check_setting_str(CFG, 'General', 'chowner', '')
@@ -923,6 +927,19 @@ def initialize():
         # Start the logger, silence console logging if we need to
         logger.initLogger(verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
 
+        #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
+        import socket
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(('8.8.8.8', 80))
+            LOCAL_IP = s.getsockname()[0]
+            s.close()
+            logger.info('Successfully discovered local IP and locking it in as : ' + str(LOCAL_IP))
+        except:
+            logger.warn('Unable to determine local IP - this might cause problems when downloading (maybe use host_return in the config.ini)')
+            LOCAL_IP = HTTP_HOST
+
+
         # verbatim back the logger being used since it's now started.
         if LOGTYPE == 'clog':
             logprog = 'Concurrent Rotational Log Handler'
@@ -1023,11 +1040,6 @@ def initialize():
         #Ordering comics here
         logger.info('Remapping the sorting to allow for new additions.')
         COMICSORT = helpers.ComicSort(sequence='startup')
-
-        #start the db write only thread here.
-        #this is a thread that continually runs in the background as the ONLY thread that can write to the db.
-        #logger.info('Starting Write-Only thread.')
-        #db.WriteOnly()
 
         #initialize the scheduler threads here.
         dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
@@ -1191,6 +1203,7 @@ def config_write():
     new_config['General']['destination_dir'] = DESTINATION_DIR
     new_config['General']['multiple_dest_dirs'] = MULTIPLE_DEST_DIRS
     new_config['General']['create_folders'] = int(CREATE_FOLDERS)
+    new_config['General']['delete_remove_dir'] = int(DELETE_REMOVE_DIR)
     new_config['General']['chmod_dir'] = CHMOD_DIR
     new_config['General']['chmod_file'] = CHMOD_FILE
     new_config['General']['chowner'] = CHOWNER
