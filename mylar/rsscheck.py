@@ -738,10 +738,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         else:
             kat_referrer = linkit[:stfind]
 
-        logger.fdebug('KAT Referer set to :' + kat_referrer)
+        #logger.fdebug('KAT Referer set to :' + kat_referrer)
 
         headers = {'Accept-encoding': 'gzip',
-                   'Referer': kat_referrer}
+                   'User-Agent':      str(mylar.USER_AGENT)}
+                   #'Referer': kat_referrer}
 
         url = helpers.torrent_create('KAT', linkit)
 
@@ -785,6 +786,19 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 return "fail"
         else:
             return "fail"
+
+    if str(r.status_code) == '403':
+        #retry with the alternate torrent link.
+        url = helpers.torrent_create('KAT', linkit, True)
+        try:
+            r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+
+        except Exception, e:
+            return "fail"
+
+    if str(r.status_code) != '200':
+        logger.warn('Unable to download torrent from ' + site + ' [Status Code returned: ' + str(r.status_code) + ']')
+        return "fail"
 
     if site == 'KAT':
         if r.headers.get('Content-Encoding') == 'gzip':

@@ -1741,15 +1741,21 @@ def create_https_certificates(ssl_cert, ssl_key):
 
     return True
 
-def torrent_create(site, linkid):
+def torrent_create(site, linkid, alt=None):
     if site == '32P':
         pass
     elif site == 'KAT':
         if 'http' in linkid:
-            #if it's being passed here with the http alread in, then it's an old rssdb entry and we can take it as is.
-            url = linkid
+            if alt is None:
+                #if it's being passed here with the http alread in, then it's an old rssdb entry and we can take it as is.
+                url = linkid
+            else:
+                url = re.sub('http://torcache.net/','http://torrage.com/', linkid).strip()
         else:
-            url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
+            if alt is None:
+                url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
+            else:
+                url = 'http://torrage.com/torrent/' + str(linkid) + '.torrent'
 
     return url
 
