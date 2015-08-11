@@ -92,6 +92,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if mylar.ENABLE_KAT:
             torprovider.append('kat')
             torp+=1
+        if mylar.ENABLE_TORZNAB:
+            torprovider.append('torznab')
+            torp+=1
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
@@ -199,6 +202,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 searchprov = '32P'
             elif prov_order[prov_count] == 'kat':
                 searchprov = 'KAT'
+            elif prov_order[prov_count] == 'torznab':
+                searchprov = 'Torznab'
             elif 'newznab' in prov_order[prov_count]:
             #this is for newznab
                 searchprov = 'newznab'
@@ -231,6 +236,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                         if findit == 'yes': break
 
             else:
+                if searchprov == '32P':
+                    logger.fdebug('32P backlog searching is not currently supported.')
+                    break
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName)
                 if findit == 'yes':
                     logger.fdebug("findit = found!")
@@ -251,7 +259,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
             if searchprov == 'newznab':
                 searchprov = newznab_host[0].rstrip()
-            logger.info('Could not find Issue ' + IssueNumber + ' of ' + ComicName + '(' + str(SeriesYear) + ') using ' + str(searchprov))
+            logger.info('Could not find Issue ' + IssueNumber + ' of ' + ComicName + '(' + str(SeriesYear) + ') using ' + str(searchprov) + ' [' + str(searchmode) + ']')
             prov_count+=1
             #torprtmp+=1  #torprtmp-=1
 
@@ -263,10 +271,12 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 helpers.incr_snatched(ComicID)
             return findit, searchprov
         else:
-            if manualsearch is None:
+            if searchprov == '32P':
+                pass
+            elif manualsearch is None:
                 logger.info('Finished searching via :' + str(searchmode) + '. Issue not found - status kept as Wanted.')
             else:
-                logger.info('Could not find issue doing a manual search via : ' + str(searchmode))
+                logger.fdebug('Could not find issue doing a manual search via : ' + str(searchmode))
             i+=1
 
     return findit, 'None'
@@ -471,14 +481,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             else:
                 #32P is redudant now since only RSS works
                 # - just getting it ready for when it's not redudant :)
-                if nzbprov == '':
+                if nzbprov == '' or nzbprov == '32P':
                     bb = "no results"
-                elif nzbprov == '32P':
-                    #cmname = re.sub("%20", " ", str(comsrc))
-                    #bb = rsscheck.torrents(pickfeed='4', seriesname=cmname, issue=mod_isssearch)
-                    #rss = "no"
-                    #logger.info('bb returned: ' + str(bb))
-                    bb = "no results"
+                    rss = "no"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
@@ -496,6 +501,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             host_newznab_fix = str(host_newznab) + "/"
                         else: host_newznab_fix = host_newznab
                         findurl = str(host_newznab_fix) + "api?t=search&q=" + str(comsearch) + "&o=xml&cat=" + str(category_newznab)
+                    elif nzbprov == 'Torznab':
+                        if mylar.TORZNAB_HOST.endswith('/'):
+                            #http://localhost:9117/api/iptorrents
+                            torznab_fix = mylar.TORZNAB_HOST[:-1]
+                        else:
+                            torznab_fix = mylar.TORZNAB_HOST
+                        findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch) + "&o=xml&cat=" + str(mylar.TORZNAB_CATEGORY)
+                        apikey = mylar.TORZNAB_APIKEY
                     if nzbprov != 'nzbx':
                         # helper function to replace apikey here so we avoid logging it ;)
                         findurl = findurl + "&apikey=" + str(apikey)
@@ -504,7 +517,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         ### IF USENET_RETENTION is set, honour it
                         ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
-                        if mylar.USENET_RETENTION != None:
+                        if mylar.USENET_RETENTION != None and nzbprov != 'torznab':
                             findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
 
                         # Add a user-agent
@@ -1695,7 +1708,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
     nzbid = generate_id(nzbprov, link)
 
-    if link and (nzbprov != 'KAT' and nzbprov != '32P'):
+    if link and (nzbprov != 'KAT' and nzbprov != '32P' and nzbprov != 'Torznab'):
 
         #generate nzbid here.
 
@@ -1876,7 +1889,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
     #blackhole
     sent_to = None
-    if mylar.USE_BLACKHOLE and nzbprov != '32P' and nzbprov != 'KAT':
+    if mylar.USE_BLACKHOLE and nzbprov != '32P' and nzbprov != 'KAT' and nzbprov != 'Torznab':
         logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
         if os.path.exists(mylar.BLACKHOLE_DIR):
             #copy the nzb from nzbpath to blackhole dir.
@@ -1891,7 +1904,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     #end blackhole
 
     #torrents (32P & KAT)
-    elif nzbprov == '32P' or nzbprov == 'KAT':
+    elif nzbprov == '32P' or nzbprov == 'KAT' or nzbprov == 'Torznab':
         logger.fdebug("sending .torrent to watchdir.")
         logger.fdebug("ComicName:" + ComicName)
         logger.fdebug("link:" + link)
@@ -1998,7 +2011,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             elif mylar.SAB_TO_MYLAR:
                 #if sab & mylar are on different machines, check to see if they are local or external IP's provided for host.
-                if mylar.HTTP_HOST == 'localhost' or mylar.HTTP_HOST == '0.0.0.0':
+                if mylar.HTTP_HOST == 'localhost' or mylar.HTTP_HOST == '0.0.0.0' or mylar.HTTP_HOST.startswith('10.') or mylar.HTTP_HOST.startswith('192.') or mylar.HTTP_HOST.startswith('172.'):
                     #if mylar's local, use the local IP already assigned to LOCAL_IP.
                     mylar_host = proto + str(mylar.LOCAL_IP) + ':' + str(mylar.HTTP_PORT) + hroot
                 else:
@@ -2313,5 +2326,13 @@ def generate_id(nzbprov, link):
             st = tmpid.find('&id')
             end = tmpid.find('&', st +1)
             nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
+    elif nzbprov == 'Torznab':
+        if mylar.TORZNAB_HOST.endswith('/'):
+            tmphost = mylar.TORZNAB_HOST + 'download/'
+        else:
+            tmphost = mylar.TORZNAB_HOST + '/download/'
+        tmpline = re.sub(tmphost, '', tmphost).strip()
+        tmpidend = tmpline.find('/')
+        nzbid = tmpline[:tmpidend]
 
     return nzbid

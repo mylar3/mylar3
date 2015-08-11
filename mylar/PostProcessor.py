@@ -311,10 +311,10 @@ class PostProcessor(object):
                                         logger.fdebug(module + ' Bi-Annual detected.')
                                         fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                     else:
-                                        logger.fdebug(module + ' Annual detected.')
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                        logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(cs['ComicID']))
                                     annchk = "yes"
-                                    issuechk = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit]).fetchone()
+                                    issuechk = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit]).fetchone()
                                 else:
                                     fcdigit = helpers.issuedigits(temploc)
                                     issuechk = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit]).fetchone()
@@ -450,7 +450,6 @@ class PostProcessor(object):
                                             annchk = "yes"
                                             issuechk = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
                                         else:
-                                            logger.info('Issue Number :' + str(temploc))
                                             fcdigit = helpers.issuedigits(temploc)
                                             issuechk = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
 

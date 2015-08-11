@@ -548,6 +548,27 @@
                                                 </div>
                                              </fieldset>
                                          </div>
+                                         <div class="row checkbox left clearfix">
+                                                <input type="checkbox" id="enable_torznab" onclick="initConfigCheckbox($(this));" name="enable_torznab" value=1 ${config['enable_torznab']} /><label>Enable Torznab</label>
+                                         </div>
+                                         <div class="config">
+                                            <div class="row">
+                                                <label>Torznab Name</label>
+                                                <input type="text" name="torznab_name" value="${config['torznab_name']}" size="30">
+                                            </div>
+                                            <div class="row">
+                                                <label>Torznab Host</label>
+                                                <input type="text" name="torznab_host" value="${config['torznab_host']}" size="30">
+                                            </div>
+                                            <div class="row">
+                                                <label>Torznab API</label>
+                                                <input type="text" name="torznab_apikey" value="${config['torznab_apikey']}" size="36">
+                                            </div>
+                                            <div class="row">
+                                                <label>Torznab Category</label>
+                                                <input type="text" name="torznab_category" value="${config['torznab_category']}" size="12">
+                                            </div>
+                                        </div>
                                 </div>
                         </fieldset>
 
@@ -1340,6 +1361,7 @@
                 initConfigCheckbox("#enable_api");
                 initConfigCheckbox("#sab_to_mylar");
                 initConfigCheckbox("#usenewznab");
+                initConfigCheckbox("#enable_torznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
                 initConfigCheckbox("#enable_torrents");

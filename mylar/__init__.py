@@ -256,11 +256,11 @@ NEWZNAB_ENABLED = False
 EXTRA_NEWZNABS = []
 NEWZNAB_EXTRA = None
 
-RAW = False
-RAW_PROVIDER = None
-RAW_USERNAME = None
-RAW_PASSWORD = None
-RAW_GROUPS = None
+ENABLE_TORZNAB = False
+TORZNAB_NAME = None
+TORZNAB_HOST = None
+TORZNAB_APIKEY = None
+TORZNAB_CATEGORY = None
 
 EXPERIMENTAL = False
 ALTEXPERIMENTAL = False
@@ -411,7 +411,8 @@ def initialize():
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
-                RAW, RAW_PROVIDER, RAW_USERNAME, RAW_PASSWORD, RAW_GROUPS, EXPERIMENTAL, ALTEXPERIMENTAL, \
+                ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, \
+                EXPERIMENTAL, ALTEXPERIMENTAL, \
                 ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
@@ -430,9 +431,9 @@ def initialize():
         CheckSection('NZBGet')
         CheckSection('NZBsu')
         CheckSection('DOGnzb')
-        CheckSection('Raw')
         CheckSection('Experimental')
         CheckSection('Newznab')
+        CheckSection('Torznab')
         CheckSection('Torrents')
         # Set global variables based on config file or use defaults
         try:
@@ -735,16 +736,19 @@ def initialize():
             PR.append('dognzb')
             PR_NUM +=1
 
-        RAW = bool(check_setting_int(CFG, 'Raw', 'raw', 0))
-        RAW_PROVIDER = check_setting_str(CFG, 'Raw', 'raw_provider', '')
-        RAW_USERNAME = check_setting_str(CFG, 'Raw', 'raw_username', '')
-        RAW_PASSWORD  = check_setting_str(CFG, 'Raw', 'raw_password', '')
-        RAW_GROUPS = check_setting_str(CFG, 'Raw', 'raw_groups', '')
-
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
         ALTEXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'altexperimental', 1))
         if EXPERIMENTAL:
             PR.append('Experimental')
+            PR_NUM +=1
+
+        ENABLE_TORZNAB = bool(check_setting_int(CFG, 'Torznab', 'enable_torznab', 0))
+        TORZNAB_NAME = check_setting_str(CFG, 'Torznab', 'torznab_name', '')
+        TORZNAB_HOST = check_setting_str(CFG, 'Torznab', 'torznab_host', '')
+        TORZNAB_APIKEY = check_setting_str(CFG, 'Torznab', 'torznab_apikey', '')
+        TORZNAB_CATEGORY = check_setting_str(CFG, 'Torznab', 'torznab_category', '')
+        if ENABLE_TORZNAB:
+            PR.append('Torznab')
             PR_NUM +=1
 
         #print 'PR_NUM::' + str(PR_NUM)
@@ -1359,6 +1363,13 @@ def config_write():
     new_config['Experimental']['experimental'] = int(EXPERIMENTAL)
     new_config['Experimental']['altexperimental'] = int(ALTEXPERIMENTAL)
 
+    new_config['Torznab'] = {}
+    new_config['Torznab']['enable_torznab'] = int(ENABLE_TORZNAB)
+    new_config['Torznab']['torznab_name'] = TORZNAB_NAME
+    new_config['Torznab']['torznab_host'] = TORZNAB_HOST
+    new_config['Torznab']['torznab_apikey'] = TORZNAB_APIKEY
+    new_config['Torznab']['torznab_category'] = TORZNAB_CATEGORY
+
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab'] = int(NEWZNAB)
 
@@ -1399,13 +1410,6 @@ def config_write():
     new_config['PUSHBULLET']['pushbullet_apikey'] = PUSHBULLET_APIKEY
     new_config['PUSHBULLET']['pushbullet_deviceid'] = PUSHBULLET_DEVICEID
     new_config['PUSHBULLET']['pushbullet_onsnatch'] = int(PUSHBULLET_ONSNATCH)
-
-    new_config['Raw'] = {}
-    new_config['Raw']['raw'] = int(RAW)
-    new_config['Raw']['raw_provider'] = RAW_PROVIDER
-    new_config['Raw']['raw_username'] = RAW_USERNAME
-    new_config['Raw']['raw_password'] = RAW_PASSWORD
-    new_config['Raw']['raw_groups'] = RAW_GROUPS
 
     new_config.write()
 

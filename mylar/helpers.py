@@ -1742,7 +1742,7 @@ def create_https_certificates(ssl_cert, ssl_key):
     return True
 
 def torrent_create(site, linkid, alt=None):
-    if site == '32P':
+    if site == '32P' or site == 'TOR':
         pass
     elif site == 'KAT':
         if 'http' in linkid:

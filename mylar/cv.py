@@ -107,7 +107,13 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
         if comicid is None:
             #if comicid is None, it's coming from the story arc search results.
             id = arcid
-            islist = arclist
+            #since the arclist holds the issueids, and the pertinent reading order - we need to strip out the reading order so this works.
+            aclist = ''
+            for ac in arclist.split('|'):
+                aclist += ac[:ac.find(',')] + '|'
+            if aclist.endswith('|'):
+                aclist = aclist[:-1]
+            islist = aclist
         else:
             id = comicid
             islist = None

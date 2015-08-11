@@ -377,15 +377,17 @@ def storyarcinfo(xmlid):
         issuedom = arcdom.getElementsByTagName('issue')
         isc = 0
         arclist = ''
+        ordernum = 1
         for isd in issuedom:
             zeline = isd.getElementsByTagName('id')
             isdlen = len( zeline )
             isb = 0
             while ( isb < isdlen):
                 if isc == 0:
-                    arclist = str(zeline[isb].firstChild.wholeText).strip()
+                    arclist = str(zeline[isb].firstChild.wholeText).strip() + ',' + str(ordernum)
                 else:
-                    arclist += '|' + str(zeline[isb].firstChild.wholeText).strip()
+                    arclist += '|' + str(zeline[isb].firstChild.wholeText).strip() + ',' + str(ordernum)
+                ordernum+=1 
                 isb+=1
 
             isc+=1

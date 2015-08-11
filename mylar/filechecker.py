@@ -61,8 +61,8 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                '\@']
 
     issue_exceptions = ['AU',
-                      '.INH',
-                      '.NOW',
+                      'INH',
+                      'NOW',
                       'AI',
                       'A',
                       'B',
@@ -632,7 +632,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
 
                 findtitlepos = subname.find('-')
                 if charpos != 0:
-                    logger.fdebug('[FILECHECKER] detected ' + str(len(charpos)) + ' special characters')
+                    logger.fdebug('[FILECHECKER] detected ' + str(len(charpos)) + ' special characters')                    
                     for i, j in enumerate(charpos):
                         logger.fdebug('i,j:' + str(i) + ',' + str(j))
                         logger.fdebug(str(len(subname)) + ' - subname: ' + subname)
@@ -700,7 +700,10 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                            justthedigits_1 = 'Annual ' + justthedigits_1
 
                 logger.fdebug('[FILECHECKER] after title removed from SUBNAME [' + justthedigits_1 + ']')
-
+                exceptionmatch = [x for x in issue_exceptions if x.lower() in justthedigits_1.lower()]
+                if exceptionmatch:
+                    logger.fdebug('[FILECHECKER] Remapping to accomodate ' + str(exceptionmatch))
+                    digitchk = 0
                 titlechk = False
 
                 if digitchk:

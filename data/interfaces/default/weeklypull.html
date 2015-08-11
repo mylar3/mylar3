@@ -108,7 +108,12 @@
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
         <script type="text/javascript">
+        function addAction() {
+                $('#weekfolder').append('<input type="hidden" name="filename" value=True />');
+        };
+
         $("#menu_link_scan").click(function() {
+            addAction();
             $('#MassDownload').submit();
             return true;
         });

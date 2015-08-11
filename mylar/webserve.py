@@ -395,12 +395,13 @@ class WebInterface(object):
             logger.warn('API Limit has been reached. Aborting update at this time.')
             return
         logger.fdebug(module + ' Arcresults: ' + str(arc_results))
+        logger.fdebug('arclist: ' + str(arclist))
         if len(arc_results) > 0:
             import random
 
             issuedata = []
             if storyarcissues is None:
-                storyarcissues = len(arc_results)
+                storyarcissues = len(arc_results['issuechoice'])
             if arcid is None:
                 storyarcid = str(random.randint(1000,9999)) + str(storyarcissues)
             else:
@@ -436,102 +437,16 @@ class WebInterface(object):
 
                 int_issnum = helpers.issuedigits(issnum)
 
-#                if issnum.isdigit():
-#                    int_issnum = int(issnum) * 1000
-#                else:
-#                    if 'a.i.' in issnum.lower() or 'ai' in issnum.lower():
-#                        issnum = re.sub('\.', '', issnum)
-#                        #int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('i')
-#                    if 'au' in issnum.lower():
-#                        int_issnum = (int(issnum[:-2]) * 1000) + ord('a') + ord('u')
-#                    elif 'inh' in issnum.lower():
-#                        int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
-#                    elif 'now' in issnum.lower():
-#                        int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
-#                    elif u'\xbd' in issnum:
-#                        int_issnum = .5 * 1000
-#                        logger.fdebug(module + ' 1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
-#                    elif u'\xbc' in issnum:
-#                        int_issnum = .25 * 1000
-#                    elif u'\xbe' in issnum:
-#                        int_issnum = .75 * 1000
-#                    elif u'\u221e' in issnum:
-#                        #issnum = utf-8 will encode the infinity symbol without any help
-#                        int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
-#                    elif '.' in issnum or ',' in issnum:
-#                        if ',' in issnum: issnum = re.sub(',', '.', issnum)
-#                        issst = str(issnum).find('.')
-#                        #logger.fdebug("issst:" + str(issst))
-#                        if issst == 0:
-#                            issb4dec = 0
-#                        else:
-#                            issb4dec = str(issnum)[:issst]
-#                        #logger.fdebug("issb4dec:" + str(issb4dec))
-#                        #if the length of decimal is only 1 digit, assume it's a tenth
-#                        decis = str(issnum)[issst +1:]
-#                        #logger.fdebug("decis:" + str(decis))
-#                        if len(decis) == 1:
-#                            decisval = int(decis) * 10
-#                            issaftdec = str(decisval)
-#                        elif len(decis) == 2:
-#                            decisval = int(decis)
-#                            issaftdec = str(decisval)
-#                        else:
-#                            decisval = decis
-#                            issaftdec = str(decisval)
-#                        try:
-#                            int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-#                        except ValueError:
-#                            logger.error(module + ' This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-#                            updater.no_searchresults(comicid)
-#                            return
-#                    else:
-#                        try:
-#                            x = float(issnum)
-#                            #validity check
-#                            if x < 0:
-#                                logger.fdebug(module + ' I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
-#                                logger.fdebug(module + ' value of x is : ' + str(x))
-#                                int_issnum = (int(x) *1000) - 1
-#                            else: raise ValueError
-#                        except ValueError, e:
-#                            x = 0
-#                            tstord = None
-#                            issno = None
-#                            invchk = "false"
-#                            while (x < len(issnum)):
-#                                if issnum[x].isalpha():
-#                                    #take first occurance of alpha in string and carry it through
-#                                    tstord = issnum[x:].rstrip()
-#                                    issno = issnum[:x].rstrip()
-#                                    try:
-#                                        isschk = float(issno)
-#                                    except ValueError, e:
-#                                        if len(issnum) == 1 and issnum.isalpha():
-#                                            logger.fdebug(module + ' Detected lone alpha issue. Attempting to figure this out.')
-#                                            break
-#                                        logger.fdebug(module + ' Invalid numeric for issue - cannot be found. Ignoring.')
-#                                        issno = None
-#                                        tstord = None
-#                                        invchk = "true"
-#                                    break
-#                                x+=1
-#                            if tstord is not None and issno is not None:
-#                                a = 0
-#                                ordtot = 0
-#                                if len(issnum) == 1 and issnum.isalpha():
-#                                    int_issnum = ord(tstord.lower())
-#                                else:
-#                                    while (a < len(tstord)):
-#                                        ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-#                                        a+=1
-#                                    int_issnum = (int(issno) * 1000) + ordtot
-#                            elif invchk == "true":
-#                                logger.fdebug(module + ' This does not have an issue # that I can parse properly.')
-#                                return
-#                            else:
-#                                logger.error(module + ' ' + str(issnum) + ' This has an alpha-numeric in the issue # which I cannot account for.')
-#                                return
+                #verify the reading order if present.
+                findorder = arclist.find(issid)
+                if findorder != -1:
+                    ros = arclist.find('|',findorder+1)
+                    roslen = arclist[findorder:ros]
+                    rosre = re.sub(issid,'', roslen)
+                    readingorder = int(re.sub('[\,\|]','', rosre).strip())
+                else:
+                    readingorder = 0
+                logger.info('[' + str(readingorder) + '] issueid:' + str(issid) + ' - findorder#:' + str(findorder))
 
                 issuedata.append({"ComicID":            comicid,
                                   "IssueID":            issid,
@@ -542,7 +457,7 @@ class WebInterface(object):
                                   "Issue_Number":       issnum,
                                   "IssueDate":          issdate,
                                   "ReleaseDate":        storedate,
-                                  "ReadingOrder":       n +1,
+                                  "ReadingOrder":       readingorder, #n +1,
                                   "Int_IssueNumber":    int_issnum})
                 n+=1
 
@@ -3335,6 +3250,11 @@ class WebInterface(object):
                     "use_dognzb": helpers.checked(mylar.DOGNZB),
                     "dognzb_api": mylar.DOGNZB_APIKEY,
                     "use_experimental": helpers.checked(mylar.EXPERIMENTAL),
+                    "enable_torznab": helpers.checked(mylar.ENABLE_TORZNAB),
+                    "torznab_name": mylar.TORZNAB_NAME,
+                    "torznab_host": mylar.TORZNAB_HOST,
+                    "torznab_apikey": mylar.TORZNAB_APIKEY,
+                    "torznab_category": mylar.TORZNAB_CATEGORY,
                     "use_newznab": helpers.checked(mylar.NEWZNAB),
                     "newznab_host": mylar.NEWZNAB_HOST,
                     "newznab_name": mylar.NEWZNAB_NAME,
@@ -3632,7 +3552,7 @@ class WebInterface(object):
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
-        raw=0, raw_provider=None, raw_username=None, raw_password=None, raw_groups=None, experimental=0, check_folder=None, enable_check_folder=0,
+        enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
         enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
@@ -3663,10 +3583,8 @@ class WebInterface(object):
         mylar.SEARCH_DELAY = search_delay
         mylar.NZB_DOWNLOADER = int(nzb_downloader)
         if tsab:
-            logger.fdebug('the truth will set you free.')
             self.SABtest(sab_host, sab_username, sab_password, sab_apikey)
         else:
-            logger.fdebug('failure of the truth.')
             mylar.SAB_HOST = sab_host
             mylar.SAB_USERNAME = sab_username
             mylar.SAB_PASSWORD = sab_password
@@ -3689,11 +3607,11 @@ class WebInterface(object):
         mylar.NZBSU_APIKEY = nzbsu_apikey
         mylar.DOGNZB = dognzb
         mylar.DOGNZB_APIKEY = dognzb_apikey
-        mylar.RAW = raw
-        mylar.RAW_PROVIDER = raw_provider
-        mylar.RAW_USERNAME = raw_username
-        mylar.RAW_PASSWORD = raw_password
-        mylar.RAW_GROUPS = raw_groups
+        mylar.ENABLE_TORZNAB = enable_torznab
+        mylar.TORZNAB_NAME = torznab_name
+        mylar.TORZNAB_HOST = torznab_host
+        mylar.TORZNAB_APIKEY = torznab_apikey
+        mylar.TORZNAB_CATEGORY = torznab_category
         mylar.EXPERIMENTAL = experimental
         mylar.NEWZNAB = newznab
         #mylar.NEWZNAB_HOST = newznab_host
@@ -4128,7 +4046,7 @@ class WebInterface(object):
     def testNMA(self):
         nma = notifiers.NMA()
         result = nma.test_notify()
-        if result:
+        if result == True:
             return "Successfully sent NMA test -  check to make sure it worked"
         else:
             return "Error sending test message to NMA"

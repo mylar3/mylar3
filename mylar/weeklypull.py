@@ -531,7 +531,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                             st_year = latestdate[:st_date]
                             year = '20' + st_year
                             latestdate = str(year) + '-' + str(st_remainder)
-                            logger.fdebug('year set to: ' + latestdate)
+                            #logger.fdebug('year set to: ' + latestdate)
                         else:
                             logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day for continuation.")
                             latest_day = '01'
