@@ -1229,7 +1229,7 @@ def havetotals(refreshit=None):
                     st_year = latestdate[:st_date]
                     year = '20' + st_year
                     latestdate = str(year) + '-' + str(st_remainder)
-                    logger.fdebug('year set to: ' + latestdate)
+                    #logger.fdebug('year set to: ' + latestdate)
                 c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
                 n_date = datetime.date.today()
                 recentchk = (n_date - c_date).days

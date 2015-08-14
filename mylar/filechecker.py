@@ -919,8 +919,8 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                     #set the issue/year threshold here.
                     #  2013 - (24issues/12) = 2011.
                     #minyear = int(comyear) - (int(issuetotal) / 12)
-
                     maxyear = manual['LatestDate'][:4]  # yyyy-mm-dd
+                    logger.fdebug('[FILECHECKER] Latest date: ' + str(maxyear))
 
                     #subnm defined at being of module.
                     len_sm = len(subnm)

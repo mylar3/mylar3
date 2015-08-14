@@ -252,18 +252,31 @@ class PostProcessor(object):
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
                         latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
                         if latestdate:
-                            latestdate = latestdate[0][0]
+                            tmplatestdate = latestdate[0][0]
+                            if tmplatestdate[:4] != wv['LatestDate'][:4]:
+                                if tmplatestdate[:4] > wv['LatestDate'][:4]:
+                                    latestdate = tmplatestdate
+                                else:
+                                    latestdate = wv['LatestDate']
+                            else:
+                                latestdate = tmplatestdate
                         else:
                             latestdate = wv['LatestDate']
 
-                        logger.fdebug('Latest Date set to :' + str(latestdate))
                         if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
                             logger.fdebug('Forcing a refresh of series: ' + wv_comicname + ' as it appears to have incomplete issue dates.')
                             updater.dbUpdate([wv_comicid])
                             logger.fdebug('Refresh complete for ' + wv_comicname + '. Rechecking issue dates for completion.')
                             latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
                             if latestdate:
-                                latestdate = latestdate[0][0]
+                                tmplatestdate = latestdate[0][0]
+                                if tmplatestdate[:4] != wv['LatestDate'][:4]:
+                                    if tmplatestdate[:4] > wv['LatestDate'][:4]:
+                                        latestdate = tmplatestdate
+                                    else:
+                                        latestdate = wv['LatestDate']
+                                else:
+                                    latestdate = tmplatestdate
                             else:
                                 latestdate = wv['LatestDate']
 
