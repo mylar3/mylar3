@@ -441,12 +441,16 @@ class WebInterface(object):
                 findorder = arclist.find(issid)
                 if findorder != -1:
                     ros = arclist.find('|',findorder+1)
-                    roslen = arclist[findorder:ros]
+                    if ros != -1:
+                        roslen = arclist[findorder:ros]
+                    else:
+                        #last entry doesn't have a trailling '|'
+                        roslen = arclist[findorder:]
                     rosre = re.sub(issid,'', roslen)
                     readingorder = int(re.sub('[\,\|]','', rosre).strip())
                 else:
                     readingorder = 0
-                logger.info('[' + str(readingorder) + '] issueid:' + str(issid) + ' - findorder#:' + str(findorder))
+                logger.fdebug('[' + str(readingorder) + '] issueid:' + str(issid) + ' - findorder#:' + str(findorder))
 
                 issuedata.append({"ComicID":            comicid,
                                   "IssueID":            issid,
