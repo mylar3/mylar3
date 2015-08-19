@@ -291,10 +291,9 @@ class PUSHBULLET:
         self.PUSH_URL = "https://api.pushbullet.com/v2/pushes"
         self.apikey = mylar.PUSHBULLET_APIKEY
         self.deviceid = mylar.PUSHBULLET_DEVICEID
-        self._json_header = {'Content-Type': 'application/json'}
-
+        self._json_header = {'Content-Type': 'application/json',
+                             'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":")}
         self._session = requests.Session()
-        self._session.auth = (self.apikey, "")
         self._session.headers.update(self._json_header)
 
     def get_devices(self, api):
@@ -334,21 +333,7 @@ class PUSHBULLET:
                     'body': message.encode('utf-8')}
 
         r = self._session.post(self.PUSH_URL, data=json.dumps(data))
-
-
-#        http_handler.request("POST",
-#                                "/v2/pushes",
-#                                headers = {'Content-type': "application/json",
-#                                           'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":")},
-#                                body = json.dumps(data))
-#
-#        response = http_handler.getresponse()
-#        request_body = response.read()
-#        request_status = response.status
-#        #logger.fdebug(u"PushBullet response status: %r" % request_status)
-#        #logger.fdebug(u"PushBullet response headers: %r" % response.getheaders())
-#        #logger.fdebug(u"PushBullet response body: %r" % response.read())
-
+        
         if r.status_code == 200:
             if method == 'GET':
                 return r.json()
@@ -363,5 +348,5 @@ class PUSHBULLET:
             return False
 
     def test_notify(self):
-        self.notify(prline='Test Message', prline2='Release the Ninjas!')
+        return self.notify(prline='Test Message', prline2='Release the Ninjas!')
 

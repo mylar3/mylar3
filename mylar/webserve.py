@@ -4084,9 +4084,9 @@ class WebInterface(object):
     testpushover.exposed = True
 
     def testpushbullet(self):
-        pushbullet = notifiers.pushbullet()
+        pushbullet = notifiers.PUSHBULLET()
         result = pushbullet.test_notify()
-        if result:
+        if result == True:
             return "Successfully sent Pushbullet test -  check to make sure it worked"
         else:
             return "Error sending test message to Pushbullet"
