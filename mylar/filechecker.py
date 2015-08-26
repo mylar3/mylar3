@@ -702,8 +702,12 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 logger.fdebug('[FILECHECKER] after title removed from SUBNAME [' + justthedigits_1 + ']')
                 exceptionmatch = [x for x in issue_exceptions if x.lower() in justthedigits_1.lower()]
                 if exceptionmatch:
-                    logger.fdebug('[FILECHECKER] Remapping to accomodate ' + str(exceptionmatch))
-                    digitchk = 0
+                    for x in exceptionmatch:
+                        findst = justthedigits_1.find(x)
+                        if re.sub(' ','', justthedigits_1[findst-1]).isdigit() or re.sub(' ', '', justthedigits_1[findst:findst+1]).isdigit():
+                            logger.fdebug('[FILECHECKER] Remapping to accomodate ' + str(x))
+                            digitchk = 0
+                            break
                 titlechk = False
 
                 if digitchk:
@@ -780,14 +784,24 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 justthedigits = justthedigits_1.split(' ', 1)[0]
                 digitsvalid = "false"
 
-                if not justthedigits.isdigit() and 'annual' not in justthedigits.lower():
-                    logger.fdebug('[FILECHECKER] Invalid character found in filename after item removal - cannot find issue # with this present. Temporarily removing it from the comparison to be able to proceed.')
-                    try:
-                        justthedigits = justthedigits_1.split(' ', 1)[1]
-                        if justthedigits.isdigit():
-                            digitsvalid = "true"
-                    except:
-                        pass
+                if not justthedigits.isdigit() and 'annual' not in justthedigits.lower() and digitchk is None:
+
+                    #check the length and compare number of words to remove some bad matches (ie. secret wars / secret wars journal)
+                    wordsplit_sub = subname.split()
+                    wordsplit_mod = modwatchcomic.split()
+                    logger.fdebug('[FILECHECKER] digitchk: ' + str(digitchk))
+                    logger.fdebug('[FILECHECKER] wordsplit_sub : ' + str(wordsplit_sub))
+                    logger.fdebug('[FILECHECKER] wordsplit_mod : ' + str(wordsplit_mod))
+                    if wordsplit_sub != wordsplit_mod:
+                        logger.fdebug('[FILECHECKER] Word lengths do not match. Ignoring comparions.')
+                        continue
+                    else:
+                        try:
+                            justthedigits = justthedigits_1.split(' ', 1)[1]
+                            if justthedigits.isdigit():
+                                digitsvalid = "true"
+                        except:
+                            pass
 
                 if digitsvalid == "false":
                     if 'annual' not in justthedigits.lower():

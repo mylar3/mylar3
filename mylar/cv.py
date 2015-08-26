@@ -321,11 +321,15 @@ def GetComicInfo(comicid, dom, safechk=None):
                     vfindit = re.findall('[^()]+', vfind)
                     vfind = vfindit[0]
                 vf = re.findall('[^<>]+', vfind)
-                ledigit = re.sub("[^0-9]", "", vf[0])
-                if ledigit != '':
-                    comic['ComicVersion'] = ledigit
-                    logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
-                    break
+                try:
+                    ledigit = re.sub("[^0-9]", "", vf[0])
+                    if ledigit != '':
+                        comic['ComicVersion'] = ledigit
+                        logger.fdebug("Volume information found! Adding to series record : volume " + comic['ComicVersion'])
+                        break
+                except:
+                    pass
+
                 i += 1
             else:
                 i += 1
