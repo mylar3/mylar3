@@ -142,7 +142,16 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 i += 1
         else:
             for entry in feedme['entries']:
-                if pickfeed == "3" or pickfeed == "6":
+                if any([pickfeed == "3", pickfeed == "6"]):
+                    tmpsz = feedme.entries[i].enclosures[0]
+                    feeddata.append({
+                                    'site':     picksite,
+                                    'title':    feedme.entries[i].title,
+                                    'link':     tmpsz['url'],
+                                    'pubdate':  feedme.entries[i].updated,
+                                    'size':     tmpsz['length']
+                                    })
+                elif any([pickfeed == "2", pickfeed == "5"]):
                     tmpsz = feedme.entries[i].enclosures[0]
                     torthekat.append({
                                     'site':     picksite,
@@ -151,66 +160,54 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                                     'pubdate':  feedme.entries[i].updated,
                                     'size':     tmpsz['length']
                                     })
-
-                elif pickfeed == "2" or pickfeed == "5":
-                    tmpsz = feedme.entries[i].enclosures[0]
-                    torthekat.append({
-                                   'site':     picksite,
-                                   'title':    feedme.entries[i].title,
-                                   'link':     tmpsz['url'],
-                                   'pubdate':  feedme.entries[i].updated,
-                                   'size':     tmpsz['length']
-                                   })
-
                 elif pickfeed == "1" or int(pickfeed) > 7:
-                    if pickfeed == "1" or int(pickfeed) > 7:
-                        tmpdesc = feedme.entries[i].description
-                        st_pub = feedme.entries[i].title.find('(')
-                        st_end = feedme.entries[i].title.find(')')
-                        pub = feedme.entries[i].title[st_pub +1:st_end] # +1 to not include (
-                        #logger.fdebug('publisher: ' + re.sub("'",'', pub).strip())  #publisher sometimes is given within quotes for some reason, strip 'em.
-                        vol_find = feedme.entries[i].title.find('vol.')
-                        series = feedme.entries[i].title[st_end +1:vol_find].strip()
-                        #logger.fdebug('series title: ' + series)
-                        iss_st = feedme.entries[i].title.find(' - ', vol_find)
-                        vol = re.sub('\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
-                        #logger.fdebug('volume #: ' + str(vol))
-                        issue = feedme.entries[i].title[iss_st +3:].strip()
-                        #logger.fdebug('issue # : ' + str(issue))
+                    tmpdesc = feedme.entries[i].description
+                    st_pub = feedme.entries[i].title.find('(')
+                    st_end = feedme.entries[i].title.find(')')
+                    pub = feedme.entries[i].title[st_pub +1:st_end] # +1 to not include (
+                    #logger.fdebug('publisher: ' + re.sub("'",'', pub).strip())  #publisher sometimes is given within quotes for some reason, strip 'em.
+                    vol_find = feedme.entries[i].title.find('vol.')
+                    series = feedme.entries[i].title[st_end +1:vol_find].strip()
+                    #logger.fdebug('series title: ' + series)
+                    iss_st = feedme.entries[i].title.find(' - ', vol_find)
+                    vol = re.sub('\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
+                    #logger.fdebug('volume #: ' + str(vol))
+                    issue = feedme.entries[i].title[iss_st +3:].strip()
+                    #logger.fdebug('issue # : ' + str(issue))
 
-                        #break it down to get the Size since it's available on THIS 32P feed only so far.
-                        #when it becomes available in the new feeds, this will be working, for now it just nulls out.
-                        sizestart = tmpdesc.find('Size:')
-                        justdigits = 0
-                        if sizestart >= 0:
-                            sizeend = tmpdesc.find('Leechers:')
-                            sizestart +=5  # to get to the end of the word 'Size:'
-                            tmpsize = tmpdesc[sizestart:sizeend].strip()
-                            fdigits = re.sub("[^0123456789\.]", "", tmpsize).strip()
-                            if '.' in fdigits:
-                                decfind = fdigits.find('.')
-                                wholenum = fdigits[:decfind]
-                                decnum = fdigits[decfind +1:]
-                            else:
-                                wholenum = fdigits
-                            decnum = 0
-                            if 'MB' in tmpsize:
-                                wholebytes = int(wholenum) * 1048576
-                                wholedecimal = (int(decnum) * 1048576) / 100
-                                justdigits = wholebytes + wholedecimal
-                            else:
-                                #it's 'GB' then
-                                wholebytes = (int(wholenum) * 1024) * 1048576
-                                wholedecimal = ((int(decnum) * 1024) * 1048576) / 100
-                                justdigits = wholebytes + wholedecimal
-                        #this is not currently working for 32p
-                        #Get the # of seeders.
-                        #seedstart = tmpdesc.find('Seeders:')
-                        #seedend = tmpdesc.find('Added:')
-                        #seedstart +=8  # to get to the end of the word 'Seeders:'
-                        #tmpseed = tmpdesc[seedstart:seedend].strip()
-                        #seeddigits = re.sub("[^0123456789\.]", "", tmpseed).strip()
-                        seeddigits = 0
+                    #break it down to get the Size since it's available on THIS 32P feed only so far.
+                    #when it becomes available in the new feeds, this will be working, for now it just nulls out.
+                    sizestart = tmpdesc.find('Size:')
+                    justdigits = 0
+                    if sizestart >= 0:
+                        sizeend = tmpdesc.find('Leechers:')
+                        sizestart +=5  # to get to the end of the word 'Size:'
+                        tmpsize = tmpdesc[sizestart:sizeend].strip()
+                        fdigits = re.sub("[^0123456789\.]", "", tmpsize).strip()
+                        if '.' in fdigits:
+                            decfind = fdigits.find('.')
+                            wholenum = fdigits[:decfind]
+                            decnum = fdigits[decfind +1:]
+                        else:
+                            wholenum = fdigits
+                        decnum = 0
+                        if 'MB' in tmpsize:
+                            wholebytes = int(wholenum) * 1048576
+                            wholedecimal = (int(decnum) * 1048576) / 100
+                            justdigits = wholebytes + wholedecimal
+                        else:
+                            #it's 'GB' then
+                            wholebytes = (int(wholenum) * 1024) * 1048576
+                            wholedecimal = ((int(decnum) * 1024) * 1048576) / 100
+                            justdigits = wholebytes + wholedecimal
+                    #this is not currently working for 32p
+                    #Get the # of seeders.
+                    #seedstart = tmpdesc.find('Seeders:')
+                    #seedend = tmpdesc.find('Added:')
+                    #seedstart +=8  # to get to the end of the word 'Seeders:'
+                    #tmpseed = tmpdesc[seedstart:seedend].strip()
+                    #seeddigits = re.sub("[^0123456789\.]", "", tmpseed).strip()
+                    seeddigits = 0
 
                     if int(mylar.MINSEEDS) >= int(seeddigits):
                         link = feedme.entries[i].link
