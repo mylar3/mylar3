@@ -46,6 +46,9 @@ if platform.python_version() == '2.7.6':
 def pullsearch(comicapi, comicquery, offset, explicit, type):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     u_comicquery = u_comicquery.replace(" ", "%20")
+    if '-' in u_comicquery:
+        #cause titles like A-Force will return 16,000+ results otherwise
+        u_comicquery = '%22' + u_comicquery + '%22'
 
     if explicit == 'all' or explicit == 'loose':
         PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&page=' + str(offset)
@@ -135,6 +138,9 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
     logger.fdebug("there are " + str(totalResults) + " search results...")
     if not totalResults:
         return False
+    if int(totalResults) > 1000:
+        logger.warn('Search returned more than 1000 hits [' + str(totalResults) + ']. Only displaying first 2000 results - use more specifics or the exact ComicID if required.')
+        totalResults = 1000
     countResults = 0
     while (countResults < int(totalResults)):
         #logger.fdebug("querying " + str(countResults))

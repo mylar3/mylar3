@@ -735,8 +735,11 @@ class PostProcessor(object):
                         if 'S' in sandwich:
                             self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
                             logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
+                            arcdir = helpers.filesafe(sarc)
+                            if mylar.REPLACE_SPACES:
+                               arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
                             if mylar.STORYARCDIR:
-                                storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", sarc)
+                                storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", arcdir)
                                 self._log("StoryArc Directory set to : " + storyarcd)
                                 logger.info(module + ' Story Arc Directory set to : ' + storyarcd)
                             else:

@@ -1,5 +1,5 @@
 import mylar
-from mylar import db, logger, helpers
+from mylar import db, logger, helpers, updater
 import os
 import shutil
 
@@ -44,14 +44,25 @@ def movefiles(comicid, comlocation, ogcname, imported=None):
             myDB.upsert("importresults", newValue, controlValue)
     return
 
-def archivefiles(comicid, ogcname):
+def archivefiles(comicid, ogdir, ogcname):
     myDB = db.DBConnection()
     # if move files isn't enabled, let's set all found comics to Archive status :)
     result = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
-    if result is None: pass
+    if result is None:
+        pass
     else:
-        ogdir = result['Location']
-        origdir = os.path.join(os.path.dirname(ogdir))
+        scandir = []
+        for res in result:
+            if any([os.path.dirname(res['ComicLocation']) in x for x in scandir]):
+                pass
+            else:
+                scandir.append(os.path.dirname(res['ComicLocation']))
 
-        updater.forceRescan(comicid, archive=origdir) #send to rescanner with archive mode turned on
+        for sdir in scandir:
+            logger.info('Updating issue information and setting status to Archived for location: ' + sdir)
+            updater.forceRescan(comicid, archive=sdir) #send to rescanner with archive mode turned on
 
+        logger.info('Now scanning in files.')
+        updater.forceRescan(comicid)
+
+    return

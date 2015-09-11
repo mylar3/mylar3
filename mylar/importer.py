@@ -559,7 +559,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             moveit.movefiles(comicid, comlocation, ogcname)
         else:
             logger.info('Mass import - Moving not Enabled. Setting Archived Status for import.')
-            moveit.archivefiles(comicid, ogcname)
+            moveit.archivefiles(comicid, comlocation, ogcname)
 
     #check for existing files...
     statbefore = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid, str(latestiss)]).fetchone()
@@ -652,8 +652,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         results = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
         if results is not None:
             for result in results:
-                controlValue = {"impID":    result['impid']}
+                controlValue = {"ComicName":   ogcname}
                 newValue = {"Status":           "Imported",
+                            "SRID":             result['SRID'],
                             "ComicID":          comicid}
                 myDB.upsert("importresults", newValue, controlValue)
 

@@ -1755,7 +1755,7 @@ def torrent_create(site, linkid, alt=None):
             if alt is None:
                 url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
             else:
-                url = 'http://torrage.com/torrent/' + str(linkid) + '.torrent'
+                url = 'http://torrage.com/' + str(linkid) + '.torrent'
 
     return url
 
@@ -1790,6 +1790,48 @@ def parse_32pfeed(rssfeedline):
 
     return KEYS_32P
 
+#def file_ops(path,dst):
+#    # path = source path + filename
+#    # dst = destination path + filename
+
+#    #get the crc of the file prior to the operation and then compare after to ensure it's complete.
+#    crc_check = mylar.filechecker.crc(path)
+
+#    #will be either copy / move
+#    if mylar.FILE_OPS == 'copy':
+#        shutil.copy( path , dst )
+#        if crc_check == mylar.filechecker.crc(dst):
+#            return True
+#        else:
+#            return False
+#    elif mylar.FILE_OPS == 'move':
+#        shutil.move( path , dst )
+#        if crc_check == mylar.filechecker.crc(dst):
+#            return True
+#        else:
+#            return False
+
+#    elif mylar.FILE_OPS == 'hardlink':
+#        import sys
+
+#        # Open a file
+#        fd = os.open( path, os.O_RDWR|os.O_CREAT )
+#        os.close( fd )
+
+#        # Now create another copy of the above file.
+#        os.link( path, dst )
+
+#        print "Created hard link successfully!!"
+#        return True
+#    elif mylar.FILE_OPS ==  'softlink':
+#        try:
+#            os.symlink( path,dst )
+#        except:
+#            print 'Unable to create symlink.'
+#            return False
+#        return True
+#    else:
+#        return False
 
 from threading import Thread
 

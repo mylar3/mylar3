@@ -808,7 +808,9 @@ def forceRescan(ComicID, archive=None, module=None):
             comiccnt += int(tmpv['comiccount'])
             fca.append(tmpv)
     else:
-        fca.append(filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch']))
+        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+        fca.append(files_arc)
+        comiccnt = int(files_arc['comiccount'])
     fcb = []
     fc = {}
     #if len(fca) > 0:
@@ -1205,11 +1207,12 @@ def forceRescan(ComicID, archive=None, module=None):
                 controlValueDict = {"IssueID": iss_id}
 
                 #if Archived, increase the 'Have' count.
-                #if archive:
-                #    issStatus = "Archived"
-
-                if haveissue == "yes":
+                if archive:
+                    issStatus = "Archived"
+                else:
                     issStatus = "Downloaded"
+
+                if haveissue == "yes":                    
                     newValueDict = {"Location":           isslocation,
                                     "ComicSize":          issSize,
                                     "Status":             issStatus

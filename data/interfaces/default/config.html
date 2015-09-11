@@ -493,6 +493,22 @@
 
                         <fieldset>
                                 <div class="row checkbox left clearfix">
+                                    <input id="useomgwtfnzbs" type="checkbox" onclick="initConfigCheckbox($(this));" name="omgwtfnzbs" value="1" ${config['use_omgwtfnzbs']} /><legend>OMGWTFNZBS</legend>
+                                </div>
+                                <div class="config">
+                                        <div class="row">
+                                            <label>OMGWTFNZBS UserName</label>
+                                            <input type="text" name="omgwtfnzbs_username" value="${config['omgwtfnzbs_username']}" size="15" >
+                                        </div>
+                                        <div class="row">
+                                                <label>OMGWTFNZBS API</label>
+                                                <input type="text" name="omgwtfnzbs_apikey" value="${config['omgwtfnzbs_api']}" size="36">
+                                        </div>
+                                </div>
+                        </fieldset>
+
+                        <fieldset>
+                                <div class="row checkbox left clearfix">
                                    <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['use_experimental']} /><legend>Use Experimental Search</legend>
                                 </div>
                                 <div>
@@ -1364,6 +1380,7 @@
                 initConfigCheckbox("#enable_torznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
+                initConfigCheckbox("#useomgwtfnzbs");
                 initConfigCheckbox("#enable_torrents");
                 initConfigCheckbox("#torrent_local");
                 initConfigCheckbox("#torrent_seedbox");

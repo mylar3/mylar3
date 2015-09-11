@@ -105,6 +105,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if mylar.DOGNZB == 1:
         nzbprovider.append('dognzb')
         nzbp+=1
+    if mylar.OMGWTFNZBS == 1:
+        nzbprovider.append('omgwtfnzbs')
+        nzbp+=1
+
     # --------
     #  Xperimental
     if mylar.EXPERIMENTAL == 1:
@@ -287,6 +291,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         apikey = mylar.NZBSU_APIKEY
     elif nzbprov == 'dognzb':
         apikey = mylar.DOGNZB_APIKEY
+    elif nzbprov == 'omgwtfnzbs':
+        apikey = mylar.OMGWTFNZBS_APIKEY
     elif nzbprov == 'experimental':
         apikey = 'none'
     elif nzbprov == 'newznab':
@@ -495,6 +501,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         findurl = "https://api.dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
                     elif nzbprov == 'nzb.su':
                         findurl = "https://api.nzb.su/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
+                    elif nzbprov == 'omgwtfnzbs':
+                        findurl = "https://api.omgwtfnzbs.org/xml/?search=" + str(comsearch) + "&user=" + mylar.OMGWTFNZBS_USERNAME + "&o=xml&cat=7030"
                     elif nzbprov == 'newznab':
                         #let's make sure the host has a '/' at the end, if not add it.
                         if host_newznab[len(host_newznab) -1:len(host_newznab)] != '/':
@@ -511,7 +519,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         apikey = mylar.TORZNAB_APIKEY
                     if nzbprov != 'nzbx':
                         # helper function to replace apikey here so we avoid logging it ;)
-                        findurl = findurl + "&apikey=" + str(apikey)
+                        if nzbprov == 'omgwtfnzbs':
+                            findurl = findurl + "&api=" + str(apikey)
+                        else:
+                            findurl = findurl + "&apikey=" + str(apikey)
                         logsearch = helpers.apiremove(str(findurl), 'nzb')
                         logger.fdebug("search-url: " + str(logsearch))
 
@@ -664,6 +675,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                     if UseFuzzy == "1":
                         logger.fdebug('Year has been fuzzied for this series, ignoring store date comparison entirely.')
+                        postdate_int = None
+                        issuedate_int = None
                     else:
 
                         #use store date instead of publication date for comparisons since publication date is usually +2 months
@@ -1174,11 +1187,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #if the found volume is a vol.0, up it to vol.1 (since there is no V0)
                         if F_ComicVersion == '0':
                             #need to convert dates to just be yyyy-mm-dd and do comparison, time operator in the below calc as well which probably throws off some accuracy.
-                            if postdate_int >= issuedate_int and nzbprov == '32P':
-                                logger.fdebug('32P torrent discovery. Store date (' + str(stdate) + ') is before posting date (' + str(pubdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
-                                F_ComicVersion = D_ComicVersion
-                            else:
-                                F_ComicVersion = '1'
+                            F_ComicVersion = '1'
+                            if postdate_int is not None:
+                                if postdate_int >= issuedate_int and nzbprov == '32P':
+                                    logger.fdebug('32P torrent discovery. Store date (' + str(stdate) + ') is before posting date (' + str(pubdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
+                                    F_ComicVersion = D_ComicVersion
 
                         logger.fdebug("FCVersion: " + str(F_ComicVersion))
                         logger.fdebug("DCVersion: " + str(D_ComicVersion))
@@ -1670,6 +1683,11 @@ def nzbname_create(provider, title=None, info=None):
         nzbname = re.sub('\s+', ' ', nzbname)  #make sure we remove the extra spaces.
         logger.fdebug('[SEARCHER] nzbname (\s): ' + nzbname)
         nzbname = re.sub(' ', '.', nzbname)
+        #remove the [1/9] parts or whatever kinda crap (usually in experimental results)
+        pattern = re.compile(r'\W\d{1,3}\/\d{1,3}\W')
+        match = pattern.search(nzbname)
+        if match:
+            nzbname = re.sub(match.group(), '', nzbname).strip()
         logger.fdebug('[SEARCHER] end nzbname: ' + nzbname)
 
     logger.fdebug("nzbname used for post-processing:" + nzbname)
@@ -1756,6 +1774,14 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #dognzb - need to add back in the dog apikey
             down_url = urljoin(link, str(mylar.DOGNZB_APIKEY))
             verify = False
+
+        elif nzbprov == 'omgwtfnzbs':
+            #omgwtfnzbs.
+            down_url = 'https://api.omgwtfnzbs.org/sn.php?'
+            payload = {'id': str(nzbid),
+                       'user': str(mylar.OMGWTFNZBS_USERNAME),
+                       'api': str(mylar.OMGWTFNZBS_APIKEY)}
+            verify = True 
 
         else:
             #experimental - direct link.
@@ -2314,6 +2340,10 @@ def generate_id(nzbprov, link):
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
+    elif nzbprov == 'omgwtfnzbs':
+        url_parts = urlparse.urlparse(link)
+        path_parts = url_parts[4].split('&')
+        nzbid = path_parts[0].rsplit('=',1)[1]
     elif nzbprov == 'newznab':
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.

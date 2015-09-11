@@ -194,6 +194,9 @@ class WebInterface(object):
         if len(name) == 0:
             raise cherrypy.HTTPRedirect("home")
         if type == 'comic' and mode == 'pullseries':
+            if issue == 0:
+                #if it's an issue 0, CV doesn't have any data populated yet - so bump it up one to at least get the current results.
+                issue = 1
             searchresults, explicit = mb.findComic(name, mode, issue=issue)
         elif type == 'comic' and mode == 'series':
             if name.startswith('4050-'):
@@ -2865,8 +2868,11 @@ class WebInterface(object):
         mylar.IMP_METADATA = imp_metadata
         mylar.config_write()
         #thread the scan.
-        if scan == '1': scan = True
-        else: scan = False
+        if scan == '1': 
+            scan = True
+        else: 
+            scan = False
+            return
 
         thread_ = threading.Thread(target=librarysync.scanLibrary, name="LibraryScan", args=[scan, queue])
         thread_.start()
@@ -3253,6 +3259,9 @@ class WebInterface(object):
                     "nzbsu_api": mylar.NZBSU_APIKEY,
                     "use_dognzb": helpers.checked(mylar.DOGNZB),
                     "dognzb_api": mylar.DOGNZB_APIKEY,
+                    "use_omgwtfnzbs": helpers.checked(mylar.OMGWTFNZBS),
+                    "omgwtfnzbs_username": mylar.OMGWTFNZBS_USERNAME,
+                    "omgwtfnzbs_api": mylar.OMGWTFNZBS_APIKEY,
                     "use_experimental": helpers.checked(mylar.EXPERIMENTAL),
                     "enable_torznab": helpers.checked(mylar.ENABLE_TORZNAB),
                     "torznab_name": mylar.TORZNAB_NAME,
@@ -3555,7 +3564,7 @@ class WebInterface(object):
     def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
-        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, omgwtfnzbs=0, omgwtfnzbs_username=None, omgwtfnzbs_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
         enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
@@ -3611,6 +3620,9 @@ class WebInterface(object):
         mylar.NZBSU_APIKEY = nzbsu_apikey
         mylar.DOGNZB = dognzb
         mylar.DOGNZB_APIKEY = dognzb_apikey
+        mylar.OMGWTFNZBS = omgwtfnzbs
+        mylar.OMGWTFNZBS_USERNAME = omgwtfnzbs_username
+        mylar.OMGWTFNZBS_APIKEY = omgwtfnzbs_apikey
         mylar.ENABLE_TORZNAB = enable_torznab
         mylar.TORZNAB_NAME = torznab_name
         mylar.TORZNAB_HOST = torznab_host

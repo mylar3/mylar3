@@ -247,6 +247,10 @@ NZBSU_APIKEY = None
 DOGNZB = False
 DOGNZB_APIKEY = None
 
+OMGWTFNZBS = False
+OMGWTFNZBS_USERNAME = None
+OMGWTFNZBS_APIKEY = None
+
 NEWZNAB = False
 NEWZNAB_NAME = None
 NEWZNAB_HOST = None
@@ -409,7 +413,7 @@ def initialize():
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
-                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, \
+                USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, OMGWTFNZBS, OMGWTFNZBS_USERNAME, OMGWTFNZBS_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, \
                 EXPERIMENTAL, ALTEXPERIMENTAL, \
@@ -431,6 +435,7 @@ def initialize():
         CheckSection('NZBGet')
         CheckSection('NZBsu')
         CheckSection('DOGnzb')
+        CheckSection('OMGWTFNZBS')
         CheckSection('Experimental')
         CheckSection('Newznab')
         CheckSection('Torznab')
@@ -734,6 +739,13 @@ def initialize():
         DOGNZB_APIKEY = check_setting_str(CFG, 'DOGnzb', 'dognzb_apikey', '')
         if DOGNZB:
             PR.append('dognzb')
+            PR_NUM +=1
+
+        OMGWTFNZBS = bool(check_setting_int(CFG, 'OMGWTFNZBS', 'omgwtfnzbs', 0))
+        OMGWTFNZBS_USERNAME = check_setting_str(CFG, 'OMGWTFNZBS', 'omgwtfnzbs_username', '')
+        OMGWTFNZBS_APIKEY = check_setting_str(CFG, 'OMGWTFNZBS', 'omgwtfnzbs_apikey', '')
+        if OMGWTFNZBS:
+            PR.append('OMGWTFNZBS')
             PR_NUM +=1
 
         EXPERIMENTAL = bool(check_setting_int(CFG, 'Experimental', 'experimental', 0))
@@ -1358,6 +1370,11 @@ def config_write():
     new_config['DOGnzb'] = {}
     new_config['DOGnzb']['dognzb'] = int(DOGNZB)
     new_config['DOGnzb']['dognzb_apikey'] = DOGNZB_APIKEY
+
+    new_config['OMGWTFNZBS'] = {}
+    new_config['OMGWTFNZBS']['omgwtfnzbs'] = int(OMGWTFNZBS)
+    new_config['OMGWTFNZBS']['omgwtfnzbs_username'] = OMGWTFNZBS_USERNAME
+    new_config['OMGWTFNZBS']['omgwtfnzbs_apikey'] = OMGWTFNZBS_APIKEY
 
     new_config['Experimental'] = {}
     new_config['Experimental']['experimental'] = int(EXPERIMENTAL)
