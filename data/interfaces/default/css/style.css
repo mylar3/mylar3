@@ -928,7 +928,7 @@ div#artistheader h2 a {
   max-width: 25px;
   text-align: center;
 }
-#read_detail th#issueyear,
+#read_detail th#issuedate,
 #read_detail th#status,
 #read_detail th#statuschange {
   max-width: 50px;
@@ -950,7 +950,7 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#read_detail td#issueyear,
+#read_detail td#issuedate,
 #read_detail td#status,
 #read_detail td#statuschange {
   max-width: 50px;
@@ -991,7 +991,7 @@ div#artistheader h2 a {
 }
 #storyarcs td#years {
   max-width: 40px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #storyarcs td#options {
@@ -1170,6 +1170,48 @@ div#artistheader h2 a {
 }
 #manage_issues td#options {
   min-width: 150px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_failed th#series {
+  min-width: 175px;
+  text-align: left;
+}
+#manage_failed th#select {
+  min-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_failed th#issue,
+#manage_failed th#site,
+#manage_failed th#datefailed {
+  min-width: 50px;
+  text-align: left;
+}
+#manage_failed th#link {
+  min-width: 100px;
+  text-align: left;
+}
+#manage_failed td#series {
+  min-width: 175px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#manage_failed td#select {
+  min-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_failed td#issue,
+#manage_failed td#site,
+#manage_failed td#datefailed {
+  min-width: 50px;
+  text-align: left;
+  vertical-align: middle;
+}
+#manage_failed td#link {
+  min-width: 100px;
   text-align: left;
   vertical-align: middle;
 }

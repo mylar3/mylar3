@@ -77,10 +77,6 @@ class PROWL:
                 logger.info(module + ' Prowl notification failed.')
                 return False
 
-    def updateLibrary(self):
-        #For uniformity reasons not removed
-        return
-
     def test_notify(self):
         self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')
 
@@ -98,7 +94,7 @@ class NMA:
 
         r = self._session.post(self.NMA_URL, data=data)
 
-        logger.info('[NMA] Status code returned: ' + str(r.status_code))
+        logger.fdebug('[NMA] Status code returned: ' + str(r.status_code))
         if r.status_code == 200:
             logger.info(module + ' NotifyMyAndroid notifications sent.')
             return True
@@ -146,6 +142,7 @@ class NMA:
 class PUSHOVER:
 
     def __init__(self):
+        self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
         self.enabled = mylar.PUSHOVER_ENABLED
         if mylar.PUSHOVER_APIKEY is None or mylar.PUSHOVER_APIKEY == 'None':
             self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
@@ -153,16 +150,9 @@ class PUSHOVER:
             self.apikey = mylar.PUSHOVER_APIKEY
         self.userkey = mylar.PUSHOVER_USERKEY
         self.priority = mylar.PUSHOVER_PRIORITY
-        # other API options:
-        # self.device_id = mylar.PUSHOVER_DEVICE_ID
-        # device - option for specifying which of your registered devices Mylar should send to. No option given, it sends to all devices on Pushover (default)
-        # URL / URL_TITLE (both for use with the COPS/OPDS server I'm building maybe?)
-        # Sound - name of soundfile to override default sound choice
 
-    # not sure if this is needed for Pushover
-
-    #def conf(self, options):
-    # return cherrypy.config['config'].get('Pushover', options)
+        self._session = requests.Session()
+        self._session.headers = {'Content-type': "application/x-www-form-urlencoded"}
 
     def notify(self, message, event, module=None):
         if not mylar.PUSHOVER_ENABLED:
@@ -171,40 +161,26 @@ class PUSHOVER:
             module = ''
         module += '[NOTIFIER]'
 
-        http_handler = HTTPSConnection("api.pushover.net:443")
-
         data = {'token': mylar.PUSHOVER_APIKEY,
                 'user': mylar.PUSHOVER_USERKEY,
                 'message': message.encode("utf-8"),
                 'title': event,
                 'priority': mylar.PUSHOVER_PRIORITY}
 
-        http_handler.request("POST",
-                                "/1/messages.json",
-                                body = urlencode(data),
-                                headers = {'Content-type': "application/x-www-form-urlencoded"}
-                                )
-        response = http_handler.getresponse()
-        request_status = response.status
+        r = self._session.post(self.PUSHOVER_URL, data=data)
 
-        logger.fdebug(u"PushOver response status: %r" % request_status)
-        logger.fdebug(u"PushOver response headers: %r" % response.getheaders())
-        logger.fdebug(u"PushOver response body: %r" % response.read())
-
-
-        if request_status == 200:
-                logger.info(module + ' Pushover notifications sent.')
-                return True
-        elif request_status == 401:
-                logger.info(module + 'Pushover auth failed: %s' % response.reason)
-                return False
+        if r.status_code == 200:
+            logger.info(module + ' PushOver notifications sent.')
+            return True
+        elif r.status_code >= 400 and r.status_code < 500:
+            logger.error(module + ' PushOver request failed: %s' % r.content)
+            return False
         else:
-                logger.info(module + ' Pushover notification failed.')
-                return False
+            logger.error(module + ' PushOver notification failed serverside.')
+            return False
 
     def test_notify(self):
-        self.notify('ZOMG Lazors Pewpewpew!', 'Test Message')
-
+        return self.notify(message='Release the Ninjas!',event='Test Message')
 
 class BOXCAR:
 

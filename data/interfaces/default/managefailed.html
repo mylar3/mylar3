@@ -1,0 +1,101 @@
+<%inherit file="base.html" />
+<%!
+        from mylar import db
+        import mylar
+%>
+
+<%def name="headerIncludes()">
+	<div id="subhead_container">
+			&nbsp;
+	</div>	
+	<a href="manage" class="back">&laquo; Back to manage overview</a>
+</%def>
+
+
+<%def name="body()">
+	<div id="manageheader" class="title">
+		<h1 class="clearfix">Manage Failed Downloads</h1>
+	</div>
+
+	<form action="markentries" method="get" id="markentries">
+        <div id="markentries" style="top:0;">
+		<select name="action" onChange="doAjaxCall('markentries',$(this),'table',true);" data-error="You didn't select any entries">
+  			<option disabled="disabled" selected="selected">Choose...</option>
+  			<option value="Wanted">Clear Failed locks</option>
+		</select>
+                for selected entries
+		<input type="hidden" value="Go">
+	</div>
+
+        <div class="table_wrapper">
+        
+	<table class="display" id="manage_failed">
+		<thead>
+			<tr>
+				<th id="select"><input type="checkbox" onClick="toggle(this)" class="checkbox" align="left" /></th>
+				<th id="series">Series</th>
+				<th id="issue">Issue</th>
+                                <th id="site">Site</th>
+                                <th id="link">Link</th>
+                                <th id="datefailed">Attempt</th>
+			</tr>
+		</thead>
+		<tbody>
+		%for f in failed:
+			<tr>
+				<td id="select"><input type="checkbox" name="${f['ID']}" class="checkbox" /></td>
+				<td id="series">${f['Series']}</td>
+				<td id="issue">${f['Issue_Number']}</td>
+				<td id="site"><a href="${f['Link']}">${f['Provider']}</a></td>
+				<td id="link"><a href="#" title="${f['ID']}">${f['FileName']}</a></td>
+				<td id="datefailed">${f['DateFailed']}</td>
+			</tr>
+		%endfor
+		</tbody>
+	</table>
+        </div>
+	</form>
+</%def>
+
+<%def name="headIncludes()">
+	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
+<%def name="javascriptIncludes()">
+	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script>
+        function initThisPage() {
+                $('#manage_failed').dataTable(
+                        {
+                                "bDestroy": true,
+                                "aoColumnDefs": [
+                                  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
+                                  { 'bVisible': false, 'aTargets': [2] },
+                                  { 'sType': 'numeric', 'aTargets': [2] },
+                                  { 'iDataSort': [2], 'aTargets': [3] }
+                                ],
+                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "oLanguage": {
+                                        "sLengthMenu":"Show _MENU_ results per page",
+                                        "sEmptyTable": "No results",
+                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
+                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
+                                        "sSearch" : ""},
+                                "bStateSave": true,
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [[1, 'desc'],[2, 'desc']]
+                        });
+                        resetFilters("failed");
+        }
+
+        $(document).ready(function(){
+                initThisPage();
+        });
+        $(window).load(function(){
+                initFancybox();
+        });
+        </script>
+
+</%def>

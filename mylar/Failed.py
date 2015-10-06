@@ -47,8 +47,15 @@ class FailedProcessor(object):
         self.log = ""
 
         self.id = id
-        if issueid: self.issueid = issueid
-        if comicid: self.comicid = comicid
+        if issueid:
+            self.issueid = issueid
+        else:
+            self.issueid = None
+        if comicid:
+            self.comicid = comicid
+        else:
+            self.comicid = None
+
         self.prov = prov
         if queue: self.queue = queue
         self.valreturn = []
@@ -187,7 +194,10 @@ class FailedProcessor(object):
                    "NZBName":  nzbname}
         Vals = {"Status":       'Failed',
                 "ComicName":    issuenzb['ComicName'],
-                "Issue_Number": issuenzb['Issue_Number']}
+                "Issue_Number": issuenzb['Issue_Number'],
+                "IssueID":      issueid,
+                "ComicID":      comicid,
+                "DateFailed":   helpers.now()}
         myDB.upsert("failed", Vals, ctrlVal)
 
         logger.info(module + ' Successfully marked as Failed.')
@@ -280,7 +290,10 @@ class FailedProcessor(object):
                    "NZBName":  self.nzb_name}
         Vals = {"Status":       'Failed',
                 "ComicName":    issuenzb['ComicName'],
-                "Issue_Number": issuenzb['Issue_Number']}
+                "Issue_Number": issuenzb['Issue_Number'],
+                "IssueID":      self.issueid,
+                "ComicID":      self.comicid,
+                "DateFailed":   helpers.now()}
         myDB.upsert("failed", Vals, ctrlVal)
 
         logger.info(module + ' Successfully marked as Failed.')

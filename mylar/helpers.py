@@ -1636,9 +1636,14 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
             logger.info('[DUPECHECK] Unable to find corresponding Issue within the DB. Do you still have the series on your watchlist?')
             return
 
+    #if it's a retry and the file was already snatched, the status is Snatched and won't hit the dupecheck.
     if dupchk['Status'] == 'Downloaded' or dupchk['Status'] == 'Archived':
+        try:
+            dupsize = dupchk['ComicSize']
+        except:
+            logger.info('[DUPECHECK] Duplication detection returned no hits as this is a new Snatch. This is not a duplicate.')
+            rtnval = "write"            
         logger.info('[DUPECHECK] Existing Status already set to ' + dupchk['Status'])
-        dupsize = dupchk['ComicSize']
         cid = []
         if dupsize is None:
             logger.info('[DUPECHECK] Existing filesize is 0 bytes as I cannot locate the orginal entry - it is probably archived.')

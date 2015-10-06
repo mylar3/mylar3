@@ -130,11 +130,12 @@ def pullit(forcecheck=None):
     newrl = mylar.CACHE_DIR + "/newreleases.txt"
 
     if mylar.ALT_PULL:
-        logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
-        newpull.newpull()
-    else:
-        logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
-        f = urllib.urlretrieve(PULLURL, newrl)
+        logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.') 
+        #logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
+        #newpull.newpull()
+    #else:
+    logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
+    f = urllib.urlretrieve(PULLURL, newrl)
 
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
@@ -362,13 +363,13 @@ def pullit(forcecheck=None):
                         dupefound = "no"
 
                 #-- remove html tags when alt_pull is enabled
-                if mylar.ALT_PULL:
-                    if '&amp;' in comicnm:
-                        comicnm = re.sub('&amp;', '&', comicnm).strip()
-                    if '&amp;' in pub:
-                        pub = re.sub('&amp;', '&', pub).strip()
-                    if '&amp;' in comicrm:
-                        comicrm = re.sub('&amp;', '&', comicrm).strip()
+                #if mylar.ALT_PULL:
+                #    if '&amp;' in comicnm:
+                #        comicnm = re.sub('&amp;', '&', comicnm).strip()
+                #    if '&amp;' in pub:
+                #        pub = re.sub('&amp;', '&', pub).strip()
+                #    if '&amp;' in comicrm:
+                #        comicrm = re.sub('&amp;', '&', comicrm).strip()
 
                 #--start duplicate comic / issue chk
                 # pullist has shortforms of a series' title sometimes and causes problems
@@ -399,18 +400,8 @@ def pullit(forcecheck=None):
     logger.info(u"Populating the NEW Weekly Pull list into Mylar.")
     newtxtfile.close()
 
-    #mylardb = os.path.join(mylar.DATA_DIR, "mylar.db")
-
-    #connection = sqlite3.connect(str(mylardb))
-    #cursor = connection.cursor()
-
-    #cursor.execute('drop table if exists weekly;')
     myDB.action("drop table if exists weekly")
     myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text)")
-
-    #cursor.execute("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text);")
-    #connection.commit()
-
 
     csvfile = open(newfl, "rb")
     creader = csv.reader(csvfile, delimiter='\t')
@@ -420,7 +411,6 @@ def pullit(forcecheck=None):
         if "MERCHANDISE" in row: break
         if "MAGAZINES" in row: break
         if "BOOK" in row: break
-        #print (row)
         try:
             logger.debug("Row: %s" % row)
             controlValueDict = {'COMIC': row[3],
@@ -431,14 +421,11 @@ def pullit(forcecheck=None):
                             'STATUS': row[5],
                             'COMICID': None}
             myDB.upsert("weekly", newValueDict, controlValueDict)
-            #cursor.execute("INSERT INTO weekly VALUES (?,?,?,?,?,?,null);", row)
         except Exception, e:
             #print ("Error - invald arguments...-skipping")
             pass
         t+=1
     csvfile.close()
-    #connection.commit()
-    #connection.close()
     logger.info(u"Weekly Pull List successfully loaded.")
     #let's delete the files
     pullpath = str(mylar.CACHE_DIR) + "/"

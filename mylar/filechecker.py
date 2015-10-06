@@ -167,6 +167,47 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
         decimalinseries = 'False'
         bracketsinseries = 'False'
 
+        #iniitate the alternate list here so we can add in the different alternate search names (if present)
+        AS_Alt = []
+
+        AS_Tuple = []
+        if AlternateSearch is not None:
+            chkthealt = AlternateSearch.split('##')
+            if chkthealt == 0:
+                AS_Alternate = AlternateSearch
+            for calt in chkthealt:
+                AS_tupled = False
+                AS_Alternate = re.sub('##', '', calt)
+                if '!!' in AS_Alternate:
+                    # if it's !! present, it's the comicid associated with the series as an added annual.
+                    # extract the !!, store it and then remove it so things will continue.
+                    as_start = AS_Alternate.find('!!')
+                    logger.fdebug('as_start: ' + str(as_start) + ' --- ' + str(AS_Alternate[as_start:]))
+                    as_end = AS_Alternate.find('##', as_start)
+                    if as_end == -1: as_end = len(AS_Alternate)
+                    logger.fdebug('as_start: ' + str(as_end) + ' --- ' + str(AS_Alternate[as_start:as_end]))
+                    AS_ComicID =  AS_Alternate[as_start +2:as_end]
+                    logger.fdebug('[FILECHECKER] Extracted comicid for given annual : ' + str(AS_ComicID))
+                    AS_Alternate = re.sub('!!' + str(AS_ComicID), '', AS_Alternate)
+                    AS_tupled = True
+                #same = encode.
+                u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
+                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\!\$\%\+\?\@]', ' ', u_altsearchcomic)
+                altsearchcomic = re.sub('[\-\']', '', altsearchcomic)  #because this is a watchcomic registered, use same algorithim for watchcomic
+                altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
+                #if detectthe_sub == True:
+                altsearchcomic = re.sub("\\bthe\\b", "", altsearchcomic.lower())
+                altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()
+
+                if AS_tupled:
+                    AS_Tuple.append({"ComicID":      AS_ComicID,
+                                     "AS_Alternate": altsearchcomic})
+                AS_Alt.append(altsearchcomic)
+        else:
+            #create random characters so it will never match.
+            altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
+            AS_Alt.append(altsearchcomic)
+
         for i in watchcomic.split():
             if i.isdigit():
                 numberinseries = 'True'
@@ -204,9 +245,6 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
         logger.fdebug('[FILECHECKER] numberinseries: ' + str(numberinseries))
         logger.fdebug('[FILECHECKER] decimalinseries: ' + str(decimalinseries))
         logger.fdebug('[FILECHECKER] bracketinseries: ' + str(bracketsinseries))
-
-        #iniitate the alternate list here so we can add in the different flavours based on above
-        AS_Alt = []
 
         #remove the brackets..
         if bracketsinseries == 'True':
@@ -311,9 +349,26 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 subthis = re.sub('\s+', ' ', subthis)
                 logger.fdebug('[FILECHECKER] sub-cleaned: ' + subthis)
                 #we need to make sure the file is part of the correct series or else will match falsely
-                if watchname.lower() not in subthis.lower():
+                if watchname.lower() not in subthis.lower() and not any(x.lower() in subthis.lower() for x in AS_Alt):
                     logger.fdebug('[FILECHECKER] ' + watchname + ' this is a false match to ' + subthis + ' - Ignoring this result.')
                     continue
+                else:
+                    loopchk = [x for x in AS_Alt if x.lower() in subthis.lower()]
+                    if len(loopchk) > 0 and loopchk[0] != '':
+                        logger.fdebug('[FILECHECKER] This should be an alternate: ' + str(loopchk))
+                    else:
+                        loopchk = []
+
+                    for loopit in loopchk:
+                        modwatchcomic = loopit
+                        logger.fdebug('[FILECHECKER] AS_Tuple : ' + str(AS_Tuple))
+                        for ATS in AS_Tuple:
+                            logger.fdebug('[FILECHECKER] ' + str(ATS['AS_Alternate']) + ' comparing to ' + subthis[:len(ATS['AS_Alternate'])]) #str(modwatchcomic))
+                            if ATS['AS_Alternate'].lower().strip() == subthis[:len(ATS['AS_Alternate'])].lower().strip(): #modwatchcomic
+                                logger.fdebug('[FILECHECKER] Alternating to Alternate Name for parsing comparisons : ' + str(ATS['AS_Alternate']))
+                                watchname = ATS['AS_Alternate']
+                                break
+
                 subthis = subthis[len(watchname):].strip()  #remove watchcomic
                 #we need to now check the remainder of the string for digits assuming it's a possible year
                 logger.fdebug('[FILECHECKER] new subname: ' + subthis)
@@ -528,46 +583,6 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
             detectthe_sub = True
         subname = re.sub('\s+', ' ', subname).strip()
 
-        #AS_Alt = []
-        AS_Tuple = []
-        if AlternateSearch is not None:
-            chkthealt = AlternateSearch.split('##')
-            if chkthealt == 0:
-                AS_Alternate = AlternateSearch
-            for calt in chkthealt:
-                AS_tupled = False
-                AS_Alternate = re.sub('##', '', calt)
-                if '!!' in AS_Alternate:
-                    # if it's !! present, it's the comicid associated with the series as an added annual.
-                    # extract the !!, store it and then remove it so things will continue.
-                    as_start = AS_Alternate.find('!!')
-                    logger.fdebug('as_start: ' + str(as_start) + ' --- ' + str(AS_Alternate[as_start:]))
-                    as_end = AS_Alternate.find('##', as_start)
-                    if as_end == -1: as_end = len(AS_Alternate)
-                    logger.fdebug('as_start: ' + str(as_end) + ' --- ' + str(AS_Alternate[as_start:as_end]))
-                    AS_ComicID =  AS_Alternate[as_start +2:as_end]
-                    logger.fdebug('[FILECHECKER] Extracted comicid for given annual : ' + str(AS_ComicID))
-                    AS_Alternate = re.sub('!!' + str(AS_ComicID), '', AS_Alternate)
-                    AS_tupled = True
-                #same = encode.
-                u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
-                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\!\$\%\+\?\@]', ' ', u_altsearchcomic)
-                altsearchcomic = re.sub('[\-\']', '', altsearchcomic)  #because this is a watchcomic registered, use same algorithim for watchcomic
-                altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
-                if detectthe_sub == True:
-                    altsearchcomic = re.sub("\\bthe\\b", "", altsearchcomic.lower())
-                altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()
-
-                if AS_tupled:
-                    AS_Tuple.append({"ComicID":      AS_ComicID,
-                                     "AS_Alternate": altsearchcomic})
-                AS_Alt.append(altsearchcomic)
-        else:
-            #create random characters so it will never match.
-            altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
-            AS_Alt.append(altsearchcomic)
-        #if '_' in subname:
-        #    subname = subname.replace('_', ' ')
         logger.fdebug('[FILECHECKER] AS_Alt : ' + str(AS_Alt))
         logger.fdebug('[FILECHECKER] watchcomic:' + modwatchcomic + ' ..comparing to found file: ' + subname)
         if modwatchcomic.lower() in subname.lower() or any(x.lower() in subname.lower() for x in AS_Alt):
@@ -702,12 +717,20 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 logger.fdebug('[FILECHECKER] after title removed from SUBNAME [' + justthedigits_1 + ']')
                 exceptionmatch = [x for x in issue_exceptions if x.lower() in justthedigits_1.lower()]
                 if exceptionmatch:
+                    logger.fdebug('[FILECHECKER] We matched on : ' + str(exceptionmatch))
                     for x in exceptionmatch:
                         findst = justthedigits_1.find(x)
+                        logger.fdebug('[FILECHECKER] findst : ' + str(findst))
                         if re.sub(' ','', justthedigits_1[findst-1]).isdigit() or re.sub(' ', '', justthedigits_1[findst:findst+1]).isdigit():
                             logger.fdebug('[FILECHECKER] Remapping to accomodate ' + str(x))
                             digitchk = 0
                             break
+                        else:
+                            #if it's seperated by a '.', it gets stripped out above and the result leaves a space which doesn't hit above.
+                            if (' ' in justthedigits_1 and justthedigits_1[findst-1] == ' ') and (re.sub(' ','', justthedigits_1[findst-2]).isdigit() or re.sub(' ', '', justthedigits_1[findst:findst+1]).isdigit()):
+                                logger.fdebug('[FILECHECKER] Remapping to accomodate the placeholder seperating the issue number.')
+                                digitchk = 0
+                                break
                 titlechk = False
 
                 if digitchk:
