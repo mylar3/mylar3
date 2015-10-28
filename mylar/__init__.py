@@ -1046,7 +1046,7 @@ def initialize():
                 logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
         #set the default URL for ComicVine API here.
-        CVURL = 'http://api.comicvine.com/'
+        CVURL = 'http://www.comicvine.com/api/'
 
         if LOCMOVE:
             helpers.updateComicLocation()
