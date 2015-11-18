@@ -490,7 +490,7 @@
 
         <form action="markannuals" method="get" id="markannuals">
         <div id="markannuals">Mark selected annuals as
-                <select name="ann_action" form="markannuals" onChange="doAjaxCall('markannuals',$(this),'table',true);" data-success="selected issues marked">
+                <select name="action" form="markannuals" onChange="doAjaxCall('markannuals',$(this),'table',true);" data-success="selected issues marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
@@ -516,7 +516,7 @@
            -->
                    <thead>
                         <tr>
-                                <th id="ann_action" align="left"><input type="checkbox" onClick="toggle(this)" class="checkbox" /></th>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" name="annuals" class="checkbox" /></th>
                                 <th id="aint_issuenumber">Int_IssNumber</th>
                                 <th id="aissuenumber">Number</th>
                                 <th id="aissuename">Name</th>
@@ -548,7 +548,7 @@
                                         agrade = 'A'
                         %>
                         <tr class="${annual['Status']} grade${agrade}">
-                                <td id="ann_action"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
+                                <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
                                 <% 
                                     if annual['Int_IssueNumber'] is None:
                                         annual_Number = annual['Int_IssueNumber']

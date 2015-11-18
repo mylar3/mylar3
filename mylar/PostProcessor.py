@@ -621,15 +621,17 @@ class PostProcessor(object):
                             logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
 
                             #delete entry from nzblog table
-                            IssArcID = 'S' + str(ml['IssueArcID'])
-                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,ml['StoryArc']])
+                            if 'S' in sandwich:
+                                IssArcID = 'S' + str(ml['IssueArcID'])
+                                myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,ml['StoryArc']])
 
-                            logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
-                            ctrlVal = {"IssueArcID":  ml['IssueArcID']}
-                            newVal = {"Status":       "Downloaded",
-                                      "Location":     grab_dst}
-                            logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
-                            myDB.upsert("readinglist", newVal, ctrlVal)
+                                logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
+                                ctrlVal = {"IssueArcID":  ml['IssueArcID']}
+                                newVal = {"Status":       "Downloaded",
+                                          "Location":     grab_dst}
+                                logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                                myDB.upsert("readinglist", newVal, ctrlVal)
+
                             logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
             else:
@@ -708,6 +710,14 @@ class PostProcessor(object):
                             sandwich = issueid
                         elif 'G' in issueid or '-' in issueid:
                             sandwich = 1
+                        elif issueid == '1':
+                            logger.info(module + ' [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.')
+                            sandwich = None #arbitrarily set it to None just to force one-off downloading below.
+                        else:
+                            logger.error(module + ' Download not detected as being initiated via Mylar. Unable to continue post-processing said item. Either download the issue with Mylar, or use manual post-processing to post-process.')
+                            self.valreturn.append({"self.log": self.log,
+                                                   "mode": 'stop'})
+                            return self.queue.put(self.valreturn)                            
                     else:
                         logger.info(module + ' Successfully located issue as an annual. Continuing.')
                         annchk = "yes"
@@ -724,7 +734,7 @@ class PostProcessor(object):
 #                        sandwich = issueid
 #                    elif 'G' in issueid or '-' in issueid:
 #                        sandwich = 1
-                if helpers.is_number(sandwich):
+                if sandwich is not None and helpers.is_number(sandwich):
                     if sandwich < 900000:
                         # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
                         pass
@@ -732,7 +742,7 @@ class PostProcessor(object):
                     if issuenzb is None or 'S' in sandwich or int(sandwich) >= 900000:
                         # this has no issueID, therefore it's a one-off or a manual post-proc.
                         # At this point, let's just drop it into the Comic Location folder and forget about it..
-                        if 'S' in sandwich:
+                        if sandwich is not None and 'S' in sandwich:
                             self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
                             logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
                             arcdir = helpers.filesafe(sarc)
@@ -770,11 +780,12 @@ class PostProcessor(object):
                         if odir is None:
                             odir = self.nzb_folder
 
-                        issuearcid = re.sub('S', '', issueid)
-                        logger.fdebug(module + ' issuearcid:' + str(issuearcid))
-                        arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+                        if sandwich is not None and 'S' in sandwich:
+                            issuearcid = re.sub('S', '', issueid)
+                            logger.fdebug(module + ' issuearcid:' + str(issuearcid))
+                            arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
 
-                        issueid = arcdata['IssueID']
+                            issueid = arcdata['IssueID']
                         #tag the meta.
                         if mylar.ENABLE_META:
                             self._log("Metatagging enabled - proceeding...")
@@ -795,7 +806,7 @@ class PostProcessor(object):
                                 logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                 self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
-                        if 'S' in sandwich:
+                        if sandwich is not None and 'S' in sandwich:
                             if mylar.STORYARCDIR:
                                 grdst = storyarcd
                             else:
@@ -808,7 +819,7 @@ class PostProcessor(object):
 
                         filechecker.validateAndCreateDirectory(grdst, True, module=module)
 
-                        if 'S' in sandwich:
+                        if sandwich is not None and 'S' in sandwich:
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.READ2FILENAME:
                                 logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
@@ -850,7 +861,7 @@ class PostProcessor(object):
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
-                        if 'S' in issueid:
+                        if sandwich is not None and 'S' in sandwich:
                             #issuearcid = re.sub('S', '', issueid)
                             logger.info(module + ' IssueArcID is : ' + str(issuearcid))
                             ctrlVal = {"IssueArcID":  issuearcid}
@@ -861,8 +872,8 @@ class PostProcessor(object):
                             logger.info('wrote.')
                             logger.info(module + ' Updated status to Downloaded')
 
-                        logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
-                        self._log(u"Post Processing SUCCESSFUL! ")
+                            logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
+                            self._log(u"Post Processing SUCCESSFUL! ")
 
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
@@ -972,6 +983,19 @@ class PostProcessor(object):
             elif u'\u221e' in issuenum:
                 #issnum = utf-8 will encode the infinity symbol without any help
                 issuenum = 'infinity'
+            else:
+                issue_exceptions = ['A',
+                                    'B',
+                                    'C',
+                                    'X',
+                                    'O']
+
+                exceptionmatch = [x for x in issue_exceptions if x.lower() in issuenum.lower()]
+                if exceptionmatch:
+                    logger.fdebug('[FILECHECKER] We matched on : ' + str(exceptionmatch))
+                    for x in exceptionmatch:
+                        issuenum = re.sub("[^0-9]", "", issuenum)
+                        issue_except = x
 
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
@@ -1007,11 +1031,11 @@ class PostProcessor(object):
                 elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
             logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
-
             if str(len(issueno)) > 1:
                 if issueno.isalpha():
                     self._log('issue detected as an alpha.')
                     prettycomiss = str(issueno)
+
                 elif int(issueno) < 0:
                     self._log("issue detected is a negative")
                     prettycomiss = '-' + str(zeroadd) + str(abs(issueno))

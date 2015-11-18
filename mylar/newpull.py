@@ -12,6 +12,7 @@ import unicodedata
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
+import lib.requests as requests
 
 import mylar
 from mylar import logger
@@ -19,9 +20,15 @@ from mylar import logger
 def newpull():
         pagelinks = "http://www.previewsworld.com/Home/1/1/71/952"
 
-        pageresponse = urllib2.urlopen (pagelinks)
-        soup = BeautifulSoup (pageresponse)
+        try:
+            r = requests.get(pagelinks, verify=False)
+
+        except Exception, e:
+            logger.warn('Error fetching data: %s' % (tmpprov, e))
+
+        soup = BeautifulSoup(r.content)
         getthedate = soup.findAll("div", {"class": "Headline"})[0]
+
         #the date will be in the FIRST ahref
         try:
             getdate_link = getthedate('a')[0]
@@ -42,52 +49,52 @@ def newpull():
         endthis = False
         pull_list = []
 
-        publishers = {'914': 'DARK HORSE COMICS', '915': 'DC COMICS', '916': 'IDW PUBLISHING', '917': 'IMAGE COMICS', '918': 'MARVEL COMICS', '952': 'COMICS & GRAPHIC NOVELS'}
+        publishers = {'PREVIEWS PUBLICATIONS', 'DARK HORSE COMICS', 'DC COMICS', 'IDW PUBLISHING', 'IMAGE COMICS', 'MARVEL COMICS', 'COMICS & GRAPHIC NOVELS'}
+        isspublisher = None
 
         while (x < lenlinks):
             headt = cntlinks[x] #iterate through the hrefs pulling out only results.
-            if 'STK669382' in str(headt):
-                x+=1
-                continue
-            elif '?stockItemID=' in str(headt):
-                #914 - Dark Horse Comics
-                #915 - DC Comics
-                #916 - IDW Publishing
-                #917 - Image Comics
-                #918 - Marvel Comics
-                #952 - Comics & Graphic Novels
-                #    - Magazines
-                findurl_link = headt.findAll('a', href=True)[0]
-                urlID = findurl_link.findNext(text=True)
-                issue_link = findurl_link['href']
-                issue_lk = issue_link.find('?stockItemID=')
-                if issue_lk == -1:
-                    continue
-                #headName = headt.findNext(text=True)
-                publisher_id = issue_link[issue_lk -3:issue_lk]
-                for pub in publishers:
-                    if pub == publisher_id:
-                        isspublisher = publishers[pub]
-                        #logger.fdebug('publisher:' + str(isspublisher))
-                        found_iss = headt.findAll('td')
-                        if "Home/1/1/71/920" in issue_link:
-                            #logger.fdebug('Ignoring - menu option.')
-                            return
-                        if "PREVIEWS" in headt:
-                            #logger.fdebug('Ignoring: ' + found_iss[0])
-                            break
-                        if "MAGAZINES" in headt:
-                            #logger.fdebug('End.')
-                            endthis = True
-                            break
-                        if len(found_iss) > 0:
-                            pull_list.append({"iss_url":   found_iss[0],
-                                              "name":      found_iss[1].findNext(text=True),
-                                              "price":     found_iss[2],
-                                              "publisher": isspublisher,
-                                              "ID": urlID})
+            found_iss = headt.findAll('td')
+            pubcheck = found_iss[0].text.strip() #.findNext(text=True)
+            for pub in publishers:
+                if pub in pubcheck:
+                    chklink = found_iss[0].findAll('a', href=True)  #make sure it doesn't have a link in it.
+                    if not chklink:
+                        isspublisher = pub
+                        break
+                    
+            if isspublisher == 'PREVIEWS PUBLICATIONS' or isspublisher is None:
+                pass
 
-                if endthis == True: break
+            else:
+                if '/Catalog/' in str(headt):
+                    findurl_link = headt.findAll('a', href=True)[0]
+                    urlID = findurl_link.findNext(text=True)
+                    issue_link = findurl_link['href']
+                    issue_lk = issue_link.find('/Catalog/')
+                    if issue_lk == -1:
+                        x+=1
+                        continue
+                    elif "Home/1/1/71" in issue_link:
+                        #logger.fdebug('Ignoring - menu option.')
+                        x+=1
+                        continue
+
+                    if len(found_iss) > 0:
+                        pull_list.append({"iss_url":   issue_link,
+                                          "name":      found_iss[1].findNext(text=True),
+                                          "price":     found_iss[2],
+                                          "publisher": isspublisher,
+                                          "ID": urlID})
+
+                if "PREVIEWS" in headt:
+                    #logger.fdebug('Ignoring: ' + found_iss[0])
+                    break
+                if "MAGAZINES" in headt:
+                    #logger.fdebug('End.')
+                    endthis = True
+                    break
+
             x+=1
 
         logger.fdebug('Saving new pull-list information into local file for subsequent merge')

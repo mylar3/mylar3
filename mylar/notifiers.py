@@ -167,7 +167,7 @@ class PUSHOVER:
                 'title': event,
                 'priority': mylar.PUSHOVER_PRIORITY}
 
-        r = self._session.post(self.PUSHOVER_URL, data=data)
+        r = self._session.post(self.PUSHOVER_URL, data=data, verify=True)
 
         if r.status_code == 200:
             logger.info(module + ' PushOver notifications sent.')

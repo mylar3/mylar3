@@ -75,7 +75,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     elif type == 'comicyears':
         PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher&offset=' + str(offset)
 
-    #logger.info('PULLURL: ' + PULLURL)
+    #logger.info('CV.PULLURL: ' + PULLURL)
     #CV API Check here.
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         chkit = cvapi_check()
@@ -128,7 +128,7 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
             return False
         countResults = 0
         while (countResults < int(totalResults)):
-            logger.fdebug("querying " + str(countResults))
+            logger.fdebug("querying range from " + str(countResults) + " to " + str(countResults + 100))
             if countResults > 0:
                 #new api - have to change to page # instead of offset count
                 offsetcount = countResults
@@ -144,7 +144,6 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
 
         issue['issuechoice'] = ndic
         issue['firstdate'] = firstdate
-
         return issue
 
     elif type == 'comic':

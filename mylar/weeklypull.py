@@ -130,12 +130,12 @@ def pullit(forcecheck=None):
     newrl = mylar.CACHE_DIR + "/newreleases.txt"
 
     if mylar.ALT_PULL:
-        logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.') 
-        #logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
-        #newpull.newpull()
-    #else:
-    logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
-    f = urllib.urlretrieve(PULLURL, newrl)
+        #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.') 
+        logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
+        newpull.newpull()
+    else:
+        logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
+        f = urllib.urlretrieve(PULLURL, newrl)
 
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
@@ -363,13 +363,13 @@ def pullit(forcecheck=None):
                         dupefound = "no"
 
                 #-- remove html tags when alt_pull is enabled
-                #if mylar.ALT_PULL:
-                #    if '&amp;' in comicnm:
-                #        comicnm = re.sub('&amp;', '&', comicnm).strip()
-                #    if '&amp;' in pub:
-                #        pub = re.sub('&amp;', '&', pub).strip()
-                #    if '&amp;' in comicrm:
-                #        comicrm = re.sub('&amp;', '&', comicrm).strip()
+                if mylar.ALT_PULL:
+                    if '&amp;' in comicnm:
+                        comicnm = re.sub('&amp;', '&', comicnm).strip()
+                    if '&amp;' in pub:
+                        pub = re.sub('&amp;', '&', pub).strip()
+                    if '&amp;' in comicrm:
+                        comicrm = re.sub('&amp;', '&', comicrm).strip()
 
                 #--start duplicate comic / issue chk
                 # pullist has shortforms of a series' title sometimes and causes problems
@@ -660,6 +660,21 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                 logger.fdebug("comicnm : " + str(comicnm) + " / mod :" + str(modcomicnm))
 
                                 if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
+                                    if mylar.ANNUALS_ON:
+                                        if 'annual' in watchcomic.lower() and 'annual' not in comicnm.lower():
+                                            logger.fdebug('Annual detected in issue, but annuals are not enabled and no series match in wachlist.')
+                                            break
+                                        else:
+                                            #(annual in comicnm & in watchcomic) or (annual in comicnm & not in watchcomic)(with annuals on) = match.
+                                            pass
+                                    else:
+                                        #annuals off
+                                        if ('annual' in comicnm.lower() and 'annual' not in watchcomic.lower()) or ('annual' in watchcomic.lower() and 'annual' not in comicnm.lower()):
+                                            logger.fdebug('Annual detected in issue, but annuals are not enabled and no series match in wachlist.')
+                                            break
+                                        else:
+                                            #annual in comicnm & in watchcomic (with annuals off) = match.
+                                            pass
                                     logger.fdebug("matched on:" + comicnm + "..." + watchcomic.upper())
                                     watchcomic = unlines[cnt]
                                     pass
@@ -1050,8 +1065,19 @@ def future_check():
             logger.fdebug('Publisher of series to be added: ' + str(ser['Publisher']))
             for sr in searchresults:
                 logger.fdebug('Comparing ' + sr['name'] + ' - to - ' + ser['ComicName'])
-                tmpsername = re.sub('[\'\*\^\%\$\#\@\!\-\/\,\.\:\(\)]', '', ser['ComicName']).strip()
-                tmpsrname = re.sub('[\'\*\^\%\$\#\@\!\-\/\,\.\:\(\)]', '', sr['name']).strip()
+                tmpsername = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', ser['ComicName']).strip()
+                tmpsrname = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', sr['name']).strip()
+                tmpsername = re.sub('\-', ' ', tmpsername)
+                if tmpsername.lower().startswith('the '):
+                    tmpsername = re.sub('the ', ' ', tmpsername.lower()).strip()
+                else:
+                    tmpsername = re.sub(' the ', ' ', tmpsername.lower()).strip()
+                tmpsrname = re.sub('\-', ' ', tmpsrname)
+                if tmpsrname.lower().startswith('the '):
+                    tmpsrname = re.sub('the ', ' ', tmpsrname.lower()).strip()
+                else:
+                    tmpsrname = re.sub(' the ', ' ', tmpsrname.lower()).strip()
+                logger.fdebug('Comparing ' + tmpsrname + ' - to - ' + tmpsername)
                 if tmpsername.lower() == tmpsrname.lower():
                     logger.info('Name matched successful: ' + sr['name'])
                     if str(sr['comicyear']) == str(theissdate):

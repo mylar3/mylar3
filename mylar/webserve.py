@@ -969,7 +969,8 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID]):
+            logger.info(IssueID)
+            if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID, 'issues' in IssueID, 'annuals' in IssueID]):
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
@@ -1956,14 +1957,21 @@ class WebInterface(object):
     def markImports(self, action=None, **args):
         myDB = db.DBConnection()
         comicstoimport = []
-        for ComicName in args:
-           if action == 'massimport':
-               logger.info("initiating mass import mode for " + ComicName)
-               cid = ComicName.decode('utf-8', 'replace')
-               comicstoimport.append(cid)
-           elif action == 'removeimport':
-               logger.info("removing " + ComicName + " from the Import list")
-               myDB.action('DELETE from importresults WHERE ComicName=?', [ComicName])
+        if action == 'massimport':
+            logger.info('initiating mass import.')
+            cnames = myDB.select("SELECT ComicName from importresults WHERE Status='Not Imported' GROUP BY ComicName")
+            for cname in cnames:
+                comicstoimport.append(cname['ComicName'].decode('utf-8', 'replace'))
+            logger.info(str(len(comicstoimport)) + ' series will be attempted to be imported.')
+        else:
+            for ComicName in args:
+               if action == 'importselected':
+                   logger.info("initiating mass import mode for " + ComicName)
+                   cid = ComicName.decode('utf-8', 'replace')
+                   comicstoimport.append(cid)
+               elif action == 'removeimport':
+                   logger.info("removing " + ComicName + " from the Import list")
+                   myDB.action('DELETE from importresults WHERE ComicName=?', [ComicName])
 
         if len(comicstoimport) > 0:
             logger.debug("Mass importing the following series: %s" % comicstoimport)
@@ -2571,6 +2579,10 @@ class WebInterface(object):
 
     ArcWatchlist.exposed = True
 
+    def SearchArcIssues(self, **kwargs):
+        threading.Thread(target=self.ReadGetWanted, kwargs=kwargs).start()
+    SearchArcIssues.exposed = True
+
     def ReadGetWanted(self, StoryArcID):
         # this will queue up (ie. make 'Wanted') issues in a given Story Arc that are 'Not Watched'
         #print StoryArcID
@@ -3099,6 +3111,8 @@ class WebInterface(object):
 
                 mode='series'
                 displaycomic = helpers.filesafe(ComicName)
+                displaycomic = re.sub('[\-]','', displaycomic).strip()
+                displaycomic = re.sub('\s+', ' ', displaycomic).strip()
                 logger.fdebug('displaycomic : ' + displaycomic)
                 logger.fdebug('comicname : ' + ComicName)
                 if yearRANGE is None:

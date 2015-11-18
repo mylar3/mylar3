@@ -1343,7 +1343,7 @@ def IssueDetails(filelocation, IssueID=None):
                local_file.write(inzipfile.read(infile))
                local_file.close
                cover = "found"
-            elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensiosn):
+            elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensions):
                logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
                altlist = ('00a', '00b', '00c', '00d', '00e')
                for alt in altlist:
@@ -1830,10 +1830,15 @@ def parse_32pfeed(rssfeedline):
 #        return True
 #    elif mylar.FILE_OPS ==  'softlink':
 #        try:
-#            os.symlink( path,dst )
-#        except:
-#            print 'Unable to create symlink.'
-#            return False
+#            os.symlink( path, dst )
+#        except OSError, e:
+#            if e.errno == errno.EEXIST:
+#                os.remove(dst)
+#                os.symlink( path, dst )
+#            else:
+#                raise e
+#                print 'Unable to create symlink.'
+#                return False
 #        return True
 #    else:
 #        return False

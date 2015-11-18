@@ -35,7 +35,7 @@ import datetime
 class FailedProcessor(object):
     """ Handles Failed downloads that are passed from SABnzbd thus far """
 
-    def __init__(self, nzb_name=None, nzb_folder=None, id=None, issueid=None, comicid=None, prov=None, queue=None):
+    def __init__(self, nzb_name=None, nzb_folder=None, id=None, issueid=None, comicid=None, prov=None, queue=None, oneoffinfo=None):
         """
         nzb_name : Full name of the nzb file that has returned as a fail.
         nzb_folder: Full path to the folder of the failed download.
@@ -55,6 +55,11 @@ class FailedProcessor(object):
             self.comicid = comicid
         else:
             self.comicid = None
+
+        if oneoffinfo:
+            self.oneoffinfo = oneoffinfo
+        else:
+            self.oneoffinfo = None
 
         self.prov = prov
         if queue: self.queue = queue
@@ -273,24 +278,31 @@ class FailedProcessor(object):
         logger.fdebug(module + 'nzb_id: ' + str(self.id))
         logger.fdebug(module + 'prov: ' + self.prov)
 
-        if 'annual' in self.nzb_name.lower():
-            logger.info(module + ' Annual detected.')
-            annchk = "yes"
-            issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
+        logger.fdebug('oneoffinfo: ' + str(self.oneoffinfo))
+        if self.oneoffinfo:
+            ComicName = self.oneoffinfo['ComicName']
+            IssueNumber = self.oneoffinfo['IssueNumber']
+
         else:
-            issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
+            if 'annual' in self.nzb_name.lower():
+                logger.info(module + ' Annual detected.')
+                annchk = "yes"
+                issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
+            else:
+                issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [self.issueid]).fetchone()
 
-
-        ctrlVal = {"IssueID": self.issueid}
-        Vals = {"Status":    'Failed'}
-        myDB.upsert("issues", Vals, ctrlVal)
+            ctrlVal = {"IssueID": self.issueid}
+            Vals = {"Status":    'Failed'}
+            myDB.upsert("issues", Vals, ctrlVal)
+            ComicName = issuenzb['ComicName']
+            IssueNumber = issuenzb['Issue_Number']
 
         ctrlVal = {"ID":       self.id,
                    "Provider": self.prov,
                    "NZBName":  self.nzb_name}
         Vals = {"Status":       'Failed',
-                "ComicName":    issuenzb['ComicName'],
-                "Issue_Number": issuenzb['Issue_Number'],
+                "ComicName":    ComicName,
+                "Issue_Number": IssueNumber,
                 "IssueID":      self.issueid,
                 "ComicID":      self.comicid,
                 "DateFailed":   helpers.now()}

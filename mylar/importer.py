@@ -252,10 +252,14 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                             pass
                         else:
                             n = 0
-                            logger.fdebug('[IMPORTER-ANNUAL] - There are ' + str(sr['issues']) + ' annuals in this series.')
-                            while (n < int(sr['issues'])):
+                            if int(sr['issues']) == 0 and len(issued['issuechoice']) == 1:
+                                sr_issues = 1
+                            else:
+                                sr_issues = sr['issues']
+                            logger.fdebug('[IMPORTER-ANNUAL (MAIN)] - There are ' + str(sr_issues) + ' annuals in this series.')
+                            while (n < int(sr_issues)):
                                 try:
-                                   firstval = issued['issuechoice'][n]
+                                    firstval = issued['issuechoice'][n]
                                 except IndexError:
                                     break
                                 try:
@@ -1081,9 +1085,12 @@ def manualAnnual(manual_comicid, comicname, comicyear, comicid):
             return
         else:
             n = 0
-            noissues = sr['ComicIssues']
-            logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
             issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
+            if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
+                noissues = 1
+            else:
+                noissues = sr['ComicIssues']
+            logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
             if issued == 'apireached':
                 return 'apireached'
             while (n < int(noissues)):
@@ -1502,8 +1509,12 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                             pass
                         else:
                             n = 0
-                            logger.fdebug('[IMPORTER-ANNUAL] - There are ' + str(sr['issues']) + ' annuals in this series.')
-                            while (n < int(sr['issues'])):
+                            if int(sr['issues']) == 0 and len(issued['issuechoice']) == 1:
+                                sr_issues = 1
+                            else:
+                                sr_issues = sr['issues']
+                            logger.fdebug('[IMPORTER-ANNUAL] - There are ' + str(sr_issues) + ' annuals in this series.')
+                            while (n < int(sr_issues)):
                                 try:
                                    firstval = issued['issuechoice'][n]
                                 except IndexError:

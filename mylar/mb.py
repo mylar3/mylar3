@@ -61,7 +61,7 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
         PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
     #all these imports are standard on most modern python implementations
     #CV API Check here.
-    #logger.info('PULLURL:' + PULLURL)
+    #logger.info('MB.PULLURL:' + PULLURL)
     if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= mylar.CVAPI_MAX:
         chkit = cvapi_check()
         if chkit == False:
@@ -457,3 +457,4 @@ def storyarcinfo(xmlid):
             }
 
     return arcinfo
+

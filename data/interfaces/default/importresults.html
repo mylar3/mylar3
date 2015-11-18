@@ -8,6 +8,7 @@
 	<div id="subhead_container">
 		<div id="subhead_menu">
                       <a id="menu_link_refresh" onclick="doAjaxCall('flushImports', $(this),'table')" data-success="Import Results Flushed">Flush all Imports</a>
+                      <a id="menu_link_refresh" onclick="doAjaxCall('markImports?action=massimport', $(this),'table')" data-success="Successfully started Mass Import of Non-Imported items.">Mass Import</a>
 		</div>
 	</div>	
 </%def>
@@ -55,7 +56,7 @@
         <div id="markcomic">
                 <select name="action" onChange="doAjaxCall('markImports',$(this),'table',true);" data-error="You didn't select any comics">
                         <option disabled="disabled" selected="selected">Choose...</option>
-                        <option value="massimport">Start Import</option>
+                        <option value="importselected">Start Import</option>
                         <option value="removeimport">Remove</option>
                 </select>
                 <input type="hidden" value="Go">

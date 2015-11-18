@@ -174,7 +174,14 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
         if AlternateSearch is not None:
             chkthealt = AlternateSearch.split('##')
             if chkthealt == 0:
-                AS_Alternate = AlternateSearch
+                u_altsearchcomic = AS_Alternate.encode('ascii', 'ignore').strip()
+                altsearchcomic = re.sub('[\_\#\,\/\:\;\.\!\$\%\+\?\@]', ' ', u_altsearchcomic)
+                altsearchcomic = re.sub('[\-\']', '', altsearchcomic)  #because this is a watchcomic registered, use same algorithim for watchcomic
+                altsearchcomic = re.sub('\&', ' and ', altsearchcomic)
+                #if detectthe_sub == True:
+                altsearchcomic = re.sub("\\bthe\\b", "", altsearchcomic.lower())
+                altsearchcomic = re.sub('\s+', ' ', str(altsearchcomic)).strip()
+                AS_Alternate = altsearchcomic
             for calt in chkthealt:
                 AS_tupled = False
                 AS_Alternate = re.sub('##', '', calt)
@@ -211,7 +218,12 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
         for i in watchcomic.split():
             if i.isdigit():
                 numberinseries = 'True'
-
+            else:
+                digitstogether = re.sub("[^0-9]", "", i).strip()
+                if digitstogether.isdigit():
+                    logger.fdebug('[FILECHECKER] Detected digits attached to series title with no spacing.')
+                    numberinseries = 'True'
+                
             if ('20' in i or '19' in i):
                 if i.isdigit():
                     numberinseries = 'True'
@@ -241,6 +253,9 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 bracket_length = bracket_length_en - bracket_length_st
                 bracket_word = watchcomic[bracket_length_st:bracket_length_en +1]
                 logger.fdebug('[FILECHECKER] bracketinseries: ' + str(bracket_word))
+
+            if any([numberinseries, decimalinseries, bracketsinseries]):
+                break
 
         logger.fdebug('[FILECHECKER] numberinseries: ' + str(numberinseries))
         logger.fdebug('[FILECHECKER] decimalinseries: ' + str(decimalinseries))
@@ -1046,7 +1061,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                         else:
                             continue
 
-                    if 'annual' in subname.lower():
+                    if 'annual' in subname.lower() and mylar.ANNUALS_ON:
                         subname = re.sub('annual', '', subname.lower())
                         subname = re.sub('\s+', ' ', subname)
                         #if the sub has an annual, let's remove it from the modwatch as well
@@ -1100,13 +1115,14 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                     logger.fdebug('[FILECHECKER] sub_removed: ' + sub_removed)
                     split_sub = sub_removed.rsplit(' ', 1)[0].split(' ')  #removes last word (assuming it's the issue#)
                     split_mod = modwatchcomic.replace('_', ' ').split()   #batman
-                    i = 0
-                    newc = ''
-                    while (i < len(split_mod)):
-                        newc += split_sub[i] + ' '
-                        i+=1
-                    if newc:
-                        split_sub = newc.strip().split()
+                    #i = 0
+                    #newc = ''
+                    split_sub = ' '.join(split_sub).strip().split()
+                    #while (i < len(split_mod)):
+                    #    newc += ' ' + split_sub[i]
+                    #    i+=1
+                    #if newc:
+                    #    split_sub = newc.strip().split()
                     logger.fdebug('[FILECHECKER] split_sub: ' + str(split_sub))
                     logger.fdebug('[FILECHECKER] split_mod: ' + str(split_mod))
 

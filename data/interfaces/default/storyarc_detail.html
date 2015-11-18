@@ -13,8 +13,8 @@
                         %endif
 			<a id="menu_link_delete" href="#">Remove Read</a>
 			<a id="menu_link_delete" href="#">Clear File Cache</a>
-                        <a id="menu_link_refresh" onclick="doAjaxCall('ReadGetWanted?StoryArcID=${storyarcid}',$(this),'table')" data-success="Searching for Missing StoryArc Issues">Search for Missing</a>
-                        <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Searching for matches on Watchlist">Search for Watchlist matches</a> 
+                        <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist">Search for Watchlist matches</a> 
                         %if cvarcid:
                             <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a> 
                         %endif
@@ -64,7 +64,7 @@
                                 <th id="readingorder"></th>
                                 <th id="comicname">ComicName</th>
                                 <th id="issue">Issue</th>
-                                <th id="issueyear">Pub Year</th>
+                                <th id="issuedate">Pub Date</th>
 				<th id="status">Status</th>
 				<th id="action">Options</th>
 			</tr>
@@ -101,26 +101,26 @@
                                 <% 
                                     try:
                                         if item['IssueDate'] != '0000-00-00' and item['IssueDate'] is not None:
-                                            issueyear = item['IssueDate'][:4]
+                                            issuedate = item['IssueDate']
                                         else:
                                             if item['StoreDate'] != '0000-00-00' and item['StoreDate'] is not None:
-                                                issueyear = item['IssueDate'][:4]
+                                                issuedate = item['IssueDate']
                                             else:
                                                 # this is needed for imported cbl's
                                                 try:
-                                                    issueyear = item['issueYEAR']
+                                                    issuedate = item['issueYEAR']
                                                 except:
-                                                    issueyear = '0000'
+                                                    issuedate = '0000-00-00'
                                     except:
-                                        issueyear = '0000'
+                                        issuedate = '0000-00-00'
                                  %>
-                                <td id="issueyear">${issueyear}</td>
+                                <td id="issuedate">${issuedate}</td>
                                 <td id="status">${item['Status']}</td>
                                 <td id="action">
                                  %if item['Status'] is None or item['Status'] == None:
-                                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
+                                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab it</a>
                                  %elif item['Status'] == 'Snatched':
-                                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issueyear}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                                  %endif
                                 </td>
                          </tr>
@@ -135,7 +135,9 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
-    
+
+        <script src="js/libs/jquery.dataTables.rowReordering.js"></script>
+   
         <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
@@ -160,6 +162,10 @@
 			        "iDisplayLength": 25,
 			        "sPaginationType": "full_numbers",
 			        "aaSorting": []
+                        })
+                        .rowReordering({
+                                sURL: "orderThis",
+                                sRequestType: "GET"
                         });
 		        resetFilters("item");
 	}
