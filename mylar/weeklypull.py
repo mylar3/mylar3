@@ -1079,41 +1079,39 @@ def future_check():
                     tmpsrname = re.sub(' the ', ' ', tmpsrname.lower()).strip()
                 logger.fdebug('Comparing ' + tmpsrname + ' - to - ' + tmpsername)
                 if tmpsername.lower() == tmpsrname.lower():
-                    logger.info('Name matched successful: ' + sr['name'])
+                    logger.fdebug('Name matched successful: ' + sr['name'])
                     if str(sr['comicyear']) == str(theissdate):
-                        logger.info('Matched to : ' + str(theissdate))
+                        logger.fdebug('Matched to : ' + str(theissdate))
                         matches.append(sr)
             if len(matches) == 1:
                 logger.info('Narrowed down to one series as a direct match: ' + matches[0]['name'] + '[' + str(matches[0]['comicid']) + ']')
                 cid = matches[0]['comicid']
                 matched = True
             else:
-                for pos_match in matches:
-                    length_match = len(pos_match['name']) / len(ser['ComicName'])
-                    logger.fdebug('length match differential set for an allowance of 20%')
-                    logger.fdebug('actual differential in length between result and series title: ' + str((length_match * 100)-100) + '%')
-                    split_match = pos_match['name'].split()
-                    split_series = ser['ComicName'].split()
-                    word_match = 0
-                    i = 0
-                    for ss in split_series:
-                        try:
-                            matchword = split_match[i].lower()
-                        except:
-                            break
-                        if split_match.lower().index(ss) == split_series.lower().index(ss):
-                            #will return word position in string.
-                            logger.fdebug('word match to position found in both strings at position : ' + str(split_match.lower().index(ss)))
-                            word_match+=1
-                        elif any(['the', 'and', '&'] == matchword.lower()):
-                            logger.fdebug('common word detected of : ' + matchword)
-                            word_match+=.5
-                        i+=1                                
-                    logger.info('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
-
-#        elif len(searchresults) == 1:
-#            matched = True
-#            cid = searchresults[0]['comicid']
+                logger.info('Unable to determine a successful match at this time (this is still a WIP so it will eventually work). Not going to attempt auto-adding at this time.')
+#                for pos_match in matches:
+#                    length_match = len(pos_match['name']) / len(ser['ComicName'])
+#                    logger.fdebug('length match differential set for an allowance of 20%')
+#                    logger.fdebug('actual differential in length between result and series title: ' + str((length_match * 100)-100) + '%')
+#                    split_match = pos_match['name'].lower().split()
+#                    split_series = ser['ComicName'].lower().split()
+#                    word_match = 0
+#                    i = 0
+#                    for ss in split_series:
+#                        logger.fdebug('ss value: ' + str(ss))
+#                        try:
+#                            matchword = split_match[i].lower()
+#                        except:
+#                            break
+#                        if split_match.index(ss) == split_series.index(ss):
+#                            #will return word position in string.
+#                            logger.fdebug('word match to position found in both strings at position : ' + str(split_match.index(ss)))
+#                            word_match+=1
+#                        elif any(['the', 'and', '&'] == matchword.lower()):
+#                            logger.fdebug('common word detected of : ' + matchword)
+#                            word_match+=.5
+#                        i+=1                                
+#                    logger.info('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
 
         if matched:
             #we should probably load all additional issues for the series on the futureupcoming list that are marked as Wanted and then

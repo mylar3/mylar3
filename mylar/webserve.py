@@ -1515,6 +1515,12 @@ class WebInterface(object):
         return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold, wantedcount=wantedcount)
     pullist.exposed = True
 
+    def removeautowant(self, comicname, release):
+        myDB = db.DBConnection()
+        logger.fdebug('Removing ' + comicname + ' from the auto-want list.')
+        myDB.action("DELETE FROM futureupcoming WHERE ComicName=? AND IssueDate=? AND Status='Wanted'", [comicname, release])
+    removeautowant.exposed = True
+
     def futurepull(self):
         from mylar import solicit
         #get month-year here, and self-populate in future

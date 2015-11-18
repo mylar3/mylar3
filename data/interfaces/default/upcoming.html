@@ -131,12 +131,14 @@
 	</div>
         </div>
         <div id="tabs-2">
+           <a name="upcoming_nodata"></a>
            <a id="menu_link_edit" href="future_check">Force Check Availability</a>
            <div class="table_wrapper">
                 <table class="display_no_select" id="upcoming_table">
                 %if future_nodata_upcoming:
                     <thead>
                         <tr>
+                                <th id="delcolumn"></th>
                                 <th id="comicname">Comic</th>
                                 <th id="issuenumber">Issue</th>
                                 <th id="reldate">Release Date</th>
@@ -146,6 +148,9 @@
                 <tbody>
                     %for f_nodata in future_nodata_upcoming:
                             <tr class="gradeZ">
+                                    <td id="delcolumn">
+                                         <a href="upcoming#upcoming_nodata" title="Delete series from auto-Want list" onclick="doAjaxCall('removeautowant?comicname=${f_nodata['ComicName']}&release=${f_nodata['IssueDate']}',$(this),'table')" data-success="${f_nodata['ComicName']} has been removed from the auto-want list"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
+                                    </td>
                                     %if f_nodata['ComicID'] is not None:
                                         <td id="comicname"><a href="comicDetails?ComicID=${f_nodata['ComicID']}">${f_nodata['ComicName']}</a></td>
                                     %else:
