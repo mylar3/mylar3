@@ -213,7 +213,10 @@ class Readinglist(object):
             #fhost = mylar.TAB_HOST.find(':')
             host = mylar.TAB_HOST[:mylar.TAB_HOST.find(':')]
 
-            cmdstring = str('ping -c1 ' + str(host))
+            if 'windows' not in mylar.OS_DETECT.lower():
+                cmdstring = str('ping -c1 ' + str(host))
+            else:
+                cmdstring = str('ping -n 1 ' + str(host))
             cmd = shlex.split(cmdstring)
             try:
                 output = subprocess.check_output(cmd)
@@ -221,7 +224,11 @@ class Readinglist(object):
                 logger.info(module + ' The host {0} is not Reachable at this time.'.format(cmd[-1]))
                 return
             else:
-                logger.info(module + ' The host {0} is Reachable. Preparing to send files.'.format(cmd[-1]))
+                if 'unreachable' in output:
+                    logger.info(module + ' The host {0} is not Reachable at this time.'.format(cmd[-1]))
+                    return
+                else:
+                    logger.info(module + ' The host {0} is Reachable. Preparing to send files.'.format(cmd[-1]))
 
             success = mylar.ftpsshup.sendfiles(sendlist)
 
