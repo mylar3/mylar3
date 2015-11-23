@@ -911,6 +911,12 @@ class PostProcessor(object):
                         stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
+                    else:
+                        pass
+                        #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
+                        #if mylar.DUPLICATE_DUMP:
+                        #    if dupthis == 'dupe_src':
+                        #                                        
                 logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
                 return
             else:

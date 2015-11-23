@@ -1261,44 +1261,6 @@ def havetotals(refreshit=None):
 
         return comics
 
-def cvapi_check(web=None):
-    import logger
-    #if web is None:
-    #    logger.fdebug('[ComicVine API] ComicVine API Check Running...')
-    if mylar.CVAPI_TIME is None or mylar.CVAPI_TIME == '':
-        c_date = now()
-        c_obj_date = datetime.datetime.strptime(c_date, "%Y-%m-%d %H:%M:%S")
-        mylar.CVAPI_TIME = c_obj_date
-    else:
-        if isinstance(mylar.CVAPI_TIME, unicode):
-            c_obj_date = datetime.datetime.strptime(mylar.CVAPI_TIME, "%Y-%m-%d %H:%M:%S")
-        else:
-            c_obj_date = mylar.CVAPI_TIME
-    #if web is None: logger.fdebug('[ComicVine API] API Start Monitoring Time (~15mins): ' + str(mylar.CVAPI_TIME))
-    now_date = now()
-    n_date = datetime.datetime.strptime(now_date, "%Y-%m-%d %H:%M:%S")
-    #if web is None: logger.fdebug('[ComicVine API] Time now: ' + str(n_date))
-    absdiff = abs(n_date - c_obj_date)
-    mins = round(((absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0), 2)
-    apivalid = True
-    if mins < 15:
-        #if web is None: logger.info('[ComicVine API] Comicvine API count now at : ' + str(mylar.CVAPI_COUNT) + ' / ' + str(mylar.CVAPI_MAX) + ' in ' + str(mins) + ' minutes.')
-        if mylar.CVAPI_COUNT + 5 > mylar.CVAPI_MAX:
-            cvleft = 15 - mins
-            if web is None: logger.warn('[ComicVine API] You have already hit your API limit (' + str(mylar.CVAPI_MAX) + ' with ' + str(cvleft) + ' minutes left out of 15 minutes. Best be slowing down, cowboy.')
-            apivalid = False
-    elif mins > 15:
-        mylar.CVAPI_COUNT = 0
-        c_date = now()
-        mylar.CVAPI_TIME = datetime.datetime.strptime(c_date, "%Y-%m-%d %H:%M:%S")
-        #if web is None: logger.info('[ComicVine API] 15 minute API interval resetting [' + str(mylar.CVAPI_TIME) + ']. Resetting API count to : ' + str(mylar.CVAPI_COUNT))
-
-    if web is None:
-        return apivalid
-    else:
-        line = str(mylar.CVAPI_COUNT) + ' hits / ' + str(mins) + ' minutes'
-        return line
-
 def filesafe(comic):
     import unicodedata
     u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
@@ -1637,6 +1599,10 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
             return
 
     #if it's a retry and the file was already snatched, the status is Snatched and won't hit the dupecheck.
+    #rtnval will be one of 3: 
+    #'write' - write new file
+    #'dupe_file' - do not write new file as existing file is better quality
+    #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
     if dupchk['Status'] == 'Downloaded' or dupchk['Status'] == 'Archived':
         try:
             dupsize = dupchk['ComicSize']
@@ -1657,9 +1623,10 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     mylar.updater.dbUpdate(ComicIDList=cid, calledfrom='dupechk')
                     return duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
                 else:
-                    rtnval = "dupe"
+                    #not sure if this one is correct - should never actually get to this point.
+                    rtnval = "dupe_file"
             else:
-                rtnval = "dupe"
+                rtnval = "dupe_file"
         else:
             logger.info('[DUPECHECK] Existing file :' + dupchk['Location'] + ' has a filesize of : ' + str(dupsize) + ' bytes.')
 
@@ -1670,8 +1637,8 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                 logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry.')
                 if dupchk['Status'] == 'Archived':
                     logger.info('[DUPECHECK] Assuming issue is Archived.')
-                    rtnval = "dupe"
-                    return
+                    rtnval = "dupe_file"
+                    return rtnval
                 else:
                     logger.info('[DUPECHECK] Assuming 0-byte file - this one is gonna get hammered.')
 
@@ -1682,29 +1649,29 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     if dupchk['Location'].endswith('.cbz'):
                         #keep dupechk['Location']
                         logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in file : ' + dupchk['Location'])
-                        rtnval = "dupe"
+                        rtnval = "dupe_file"
                     else:
                         #keep filename
                         logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
-                        rtnval = "write"
+                        rtnval = "dupe_src"
 
                 elif 'cbz' in mylar.DUPECONSTRAINT:
                     if dupchk['Location'].endswith('.cbr'):
                         #keep dupchk['Location']
                         logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                        rtnval = "dupe"
+                        rtnval = "dupe_file"
                     else:
                         #keep filename
                         logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                        rtnval = "write"
+                        rtnval = "dupe_src"
 
             if mylar.DUPECONSTRAINT == 'filesize':
                 if filesz <= int(dupsize) and int(dupsize) != 0:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                    rtnval = "dupe"
+                    rtnval = "dupe_file"
                 else:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                    rtnval = "write"
+                    rtnval = "dupe_src"
 
     else:
         logger.info('[DUPECHECK] Duplication detection returned no hits. This is not a duplicate of anything that I have scanned in as of yet.')

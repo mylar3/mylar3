@@ -16,7 +16,6 @@ from subprocess import CalledProcessError, check_output
 import mylar
 
 from mylar import logger
-from mylar.helpers import cvapi_check
 
 
 def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None):
@@ -28,6 +27,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     ## Set the directory in which comictagger and other external commands are located - IMPORTANT - ##
     # ( User may have to modify, depending on their setup, but these are some guesses for now )
+
+    # 2015-11-23: Recent CV API changes restrict the rate-limit to 1 api request / second.
+    # ComicTagger has to be included now with the install as a timer had to be added to allow for the 1/second rule.
+    # The below is pretty much outdated - so will force mylar to use cmtagger_path = mylar.PROG_DIR to force the use of the included lib.
 
     if platform.system() == "Windows":
         #if it's a source install.
@@ -319,7 +322,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         comversion = '1'
     comversion = re.sub('[^0-9]', '', comversion).strip()
     cvers = 'volume=' + str(comversion)
-    tagoptions = ["-s", "--verbose", "-m", cvers]
+    tagoptions = ["-s", "-m", cvers] #"--verbose"
 
     ## check comictagger version - less than 1.15.beta - take your chances.
     if sys_type == 'windows':
@@ -396,9 +399,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
         logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
 
-        #CV API Check here.
-        if mylar.CVAPI_COUNT == 0 or mylar.CVAPI_COUNT >= 200:
-            cvapi_check()
+        #new CV API restriction - one api request / second (redundant here).
+        #if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+        #    time.sleep(2)
+        #else:
+        #    time.sleep(mylar.CVAPI_RATE)
+
         if sys_type == 'windows':
             currentScriptName = str(comictagger_cmd).decode("string_escape")
         else:
@@ -417,10 +423,6 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp)
         except OSError, e:
             logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + str(script_cmd))
-
-        #increment CV API counter.
-        mylar.CVAPI_COUNT += 1
-
 
         ## Tag each CBZ, and move it back to original directory ##
         #if use_cvapi == "True":

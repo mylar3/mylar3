@@ -104,9 +104,6 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                 mylar.importer.GCDimport(ComicID)
             else:
                 cchk = importer.addComictoDB(ComicID, mismatch)
-                if cchk == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    return
         else:
             if mylar.CV_ONETIMER == 1:
                 logger.fdebug("CV_OneTimer option enabled...")
@@ -157,9 +154,6 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
 
                 if whack == False:
                     cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload)
-                    if cchk == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        break                    
                     #reload the annuals here.
 
                     issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
@@ -272,15 +266,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
 
                 else:
                     cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload)
-                    if cchk == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        break
 
             else:
                 cchk = mylar.importer.addComictoDB(ComicID, mismatch)
-                if cchk == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    break
 
         cnt +=1
         time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
@@ -371,9 +359,6 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                     mylar.importer.GCDimport(ComicID, pullupd)
                 else: 
                     cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck')#mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
-                    if cchk == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        return
             else:
                 logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
                 logger.fdebug('linking ComicID to Pull-list to reflect status.')

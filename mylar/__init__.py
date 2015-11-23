@@ -133,9 +133,7 @@ SEARCH_DELAY = 1
 
 COMICVINE_API = None
 DEFAULT_CVAPI = '583939a3df0a25fc4e8b7a29934a13078002dc27'
-CVAPI_COUNT = 0
-CVAPI_TIME = None
-CVAPI_MAX = 400
+CVAPI_RATE = 2
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -408,7 +406,7 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_COUNT, CVAPI_TIME, CVAPI_MAX, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
+        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
                 queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
@@ -463,9 +461,7 @@ def initialize():
         COMICVINE_API = check_setting_str(CFG, 'General', 'comicvine_api', '')
         if not COMICVINE_API:
             COMICVINE_API = None
-        CVAPI_COUNT = check_setting_int(CFG, 'General', 'cvapi_count', 0)
-        CVAPI_TIME = check_setting_str(CFG, 'General', 'cvapi_time', '')
-        helpers.cvapi_check()  #get the values logged in.
+        CVAPI_RATE = check_setting_int(CFG, 'General', 'cvapi_rate', 2)
         HTTP_HOST = check_setting_str(CFG, 'General', 'http_host', '0.0.0.0')
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
@@ -1184,11 +1180,8 @@ def config_write():
         new_config['General']['comicvine_api'] = COMICVINE_API
     else:
         new_config['General']['comicvine_api'] = COMICVINE_API.strip()
-    #write the current CV API time / count here so it's persistent through reboots/restarts.
-    #get the current values.
-    helpers.cvapi_check()
-    new_config['General']['cvapi_count'] = CVAPI_COUNT
-    new_config['General']['cvapi_time'] = CVAPI_TIME
+
+    new_config['General']['cvapi_rate'] = CVAPI_RATE
     new_config['General']['http_port'] = HTTP_PORT
     new_config['General']['http_host'] = HTTP_HOST
     new_config['General']['http_username'] = HTTP_USERNAME
@@ -1455,10 +1448,6 @@ def start():
             searchScheduler.thread.start()
 
             helpers.latestdate_fix()
-
-            #start the ComicVine API Counter here.
-            logger.info('Initiating the ComicVine API Checker to report API hits every 5 minutes.')
-            #SCHED.add_interval_job(helpers.cvapi_check, minutes=5)
 
             #initiate startup rss feeds for torrents/nzbs here...
             if ENABLE_RSS:

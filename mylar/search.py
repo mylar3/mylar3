@@ -202,7 +202,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if len(prov_order) == 1:
             tmp_prov_count = 1
         else:
-            tmp_prov_count = len(prov_order) - 1
+            tmp_prov_count = len(prov_order)
 
         while (prov_count < tmp_prov_count): #len(prov_order) -1):
             send_prov_count = tmp_prov_count - prov_count

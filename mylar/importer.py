@@ -93,8 +93,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     # we need to lookup the info for the requested ComicID in full now
     comic = cv.getComic(comicid, 'comic')
-    if comic == 'apireached':
-        return 'apireached'
     logger.fdebug(comic)
 
     if not comic:
@@ -153,14 +151,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #we'll defer this until later when we grab all the issues and then figure it out
             logger.info('Uh-oh. I cannot find a Series Year for this series. I am going to try analyzing deeper.')
             SeriesYear = cv.getComic(comicid, 'firstissue', comic['FirstIssueID'])
-            if SeriesYear == 'apireached':
-                return 'apireached'
             if SeriesYear == '0000':
                 logger.info('Ok - I could not find a Series Year at all. Loading in the issue data now and will figure out the Series Year.')
                 CV_NoYearGiven = "yes"
                 issued = cv.getComic(comicid, 'issue')
-                if issued == 'apireached':
-                    return 'apireached'
                 SeriesYear = issued['firstdate'][:4]
         else:
             SeriesYear = gcdinfo['SeriesYear']
@@ -221,8 +215,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #print "annualyear: " + str(annualval['AnnualYear'])
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
-        if sresults == 'apireached':
-            return 'apireached'
         type='comic'
 
         if len(sresults) == 1:
@@ -245,8 +237,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                             num_res+=1 # need to manually increment since not a for-next loop
                             continue
                         issued = cv.getComic(issueid, 'issue')
-                        if issued == 'apireached':
-                            return 'apireached'
                         if len(issued) is None or len(issued) == 0:
                             logger.fdebug('[IMPORTER-ANNUAL] - Could not find any annual information...')
                             pass
@@ -299,8 +289,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         elif len(sresults) == 0 or len(sresults) is None:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
             sresults, explicit = mb.findComic(annComicName, mode, issue=None)#, explicit=True)
-            if sresults == 'apireached':
-                return 'apireached'
             if len(sresults) == 1:
                 sr = sresults[0]
                 logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
@@ -418,6 +406,12 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #urllib.urlretrieve(str(thisci), str(coverfile))
 
+    #new CV API restriction - one api request / second.(probably unecessary here, but it doesn't hurt)
+    if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+        time.sleep(2)
+    else:
+        time.sleep(mylar.CVAPI_RATE)
+
     try:
         cimage = re.sub('[\+]', '%20', comic['ComicImage'])
         request = urllib2.Request(cimage)#, headers={'Content-Type': 'application/x-www-form-urlencoded'})
@@ -440,6 +434,12 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     except Exception, e:
         logger.warn('[%s] Error fetching data using : %s' % (e, comic['ComicImage']))
         logger.info('Attempting to use alternate image size to get cover.')
+        #new CV API restriction - one api request / second.
+        if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+            time.sleep(2)
+        else:
+            time.sleep(mylar.CVAPI_RATE)
+
         try:
             cimage = re.sub('[\+]', '%20', comic['ComicImageALT'])
             request = urllib2.Request(cimage)
@@ -516,8 +516,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if issued is None:
             logger.warn('Unable to retrieve data from ComicVine. Get your own API key already!')
             return
-        elif issued == 'apireached':
-            return 'apireached'
     logger.info('Sucessfully retrieved issue details for ' + comic['ComicName'])
 
     #move to own function so can call independently to only refresh issue data
@@ -805,7 +803,12 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
     coverfile = os.path.join(mylar.CACHE_DIR, str(gcomicid) + ".jpg")
 
-    #try:
+    #new CV API restriction - one api request / second.
+    if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+        time.sleep(2)
+    else:
+        time.sleep(mylar.CVAPI_RATE)
+
     urllib.urlretrieve(str(ComicImage), str(coverfile))
     try:
         with open(str(coverfile)) as f:
@@ -1077,8 +1080,6 @@ def manualAnnual(manual_comicid, comicname, comicyear, comicid):
         issueid = manual_comicid
         logger.fdebug(str(issueid) + ' added to series list as an Annual')
         sr = cv.getComic(manual_comicid, 'comic')
-        if sr == 'apireached':
-            return 'apireached'
         logger.info('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
         if len(sr) is None or len(sr) == 0:
             logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
@@ -1091,8 +1092,6 @@ def manualAnnual(manual_comicid, comicname, comicyear, comicid):
             else:
                 noissues = sr['ComicIssues']
             logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
-            if issued == 'apireached':
-                return 'apireached'
             while (n < int(noissues)):
                 try:
                     firstval = issued['issuechoice'][n]
@@ -1151,8 +1150,6 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         if comic is None:
             logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
             return
-        elif comic == 'apireached':
-            return 'apireached'
         if comicIssues is None:
             comicIssues = comic['ComicIssues']
         if SeriesYear is None:
@@ -1164,8 +1161,6 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         if issued is None:
             logger.warn('Error retrieving from ComicVine - either the site is down or you are not using your own CV API key')
             return
-        elif issued == 'apireached':
-            return 'apireached'
 
     # poll against annuals here - to make sure annuals are uptodate.
     weeklyissue_check = annual_check(comicname, SeriesYear, comicid, issuetype, issuechk, weeklyissue_check)
@@ -1478,8 +1473,6 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
         annualyear = SeriesYear  # no matter what, the year won't be less than this.
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
-        if sresults == 'apireached':
-            return 'apireached'
         type='comic'
 
         if len(sresults) == 1:
@@ -1502,9 +1495,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                             num_res+=1 # need to manually increment since not a for-next loop
                             continue
                         issued = cv.getComic(issueid, 'issue')
-                        if issued == 'apireached':
-                            return 'apireached'
-                        elif len(issued) is None or len(issued) == 0:
+                        if len(issued) is None or len(issued) == 0:
                             logger.fdebug('[IMPORTER-ANNUAL] - Could not find any annual information...')
                             pass
                         else:
@@ -1569,8 +1560,6 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
         elif len(sresults) == 0 or len(sresults) is None:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
             sresults, explicit = mb.findComic(annComicName, mode, issue=None)#, explicit=True)
-            if sresults == 'apireached':
-                return 'apireached'
             if len(sresults) == 1:
                 sr = sresults[0]
                 logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')

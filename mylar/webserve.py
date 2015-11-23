@@ -210,9 +210,6 @@ class WebInterface(object):
         elif type == 'story_arc':
             searchresults, explicit = mb.findComic(name, mode=None, issue=None, explicit='explicit', type='story_arc')
 
-        if searchresults == 'apireached':
-            logger.warn('API Limit has been reached. Aborting update at this time.')
-            return
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         #print ("Results: " + str(searchresults))
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, explicit=explicit, serinfo=serinfo)
@@ -266,9 +263,6 @@ class WebInterface(object):
                 if gcdinfo == "No Match":
                 #when it no matches, the image will always be blank...let's fix it.
                     cvdata = mylar.cv.getComic(comicid, 'comic')
-                    if cvdata == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        return
                     comicimage = cvdata['ComicImage']
                     updater.no_searchresults(comicid)
                     nomatch = "true"
@@ -381,9 +375,6 @@ class WebInterface(object):
                     iss_arcids.append({"IssueArcID":  issarc['IssueArcID'],
                                        "IssueID":     issarc['IssueID']})
                 arcinfo = mb.storyarcinfo(cvarcid)
-                if arcinfo == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    return
                 if len(arcinfo) > 1:
                     arclist = arcinfo['arclist']
                 else:
@@ -393,9 +384,6 @@ class WebInterface(object):
 #                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
 #                raise cherrypy.HTTPRedirect("readlist")
         arc_results = mylar.cv.getComic(comicid=None, type='issue', arcid=arcid, arclist=arclist)
-        if arc_results == 'apireached':
-            logger.warn('API Limit has been reached. Aborting update at this time.')
-            return
         logger.fdebug(module + ' Arcresults: ' + str(arc_results))
         logger.fdebug('arclist: ' + str(arclist))
         if len(arc_results) > 0:
@@ -468,9 +456,6 @@ class WebInterface(object):
                 n+=1
 
             comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
-            if comicid_results == 'apireached':
-                logger.warn('API Limit has been reached. Aborting update at this time.')
-                return
             logger.fdebug(module + ' Initiating issue updating - just the info')
 
             for AD in issuedata:
@@ -811,9 +796,6 @@ class WebInterface(object):
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
                 if whack == False:
                     cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload)
-                    if cchk == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        return
                     #reload the annuals here.
 
                     issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
@@ -895,15 +877,9 @@ class WebInterface(object):
                     logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
                 else:
                     cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload)
-                    if cchk == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        return
 
             else:
                 cchk = mylar.importer.addComictoDB(ComicID, mismatch)
-                if cchk == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    return
 
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     refreshArtist.exposed=True
@@ -2328,18 +2304,12 @@ class WebInterface(object):
         for duh in AMS:
             mode='series'
             sresults, explicit = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'], explicit='all')
-            if sresults == 'apireached':
-                logger.warn('API Limit has been reached. Aborting update at this time.')
-                break
             type='comic'
 
             if len(sresults) == 1:
                 sr = sresults[0]
                 logger.info('Only one result...automagik-mode enabled for ' + duh['ComicName'] + ' :: ' + str(sr['comicid']) + ' :: Publisher : ' + str(sr['publisher']))
                 issues = mylar.cv.getComic(sr['comicid'], 'issue')
-                if issues == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    break
                 isscnt = len(issues['issuechoice'])
                 logger.info('isscnt : ' + str(isscnt))
                 chklist = myDB.select('SELECT * FROM readinglist WHERE StoryArcID=? AND ComicName=? AND SeriesYear=?', [duh['StoryArcID'], duh['ComicName'], duh['SeriesYear']])
@@ -2910,9 +2880,6 @@ class WebInterface(object):
         #print ("here.")
         mode='series'
         sresults, explicit = mb.findComic(comicname, mode, None, explicit='all')
-        if sresults == 'apireached':
-            logger.warn('API Limit has been reached. Aborting update at this time.')
-            return
         #print sresults
         type='comic'
         return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"', searchresults=sresults, type=type, imported='confirm', ogcname=comicid, explicit=explicit)
@@ -3125,9 +3092,6 @@ class WebInterface(object):
                     sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
                 else:
                     sresults, explicit = mb.findComic(displaycomic, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
-                if sresults == 'apireached':
-                    logger.warn('API Limit has been reached. Aborting update at this time.')
-                    return
                 type='comic'
 
                 if len(sresults) == 1:
@@ -3140,9 +3104,6 @@ class WebInterface(object):
                     implog = implog + "no results, removing the year from the agenda and re-querying.\n"
                     logger.fdebug("no results, removing the year from the agenda and re-querying.")
                     sresults, explicit = mb.findComic(ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
-                    if sresults == 'apireached':
-                        logger.warn('API Limit has been reached. Aborting update at this time.')
-                        return
                     if len(sresults) == 1:
                         sr = sresults[0]
                         implog = implog + "only one result...automagik-mode enabled for " + displaycomic + " :: " + str(sr['comicid']) + "\n"
@@ -3463,9 +3424,6 @@ class WebInterface(object):
         else:
             logger.info("Assuming rewording of Comic - adjusting to : " + str(errorgcd))
             Err_Info = mylar.cv.getComic(comicid, 'comic')
-            if Err_Info == 'apireached':
-                logger.warn('API Limit has been reached. Aborting update at this time.')
-                return
             self.addComic(comicid=comicid, comicname=str(errorgcd), comicyear=Err_Info['ComicYear'], comicissues=Err_Info['ComicIssues'], comicpublisher=Err_Info['ComicPublisher'])
 
     error_change.exposed = True
@@ -3841,12 +3799,15 @@ class WebInterface(object):
             mylar.SAB_HOST = mylar.SAB_HOST[:-1]
 
         if mylar.ENABLE_META:
-            if mylar.CMTAGGER_PATH is None or mylar.CMTAGGER_PATH == '':
-                logger.info("ComicTagger Path not set - defaulting to Mylar Program Directory : " + mylar.PROG_DIR)
-                mylar.CMTAGGER_PATH = mylar.PROG_DIR
-            if 'comictagger.exe' in mylar.CMTAGGER_PATH.lower() or 'comictagger.py' in mylar.CMTAGGER_PATH.lower():
-                mylar.CMTAGGER_PATH = re.sub(os.path.basename(mylar.CMTAGGER_PATH), '', mylar.CMTAGGER_PATH)
-                logger.fdebug("Removed application name from ComicTagger path")
+            #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.
+            logger.fdebug("ComicTagger Path enforced to use local library : " + mylar.PROG_DIR)
+            mylar.CMTAGGER_PATH = mylar.PROG_DIR
+            #if mylar.CMTAGGER_PATH is None or mylar.CMTAGGER_PATH == '':
+            #    logger.info("ComicTagger Path not set - defaulting to Mylar Program Directory : " + mylar.PROG_DIR)
+            #    mylar.CMTAGGER_PATH = mylar.PROG_DIR
+            #if 'comictagger.exe' in mylar.CMTAGGER_PATH.lower() or 'comictagger.py' in mylar.CMTAGGER_PATH.lower():
+            #    mylar.CMTAGGER_PATH = re.sub(os.path.basename(mylar.CMTAGGER_PATH), '', mylar.CMTAGGER_PATH)
+            #    logger.fdebug("Removed application name from ComicTagger path")
 
         #legacy support of older config - reload into old values for consistency.
         if mylar.NZB_DOWNLOADER == 0: mylar.USE_SABNZBD = True
