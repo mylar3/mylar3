@@ -40,8 +40,6 @@ class PostProcessor(object):
     EXISTS_SMALLER = 3
     DOESNT_EXIST = 4
 
-#    IGNORED_FILESTRINGS = [ "" ]
-
     NZB_NAME = 1
     FOLDER_NAME = 2
     FILE_NAME = 3
@@ -53,18 +51,6 @@ class PostProcessor(object):
         file_path: The path to the file to be processed
         nzb_name: The name of the NZB which resulted in this file being downloaded (optional)
         """
-        # absolute path to the folder that is being processed
-        #self.folder_path = ek.ek(os.path.dirname, ek.ek(os.path.abspath, file_path))
-
-        # full path to file
-        #self.file_path = file_path
-
-        # file name only
-        #self.file_name = ek.ek(os.path.basename, file_path)
-
-        # the name of the folder only
-        #self.folder_name = ek.ek(os.path.basename, self.folder_path)
-
         # name of the NZB that resulted in this folder
         self.nzb_name = nzb_name
         self.nzb_folder = nzb_folder
@@ -72,10 +58,15 @@ class PostProcessor(object):
             self.module = module + '[POST-PROCESSING]'
         else:
             self.module = '[POST-PROCESSING]'
-        if queue: self.queue = queue
-        #self.in_history = False
-        #self.release_group = None
-        #self.is_proper = False
+
+        if queue: 
+            self.queue = queue
+
+        if mylar.FILE_OPTS == 'copy':
+            self.fileop = shutil.copy
+        else:
+            self.fileop = shutil.move
+
         self.valreturn = []
         self.log = ''
 
@@ -246,8 +237,8 @@ class PostProcessor(object):
                         wv_comicversion = wv['ComicVersion']
                         wv_publisher = wv['ComicPublisher']
                         wv_total = wv['Total']
-
-                        logger.fdebug('Checking ' + wv['ComicName'] + ' [' + str(wv['ComicYear']) + '] -- ' + str(wv['ComicID']))
+                        if mylar.FOLDER_SCAN_LOG_VERBOSE:
+                            logger.fdebug('Checking ' + wv['ComicName'] + ' [' + str(wv['ComicYear']) + '] -- ' + str(wv['ComicID']))
 
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
                         latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
@@ -565,16 +556,27 @@ class PostProcessor(object):
                                     metaresponse = "fail"
 
                                 if metaresponse == "fail":
-                                    logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
+                                    logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...')
                                 elif metaresponse == "unrar error":
                                     logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
+                                    continue
                                     #launch failed download handling here.
+                                elif metaresponse.startswith('file not found'):
+                                    filename_in_error = os.path.split(metaresponse, '||')[1]
+                                    self._log("The file cannot be found in the location provided for metatagging to be used [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
+                                    logger.error(module + ' The file cannot be found in the location provided for metatagging to be used [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
                                 else:
                                     ofilename = os.path.split(metaresponse)[1]
                                     logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                     self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
-                            filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                            checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                            if not checkdirectory:
+                                logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop'})
+                                return self.queue.put(self.valreturn)
+
 
                             dfilename = ofilename
 
@@ -602,12 +604,11 @@ class PostProcessor(object):
                             grab_src = os.path.join(self.nzb_folder, ofilename)
                             logger.fdebug(module + ' Source Path : ' + grab_src)
 
-                            logger.info(module + ' Moving ' + str(ofilename) + ' into directory : ' + str(grab_dst))
-
+                            logger.info(module + ' ' + mylar.FILE_OPTS + 'ing ' + str(ofilename) + ' into directory : ' + str(grab_dst))
                             try:
-                                shutil.move(grab_src, grab_dst)
+                                self.fileop(grab_src, grab_dst)
                             except (OSError, IOError):
-                                logger.warn(module + ' Failed to move directory - check directories and manually re-run.')
+                                logger.warn(module + ' Failed to ' + mylar.FILE_OPTS + ' directory - check directories and manually re-run.')
                                 return
 
                             #tidyup old path
@@ -621,16 +622,18 @@ class PostProcessor(object):
                             logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
 
                             #delete entry from nzblog table
-                            if 'S' in sandwich:
-                                IssArcID = 'S' + str(ml['IssueArcID'])
-                                myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,ml['StoryArc']])
-
-                                logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
-                                ctrlVal = {"IssueArcID":  ml['IssueArcID']}
-                                newVal = {"Status":       "Downloaded",
-                                          "Location":     grab_dst}
-                                logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
-                                myDB.upsert("readinglist", newVal, ctrlVal)
+                            #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
+                            #if it was downloaded outside of mylar and/or not from the storyarc section, it will be a normal issueid in the nzblog
+                            #IssArcID = 'S' + str(ml['IssueArcID'])
+                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', ['S' + str(ml['IssueArcID']),ml['StoryArc']])
+                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [ml['IssueArcID'],ml['StoryArc']])
+                            
+                            logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
+                            ctrlVal = {"IssueArcID":  ml['IssueArcID']}
+                            newVal = {"Status":       "Downloaded",
+                                      "Location":     grab_dst}
+                            logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                            myDB.upsert("readinglist", newVal, ctrlVal)
 
                             logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
@@ -797,10 +800,14 @@ class PostProcessor(object):
                                 metaresponse = "fail"
 
                             if metaresponse == "fail":
-                                logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
+                                logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...')
                             elif metaresponse == "unrar error":
                                 logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
                                 #launch failed download handling here.
+                            elif metaresponse.startswith('file not found'):
+                                filename_in_error = os.path.split(metaresponse, '||')[1]
+                                self._log("The file cannot be found in the location provided for metatagging [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
+                                logger.error(module + ' The file cannot be found in the location provided for metagging [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
                             else:
                                 ofilename = os.path.split(metaresponse)[1]
                                 logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
@@ -817,7 +824,12 @@ class PostProcessor(object):
                             else:
                                 grdst = mylar.DESTINATION_DIR
 
-                        filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                        checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                        if not checkdirectory:
+                            logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                            self.valreturn.append({"self.log": self.log,
+                                                   "mode": 'stop'})
+                            return self.queue.put(self.valreturn)
 
                         if sandwich is not None and 'S' in sandwich:
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
@@ -840,24 +852,26 @@ class PostProcessor(object):
                         self._log("Source Path : " + grab_src)
                         logger.info(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + ' Moving ' + str(ofilename) + ' into directory : ' + str(grab_dst))
+                        logger.info(module + ' ' + mylar.FILE_OPTS + 'ing ' + str(ofilename) + ' into directory : ' + str(grab_dst))
 
                         try:
-                            shutil.move(grab_src, grab_dst)
+                            self.fileop(grab_src, grab_dst)
                         except (OSError, IOError):
-                            self._log("Failed to move directory - check directories and manually re-run.")
-                            logger.debug(module + ' Failed to move directory - check directories and manually re-run.')
+                            self._log("Failed to " + mylar.FILE_OPTS + " directory - check directories and manually re-run.")
+                            logger.debug(module + ' Failed to ' + mylar.FILE_OPTS + ' directory - check directories and manually re-run.')
                             return
+
                         #tidyup old path
-                        try:
-                            shutil.rmtree(self.nzb_folder)
-                        except (OSError, IOError):
-                            self._log("Failed to remove temporary directory.")
-                            logger.debug(module + ' Failed to remove temporary directory - check directory and manually re-run.')
-                            return
+                        if mylar.FILE_OPTS == 'move':
+                            try:
+                                shutil.rmtree(self.nzb_folder)
+                            except (OSError, IOError):
+                                self._log("Failed to remove temporary directory.")
+                                logger.debug(module + ' Failed to remove temporary directory - check directory and manually re-run.')
+                                return
 
-                        logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
-                        self._log("Removed temporary directory : " + self.nzb_folder)
+                            logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
+                            self._log("Removed temporary directory : " + self.nzb_folder)
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
@@ -882,10 +896,15 @@ class PostProcessor(object):
 
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
-                if len(manual_list) == 0:
+                if len(manual_list) == 0 and len(manual_arclist) == 0:
                     logger.info(module + ' No matches for Manual Run ... exiting.')
                     return
-
+                elif len(manual_arclist) > 0 and len(manual_list) == 0:
+                    logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                    return
+                elif len(manual_arclist) > 0:
+                    logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+  
                 i = 0
                 for ml in manual_list:
                     i+=1
@@ -1149,19 +1168,49 @@ class PostProcessor(object):
 
             ofilename = None
 
+            #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
+            if ml is None:
+                ofilename = None
+                for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
+                    for filename in filenames:
+                        if filename.lower().endswith(extensions):
+                            odir = root
+                            logger.fdebug(module + ' odir (root): ' + odir)
+                            ofilename = filename
+                            logger.fdebug(module + ' ofilename: ' + ofilename)
+                            path, ext = os.path.splitext(ofilename)
+                try:
+                    if odir is None:
+                        logger.fdebug(module + ' No root folder set.')
+                        odir = self.nzb_folder
+                except:
+                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
+                    odir = self.nzb_folder
+
+                if ofilename is None:
+                    self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
+                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
+                logger.fdebug(module + ' odir: ' + odir)
+                logger.fdebug(module + ' ofilename: ' + ofilename)
+
+
             #if meta-tagging is not enabled, we need to declare the check as being fail
             #if meta-tagging is enabled, it gets changed just below to a default of pass
             pcheck = "fail"
 
             #tag the meta.
             if mylar.ENABLE_META:
+
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug(module + ' Metatagging enabled - proceeding...')
                 pcheck = "pass"
                 try:
                     import cmtagmylar
                     if ml is None:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion)
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion, filename=os.path.join(odir, ofilename))
                     else:
                         pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion, manual="yes", filename=ml['ComicLocation'])
 
@@ -1186,10 +1235,23 @@ class PostProcessor(object):
                                            "issuenumber": issuenzb['Issue_Number'],
                                            "annchk":      annchk})
                     return self.queue.put(self.valreturn)
+                elif pcheck.startswith('file not found'):
+                    filename_in_error = os.path.split(pcheck, '||')[1]
+                    self._log("The file cannot be found in the location provided [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Aborting.")
+                    logger.error(module + ' The file cannot be found in the location provided [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Aborting')
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
+
                 else:
-                    otofilename = pcheck
+                    #need to set the filename source as the new name of the file returned from comictagger.
+                    ofilename = os.path.split(pcheck)[1]
+                    ext = os.path.splitext(ofilename)[1]
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
-                    logger.info(module + ' Sucessfully wrote metadata to .cbz (' + os.path.split(otofilename)[1] + ') - Continuing..')
+                    logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
+                    #if this is successful, and we're copying to dst then set the file op to move this cbz so we 
+                    #don't leave a cbr/cbz in the origianl directory.
+                    #self.fileop = shutil.move
             #Run Pre-script
 
             if mylar.ENABLE_PRE_SCRIPTS:
@@ -1229,45 +1291,53 @@ class PostProcessor(object):
 
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
-            if ml is None:
-                ofilename = None
-                for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
-                    for filename in filenames:
-                        if filename.lower().endswith(extensions):
-                            odir = root
-                            logger.fdebug(module + ' odir (root): ' + odir)
-                            ofilename = filename
-                            logger.fdebug(module + ' ofilename: ' + ofilename)
-                            path, ext = os.path.splitext(ofilename)
-                try:
-                    if odir is None:
-                        logger.fdebug(module + ' No root folder set.')
-                        odir = self.nzb_folder
-                except:
-                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
-                    odir = self.nzb_folder
+#            if ml is None:
+#                ofilename = None
+#                for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
+#                    for filename in filenames:
+#                        if filename.lower().endswith(extensions):
+#                            odir = root
+#                            logger.fdebug(module + ' odir (root): ' + odir)
+#                            ofilename = filename
+#                            logger.fdebug(module + ' ofilename: ' + ofilename)
+#                            path, ext = os.path.splitext(ofilename)
+#                try:
+#                    if odir is None:
+#                        logger.fdebug(module + ' No root folder set.')
+#                        odir = self.nzb_folder
+#                except:
+#                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
+#                    odir = self.nzb_folde
+#
+#                if ofilename is None:
+#                    self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
+#                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
+#                    self.valreturn.append({"self.log": self.log,
+#                                           "mode": 'stop'})
+#                    return self.queue.put(self.valreturn)
+#                logger.fdebug(module + ' odir: ' + odir)
+#                logger.fdebug(module + ' ofilename: ' + ofilename)
 
-                if ofilename is None:
-                    self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
-                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
+            if ml:
+#            else:
+                if pcheck == "fail":
+                    odir, ofilename = os.path.split(ml['ComicLocation'])
+                else:
+                    odir = os.path.split(ml['ComicLocation'])[0]
+                logger.fdebug(module + ' ofilename:' + ofilename)
+                #ofilename = otofilename
+                if any([ofilename == odir, ofilename == odir[:-1], ofilename == '']):
+                    self._log("There was a problem deciphering the filename/directory - please verify that the filename : [" + ofilename + "] exists in location [" + odir + "]. Aborting.")
+                    logger.error(module + ' There was a problem deciphering the filename/directory - please verify that the filename : [' + ofilename + '] exists in location [' + odir + ']. Aborting.')
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
                 logger.fdebug(module + ' odir: ' + odir)
                 logger.fdebug(module + ' ofilename: ' + ofilename)
-
-            else:
-                if pcheck == "fail":
-                    otofilename = ml['ComicLocation']
-                logger.fdebug(module + ' otofilename:' + otofilename)
-                odir, ofilename = os.path.split(otofilename)
-                logger.fdebug(module + ' odir: ' + odir)
-                logger.fdebug(module + ' ofilename: ' + ofilename)
-                path, ext = os.path.splitext(ofilename)
-                logger.fdebug(module + ' path: ' + path)
+                ext = os.path.splitext(ofilename)[1]
                 logger.fdebug(module + ' ext:' + ext)
 
-            if ofilename is None:
+            if ofilename is None or ofilename == '':
                 logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + self.nzb_folder + ' exists and is the correct location.')
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop'})
@@ -1297,7 +1367,13 @@ class PostProcessor(object):
 
             #src = os.path.join(self.nzb_folder, ofilename)
             src = os.path.join(odir, ofilename)
-            filechecker.validateAndCreateDirectory(comlocation, True, module=module)
+            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True, module=module)
+            if not checkdirectory:
+                logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop'})
+                return self.queue.put(self.valreturn)
+
 
             if mylar.LOWERCASE_FILENAMES:
                 dst = os.path.join(comlocation, (nfilename + ext).lower())
@@ -1319,36 +1395,40 @@ class PostProcessor(object):
                 if mylar.RENAME_FILES:
                     if str(ofilename) != str(nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir, nfilename + ext))
-                        os.rename(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
+                        #if mylar.FILE_OPTS == 'move':
+                        #    os.rename(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
+                        # else:
+                        #    self.fileop(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
                 #src = os.path.join(self.nzb_folder, str(nfilename + ext))
-                src = os.path.join(odir, nfilename + ext)
+                src = os.path.join(odir, ofilename)
                 try:
-                    shutil.move(src, dst)
+                    self.fileop(src, dst)
                 except (OSError, IOError):
-                    self._log("Failed to move directory - check directories and manually re-run.")
+                    self._log("Failed to " + mylar.FILE_OPTS + " directory - check directories and manually re-run.")
                     self._log("Post-Processing ABORTED.")
-                    logger.warn(module + ' Failed to move directory : ' + src + ' to ' + dst + ' - check directory and manually re-run')
+                    logger.warn(module + ' Failed to ' + mylar.FILE_OPTS + ' directory : ' + src + ' to ' + dst + ' - check directory and manually re-run')
                     logger.warn(module + ' Post-Processing ABORTED')
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
 
                 #tidyup old path
-                try:
-                    shutil.rmtree(self.nzb_folder)
-                except (OSError, IOError):
-                    self._log("Failed to remove temporary directory - check directory and manually re-run.")
-                    self._log("Post-Processing ABORTED.")
-                    logger.warn(module + ' Failed to remove temporary directory : ' + self.nzb_folder)
-                    logger.warn(module + ' Post-Processing ABORTED')
-                    self.valreturn.append({"self.log": self.log,
-                                           "mode": 'stop'})
-                    return self.queue.put(self.valreturn)
-                self._log("Removed temporary directory : " + self.nzb_folder)
-                logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
+                if mylar.FILE_OPTS == 'move':
+                    try:
+                        shutil.rmtree(self.nzb_folder)
+                    except (OSError, IOError):
+                        self._log("Failed to remove temporary directory - check directory and manually re-run.")
+                        self._log("Post-Processing ABORTED.")
+                        logger.warn(module + ' Failed to remove temporary directory : ' + self.nzb_folder)
+                        logger.warn(module + ' Post-Processing ABORTED')
+                        self.valreturn.append({"self.log": self.log,
+                                               "mode": 'stop'})
+                        return self.queue.put(self.valreturn)
+                    self._log("Removed temporary directory : " + self.nzb_folder)
+                    logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
                 downtype = 'PP'
@@ -1356,39 +1436,40 @@ class PostProcessor(object):
                 src = os.path.join(odir, ofilename)
                 if mylar.RENAME_FILES:
                     if str(ofilename) != str(nfilename + ext):
-                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, str(ofilename)) + ' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
-                        os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir, str(nfilename + ext)))
-                        src = os.path.join(odir, str(nfilename + ext))
+                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, str(ofilename))) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
+                        #os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir, str(nfilename + ext)))
+                        #src = os.path.join(odir, str(nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
                 logger.fdebug(module + ' odir src : ' + src)
-                logger.fdebug(module + ' Moving ' + src + ' ... to ... ' + dst)
+                logger.fdebug(module + ' ' + mylar.FILE_OPTS + 'ing ' + src + ' ... to ... ' + dst)
                 try:
-                    shutil.move(src, dst)
+                    self.fileop(src, dst)
                 except (OSError, IOError):
-                    logger.fdebug(module + ' Failed to move directory - check directories and manually re-run.')
+                    logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' directory - check directories and manually re-run.')
                     logger.fdebug(module + ' Post-Processing ABORTED.')
 
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                logger.fdebug(module + ' Successfully moved to : ' + dst)
+                logger.info(module + ' ' + mylar.FILE_OPTS + ' successful to : ' + dst)
 
-                #tidyup old path
-                try:
-                    if os.path.isdir(odir) and odir != self.nzb_folder:
-                        logger.fdebug(module + 'self.nzb_folder: ' + self.nzb_folder)
-                        # check to see if the directory is empty or not.
-                        if not os.listdir(odir):
-                            logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
-                            shutil.rmtree(odir)
+                if mylar.FILE_OPTS == 'move':
+                    #tidyup old path
+                    try:
+                        if os.path.isdir(odir) and odir != self.nzb_folder:
+                            logger.fdebug(module + 'self.nzb_folder: ' + self.nzb_folder)
+                            # check to see if the directory is empty or not.
+                            if not os.listdir(odir):
+                                logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
+                                shutil.rmtree(odir)
+                            else:
+                                raise OSError(module + ' ' + odir + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be removed manually.')
                         else:
-                            raise OSError(module + ' ' + odir + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be removed manually.')
-                    else:
-                        raise OSError(module + ' ' + odir + ' unable to remove at this time.')
-                except (OSError, IOError):
-                    logger.fdebug(module + ' Failed to remove temporary directory (' + odir + ') - Processing will continue, but manual removal is necessary')
+                            raise OSError(module + ' ' + odir + ' unable to remove at this time.')
+                    except (OSError, IOError):
+                        logger.fdebug(module + ' Failed to remove temporary directory (' + odir + ') - Processing will continue, but manual removal is necessary')
 
             #Hopefully set permissions on downloaded file
             if mylar.OS_DETECT != 'windows':
@@ -1401,6 +1482,12 @@ class PostProcessor(object):
                 except OSError:
                     logger.error(module + ' Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : ' + dst)
                     logger.fdebug(module + ' Continuing post-processing but unable to change file permissions in ' + dst)
+
+            #let's reset the fileop to the original setting just in case it's a manual pp run
+            if mylar.FILE_OPTS == 'copy':
+                self.fileop = shutil.copy
+            else:
+                self.fileop = shutil.move
 
             #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -1439,7 +1526,14 @@ class PostProcessor(object):
                             storyarcd = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
                             grdst = mylar.DESTINATION_DIR
 
-                        filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                        checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                        if not checkdirectory:
+                            logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                            self.valreturn.append({"self.log": self.log,
+                                                   "mode": 'stop'})
+                            return self.queue.put(self.valreturn)
+
+
                         if mylar.READ2FILENAME:
 
                             logger.fdebug(module + ' readingorder#: ' + str(arcinfo['ReadingOrder']))
@@ -1573,6 +1667,9 @@ class FolderCheck():
         self.queue = Queue.Queue()
 
     def run(self):
+        if mylar.IMPORTLOCK:
+            logger.info('There is an import currently running. In order to ensure successful import - deferring this until the import is finished.')
+            return
         #monitor a selected folder for 'snatched' files that haven't been processed
         #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
         logger.info(self.module + ' Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')

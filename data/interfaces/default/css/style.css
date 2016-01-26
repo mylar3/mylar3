@@ -1304,20 +1304,16 @@ div#artistheader h2 a {
   background-color: #FFF;
 }
 #log_table th#timestamp {
-  min-width: 150px;
+  min-width: 125px;
   text-align: left;
 }
 #log_table th#level {
-  min-width: 60px;
+  max-width: 60px;
   text-align: left;
 }
 #log_table th#message {
-  min-width: 500px;
+  min-width: 600px;
   text-align: left;
-}
-#log_table td {
-  font-size: 12px;
-  padding: 2px 10px;
 }
 #searchresults_table th#name {
   min-width: 525px;

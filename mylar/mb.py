@@ -107,7 +107,10 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         explicit = 'all'
 
     #OR
-    if explicit == 'loose':
+    if ' and ' in comicquery.lower() or ' & ' in comicquery:
+        logger.fdebug('Enforcing exact naming match due to operator in title (and)')
+        explicit = 'all'
+    elif explicit == 'loose':
         logger.fdebug('Changing to loose mode - this will match ANY of the search words')
         comicquery = name.replace(" ", " OR ")
     elif explicit == 'explicit':

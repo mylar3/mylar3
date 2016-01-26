@@ -49,24 +49,29 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
     comic_list = []
     comiccnt = 0
     extensions = ('cbr','cbz')
+    cv_location = []
+
     for r, d, f in os.walk(dir):
         for files in f:
+            if 'cvinfo' in files:
+                cv_location.append(r)
+                logger.fdebug('CVINFO found: ' + os.path.join(r))
             if any(files.lower().endswith('.' + x.lower()) for x in extensions):
                 comic = files
                 comicpath = os.path.join(r, files)
                 comicsize = os.path.getsize(comicpath)
                 logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
+                comiccnt+=1
 
                 # We need the unicode path to use for logging, inserting into database
                 unicode_comic_path = comicpath.decode(mylar.SYS_ENCODING, 'replace')
 
-                comiccnt+=1
                 comic_dict = {'ComicFilename':           comic,
-                               'ComicLocation':           comicpath,
-                               'ComicSize':               comicsize,
-                               'Unicode_ComicLocation':   unicode_comic_path}
+                              'ComicLocation':           comicpath,
+                              'ComicSize':               comicsize,
+                              'Unicode_ComicLocation':   unicode_comic_path}
                 comic_list.append(comic_dict)
-
+                
         logger.info("I've found a total of " + str(comiccnt) + " comics....analyzing now")
         #logger.info("comiclist: " + str(comic_list))
     myDB = db.DBConnection()
@@ -136,9 +141,44 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
 #            numconv = basnumbs[numbs]
 #            #logger.fdebug("numconv: " + str(numconv))
 
+    issueid_list = []
+    cvscanned_loc = None
+    cvinfo_CID = None
 
     for i in comic_list:
         logger.fdebug('Analyzing : ' + i['ComicFilename'])
+        comfilename = i['ComicFilename']
+        comlocation = i['ComicLocation']
+        issueinfo = None
+
+
+        #Make sure cvinfo is checked for FIRST (so that CID can be attached to all files properly thereafter as they're scanned in)
+        if os.path.dirname(comlocation) in cv_location and os.path.dirname(comlocation) != cvscanned_loc:
+
+        #if comfilename == 'cvinfo':
+            logger.info('comfilename: ' + comfilename)
+            logger.info('cvscanned_loc: ' + str(cv_location))
+            logger.info('comlocation: ' + os.path.dirname(comlocation))
+            #if cvscanned_loc != comlocation:
+            try:
+                with open(os.path.join(os.path.dirname(comlocation), 'cvinfo')) as f:
+                    urllink = f.readline()
+
+                print 'urllink: ' + str(urllink)
+                if urllink:
+                    cid = urllink.split('/')
+                    if '4050-' in cid[-2]:
+                        cvinfo_CID = re.sub('4050-', '', cid[-2]).strip()
+                        logger.info('CVINFO file located within directory. Attaching everything in directory that is valid to ComicID: ' + str(cvinfo_CID))
+                        #store the location of the cvinfo so it's applied to the correct directory (since we're scanning multile direcorties usually)
+                        cvscanned_loc = os.path.dirname(comlocation)
+                else:
+                    logger.error("Could not read cvinfo file properly (or it does not contain any data)")
+            except (OSError, IOError):
+                logger.error("Could not read cvinfo file properly (or it does not contain any data)")
+        #else:
+        #    don't scan in it again if it's already been done initially
+        #    continue
 
         if mylar.IMP_METADATA:
             logger.info('metatagging checking enabled.')
@@ -158,304 +198,348 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     logger.fdebug('Issue Title: ' + issuetitle)
                     issueyear = issueinfo[0]['year']
                     logger.fdebug('Issue Year: ' + str(issueyear))
+                    try:
+                        issuevolume = issueinfo[0]['volume']
+                    except:
+                        issuevolume = None
                     # if used by ComicTagger, Notes field will have the IssueID.
                     issuenotes = issueinfo[0]['notes']
                     logger.fdebug('Notes: ' + issuenotes)
+                    if issuenotes is not None:
+                        if 'Issue ID' in issuenotes:
+                            st_find = issuenotes.find('Issue ID')
+                            issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
+                            if issuenotes_id.isdigit():
+                                logger.fdebug('Successfully retrieved CV IssueID for ' + comicname + ' #' + str(issue_number) + ' [' + str(issuenotes_id) + ']')
+                    logger.fdebug("adding " + comicname + " to the import-queue!")
+                    impid = comicname + '-' + str(issueyear) + '-' + str(issue_number) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
+                    logger.fdebug("impid: " + str(impid))
+                    #make sure we only add in those issueid's which don't already have a comicid attached via the cvinfo scan above (this is for reverse-lookup of issueids)
+                    if cvinfo_CID is None:
+                        issueid_list.append(issuenotes_id)
+                    if cvscanned_loc == os.path.dirname(comlocation):
+                        cv_cid = cvinfo_CID
+                        logger.info('CVINFO_COMICID attached : ' + str(cv_cid))
+                    else:
+                        cv_cid = None
+                    import_by_comicids.append({
+                        "impid": impid,
+                        "comicid": cv_cid,
+                        "watchmatch": None,
+                        "displayname": helpers.cleanName(comicname),
+                        "comicname": comicname, #com_NAME,
+                        "comicyear": issueyear,
+                        "volume": issuevolume,
+                        "issueid": issuenotes_id,
+                        "comfilename": comfilename,
+                        "comlocation": comlocation.decode(mylar.SYS_ENCODING)
+                                               })
             else:            
                 logger.info(i['ComicLocation'] + ' is not in a metatagged format (cbz). Bypassing reading of the metatags')
-        comfilename = i['ComicFilename']
-        comlocation = i['ComicLocation']
-        #let's clean up the filename for matching purposes
 
-        cfilename = re.sub('[\_\#\,\/\:\;\-\!\$\%\&\+\'\?\@]', ' ', comfilename)
-        #cfilename = re.sub('\s', '_', str(cfilename))
-        d_filename = re.sub('[\_\#\,\/\;\!\$\%\&\?\@]', ' ', comfilename)
-        d_filename = re.sub('[\:\-\+\']', '#', d_filename)
+        if issueinfo is None:
+            #let's clean up the filename for matching purposes
 
-        #strip extraspaces
-        d_filename = re.sub('\s+', ' ', d_filename)
-        cfilename = re.sub('\s+', ' ', cfilename)
+            cfilename = re.sub('[\_\#\,\/\:\;\-\!\$\%\&\+\'\?\@]', ' ', comfilename)
+            #cfilename = re.sub('\s', '_', str(cfilename))
+            d_filename = re.sub('[\_\#\,\/\;\!\$\%\&\?\@]', ' ', comfilename)
+            d_filename = re.sub('[\:\-\+\']', '#', d_filename)
 
-        #versioning - remove it
-        subsplit = cfilename.replace('_', ' ').split()
-        volno = None
-        volyr = None
-        for subit in subsplit:
-            if subit[0].lower() == 'v':
-                vfull = 0
-                if subit[1:].isdigit():
-                    #if in format v1, v2009 etc...
-                    if len(subit) > 3:
-                        # if it's greater than 3 in length, then the format is Vyyyy
-                        vfull = 1 # add on 1 character length to account for extra space
-                    cfilename = re.sub(subit, '', cfilename)
-                    d_filename = re.sub(subit, '', d_filename)
-                    volno = re.sub("[^0-9]", " ", subit)
-                elif subit.lower()[:3] == 'vol':
-                    #if in format vol.2013 etc
-                    #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
-                    logger.fdebug('volume indicator detected as version #:' + str(subit))
-                    cfilename = re.sub(subit, '', cfilename)
-                    cfilename = " ".join(cfilename.split())
-                    d_filename = re.sub(subit, '', d_filename)
-                    d_filename = " ".join(d_filename.split())
-                    volyr = re.sub("[^0-9]", " ", subit).strip()
-                    logger.fdebug('volume year set as : ' + str(volyr))
-        cm_cn = 0
+            #strip extraspaces
+            d_filename = re.sub('\s+', ' ', d_filename)
+            cfilename = re.sub('\s+', ' ', cfilename)
 
-        #we need to track the counter to make sure we are comparing the right array parts
-        #this takes care of the brackets :)
-        m = re.findall('[^()]+', d_filename)  #cfilename)
-        lenm = len(m)
-        logger.fdebug("there are " + str(lenm) + " words.")
-        cnt = 0
-        yearmatch = "false"
-        foundonwatch = "False"
-        issue = 999999
+            #versioning - remove it
+            subsplit = cfilename.replace('_', ' ').split()
+            volno = None
+            volyr = None
+            for subit in subsplit:
+                if subit[0].lower() == 'v':
+                    vfull = 0
+                    if subit[1:].isdigit():
+                        #if in format v1, v2009 etc...
+                        if len(subit) > 3:
+                            # if it's greater than 3 in length, then the format is Vyyyy
+                            vfull = 1 # add on 1 character length to account for extra space
+                        cfilename = re.sub(subit, '', cfilename)
+                        d_filename = re.sub(subit, '', d_filename)
+                        volno = re.sub("[^0-9]", " ", subit)
+                    elif subit.lower()[:3] == 'vol':
+                        #if in format vol.2013 etc
+                        #because the '.' in Vol. gets removed, let's loop thru again after the Vol hit to remove it entirely
+                        logger.fdebug('volume indicator detected as version #:' + str(subit))
+                        cfilename = re.sub(subit, '', cfilename)
+                        cfilename = " ".join(cfilename.split())
+                        d_filename = re.sub(subit, '', d_filename)
+                        d_filename = " ".join(d_filename.split())
+                        volyr = re.sub("[^0-9]", " ", subit).strip()
+                        logger.fdebug('volume year set as : ' + str(volyr))
+            cm_cn = 0
+
+            #we need to track the counter to make sure we are comparing the right array parts
+            #this takes care of the brackets :)
+            m = re.findall('[^()]+', d_filename)  #cfilename)
+            lenm = len(m)
+            logger.fdebug("there are " + str(lenm) + " words.")
+            cnt = 0
+            yearmatch = "false"
+            foundonwatch = "False"
+            issue = 999999
 
 
-        while (cnt < lenm):
-            if m[cnt] is None: break
-            if m[cnt] == ' ':
-                pass
-            else:
-                logger.fdebug(str(cnt) + ". Bracket Word: " + m[cnt])
-                if cnt == 0:
-                    comic_andiss = m[cnt]
-                    logger.fdebug("Comic: " + comic_andiss)
-                    # if it's not in the standard format this will bork.
-                    # let's try to accomodate (somehow).
-                    # first remove the extension (if any)
-                    extensions = ('cbr', 'cbz')
-                    if comic_andiss.lower().endswith(extensions):
-                        comic_andiss = comic_andiss[:-4]
-                        logger.fdebug("removed extension from filename.")
-                    #now we have to break up the string regardless of formatting.
-                    #let's force the spaces.
-                    comic_andiss = re.sub('_', ' ', comic_andiss)
-                    cs = comic_andiss.split()
-                    cs_len = len(cs)
-                    cn = ''
-                    ydetected = 'no'
-                    idetected = 'no'
-                    decimaldetect = 'no'
-                    for i in reversed(xrange(len(cs))):
-                        #start at the end.
-                        logger.fdebug("word: " + str(cs[i]))
-                        #assume once we find issue - everything prior is the actual title
-                        #idetected = no will ignore everything so it will assume all title
-                        if cs[i][:-2] == '19' or cs[i][:-2] == '20' and idetected == 'no':
-                            logger.fdebug("year detected: " + str(cs[i]))
-                            ydetected = 'yes'
-                            result_comyear = cs[i]
-                        elif cs[i].isdigit() and idetected == 'no' or '.' in cs[i]:
-                            if '.' in cs[i]:
-                                #make sure it's a number on either side of decimal and assume decimal issue.
-                                decst = cs[i].find('.')
-                                dec_st = cs[i][:decst]
-                                dec_en = cs[i][decst +1:]
-                                logger.fdebug("st: " + str(dec_st))
-                                logger.fdebug("en: " + str(dec_en))
-                                if dec_st.isdigit() and dec_en.isdigit():
-                                    logger.fdebug("decimal issue detected...adjusting.")
-                                    issue = dec_st + "." + dec_en
-                                    logger.fdebug("issue detected: " + str(issue))
-                                    idetected = 'yes'
-                                else:
-                                    logger.fdebug("false decimal represent. Chunking to extra word.")
-                                    cn = cn + cs[i] + " "
-                                    #break
-                            else:
-                                issue = cs[i]
-                                logger.fdebug("issue detected : " + str(issue))
-                                idetected = 'yes'
-
-                        elif '\#' in cs[i] or decimaldetect == 'yes':
-                            logger.fdebug("issue detected: " + str(cs[i]))
-                            idetected = 'yes'
-                        else: cn = cn + cs[i] + " "
-                    if ydetected == 'no':
-                        #assume no year given in filename...
-                        result_comyear = "0000"
-                    logger.fdebug("cm?: " + str(cn))
-                    if issue is not '999999':
-                        comiss = issue
-                    else:
-                        logger.ERROR("Invalid Issue number (none present) for " + comfilename)
-                        break
-                    cnsplit = cn.split()
-                    cname = ''
-                    findcn = 0
-                    while (findcn < len(cnsplit)):
-                        cname = cname + cs[findcn] + " "
-                        findcn+=1
-                    cname = cname[:len(cname)-1] # drop the end space...
-                    logger.fdebug('assuming name is : ' + cname)
-                    com_NAME = cname
-                    logger.fdebug('com_NAME : ' + com_NAME)
-                    yearmatch = "True"
+            while (cnt < lenm):
+                if m[cnt] is None: break
+                if m[cnt] == ' ':
+                    pass
                 else:
-                    logger.fdebug('checking ' + m[cnt])
-                    # we're assuming that the year is in brackets (and it should be damnit)
-                    if m[cnt][:-2] == '19' or m[cnt][:-2] == '20':
-                        logger.fdebug('year detected: ' + str(m[cnt]))
-                        ydetected = 'yes'
-                        result_comyear = m[cnt]
-                    elif m[cnt][:3].lower() in datelist:
-                        logger.fdebug('possible issue date format given - verifying')
-                        #if the date of the issue is given as (Jan 2010) or (January 2010) let's adjust.
-                        #keeping in mind that ',' and '.' are already stripped from the string
-                        if m[cnt][-4:].isdigit():
-                            ydetected = 'yes'
-                            result_comyear = m[cnt][-4:]
-                            logger.fdebug('Valid Issue year of ' + str(result_comyear) + 'detected in format of ' + str(m[cnt]))
-            cnt+=1
+                    logger.fdebug(str(cnt) + ". Bracket Word: " + m[cnt])
+                    if cnt == 0:
+                        comic_andiss = m[cnt]
+                        logger.fdebug("Comic: " + comic_andiss)
+                        # if it's not in the standard format this will bork.
+                        # let's try to accomodate (somehow).
+                        # first remove the extension (if any)
+                        extensions = ('cbr', 'cbz')
+                        if comic_andiss.lower().endswith(extensions):
+                            comic_andiss = comic_andiss[:-4]
+                            logger.fdebug("removed extension from filename.")
+                        #now we have to break up the string regardless of formatting.
+                        #let's force the spaces.
+                        comic_andiss = re.sub('_', ' ', comic_andiss)
+                        cs = comic_andiss.split()
+                        cs_len = len(cs)
+                        cn = ''
+                        ydetected = 'no'
+                        idetected = 'no'
+                        decimaldetect = 'no'
+                        for i in reversed(xrange(len(cs))):
+                            #start at the end.
+                            logger.fdebug("word: " + str(cs[i]))
+                            #assume once we find issue - everything prior is the actual title
+                            #idetected = no will ignore everything so it will assume all title
+                            if cs[i][:-2] == '19' or cs[i][:-2] == '20' and idetected == 'no':
+                                logger.fdebug("year detected: " + str(cs[i]))
+                                ydetected = 'yes'
+                                result_comyear = cs[i]
+                            elif cs[i].isdigit() and idetected == 'no' or '.' in cs[i]:
+                                if '.' in cs[i]:
+                                    #make sure it's a number on either side of decimal and assume decimal issue.
+                                    decst = cs[i].find('.')
+                                    dec_st = cs[i][:decst]
+                                    dec_en = cs[i][decst +1:]
+                                    logger.fdebug("st: " + str(dec_st))
+                                    logger.fdebug("en: " + str(dec_en))
+                                    if dec_st.isdigit() and dec_en.isdigit():
+                                        logger.fdebug("decimal issue detected...adjusting.")
+                                        issue = dec_st + "." + dec_en
+                                        logger.fdebug("issue detected: " + str(issue))
+                                        idetected = 'yes'
+                                    else:
+                                        logger.fdebug("false decimal represent. Chunking to extra word.")
+                                        cn = cn + cs[i] + " "
+                                        #break
+                                else:
+                                    issue = cs[i]
+                                    logger.fdebug("issue detected : " + str(issue))
+                                    idetected = 'yes'
 
-        displength = len(cname)
-        logger.fdebug('cname length : ' + str(displength) + ' --- ' + str(cname))
-        logger.fdebug('d_filename is : ' + d_filename)
-        charcount = d_filename.count('#')
-        logger.fdebug('charcount is : ' + str(charcount))
-        if charcount > 0:
-            logger.fdebug('entering loop')
-            for i, m in enumerate(re.finditer('\#', d_filename)):
-                if m.end() <= displength:
-                    logger.fdebug(comfilename[m.start():m.end()])
-                    # find occurance in c_filename, then replace into d_filname so special characters are brought across
-                    newchar = comfilename[m.start():m.end()]
-                    logger.fdebug('newchar:' + str(newchar))
-                    d_filename = d_filename[:m.start()] + str(newchar) + d_filename[m.end():]
-                    logger.fdebug('d_filename:' + str(d_filename))
-
-        dispname = d_filename[:displength]
-        logger.fdebug('dispname : ' + dispname)
-
-        splitit = []
-        watchcomic_split = []
-        logger.fdebug("filename comic and issue: " + comic_andiss)
-
-        #changed this from '' to ' '
-        comic_iss_b4 = re.sub('[\-\:\,]', ' ', comic_andiss)
-        comic_iss = comic_iss_b4.replace('.', ' ')
-        comic_iss = re.sub('[\s+]', ' ', comic_iss).strip()
-        logger.fdebug("adjusted comic and issue: " + str(comic_iss))
-        #remove 'the' from here for proper comparisons.
-        if ' the ' in comic_iss.lower():
-            comic_iss = re.sub('\\bthe\\b', '', comic_iss).strip()
-        splitit = comic_iss.split(None)
-        logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
-        #here we cycle through the Watchlist looking for a match.
-        while (cm_cn < watchcnt):
-            #setup the watchlist
-            comname = ComicName[cm_cn]
-            comyear = ComicYear[cm_cn]
-            compub = ComicPublisher[cm_cn]
-            comtotal = ComicTotal[cm_cn]
-            comicid = ComicID[cm_cn]
-            watch_location = ComicLocation[cm_cn]
-
-           # there shouldn't be an issue in the comic now, so let's just assume it's all gravy.
-            splitst = len(splitit)
-            watchcomic_split = helpers.cleanName(comname)
-            watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
-
-            logger.fdebug(str(splitit) + " file series word count: " + str(splitst))
-            logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
-            if (splitst) != len(watchcomic_split):
-                logger.fdebug("incorrect comic lengths...not a match")
-#                if str(splitit[0]).lower() == "the":
-#                    logger.fdebug("THE word detected...attempting to adjust pattern matching")
-#                    splitit[0] = splitit[4:]
-            else:
-                logger.fdebug("length match..proceeding")
-                n = 0
-                scount = 0
-                logger.fdebug("search-length: " + str(splitst))
-                logger.fdebug("Watchlist-length: " + str(len(watchcomic_split)))
-                while (n <= (splitst) -1):
-                    logger.fdebug("splitit: " + str(splitit[n]))
-                    if n < (splitst) and n < len(watchcomic_split):
-                        logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
-                        if '+' in watchcomic_split[n]:
-                            watchcomic_split[n] = re.sub('+', '', str(watchcomic_split[n]))
-                        if str(watchcomic_split[n].lower()) in str(splitit[n].lower()) and len(watchcomic_split[n]) >= len(splitit[n]):
-                            logger.fdebug("word matched on : " + str(splitit[n]))
-                            scount+=1
-                        #elif ':' in splitit[n] or '-' in splitit[n]:
-                        #    splitrep = splitit[n].replace('-', '')
-                        #    logger.fdebug("non-character keyword...skipped on " + splitit[n])
-                    elif str(splitit[n]).lower().startswith('v'):
-                        logger.fdebug("possible versioning..checking")
-                        #we hit a versioning # - account for it
-                        if splitit[n][1:].isdigit():
-                            comicversion = str(splitit[n])
-                            logger.fdebug("version found: " + str(comicversion))
-                    else:
-                        logger.fdebug("Comic / Issue section")
-                        if splitit[n].isdigit():
-                            logger.fdebug("issue detected")
+                            elif '\#' in cs[i] or decimaldetect == 'yes':
+                                logger.fdebug("issue detected: " + str(cs[i]))
+                                idetected = 'yes'
+                            else: cn = cn + cs[i] + " "
+                        if ydetected == 'no':
+                            #assume no year given in filename...
+                            result_comyear = "0000"
+                        logger.fdebug("cm?: " + str(cn))
+                        if issue is not '999999':
+                            comiss = issue
                         else:
-                            logger.fdebug("non-match for: "+ str(splitit[n]))
-                            pass
-                    n+=1
-                #set the match threshold to 80% (for now)
-                # if it's less than 80% consider it a non-match and discard.
-                #splitit has to splitit-1 because last position is issue.
-                wordcnt = int(scount)
-                logger.fdebug("scount:" + str(wordcnt))
-                totalcnt = int(splitst)
-                logger.fdebug("splitit-len:" + str(totalcnt))
-                spercent = (wordcnt /totalcnt) * 100
-                logger.fdebug("we got " + str(spercent) + " percent.")
-                if int(spercent) >= 80:
-                    logger.fdebug("it's a go captain... - we matched " + str(spercent) + "%!")
-                    logger.fdebug("this should be a match!")
-                    logger.fdebug("issue we found for is : " + str(comiss))
-                    #set the year to the series we just found ;)
-                    result_comyear = comyear
-                    #issue comparison now as well
-                    logger.info(u"Found " + comname + " (" + str(comyear) + ") issue: " + str(comiss))
-                    watchmatch = str(comicid)
-                    dispname = DisplayName[cm_cn]
-                    foundonwatch = "True"
-                    break
-                elif int(spercent) < 80:
-                    logger.fdebug("failure - we only got " + str(spercent) + "% right!")
-            cm_cn+=1
+                            logger.ERROR("Invalid Issue number (none present) for " + comfilename)
+                            break
+                        cnsplit = cn.split()
+                        cname = ''
+                        findcn = 0
+                        while (findcn < len(cnsplit)):
+                            cname = cname + cs[findcn] + " "
+                            findcn+=1
+                        cname = cname[:len(cname)-1] # drop the end space...
+                        logger.fdebug('assuming name is : ' + cname)
+                        com_NAME = cname
+                        logger.fdebug('com_NAME : ' + com_NAME)
+                        yearmatch = "True"
+                    else:
+                        logger.fdebug('checking ' + m[cnt])
+                        # we're assuming that the year is in brackets (and it should be damnit)
+                        if m[cnt][:-2] == '19' or m[cnt][:-2] == '20':
+                            logger.fdebug('year detected: ' + str(m[cnt]))
+                            ydetected = 'yes'
+                            result_comyear = m[cnt]
+                        elif m[cnt][:3].lower() in datelist:
+                            logger.fdebug('possible issue date format given - verifying')
+                            #if the date of the issue is given as (Jan 2010) or (January 2010) let's adjust.
+                            #keeping in mind that ',' and '.' are already stripped from the string
+                            if m[cnt][-4:].isdigit():
+                                ydetected = 'yes'
+                                result_comyear = m[cnt][-4:]
+                                logger.fdebug('Valid Issue year of ' + str(result_comyear) + 'detected in format of ' + str(m[cnt]))
+                cnt+=1
 
-        if foundonwatch == "False":
-            watchmatch = None
-        #---if it's not a match - send it to the importer.
-        n = 0
+            displength = len(cname)
+            logger.fdebug('cname length : ' + str(displength) + ' --- ' + str(cname))
+            logger.fdebug('d_filename is : ' + d_filename)
+            charcount = d_filename.count('#')
+            logger.fdebug('charcount is : ' + str(charcount))
+            if charcount > 0:
+                logger.fdebug('entering loop')
+                for i, m in enumerate(re.finditer('\#', d_filename)):
+                    if m.end() <= displength:
+                        logger.fdebug(comfilename[m.start():m.end()])
+                        # find occurance in c_filename, then replace into d_filname so special characters are brought across
+                        newchar = comfilename[m.start():m.end()]
+                        logger.fdebug('newchar:' + str(newchar))
+                        d_filename = d_filename[:m.start()] + str(newchar) + d_filename[m.end():]
+                        logger.fdebug('d_filename:' + str(d_filename))
 
-        if volyr is None:
-            if result_comyear is None:
-                result_comyear = '0000' #no year in filename basically.
-        else:
-            if result_comyear is None:
-                result_comyear = volyr
-        if volno is None:
+            dispname = d_filename[:displength]
+            logger.fdebug('dispname : ' + dispname)
+
+            splitit = []
+            watchcomic_split = []
+            logger.fdebug("filename comic and issue: " + comic_andiss)
+
+            #changed this from '' to ' '
+            comic_iss_b4 = re.sub('[\-\:\,]', ' ', comic_andiss)
+            comic_iss = comic_iss_b4.replace('.', ' ')
+            comic_iss = re.sub('[\s+]', ' ', comic_iss).strip()
+            logger.fdebug("adjusted comic and issue: " + str(comic_iss))
+            #remove 'the' from here for proper comparisons.
+            if ' the ' in comic_iss.lower():
+                comic_iss = re.sub('\\bthe\\b', '', comic_iss).strip()
+            splitit = comic_iss.split(None)
+            logger.fdebug("adjusting from: " + str(comic_iss_b4) + " to: " + str(comic_iss))
+            #here we cycle through the Watchlist looking for a match.
+            while (cm_cn < watchcnt):
+                #setup the watchlist
+                comname = ComicName[cm_cn]
+                comyear = ComicYear[cm_cn]
+                compub = ComicPublisher[cm_cn]
+                comtotal = ComicTotal[cm_cn]
+                comicid = ComicID[cm_cn]
+                watch_location = ComicLocation[cm_cn]
+
+                # there shouldn't be an issue in the comic now, so let's just assume it's all gravy.
+                splitst = len(splitit)
+                watchcomic_split = helpers.cleanName(comname)
+                watchcomic_split = re.sub('[\-\:\,\.]', ' ', watchcomic_split).split(None)
+
+                logger.fdebug(str(splitit) + " file series word count: " + str(splitst))
+                logger.fdebug(str(watchcomic_split) + " watchlist word count: " + str(len(watchcomic_split)))
+                if (splitst) != len(watchcomic_split):
+                    logger.fdebug("incorrect comic lengths...not a match")
+#                    if str(splitit[0]).lower() == "the":
+#                        logger.fdebug("THE word detected...attempting to adjust pattern matching")
+#                        splitit[0] = splitit[4:]
+                else:
+                    logger.fdebug("length match..proceeding")
+                    n = 0
+                    scount = 0
+                    logger.fdebug("search-length: " + str(splitst))
+                    logger.fdebug("Watchlist-length: " + str(len(watchcomic_split)))
+                    while (n <= (splitst) -1):
+                        logger.fdebug("splitit: " + str(splitit[n]))
+                        if n < (splitst) and n < len(watchcomic_split):
+                            logger.fdebug(str(n) + " Comparing: " + str(watchcomic_split[n]) + " .to. " + str(splitit[n]))
+                            if '+' in watchcomic_split[n]:
+                                watchcomic_split[n] = re.sub('+', '', str(watchcomic_split[n]))
+                            if str(watchcomic_split[n].lower()) in str(splitit[n].lower()) and len(watchcomic_split[n]) >= len(splitit[n]):
+                                logger.fdebug("word matched on : " + str(splitit[n]))
+                                scount+=1
+                            #elif ':' in splitit[n] or '-' in splitit[n]:
+                            #    splitrep = splitit[n].replace('-', '')
+                            #    logger.fdebug("non-character keyword...skipped on " + splitit[n])
+                        elif str(splitit[n]).lower().startswith('v'):
+                            logger.fdebug("possible versioning..checking")
+                            #we hit a versioning # - account for it
+                            if splitit[n][1:].isdigit():
+                                comicversion = str(splitit[n])
+                                logger.fdebug("version found: " + str(comicversion))
+                        else:
+                            logger.fdebug("Comic / Issue section")
+                            if splitit[n].isdigit():
+                                logger.fdebug("issue detected")
+                            else:
+                                logger.fdebug("non-match for: "+ str(splitit[n]))
+                                pass
+                        n+=1
+                    #set the match threshold to 80% (for now)
+                    # if it's less than 80% consider it a non-match and discard.
+                    #splitit has to splitit-1 because last position is issue.
+                    wordcnt = int(scount)
+                    logger.fdebug("scount:" + str(wordcnt))
+                    totalcnt = int(splitst)
+                    logger.fdebug("splitit-len:" + str(totalcnt))
+                    spercent = (wordcnt /totalcnt) * 100
+                    logger.fdebug("we got " + str(spercent) + " percent.")
+                    if int(spercent) >= 80:
+                        logger.fdebug("it's a go captain... - we matched " + str(spercent) + "%!")
+                        logger.fdebug("this should be a match!")
+                        logger.fdebug("issue we found for is : " + str(comiss))
+                        #set the year to the series we just found ;)
+                        result_comyear = comyear
+                        #issue comparison now as well
+                        logger.info(u"Found " + comname + " (" + str(comyear) + ") issue: " + str(comiss))
+                        watchmatch = str(comicid)
+                        dispname = DisplayName[cm_cn]
+                        foundonwatch = "True"
+                        break
+                    elif int(spercent) < 80:
+                        logger.fdebug("failure - we only got " + str(spercent) + "% right!")
+                cm_cn+=1
+
+            if foundonwatch == "False":
+                watchmatch = None
+            #---if it's not a match - send it to the importer.
+            n = 0
+
             if volyr is None:
-                vol_label = None
+                if result_comyear is None:
+                    result_comyear = '0000' #no year in filename basically.
             else:
-                vol_label = volyr
-        else:
-            vol_label = volno
+                if result_comyear is None:
+                    result_comyear = volyr
+            if volno is None:
+                if volyr is None:
+                    vol_label = None
+                else:
+                    vol_label = volyr
+            else:
+                vol_label = volno
 
-        logger.fdebug("adding " + com_NAME + " to the import-queue!")
-        impid = dispname + '-' + str(result_comyear) + '-' + str(comiss) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
-        logger.fdebug("impid: " + str(impid))
-        import_by_comicids.append({
-            "impid": impid,
-            "watchmatch": watchmatch,
-            "displayname": dispname,
-            "comicname": dispname, #com_NAME,
-            "comicyear": result_comyear,
-            "volume": vol_label,
-            "comfilename": comfilename,
-            "comlocation": comlocation.decode(mylar.SYS_ENCODING)
-                                   })
+            logger.fdebug("adding " + com_NAME + " to the import-queue!")
+            impid = dispname + '-' + str(result_comyear) + '-' + str(comiss) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
+            logger.fdebug("impid: " + str(impid))
+            if cvscanned_loc == os.path.dirname(comlocation):
+                cv_cid = cvinfo_CID
+                logger.info('CVINFO_COMICID attached : ' + str(cv_cid))
+            else:
+                cv_cid = None
+            import_by_comicids.append({
+                "impid": impid,
+                "comicid": cv_cid,
+                "issueid": None,
+                "watchmatch": watchmatch,
+                "displayname": dispname,
+                "comicname": dispname, #com_NAME,
+                "comicyear": result_comyear,
+                "volume": vol_label,
+                "comfilename": comfilename,
+                "comlocation": comlocation.decode(mylar.SYS_ENCODING)
+                                       })
     #logger.fdebug('import_by_ids: ' + str(import_by_comicids))
+
+    #reverse lookup all of the gathered IssueID's in order to get the related ComicID
+    vals = mylar.cv.getComic(None, 'import', comicidlist=issueid_list)
+    logger.fdebug('vals returned:' + str(vals))
 
     if len(watch_kchoice) > 0:
         watchchoice['watchlist'] = watch_kchoice
@@ -535,7 +619,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
             return "Completed"
     if len(import_by_comicids) > 0:
         import_comicids['comic_info'] = import_by_comicids
+        if vals:
+            import_comicids['issueid_info'] = vals
+        else:
+            import_comicids['issueid_info'] = None
+ 
         logger.fdebug('import comicids: ' + str(import_by_comicids))
+        
         return import_comicids, len(import_by_comicids)
 
 
@@ -566,14 +656,35 @@ def scanLibrary(scan=None, queue=None):
             logger.fdebug("number of records: " + str(noids))
             while (sl < int(noids)):
                 soma_sl = soma['comic_info'][sl]
+                issue_info = soma['issueid_info']
                 logger.fdebug("soma_sl: " + str(soma_sl))
-                logger.fdebug("comicname: " + soma_sl['comicname'].encode('utf-8'))
-                logger.fdebug("filename: " + soma_sl['comfilename'].encode('utf-8'))
+                logger.fdebug("issue_info: " + str(issue_info))
+                logger.fdebug("comicname: " + soma_sl['comicname'])
+                logger.fdebug("filename: " + soma_sl['comfilename'])
+                if issue_info is not None:
+                    for iss in issue_info:
+                        if soma_sl['issueid'] == iss['IssueID']:
+                            logger.info('IssueID match: ' + str(iss['IssueID']))
+                            logger.info('ComicName: ' + str(iss['ComicName'] + '[' + str(iss['ComicID'])+ ']'))
+                            IssID = iss['IssueID']
+                            ComicID = iss['ComicID']
+                            displayname = iss['ComicName']
+                            comicname = iss['ComicName']
+                            break
+                else:
+                    IssID = None
+                    displayname = soma_sl['displayname'].encode('utf-8')
+                    comicname = soma_sl['comicname'].encode('utf-8')
+                    ComicID = soma_sl['comicid']  #if it's been scanned in for cvinfo, this will be the CID - otherwise it's None
+                    
                 controlValue = {"impID":    soma_sl['impid']}
                 newValue = {"ComicYear":        soma_sl['comicyear'],
                             "Status":           "Not Imported",
-                            "ComicName":        soma_sl['comicname'].encode('utf-8'),
-                            "DisplayName":      soma_sl['displayname'].encode('utf-8'),
+                            "ComicName":        comicname,
+                            "DisplayName":      displayname,
+                            "ComicID":          ComicID,
+                            "IssueID":          IssID,
+                            "Volume":           soma_sl['volume'],
                             "ComicFilename":    soma_sl['comfilename'].encode('utf-8'),
                             "ComicLocation":    soma_sl['comlocation'].encode('utf-8'),
                             "ImportDate":       helpers.today(),

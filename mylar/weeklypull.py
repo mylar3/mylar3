@@ -957,7 +957,10 @@ def weekly_singlecopy(comicid, issuenum, file, path, pulldate):
 
     module = '[WEEKLY-PULL COPY]'
     if mylar.WEEKFOLDER:
-        desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+        if mylar.WEEKFOLDER_LOC:
+            desdir = os.path.join(mylar.WEEKFOLDER_LOC, pulldate)
+        else:
+            desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
         dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True, module=module)
         if dircheck:
             pass
@@ -1067,17 +1070,25 @@ def future_check():
                 logger.fdebug('Comparing ' + sr['name'] + ' - to - ' + ser['ComicName'])
                 tmpsername = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', ser['ComicName']).strip()
                 tmpsrname = re.sub('[\'\*\^\%\$\#\@\!\/\,\.\:\(\)]', '', sr['name']).strip()
-                tmpsername = re.sub('\-', ' ', tmpsername)
+                tmpsername = re.sub('\-', '', tmpsername)
                 if tmpsername.lower().startswith('the '):
-                    tmpsername = re.sub('the ', ' ', tmpsername.lower()).strip()
+                    tmpsername = re.sub('the ', '', tmpsername.lower()).strip()
                 else:
-                    tmpsername = re.sub(' the ', ' ', tmpsername.lower()).strip()
-                tmpsrname = re.sub('\-', ' ', tmpsrname)
+                    tmpsername = re.sub(' the ', '', tmpsername.lower()).strip()
+                tmpsrname = re.sub('\-', '', tmpsrname)
                 if tmpsrname.lower().startswith('the '):
-                    tmpsrname = re.sub('the ', ' ', tmpsrname.lower()).strip()
+                    tmpsrname = re.sub('the ', '', tmpsrname.lower()).strip()
                 else:
-                    tmpsrname = re.sub(' the ', ' ', tmpsrname.lower()).strip()
-                logger.fdebug('Comparing ' + tmpsrname + ' - to - ' + tmpsername)
+                    tmpsrname = re.sub(' the ', '', tmpsrname.lower()).strip()
+
+                tmpsername = re.sub(' and ', '', tmpsername.lower()).strip()
+                tmpsername = re.sub(' & ', '', tmpsername.lower()).strip()
+                tmpsrname = re.sub(' and ', '', tmpsrname.lower()).strip()
+                tmpsrname = re.sub(' & ', '', tmpsrname.lower()).strip()
+                tmpsername = re.sub('\s', '', tmpsername).strip()
+                tmpsrname = re.sub('\s', '', tmpsrname).strip()
+
+                logger.fdebug('Comparing modified names: ' + tmpsrname + ' - to - ' + tmpsername)
                 if tmpsername.lower() == tmpsrname.lower():
                     logger.fdebug('Name matched successful: ' + sr['name'])
                     if str(sr['comicyear']) == str(theissdate):

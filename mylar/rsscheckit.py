@@ -76,10 +76,13 @@ class tehMain():
                             if mylar.KEYS_32P is None:
                                 feed32p = auth32p.info32p()
                                 feedinfo = feed32p.authenticate()
+                                if feedinfo == "disable":
+                                    mylar.ENABLE_32P = 0
+                                    mylar.config_write()
                             else:
                                 feedinfo = mylar.FEEDINFO_32P
 
-                            if feedinfo is None or len(feedinfo) == 0:
+                            if feedinfo is None or len(feedinfo) == 0 or feedinfo == "disable":
                                 logger.error('[RSS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
                             else:
                                 rsscheck.torrents(pickfeed='1', feedinfo=feedinfo[0])

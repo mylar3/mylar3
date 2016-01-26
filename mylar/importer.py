@@ -83,7 +83,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             latestissueinfo.append({"latestiss": dbcomic['LatestIssue'],
                                     "latestdate":  dbcomic['LatestDate']})
 
-        filechecker.validateAndCreateDirectory(comlocation, True)
+        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+        if not checkdirectory:
+            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+            return
         oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -213,6 +216,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #else:
             #sresults = mb.findComic(annComicName, mode, issue=annissues, limityear=annualval['AnnualYear'])
             #print "annualyear: " + str(annualval['AnnualYear'])
+        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print'}
+
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
         type='comic'
@@ -225,7 +230,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             while (num_res < len(sresults)):
                 sr = sresults[num_res]
                 logger.fdebug("description:" + sr['description'])
-                if 'paperback' in sr['description'] or 'collecting' in sr['description'] or 'reprints' in sr['description'] or 'collected' in sr['description']:
+                if any(x in sr['description'].lower() for x in annual_types_ignore):
                     logger.fdebug('[IMPORTER-ANNUAL] - tradeback/collected edition detected - skipping ' + str(sr['comicid']))
                 else:
                     if comicid in sr['description']:
@@ -377,7 +382,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         #    logger.info(u"Directory successfully created at: " + str(comlocation))
         #except OSError:
         #    logger.error(u"Could not create comicdir : " + str(comlocation))
-        filechecker.validateAndCreateDirectory(comlocation, True)
+        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+        if not checkdirectory:
+            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+            return
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -786,7 +794,10 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         #    logger.info(u"Directory successfully created at: " + str(comlocation))
         #except OSError:
         #    logger.error(u"Could not create comicdir : " + str(comlocation))
-        filechecker.validateAndCreateDirectory(comlocation, True)
+        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+        if not checkdirectory:
+            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+            return
 
     comicIssues = gcdinfo['totalissues']
 
@@ -1475,6 +1486,8 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
         type='comic'
 
+        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print'}
+
         if len(sresults) == 1:
             logger.fdebug('[IMPORTER-ANNUAL] - 1 result')
         if len(sresults) > 0:
@@ -1483,7 +1496,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
             while (num_res < len(sresults)):
                 sr = sresults[num_res]
                 logger.fdebug("description:" + sr['description'])
-                if 'paperback' in sr['description'] or 'collecting' in sr['description'] or 'reprints' in sr['description'] or 'collected' in sr['description']:
+                if any(x in sr['description'].lower() for x in annual_types_ignore):
                     logger.fdebug('[IMPORTER-ANNUAL] - tradeback/collected edition detected - skipping ' + str(sr['comicid']))
                 else:
                     if comicid in sr['description']:

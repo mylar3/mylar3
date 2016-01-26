@@ -740,6 +740,10 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication enabled. Keys have not been established yet, attempting to gather.')
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
+                if feedinfo == "disable":
+                    mylar.ENABLE_32P = 0
+                    mylar.config_write()
+                    return "fail"
                 if mylar.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
                     logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
                     return "fail"
@@ -816,6 +820,10 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 logger.info('Attempting to re-authenticate against 32P and poll new keys as required.')
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
+                if feedinfo == "disable":
+                    mylar.ENABLE_32P = 0
+                    mylar.config_write()
+                    return "fail"
                 try:
                     r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
                 except Exception, e:

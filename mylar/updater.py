@@ -26,7 +26,9 @@ import mylar
 from mylar import db, logger, helpers, filechecker
 
 def dbUpdate(ComicIDList=None, calledfrom=None):
-
+    if mylar.IMPORTLOCK:
+        logger.info('Import is currently running - deferring this until the next scheduled run sequence.')
+        return
     myDB = db.DBConnection()
     #print "comicidlist:" + str(ComicIDList)
     if ComicIDList is None:

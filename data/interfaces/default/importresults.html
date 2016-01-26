@@ -52,6 +52,9 @@
                      </tr>
                    </table>
               </div>
+          </div>
+     <div class="table_wrapper">
+
         <form action="markImports" method="get" id="markImports">
         <div id="markcomic">
                 <select name="action" onChange="doAjaxCall('markImports',$(this),'table',true);" data-error="You didn't select any comics">
@@ -61,6 +64,7 @@
                 </select>
                 <input type="hidden" value="Go">
         </div>
+
         <table class="display" id="impresults_table">
                 <tr/><tr/>
                 <tr><center><h3>To be Imported</h3></center></tr>
@@ -79,19 +83,24 @@
                                   %if results:
                                       %for result in results:
                                            <%
+                                                grade = 'X'
+
                                                 if result['DisplayName'] is None:
                                                     displayname = result['ComicName']
                                                 else:
                                                     displayname = result['DisplayName']
-                                                endif
                                             %>
-                                          <tr>
+                                        <tr class="grade${grade}">
                                             <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" value="${result['ComicName']}" class="checkbox" />
-                                            <td id="comicname">${displayname}</td>
+                                            <td id="comicname">${displayname}
+                                            %if result['ComicID'] is not None:
+                                                [${result['ComicID']}]
+                                            %endif
+                                            </td>
                                             <td id="comicyear"><title="${result['ComicYear']}">${result['ComicYear']}</td>
                                             <td id="comicissues"><title="${result['IssueCount']}">${result['IssueCount']}</td>
                                             <td id="status">
-                                            %if result['ComicID']:
+                                            %if result['ComicID'] and result['Status'] == 'Imported':
                                                 <a href="comicDetails?ComicID=${result['ComicID']}">${result['Status']}</a>
                                             %else:
                                                 ${result['Status']}
@@ -103,7 +112,7 @@
                                             <td id="importdate">${result['ImportDate']}</td>
                                             <td id="addcomic">
                                                 %if result['Status'] == 'Not Imported':
-                                                    [<a href="#" title="Import ${result['ComicName']} into your watchlist" onclick="doAjaxCall('preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname}| u}',$(this),'table')" data-success="Imported ${result['ComicName']}">Import</a>]
+                                                    [<a href="#" title="Import ${result['ComicName']} into your watchlist" onclick="doAjaxCall('preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname}| u}&comicid=${result['ComicID']}',$(this),'table')" data-success="Imported ${result['ComicName']}">Import</a>]
                                                 %endif
                                                 [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
                                                 %if result['implog'] is not None:
@@ -125,39 +134,67 @@
                 </tbody>
         </table>
         </form>
-
-</div>
+      </div>
 </%def>
+<%def name="headIncludes()">
+        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+</%def>
+
 <%def name="javascriptIncludes()">
+    <script src="js/libs/jquery.dataTables.min.js"></script>
+    <script type="text/javascript">
+       $('.showlog').click(function (event) {
+               var width = 575,
+                       height = 400,
+                       left = ($(window).width() - width) / 2,
+                       top = ($(window).height() - height) / 2,
+                       url = this.href,
+                       opts = 'status=1' +
+                              ',width=' + width +
+                              ',height=' + height +
+                              ',top=' + top +
+                              ',left=' + left;
 
-<script type="text/javascript">
-    $('.showlog').click(function (event) {
-        var width = 575,
-                height = 400,
-                left = ($(window).width() - width) / 2,
-                top = ($(window).height() - height) / 2,
-                url = this.href,
-                opts = 'status=1' +
-                        ',width=' + width +
-                        ',height=' + height +
-                        ',top=' + top +
-                        ',left=' + left;
+               window.open(url, 'twitte', opts);
 
-        window.open(url, 'twitte', opts);
+               return false;
+        });
+     </script>
+     <script>
+        function initThisPage() {
+                jQuery( "#tabs" ).tabs();
+                initActions();
+                $('#impresults_table').dataTable(
+                        {
+                                "bDestroy": true,
+                                //"aoColumnDefs": [
+                                //  { 'bSortable': false, 'aTargets': [ 0 , 2 ] },
+                                //  { 'bVisible': false, 'aTargets': [2] },
+                                //  { 'sType': 'numeric', 'aTargets': [2] },
+                                //  { 'iDataSort': [2], 'aTargets': [3] }
+                                //],
+                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                                "oLanguage": {
+                                        "sLengthMenu":"Show _MENU_ results per page",
+                                        "sEmptyTable": "No results",
+                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
+                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
+                                        "sSearch" : ""},
+                                "bStateSave": true,
+                                "iDisplayLength": 25,
+                                "sPaginationType": "full_numbers",
+                                "aaSorting": [2, 'desc']
+                        });
+                        resetFilters("result");
+        }
 
-        return false;
-    });
-</script>
-
-        <script>
-                function initThisPage() {
-                        jQuery( "#tabs" ).tabs();
-                        initActions();
-                };
-                $(document).ready(function() {
-                        initThisPage();
-                });
-        </script>
+        $(document).ready(function(){
+                initThisPage();
+        });
+        $(window).load(function(){
+                initFancybox();
+        });
+     </script>
 
 </%def>
-

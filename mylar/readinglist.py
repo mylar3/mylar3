@@ -231,6 +231,8 @@ class Readinglist(object):
                     logger.info(module + ' The host {0} is Reachable. Preparing to send files.'.format(cmd[-1]))
 
             success = mylar.ftpsshup.sendfiles(sendlist)
+            if success == 'fail':
+                return
 
             if len(success) > 0:
                 for succ in success:

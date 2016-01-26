@@ -79,9 +79,13 @@ def main():
     args = parser.parse_args()
 
     if args.verbose:
-        mylar.VERBOSE = 2
-    elif args.quiet:
-        mylar.VERBOSE = 0
+        mylar.VERBOSE = True
+    if args.quiet:
+        mylar.QUIET = True
+
+    # Do an intial setup of the logger.
+    logger.initLogger(console=not mylar.QUIET, log_dir=False,
+        verbose=mylar.VERBOSE)
 
     #if args.update:
     #    print('Attempting to update Mylar so things can work again...')

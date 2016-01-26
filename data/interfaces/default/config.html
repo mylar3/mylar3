@@ -156,12 +156,6 @@
                                     <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
                                  </div>
 
-<!--
-                                 <div class="row checkbox">
-                                    <input type="checkbox" name="logverbose" value="2" ${config['logverbose']} /> <label>Verbose Logging</label>
-                                    <br/><small>*Use this only when experiencing problems*</small>
-                                 </div>
--->
                                  <div class="row checkbox">
                                     <input type="checkbox" name="syno_fix" value="1" ${config['syno_fix']} /> <label>Synology Fix</label>
                                     <br/><small>*Use this if experiencing parsing problems*</small>
@@ -244,7 +238,7 @@
                                 <div class="row">
                                     <label>File CHMOD</label>
                                     <input type="text" name="chmod_file" value="${config['chmod_file']}" size="50">
-                                    <small>Permissions on created/moved directories</small>
+                                    <small>Permissions on created/moved files</small>
                                 </div>
                                 %if 'windows' not in mylar.OS_DETECT:
                                     <div class="row">
@@ -738,6 +732,21 @@
                                      <input type="checkbox" id="post_processing" onclick="initConfigCheckbox($this));" name="post_processing" value="1" ${config['post_processing']} /><label>Enable Post-Processing<small> (not checked = NO post-processing/post-management)</small></label>
                                 </div>
                                 <div class="config">
+                                    <div class="row left">
+                                        <label>When Post-Processing
+                                        <select name="file_opts clearfix">
+                                         %for x in ['move', 'copy']:
+                                             <%
+                                                    if config['file_opts'] == x:
+                                                        outputselect = 'selected'
+                                                    else:
+                                                        outputselect = ''
+                                              %>
+                                              <option value=${x} ${outputselect}>${x}</option>
+                                         %endfor
+                                        </select> the files</label>
+                                    </div>
+                                    <br/>
                                     <div class="row checkbox left clearfix">
                                         <input type="checkbox" id="enable_check_folder" onclick="initConfigCheckbox($this));" name="enable_check_folder" value="1" ${config['enable_check_folder']} /><label>Enable Folder Monitoring<small></label>
                                     </div>
@@ -777,7 +786,7 @@
                                 </div>                           
                 	</fieldset>
                         <fieldset>
-                                <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is inclucded but configparser is required</small>
+                                <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included but configparser is required</small>
                                 <div class="row checkbox left clearfix">
                                      <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
                                 </div>

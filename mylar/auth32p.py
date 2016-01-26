@@ -53,11 +53,28 @@ class info32p(object):
 
                 #need a way to find response code (200=OK), but returns 200 for everything even failed signons (returns a blank page)
                 #logger.info('[32P] response: ' + str(r.content))
+                soup = BeautifulSoup(r.content)
+                soup.prettify()
+                #check for invalid username/password and if it's invalid - disable provider so we don't autoban (manual intervention is required after).
+                chk_login = soup.find_all("form", {"id":"loginform"})
+                for ck in chk_login:
+                    errorlog = ck.find("span", {"id":"formerror"})
+                    loginerror = " ".join(list(errorlog.stripped_strings)) #login_error.findNext(text=True)
+                    errornot = ck.find("span", {"class":"notice"})
+                    noticeerror = " ".join(list(errornot.stripped_strings)) #notice_error.findNext(text=True)
+                    logger.error(self.module + ' Error: ' + loginerror)
+                    if noticeerror:
+                        logger.error(self.module + ' Warning: ' + noticeerror)
+                    logger.error(self.module + ' Disabling 32P provider until username/password can be corrected / verified.')
+                    return "disable"
 
-                if self.searchterm:
+
+                if not self.searchterm:
+                    logger.info('[32P] Successfully authenticated. Verifying authentication & passkeys for usage.')
+                else:
                     logger.info('[32P] Successfully authenticated. Initiating search for : ' + self.searchterm)
                     return self.search32p(s)
-                soup = BeautifulSoup(r.content)
+                
                 all_script = soup.find_all("script", {"src": False})
                 all_script2 = soup.find_all("link", {"rel": "alternate"})
 

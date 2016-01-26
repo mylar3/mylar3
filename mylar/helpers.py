@@ -745,8 +745,10 @@ def updateComicLocation():
     if mylar.NEWCOM_DIR is not None:
         logger.info('Performing a one-time mass update to Comic Location')
         #create the root dir if it doesn't exist
-        mylar.filechecker.validateAndCreateDirectory(mylar.NEWCOM_DIR, create=True)
-
+        checkdirectory = mylar.filechecker.validateAndCreateDirectory(mylar.NEWCOM_DIR, create=True)
+        if not checkdirectory:
+            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+            return
         dirlist = myDB.select("SELECT * FROM comics")
         comloc = []
 
@@ -1316,7 +1318,7 @@ def IssueDetails(filelocation, IssueID=None):
                        cover = "found"
                        break
 
-            elif ('001.jpg' in infile or '001.png' in infile or '001.webp' in infile) and cover == "notfound":
+            elif any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) and cover == "notfound":
                logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
                local_file.write(inzipfile.read(infile))
@@ -1355,6 +1357,10 @@ def IssueDetails(filelocation, IssueID=None):
                 series_title = result.getElementsByTagName('Series')[0].firstChild.wholeText
             except:
                 series_title = "None"
+            try:
+                series_volume = result.getElementsByTagName('Volume')[0].firstChild.wholeText
+            except:
+                series_volume = "None"
             try:
                 issue_number = result.getElementsByTagName('Number')[0].firstChild.wholeText
             except:
@@ -1466,6 +1472,10 @@ def IssueDetails(filelocation, IssueID=None):
         cover_artist = "None"
         penciller = "None"
         inker = "None"
+        try:
+            series_volume = dt['volume']
+        except:
+            series_volume = None
         for cl in dt['credits']:
             if cl['role'] == 'Editor':
                 if editor == "None": editor = cl['person']
@@ -1507,6 +1517,7 @@ def IssueDetails(filelocation, IssueID=None):
 
     issuedetails.append({"title":        issue_title,
                          "series":       series_title,
+                         "volume":       series_volume,
                          "issue_number": issue_number,
                          "summary":      summary,
                          "notes":        notes,

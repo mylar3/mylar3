@@ -18,7 +18,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-#import sys
 import os
 import sys
 import configparser
@@ -33,10 +32,7 @@ class ComicTaggerSettings:
 	@staticmethod
 	def getSettingsFolder():
 		filename_encoding = sys.getfilesystemencoding()
-		if platform.system() == "Windows":
-			folder = os.path.join( os.environ['APPDATA'], 'ComicTagger' )
-		else:
-			folder = os.path.join( os.path.expanduser('~') , '.ComicTagger')
+                folder = os.path.join(ComicTaggerSettings.baseDir(), 'ct_settings')
 		if folder is not None:
 			folder = folder.decode(filename_encoding)
 		return folder

@@ -49,7 +49,7 @@ SIGNAL = None
 SYS_ENCODING = None
 OS_DETECT = platform.system()
 
-VERBOSE = 1
+VERBOSE = False
 DAEMON = False
 PIDFILE= None
 CREATEPID = False
@@ -63,6 +63,7 @@ __INITIALIZED__ = False
 started = False
 WRITELOCK = False
 LOGTYPE = None
+IMPORTLOCK = False
 
 ## for use with updated scheduler (not working atm)
 INIT_LOCK = Lock()
@@ -95,6 +96,7 @@ DBNAME = None
 LOG_DIR = None
 LOG_LIST = []
 MAX_LOGSIZE = None
+QUIET = False
 
 CACHE_DIR = None
 SYNO_FIX = False
@@ -120,7 +122,6 @@ API_ENABLED = False
 API_KEY = None
 DOWNLOAD_APIKEY = None
 LAUNCH_BROWSER = False
-LOGVERBOSE = None
 GIT_PATH = None
 INSTALL_TYPE = None
 CURRENT_VERSION = None
@@ -154,12 +155,13 @@ COMIC_DIR = None
 LIBRARYSCAN = False
 IMP_MOVE = False
 IMP_RENAME = False
-IMP_METADATA = False  # should default to False - this is enabled for testing only.
+IMP_METADATA = True  # should default to False - this is enabled for testing only.
 
 SEARCH_INTERVAL = 360
 NZB_STARTUP_SEARCH = False
 LIBRARYSCAN_INTERVAL = 300
 DOWNLOAD_SCAN_INTERVAL = 5
+FOLDER_SCAN_LOG_VERBOSE = 0
 CHECK_FOLDER = None
 ENABLE_CHECK_FOLDER = False
 INTERFACE = None
@@ -211,6 +213,7 @@ CVINFO = False
 LOG_LEVEL = None
 POST_PROCESSING = 1
 POST_PROCESSING_SCRIPT = None
+FILE_OPTS = None
 
 NZB_DOWNLOADER = None  #0 = sabnzbd, #1 = nzbget, #2 = blackhole
 
@@ -301,6 +304,7 @@ COPY2ARCDIR = 0
 
 CVURL = None
 WEEKFOLDER = 0
+WEEKFOLDER_LOC = None
 LOCMOVE = 0
 NEWCOM_DIR = None
 FFTONEWCOM_DIR = 0
@@ -406,11 +410,11 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, LOGVERBOSE, OLDCONFIG_VERSION, OS_DETECT, \
+        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
                 queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
-                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
+                LIBRARYSCAN, LIBRARYSCAN_INTERVAL, DOWNLOAD_SCAN_INTERVAL, FOLDER_SCAN_LOG_VERBOSE, IMPORTLOCK, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, DOGNZB, DOGNZB_APIKEY, OMGWTFNZBS, OMGWTFNZBS_USERNAME, OMGWTFNZBS_APIKEY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, \
@@ -421,8 +425,8 @@ def initialize():
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, UMASK
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, WEEKFOLDER_LOC, UMASK
 
         if __INITIALIZED__:
             return False
@@ -475,11 +479,6 @@ def initialize():
         API_KEY = check_setting_str(CFG, 'General', 'api_key', '')
         LAUNCH_BROWSER = bool(check_setting_int(CFG, 'General', 'launch_browser', 1))
         AUTO_UPDATE = bool(check_setting_int(CFG, 'General', 'auto_update', 0))
-        LOGVERBOSE = bool(check_setting_int(CFG, 'General', 'logverbose', 0))
-        if LOGVERBOSE:
-            VERBOSE = 2
-        else:
-            VERBOSE = 1
         MAX_LOGSIZE = check_setting_int(CFG, 'General', 'max_logsize', 1000000)
         if not MAX_LOGSIZE:
             MAX_LOGSIZE = 1000000
@@ -513,6 +512,7 @@ def initialize():
         IMP_RENAME = bool(check_setting_int(CFG, 'General', 'imp_rename', 0))
         IMP_METADATA = bool(check_setting_int(CFG, 'General', 'imp_metadata', 0))
         DOWNLOAD_SCAN_INTERVAL = check_setting_int(CFG, 'General', 'download_scan_interval', 5)
+        FOLDER_SCAN_LOG_VERBOSE = check_setting_int(CFG, 'General', 'folder_scan_log_verbose', 0)
         CHECK_FOLDER = check_setting_str(CFG, 'General', 'check_folder', '')
         ENABLE_CHECK_FOLDER = bool(check_setting_int(CFG, 'General', 'enable_check_folder', 0))
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
@@ -542,6 +542,7 @@ def initialize():
             #default to ComicLocation
             GRABBAG_DIR = DESTINATION_DIR
         WEEKFOLDER = bool(check_setting_int(CFG, 'General', 'weekfolder', 0))
+        WEEKFOLDER_LOC = check_setting_str(CFG, 'General', 'weekfolder_loc', '')
         LOCMOVE = bool(check_setting_int(CFG, 'General', 'locmove', 0))
         if LOCMOVE is None:
             LOCMOVE = 0
@@ -610,9 +611,8 @@ def initialize():
         PRE_SCRIPTS = check_setting_str(CFG, 'General', 'pre_scripts', '')
         POST_PROCESSING = bool(check_setting_int(CFG, 'General', 'post_processing', 1))
         POST_PROCESSING_SCRIPT = check_setting_str(CFG, 'General', 'post_processing_script', '')
-
+        FILE_OPTS = check_setting_str(CFG, 'General', 'file_opts', 'move')
         ENABLE_META = bool(check_setting_int(CFG, 'General', 'enable_meta', 0))
-        CMTAGGER_PATH = check_setting_str(CFG, 'General', 'cmtagger_path', '')
         CT_TAG_CR = bool(check_setting_int(CFG, 'General', 'ct_tag_cr', 1))
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
@@ -933,11 +933,11 @@ def initialize():
             try:
                 os.makedirs(LOG_DIR)
             except OSError:
-                if VERBOSE:
+                if not QUIET:
                     print 'Unable to create the log directory. Logging to screen only.'
 
         # Start the logger, silence console logging if we need to
-        logger.initLogger(verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
+        logger.initLogger(console=not QUIET, log_dir=LOG_DIR, verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
 
         #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
         import socket
@@ -1043,6 +1043,24 @@ def initialize():
 
         #set the default URL for ComicVine API here.
         CVURL = 'http://www.comicvine.com/api/'
+
+        #comictagger - force to use included version if option is enabled.
+        if ENABLE_META:
+            CMTAGGER_PATH = PROG_DIR
+            logger.info('Setting ComicTagger default path to : ' + PROG_DIR)
+            #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
+            CT_SETTINGSPATH = os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings')
+
+            if os.path.exists(os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings')):
+                logger.info('ComicTagger settings location exists.')
+            else:
+                try:
+                    os.mkdir(os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings'))
+                except OSError,e:
+                    if e.errno != errno.EEXIST:
+                        logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
+                else:
+                    logger.info('Successfully created ComicTagger Settings location.')
 
         if LOCMOVE:
             helpers.updateComicLocation()
@@ -1198,7 +1216,6 @@ def config_write():
     new_config['General']['auto_update'] = int(AUTO_UPDATE)
     new_config['General']['log_dir'] = LOG_DIR
     new_config['General']['max_logsize'] = MAX_LOGSIZE
-    new_config['General']['logverbose'] = int(LOGVERBOSE)
     new_config['General']['git_path'] = GIT_PATH
     new_config['General']['cache_dir'] = CACHE_DIR
     new_config['General']['annuals_on'] = int(ANNUALS_ON)
@@ -1230,6 +1247,7 @@ def config_write():
     new_config['General']['imp_metadata'] = int(IMP_METADATA)
     new_config['General']['enable_check_folder'] = int(ENABLE_CHECK_FOLDER)
     new_config['General']['download_scan_interval'] = DOWNLOAD_SCAN_INTERVAL
+    new_config['General']['folder_scan_log_verbose'] = FOLDER_SCAN_LOG_VERBOSE
     new_config['General']['check_folder'] = CHECK_FOLDER
     new_config['General']['interface'] = INTERFACE
     new_config['General']['dupeconstraint'] = DUPECONSTRAINT
@@ -1277,12 +1295,13 @@ def config_write():
     new_config['General']['pre_scripts'] = PRE_SCRIPTS
     new_config['General']['post_processing'] = int(POST_PROCESSING)
     new_config['General']['post_processing_script'] = POST_PROCESSING_SCRIPT
+    new_config['General']['file_opts'] = FILE_OPTS
     new_config['General']['weekfolder'] = int(WEEKFOLDER)
+    new_config['General']['weekfolder_loc'] = WEEKFOLDER_LOC
     new_config['General']['locmove'] = int(LOCMOVE)
     new_config['General']['newcom_dir'] = NEWCOM_DIR
     new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
     new_config['General']['enable_meta'] = int(ENABLE_META)
-    new_config['General']['cmtagger_path'] = CMTAGGER_PATH
     new_config['General']['ct_tag_cr'] = int(CT_TAG_CR)
     new_config['General']['ct_tag_cbl'] = int(CT_TAG_CBL)
     new_config['General']['ct_cbz_overwrite'] = int(CT_CBZ_OVERWRITE)
@@ -1502,7 +1521,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
@@ -1675,6 +1694,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN IssueID TEXT')
 
+    try:
+        c.execute('SELECT Volume from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN Volume TEXT')
     ## -- Readlist Table --
 
     try:
@@ -1903,6 +1926,7 @@ def dbcheck():
     c.execute("DELETE from issues WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     c.execute("DELETE from annuals WHERE ComicName='None' OR ComicName is NULL or Issue_Number is NULL")
     c.execute("DELETE from upcoming WHERE ComicName='None' OR ComicName is NULL or IssueNumber is NULL")
+    c.execute("DELETE from importresults WHERE ComicName='None' OR ComicName is NULL")
     logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
 
     logger.info('Correcting Null entries that make the main page break on startup.')

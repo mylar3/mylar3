@@ -1,4 +1,3 @@
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -20,6 +19,7 @@ import os
 import cherrypy
 import datetime
 import re
+import json
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -162,24 +162,42 @@ class WebInterface(object):
                     "delete_dir": helpers.checked(mylar.DELETE_REMOVE_DIR)
                }
         if mylar.ANNUALS_ON:
-            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=?", [ComicID])
+            annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
             #we need to load in the annual['ReleaseComicName'] and annual['ReleaseComicID']
             #then group by ReleaseComicID, in an attempt to create seperate tables for each different annual series.
             #this should allow for annuals, specials, one-shots, etc all to be included if desired.
             acnt = 0
             aName = []
+            annuals_list = []
             annualinfo = {}
+            prevcomicid = None
             for ann in annuals:
                 if not any(d.get('annualComicID', None) == str(ann['ReleaseComicID']) for d in aName):
                     aName.append({"annualComicName":   ann['ReleaseComicName'],
-                                 "annualComicID":   ann['ReleaseComicID']})
+                                  "annualComicID":     ann['ReleaseComicID']})
+
+                annuals_list.append({"Issue_Number":      ann['Issue_Number'],
+                                     "Int_IssueNumber":   ann['Int_IssueNumber'],
+                                     "IssueName":         ann['IssueName'],
+                                     "IssueDate":         ann['IssueDate'],
+                                     "Status":            ann['Status'],
+                                     "Location":          ann['Location'],
+                                     "ComicID":           ann['ComicID'],
+                                     "IssueID":           ann['IssueID'],
+                                     "ReleaseComicID":    ann['ReleaseComicID'],
+                                     "ComicName":         ann['ComicName'],
+                                     "ComicSize":         ann['ComicSize'],
+                                     "ReleaseComicName":  ann['ReleaseComicName'],
+                                     "PrevComicID":       prevcomicid})
+
+                prevcomicid = ann['ReleaseComicID']
                 acnt+=1
             annualinfo = aName
             #annualinfo['count'] = acnt
         else:
-            annuals = None
+            annuals_list = None
             aName = None
-        return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals, annualinfo=aName)
+        return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals_list, annualinfo=aName)
     comicDetails.exposed = True
 
     def searchit(self, name, issue=None, mode=None, type=None, explicit=None, serinfo=None):
@@ -945,7 +963,6 @@ class WebInterface(object):
         else:
             newaction = action
         for IssueID in args:
-            logger.info(IssueID)
             if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID, 'issues' in IssueID, 'annuals' in IssueID]):
                 continue
             else:
@@ -1487,7 +1504,10 @@ class WebInterface(object):
                 #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
-        weekfold = os.path.join(mylar.DESTINATION_DIR, pulldate['SHIPDATE'])
+        if mylar.WEEKFOLDER_LOC is not None:
+            weekfold = os.path.join(mylar.WEEKFOLDER_LOC, pulldate['SHIPDATE'])
+        else:
+            weekfold = os.path.join(mylar.DESTINATION_DIR, pulldate['SHIPDATE'])
         return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold, wantedcount=wantedcount)
     pullist.exposed = True
 
@@ -2157,13 +2177,16 @@ class WebInterface(object):
 
     markreads.exposed = True
 
-    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None):
+    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None, ArcName=None):
         myDB = db.DBConnection()
         if IssueID:
             myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
             logger.info("Removed " + str(IssueID) + " from Reading List")
         elif StoryArcID:
             myDB.action('DELETE from readinglist WHERE StoryArcID=?', [StoryArcID])
+            #ArcName should be an optional flag so that it doesn't remove arcs that have identical naming (ie. Secret Wars)
+            #if ArcName:
+            #    myDB.action('DELETE from readinglist WHERE StoryArc=?', [ArcName])
             stid = 'S' + str(StoryArcID) + '_%'
             #delete from the nzblog so it will always find the most current downloads. Nzblog has issueid, but starts with ArcID
             myDB.action('DELETE from nzblog WHERE IssueID LIKE ?', [stid])
@@ -2395,7 +2418,10 @@ class WebInterface(object):
 
                 if not os.path.isdir(dstloc):
                     logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
-                    filechecker.validateAndCreateDirectory(dstloc, True)
+                    checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
+                    if not checkdirectory:
+                        logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                        return
 
                 sarc_title = arc['StoryArc']
                 logger.fdebug("arc: " + arc['StoryArc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
@@ -2723,21 +2749,57 @@ class WebInterface(object):
        # return serve_template(templatename="importlog.html", title="Log", implog=implog)
     importLog.exposed = True
 
-    def logs(self, log_level=None):
+#    def logs(self, log_level=None):
         #if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '' or log_level is None:
         #    mylar.LOG_LEVEL = 'INFO'
         #else:
         #    mylar.LOG_LEVEL = log_level
-        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST, loglevel=mylar.LOG_LEVEL)
+#        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST, loglevel=mylar.LOG_LEVEL)
+#    logs.exposed = True
+
+    def logs(self):
+        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST)
     logs.exposed = True
 
-    def log_change(self, log_level):
-        if log_level is not None:
-            print ("changing logger to " + str(log_level))
-        raise cherrypy.HTTPRedirect("logs?log_level=%s" % log_level)
-        #return serve_template(templatename="logs.html", title="Log", lineList=log_list, log_level=loglevel) #lineList=mylar.LOG_LIST, log_level=log_level)
+    def clearLogs(self):
+        mylar.LOG_LIST = []
+        logger.info("Web logs cleared")
+        raise cherrypy.HTTPRedirect("logs")
+    clearLogs.exposed = True
 
-    log_change.exposed = True
+    def toggleVerbose(self):
+        mylar.VERBOSE = not mylar.VERBOSE
+        logger.initLogger(console=not mylar.QUIET,
+            log_dir=mylar.LOG_DIR, verbose=mylar.VERBOSE)
+        logger.info("Verbose toggled, set to %s", mylar.VERBOSE)
+        logger.debug("If you read this message, debug logging is available")
+        raise cherrypy.HTTPRedirect("logs")
+    toggleVerbose.exposed = True
+
+    def getLog(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=0, sSortDir_0="desc", sSearch="", **kwargs):
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+
+        filtered = []
+        if sSearch == "" or sSearch == None:
+            filtered = mylar.LOG_LIST[::]
+        else:
+            filtered = [row for row in mylar.LOG_LIST for column in row if sSearch.lower() in column.lower()]
+        sortcolumn = 0
+        if iSortCol_0 == '1':
+            sortcolumn = 2
+        elif iSortCol_0 == '2':
+            sortcolumn = 1
+        filtered.sort(key=lambda x: x[sortcolumn], reverse=sSortDir_0 == "desc")
+
+        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row[0], row[2], row[1]] for row in rows]
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(mylar.LOG_LIST),
+            'aaData': rows,
+        })
+    getLog.exposed = True
 
     def clearhistory(self, type=None):
         myDB = db.DBConnection()
@@ -2836,7 +2898,10 @@ class WebInterface(object):
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
         myDB = db.DBConnection()
         if mylar.WEEKFOLDER:
-            desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+            if mylar.WEEKFOLDER_LOC:
+                desdir = os.path.join(mylar.WEEKFOLDER_LOC, pulldate)
+            else:
+                desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
             if os.path.isdir(desdir):
                 logger.info(u"Directory (" + desdir + ") already exists! Continuing...")
             else:
@@ -2947,20 +3012,56 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("importResults")
     deleteimport.exposed = True
 
-    def preSearchit(self, ComicName, comiclist=None, mimp=0, displaycomic=None):
+    def preSearchit(self, ComicName, comiclist=None, mimp=0, displaycomic=None, comicid=None):
+        if mylar.IMPORTLOCK:
+            logger.info('There is an import already running. Please wait for it to finish, and then you can resubmit this import.')
+            return
         importlock = threading.Lock()
         myDB = db.DBConnection()
 
         if mimp == 0:
             comiclist = []
-            comiclist.append(ComicName)
+            comiclist.append({"ComicName": ComicName, 
+                              "ComicID":   comicid})
 
         with importlock:
+            #set the global importlock here so that nothing runs and tries to refresh things simultaneously...
+            mylar.IMPORTLOCK = True
+            #do imports that have the comicID already present (ie. metatagging has returned valid hits).
+            #if a comicID is present along with an IssueID - then we have valid metadata.
+            #otherwise, comicID present by itself indicates a watch match that already exists and is done below this sequence.
+            RemoveIDS = []
+            for comicinfo in comiclist:
+                logger.info('Checking for any valid metatagging already present.')
+                logger.info(comicinfo['ComicID'])
+                if comicinfo['ComicID'] is None or comicinfo['ComicID'] == 'None':
+                    continue
+                else:
+                    #issue_count = Counter(im['ComicID'])
+                    logger.info('Issues found with valid ComicID information for : ' + comicinfo['ComicName'] + ' [' + str(comicinfo['ComicID']) + ']')
+                    self.addbyid(comicinfo['ComicID'], calledby=True, imported='yes', ogcname=comicinfo['ComicName'])
+                    #status update.
+                    import random
+                    SRID = str(random.randint(100000, 999999))
+                    ctrlVal = {"ComicID":     comicinfo['ComicID']}
+                    newVal = {"Status":       'Imported',
+                              "SRID":         SRID}
+                    myDB.upsert("importresults", newVal, ctrlVal)
+                    logger.info('Successfully imported :' + comicinfo['ComicName'])
+                    RemoveIDS.append(comicinfo['ComicID'])
+
+            #we need to remove these items from the comiclist now, so they don't get processed again
+            if len(RemoveIDS) > 0:
+                for RID in RemoveIDS:
+                    newlist = {k:comiclist[k] for k in comiclist if comiclist[k]['ComicID'] != RID}
+                    comiclist = newlist
+                    logger.info('newlist: ' + str(newlist))
+
             for cl in comiclist:
                 implog = ''
                 implog = implog + "imp_rename:" + str(mylar.IMP_RENAME) + "\n"
                 implog = implog + "imp_move:" + str(mylar.IMP_MOVE) + "\n"
-                ComicName = cl
+                ComicName = cl['ComicName']
                 logger.info('comicname is :' + ComicName)
                 implog = implog + "comicName: " + str(ComicName) + "\n"
                 results = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ComicName])
@@ -3160,6 +3261,8 @@ class WebInterface(object):
                               "ComicID":      sr['comicid']}
                     myDB.upsert("importresults", newVal, ctrlVal)
 
+        mylar.IMPORTLOCK = False
+
     preSearchit.exposed = True
 
     def importresults_popup(self, SRID, ComicName, imported=None, ogcname=None):
@@ -3250,7 +3353,6 @@ class WebInterface(object):
                     "api_key": mylar.API_KEY,
                     "launch_browser": helpers.checked(mylar.LAUNCH_BROWSER),
                     "auto_update": helpers.checked(mylar.AUTO_UPDATE),
-                    "logverbose": helpers.checked(mylar.LOGVERBOSE),
                     "max_logsize": mylar.MAX_LOGSIZE,
                     "annuals_on": helpers.checked(mylar.ANNUALS_ON),
                     "enable_check_folder": helpers.checked(mylar.ENABLE_CHECK_FOLDER),
@@ -3377,6 +3479,7 @@ class WebInterface(object):
                     "enable_extra_scripts": helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts": mylar.EXTRA_SCRIPTS,
                     "post_processing": helpers.checked(mylar.POST_PROCESSING),
+                    "file_opts": mylar.FILE_OPTS,
                     "enable_meta": helpers.checked(mylar.ENABLE_META),
                     "cmtagger_path": mylar.CMTAGGER_PATH,
                     "ct_tag_cr": helpers.checked(mylar.CT_TAG_CR),
@@ -3544,7 +3647,10 @@ class WebInterface(object):
             #    logger.info(u"Directory successfully created at: " + str(com_location))
             #except OSError:
             #    logger.error(u"Could not create comicdir : " + str(com_location))
-            filechecker.validateAndCreateDirectory(com_location, True)
+            checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
+            if not checkdirectory:
+                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                return
 
         myDB.upsert("comics", newValues, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
@@ -3576,7 +3682,10 @@ class WebInterface(object):
                 logger.info(u"Validating Directory (" + str(arcdir) + "). Already exists! Continuing...")
             else:
                 logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
-                filechecker.validateAndCreateDirectory(arcdir, True)
+                checkdirectory = filechecker.validateAndCreateDirectory(arcdir, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return
         if StoryArcID is not None:
             raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (StoryArcID, StoryArcName))
         else:
@@ -3584,7 +3693,7 @@ class WebInterface(object):
     readOptions.exposed = True
 
 
-    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, logverbose=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
+    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, omgwtfnzbs=0, omgwtfnzbs_username=None, omgwtfnzbs_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
@@ -3593,7 +3702,7 @@ class WebInterface(object):
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
+        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
         tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, **kwargs):
         mylar.COMICVINE_API = comicvine_api
         mylar.HTTP_HOST = http_host
@@ -3607,7 +3716,6 @@ class WebInterface(object):
         mylar.API_KEY = api_key
         mylar.LAUNCH_BROWSER = launch_browser
         mylar.AUTO_UPDATE = auto_update
-        mylar.LOGVERBOSE = logverbose
         mylar.ANNUALS_ON = int(annuals_on)
         mylar.MAX_LOGSIZE = max_logsize
         mylar.ENABLE_CHECK_FOLDER = enable_check_folder
@@ -3727,6 +3835,7 @@ class WebInterface(object):
         mylar.EXTRA_SCRIPTS = extra_scripts
         mylar.ENABLE_PRE_SCRIPTS = enable_pre_scripts
         mylar.POST_PROCESSING = post_processing
+        mylar.FILE_OPTS = file_opts
         mylar.PRE_SCRIPTS = pre_scripts
         mylar.ENABLE_META = enable_meta
         mylar.CMTAGGER_PATH = cmtagger_path
@@ -3797,6 +3906,9 @@ class WebInterface(object):
         if mylar.SAB_HOST.endswith('/'):
             logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
             mylar.SAB_HOST = mylar.SAB_HOST[:-1]
+
+        if mylar.FILE_OPTS is None:
+            mylar.FILE_OPTS = 'move'
 
         if mylar.ENABLE_META:
             #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.

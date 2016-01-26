@@ -15,7 +15,7 @@
 
 import os
 import sys
-#import logging
+import logging
 import traceback
 import threading
 import platform
@@ -30,9 +30,9 @@ FILENAME = 'mylar.log'
 MAX_FILES = 5
 
 # Mylar logger
-logger = getLogger('mylar')
+logger = logging.getLogger('mylar')
 
-class LogListHandler(Handler):
+class LogListHandler(logging.Handler):
     """
     Log handler for Web UI.
     """
@@ -42,7 +42,7 @@ class LogListHandler(Handler):
         message = message.replace("\n", "<br />")
         mylar.LOG_LIST.insert(0, (helpers.now(), message, record.levelname, record.threadName))
 
-def initLogger(verbose=1):
+def initLogger(console=False, log_dir=False, verbose=False):
     #concurrentLogHandler/0.8.7 (to deal with windows locks)
     #since this only happens on windows boxes, if it's nix/mac use the default logger.
     if platform.system() == 'Windows':
@@ -72,46 +72,45 @@ def initLogger(verbose=1):
 
     * RotatingFileHandler: for the file Mylar.log
     * LogListHandler: for Web UI
-    * StreamHandler: for console (if verbose > 0)
+    * StreamHandler: for console
     """
+
+    # Close and remove old handlers. This is required to reinit the loggers
+    # at runtime
+    for handler in logger.handlers[:]:
+        # Just make sure it is cleaned up.
+        if isinstance(handler, RFHandler):
+            handler.close()
+        elif isinstance(handler, logging.StreamHandler):
+            handler.flush()
+
+        logger.removeHandler(handler)
 
     # Configure the logger to accept all messages
     logger.propagate = False
-    logger.setLevel(DEBUG)# if verbose == 2 else logging.INFO)
-
-    # Setup file logger
-    filename = os.path.join(mylar.LOG_DIR, FILENAME)
-
-    file_formatter = Formatter('%(asctime)s - %(levelname)-7s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-    file_handler = RFHandler(filename, "a", maxBytes=MAX_SIZE, backupCount=MAX_FILES)
-    file_handler.setLevel(DEBUG)
-    file_handler.setFormatter(file_formatter)
-
-    logger.addHandler(file_handler)
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
     # Add list logger
     loglist_handler = LogListHandler()
-    #-- this needs to get enabled and logging changed everywhere so the accessing the log GUI won't hang the system.
-    #-- right now leave it set to INFO only, everything else will still get logged to the mylar.log file.
-    #if verbose == 2:
-    #    loglist_handler.setLevel(logging.DEBUG)
-    #else:
-    #    loglist_handler.setLevel(logging.INFO)
-    #--
-    loglist_handler.setLevel(INFO)
+    loglist_handler.setLevel(logging.DEBUG)
     logger.addHandler(loglist_handler)
 
+    # Setup file logger
+    if log_dir:
+        filename = os.path.join(mylar.LOG_DIR, FILENAME)
+        file_formatter = Formatter('%(asctime)s - %(levelname)-7s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
+        file_handler = RFHandler(filename, "a", maxBytes=MAX_SIZE, backupCount=MAX_FILES)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_formatter)
+
+        logger.addHandler(file_handler)
+
     # Setup console logger
-    if verbose:
-        console_formatter = Formatter('%(asctime)s - %(levelname)s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-        console_handler = StreamHandler()
+    if console:
+        console_formatter = logging.Formatter('%(asctime)s - %(levelname)s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
+        console_handler = logging.StreamHandler()
         console_handler.setFormatter(console_formatter)
-        #print 'verbose is ' + str(verbose)
-        #if verbose == 2:
-        #    console_handler.setLevel(logging.DEBUG)
-        #else:
-        #    console_handler.setLevel(logging.INFO)
-        console_handler.setLevel(INFO)
+        console_handler.setLevel(logging.DEBUG)
 
         logger.addHandler(console_handler)
 

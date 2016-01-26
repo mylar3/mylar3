@@ -114,9 +114,9 @@ def newpull():
             f.write('%s\n' % (newdates))
             for pl in pull_list:
                 if pl['publisher'] == oldpub:
-                    exceptln = str(pl['ID']) + "\t" + str(pl['name']) + "\t" + str(pl['price'])
+                    exceptln = str(pl['ID']) + "\t" + pl['name'].replace(u"\xA0", u" ") + "\t" + str(pl['price'])
                 else:
-                    exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + str(pl['name']) + "\t" + str(pl['price'])
+                    exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + pl['name'].replace(u"\xA0", u" ") + "\t" + str(pl['price'])
 
                 for lb in breakhtml:
                     exceptln = re.sub(lb, '', exceptln).strip()
