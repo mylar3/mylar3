@@ -60,7 +60,7 @@ def ctmain():
 	
 	if not qt_available and not opts.no_gui:
 		opts.no_gui = True
-		print >> sys.stderr, "PyQt4 is not available.  ComicTagger is limited to command-line mode."
+		print "PyQt4 is not available.  ComicTagger is limited to command-line mode."
 	
 	if opts.no_gui:
 		cli.cli_mode( opts, settings )

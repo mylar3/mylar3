@@ -320,6 +320,7 @@ CT_TAG_CR = 1
 CT_TAG_CBL = 1
 CT_CBZ_OVERWRITE = 0
 UNRAR_CMD = None
+CT_SETTINGSPATH = None
 
 UPCOMING_SNATCHED = 1
 
@@ -419,7 +420,7 @@ def initialize():
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, \
                 EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
@@ -1047,15 +1048,15 @@ def initialize():
         #comictagger - force to use included version if option is enabled.
         if ENABLE_META:
             CMTAGGER_PATH = PROG_DIR
-            logger.info('Setting ComicTagger default path to : ' + PROG_DIR)
             #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
             CT_SETTINGSPATH = os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings')
+            logger.info('Setting ComicTagger settings default path to : ' + CT_SETTINGSPATH)
 
-            if os.path.exists(os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings')):
+            if os.path.exists(CT_SETTINGSPATH):
                 logger.info('ComicTagger settings location exists.')
             else:
                 try:
-                    os.mkdir(os.path.join(PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings'))
+                    os.mkdir(CT_SETTINGSPATH)
                 except OSError,e:
                     if e.errno != errno.EEXIST:
                         logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')

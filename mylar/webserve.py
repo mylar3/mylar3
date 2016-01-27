@@ -4136,7 +4136,7 @@ class WebInterface(object):
         module = '[MANUAL META-TAGGING]'
         try:
             import cmtagmylar
-            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=comversion)
+            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=comversion, manualmeta=True)
         except ImportError:
             logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/ directory.')
             metaresponse = "fail"
@@ -4145,12 +4145,14 @@ class WebInterface(object):
             logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file.')
             return
         elif metaresponse == "unrar error":
-             logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
-             return
-             #launch failed download handling here.
+            logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
+            return
+            #launch failed download handling here.
         else:
-             logger.info(module + ' Sucessfully wrote metadata to .cbz (' + os.path.split(metaresponse)[1] + ') - Continuing..')
-
+            dst = os.path.join(dirName, os.path.split(metaresponse)[1])
+            shutil.move(metaresponse, dst)
+            logger.info(module + ' Sucessfully wrote metadata to .cbz (' + os.path.split(metaresponse)[1] + ') - Continuing..')
+             
         updater.forceRescan(comicid)
 
     manual_metatag.exposed = True

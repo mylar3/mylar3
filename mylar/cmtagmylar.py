@@ -18,7 +18,7 @@ import mylar
 from mylar import logger
 
 
-def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None):
+def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filename=None, module=None, manualmeta=False):
     if module is None:
         module = ''
     module += '[META-TAGGER]'
@@ -101,7 +101,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         import tempfile
         new_folder = os.path.join(tempfile.mkdtemp(prefix='mylar_', dir=mylar.CACHE_DIR)) #prefix, suffix, dir
         new_filepath = os.path.join(new_folder, filename)
-        shutil.copy(filepath, new_filepath)
+        if mylar.FILE_OPTS == 'copy' and manualmeta == False:
+            shutil.copy(filepath, new_filepath)
+        else:
+            shutil.move(filepath, new_filepath)
         filepath = new_filepath  
     except:
         logger.warn(module + ' Unable to create temporary directory to perform meta-tagging. Processing without metatagging.')
@@ -222,15 +225,14 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            out, err = p.communicate()  # @UnusedVariable
-            #logger.info('out:' + str(out))
-            #logger.info('err:' + str(err))
+            out, err = p.communicate()
+
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug(module + '[COMIC-TAGGER] : ' +str(out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)
                 tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.FILE_OPTS == 'move':
-                    tmpfilename = re.sub('\(Original deleted\)', '', tmpname).strip()
+                    tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
                 filepath = os.path.join(comicpath, tmpfilename)
                 logger.fdebug(module + '[COMIC-TAGGER][CBR-TO-CBZ] New filename: ' + filepath)
                 initial_ctrun = False
@@ -245,7 +247,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 file_error = 'file not found||' + filename
                 return file_error
             else:
-                logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp)
+                logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp + ' [' + filepath + ']')
                 i+=1
         except OSError, e:
             #Cannot find The Walking Dead 150 (2016) (Digital) (Zone-Empire).cbr

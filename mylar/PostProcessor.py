@@ -1245,6 +1245,7 @@ class PostProcessor(object):
 
                 else:
                     #need to set the filename source as the new name of the file returned from comictagger.
+                    odir = os.path.split(pcheck)[0]
                     ofilename = os.path.split(pcheck)[1]
                     ext = os.path.splitext(ofilename)[1]
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
@@ -1322,6 +1323,9 @@ class PostProcessor(object):
 #            else:
                 if pcheck == "fail":
                     odir, ofilename = os.path.split(ml['ComicLocation'])
+                elif pcheck:
+                    #odir, ofilename already set. Carry it through.
+                    pass
                 else:
                     odir = os.path.split(ml['ComicLocation'])[0]
                 logger.fdebug(module + ' ofilename:' + ofilename)

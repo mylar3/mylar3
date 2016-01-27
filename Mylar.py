@@ -32,6 +32,9 @@ try:
 except ImportError:
     import lib.argparse as argparse
 
+if ( sys.platform == 'win32' and sys.executable.split( '\\' )[-1] == 'pythonw.exe'):
+    sys.stdout = open(os.devnull, "w")
+    sys.stderr = open(os.devnull, "w")
 
 def handler_sigterm(signum, frame):
     mylar.SIGNAL = 'shutdown'
