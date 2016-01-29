@@ -238,6 +238,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 initial_ctrun = False
             elif initial_ctrun and 'Archive is not a RAR' in out:
                 initial_ctrun = False
+            elif initial_ctrun:
+                logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
+                initial_ctrun = False
+                return 'fail'
             elif 'Cannot find' in out:
                 logger.warn(module + '[COMIC-TAGGER] Unable to locate file: ' + filename)
                 file_error = 'file not found||' + filename
