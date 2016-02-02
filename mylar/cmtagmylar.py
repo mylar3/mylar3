@@ -75,8 +75,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         try:
             import configparser
         except ImportError:
-            logger.fdebug(module + ' configparser not found on system. Please install manually in order to write metadata')
-            logger.fdebug(module + ' continuing with PostProcessing, but I am not using metadata.')
+            logger.warn(module + ' configparser not found on system. Please install manually in order to write metadata')
+            logger.warn(module + ' continuing with PostProcessing, but I am not using metadata.')
             return "fail"
 
 
@@ -140,7 +140,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     cvers = 'volume=' + str(comversion)
     tagoptions = ["-s", "-m", cvers] #"--verbose"
 
-    ctversion = subprocess.check_output([sys.executable, comictagger_cmd, "--version"])
+    try:
+        ctversion = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        logger.warn(module + '[WARNING] "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+        logger.warn(module + '[WARNING] Make sure that you have configparser installed.')
+        return "fail"
 
     ctend = ctversion.find(':')
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
@@ -258,5 +263,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + str(script_cmd))
             return "fail"
 
+        if mylar.CBR2CBZ_ONLY and initial_ctrun == False:
+            break
 
     return filepath

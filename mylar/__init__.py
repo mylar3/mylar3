@@ -316,6 +316,7 @@ BIGGIE_PUB = 55
 
 ENABLE_META = 0
 CMTAGGER_PATH = None
+CBR2CBZ_ONLY = 0
 CT_TAG_CR = 1
 CT_TAG_CBL = 1
 CT_CBZ_OVERWRITE = 0
@@ -420,7 +421,7 @@ def initialize():
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, \
                 EXPERIMENTAL, ALTEXPERIMENTAL, \
-                ENABLE_META, CMTAGGER_PATH, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
@@ -614,6 +615,7 @@ def initialize():
         POST_PROCESSING_SCRIPT = check_setting_str(CFG, 'General', 'post_processing_script', '')
         FILE_OPTS = check_setting_str(CFG, 'General', 'file_opts', 'move')
         ENABLE_META = bool(check_setting_int(CFG, 'General', 'enable_meta', 0))
+        CBR2CBZ_ONLY = bool(check_setting_int(CFG, 'General', 'cbr2cbz_only', 0))
         CT_TAG_CR = bool(check_setting_int(CFG, 'General', 'ct_tag_cr', 1))
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
@@ -1303,6 +1305,7 @@ def config_write():
     new_config['General']['newcom_dir'] = NEWCOM_DIR
     new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
     new_config['General']['enable_meta'] = int(ENABLE_META)
+    new_config['General']['cbr2cbz_only'] = int(CBR2CBZ_ONLY)
     new_config['General']['ct_tag_cr'] = int(CT_TAG_CR)
     new_config['General']['ct_tag_cbl'] = int(CT_TAG_CBL)
     new_config['General']['ct_cbz_overwrite'] = int(CT_CBZ_OVERWRITE)

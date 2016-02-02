@@ -3481,6 +3481,7 @@ class WebInterface(object):
                     "post_processing": helpers.checked(mylar.POST_PROCESSING),
                     "file_opts": mylar.FILE_OPTS,
                     "enable_meta": helpers.checked(mylar.ENABLE_META),
+                    "cbr2cbz_only": helpers.checked(mylar.CBR2CBZ_ONLY),
                     "cmtagger_path": mylar.CMTAGGER_PATH,
                     "ct_tag_cr": helpers.checked(mylar.CT_TAG_CR),
                     "ct_tag_cbl": helpers.checked(mylar.CT_TAG_CBL),
@@ -3698,7 +3699,7 @@ class WebInterface(object):
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, omgwtfnzbs=0, omgwtfnzbs_username=None, omgwtfnzbs_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
-        enable_meta=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
+        enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
@@ -3838,6 +3839,7 @@ class WebInterface(object):
         mylar.FILE_OPTS = file_opts
         mylar.PRE_SCRIPTS = pre_scripts
         mylar.ENABLE_META = enable_meta
+        mylar.CBR2CBZ_ONLY = cbr2cbz_only
         mylar.CMTAGGER_PATH = cmtagger_path
         mylar.CT_TAG_CR = ct_tag_cr
         mylar.CT_TAG_CBL = ct_tag_cbl

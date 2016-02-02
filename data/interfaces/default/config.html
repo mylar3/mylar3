@@ -799,18 +799,23 @@
                                         </div>
 --->
                                         <div class="row checkbox left clearfix">
-                                                <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
+                                                <input id="cbr2cbz" type="checkbox" name="cbr2cbz_only" value="1" ${config['cbr2cbz_only']} /><label>Convert CBR to CBZ ONLY</label>
                                         </div>
-                                        <div class="row checkbox left clearfix">
-                                                <input type="checkbox" name="ct_tag_cbl" value="1" ${config['ct_tag_cbl']} /><label>Write ComicBookLover (Cbl) tags (zip comment)</label>
-                                        </div>
-                                        <div class="row checkbox left clearfix">
-                                                <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
-                                        </div>
+                                        <div id="metataggingoptions">
+                                            <div class="row checkbox left clearfix">
+                                                    <input type="checkbox" name="ct_tag_cr" value="1" ${config['ct_tag_cr']} /><label>Write ComicRack (cr) tags (ComicInfo.xml)</label>
+                                            </div>
+                                            <div class="row checkbox left clearfix">
+                                                    <input type="checkbox" name="ct_tag_cbl" value="1" ${config['ct_tag_cbl']} /><label>Write ComicBookLover (Cbl) tags (zip comment)</label>
+                                            </div>
+                                            <div class="row checkbox left clearfix">
+                                                    <input type="checkbox" name="ct_cbz_overwrite" value="1" ${config['ct_cbz_overwrite']} /><label>Overwrite existing cbz tags (if they exist)</label>
+                                            </div>
 
-                                        <div>
-                                           <small><center>If ComicVine API Key specified, will use with ComicTagger</center></small>
-                                           <small><center>Writing each type of metadata will increase API count respectively</center></small>
+                                            <div>
+                                               <small><center>If ComicVine API Key specified, will use with ComicTagger</center></small>
+                                               <small><center>Writing each type of metadata will increase API count respectively</center></small>
+                                            </div>
                                         </div>
                                 </div>
                         </fieldset>
@@ -1087,26 +1092,6 @@
 
 <%def name="javascriptIncludes()">
 	<script>
-
-	hideServerDivs = function () {
-		$("#customoptions").slideUp();
-		$("#hpserveroptions").slideUp();
-	};
-
-	handleNewSelection = function () {
-	
-		hideServerDivs();
-		
-		switch ($(this).val()) {
-			case 'custom':
-				$("#customoptions").slideDown();
-			break;
-			case 'mylar':
-				$("#hpserveroptions").slideDown();
-			break;
-		}
-	};
-	
 	function initThisPage() 
 	
 	{
@@ -1128,6 +1113,26 @@
                         else
                         {
                                 $("#apioptions").slideUp();
+                        }
+                });
+
+                if ($("#cbr2cbz").is(":checked"))
+                        {
+                                $("#metataggingoptions").hide();
+                        }
+                else
+                        {
+                                $("#metataggingoptions").show();
+                        }
+
+                $("#cbr2cbz").click(function(){
+                        if ($("#cbr2cbz").is(":checked"))
+                        {
+                                $("#metataggingoptions").slideUp();
+                        }
+                        else
+                        {
+                                $("#metataggingoptions").slideDown();
                         }
                 });
 
