@@ -143,7 +143,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     try:
         ctversion = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        logger.warn(module + '[WARNING] "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
+        #logger.warn(module + "[WARNING] "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
         logger.warn(module + '[WARNING] Make sure that you have configparser installed.')
         return "fail"
 
