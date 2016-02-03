@@ -220,10 +220,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
             logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
 
-        currentScriptName = sys.executable + ' ' + str(comictagger_cmd).decode("string_escape")
+        currentScriptName = [sys.executable, comictagger_cmd]
         logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
             # generate a safe command line string to execute the script and provide all the parameters
-        script_cmd = shlex.split(currentScriptName, posix=False) + f_tagoptions
+        script_cmd = currentScriptName + f_tagoptions
 
             # use subprocess to run the command and capture output
         logger.fdebug(module + ' Executing command: ' +str(script_cmd))
