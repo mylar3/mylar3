@@ -21,7 +21,7 @@ import zlib
 import pprint
 import subprocess
 import re
-#import logger
+import hashlib
 import mylar
 from mylar import logger, helpers
 import unicodedata
@@ -226,7 +226,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
             altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
             AS_Alt.append(altsearchcomic)
 
-        for i in watchcomic.split():
+        for i in u_watchcomic.split():
             if i.isdigit():
                 numberinseries = 'True'
             else:
@@ -262,10 +262,10 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
             #logger.fdebug('[FILECHECKER] i : ' + str(i))
             if ('(' in i):
                 bracketsinseries = 'True'
-                bracket_length_st = watchcomic.find('(')
-                bracket_length_en = watchcomic.find(')', bracket_length_st)
+                bracket_length_st = u_watchcomic.find('(')
+                bracket_length_en = u_watchcomic.find(')', bracket_length_st)
                 bracket_length = bracket_length_en - bracket_length_st
-                bracket_word = watchcomic[bracket_length_st:bracket_length_en +1]
+                bracket_word = u_watchcomic[bracket_length_st:bracket_length_en +1]
                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                     logger.fdebug('[FILECHECKER] bracketinseries: ' + str(bracket_word))
 
@@ -306,7 +306,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
             #if the series has digits this f's it up.
             if numberinseries == 'True' or decimalinseries == 'True':
                 #we need to remove the series from the subname and then search the remainder.
-                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', watchcomic)   #remove spec chars for watchcomic match.
+                watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', u_watchcomic)   #remove spec chars for watchcomic match.
                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                     logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
                 subthis = re.sub('.cbr', '', subname)
@@ -335,7 +335,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                                     logger.fdebug('[FILECHECKER] year detected: ' + str(tmpi))
                                 subname = re.sub('(19\d{2}|20\d{2})(.*)', '\\2 (\\1)', subthis)
                                 subname = re.sub('\(\)', '', subname).strip()
-                                subname = watchcomic + ' ' + subname
+                                subname = u_watchcomic + ' ' + subname
                                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                                     logger.fdebug('[FILECHECKER] new subname reversed: ' + subname)
                                 break
@@ -389,11 +389,11 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                 subthis = re.sub('.cbr', '', subname)
                 subthis = re.sub('.cbz', '', subthis)
                 if decimalinseries == 'True':
-                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', watchcomic)   #remove spec chars for watchcomic match.
+                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', u_watchcomic)   #remove spec chars for watchcomic match.
                     subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', subthis)
                 else:
                     # in order to get series like Earth 2 scanned in that contain a decimal, I removed the \. from the re.subs below - 28-08-2014
-                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', watchcomic)   #remove spec chars for watchcomic match.
+                    watchname = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', u_watchcomic)   #remove spec chars for watchcomic match.
                     subthis = re.sub('[\:\;\!\'\/\?\+\=\_\%\-]', '', subthis)
                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                     logger.fdebug('[FILECHECKER] watch-cleaned: ' + watchname)
@@ -538,7 +538,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
         detneg = "no"
         leavehyphen = False
         should_restart = True
-        lenwatch = len(watchcomic)  # because subname gets replaced dynamically, the length will change and things go wrong.
+        lenwatch = len(u_watchcomic)  # because subname gets replaced dynamically, the length will change and things go wrong.
         while should_restart:
             should_restart = False
             for nono in not_these:
@@ -560,7 +560,7 @@ def listFiles(dir, watchcomic, Publisher, AlternateSearch=None, manual=None, sar
                                         logger.fdebug('[FILECHECKER] possible negative issue detected.')
                                     nonocount = nonocount + subcnt - 1
                                     detneg = "yes"
-                                elif '-' in watchcomic and j < lenwatch:
+                                elif (slashcoloninseries or '-' in u_watchcomic) and j < lenwatch:
                                     lenwatch -=1
                                     if mylar.FOLDER_SCAN_LOG_VERBOSE:
                                         logger.fdebug('[FILECHECKER] - appears in series title.')
@@ -1412,7 +1412,9 @@ def crc(filename):
     #return "%X"%(prev & 0xFFFFFFFF)
 
     #speed in lieu of memory (file into memory entirely)
-    return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
+    #return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
+
+    return hashlib.md5(filename).hexdigest()
 
 def setperms(path, dir=False):
 

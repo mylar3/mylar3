@@ -120,7 +120,7 @@ def initialize(options):
     # Prevent time-outs
     cherrypy.engine.timeout_monitor.unsubscribe()
 
-    cherrypy.tree.mount(WebInterface(), options['http_root'], config = conf)
+    cherrypy.tree.mount(WebInterface(), str(options['http_root']), config = conf)
 
     try:
         cherrypy.process.servers.check_port(options['http_host'], options['http_port'])

@@ -127,7 +127,7 @@ def pullit(forcecheck=None):
     prevcomic = ""
     previssue = ""
 
-    newrl = mylar.CACHE_DIR + "/newreleases.txt"
+    newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
 
     if mylar.ALT_PULL:
         #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.') 
@@ -137,10 +137,13 @@ def pullit(forcecheck=None):
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
         f = urllib.urlretrieve(PULLURL, newrl)
 
+        #set newrl to a manual file to pull in against that particular file
+        #newrl = '/mylar/tmp/newreleases.txt'
+
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
 
-    newfl = mylar.CACHE_DIR + "/Clean-newreleases.txt"
+    newfl = os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt')
     newtxtfile = open(newfl, 'wb')
 
     if check(newrl, 'Service Unavailable'):
@@ -412,7 +415,7 @@ def pullit(forcecheck=None):
         if "MAGAZINES" in row: break
         if "BOOK" in row: break
         try:
-            logger.debug("Row: %s" % row)
+            #logger.debug("Row: %s" % row)
             controlValueDict = {'COMIC': row[3],
                                 'ISSUE': row[2],
                                 'EXTRA': row[4]}
@@ -428,9 +431,8 @@ def pullit(forcecheck=None):
     csvfile.close()
     logger.info(u"Weekly Pull List successfully loaded.")
     #let's delete the files
-    pullpath = str(mylar.CACHE_DIR) + "/"
-    os.remove(str(pullpath) + "Clean-newreleases.txt")
-    os.remove(str(pullpath) + "newreleases.txt")
+    os.remove(os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt'))
+    os.remove(os.path.join(mylar.CACHE_DIR, 'newreleases.txt'))
     pullitcheck(forcecheck=forcecheck)
 
 def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):
@@ -1054,6 +1056,8 @@ def future_check():
     #limit the search to just the 'current year' since if it's anything but a #1, it should have associated data already.
     #limittheyear = []
     #limittheyear.append(cf['IssueDate'][-4:])
+    search_results = []
+
     for ser in cflist:
         matched = False
         theissdate = ser['IssueDate'][-4:]
@@ -1085,6 +1089,11 @@ def future_check():
                 tmpsername = re.sub(' & ', '', tmpsername.lower()).strip()
                 tmpsrname = re.sub(' and ', '', tmpsrname.lower()).strip()
                 tmpsrname = re.sub(' & ', '', tmpsrname.lower()).strip()
+
+                #append the cleaned-up name to get searched later against if necessary.
+                search_results.append({'name':    tmpsrname,
+                                       'comicid':  sr['comicid']})
+
                 tmpsername = re.sub('\s', '', tmpsername).strip()
                 tmpsrname = re.sub('\s', '', tmpsrname).strip()
 
@@ -1100,29 +1109,47 @@ def future_check():
                 matched = True
             else:
                 logger.info('Unable to determine a successful match at this time (this is still a WIP so it will eventually work). Not going to attempt auto-adding at this time.')
-#                for pos_match in matches:
-#                    length_match = len(pos_match['name']) / len(ser['ComicName'])
-#                    logger.fdebug('length match differential set for an allowance of 20%')
-#                    logger.fdebug('actual differential in length between result and series title: ' + str((length_match * 100)-100) + '%')
-#                    split_match = pos_match['name'].lower().split()
-#                    split_series = ser['ComicName'].lower().split()
-#                    word_match = 0
-#                    i = 0
-#                    for ss in split_series:
-#                        logger.fdebug('ss value: ' + str(ss))
-#                        try:
-#                            matchword = split_match[i].lower()
-#                        except:
-#                            break
-#                        if split_match.index(ss) == split_series.index(ss):
-#                            #will return word position in string.
-#                            logger.fdebug('word match to position found in both strings at position : ' + str(split_match.index(ss)))
-#                            word_match+=1
-#                        elif any(['the', 'and', '&'] == matchword.lower()):
-#                            logger.fdebug('common word detected of : ' + matchword)
-#                            word_match+=.5
-#                        i+=1                                
-#                    logger.info('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
+                catch_words = ('the', 'and', '&', 'to')
+                for pos_match in search_results:
+                    logger.info(pos_match)
+                    length_match = len(pos_match['name']) / len(ser['ComicName'])
+                    logger.fdebug('length match differential set for an allowance of 20%')
+                    logger.fdebug('actual differential in length between result and series title: ' + str((length_match * 100)-100) + '%')
+                    if ((length_match * 100)-100) > 20:
+                        logger.fdebug('there are too many extra words to consider this as match for the given title. Ignoring this result.') 
+                        continue
+                    new_match = pos_match['name'].lower()
+                    split_series = ser['ComicName'].lower().split()
+                    for cw in catch_words:
+                        for x in new_match.split():
+                            #logger.fdebug('comparing x: ' + str(x) + ' to cw: ' + str(cw)) 
+                            if x == cw:
+                                new_match = re.sub(x, '', new_match)
+
+                    split_match = new_match.split()
+                    word_match = 0
+                    i = 0
+                    for ss in split_series:
+                        try:
+                            matchword = split_match[i].lower()
+                        except:
+                            break
+                        if split_match.index(ss) == split_series.index(ss):
+                            #will return word position in string.
+                            #logger.fdebug('word match to position found in both strings at position : ' + str(split_match.index(ss)))
+                            word_match+=1
+                        elif any([x == matchword for x in catch_words]):
+                            #logger.fdebug('[MW] common word detected of : ' + matchword)
+                            word_match+=.5
+                        elif any([cw == ss for cw in catch_words]):
+                            #logger.fdebug('[CW] common word detected of : ' + matchword)
+                            word_match+=.5
+                        i+=1                                
+                    logger.fdebug('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
+                    if word_match == len(split_series) or (word_match / len(split_series)) > 80:
+                        logger.fdebug('[' + pos_match['name'] + '] considered a match - word matching percentage is greater than 80%. Attempting to auto-add series into watchlist.')
+                        cid = pos_match['comicid']
+                        matched = True                
 
         if matched:
             #we should probably load all additional issues for the series on the futureupcoming list that are marked as Wanted and then

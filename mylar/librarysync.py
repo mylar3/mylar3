@@ -189,6 +189,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                 if issueinfo is None:
                     pass
                 else:
+                    issuenotes_id = None
                     logger.info('Successfully retrieved some tags. Lets see what I can figure out.')
                     comicname = issueinfo[0]['series']
                     logger.fdebug('Series Name: ' + comicname)
@@ -208,9 +209,19 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None)
                     if issuenotes is not None:
                         if 'Issue ID' in issuenotes:
                             st_find = issuenotes.find('Issue ID')
-                            issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
-                            if issuenotes_id.isdigit():
+                            tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
+                            if tmp_issuenotes_id.isdigit():
+                                issuenotes_id = tmp_issuenotes_id
                                 logger.fdebug('Successfully retrieved CV IssueID for ' + comicname + ' #' + str(issue_number) + ' [' + str(issuenotes_id) + ']')
+                        elif 'CVDB' in issuenotes:
+                            st_find = issuenotes.find('CVDB')
+                            tmp_issuenotes_id = re.sub("[^0-9]", " ", issuenotes[st_find:]).strip()
+                            if tmp_issuenotes_id.isdigit():
+                                issuenotes_id = tmp_issuenotes_id
+                                logger.fdebug('Successfully retrieved CV IssueID for ' + comicname + ' #' + str(issue_number) + ' [' + str(issuenotes_id) + ']')
+                        else:
+                            logger.fdebug('Unable to retrieve IssueID from meta-tagging. If there is other metadata present I will use that.')
+
                     logger.fdebug("adding " + comicname + " to the import-queue!")
                     impid = comicname + '-' + str(issueyear) + '-' + str(issue_number) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
                     logger.fdebug("impid: " + str(impid))

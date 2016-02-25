@@ -21,6 +21,7 @@ import threading
 import platform
 import urllib, urllib2
 from xml.dom.minidom import parseString, Element
+import lib.requests as requests
 
 import mylar
 from mylar import logger, db, cv
@@ -69,18 +70,26 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
         time.sleep(mylar.CVAPI_RATE)
 
     #download the file:
+    payload = None
+    verify = False
+
     try:
-        file = urllib2.urlopen(PULLURL)
-    except urllib2.HTTPError, err:
-        logger.error('err : ' + str(err))
-        logger.error("There was a major problem retrieving data from ComicVine - on their end. You'll have to try again later most likely.")
+        r = requests.get(PULLURL, params=payload, verify=verify, headers=mylar.CV_HEADERS)
+    except Exception, e:
+        logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
-    #convert to string:
-    data = file.read()
-    #close file because we dont need it anymore:
-    file.close()
-    #parse the xml you downloaded
-    dom = parseString(data)
+#    try:
+#        file = urllib2.urlopen(PULLURL)
+#    except urllib2.HTTPError, err:
+#        logger.error('err : ' + str(err))
+#        logger.error("There was a major problem retrieving data from ComicVine - on their end. You'll have to try again later most likely.")
+#        return
+#    #convert to string:
+#    data = file.read()
+#    #close file because we dont need it anymore:
+#    file.close()
+#    #parse the xml you downloaded
+    dom = parseString(r.content) #(data)
     return dom
 
 def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
@@ -367,16 +376,24 @@ def storyarcinfo(xmlid):
     else:
         time.sleep(mylar.CVAPI_RATE)
 
-    try:
-        file = urllib2.urlopen(ARCPULL_URL)
-    except urllib2.HTTPError, err:
-        logger.error('err : ' + str(err))
-        logger.error('There was a major problem retrieving data from ComicVine - on their end.')
-        return
+    #download the file:
+    payload = None
+    verify = False
 
-    arcdata = file.read()
-    file.close()
-    arcdom = parseString(arcdata)
+    try:
+        r = requests.get(ARCPULL_URL, params=payload, verify=verify, headers=mylar.CV_HEADERS)
+    except Exception, e:
+        logger.warn('Error fetching data from ComicVine: %s' % (e))
+        return
+#    try:
+#        file = urllib2.urlopen(ARCPULL_URL)
+#    except urllib2.HTTPError, err:
+#        logger.error('err : ' + str(err))
+#        logger.error('There was a major problem retrieving data from ComicVine - on their end.')
+#        return
+#    arcdata = file.read()
+#    file.close()
+    arcdom = parseString(r.content) #(arcdata)
 
     try:
         logger.fdebug('story_arc ascension')

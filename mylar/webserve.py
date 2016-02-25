@@ -951,7 +951,7 @@ class WebInterface(object):
     force_rss.exposed = True
 
     def markannuals(self, ann_action=None, **args):
-        self.markissues(action=ann_action, **args)
+        self.markissues(ann_action, **args)
     markannuals.exposed = True
 
     def markissues(self, action=None, **args):
@@ -1014,7 +1014,6 @@ class WebInterface(object):
             threading.Thread(target=search.searchIssueIDList, args=[issuesToAdd]).start()
 
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % mi['ComicID'])
-
     markissues.exposed = True
 
     def markentries(self, action=None, **args):
@@ -1873,22 +1872,18 @@ class WebInterface(object):
                             renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=None, annualize=annualize)
                             nfilename = renameiss['nfilename']
                             srciss = os.path.join(comicdir, filename)
-                            if mylar.LOWERCASE_FILENAMES:
-                                dstiss = os.path.join(comicdir, nfilename).lower()
-                            else:
-                                dstiss = os.path.join(comicdir, nfilename)
                             if filename != nfilename:
-                                logger.info("Renaming " + str(filename) + " ... to ... " + str(nfilename))
+                                logger.info('Renaming ' + filename + ' ... to ... ' + renameiss['nfilename'])
                                 try:
-                                    shutil.move(srciss, dstiss)
+                                    shutil.move(srciss, renameiss['destination_dir'])
                                 except (OSError, IOError):
-                                    logger.error("Failed to move files - check directories and manually re-run.")
+                                    logger.error('Failed to move files - check directories and manually re-run.')
                                     return
                                 filefind+=1
                             else:
-                                logger.info("Not renaming " + str(filename) + " as it is in desired format already.")
+                                logger.info('Not renaming ' + filename + ' as it is in desired format already.')
                             #continue
-            logger.info("I have renamed " + str(filefind) + " issues of " + comicname)
+            logger.info('I have renamed ' + str(filefind) + ' issues of ' + comicname)
             updater.forceRescan(comicid)
     manualRename.exposed = True
 
@@ -2749,14 +2744,6 @@ class WebInterface(object):
        # return serve_template(templatename="importlog.html", title="Log", implog=implog)
     importLog.exposed = True
 
-#    def logs(self, log_level=None):
-        #if mylar.LOG_LEVEL is None or mylar.LOG_LEVEL == '' or log_level is None:
-        #    mylar.LOG_LEVEL = 'INFO'
-        #else:
-        #    mylar.LOG_LEVEL = log_level
-#        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST, loglevel=mylar.LOG_LEVEL)
-#    logs.exposed = True
-
     def logs(self):
         return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST)
     logs.exposed = True
@@ -2955,7 +2942,6 @@ class WebInterface(object):
         queue = Queue.Queue()
 
         #save the values so they stick.
-        mylar.LIBRARYSCAN = libraryscan
         mylar.ADD_COMICS = autoadd
         mylar.COMIC_DIR = path
         mylar.IMP_MOVE = imp_move
@@ -3360,7 +3346,6 @@ class WebInterface(object):
                     "download_scan_interval": mylar.DOWNLOAD_SCAN_INTERVAL,
                     "nzb_search_interval": mylar.SEARCH_INTERVAL,
                     "nzb_startup_search": helpers.checked(mylar.NZB_STARTUP_SEARCH),
-                    "libraryscan_interval": mylar.LIBRARYSCAN_INTERVAL,
                     "search_delay": mylar.SEARCH_DELAY,
                     "nzb_downloader_sabnzbd": helpers.radio(mylar.NZB_DOWNLOADER, 0),
                     "nzb_downloader_nzbget": helpers.radio(mylar.NZB_DOWNLOADER, 1),
@@ -3385,11 +3370,10 @@ class WebInterface(object):
                     "use_nzbsu": helpers.checked(mylar.NZBSU),
                     "nzbsu_uid": mylar.NZBSU_UID,
                     "nzbsu_api": mylar.NZBSU_APIKEY,
+                    "nzbsu_verify": helpers.checked(mylar.NZBSU_VERIFY),
                     "use_dognzb": helpers.checked(mylar.DOGNZB),
                     "dognzb_api": mylar.DOGNZB_APIKEY,
-                    "use_omgwtfnzbs": helpers.checked(mylar.OMGWTFNZBS),
-                    "omgwtfnzbs_username": mylar.OMGWTFNZBS_USERNAME,
-                    "omgwtfnzbs_api": mylar.OMGWTFNZBS_APIKEY,
+                    "dognzb_verify": helpers.checked(mylar.DOGNZB_VERIFY),
                     "use_experimental": helpers.checked(mylar.EXPERIMENTAL),
                     "enable_torznab": helpers.checked(mylar.ENABLE_TORZNAB),
                     "torznab_name": mylar.TORZNAB_NAME,
@@ -3399,6 +3383,7 @@ class WebInterface(object):
                     "use_newznab": helpers.checked(mylar.NEWZNAB),
                     "newznab_host": mylar.NEWZNAB_HOST,
                     "newznab_name": mylar.NEWZNAB_NAME,
+                    "newznab_verify": helpers.checked(mylar.NEWZNAB_VERIFY),
                     "newznab_api": mylar.NEWZNAB_APIKEY,
                     "newznab_uid": mylar.NEWZNAB_UID,
                     "newznab_enabled": helpers.checked(mylar.NEWZNAB_ENABLED),
@@ -3694,10 +3679,10 @@ class WebInterface(object):
     readOptions.exposed = True
 
 
-    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0, libraryscan_interval=None,
+    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0,
         nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
-        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, dognzb=0, dognzb_apikey=None, omgwtfnzbs=0, omgwtfnzbs_username=None, omgwtfnzbs_apikey=None, newznab=0, newznab_host=None, newznab_name=None, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
+        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, nzbsu_verify=0, dognzb=0, dognzb_apikey=None, dognzb_verify=0, newznab=0, newznab_host=None, newznab_name=None, newznab_verify=0, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
         enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
@@ -3724,7 +3709,6 @@ class WebInterface(object):
         mylar.DOWNLOAD_SCAN_INTERVAL = download_scan_interval
         mylar.SEARCH_INTERVAL = nzb_search_interval
         mylar.NZB_STARTUP_SEARCH = nzb_startup_search
-        mylar.LIBRARYSCAN_INTERVAL = libraryscan_interval
         mylar.SEARCH_DELAY = search_delay
         mylar.NZB_DOWNLOADER = int(nzb_downloader)
         if tsab:
@@ -3750,11 +3734,10 @@ class WebInterface(object):
         mylar.NZBSU = nzbsu
         mylar.NZBSU_UID = nzbsu_uid
         mylar.NZBSU_APIKEY = nzbsu_apikey
+        mylar.NZBSU_VERIFY = nzbsu_verify
         mylar.DOGNZB = dognzb
         mylar.DOGNZB_APIKEY = dognzb_apikey
-        mylar.OMGWTFNZBS = omgwtfnzbs
-        mylar.OMGWTFNZBS_USERNAME = omgwtfnzbs_username
-        mylar.OMGWTFNZBS_APIKEY = omgwtfnzbs_apikey
+        mylar.DOGNZB_VERIFYY = dognzb_verify
         mylar.ENABLE_TORZNAB = enable_torznab
         mylar.TORZNAB_NAME = torznab_name
         mylar.TORZNAB_HOST = torznab_host
@@ -3859,7 +3842,7 @@ class WebInterface(object):
         #changing this for simplicty - adding all newznabs into extra_newznabs
         if newznab_host is not None:
             #this
-            mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_apikey, newznab_uid, int(newznab_enabled)))
+            mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_apikey, newznab_uid, int(newznab_enabled)))
 
         for kwarg in kwargs:
             if kwarg.startswith('newznab_name'):
@@ -3871,14 +3854,18 @@ class WebInterface(object):
                         logger.fdebug('Blank newznab provider has been entered - removing.')
                         continue
                 newznab_host = kwargs['newznab_host' + newznab_number]
+                try:
+                    newznab_verify = kwargs['newznab_verify' + newznab_number]
+                except:
+                    newznab_verify = 0
                 newznab_api = kwargs['newznab_api' + newznab_number]
                 newznab_uid = kwargs['newznab_uid' + newznab_number]
                 try:
                     newznab_enabled = int(kwargs['newznab_enabled' + newznab_number])
                 except KeyError:
                     newznab_enabled = 0
-
-                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_api, newznab_uid, newznab_enabled))
+                
+                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
         # Sanity checking
         if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == '' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
@@ -4245,3 +4232,8 @@ class WebInterface(object):
         else:
             return "Error sending test message to Pushbullet"
     testpushbullet.exposed = True
+
+    def orderThis(self, **kwargs):
+        logger.info('here')
+        return
+    orderThis.exposed = True

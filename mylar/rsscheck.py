@@ -80,11 +80,14 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         if pickfeed == "1" and mylar.ENABLE_32P:  # 32pages new releases feed.
             feed = 'https://32pag.es/feeds.php?feed=torrents_all&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey']
             feedtype = ' from the New Releases RSS Feed for comics'
+            verify = bool(mylar.VERIFY_32P)
         elif pickfeed == "2" and srchterm is not None:    # kat.ph search
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Acomics%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
+            verify = bool(mylar.KAT_VERIFY)
         elif pickfeed == "3":    # kat.ph rss feed
             feed = kat_url + "usearch/category%3Acomics%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
             feedtype = ' from the New Releases RSS Feed for comics'
+            verify = bool(mylar.KAT_VERIFY)
         elif pickfeed == "4":    #32p search
             if any([mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None, mylar.PASSWORD_32P == '']):
                 logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')
@@ -97,28 +100,38 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             return
         elif pickfeed == "5" and srchterm is not None:  # kat.ph search (category:other since some 0-day comics initially get thrown there until categorized)
             feed = kat_url + "usearch/" + str(srchterm) + "%20category%3Aother%20seeds%3A1/?rss=1"
+            verify = bool(mylar.KAT_VERIFY)
         elif pickfeed == "6":    # kat.ph rss feed (category:other so that we can get them quicker if need-be)
             feed = kat_url + "usearch/.cbr%20category%3Aother%20seeds%3A" + str(mylar.MINSEEDS) + "/?rss=1"
             feedtype = ' from the New Releases for category Other RSS Feed that contain comics'
+            verify = bool(mylar.KAT_VERIFY)
         elif int(pickfeed) >= 7 and feedinfo is not None:
             #personal 32P notification feeds.
             #get the info here
             feed = 'https://32pag.es/feeds.php?feed=' + feedinfo['feed'] + '&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey'] + '&name=' + feedinfo['feedname']
             feedtype = ' from your Personal Notification Feed : ' + feedinfo['feedname']
-
+            verify = bool(mylar.VERIFY_32P)
         else:
             logger.error('invalid pickfeed denoted...')
             return
-
-        #logger.info('[' + str(pickfeed) + '] feed URL: ' + str(feed))
-
-        if pickfeed != '4':
-            feedme = feedparser.parse(feed)
 
         if pickfeed == "3" or pickfeed == "6" or pickfeed == "2" or pickfeed == "5":
             picksite = 'KAT'
         elif pickfeed == "1" or pickfeed == "4" or int(pickfeed) > 7:
             picksite = '32P'
+
+        if pickfeed != '4':
+            payload = None
+
+            try:
+                r = requests.get(feed, params=payload, verify=verify)
+            except Exception, e:
+                logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
+                return
+
+            feedme = feedparser.parse(r.content)
+            #feedme = feedparser.parse(feed)
+
 
         i = 0
 
@@ -281,10 +294,6 @@ def nzbs(provider=None, forcerss=False):
     if mylar.DOGNZB == 1:
         num_items = "&num=100" if forcerss else ""  # default is 25
         _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items)
-
-    if mylar.OMGWTFNZBS == 1:
-        num_items = "&num=100" if forcerss else ""  # default is 25
-        _parse_feed('omgwtfnzbs', 'http://api.omgwtfnzbs.org/rss?t=7030&dl=1&i=' + (mylar.OMGWTFNZBS_USERNAME or '1') + '&r=' + mylar.OMGWTFNZBS_APIKEY + num_items)
 
     for newznab_host in newznab_hosts:
         site = newznab_host[0].rstrip()

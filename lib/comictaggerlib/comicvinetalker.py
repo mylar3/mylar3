@@ -27,7 +27,7 @@ import re
 import time
 import datetime
 import ctversion
-import sys
+import os, sys
 from bs4 import BeautifulSoup
 
 try:
@@ -49,6 +49,13 @@ from settings import ComicTaggerSettings
 from comicvinecacher import ComicVineCacher
 from genericmetadata import GenericMetadata
 from issuestring import IssueString
+
+try:
+        lib_path = os.path.join(ComicTaggerSettings.baseDir(), '..')
+        sys.path.append(lib_path)
+        import lib.requests as requests
+except ImportError:
+        print "Unable to use requests module. This is a CRITICAL error and ComicTagger cannot proceed. Exiting."        
 
 class CVTypeID:
 	Volume = "4050"
@@ -89,7 +96,7 @@ class ComicVineTalker(QObject):
 	def __init__(self):
 		QObject.__init__(self)
 
-		self.api_base_url = "http://api.comicvine.com/"
+		self.api_base_url = "http://comicvine.gamespot.com/api"
 		self.wait_for_rate_limit = False
 		
 		# key that is registered to comictagger
@@ -100,6 +107,7 @@ class ComicVineTalker(QObject):
 		else:
 			self.api_key = ComicVineTalker.api_key
 
+                self.cv_headers = {'User-Agent': 'ComicTagger.[ninjas.walk.alone.fork] - UserAgent + CV Rate Limiting / 1.01 - KATANA'}
 		self.log_func = None
 
 	def setLogFunc( self , log_func ):
@@ -129,10 +137,11 @@ class ComicVineTalker(QObject):
 	def testKey( self, key ):
 	
 		test_url = self.api_base_url + "/issue/1/?api_key=" + key + "&format=json&field_list=name"
-		resp = urllib2.urlopen( test_url ) 
-		content = resp.read()
+                r = requests.get(test_url, headers=self.cv_headers)
+		#resp = urllib2.urlopen( test_url ) 
+		#content = resp.read()
 	
-		cv_response = json.loads( content )
+		cv_response = r.json() #json.loads( r.content )
 
 		# Bogus request, but if the key is wrong, you get error 100: "Invalid API Key"
 		return cv_response[ 'status_code' ] != 100
@@ -149,8 +158,8 @@ class ComicVineTalker(QObject):
 		while True:
                         time.sleep(2)  #imposed by new CV rate limiting - 1 api request / second (maximum) - safetyset to 2s intervals
                         #self.writeLog( "Self imposed rate-limiting of 1 api request / second\n" )
-			content = self.getUrlContent(url) 
-			cv_response = json.loads(content)
+			cv_response = self.getUrlContent(url)
+			#cv_response = json.loads(content)
 			if self.wait_for_rate_limit and cv_response[ 'status_code' ] == ComicVineTalkerException.RateLimit:
 				self.writeLog( "Rate limit encountered.  Waiting for {0} minutes\n".format(limit_wait_time))
 				time.sleep(limit_wait_time * 60)
@@ -176,8 +185,9 @@ class ComicVineTalker(QObject):
 		#print "ATB---", url
 		for tries in range(3):
 			try:
-				resp = urllib2.urlopen( url ) 
-				return resp.read()
+                                r = requests.get(url, headers=self.cv_headers)
+				#resp = urllib2.urlopen( url ) 
+				return r.json()
 			except urllib2.HTTPError as e:
 				if e.getcode() == 500:					
 					self.writeLog( "Try #{0}: ".format(tries+1) )
@@ -641,7 +651,7 @@ class ComicVineTalker(QObject):
 		# scrape the CV issue page URL to get the alternate cover URLs 
 		resp = urllib2.urlopen( issue_page_url ) 
 		content = resp.read()
-		alt_cover_url_list = self.parseOutAltCoverUrls( content)
+		alt_cover_url_list = self.parseOutAltCoverUrls(content)
 
 		# cache this alt cover URL list
 		self.cacheAlternateCoverURLs( issue_id, alt_cover_url_list )

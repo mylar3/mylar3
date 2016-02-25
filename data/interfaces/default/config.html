@@ -214,10 +214,6 @@
                                       <input type="text" name="search_delay" value="${config['search_delay']}" size="4" />mins
                                   </div>
                             </div>
-
-	                    <div class="row">
-	                    	<label>Library Scan Interval</label>
-	                    	<input type="text" name="libraryscan_interval" value="${config['libraryscan_interval']}" size="4">mins
 	                    </div>
                                <legend>Comic Location</legend>
                                 <div>
@@ -461,6 +457,9 @@
                                     <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['use_nzbsu']} /><legend>NZB.SU</legend>
                 		</div>
                 		<div class="config">
+                                        <div class="row checkbox">
+                                            <input type="checkbox" name="nzbsu_verify" value="1" ${config['nzbsu_verify']} /><label>Verify SSL</label>
+                                        </div>
                                         <div class="row">
                                             <label>NZB.SU UID</label>
                                             <input type="text" name="nzbsu_uid" value="${config['nzbsu_uid']}" size="15" >
@@ -478,26 +477,13 @@
                                      <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><legend>DOGNZB</legend>
                                 </div>
                                 <div class="config">
+                                        <div class="row checkbox">
+                                             <input id="dognzb_verify" type="checkbox" name="dognzb_verify" value="1" ${config['dognzb_verify']} /><label>Verify SSL</label>
+                                        </div>
                                         <div class="row">
                                                 <label>DOGNZB API</label>
                                                 <input type="text" name="dognzb_apikey" value="${config['dognzb_api']}" size="36">
                                          </div>
-                                </div>
-                        </fieldset>
-
-                        <fieldset>
-                                <div class="row checkbox left clearfix">
-                                    <input id="useomgwtfnzbs" type="checkbox" onclick="initConfigCheckbox($(this));" name="omgwtfnzbs" value="1" ${config['use_omgwtfnzbs']} /><legend>OMGWTFNZBS</legend>
-                                </div>
-                                <div class="config">
-                                        <div class="row">
-                                            <label>OMGWTFNZBS UserName</label>
-                                            <input type="text" name="omgwtfnzbs_username" value="${config['omgwtfnzbs_username']}" size="15" >
-                                        </div>
-                                        <div class="row">
-                                                <label>OMGWTFNZBS API</label>
-                                                <input type="text" name="omgwtfnzbs_apikey" value="${config['omgwtfnzbs_api']}" size="36">
-                                        </div>
                                 </div>
                         </fieldset>
 
@@ -596,10 +582,15 @@
                                     %>
                                     %for newznab in config['extra_newznabs']:
                                         <%
-                                            if newznab[4] == '1' or newznab[4] == 1:
+                                            if newznab[5] == '1' or newznab[5] == 1:
                                                 newznab_enabled = "checked"
                                             else:
                                                 newznab_enabled = ""
+
+                                            if newznab[2] == '1' or newznab[2] == 1:
+                                                newznab_verify = "checked"
+                                            else:
+                                                newznab_verify = ""
                                         %>
                                         <div class="config" id="newznab${newznab_number}">
                                             <div class="row">
@@ -610,13 +601,16 @@
                                                 <label>Newznab Host</label>
                                                 <input type="text" name="newznab_host${newznab_number}" value="${newznab[1]}" size="30">
                                             </div>
+                                            <div class="row checkbox">
+                                                <input id="newznab_verify" type="checkbox" name="newznab_verify${newznab_number}" value="1" ${newznab_verify} /><label>Verify SSL</label>
+                                            </div>
                                             <div class="row">
                                                 <label>Newznab API</label>
-                                                <input type="text" name="newznab_api${newznab_number}" value="${newznab[2]}" size="36">
+                                                <input type="text" name="newznab_api${newznab_number}" value="${newznab[3]}" size="36">
                                             </div>
                                             <div class="row">
                                                 <label>Newznab UID</label>
-                                                <input type="text" name="newznab_uid${newznab_number}" value="${newznab[3]}" size="15">
+                                                <input type="text" name="newznab_uid${newznab_number}" value="${newznab[4]}" size="15">
                                                 <small>( only needed for RSS feed )</small>
                                             </div>
                                             <div class="row checkbox">
@@ -1339,7 +1333,7 @@
 
                 $("#add_newznab").click(function() {
                     var intId = $("#newznab_providers > div").size() + deletedNewznabs + 1;
-                    var formfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var formfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
                     var removeButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     removeButton.click(function() {
                         $(this).parent().remove();
@@ -1355,31 +1349,31 @@
                 };
 
                 $('#nma_test').click(function () {
-                    $.get("/testNMA",
+                    $.get("testNMA",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#prowl_test').click(function () {
-                    $.get("/testprowl",
+                    $.get("testprowl",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#pushover_test').click(function () {
-                    $.get("/testpushover",
+                    $.get("testpushover",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#boxcar_test').click(function () {
-                    $.get("/testboxcar",
+                    $.get("testboxcar",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#pushbullet_test').click(function () {
-                    $.get("/testpushbullet",
+                    $.get("testpushbullet",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
@@ -1396,7 +1390,6 @@
                 initConfigCheckbox("#enable_torznab");
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
-                initConfigCheckbox("#useomgwtfnzbs");
                 initConfigCheckbox("#enable_torrents");
                 initConfigCheckbox("#torrent_local");
                 initConfigCheckbox("#torrent_seedbox");

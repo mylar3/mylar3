@@ -19,6 +19,7 @@ import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker
 
 import lib.feedparser as feedparser
+import lib.requests as requests
 import urllib
 import os, errno
 import string
@@ -105,9 +106,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if mylar.DOGNZB == 1:
         nzbprovider.append('dognzb')
         nzbp+=1
-    if mylar.OMGWTFNZBS == 1:
-        nzbprovider.append('omgwtfnzbs')
-        nzbp+=1
 
     # --------
     #  Xperimental
@@ -122,7 +120,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if mylar.NEWZNAB == 1:
     #if len(mylar.EXTRA_NEWZNABS > 0):
         for newznab_host in mylar.EXTRA_NEWZNABS:
-            if newznab_host[4] == '1' or newznab_host[4] == 1:
+            if newznab_host[5] == '1' or newznab_host[5] == 1:
                 newznab_hosts.append(newznab_host)
                 #if newznab_host[0] == newznab_host[1]:
                 #    nzbprovider.append('newznab')
@@ -294,20 +292,22 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
+        verify = bool(mylar.NZBSU_VERIFY)
     elif nzbprov == 'dognzb':
         apikey = mylar.DOGNZB_APIKEY
-    elif nzbprov == 'omgwtfnzbs':
-        apikey = mylar.OMGWTFNZBS_APIKEY
+        verify = bool(mylar.DOGNZB_VERIFY)
     elif nzbprov == 'experimental':
         apikey = 'none'
+        verify = False
     elif nzbprov == 'newznab':
         #updated to include Newznab Name now
         name_newznab = newznab_host[0].rstrip()
         host_newznab = newznab_host[1].rstrip()
-        apikey = newznab_host[2].rstrip()
-        if '#' in newznab_host[3].rstrip():
-            catstart = newznab_host[3].find('#')
-            category_newznab = newznab_host[3][catstart +1:]
+        apikey = newznab_host[3].rstrip()
+        verify = bool(newznab_host[2].rstrip())
+        if '#' in newznab_host[4].rstrip():
+            catstart = newznab_host[4].find('#')
+            category_newznab = newznab_host[4][catstart +1:]
             logger.fdebug('non-default Newznab category set to :' + str(category_newznab))
         else:
             category_newznab = '7030'
@@ -512,8 +512,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         findurl = "https://api.dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
                     elif nzbprov == 'nzb.su':
                         findurl = "https://api.nzb.su/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
-                    elif nzbprov == 'omgwtfnzbs':
-                        findurl = "https://api.omgwtfnzbs.org/xml/?search=" + str(comsearch) + "&user=" + mylar.OMGWTFNZBS_USERNAME + "&o=xml&catid=9"
                     elif nzbprov == 'newznab':
                         #let's make sure the host has a '/' at the end, if not add it.
                         if host_newznab[len(host_newznab) -1:len(host_newznab)] != '/':
@@ -530,26 +528,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         apikey = mylar.TORZNAB_APIKEY
                     if nzbprov != 'nzbx':
                         # helper function to replace apikey here so we avoid logging it ;)
-                        if nzbprov == 'omgwtfnzbs':
-                            findurl = findurl + "&api=" + str(apikey)
-                        else:
-                            findurl = findurl + "&apikey=" + str(apikey)
+                        findurl = findurl + "&apikey=" + str(apikey)
                         logsearch = helpers.apiremove(str(findurl), 'nzb')
-                        logger.fdebug("search-url: " + str(logsearch))
 
                         ### IF USENET_RETENTION is set, honour it
                         ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
                         if mylar.USENET_RETENTION != None and nzbprov != 'torznab':
-                            if nzbprov == 'omgwtfnzbs':
-                                findurl = findurl + "&retention=" + str(mylar.USENET_RETENTION)
-                            else:
-                                findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
-
-                        # Add a user-agent
-                        #print ("user-agent:" + str(mylar.USER_AGENT))
-                        request = urllib2.Request(findurl)
-                        request.add_header('User-Agent', str(mylar.USER_AGENT))
-                        opener = urllib2.build_opener()
+                            findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
 
                         #set a delay between searches here. Default is for 60 seconds...
                         #changing this to lower could result in a ban from your nzb source due to hammering.
@@ -579,8 +564,25 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.info("pausing for " + str(pause_the_search) + " seconds before continuing to avoid hammering")
                             time.sleep(pause_the_search)
 
+                        # Add a user-agent
+                        headers = {'User-Agent':   str(mylar.USER_AGENT)}
+                        payload = None
+
+                        if findurl.startswith('https'):
+                            try:
+                                from lib.requests.packages.urllib3 import disable_warnings
+                                disable_warnings()
+                            except:
+                                logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
+
+                        else:
+                            verify = False
+
+                        #logger.fdebug('[SSL: ' + str(verify) + '] Search URL: ' + findurl)
+                        logger.fdebug('[SSL: ' + str(verify) + '] Search URL: ' + str(logsearch))
+
                         try:
-                            data = opener.open(request).read()
+                            r = requests.get(findurl, params=payload, verify=verify, headers=headers)
                         except Exception, e:
                             logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
                             if 'HTTP Error 503' in e:
@@ -588,6 +590,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 foundc = "no"
                                 break
                             data = False
+
+                        logger.info(r.content)
+
+                        if str(r.status_code) != '200':
+                            logger.warn('Unable to download torrent from ' + nzbprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                        else:
+                            data = r.content
 
                         if data:
                             bb = feedparser.parse(data)
@@ -1795,13 +1804,13 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     logger.fdebug('NZBMegaSearch url detected. Adjusting...')
                     nzbmega = True
                 else:
-                    apikey = newznab[2].rstrip()
+                    apikey = newznab[3].rstrip()
                     down_url = host_newznab_fix + 'api'
-                    verify = False
+                    verify = bool(newznab[2])
             else:
-                down_url = 'https://api.nzb.su/api?'
+                down_url = 'https://api.nzb.su/api'
                 apikey = mylar.NZBSU_APIKEY
-                verify = True  #unsure if verify should be set to True for nzb.su or not.
+                verify = bool(mylar.NZBSU_VERIFY)
 
             if nzbmega == True:
                 down_url = link
@@ -1816,15 +1825,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         elif nzbprov == 'dognzb':
             #dognzb - need to add back in the dog apikey
             down_url = urljoin(link, str(mylar.DOGNZB_APIKEY))
-            verify = False
-
-        elif nzbprov == 'omgwtfnzbs':
-            #omgwtfnzbs.
-            down_url = 'https://api.omgwtfnzbs.org/sn.php?'
-            payload = {'id': str(nzbid),
-                       'user': str(mylar.OMGWTFNZBS_USERNAME),
-                       'api': str(mylar.OMGWTFNZBS_APIKEY)}
-            verify = True 
+            verify = bool(mylar.DOGNZB_VERIFY)
 
         else:
             #experimental - direct link.
@@ -1837,7 +1838,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         else:
             logger.info('Download URL: ' + down_url + '?' + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
 
-        import lib.requests as requests
 
         if down_url.startswith('https'):
             try:
@@ -2157,8 +2157,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             except:
                 logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
 
-            import lib.requests as requests
-
             try:
                 requests.put(tmpapi, verify=False)
             except:
@@ -2397,10 +2395,6 @@ def generate_id(nzbprov, link):
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
-    elif nzbprov == 'omgwtfnzbs':
-        url_parts = urlparse.urlparse(link)
-        path_parts = url_parts[4].split('&')
-        nzbid = path_parts[0].rsplit('=',1)[1]
     elif nzbprov == 'newznab':
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.

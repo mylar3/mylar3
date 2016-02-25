@@ -25,7 +25,7 @@ import mylar
 import platform
 from bs4 import BeautifulSoup as Soup
 import httplib
-
+import lib.requests as requests
 
 def patch_http_response_read(func):
     def inner(*args):
@@ -84,13 +84,23 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
         time.sleep(mylar.CVAPI_RATE)
 
     #download the file:
-    file = urllib2.urlopen(PULLURL)
+    #set payload to None for now...
+    payload = None
+    verify = False
+
+    try:
+        r = requests.get(PULLURL, params=payload, verify=verify, headers=mylar.CV_HEADERS)
+    except Exception, e:
+        logger.warn('Error fetching data from ComicVine: %s' % (e))
+        return
+
+    #file = urllib2.urlopen(PULLURL)
     #convert to string:
-    data = file.read()
+    #data = file.read()
     #close file because we dont need it anymore:
-    file.close()
+    #file.close()
     #parse the xml you downloaded
-    dom = parseString(data)
+    dom = parseString(r.content) #(data)
 
     return dom
 

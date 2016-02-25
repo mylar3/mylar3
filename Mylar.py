@@ -102,7 +102,6 @@ def main():
             print "Daemonize not supported under Windows, starting normally"
         else:
             mylar.DAEMON = True
-            mylar.VERBOSE = 0
 
     if args.pidfile:
         mylar.PIDFILE = str(args.pidfile)

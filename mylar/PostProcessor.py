@@ -566,7 +566,9 @@ class PostProcessor(object):
                                     self._log("The file cannot be found in the location provided for metatagging to be used [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
                                     logger.error(module + ' The file cannot be found in the location provided for metatagging to be used [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
                                 else:
+                                    odir = os.path.split(metaresponse)[0]
                                     ofilename = os.path.split(metaresponse)[1]
+                                    ext = os.path.splitext(metaresponse)[1]
                                     logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                     self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
@@ -809,7 +811,9 @@ class PostProcessor(object):
                                 self._log("The file cannot be found in the location provided for metatagging [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
                                 logger.error(module + ' The file cannot be found in the location provided for metagging [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
                             else:
+                                odir = os.path.split(metaresponse)[0]
                                 ofilename = os.path.split(metaresponse)[1]
+                                ext = os.path.splitext(metaresponse)[1]
                                 logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                 self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
@@ -1025,6 +1029,8 @@ class PostProcessor(object):
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
+                if iss_b4dec == '':
+                    iss_b4dec = '0'
                 iss_decval = issuenum[iss_find +1:]
                 if iss_decval.endswith('.'): iss_decval = iss_decval[:-1]
                 if int(iss_decval) == 0:
@@ -1056,16 +1062,33 @@ class PostProcessor(object):
                 elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
             logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
-            if str(len(issueno)) > 1:
-                if issueno.isalpha():
-                    self._log('issue detected as an alpha.')
-                    prettycomiss = str(issueno)
 
-                elif int(issueno) < 0:
-                    self._log("issue detected is a negative")
-                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-                elif int(issueno) < 10:
-                    self._log("issue detected less than 10")
+            prettycomiss = None
+
+            if issueno.isalpha():
+                logger.fdebug('issue detected as an alpha.')
+                prettycomiss = str(issueno)
+            else:
+                try:
+                    x = float(issueno)
+                    #validity check
+                    if x < 0:
+                        logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
+                        prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
+                    elif x >= 0:
+                        pass
+                    else:
+                        raise ValueError
+                except ValueError, e:
+                    logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
+                    return
+
+            if prettycomiss is None and len(str(issueno)) > 0:
+                #if int(issueno) < 0:
+                #    self._log("issue detected is a negative")
+                #    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
+                if int(issueno) < 10:
+                    logger.fdebug('issue detected less than 10')
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
@@ -1076,9 +1099,9 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
-                    self._log("issue detected greater than 10, but less than 100")
+                    logger.fdebug('issue detected greater than 10, but less than 100')
                     if mylar.ZERO_LEVEL_N == "none":
                         zeroadd = ""
                     else:
@@ -1093,19 +1116,73 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
                 else:
-                    self._log("issue detected greater than 100")
+                    logger.fdebug('issue detected greater than 100')
                     if '.' in iss:
                         if int(iss_decval) > 0:
                             issueno = str(iss)
                     prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
-            else:
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
+
+            elif len(str(issueno)) == 0:
                 prettycomiss = str(issueno)
-                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
+                logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
+
+#start outdated?
+#            if str(len(issueno)) > 1:
+#                if issueno.isalpha():
+#                    self._log('issue detected as an alpha.')
+#                    prettycomiss = str(issueno)
+
+#                elif int(issueno) < 0:
+#                    self._log("issue detected is a negative")
+#                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
+#                elif int(issueno) < 10:
+#                    self._log("issue detected less than 10")
+#                    if '.' in iss:
+#                        if int(iss_decval) > 0:
+#                            issueno = str(iss)
+#                            prettycomiss = str(zeroadd) + str(iss)
+#                        else:
+#                            prettycomiss = str(zeroadd) + str(int(issueno))
+#                    else:
+#                        prettycomiss = str(zeroadd) + str(iss)
+#                    if issue_except != 'None':
+#                        prettycomiss = str(prettycomiss) + issue_except
+#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+#                elif int(issueno) >= 10 and int(issueno) < 100:
+#                    self._log("issue detected greater than 10, but less than 100")
+#                    if mylar.ZERO_LEVEL_N == "none":
+#                        zeroadd = ""
+#                    else:
+#                        zeroadd = "0"
+#                    if '.' in iss:
+#                        if int(iss_decval) > 0:
+#                            issueno = str(iss)
+#                            prettycomiss = str(zeroadd) + str(iss)
+#                        else:
+#                           prettycomiss = str(zeroadd) + str(int(issueno))
+#                    else:
+#                        prettycomiss = str(zeroadd) + str(iss)
+#                    if issue_except != 'None':
+#                        prettycomiss = str(prettycomiss) + issue_except
+#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
+#                else:
+#                    self._log("issue detected greater than 100")
+#                    if '.' in iss:
+#                        if int(iss_decval) > 0:
+#                            issueno = str(iss)
+#                    prettycomiss = str(issueno)
+#                    if issue_except != 'None':
+#                        prettycomiss = str(prettycomiss) + issue_except
+#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+#            else:
+#                prettycomiss = str(issueno)
+#                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
+#--end outdated?
 
             if annchk == "yes":
                 self._log("Annual detected.")
@@ -1463,7 +1540,7 @@ class PostProcessor(object):
                     #tidyup old path
                     try:
                         if os.path.isdir(odir) and odir != self.nzb_folder:
-                            logger.fdebug(module + 'self.nzb_folder: ' + self.nzb_folder)
+                            logger.fdebug(module + ' self.nzb_folder: ' + self.nzb_folder)
                             # check to see if the directory is empty or not.
                             if not os.listdir(odir):
                                 logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)

@@ -351,6 +351,92 @@ table.display tr:last-child td {
 table.display tr td#add .ui-icon { display: inline-block; }
 
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * DataTables row classes
+ */
+table.display_no_select tr.odd.gradeA {
+        background-color: #ddffdd;
+}
+
+table.display_no_select tr.even.gradeA {
+        background-color: #ddffdd;
+}
+
+table.display_no_select tr.odd.gradeC {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.even.gradeC {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.even.gradeH{
+        background-color: #FFF5CC;
+}
+
+table.display_no_select tr.odd.gradeH {
+        background-color: #FFF5CC;
+}
+
+table.display_no_select tr.even.gradeL {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.odd.gradeL {
+        background-color: #ebf5ff;
+}
+
+table.display_no_select tr.odd.gradeX {
+        background-color: #ffdddd;
+}
+
+table.display_no_select tr.even.gradeX {
+        background-color: #ffdddd;
+}
+
+table.display_no_select tr.odd.gradeU {
+        background-color: #ddd;
+}
+
+table.display_no_select tr.even.gradeU {
+        background-color: #eee;
+}
+
+table.display_no_select tr.odd.gradeP {
+        background-color: #68FC68;
+}
+
+table.display_no_select tr.even.gradeP {
+        background-color: #68FC68;
+}
+
+table.display_no_select tr.odd.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display_no_select tr.odd.gradeZ {
+        background-color: #FAFAFA;
+}
+
+table.display_no_select tr.even.gradeZ {
+        background-color: white;
+}
+table.display_no_select tr.gradeL #status {
+        background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
+        font-size: 11px;
+        text-indent: -3000px;
+}
+table.display_no_select tr.gradeA td,
+table.display_no_select tr.gradeC td,
+table.display_no_select tr.gradeX td,
+table.display_no_select tr.gradeU td,
+table.display_no_select tr.gradeP td,
+table.display_no_select tr.gradeD td,
+table.display_no_select tr.gradeZ td {border-bottom: 1px solid #FFF;}
+table.display_no_select tr:last-child td {
+        border-bottom: 1px solid #eee;
+}
+table.display_no_select tr td#add .ui-icon { display: inline-block; }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Misc

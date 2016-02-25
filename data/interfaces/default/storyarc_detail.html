@@ -136,8 +136,6 @@
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
 
-        <script src="js/libs/jquery.dataTables.rowReordering.js"></script>
-   
         <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
@@ -163,10 +161,6 @@
 			        "sPaginationType": "full_numbers",
 			        "aaSorting": []
                         })
-                        .rowReordering({
-                                sURL: "orderThis",
-                                sRequestType: "GET"
-                        });
 		        resetFilters("item");
 	}
 

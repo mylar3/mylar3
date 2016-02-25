@@ -15,6 +15,7 @@
                                 <th id="year">Year</th>
 				<th id="issue">Last Issue</th>
                                 <th id="published">Published</th>
+                                <th id="have_percent">Have %</th>
 				<th id="have">Have</th>
                                 <th id="status">Status</th>
                                 <th id="active">Active</th>
@@ -46,6 +47,7 @@
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>
+                                <td id="have_percent">${comic['percent']}</td>
 				<td id="have"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><span class="progressbar-front-text">${comic['haveissues']}/${comic['totalissues']}</span></div></td>
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
@@ -74,6 +76,12 @@
 		$('#series_table').dataTable(
                         {
 			        "bDestroy": true,
+                                "aoColumnDefs": [
+                                     { 'bSortable': false, 'aTargets': [5] },
+                                     { 'bVisible': false, 'aTargets': [5] },
+                                     { 'sType': 'numeric', 'aTargets': [5] },
+                                     { 'iDataSort': [5], 'aTargets': [6] }
+                                ],
                                 "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
 			        "oLanguage": {
                                         "sLengthMenu":"Show _MENU_ results per page",

@@ -71,13 +71,13 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
         logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
 
-        #check for dependencies here - configparser
-        try:
-            import configparser
-        except ImportError:
-            logger.warn(module + ' configparser not found on system. Please install manually in order to write metadata')
-            logger.warn(module + ' continuing with PostProcessing, but I am not using metadata.')
-            return "fail"
+    #check for dependencies here - configparser
+    try:
+        import configparser
+    except ImportError:
+        logger.warn(module + ' configparser not found on system. Please install manually in order to write metadata')
+        logger.warn(module + ' continuing with PostProcessing, but I am not using metadata.')
+        return "fail"
 
 
     if not os.path.exists(unrar_cmd):

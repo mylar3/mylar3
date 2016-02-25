@@ -216,7 +216,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #else:
             #sresults = mb.findComic(annComicName, mode, issue=annissues, limityear=annualval['AnnualYear'])
             #print "annualyear: " + str(annualval['AnnualYear'])
-        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print'}
+        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print', 'collects'}
 
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
@@ -1486,7 +1486,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
         sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
         type='comic'
 
-        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print'}
+        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print', 'collects'}
 
         if len(sresults) == 1:
             logger.fdebug('[IMPORTER-ANNUAL] - 1 result')
