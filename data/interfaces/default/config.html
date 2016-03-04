@@ -707,15 +707,27 @@
                             </div>
                         </fieldset>
                         <fieldset>
+                            <legend>Duplicate Dump Folder</legend>
+                             <div class="row checkbox left clearfix">
+                                 <input type="checkbox" id="enable_ddump" onclick="initConfigCheckbox($this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
+                             </div>
+                                <div class="config">
+                                    <div class="row"">
+                                       <label>Full path to move files determined to be duplicates</label>
+                                       <input type="text" name="duplicate_dump" value="${config['duplicate_dump']}" size="30">
+                                    </div>
+                                </div>
+                        </fieldset>
+                        <fieldset>
                              <legend>Failed Download Handling</legend>
                              <div class="row checkbox left clearfix">
                                  <input type="checkbox" id="enable_failed" onclick="initConfigCheckbox($this));" name="failed_download_handling" value="1" ${config['failed_download_handling']} /><label>Enable Failed Download Handling</label>
                              </div>
                                 <div class="config">
-                                    <div class="row checkbox left clearfix">
+                                    <div class="checkbox left clearfix">
                                        <input type="checkbox" name="failed_auto" value="1" ${config['failed_auto']} /><label>Enable Automatic-Retry for Failed Downloads</label>
                                     </div>
-
+                                </div>
                         </fieldset>
 
                	</td>
@@ -1401,6 +1413,7 @@
                 initConfigCheckbox("#replace_spaces");
                 initConfigCheckbox("#use_minsize");
                 initConfigCheckbox("#use_maxsize");
+                initConfigCheckbox("#enable_ddump");
                 initConfigCheckbox("#enable_failed");
                 initConfigCheckbox("#enable_meta");
                 initConfigCheckbox("#zero_level");

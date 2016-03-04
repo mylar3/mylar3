@@ -3425,6 +3425,8 @@ class WebInterface(object):
                     "maxsize": mylar.MAXSIZE,
                     "interface_list": interface_list,
                     "dupeconstraint": mylar.DUPECONSTRAINT,
+                    "ddump": helpers.checked(mylar.DDUMP),
+                    "duplicate_dump": mylar.DUPLICATE_DUMP,
                     "autowant_all": helpers.checked(mylar.AUTOWANT_ALL),
                     "autowant_upcoming": helpers.checked(mylar.AUTOWANT_UPCOMING),
                     "comic_cover_local": helpers.checked(mylar.COMIC_COVER_LOCAL),
@@ -3689,7 +3691,7 @@ class WebInterface(object):
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
-        tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, **kwargs):
+        tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, **kwargs):
         mylar.COMICVINE_API = comicvine_api
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -3815,6 +3817,8 @@ class WebInterface(object):
         mylar.COMIC_COVER_LOCAL = comic_cover_local
         mylar.INTERFACE = interface
         mylar.DUPECONSTRAINT = dupeconstraint
+        mylar.DDUMP = ddump
+        mylar.DUPLICATE_DUMP = duplicate_dump
         mylar.ENABLE_EXTRA_SCRIPTS = enable_extra_scripts
         mylar.EXTRA_SCRIPTS = extra_scripts
         mylar.ENABLE_PRE_SCRIPTS = enable_pre_scripts
@@ -4082,43 +4086,51 @@ class WebInterface(object):
         filelocation = filelocation.encode('ASCII')
         filelocation = urllib.unquote_plus(filelocation).decode('utf8')
         issuedetails = helpers.IssueDetails(filelocation)
-        #print str(issuedetails)
-        issueinfo = '<table width="500"><tr><td>'
-        issueinfo += '<img style="float: left; padding-right: 10px" src=' + issuedetails[0]['IssueImage'] + ' height="400" width="263">'
-        issueinfo += '<h1><center><b>' + issuedetails[0]['series'] + '</br>[#' + issuedetails[0]['issue_number'] + ']</b></center></h1>'
-        issueinfo += '<center>"' + issuedetails[0]['title'] + '"</center></br>'
-        issueinfo += '</br><p class="alignleft">' + str(issuedetails[0]['pagecount']) + ' pages</p>'
-        if issuedetails[0]['day'] is None:
-            issueinfo += '<p class="alignright">(' + str(issuedetails[0]['year']) + '-' + str(issuedetails[0]['month']) + ')</p></br>'
+        if issuedetails:
+            #print str(issuedetails)
+            issueinfo = '<table width="500"><tr><td>'
+            issueinfo += '<img style="float: left; padding-right: 10px" src=' + issuedetails[0]['IssueImage'] + ' height="400" width="263">'
+            issueinfo += '<h1><center><b>' + issuedetails[0]['series'] + '</br>[#' + issuedetails[0]['issue_number'] + ']</b></center></h1>'
+            issueinfo += '<center>"' + issuedetails[0]['title'] + '"</center></br>'
+            issueinfo += '</br><p class="alignleft">' + str(issuedetails[0]['pagecount']) + ' pages</p>'
+            if issuedetails[0]['day'] is None:
+                issueinfo += '<p class="alignright">(' + str(issuedetails[0]['year']) + '-' + str(issuedetails[0]['month']) + ')</p></br>'
+            else:
+                issueinfo += '<p class="alignright">(' + str(issuedetails[0]['year']) + '-' + str(issuedetails[0]['month']) + '-' + str(issuedetails[0]['day']) + ')</p></br>'
+            if not issuedetails[0]['writer'] == 'None':
+                issueinfo += 'Writer: ' + issuedetails[0]['writer'] + '</br>'
+            if not issuedetails[0]['penciller'] == 'None':
+                issueinfo += 'Penciller: ' + issuedetails[0]['penciller'] + '</br>'
+            if not issuedetails[0]['inker'] == 'None':
+                issueinfo += 'Inker: ' + issuedetails[0]['inker'] + '</br>'
+            if not issuedetails[0]['colorist'] == 'None':
+                issueinfo += 'Colorist: ' + issuedetails[0]['colorist'] + '</br>'
+            if not issuedetails[0]['letterer'] == 'None':
+                issueinfo += 'Letterer: ' + issuedetails[0]['letterer'] + '</br>'
+            if not issuedetails[0]['editor'] == 'None':
+                issueinfo += 'Editor: ' + issuedetails[0]['editor'] + '</br>'
+            issueinfo += '</td></tr>'
+            #issueinfo += '<img src="interfaces/default/images/rename.png" height="25" width="25"></td></tr>'
+            if len(issuedetails[0]['summary']) > 1000:
+                issuesumm = issuedetails[0]['summary'][:1000] + '...'
+            else:
+                issuesumm = issuedetails[0]['summary']
+            issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
+            issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
+            issueinfo += '</td></tr></table>'
+
         else:
-            issueinfo += '<p class="alignright">(' + str(issuedetails[0]['year']) + '-' + str(issuedetails[0]['month']) + '-' + str(issuedetails[0]['day']) + ')</p></br>'
-        if not issuedetails[0]['writer'] == 'None':
-            issueinfo += 'Writer: ' + issuedetails[0]['writer'] + '</br>'
-        if not issuedetails[0]['penciller'] == 'None':
-            issueinfo += 'Penciller: ' + issuedetails[0]['penciller'] + '</br>'
-        if not issuedetails[0]['inker'] == 'None':
-            issueinfo += 'Inker: ' + issuedetails[0]['inker'] + '</br>'
-        if not issuedetails[0]['colorist'] == 'None':
-            issueinfo += 'Colorist: ' + issuedetails[0]['colorist'] + '</br>'
-        if not issuedetails[0]['letterer'] == 'None':
-            issueinfo += 'Letterer: ' + issuedetails[0]['letterer'] + '</br>'
-        if not issuedetails[0]['editor'] == 'None':
-            issueinfo += 'Editor: ' + issuedetails[0]['editor'] + '</br>'
-        issueinfo += '</td></tr>'
-        #issueinfo += '<img src="interfaces/default/images/rename.png" height="25" width="25"></td></tr>'
-        if len(issuedetails[0]['summary']) > 1000:
-            issuesumm = issuedetails[0]['summary'][:1000] + '...'
-        else:
-            issuesumm = issuedetails[0]['summary']
-        issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
-        issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
-        issueinfo += '</td></tr></table>'
+            ErrorPNG = 'interfaces/default/images/symbol_exclamation.png'
+            issueinfo = '<table width="300"><tr><td>'
+            issueinfo += '<img style="float: left; padding-right: 10px" src=' + ErrorPNG + ' height="128" width="128">'
+            issueinfo += '<h1><center><b>ERROR</b></center></h1></br>'
+            issueinfo += '<center>Unable to retrieve metadata from within cbz file</center></br>'
+            issueinfo += '<center>Maybe you should try and tag the file again?</center></br>'
+            issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
+            issueinfo += '</td></tr></table>'
+
         return issueinfo
-        #import json
-        #json_dump = json.dumps(issuedetails)
-        #json_dump = json_dump.replace("\\","\\\\")
-        #print 'json_dump:' + str(json_dump)
-        #return json_dump
+
     IssueInfo.exposed = True
 
     def manual_metatag(self, dirName, issueid, filename, comicid, comversion):

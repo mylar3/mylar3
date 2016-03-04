@@ -107,7 +107,7 @@ class ComicVineTalker(QObject):
 		else:
 			self.api_key = ComicVineTalker.api_key
 
-                self.cv_headers = {'User-Agent': 'ComicTagger.[ninjas.walk.alone.fork] - UserAgent + CV Rate Limiting / 1.01 - KATANA'}
+                self.cv_headers = {'User-Agent': 'ComicTagger ' + str(ctversion.version) + ' [' + ctversion.fork + ' / ' + ctversion.fork_tag + ']'}
 		self.log_func = None
 
 	def setLogFunc( self , log_func ):
@@ -449,8 +449,10 @@ class ComicVineTalker(QObject):
 		if settings.use_series_start_as_volume:
 			metadata.volume = volume_results['start_year']
 		
-		metadata.notes   = "Tagged with ComicTagger {0} using info from Comic Vine on {1}.  [Issue ID {2}]".format(
+		metadata.notes   = "Tagged with the {1} fork of ComicTagger {0} using info from Comic Vine on {3}.  [Issue ID {4}]".format(
 			ctversion.version,
+                        ctversion.fork,
+                        ctversion.fork_tag,
 			datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
 			issue_results['id']) 
 		#metadata.notes  += issue_results['site_detail_url']  

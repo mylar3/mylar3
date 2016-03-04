@@ -242,7 +242,15 @@ class FailedProcessor(object):
         # Perhaps later improvement might be to break it down by provider so that Mylar will attempt to
         # download same issues on different providers (albeit it shouldn't matter, if it's broke it's broke).
         logger.info('prov  : ' + str(self.prov) + '[' + str(self.id) + ']')
-        chk_fail = myDB.selectone('SELECT * FROM failed WHERE ID=?', [self.id]).fetchone()
+        # if this is from nzbhydra, we need to rejig the id line so that the searchid is removed since it's always unique to the search.
+        if 'indexerguid' in self.id:
+            st = self.id.find('searchid:')
+            end = self.id.find(',',st)
+            self.id = '%' + self.id[:st] + '%' + self.id[end+1:len(self.id)-1] + '%'
+            chk_fail = myDB.selectone('SELECT * FROM failed WHERE ID LIKE ?', [self.id]).fetchone()
+        else:
+            chk_fail = myDB.selectone('SELECT * FROM failed WHERE ID=?', [self.id]).fetchone()
+
         if chk_fail is None:
             logger.info(module + ' Successfully marked this download as Good for downloadable content')
             return 'Good'

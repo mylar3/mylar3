@@ -318,13 +318,9 @@ For more help visit the wiki at: http://code.google.com/p/comictagger/
 			if o  == "--only-set-cv-key":
 				self.only_set_key = True
 			if o  == "--version":
-				print "ComicTagger {0}:  Copyright (c) 2012-2014 Anthony Beville".format(ctversion.version)
+                                print "ComicTagger {0} [{1} / {2}]".format(ctversion.version, ctversion.fork, ctversion.fork_tag)
+                                print "Modified version of ComicTagger (Copyright (c) 2012-2014 Anthony Beville)"
 				print "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)"
-				new_version = VersionChecker().getLatestVersion("", False)
-				if new_version is not None and new_version != ctversion.version:
-					print "----------------------------------------"
-					print "New version available online: {0}".format(new_version)
-					print "----------------------------------------"
 				sys.exit(0)
 			if o in ("-t", "--type"):
 				if a.lower() == "cr":

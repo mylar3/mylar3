@@ -754,8 +754,8 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                                     break
 
                                         else:
-                                            #logger.fdebug('issuedate:' + str(datevalues[0]['issuedate']))
-                                            #logger.fdebug('status:' + str(datevalues[0]['status']))
+                                            logger.fdebug('issuedate:' + str(datevalues[0]['issuedate']))
+                                            logger.fdebug('status:' + str(datevalues[0]['status']))
                                             datestatus = datevalues[0]['status']
                                             validcheck = checkthis(datevalues[0]['issuedate'], datestatus, usedate)
                                             if validcheck == True:

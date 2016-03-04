@@ -181,6 +181,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     #logger.fdebug('publisher: ' + re.sub("'",'', pub).strip())  #publisher sometimes is given within quotes for some reason, strip 'em.
                     vol_find = feedme.entries[i].title.find('vol.')
                     series = feedme.entries[i].title[st_end +1:vol_find].strip()
+                    series = re.sub('&amp;', '&', series).strip()
                     #logger.fdebug('series title: ' + series)
                     iss_st = feedme.entries[i].title.find(' - ', vol_find)
                     vol = re.sub('\.', '', feedme.entries[i].title[vol_find:iss_st]).strip()
@@ -266,9 +267,19 @@ def nzbs(provider=None, forcerss=False):
 
     feedthis = []
 
-    def _parse_feed(site, url):
+    def _parse_feed(site, url, verify):
         logger.fdebug('[RSS] Fetching items from ' + site)
-        feedme = feedparser.parse(url, agent=str(mylar.USER_AGENT))
+        payload = None
+        headers = {'User-Agent':      str(mylar.USER_AGENT)}
+
+        try:
+            r = requests.get(url, params=payload, verify=verify, headers=headers)
+        except Exception, e:
+            logger.warn('Error fetching RSS Feed Data from %s: %s' % (site, e))
+            return
+
+        feedme = feedparser.parse(r.content)
+
         feedthis.append({"site": site,
                          "feed": feedme})
 
@@ -276,8 +287,8 @@ def nzbs(provider=None, forcerss=False):
 
     if mylar.NEWZNAB == 1:
         for newznab_host in mylar.EXTRA_NEWZNABS:
-            logger.fdebug('[RSS] newznab name: ' + str(newznab_host[0]) + ' - enabled: ' + str(newznab_host[4]))
-            if str(newznab_host[4]) == '1':
+            logger.fdebug('[RSS] newznab name: ' + str(newznab_host[0]) + ' - enabled: ' + str(newznab_host[5]))
+            if str(newznab_host[5]) == '1':
                 newznab_hosts.append(newznab_host)
 
     providercount = len(newznab_hosts) + int(mylar.EXPERIMENTAL == 1) + int(mylar.NZBSU == 1) + int(mylar.DOGNZB == 1)
@@ -285,24 +296,24 @@ def nzbs(provider=None, forcerss=False):
 
     if mylar.EXPERIMENTAL == 1:
         max_entries = "250" if forcerss else "50"
-        _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=' + max_entries + '&more=1')
+        _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=' + max_entries + '&more=1', False)
 
     if mylar.NZBSU == 1:
         num_items = "&num=100" if forcerss else ""  # default is 25
-        _parse_feed('nzb.su', 'http://api.nzb.su/rss?t=7030&dl=1&i=' + (mylar.NZBSU_UID or '1') + '&r=' + mylar.NZBSU_APIKEY + num_items)
+        _parse_feed('nzb.su', 'http://api.nzb.su/rss?t=7030&dl=1&i=' + (mylar.NZBSU_UID or '1') + '&r=' + mylar.NZBSU_APIKEY + num_items, bool(mylar.NZBSU_VERIFY))
 
     if mylar.DOGNZB == 1:
         num_items = "&num=100" if forcerss else ""  # default is 25
-        _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items)
+        _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm?r=' + mylar.DOGNZB_APIKEY + '&t=7030' + num_items, bool(mylar.DOGNZB_VERIFY))
 
     for newznab_host in newznab_hosts:
         site = newznab_host[0].rstrip()
-        (newznabuid, _, newznabcat) = (newznab_host[3] or '').partition('#')
+        (newznabuid, _, newznabcat) = (newznab_host[4] or '').partition('#')
         newznabuid = newznabuid or '1'
         newznabcat = newznabcat or '7030'
 
         # 11-21-2014: added &num=100 to return 100 results (or maximum) - unsure of cross-reliablity
-        _parse_feed(site, newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&r=' + newznab_host[2].rstrip())
+        _parse_feed(site, newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&r=' + newznab_host[3].rstrip(), bool(newznab_host[2]))
 
     feeddata = []
 
@@ -478,19 +489,23 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
     torinfo = {}
 
     for tor in tresults:
-        torsplit = tor['Title'].split('/')
+        #&amp; have been brought into the title field incorretly occassionally - patched now, but to include those entries already in the 
+        #cache db that have the incorrect entry, we'll adjust.
+        torTITLE = re.sub('&amp;', '&', tor['Title']).strip()
+
+        torsplit = torTITLE.split('/')
         if mylar.PREFERRED_QUALITY == 1:
-            if 'cbr' in tor['Title']:
+            if 'cbr' in torTITLE:
                 logger.fdebug('Quality restriction enforced [ cbr only ]. Accepting result.')
             else:
                 logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
         elif mylar.PREFERRED_QUALITY == 2:
-            if 'cbz' in tor['Title']:
+            if 'cbz' in torTITLE:
                 logger.fdebug('Quality restriction enforced [ cbz only ]. Accepting result.')
             else:
                 logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
 
-        logger.fdebug('tor-Title: ' + tor['Title'])
+        logger.fdebug('tor-Title: ' + torTITLE)
         logger.fdebug('there are ' + str(len(torsplit)) + ' sections in this title')
         i=0
         if nzbprov is not None:
@@ -542,7 +557,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
         logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())
 
         if formatrem_seriesname.lower() in formatrem_torsplit.lower() or any(x.lower() in formatrem_torsplit.lower() for x in AS_Alt):
-            logger.fdebug('matched to : ' + tor['Title'])
+            logger.fdebug('matched to : ' + torTITLE)
             logger.fdebug('matched on series title: ' + seriesname)
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
             titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
@@ -556,15 +571,15 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
             extra = ''
 
             #the title on 32P has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
-            ctitle = tor['Title'].find('cbr')
+            ctitle = torTITLE.find('cbr')
             if ctitle == 0:
-                ctitle = tor['Title'].find('cbz')
+                ctitle = torTITLE.find('cbz')
                 if ctitle == 0:
-                    ctitle = tor['Title'].find('none')
+                    ctitle = torTITLE.find('none')
                     if ctitle == 0:
                         logger.fdebug('cannot determine title properly - ignoring for now.')
                         continue
-            cttitle = tor['Title'][:ctitle]
+            cttitle = torTITLE[:ctitle]
 
             if tor['Site'] == '32P':
                 st_pub = rebuiltline.find('(')

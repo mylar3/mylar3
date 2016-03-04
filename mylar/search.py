@@ -223,6 +223,11 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 newznab_host = None
                 searchprov = prov_order[prov_count].lower()
 
+            if searchprov == 'dognzb' and mylar.DOGNZB == 0:
+                #since dognzb could hit the 50 daily api limit during the middle of a search run, check here on each pass to make
+                #sure it's not disabled (it gets auto-disabled on maxing out the API hits)
+                prov_count+=1
+                continue
             if searchmode == 'rss':
                 findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName)
                 if findit == 'yes':
@@ -451,6 +456,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     while (findloop < findcount):
         #logger.fdebug('findloop: ' + str(findloop) + ' / findcount: ' + str(findcount))
         comsrc = comsearch
+        if nzbprov == 'dognzb' and not mylar.DOGNZB:
+            foundc = "no"
+            done = True
+            break
         while (cmloopit >= 1):
             #if issue_except is None: issue_exc = ''
             #else: issue_exc = issue_except
@@ -568,14 +577,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         headers = {'User-Agent':   str(mylar.USER_AGENT)}
                         payload = None
 
-                        if findurl.startswith('https'):
+                        if findurl.startswith('https:') and verify == False:
                             try:
                                 from lib.requests.packages.urllib3 import disable_warnings
                                 disable_warnings()
                             except:
                                 logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
 
-                        else:
+                        elif findurl.startswith('http:') and verify == True:
                             verify = False
 
                         #logger.fdebug('[SSL: ' + str(verify) + '] Search URL: ' + findurl)
@@ -591,10 +600,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 break
                             data = False
 
-                        logger.info(r.content)
+                        logger.info('status code: ' + str(r.status_code))
 
                         if str(r.status_code) != '200':
-                            logger.warn('Unable to download torrent from ' + nzbprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                            logger.warn('Unable to retrieve search results from ' + tmpprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                            data = False
                         else:
                             data = r.content
 
@@ -602,11 +612,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             bb = feedparser.parse(data)
                         else:
                             bb = "no results"
+
                         #logger.info('Search results:' + str(bb))
                         try:
                             if bb['feed']['error']:
                                 logger.error('[ERROR CODE: ' + str(bb['feed']['error']['code']) + '] ' + str(bb['feed']['error']['description']))
-                                bb = "no results"
+                                if bb['feed']['error']['code'] == '910':
+                                    logger.warn('DAILY API limit reached. Disabling provider usage until 12:01am')
+                                    mylar.DOGNZB = 0
+                                    foundc = False
+                                    done = True
+                                break
                         except:
                             #logger.info('no errors on data retrieval...proceeding')
                             pass
@@ -829,18 +845,28 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                        ComVersChk = 0
 
                     ctchk = cleantitle.split()
+                    ctchk_indexes = []
                     volfound = False
-                    vol_label = None
+                    vol_nono = []
+                    new_cleantitle = []
+
                     fndcomicversion = None
                     for ct in ctchk:
                         if any([ct.lower().startswith('v') and ct[1:].isdigit(), ct.lower()[:3] == 'vol', volfound == True]):
                             if volfound == True:
-                                logger.fdebug('Split Volume label detected - ie. Vol 4. Attempting to adust.')
+                                logger.fdebug('Split Volume label detected [' + ct + '] - ie. Vol 4. Attempting to adust.')
                                 if ct.isdigit():
-                                    vol_label = vol_label + ' ' + str(ct)
+                                    vol_nono.append(ctchk.index(ct))
+                                    #recreate the cleantitle, with the volume label completely removed (but stored for comparison later)
                                     ct = 'v' + str(ct)
+                                    ctchk_indexes.extend(range(0, len(ctchk)))
+                                    logger.info(ctchk_indexes)
+                                    for i in ctchk_indexes:
+                                        if i not in vol_nono:
+                                            new_cleantitle.append(ctchk[i])
+                                    cleantitle = ' '.join(new_cleantitle)
+                                    logger.fdebug('Newly finished reformed cleantitle (with NO volume label): ' + cleantitle)
                                     volfound == False
-                                    cleantitle = re.sub(vol_label, ct, cleantitle).strip()
                             tmpsplit = ct
                             if tmpsplit.lower().startswith('vol'):
                                 logger.fdebug('volume detected - stripping and re-analzying for volume label.')
@@ -850,7 +876,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 #if vol label set as 'Vol 4' it will obliterate the Vol, but pass over the '4' - set
                                 #volfound to True so that it can loop back around.
                                 if not tmpsplit.isdigit():
-                                    vol_label = ct  #store the wording of how the Vol is defined so we can skip it later on.
+                                    #vol_label = ct  #store the wording of how the Vol is defined so we can skip it later on.
+                                    vol_nono.append(ctchk.index(ct))
                                     volfound = True
                                     continue
 
@@ -1251,26 +1278,26 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         # instead of the Series they belong to (V2012 vs V2013)
                         if annualize == "true" and int(ComicYear) == int(F_ComicVersion):
                             logger.fdebug("We matched on versions for annuals " + str(fndcomicversion))
-                            scount+=1
-                            cvers = "true"
+                            #scount+=1
+                            #cvers = "true"
 
                         elif int(F_ComicVersion) == int(D_ComicVersion) or int(F_ComicVersion) == int(S_ComicVersion):
                             logger.fdebug("We matched on versions..." + str(fndcomicversion))
-                            scount+=1
-                            cvers = "true"
+                            #scount+=1
+                            #cvers = "true"
 
                         else:
                             logger.fdebug("Versions wrong. Ignoring possible match.")
-                            scount = 0
-                            cvers = "false"
+                            #scount = 0
+                            #cvers = "false"
 
-                        if cvers == "true":
+                        #if cvers == "true":
                             #since we matched on versions, let's remove it entirely to improve matching.
-                            logger.fdebug('Removing versioning [' + fndcomicversion + '] from nzb filename to improve matching algorithims.')
-                            cissb4vers = re.sub(fndcomicversion, "", comic_iss_b4).strip()
-                            logger.fdebug('New b4split : ' + str(cissb4vers))
-                            splitit = cissb4vers.split(None)
-                            splitst -=1
+                            #logger.fdebug('Removing versioning [' + fndcomicversion + '] from nzb filename to improve matching algorithims.')
+                            #cissb4vers = re.sub(fndcomicversion, "", comic_iss_b4).strip()
+                            #logger.fdebug('New b4split : ' + str(cissb4vers))
+                            #splitit = cissb4vers.split(None)
+                            #splitst -=1
 
                     #do an initial check
                     initialchk = 'ok'
@@ -1800,8 +1827,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 else:
                     host_newznab_fix = host_newznab
 
-                if 'warp?x=' in link:
-                    logger.fdebug('NZBMegaSearch url detected. Adjusting...')
+                #account for nzbmegasearch & nzbhydra
+                if 'warp?x=' in link or 'indexerguid' in link:
+                    logger.fdebug('NZBMegaSearch / NZBHydra url detected. Adjusting...')
                     nzbmega = True
                 else:
                     apikey = newznab[3].rstrip()
@@ -2395,7 +2423,7 @@ def generate_id(nzbprov, link):
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
-    elif nzbprov == 'newznab':
+    elif nzbprov == 'newznab':      
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
         if 'warp' in urlparse.urlparse(link)[2] and 'x=' in tmpid:
@@ -2406,6 +2434,8 @@ def generate_id(nzbprov, link):
             # for the geek in all of us...
             st = tmpid.find('&id')
             end = tmpid.find('&', st +1)
+            if end == -1: 
+                end = len(tmpid)
             nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
     elif nzbprov == 'Torznab':
         if mylar.TORZNAB_HOST.endswith('/'):

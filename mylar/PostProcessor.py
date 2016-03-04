@@ -163,6 +163,29 @@ class PostProcessor(object):
             self._log(u"Unable to run extra_script: " + str(script_cmd))
 
 
+    def duplicate_process(self, dupeinfo):
+            #path to move 'should' be the entire path to the given file
+            path_to_move = dupeinfo[0]['to_dupe']
+            file_to_move = os.path.split(path_to_move)[1]
+
+            if dupeinfo[0]['action'] == 'dupe_src':
+                logger.info('[DUPLICATE-CLEANUP] New File will be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
+            else:
+                logger.info('[DUPLICATE-CLEANUP] New File will not be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
+
+            #check to make sure duplicate_dump directory exists:
+            checkdirectory = filechecker.validateAndCreateDirectory(mylar.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
+
+            #this gets tricky depending on if it's the new filename or the existing filename, and whether or not 'copy' or 'move' has been selected.
+            try:
+                shutil.move(path_to_move, os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+            except (OSError, IOError):
+                logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                return False
+
+            logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+            return True
+
     def Process(self):
             module = self.module
             self._log("nzb name: " + self.nzb_name)
@@ -930,16 +953,22 @@ class PostProcessor(object):
                             break
 
                     dupthis = helpers.duplicate_filecheck(ml['ComicLocation'], ComicID=comicid, IssueID=issueid)
-                    if dupthis == "write":
+                    if dupthis[0]['action'] == 'dupe_src' or dupthis[0]['action'] == 'dupe_file':
+                        #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
+                        #'dupe_file' - do not write new file as existing file is better quality
+                        #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
+                        if mylar.DUPLICATE_DUMP:
+                            dupchkit = self.duplicate_process(dupthis)
+                            if dupchkit == False:
+                                logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
+                                continue
+
+
+                    if dupthis[0]['action'] == "write" or dupthis[0]['action'] == 'dupe_src':
                         stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
-                    else:
-                        pass
-                        #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
-                        #if mylar.DUPLICATE_DUMP:
-                        #    if dupthis == 'dupe_src':
-                        #                                        
+
                 logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
                 return
             else:
@@ -947,7 +976,22 @@ class PostProcessor(object):
                 issuenumOG = issuenzb['Issue_Number']
                 #the self.nzb_folder should contain only the existing filename
                 dupthis = helpers.duplicate_filecheck(self.nzb_folder, ComicID=comicid, IssueID=issueid)
-                if dupthis == "write":
+                if dupthis[0]['action'] == 'dupe_src' or dupthis[0]['action'] == 'dupe_file':
+                    #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
+                    #'dupe_file' - do not write new file as existing file is better quality
+                    #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
+                    if mylar.DUPLICATE_DUMP:
+                        dupchkit = self.duplicate_process(dupthis)
+                        if dupchkit == False:
+                            logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
+                            self.valreturn.append({"self.log": self.log,
+                                                   "mode": 'stop',
+                                                   "issueid": issueid,
+                                                   "comicid": comicid})
+
+                            return self.queue.put(self.valreturn)
+ 
+                if dupthis[0]['action'] == "write" or dupthis[0]['action'] == 'dupe_src':
                     return self.Process_next(comicid, issueid, issuenumOG)
                 else:
                     self.valreturn.append({"self.log": self.log,
@@ -956,7 +1000,6 @@ class PostProcessor(object):
                                            "comicid": comicid})
 
                     return self.queue.put(self.valreturn)
-
 
     def Process_next(self, comicid, issueid, issuenumOG, ml=None, stat=None):
             if stat is None: stat = ' [1/1]'

@@ -47,9 +47,6 @@ if platform.python_version() == '2.7.6':
 def pullsearch(comicapi, comicquery, offset, explicit, type):
     u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
     u_comicquery = u_comicquery.replace(" ", "%20")
-    if '-' in u_comicquery:
-        #cause titles like A-Force will return 16,000+ results otherwise
-        u_comicquery = '%22' + u_comicquery + '%22'
 
     if explicit == 'all' or explicit == 'loose':
         PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&page=' + str(offset)
@@ -78,17 +75,7 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
-#    try:
-#        file = urllib2.urlopen(PULLURL)
-#    except urllib2.HTTPError, err:
-#        logger.error('err : ' + str(err))
-#        logger.error("There was a major problem retrieving data from ComicVine - on their end. You'll have to try again later most likely.")
-#        return
-#    #convert to string:
-#    data = file.read()
-#    #close file because we dont need it anymore:
-#    file.close()
-#    #parse the xml you downloaded
+
     dom = parseString(r.content) #(data)
     return dom
 
@@ -100,8 +87,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
     comiclist = []
     arcinfolist = []
     
-    chars = set('!?*')
-    if any((c in chars) for c in name):
+    chars = set('!?*&-')
+    if any((c in chars) for c in name) or 'annual' in name:
         name = '"' +name +'"'
 
     #print ("limityear: " + str(limityear))
@@ -116,10 +103,11 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         explicit = 'all'
 
     #OR
-    if ' and ' in comicquery.lower() or ' & ' in comicquery:
+    if ' and ' in comicquery.lower():
         logger.fdebug('Enforcing exact naming match due to operator in title (and)')
         explicit = 'all'
-    elif explicit == 'loose':
+
+    if explicit == 'loose':
         logger.fdebug('Changing to loose mode - this will match ANY of the search words')
         comicquery = name.replace(" ", " OR ")
     elif explicit == 'explicit':
@@ -127,7 +115,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         comicquery=name.replace(" ", " AND ")
     else:
         logger.fdebug('Default search mode - this will match on ALL search words')
-        comicquery = name.replace(" ", " AND ")
+        #comicquery = name.replace(" ", " AND ")
         explicit = 'all'
 
 

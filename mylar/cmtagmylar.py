@@ -71,14 +71,6 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
         logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
 
-    #check for dependencies here - configparser
-    try:
-        import configparser
-    except ImportError:
-        logger.warn(module + ' configparser not found on system. Please install manually in order to write metadata')
-        logger.warn(module + ' continuing with PostProcessing, but I am not using metadata.')
-        return "fail"
-
 
     if not os.path.exists(unrar_cmd):
         logger.fdebug(module + ' WARNING:  cannot find the unrar command.')
@@ -144,10 +136,10 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         ctversion = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         #logger.warn(module + "[WARNING] "command '{}' return with error (code {}): {}".format(e.cmd, e.returncode, e.output))
-        logger.warn(module + '[WARNING] Make sure that you have configparser installed.')
+        logger.warn(module + '[WARNING] Make sure that you are using the comictagger included with Mylar.')
         return "fail"
 
-    ctend = ctversion.find(':')
+    ctend = ctversion.find('\]')
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
     ctcheck = re.sub('\.', '', ctcheck).strip()
     if int(ctcheck) >= int('1115'):  # (v1.1.15)
@@ -159,7 +151,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             use_cvapi = "True"
             tagoptions.extend(["--cv-api-key", mylar.COMICVINE_API])
     else:
-        logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
+        logger.fdebug(module + ' ' + ctversion[:ctend+1] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
         use_cvapi = "False"
 
     i = 1
@@ -231,7 +223,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = p.communicate()
-
+            logger.info(out)
+            logger.info(err)
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug(module + '[COMIC-TAGGER] : ' +str(out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)

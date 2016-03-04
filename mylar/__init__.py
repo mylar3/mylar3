@@ -165,6 +165,8 @@ CHECK_FOLDER = None
 ENABLE_CHECK_FOLDER = False
 INTERFACE = None
 DUPECONSTRAINT = None
+DDUMP = 0
+DUPLICATE_DUMP = None
 PREFERRED_QUALITY = 0
 CORRECT_METADATA = False
 MOVE_FILES = False
@@ -415,7 +417,7 @@ def initialize():
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
                 queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
-                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
+                DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, DDUMP, DUPLICATE_DUMP, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 DOWNLOAD_SCAN_INTERVAL, FOLDER_SCAN_LOG_VERBOSE, IMPORTLOCK, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, NZBSU_VERIFY, DOGNZB, DOGNZB_APIKEY, DOGNZB_VERIFY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_VERIFY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
@@ -515,6 +517,8 @@ def initialize():
         ENABLE_CHECK_FOLDER = bool(check_setting_int(CFG, 'General', 'enable_check_folder', 0))
         INTERFACE = check_setting_str(CFG, 'General', 'interface', 'default')
         DUPECONSTRAINT = check_setting_str(CFG, 'General', 'dupeconstraint', 'filesize')
+        DDUMP = bool(check_setting_int(CFG, 'General', 'ddump', 0))
+        DUPLICATE_DUMP = check_setting_str(CFG, 'General', 'duplicate_dump', '')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
         COMIC_COVER_LOCAL = bool(check_setting_int(CFG, 'General', 'comic_cover_local', 0))
@@ -1256,6 +1260,8 @@ def config_write():
     new_config['General']['check_folder'] = CHECK_FOLDER
     new_config['General']['interface'] = INTERFACE
     new_config['General']['dupeconstraint'] = DUPECONSTRAINT
+    new_config['General']['ddump'] = DDUMP
+    new_config['General']['duplicate_dump'] = DUPLICATE_DUMP
     new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
     new_config['General']['autowant_upcoming'] = int(AUTOWANT_UPCOMING)
     new_config['General']['preferred_quality'] = int(PREFERRED_QUALITY)
@@ -1936,7 +1942,6 @@ def dbcheck():
 
     logger.info('Correcting Null entries that make the main page break on startup.')
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
-
 
     conn.commit()
     c.close()
