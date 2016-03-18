@@ -176,7 +176,7 @@ def replace_all(text, dic):
 def cleanName(string):
 
     pass1 = latinToAscii(string).lower()
-    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', '', pass1).encode('utf-8')
+    out_string = re.sub('[\/\@\#\$\%\^\*\+\"\[\]\{\}\<\>\=\_]', ' ', pass1).encode('utf-8')
 
     return out_string
 
@@ -784,11 +784,15 @@ def updateComicLocation():
                           '$Annual':        'Annual'
                           }
 
+                #set the paths here with the seperator removed allowing for cross-platform altering.
+                ccdir = re.sub(r'[\\|/]', '*', mylar.NEWCOM_DIR)
+                ddir = re.sub(r'[\\|/]', '*', mylar.DESTINATION_DIR)
+                dlc = re.sub(r'[\\|/]', '*', dl['ComicLocation'])
 
                 if mylar.FFTONEWCOM_DIR:
                     #if this is enabled (1) it will apply the Folder_Format to all the new dirs
                     if mylar.FOLDER_FORMAT == '':
-                        comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation']).strip()
+                        comlocation = re.sub(ddir, ccdir, dlc).strip()
                     else:
                         first = replace_all(folderformat, values)
                         if mylar.REPLACE_SPACES:
@@ -800,9 +804,12 @@ def updateComicLocation():
                     #DESTINATION_DIR = /mnt/mediavg/Comics
                     #NEWCOM_DIR = /mnt/mediavg/Comics/Comics-1
                     #dl['ComicLocation'] = /mnt/mediavg/Comics/Batman-(2011)
-                    comlocation = re.sub(mylar.DESTINATION_DIR, mylar.NEWCOM_DIR, dl['ComicLocation']).strip()
+                    comlocation = re.sub(ddir, ccdir, dlc).strip()
 
-                comloc.append({"comlocation":  comlocation,
+                #regenerate the new path location so that it's os.dependent now.
+                com_done = re.sub('\*', os.sep, comlocation).strip()
+
+                comloc.append({"comlocation":  com_done,
                                "origlocation": dl['ComicLocation'],
                                "comicid":      dl['ComicID']})
 
@@ -1797,6 +1804,65 @@ def parse_32pfeed(rssfeedline):
                     "passkey": mylar.PASSKEY_32P}
 
     return KEYS_32P
+
+def humanize_time(self, amount, units = 'seconds'):
+
+    def process_time(amount, units):
+
+        INTERVALS = [   1, 60,
+                        60*60,
+                        60*60*24,
+                        60*60*24*7,
+                        60*60*24*7*4,
+                        60*60*24*7*4*12,
+                        60*60*24*7*4*12*100,
+                        60*60*24*7*4*12*100*10]
+        NAMES = [('second', 'seconds'),
+                 ('minute', 'minutes'),
+                 ('hour', 'hours'),
+                 ('day', 'days'),
+                 ('week', 'weeks'),
+                 ('month', 'months'),
+                 ('year', 'years'),
+                 ('century', 'centuries'),
+                 ('millennium', 'millennia')]
+
+        result = []
+
+        unit = map(lambda a: a[1], NAMES).index(units)
+        # Convert to seconds
+        amount = amount * INTERVALS[unit]
+
+        for i in range(len(NAMES)-1, -1, -1):
+            a = amount // INTERVALS[i]
+            if a > 0:
+                result.append( (a, NAMES[i][1 % a]) )
+                amount -= a * INTERVALS[i]
+
+        return result
+
+    rd = process_time(int(amount), units)
+    cont = 0
+    for u in rd:
+        if u[0] > 0:
+            cont += 1
+
+    buf = ''
+    i = 0
+    for u in rd:
+        if u[0] > 0:
+            buf += "%d %s" % (u[0], u[1])
+            cont -= 1
+
+        if i < (len(rd)-1):
+            if cont > 1:
+                buf += ", "
+            else:
+                buf += " and "
+
+        i += 1
+
+    return buf
 
 #def file_ops(path,dst):
 #    # path = source path + filename
