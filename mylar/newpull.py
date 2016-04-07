@@ -24,7 +24,7 @@ def newpull():
             r = requests.get(pagelinks, verify=False)
 
         except Exception, e:
-            logger.warn('Error fetching data: %s' % (tmpprov, e))
+            logger.warn('Error fetching data: %s' % e)
 
         soup = BeautifulSoup(r.content)
         getthedate = soup.findAll("div", {"class": "Headline"})[0]

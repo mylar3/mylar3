@@ -182,6 +182,11 @@ img.editArt {
   max-height: 300px;
   position: relative;
 }
+.className {
+ width: 500px;
+ height: 400px;
+ overflow: scroll;
+}
 .title {
   margin-bottom: 20px;
   margin-top: 10px;
@@ -333,6 +338,9 @@ form fieldset small.heading {
   font-style: italic;
   margin-bottom: 10px;
   margin-top: -15px;
+}
+form .fieldset-auto-width {
+  display: inline-block;
 }
 form .row {
   font-family: Helvetica, Arial;
@@ -861,7 +869,7 @@ div#searchbar .mini-icon {
 }
 #paddingheader h1 {
   line-height: 33px;
-  width: 450px;
+/* width: 450px; */
 }
 #paddingheader h1 img {
   float: left;
@@ -1227,10 +1235,14 @@ div#artistheader h2 a {
   min-width: 275px;
   text-align: left;
 }
-#series_table th#year,
+#series_table th#year {
+  max-width: 25px;
+  text-align: left;
+}
 #series_table th#have_percent {
   max-width: 25px;
   text-align: left;
+  display: none;
 }
 #series_table th#active {
   max-width: 40px;
@@ -1257,10 +1269,15 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #series_table td#year,
+  max-width: 25px;
+  text-align: left;
+  vertical-align: middle;
+}
 #series_table td#have_percent {
   max-width: 25px;
   text-align: left;
   vertical-align: middle;
+  display: none;
 }
 #series_table td#active {
   max-width: 40px;
@@ -1399,6 +1416,10 @@ div#artistheader h2 a {
   min-width: 75px;
   text-align: center;
 }
+#impresults_table th#issues {
+  min-width: 25px;
+  text-align: center;
+}
 #impresults_table th#status {
   min-width: 110px;
   text-align: center;
@@ -1430,6 +1451,11 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
+#impresults_table td#issues {
+  min-width: 25px;
+  text-align: left;
+  vertical-align: middle;
+}
 #impresults_table td#status {
   min-width: 110px;
   text-align: left;
@@ -1445,7 +1471,6 @@ div#artistheader h2 a {
   vertical-align: middle;
   text-align: left;
 }
-
 #searchmanage_table th#comicname {
   min-width: 325px;
   text-align: left;

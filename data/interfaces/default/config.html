@@ -319,11 +319,11 @@
                                     </div>
                                 </div>
 
-<!--
-                                <div class="row">
-                                     <a href="#" style="float:right" type="button" onclick="doAjaxCall('addAction();SABtest',$(this))" data-success="Sucessfully tested SABnzbd connection" data-error="Error testing SABnzbd connection"><span class="ui-icon ui-icon-extlink"></span>Test SABnzbd</a>
+                                <div align="center" class="row">
+                                     <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
+                                     <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
                                 </div>
--->
+
                        </fieldset>
                        <fieldset id="nzbget_options">
                                 <div class="row">
@@ -542,6 +542,10 @@
                                                     <input type="password" name="password_32p" value="${config['password_32p']}" size="36">
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
+                                                <div align="center" class="row">
+                                                    <input type="button" value="Test Connection" id="test_32p" style="float:center" /></br>
+                                                    <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
+                                                </div>
                                              </fieldset>
                                          </div>
                                          <div class="row checkbox left clearfix">
@@ -691,6 +695,7 @@
                         </fieldset>
                         <fieldset>
                              <legend>Duplicate Handling</legend>
+                             <small>( if filetypes are identical, will retain larger filesize )</small>
                              <div class="row">
                                  <label>Retain based on</label>
                                  <select name="dupeconstraint">
@@ -1311,6 +1316,26 @@
                                 return;
                             }
                             $('#api_key').val(data);
+                    });
+                });
+                $("#test_32p").click(function(){
+                    $.get('test_32p',
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#status32p').val(data);
+                    });
+                });
+                $("#test_sab").click(function(){
+                    $.get('SABtest',
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#sabstatus').val(data);
                     });
                 });
                 if ($("#enable_https").is(":checked"))

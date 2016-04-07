@@ -55,6 +55,15 @@ PIDFILE= None
 CREATEPID = False
 SAFESTART = False
 AUTO_UPDATE = False
+NOWEEKLY = False
+
+IMPORT_STATUS = None
+IMPORT_FILES = 0
+IMPORT_TOTALFILES = 0
+IMPORT_CID_COUNT = 0
+IMPORT_PARSED_COUNT = 0
+IMPORT_FAILURE_COUNT = 0
+CHECKENABLED = False
 
 SCHED = Scheduler()
 
@@ -136,6 +145,7 @@ COMICVINE_API = None
 DEFAULT_CVAPI = '583939a3df0a25fc4e8b7a29934a13078002dc27'
 CVAPI_RATE = 2
 CV_HEADERS = None
+BLACKLISTED_PUBLISHERS = None
 
 CHECK_GITHUB = False
 CHECK_GITHUB_ON_STARTUP = False
@@ -365,6 +375,13 @@ FEEDINFO_32P = None
 VERIFY_32P = 1
 SNATCHEDTORRENT_NOTIFY = 0
 
+RTORRENT_HOST = None
+RTORRENT_USERNAME = None
+RTORRENT_PASSWORD = None
+RTORRENT_STARTONLOAD = 0
+RTORRENT_LABEL = None
+RTORRENT_DIRECTORY = None
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -414,15 +431,16 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
-                queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, AUTO_UPDATE, \
+        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, BLACKLISTED_PUBLISHERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
+                queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, NOWEEKLY, AUTO_UPDATE, \
+                IMPORT_STATUS, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, DDUMP, DUPLICATE_DUMP, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
                 DOWNLOAD_SCAN_INTERVAL, FOLDER_SCAN_LOG_VERBOSE, IMPORTLOCK, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, NZBSU_VERIFY, DOGNZB, DOGNZB_APIKEY, DOGNZB_VERIFY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_VERIFY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
-                EXPERIMENTAL, ALTEXPERIMENTAL, \
+                EXPERIMENTAL, ALTEXPERIMENTAL, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
@@ -626,6 +644,12 @@ def initialize():
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
 
+        flattened_blacklisted_pub = check_setting_str(CFG, 'General', 'blacklisted_publishers', [], log=False)
+        if len(flattened_blacklisted_pub) == 0:
+            BLACKLISTED_PUBLISHERS = None
+        else:
+            BLACKLISTED_PUBLISHERS = list(itertools.izip(*[itertools.islice(flattened_blacklisted_pub, i, None, 1) for i in range(1)]))
+
         ENABLE_RSS = bool(check_setting_int(CFG, 'General', 'enable_rss', 1))
         RSS_CHECKINTERVAL = check_setting_str(CFG, 'General', 'rss_checkinterval', '20')
         RSS_LASTRUN = check_setting_str(CFG, 'General', 'rss_lastrun', '')
@@ -675,6 +699,13 @@ def initialize():
         PASSWORD_32P = check_setting_str(CFG, 'Torrents', 'password_32p', '')
         VERIFY_32P = bool(check_setting_int(CFG, 'Torrents', 'verify_32p', 1))
         SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
+        
+        RTORRENT_HOST = check_setting_str(CFG, 'Torrents', 'rtorrent_host', '')
+        RTORRENT_USERNAME = check_setting_str(CFG, 'Torrents', 'rtorrent_username', '')
+        RTORRENT_PASSWORD = check_setting_str(CFG, 'Torrents', 'rtorrent_password', '')
+        RTORRENT_STARTONLOAD = bool(check_setting_int(CFG, 'Torrents', 'rtorrent_startonload', 0))
+        RTORRENT_LABEL = check_setting_str(CFG, 'Torrents', 'rtorrent_label', '')
+        RTORRENT_DIRECTORY = check_setting_str(CFG, 'Torrents', 'rtorrent_directory', '')
 
         #this needs to have it's own category - for now General will do.
         NZB_DOWNLOADER = check_setting_int(CFG, 'General', 'nzb_downloader', 0)
@@ -1251,6 +1282,16 @@ def config_write():
     new_config['General']['nzb_startup_search'] = int(NZB_STARTUP_SEARCH)
     new_config['General']['add_comics'] = int(ADD_COMICS)
     new_config['General']['comic_dir'] = COMIC_DIR
+    if BLACKLISTED_PUBLISHERS is None:
+        flattened_blacklisted_pub = None
+    else:
+        flattened_blacklisted_pub = []
+        for bpub in BLACKLISTED_PUBLISHERS:
+            #for key, value in pro.items():
+            for item in bpub:
+                flattened_blacklisted_pub.append(item)
+                #flattened_providers.append(str(value))
+    new_config['General']['blacklisted_publishers'] = flattened_blacklisted_pub
     new_config['General']['imp_move'] = int(IMP_MOVE)
     new_config['General']['imp_rename'] = int(IMP_RENAME)
     new_config['General']['imp_metadata'] = int(IMP_METADATA)
@@ -1366,6 +1407,13 @@ def config_write():
     new_config['Torrents']['password_32p'] = PASSWORD_32P
     new_config['Torrents']['verify_32p'] = int(VERIFY_32P)
     new_config['Torrents']['snatchedtorrent_notify'] = int(SNATCHEDTORRENT_NOTIFY)
+    new_config['Torrents']['rtorrent_host'] = RTORRENT_HOST
+    new_config['Torrents']['rtorrent_username'] = RTORRENT_USERNAME
+    new_config['Torrents']['rtorrent_password'] = RTORRENT_PASSWORD
+    new_config['Torrents']['rtorrent_startonload'] = int(RTORRENT_STARTONLOAD)
+    new_config['Torrents']['rtorrent_label'] = RTORRENT_LABEL
+    new_config['Torrents']['rtorrent_directory'] = RTORRENT_DIRECTORY
+
     new_config['SABnzbd'] = {}
     #new_config['SABnzbd']['use_sabnzbd'] = int(USE_SABNZBD)
     new_config['SABnzbd']['sab_host'] = SAB_HOST
@@ -1492,7 +1540,8 @@ def start():
             #threading.Thread(target=weeklypull.pullit).start()
             #now the scheduler (check every 24 hours)
             #SCHED.add_interval_job(weeklypull.pullit, hours=24)
-            WeeklyScheduler.thread.start()
+            if not NOWEEKLY:
+                WeeklyScheduler.thread.start()
 
             #let's do a run at the Wanted issues here (on startup) if enabled.
             #if NZB_STARTUP_SEARCH:
@@ -1525,14 +1574,14 @@ def dbcheck():
     c_error = 'sqlite3.OperationalError'
     c=conn.cursor()
 
-    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, NewPublish TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, NewPublish TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT, DynamicComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
@@ -1630,6 +1679,13 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN NewPublish TEXT')
 
+    try:
+        c.execute('SELECT DynamicComicName from comics')
+        dynamic_upgrade = False
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN DynamicComicName TEXT')
+        dynamic_upgrade = True
+
     # -- Issues Table --
 
     try:
@@ -1709,6 +1765,17 @@ def dbcheck():
         c.execute('SELECT Volume from importresults')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE importresults ADD COLUMN Volume TEXT')
+
+    try:
+        c.execute('SELECT IssueNumber from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN IssueNumber TEXT')
+
+    try:
+        c.execute('SELECT DynamicName from importresults')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE importresults ADD COLUMN DynamicName TEXT')
+
     ## -- Readlist Table --
 
     try:
@@ -1946,6 +2013,10 @@ def dbcheck():
     conn.commit()
     c.close()
 
+    if dynamic_upgrade:
+        logger.info('Updating db to include some important changes.')
+        helpers.upgrade_dynamic()
+
 def csv_load():
     # for redudant module calls..include this.
     conn = sqlite3.connect(DB_FILE)
@@ -2002,7 +2073,7 @@ def csv_load():
     c.close()
 
 def halt():
-    global __INITIALIZED__, dbUpdateScheduler, seachScheduler, RSSScheduler, WeeklyScheduler, \
+    global __INITIALIZED__, dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, \
         VersionScheduler, FolderMonitorScheduler, started
 
     with INIT_LOCK:

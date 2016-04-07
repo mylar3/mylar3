@@ -31,23 +31,27 @@
                            <fieldset>
                               <div class="row checkbox">
                                    <input type="checkbox" name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Auto-add new series</label>
-                                        </div>
-                                        <div class="row checkbox">
-                                              <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files</label>
-                                        </div>
-                                        %if mylar.RENAME_FILES:
-                                            <div class="row checkbox">
-                                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
-                                                   <small>(After importing, Rename the files to configuration settings)</small>
-                                                   <label>${mylar.FOLDER_FORMAT}/${mylar.FILE_FORMAT}</label>
-                                            </div>
-                                        %endif
-                                        <div class="row checkbox">
-                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use Existing Metadata</label>
-                                               <small>(Use existing Metadata to better locate series for import)</small>
-                                        </div>
-
-                                </fieldset>
+                              </div>
+                              <div class="row checkbox">
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files</label>
+                              </div>
+                              %if mylar.RENAME_FILES:
+                                   <div class="row checkbox">
+                                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
+                                         <small>(After importing, Rename the files to configuration settings)</small>
+                                         <label>${mylar.FOLDER_FORMAT}/${mylar.FILE_FORMAT}</label>
+                                   </div>
+                              %endif
+                              <div class="row checkbox">
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use Existing Metadata</label>
+                                   <small>(Use existing Metadata to better locate series for import)</small>
+                              </div>
+                              %if mylar.IMPORTLOCK:
+                                   <div class="row checkbox">
+                                        <input type="checkbox" onclick="<%mylar.IMPORTLOCK = False%>" style="vertical-align: middle; margin: 3px; margin-top: -1px;"><label>Existing Import running. Force next run?</label>
+                                   </div>
+                              %endif
+                           </fieldset>
                          </span>
                      </tr>
                    </table>
@@ -70,7 +74,7 @@
                 <tr><center><h3>To be Imported</h3></center></tr>
                 <thead>
                         <tr>
-                                <th id="select"></th>
+                                <th id="select" align="left"><input type="checkbox" onClick="toggle(this)" name="results" class="checkbox" /></th>
                                 <th id="comicname">Comic Name</th>
                                 <th id="comicyear">Year</th>
                                 <th id="issues">Issues</th>
@@ -83,19 +87,39 @@
                                   %if results:
                                       %for result in results:
                                            <%
-                                                grade = 'X'
+                                                if result['Status'] == 'Imported':
+                                                    grade = 'X'
+                                                elif result['Status'] == 'Manual Intervention':
+                                                    grade = 'C'
+                                                else:
+                                                    grade = 'Z'
 
                                                 if result['DisplayName'] is None:
                                                     displayname = result['ComicName']
                                                 else:
                                                     displayname = result['DisplayName']
+                                                displayline = displayname
+                                                if result['AnnualCount'] > 0:
+                                                    displayline += '(+' + str(result['AnnualCount']) + ' Annuals)'
+                                                if all([result['Volume'] is not None, result['Volume'] != 'None']):
+                                                    displayline += ' (' + str(result['Volume']) + ')'
+
                                             %>
-                                        <tr class="grade${grade}">
-                                            <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}" value="${result['ComicName']}" class="checkbox" />
-                                            <td id="comicname">${displayname}
-                                            %if result['ComicID'] is not None:
-                                                [${result['ComicID']}]
-                                            %endif
+                                        <tr class="${result['Status']} grade${grade}">
+                                            <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}[${result['Volume']}]" value="${result['DynamicName']}" class="checkbox" />
+                                            <td id="comicname">${displayline}
+                                                %if result['Status'] != 'Imported':
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="interfaces/default/images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
+                                                    <div id="issue-box" class="issue-popup">
+                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                                                        <div id="responsethis">
+                                                          <label><strong>[ NODATA ]</strong></label></br>
+                                                        </div>
+                                                   </div>
+                                                %endif
+                                                %if result['ComicID'] is not None:
+                                                    [${result['ComicID']}]
+                                                %endif
                                             </td>
                                             <td id="comicyear"><title="${result['ComicYear']}">${result['ComicYear']}</td>
                                             <td id="comicissues"><title="${result['IssueCount']}">${result['IssueCount']}</td>
@@ -111,15 +135,12 @@
                                             </td>
                                             <td id="importdate">${result['ImportDate']}</td>
                                             <td id="addcomic">
-                                                %if result['Status'] == 'Not Imported':
-                                                    [<a href="#" title="Import ${result['ComicName']} into your watchlist" onclick="doAjaxCall('preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname}| u}&comicid=${result['ComicID']}',$(this),'table')" data-success="Imported ${result['ComicName']}">Import</a>]
+                                                %if result['Status'] == 'Not Imported' and result['SRID'] is None:
+                                                    [<a href="#" title="Import ${result['ComicName']} into your watchlist" onclick="doAjaxCall('preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname}| u}&comicid=${result['ComicID']}&volume=${result['Volume']}&dynamicname=${result['DynamicName']}&displayline=${displayline}',$(this),'table')" data-success="Imported ${result['ComicName']}">Import</a>]
                                                 %endif
-                                                [<a href="deleteimport?ComicName=${result['ComicName']}">Remove</a>]
-                                                %if result['implog'] is not None:
-                                                     [<a class="showlog" title="Display the Import log for ${result['ComicName']}" href="importLog?ComicName=${result['ComicName'] |u}&SRID=${result['SRID']}">Log</a>]
-                                                %endif
+                                                [<a href="deleteimport?ComicName=${result['ComicName']}&volume=${result['Volume']}&DynamicName=${result['DynamicName']}&Status=${result['Status']}">Remove</a>]
                                                 %if result['SRID'] is not None and result['Status'] != 'Imported':
-                                                     [<a title="Manual intervention is required - more than one result when attempting to import" href="importresults_popup?SRID=${result['SRID']}&ComicName=${result['ComicName'] |u}&imported=yes&ogcname=${result['ComicName'] |u}">Select</a>]
+                                                     [<a title="Manual intervention is required - more than one result when attempting to import" href="importresults_popup?SRID=${result['SRID']}&ComicName=${result['ComicName'] |u}&imported=yes&ogcname=${result['ComicName'] |u}&DynamicName=${result['DynamicName']}">Select</a>]
                                                 %endif
                                             </td>
                                           </tr>
@@ -141,9 +162,63 @@
 </%def>
 
 <%def name="javascriptIncludes()">
-    <script src="js/libs/jquery.dataTables.min.js"></script>
-    <script type="text/javascript">
-       $('.showlog').click(function (event) {
+        <script src="js/libs/jquery.dataTables.min.js"></script>
+        <script>
+        $(document).ready(function() {
+        $('a.issue-window').click(function() {
+
+                    //Getting the variable's value from a link
+            var issueBox = $(this).attr('href');
+
+            //Fade in the Popup
+            $(issueBox).fadeIn(300);
+
+            //Set the center alignment padding + border see css style
+            var popMargTop = ($(issueBox).height() + 24) / 2;
+            var popMargLeft = ($(issueBox).width() + 24) / 2;
+
+            $(issueBox).css({
+                'margin-top' : -popMargTop,
+                'margin-left' : -popMargLeft
+            });
+
+            // Add the mask to body
+            $('body').append('<div id="mask"></div>');
+            $('#mask').fadeIn(300);
+
+            return false;
+        });
+
+        // When clicking on the button close or the mask layer the popup closed
+        $('a.close, #mask').on('click', function() {
+          $('#mask , .issue-popup').fadeOut(300 , function() {
+            $('#mask').remove();
+        });
+        return false;
+        });
+        });
+        </script>
+        <script>
+        function runMetaIssue(comicname, dynamicname, volume) {
+              //alert(comicname);
+              $.ajax({
+                 type: "GET",
+                 url: "ImportFilelisting",
+                 data: { comicname: comicname, dynamicname: dynamicname, volume: volume },
+                 success: function(response) {
+                   //alert(response)
+                   var names = response
+                   $('#responsethis').html(response);
+                 },
+                 error: function(data)
+                 {
+                   alert('ERROR'+data.responseText);
+                 },
+              });
+        }
+        </script>
+        <script>
+        $('.showlog').click(function (event) {
                var width = 575,
                        height = 400,
                        left = ($(window).width() - width) / 2,
@@ -159,8 +234,8 @@
 
                return false;
         });
-     </script>
-     <script>
+        </script>
+        <script>
         function initThisPage() {
                 jQuery( "#tabs" ).tabs();
                 initActions();

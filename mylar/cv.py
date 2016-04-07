@@ -94,13 +94,8 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
 
-    #file = urllib2.urlopen(PULLURL)
-    #convert to string:
-    #data = file.read()
-    #close file because we dont need it anymore:
-    #file.close()
-    #parse the xml you downloaded
-    dom = parseString(r.content) #(data)
+    logger.fdebug('cv status code : ' + str(r.status_code))
+    dom = parseString(r.content)
 
     return dom
 
@@ -563,7 +558,6 @@ def GetSeriesYears(dom):
     return serieslist
 
 def GetImportList(results):
-    logger.info('booyah')
     importlist = results.getElementsByTagName('issue')
     serieslist = []
     importids = {}
@@ -596,11 +590,17 @@ def GetImportList(results):
         except:
             tempseries['ComicName'] = 'None'
 
+        try:
+            tempseries['Issue_Number'] = implist.getElementsByTagName('issue_number')[0].firstChild.wholeText
+        except:
+            logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
+
         logger.info('tempseries:' + str(tempseries))
-        serieslist.append({"ComicID": tempseries['ComicID'],
-                           "IssueID": tempseries['IssueID'],
-                           "ComicName": tempseries['ComicName'],
-                           "Issue_Name": tempseries['Issue_Name']})
+        serieslist.append({"ComicID":      tempseries['ComicID'],
+                           "IssueID":      tempseries['IssueID'],
+                           "ComicName":    tempseries['ComicName'],
+                           "Issue_Name":   tempseries['Issue_Name'],
+                           "Issue_Number": tempseries['Issue_Number']})
 
 
     return serieslist

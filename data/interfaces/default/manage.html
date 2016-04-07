@@ -24,15 +24,51 @@
                         <li><a href="#tabs-3">Advanced Options</a></li>
 		</ul>
 		<div id="tabs-1" class="configtable">
+                               <div style="float:right;position:absolute;right:0;top;0;margin-right:50px;">
+                                  <legend>Current Import Status</legend>
+                                     %if mylar.IMPORT_STATUS:
+                                         %if mylar.IMPORT_STATUS == 'Import completed.':
+                                             <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
+                                             <script>
+                                             turnitoff();
+                                             </script>
+                                         %else:
+                                             <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
+                                             <script>
+                                             turniton();
+                                             </script>
+                                         %endif
+                                     %else:
+                                         <script>
+                                         turnitoff();
+                                         </script>
+                                         <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" value="Import is currently not running" DISABLED /></br>
+                                     %endif
+                                     <label>Number of valid files to process:&nbsp</label>${mylar.IMPORT_TOTALFILES}
+                                     %if int(mylar.IMPORT_FILES) != int(mylar.IMPORT_TOTALFILES):
+                                          / ${mylar.IMPORT_FILES}
+                                     %endif
+                                     </br>
+                                     <label>Files with ComicID's present:&nbsp</label>${mylar.IMPORT_CID_COUNT}</br>
+                                     <label>Files that were parsed:&nbsp</label>${mylar.IMPORT_PARSED_COUNT}</br>
+                                     <label>Files that couldn't be parsed:&nbsp</label>${mylar.IMPORT_FAILURE_COUNT}</br>
+
+                                     %if mylar.IMPORTLOCK:
+                                         </br></br></br></br>
+                                         <div class="row checkbox">
+                                            <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="forcescan" id="forcescan" value="1"><label>Existing Import Running. Force this import?</label>
+                                         </div>
+                                     %endif                                                                       
+                                </div>
 				<form action="comicScan" method="GET" id="comicScan">
-                                     <fieldset>
 					<legend>Scan Comic Library</legend>
 					<p><strong>Where do you keep your comics?</strong></p>
-					<p>You can put in any directory, and it will scan for comic files in that folder
-					(including all subdirectories). <br/><small>For example: '/Users/name/Comics'</small></p>	
+					<p>You can put in any directory, and it will scan for comics</br>
+                                        in that folder (including all subdirectories). <br/>
+                                        <small>For example: '/Users/name/Comics'</small></p>	
 					<p>
-					It may take a while depending on how many files you have. You can navigate away from the page<br />
-					as soon as you click 'Save changes'
+					It may take a while depending on how many files you have.</br>
+                                        You can navigate away from the page as soon as you click 'Save changes'
 					</p>	
 					<br/>
 					<div class="row">
@@ -60,13 +96,12 @@
                                                <small>Rename files to configuration settings</small>
                                         </div>
                                         <br/>
-                                     <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Changes saved. Library will be scanned" data-always="Sucessfully completed scanning library.">
-                                     <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully">
-                                     %if mylar.IMPORTBUTTON:
-                                         <input type="button" value="Import Results Management" style="float: right;" onclick="location.href='importResults';" />
-                                     %endif
-                                </fieldset>
-                       </form>
+                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted.">
+                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully">
+                                      %if mylar.IMPORTBUTTON:
+                                          <input type="button" value="Import Results Management" style="float: right;" onclick="location.href='importResults';" />
+                                      %endif
+                              </form>
 		</div>
                 <div id="tabs-2" class="configtable">
                   <tr>
@@ -139,12 +174,43 @@
 </%def>
 <%def name="javascriptIncludes()">
         <script>
+        var CheckEnabled = true;
         function addScanAction() {
                 $('#autoadd').append('<input type="hidden" name="scan" value=1 />');
+                CheckEnabled = true;
+                statuscheck();
         };
-
+        function statuscheck() {
+                if (CheckEnabled == true){
+                    var ImportTimer = setInterval(function(){
+                        $.get('Check_ImportStatus',
+                            function(data){
+                                if (data.error != undefined) {
+                                    alert(data.error);
+                                    return;
+                                }
+                                $('#importstatus').val(data);
+                                if (data == 'Import completed.') {
+                                    CheckEnabled = false;
+                                    clearInterval(ImportTimer);
+                                    return;
+                                }
+                        });
+                    }, 5000);
+                };
+        };
+        function turnitoff() {
+            CheckEnabled = false;
+            clearInterval(ImportTimer);
+        };
+        function turniton() {
+            if (CheckEnabled == false) {
+                CheckEnabled = true;
+                statuscheck();
+            }
+        };
         function initThisPage() {
-	        jQuery( "#tabs" ).tabs();
+                jQuery( "#tabs" ).tabs();
 		initActions();
                 initConfigCheckbox("#imp_move");
 

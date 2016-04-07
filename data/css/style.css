@@ -155,6 +155,7 @@ table#series_table th#name { text-align: left; min-width: 250px; }
 table#series_table th#year { text-align: left; max-width: 25px; }
 table#series_table th#issue { text-align: left; min-width: 100px; }
 table#series_table th#published { vertical-align: middle; text-align: left; min-width:40px; }
+table#series_table th#have_percent { text-align: left; max-width: 25px; }
 table#series_table th#have { text-align: center; }
 table#series_table th#status { vertical-align: middle; text-align: left; min-width: 25px; }
 table#series_table th#active { vertical-align: middle; text-align: left; max-width: 20px; }
@@ -164,6 +165,7 @@ table#series_table td#name { text-align: left; max-width: 250px; }
 table#series_table td#year { vertical-align: middle; text-align: left; max-width: 30px; }
 table#series_table td#issue { vertical-align: middle; text-align: left; max-width: 100px; }
 table#series_table td#published { vertical-align: middle; text-align: left; max-width: 40px; }
+table#series_table td#have_percent { vertical-align: middle; text-align: left; max-width: 30px; }
 table#series_table td#have { text-align: center; }
 table#series_table td#status { vertical-align: middle; text-align: left; max-width: 25px; }
 table#series_table td#active { vertical-align: middle; text-align: left; max-width: 20px; }

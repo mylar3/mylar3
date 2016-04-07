@@ -15,20 +15,18 @@ def movefiles(comicid, comlocation, ogcname, imported=None):
         for impr in impres:
             srcimp = impr['ComicLocation']
             orig_filename = impr['ComicFilename']
-            orig_iss = impr['impID'].rfind('-')
-            orig_iss = impr['impID'][orig_iss +1:]
-            logger.fdebug("Issue :" + str(orig_iss))
+            logger.fdebug("Issue :" + impr['IssueNumber'])
             #before moving check to see if Rename to Mylar structure is enabled.
             if mylar.IMP_RENAME and mylar.FILE_FORMAT != '':
                 logger.fdebug("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
-                renameit = helpers.rename_param(comicid, impr['ComicName'], orig_iss, orig_filename)
+                renameit = helpers.rename_param(comicid, impr['ComicName'], impr['IssueNumber'], orig_filename)
                 nfilename = renameit['nfilename']
                 dstimp = os.path.join(comlocation, nfilename)
             else:
                 logger.fdebug("Renaming files not enabled, keeping original filename(s)")
                 dstimp = os.path.join(comlocation, orig_filename)
 
-            logger.info("moving " + str(srcimp) + " ... to " + str(dstimp))
+            logger.info("moving " + srcimp + " ... to " + dstimp)
             try:
                 shutil.move(srcimp, dstimp)
             except (OSError, IOError):

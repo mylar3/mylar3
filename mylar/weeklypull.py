@@ -472,15 +472,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
     b_list = []
     comicid = []
 
-    # if it's a one-off check (during an add series), load the comicname here and ignore below.
-    if comic1off_name:
-        logger.fdebug("This is a one-off for " + comic1off_name + '[ latest issue: ' + str(issue) + ' ]')
-        lines.append(comic1off_name.strip())
-        unlines.append(comic1off_name.strip())
-        comicid.append(comic1off_id)
-        latestissue.append(issue)
-        w = 1
-    else:
+    if comic1off_name is None:
         #let's read in the comic.watchlist from the db here
         #cur.execute("SELECT ComicID, ComicName_Filesafe, ComicYear, ComicPublisher, ComicPublished, LatestDate, ForceContinuing, AlternateSearch, LatestIssue from comics WHERE Status = 'Active'")
         weeklylist = []
@@ -577,6 +569,16 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
 
                     else:
                         logger.fdebug("Determined to not be a Continuing series at this time.")
+    else:
+        # if it's a one-off check (during an add series), load the comicname here and ignore below.
+        logger.fdebug("This is a one-off for " + comic1off_name + ' [ latest issue: ' + str(issue) + ' ]')
+        lines.append(comic1off_name.strip())
+        unlines.append(comic1off_name.strip())
+        comicid.append(comic1off_id)
+        latestissue.append(issue)
+        w = 1
+
+    if w >= 1:
         cnt = int(w -1)
         cntback = int(w -1)
         kp = []

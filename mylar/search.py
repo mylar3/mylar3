@@ -846,10 +846,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                     ctchk = cleantitle.split()
                     ctchk_indexes = []
+                    origvol = None
                     volfound = False
                     vol_nono = []
                     new_cleantitle = []
-
+                     
                     fndcomicversion = None
                     for ct in ctchk:
                         if any([ct.lower().startswith('v') and ct[1:].isdigit(), ct.lower()[:3] == 'vol', volfound == True]):
@@ -870,6 +871,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             tmpsplit = ct
                             if tmpsplit.lower().startswith('vol'):
                                 logger.fdebug('volume detected - stripping and re-analzying for volume label.')
+                                origvol = tmpsplit
                                 if '.' in tmpsplit:
                                     tmpsplit = re.sub('.', '', tmpsplit).strip()
                                 tmpsplit = re.sub('vol', '', tmpsplit.lower()).strip()
@@ -912,6 +914,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 continue
 
                         if fndcomicversion:
+                            cleantitle = re.sub(origvol, '', cleantitle).strip()
+                            logger.fdebug('Newly finished reformed cleantitle (with NO volume label): ' + cleantitle)
                             versionfound = "yes"                            
                             break
 

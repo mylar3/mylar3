@@ -780,7 +780,9 @@ def forceRescan(ComicID, archive=None, module=None):
     logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in ' + rescan['ComicLocation'])
     fca = []
     if archive is None:
-        tmpval = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+        tval = filechecker.FileChecker(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+        tmpval = tval.listFiles()
+        #tmpval = filechecker.listFiles(dir=rescan['ComicLocation'], watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
         comiccnt = int(tmpval['comiccount'])
         logger.fdebug(module + 'comiccnt is:' + str(comiccnt))
         fca.append(tmpval)
@@ -790,12 +792,16 @@ def forceRescan(ComicID, archive=None, module=None):
             logger.fdebug(module + 'os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
             pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))
             logger.info(module + ' Now checking files for ' + rescan['ComicName'] + ' (' + str(rescan['ComicYear']) + ') in :' + pathdir)
-            tmpv = filechecker.listFiles(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+            mvals = filechecker.FileChecker(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
+            tmpv = mvals.listFiles()
+            #tmpv = filechecker.listFiles(dir=pathdir, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=altnames)
             logger.fdebug(module + 'tmpv filecount: ' + str(tmpv['comiccount']))
             comiccnt += int(tmpv['comiccount'])
             fca.append(tmpv)
     else:
-        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+#        files_arc = filechecker.listFiles(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+        arcval = filechecker.FileChecker(dir=archive, watchcomic=rescan['ComicName'], Publisher=rescan['ComicPublisher'], AlternateSearch=rescan['AlternateSearch'])
+        files_arc = arcval.listFiles()
         fca.append(files_arc)
         comiccnt = int(files_arc['comiccount'])
     fcb = []
@@ -1001,7 +1007,7 @@ def forceRescan(ComicID, archive=None, module=None):
                             logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = tmpfc['ComicFilename']
+                            isslocation = tmpfc['ComicFilename'].decode('utf-8')
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
@@ -1141,9 +1147,9 @@ def forceRescan(ComicID, archive=None, module=None):
                             logger.fdebug(module + ' Matched...annual issue: ' + rescan['ComicName'] + '#' + str(reann['Issue_Number']) + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = str(tmpfc['ComicFilename'])
+                            isslocation = tmpfc['ComicFilename'].decode('utf-8')
                             issSize = str(tmpfc['ComicSize'])
-                            logger.fdebug(module + ' .......filename: ' + str(isslocation))
+                            logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))
                             # to avoid duplicate issues which screws up the count...let's store the filename issues then
                             # compare earlier...
@@ -1215,6 +1221,7 @@ def forceRescan(ComicID, archive=None, module=None):
                         myDB.upsert("annuals", newValueDict, controlValueDict)
                         ANNComicID = None
                     else:
+                        logger.fdebug(newValueDict)
                         #issID_to_write.append({"tableName":        "issues",
                         #                       "valueDict":     newValueDict,
                         #                       "keyDict": controlValueDict})
@@ -1226,7 +1233,7 @@ def forceRescan(ComicID, archive=None, module=None):
 #            logger.info('writing ' + str(iss))
 #            writethis = myDB.upsert(iss['tableName'], iss['valueDict'], iss['keyDict'])
 
-    logger.fdebug(module + ' IssueID to ignore: ' + str(issID_to_ignore))
+    #logger.fdebug(module + ' IssueID to ignore: ' + str(issID_to_ignore))
 
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []

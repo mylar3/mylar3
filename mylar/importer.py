@@ -447,14 +447,16 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         statinfo = os.stat(coverfile)
         coversize = statinfo.st_size
 
-    if int(coversize) < 35000 or str(r.status_code) != '200':
+    if int(coversize) < 30000 or str(r.status_code) != '200':
         if str(r.status_code) != '200':
             logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
         else:
             logger.info('Image size invalid [' + str(coversize) + ' bytes] - trying to get alternate cover image.')
         logger.fdebug('invalid image link is here: ' + comic['ComicImage'])
-        os.remove(coverfile)
 
+        if os.path.exists(coverfile):
+            os.remove(coverfile)
+                       
         logger.info('Attempting to retrieve alternate comic image for the series.')
         try:
             r = requests.get(comic['ComicImageALT'], params=None, stream=True, headers=mylar.CV_HEADERS)
@@ -673,7 +675,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         logger.info('Returning to Future-Check module to complete the add & remove entry.')
         return
 
-    if imported == 'yes':
+    if calledfrom == 'addbyid':
+        logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
+        return
+
+    if imported:
         logger.info('Successfully imported : ' + comic['ComicName'])
         #now that it's moved / renamed ... we remove it from importResults or mark as completed.
 
@@ -686,9 +692,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                             "ComicID":          comicid}
                 myDB.upsert("importresults", newValue, controlValue)
 
-    if calledfrom == 'addbyid':
-        logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
-        return
 
 def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     # this is for importing via GCD only and not using CV.

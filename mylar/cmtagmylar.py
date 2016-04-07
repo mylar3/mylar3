@@ -32,52 +32,6 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     # Force mylar to use cmtagger_path = mylar.PROG_DIR to force the use of the included lib.
 
-    if platform.system() == "Windows":
-        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
-            unrar_cmd = "C:\Program Files\WinRAR\UnRAR.exe"
-        else:
-            unrar_cmd = mylar.UNRAR_CMD.strip()
-
-      # test for UnRAR
-        if not os.path.isfile(unrar_cmd):
-            unrar_cmd = "C:\Program Files (x86)\WinRAR\UnRAR.exe"
-            if not os.path.isfile(unrar_cmd):
-                logger.fdebug(module + ' Unable to locate UnRAR.exe - make sure it is installed.')
-                logger.fdebug(module + ' Aborting meta-tagging.')
-                return "fail"
-
-        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
-
-    elif platform.system() == "Darwin":
-        #Mac OS X
-        sys_type = 'mac'
-        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
-            unrar_cmd = "/usr/local/bin/unrar"
-        else:
-            unrar_cmd = mylar.UNRAR_CMD.strip()
-
-        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
-
-    else:
-        #for the 'nix
-        sys_type = 'linux'
-        if mylar.UNRAR_CMD == 'None' or mylar.UNRAR_CMD == '' or mylar.UNRAR_CMD is None:
-            if 'freebsd' in platform.linux_distribution()[0].lower():
-                unrar_cmd = "/usr/local/bin/unrar"
-            else:
-                unrar_cmd = "/usr/bin/unrar"
-        else:
-            unrar_cmd = mylar.UNRAR_CMD.strip()
-
-        logger.fdebug(module + ' UNRAR path set to : ' + unrar_cmd)
-
-
-    if not os.path.exists(unrar_cmd):
-        logger.fdebug(module + ' WARNING:  cannot find the unrar command.')
-        logger.fdebug(module + ' File conversion and extension fixing not available')
-        logger.fdebug(module + ' You probably need to edit this script, or install the missing tool, or both!')
-        return "fail"
-
     logger.fdebug(module + ' Filename is : ' + str(filename))
 
     filepath = filename
@@ -107,14 +61,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     downloadpath = os.path.abspath(dirName)
     sabnzbdscriptpath = os.path.dirname(sys.argv[0])
     comicpath = new_folder
-    unrar_folder = os.path.join(comicpath, "unrard")
 
     logger.fdebug(module + ' Paths / Locations:')
     logger.fdebug(module + ' scriptname : ' + scriptname)
     logger.fdebug(module + ' downloadpath : ' + downloadpath)
     logger.fdebug(module + ' sabnzbdscriptpath : ' + sabnzbdscriptpath)
     logger.fdebug(module + ' comicpath : ' + comicpath)
-    logger.fdebug(module + ' unrar_folder : ' + unrar_folder)
     logger.fdebug(module + ' Running the ComicTagger Add-on for Mylar')
 
 
@@ -139,7 +91,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         logger.warn(module + '[WARNING] Make sure that you are using the comictagger included with Mylar.')
         return "fail"
 
-    ctend = ctversion.find('\]')
+    ctend = ctversion.find('\n')
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
     ctcheck = re.sub('\.', '', ctcheck).strip()
     if int(ctcheck) >= int('1115'):  # (v1.1.15)
@@ -223,8 +175,8 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = p.communicate()
-            logger.info(out)
-            logger.info(err)
+            #logger.info(out)
+            #logger.info(err)
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug(module + '[COMIC-TAGGER] : ' +str(out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)

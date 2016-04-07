@@ -8,7 +8,7 @@ from mylar import logger
 
 class info32p(object):
 
-    def __init__(self, reauthenticate=False, searchterm=None):
+    def __init__(self, reauthenticate=False, searchterm=None, test=False):
 
         self.module = '[32P-AUTHENTICATION]'
         self.url = 'https://32pag.es/login.php'
@@ -19,6 +19,7 @@ class info32p(object):
                         'User-Agent': 'Mozilla/5.0'}
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
+        self.test = test
 
     def authenticate(self):
 
@@ -43,11 +44,56 @@ class info32p(object):
 
                 s.headers = self.headers
                 try:
-                    s.get(self.url, verify=verify, timeout=30)
+                    t = s.get(self.url, verify=verify, timeout=30)
                 except (requests.exceptions.SSLError, requests.exceptions.Timeout) as e:
                     logger.error(self.module + ' Unable to establish connection to 32P: ' + str(e))
                     return
                     
+                chksoup = BeautifulSoup(t.content)
+                chksoup.prettify()
+                chk_login = chksoup.find_all("form", {"id":"loginform"})
+                if not chk_login:
+                    logger.warn(self.module + ' Something is wrong - either 32p is offline, or your account has been temporarily banned (possibly).')
+                    logger.warn(self.module + ' Disabling provider until this gets addressed by manual intervention.')
+                    return "disable"
+
+                for ck in chk_login:
+                   #<div><div id='recaptchadiv'></div><input type='hidden' id='recaptchainp' value='' name='recaptchainp' /></div>
+                    captcha = ck.find("div", {"id":"recaptchadiv"})
+                    capt_error = ck.find("span", {"class":"notice hidden","id":"formnotice"})
+                    error_msg = ck.find("span", {"id":"formerror"})
+                    if error_msg:
+                        loginerror = " ".join(list(error_msg.stripped_strings)) 
+                        logger.warn(self.module + ' Warning: ' + loginerror)
+  
+                    if capt_error:
+                        aleft = ck.find("span", {"class":"info"})
+                        attemptsleft = " ".join(list(aleft.stripped_strings))
+                        if int(attemptsleft) < 6:
+                            logger.warn(self.module + ' ' + str(attemptsleft) + ' sign-on attempts left.')
+
+                    if captcha:
+                        logger.warn(self.module + ' Captcha detected. Temporariliy disabling 32p (to re-enable answer the captcha manually in a normal browswer or wait ~10 minutes...')
+                        return "disable"
+                    else:
+                        logger.fdebug(self.module + ' Captcha currently not present - continuing to signon...')
+
+                if self.test:
+                    rtnmsg = ''
+                    if (not capt_error and not error_msg) or (capt_error and int(attemptsleft) == 6):
+                        rtnmsg += '[No Warnings/Errors]'
+                    else:
+                        if capt_error and int(attemptsleft) < 6:
+                            rtnmsg = '[' + str(attemptsleft) + ' sign-on attempts left]'
+                        if error_msg:
+                            rtnmsg += '[' + error_msg + ']'
+                    if not captcha:
+                        rtnmsg += '[No Captcha]'
+                    else:
+                        rtnmsg += '[Captcha Present!]'
+
+                    return rtnmsg
+
                 # post to the login form
                 r = s.post(self.url, data=self.payload, verify=verify)
 
@@ -57,15 +103,23 @@ class info32p(object):
                 soup.prettify()
                 #check for invalid username/password and if it's invalid - disable provider so we don't autoban (manual intervention is required after).
                 chk_login = soup.find_all("form", {"id":"loginform"})
+
                 for ck in chk_login:
+                    captcha = ck.find("div", {"id":"recaptchadiv"})
                     errorlog = ck.find("span", {"id":"formerror"})
+                    errornot = ck.find("span", {"class":"notice hidden","id":"formnotice"})
                     loginerror = " ".join(list(errorlog.stripped_strings)) #login_error.findNext(text=True)
-                    errornot = ck.find("span", {"class":"notice"})
                     noticeerror = " ".join(list(errornot.stripped_strings)) #notice_error.findNext(text=True)
-                    logger.error(self.module + ' Error: ' + loginerror)
-                    if noticeerror:
-                        logger.error(self.module + ' Warning: ' + noticeerror)
-                    logger.error(self.module + ' Disabling 32P provider until username/password can be corrected / verified.')
+                    if captcha:
+                        logger.warn(self.module + ' Captcha detected. Temporariliy disabling 32p (to re-enable answer the captcha manually in a normal browswer or wait ~10 minutes')
+                    if errorlog:
+                        logger.error(self.module + ' Error: ' + loginerror)
+                    if errornot:
+                        aleft = ck.find("span", {"class":"info"})
+                        attemptsleft = " ".join(list(aleft.stripped_strings))
+                        if int(attemptsleft) < 6:
+                            logger.warn(self.module + ' ' + str(attemptsleft) + ' sign-on attempts left.')
+                    logger.error(self.module + ' Disabling 32P provider until errors can be fixed in order to avoid temporary bans.')
                     return "disable"
 
 

@@ -137,7 +137,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
     if not totalResults:
         return False
     if int(totalResults) > 1000:
-        logger.warn('Search returned more than 1000 hits [' + str(totalResults) + ']. Only displaying first 2000 results - use more specifics or the exact ComicID if required.')
+        logger.warn('Search returned more than 1000 hits [' + str(totalResults) + ']. Only displaying first 1000 results - use more specifics or the exact ComicID if required.')
         totalResults = 1000
     countResults = 0
     while (countResults < int(totalResults)):
@@ -176,7 +176,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                 try:
                                     xmlTag = result.getElementsByTagName('name')[n].firstChild.wholeText
                                     xmlTag = xmlTag.rstrip()
-                                    logger.fdebug('name: ' + str(xmlTag))
+                                    logger.fdebug('name: ' + xmlTag)
                                 except:
                                     logger.error('There was a problem retrieving the given data from ComicVine. Ensure that www.comicvine.com is accessible.')
                                     return
@@ -278,7 +278,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                         else: xmlYr = "0000"
-                        #logger.info('name:' + str(xmlTag) + ' -- ' + str(xmlYr))
+                        logger.info('name:' + xmlTag + ' -- ' + str(xmlYr) + ' [limityear: ' + str(limityear) + ']')
                         if xmlYr in limityear or limityear == 'None':
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
                             idl = len (result.getElementsByTagName('id'))
@@ -293,7 +293,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             if xmlid is None:
                                 logger.error('Unable to figure out the comicid - skipping this : ' + str(xmlurl))
                                 continue
-                            #logger.info('xmlid: ' + str(xmlid))
+
                             publishers = result.getElementsByTagName('publisher')
                             if len(publishers) > 0:
                                 pubnames = publishers[0].getElementsByTagName('name')
@@ -303,6 +303,12 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     xmlpub = "Unknown"
                             else:
                                 xmlpub = "Unknown"
+                            logger.info('publisher: ' + xmlpub)
+                            #ignore specific publishers on a global scale here.
+                            if mylar.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
+                                #'panini' in xmlpub.lower() or 'deagostini' in xmlpub.lower() or 'Editorial Televisa' in xmlpub.lower():
+                                logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
+                                continue
 
                             try:
                                 xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText

@@ -909,7 +909,20 @@ def issuedigits(issnum):
         if int_issnum is not None:
             return int_issnum
 
-        elif u'\xbd' in issnum:
+        #try:
+        #    issnum.decode('ascii')
+        #    logger.fdebug('ascii character.')
+        #except:
+        #    logger.fdebug('Unicode character detected: ' + issnum)
+        #else: issnum.decode(mylar.SYS_ENCODING).decode('utf-8')
+
+        if type(issnum) == str:
+            try:
+                issnum = issnum.decode('utf-8')
+            except:
+                issnum = issnum.decode('windows-1252')
+
+        if u'\xbd' in issnum:
             int_issnum = .5 * 1000
         elif u'\xbc' in issnum:
             int_issnum = .25 * 1000
@@ -1120,6 +1133,26 @@ def latestdate_fix():
 
     return
 
+def upgrade_dynamic():
+    import db, logger
+    dynamic_list = []
+    myDB = db.DBConnection()
+    clist = myDB.select('SELECT * FROM Comics')
+    for cl in clist:
+        cl_d = mylar.filechecker.FileChecker(watchcomic=cl['ComicName'])
+        cl_dyninfo = cl_d.dynamic_replace(cl['ComicName'])
+        dynamic_list.append({'DynamicComicName': cl_dyninfo['mod_seriesname'],
+                             'ComicID':          cl['ComicID']})
+
+    if len(dynamic_list) > 0:
+        for dl in dynamic_list:
+            CtrlVal = {"ComicID": dl['ComicID']}
+            newVal = {"DynamicComicName": dl['DynamicComicName']}
+            myDB.upsert("Comics", newVal, CtrlVal)
+
+    logger.info('Finshed updating ' + str(len(dynamic_list)) + ' entries within the db.')
+    return
+
 def checkFolder():
     from mylar import PostProcessor, logger
     import Queue
@@ -1298,39 +1331,58 @@ def IssueDetails(filelocation, IssueID=None):
     issuetag = None
     pic_extensions = ('.jpg','.png','.webp')
     modtime = os.path.getmtime(dstlocation)
+    low_infile = 999999
 
-    with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
-        for infile in inzipfile.namelist():
-            if infile == 'ComicInfo.xml':
-               logger.fdebug('Extracting ComicInfo.xml to display.')
-               dst = os.path.join(mylar.CACHE_DIR, 'ComicInfo.xml')
-               data = inzipfile.read(infile)
-               #print str(data)
-               issuetag = 'xml'
-            #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
-            elif any(['000.' in infile, '00.' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
-               logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
-               local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
-               local_file.write(inzipfile.read(infile))
-               local_file.close
-               cover = "found"
-            elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
-               logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
-               altlist = ('00a', '00b', '00c', '00d', '00e')
-               for alt in altlist:
-                   if alt in infile:
-                       local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
-                       local_file.write(inzipfile.read(infile))
-                       local_file.close
-                       cover = "found"
-                       break
+    try:
+        with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
+            for infile in inzipfile.namelist():
+                tmp_infile = re.sub("[^0-9]","", infile).strip()
+                if tmp_infile == '':
+                    pass
+                elif int(tmp_infile) < int(low_infile):
+                    low_infile = tmp_infile
+                    low_infile_name = infile
+                if infile == 'ComicInfo.xml':
+                    logger.fdebug('Extracting ComicInfo.xml to display.')
+                    dst = os.path.join(mylar.CACHE_DIR, 'ComicInfo.xml')
+                    data = inzipfile.read(infile)
+                    #print str(data)
+                    issuetag = 'xml'
+                #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
+                elif any(['000.' in infile, '00.' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
+                    logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
+                    local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
+                    local_file.write(inzipfile.read(infile))
+                    local_file.close
+                    cover = "found"
+                elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
+                    logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
+                    altlist = ('00a', '00b', '00c', '00d', '00e')
+                    for alt in altlist:
+                        if alt in infile:
+                            local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
+                            local_file.write(inzipfile.read(infile))
+                            local_file.close
+                            cover = "found"
+                            break
 
-            elif any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) and cover == "notfound":
-               logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
-               local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
-               local_file.write(inzipfile.read(infile))
-               local_file.close
-               cover = "found"
+                elif any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) and cover == "notfound":
+                    logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
+                    local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
+                    local_file.write(inzipfile.read(infile))
+                    local_file.close
+                    cover = "found"
+
+            if cover != "found":
+                logger.fdebug('Invalid naming sequence for jpgs discovered. Attempting to find the lowest sequence and will use as cover (it might not work). Currently : ' + str(low_infile))
+                local_file = open(os.path.join(mylar.CACHE_DIR, 'temp.jpg'), "wb")
+                local_file.write(inzipfile.read(low_infile_name))
+                local_file.close
+                cover = "found"                
+
+    except:
+        logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
+        return
 
     ComicImage = os.path.join('cache', 'temp.jpg?' +str(modtime))
     IssueImage = replacetheslash(ComicImage)
@@ -1438,7 +1490,7 @@ def IssueDetails(filelocation, IssueID=None):
                 pagecount = result.getElementsByTagName('PageCount')[0].firstChild.wholeText
             except:
                 pagecount = 0
-            logger.fdebug("number of pages I counted: " + str(pagecount))
+
             i = 0
 
             try:
@@ -1451,14 +1503,15 @@ def IssueDetails(filelocation, IssueID=None):
                 while (i < int(pagecount)):
                     pageinfo = result.getElementsByTagName('Page')[i].attributes
                     attrib = pageinfo.getNamedItem('Image')
-                    logger.fdebug('Frontcover validated as being image #: ' + str(attrib.value))
+                    #logger.fdebug('Frontcover validated as being image #: ' + str(attrib.value))
                     att = pageinfo.getNamedItem('Type')
                     logger.fdebug('pageinfo: ' + str(pageinfo))
                     if att.value == 'FrontCover':
-                        logger.fdebug('FrontCover detected. Extracting.')
+                        #logger.fdebug('FrontCover detected. Extracting.')
                         break
                     i+=1
     elif issuetag == 'comment':
+        logger.info('CBL Tagging.')
         stripline = 'Archive:  ' + dstlocation
         data = re.sub(stripline, '', data.encode("utf-8")).strip()
         if data is None or data == '':
@@ -1468,17 +1521,39 @@ def IssueDetails(filelocation, IssueID=None):
         lastmodified = ast_data['lastModified']
 
         dt = ast_data['ComicBookInfo/1.0']
-        publisher = dt['publisher']
-        year = dt['publicationYear']
-        month = dt['publicationMonth']
+        try:
+            publisher = dt['publisher']
+        except:
+            publisher = None
+        try:
+            year = dt['publicationYear']
+        except:
+            year = None
+        try:
+            month = dt['publicationMonth']
+        except:
+            month = None
         try:
             day = dt['publicationDay']
         except:
             day = None
-        issue_title = dt['title']
-        series_title = dt['series']
-        issue_number = dt['issue']
-        summary = dt['comments']
+        try:
+            issue_title = dt['title']
+        except:
+            issue_title = None
+        try:
+            series_title = dt['series']
+        except:
+            series_title = None
+        try:
+            issue_number = dt['issue']
+        except:
+            issue_number = None
+        try:
+            summary = dt['comments']
+        except:
+            summary = "None"
+
         editor = "None"
         colorist = "None"
         artist = "None"
@@ -1487,35 +1562,50 @@ def IssueDetails(filelocation, IssueID=None):
         cover_artist = "None"
         penciller = "None"
         inker = "None"
+
         try:
             series_volume = dt['volume']
         except:
             series_volume = None
-        for cl in dt['credits']:
-            if cl['role'] == 'Editor':
-                if editor == "None": editor = cl['person']
-                else: editor += ', ' + cl['person']
-            elif cl['role'] == 'Colorist':
-                if colorist == "None": colorist = cl['person']
-                else: colorist += ', ' + cl['person']
-            elif cl['role'] == 'Artist':
-                if artist == "None": artist = cl['person']
-                else: artist += ', ' + cl['person']
-            elif cl['role'] == 'Writer':
-                if writer == "None": writer = cl['person']
-                else: writer += ', ' + cl['person']
-            elif cl['role'] == 'Letterer':
-                if letterer == "None": letterer = cl['person']
-                else: letterer += ', ' + cl['person']
-            elif cl['role'] == 'Cover':
-                if cover_artist == "None": cover_artist = cl['person']
-                else: cover_artist += ', ' + cl['person']
-            elif cl['role'] == 'Penciller':
-                if penciller == "None": penciller = cl['person']
-                else: penciller += ', ' + cl['person']
-            elif cl['role'] == 'Inker':
-                if inker == "None": inker = cl['person']
-                else: inker += ', ' + cl['person']
+
+        try:
+            t = dt['credits']
+        except:
+            editor = None
+            colorist = None
+            artist = None
+            writer = None
+            letterer = None
+            cover_artist = None
+            penciller = None
+            inker = None
+            
+        else:
+            for cl in dt['credits']:
+                if cl['role'] == 'Editor':
+                    if editor == "None": editor = cl['person']
+                    else: editor += ', ' + cl['person']
+                elif cl['role'] == 'Colorist':
+                    if colorist == "None": colorist = cl['person']
+                    else: colorist += ', ' + cl['person']
+                elif cl['role'] == 'Artist':
+                    if artist == "None": artist = cl['person']
+                    else: artist += ', ' + cl['person']
+                elif cl['role'] == 'Writer':
+                    if writer == "None": writer = cl['person']
+                    else: writer += ', ' + cl['person']
+                elif cl['role'] == 'Letterer':
+                    if letterer == "None": letterer = cl['person']
+                    else: letterer += ', ' + cl['person']
+                elif cl['role'] == 'Cover':
+                    if cover_artist == "None": cover_artist = cl['person']
+                    else: cover_artist += ', ' + cl['person']
+                elif cl['role'] == 'Penciller':
+                    if penciller == "None": penciller = cl['person']
+                    else: penciller += ', ' + cl['person']
+                elif cl['role'] == 'Inker':
+                    if inker == "None": inker = cl['person']
+                    else: inker += ', ' + cl['person']
 
         try:
             notes = dt['notes']
@@ -1680,33 +1770,52 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     logger.info('[DUPECHECK] Assuming 0-byte file - this one is gonna get hammered.')
 
             logger.fdebug('[DUPECHECK] Based on duplication preferences I will retain based on : ' + mylar.DUPECONSTRAINT)
-            if 'cbr' in mylar.DUPECONSTRAINT or 'cbz' in mylar.DUPECONSTRAINT:
+
+            tmp_dupeconstraint = mylar.DUPECONSTRAINT
+
+            if any(['cbr' in mylar.DUPECONSTRAINT, 'cbz' in mylar.DUPECONSTRAINT]):
                 if 'cbr' in mylar.DUPECONSTRAINT:
-                    #this has to be configured in config - either retain cbr or cbz.
-                    if dupchk['Location'].endswith('.cbz'):
-                        #keep dupechk['Location']
-                        logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in file : ' + dupchk['Location'])
-                        rtnval.append({'action':  "dupe_file",
-                                       'to_dupe': filename})
+                    if filename.endswith('.cbr'):
+                        #this has to be configured in config - either retain cbr or cbz.
+                        if dupchk['Location'].endswith('.cbr'):
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbr format. Retaining the larger filesize of the two.')
+                            tmp_dupeconstraint = 'filesize'
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
+                            rtnval.append({'action':  "dupe_src",
+                                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
                     else:
-                        #keep filename
-                        logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
-                        rtnval.append({'action':  "dupe_src",
-                                       'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                        if dupchk['Location'].endswith('.cbz'):
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbz format. Retaining the larger filesize of the two.')
+                            tmp_dupeconstraint = 'filesize'
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + dupchk['Location'])
+                            rtnval.append({'action':  "dupe_file",
+                                           'to_dupe': filename})
 
                 elif 'cbz' in mylar.DUPECONSTRAINT:
-                    if dupchk['Location'].endswith('.cbr'):
-                        #keep dupchk['Location']
-                        logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                        rtnval.append({'action':  "dupe_file",
-                                       'to_dupe': filename})
+                    if filename.endswith('.cbr'):
+                        if dupchk['Location'].endswith('.cbr'):
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbr format. Retaining the larger filesize of the two.')
+                            tmp_dupeconstraint = 'filesize'
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
+                            rtnval.append({'action':  "dupe_file",
+                                           'to_dupe': filename})
                     else:
-                        #keep filename
-                        logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                        rtnval.append({'action':  "dupe_src",
-                                       'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                        if dupchk['Location'].endswith('.cbz'):
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbz format. Retaining the larger filesize of the two.')
+                            tmp_dupeconstraint = 'filesize'
+                        else:
+                            #keep filename
+                            logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
+                            rtnval.append({'action':  "dupe_src",
+                                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
 
-            if mylar.DUPECONSTRAINT == 'filesize':
+            if mylar.DUPECONSTRAINT == 'filesize' or tmp_dupeconstraint == 'filesize':
                 if filesz <= int(dupsize) and int(dupsize) != 0:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
                     rtnval.append({'action':  "dupe_file",
