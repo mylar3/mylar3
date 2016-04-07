@@ -645,7 +645,7 @@ def initialize():
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
 
         flattened_blacklisted_pub = check_setting_str(CFG, 'General', 'blacklisted_publishers', [], log=False)
-        if len(flattened_blacklisted_pub) == 0:
+        if len(flattened_blacklisted_pub) == 0 or flattened_blacklisted_pub == 'None':
             BLACKLISTED_PUBLISHERS = None
         else:
             BLACKLISTED_PUBLISHERS = list(itertools.izip(*[itertools.islice(flattened_blacklisted_pub, i, None, 1) for i in range(1)]))
