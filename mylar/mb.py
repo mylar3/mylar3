@@ -303,12 +303,12 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     xmlpub = "Unknown"
                             else:
                                 xmlpub = "Unknown"
-                            logger.info('publisher: ' + xmlpub)
+
                             #ignore specific publishers on a global scale here.
-                            #if mylar.BLACKLISTED_PUBLISHERS in xmlpub.lower(): #any([x for x in mylar.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
+                            if mylar.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
                             #    #'panini' in xmlpub.lower() or 'deagostini' in xmlpub.lower() or 'Editorial Televisa' in xmlpub.lower():
-                            #    logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
-                            #    continue
+                                logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
+                                continue
 
                             try:
                                 xmldesc = result.getElementsByTagName('description')[0].firstChild.wholeText

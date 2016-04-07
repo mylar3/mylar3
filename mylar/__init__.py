@@ -644,11 +644,9 @@ def initialize():
         INDIE_PUB = check_setting_str(CFG, 'General', 'indie_pub', '75')
         BIGGIE_PUB = check_setting_str(CFG, 'General', 'biggie_pub', '55')
 
-        flattened_blacklisted_pub = check_setting_str(CFG, 'General', 'blacklisted_publishers', [], log=False)
-        if len(flattened_blacklisted_pub) == 0 or flattened_blacklisted_pub == 'None':
+        BLACKLISTED_PUBLISHERS = check_setting_str(CFG, 'General', 'blacklisted_publishers', [], log=False)
+        if len(BLACKLISTED_PUBLISHERS) == 0 or BLACKLISTED_PUBLISHERS == 'None':
             BLACKLISTED_PUBLISHERS = None
-        else:
-            BLACKLISTED_PUBLISHERS = list(itertools.izip(*[itertools.islice(flattened_blacklisted_pub, i, None, 1) for i in range(1)]))
 
         ENABLE_RSS = bool(check_setting_int(CFG, 'General', 'enable_rss', 1))
         RSS_CHECKINTERVAL = check_setting_str(CFG, 'General', 'rss_checkinterval', '20')
@@ -1286,11 +1284,8 @@ def config_write():
         flattened_blacklisted_pub = None
     else:
         flattened_blacklisted_pub = []
-        for bpub in BLACKLISTED_PUBLISHERS:
-            #for key, value in pro.items():
-            for item in bpub:
-                flattened_blacklisted_pub.append(item)
-                #flattened_providers.append(str(value))
+        for item in BLACKLISTED_PUBLISHERS:
+            flattened_blacklisted_pub.append(item)
     new_config['General']['blacklisted_publishers'] = flattened_blacklisted_pub
     new_config['General']['imp_move'] = int(IMP_MOVE)
     new_config['General']['imp_rename'] = int(IMP_RENAME)
