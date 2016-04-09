@@ -260,7 +260,7 @@ class PostProcessor(object):
                     as_dinfo = as_d.dynamic_replace(fl['series_name'])
                     mod_seriesname = as_dinfo['mod_seriesname']
                     logger.fdebug('Dynamic-ComicName: ' + mod_seriesname)
-                    comicseries = myDB.select('SELECT * FROM comics Where DynamicComicName=?', [mod_seriesname])
+                    comicseries = myDB.select('SELECT * FROM comics Where DynamicComicName=? COLLATE NOCASE', [mod_seriesname])
                     if comicseries is None:
                         logger.error(module + ' No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?')
                         break
@@ -400,7 +400,7 @@ class PostProcessor(object):
                                     logger.info(module + ' Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
 
                                 if datematch == "True":
-                                    manual_list.append({"ComicLocation":   os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename']),
+                                    manual_list.append({"ComicLocation":   os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8')),
                                                         "ComicID":         cs['ComicID'],
                                                         "IssueID":         issuechk['IssueID'],
                                                         "IssueNumber":     issuechk['Issue_Number'],
@@ -409,7 +409,7 @@ class PostProcessor(object):
                                     logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                     continue
                                 #ccnt+=1
-                        logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + fl['comicfilename'])
+                        logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + fl['comicfilename'].decode('utf-8'))
                         break
 
                 logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything and will be ignored.')
@@ -1505,7 +1505,7 @@ class PostProcessor(object):
             nfilename = re.sub('[\,\:\?]', '', nfilename)
             nfilename = re.sub('[\/]', '-', nfilename)
             self._log("New Filename: " + nfilename)
-            logger.fdebug(module + ' New Filename: ' + str(nfilename))
+            logger.fdebug(module + ' New Filename: ' + nfilename)
 
             #src = os.path.join(self.nzb_folder, ofilename)
             src = os.path.join(odir, ofilename)
@@ -1535,7 +1535,7 @@ class PostProcessor(object):
                 logger.fdebug(module + ' ofilename:' + ofilename)
                 logger.fdebug(module + ' nfilename:' + nfilename + ext)
                 if mylar.RENAME_FILES:
-                    if str(ofilename) != str(nfilename + ext):
+                    if ofilename != (nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir, nfilename + ext))
                         #if mylar.FILE_OPTS == 'move':
                         #    os.rename(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
@@ -1577,8 +1577,8 @@ class PostProcessor(object):
                 #Manual Run, this is the portion.
                 src = os.path.join(odir, ofilename)
                 if mylar.RENAME_FILES:
-                    if str(ofilename) != str(nfilename + ext):
-                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, str(ofilename))) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
+                    if ofilename != (nfilename + ext):
+                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename)) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
                         #os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir, str(nfilename + ext)))
                         #src = os.path.join(odir, str(nfilename + ext))
                     else:
@@ -1717,13 +1717,13 @@ class PostProcessor(object):
             if mylar.WEEKFOLDER or mylar.SEND2READ:
                 #mylar.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
                 #mylar.SEND2READ = will add the post-processed file to the readinglits
-                weeklypull.weekly_check(comicid, issuenum, file=str(nfilename +ext), path=dst, module=module, issueid=issueid)
+                weeklypull.weekly_check(comicid, issuenum, file=(nfilename +ext), path=dst, module=module, issueid=issueid)
 
             # retrieve/create the corresponding comic objects
             if mylar.ENABLE_EXTRA_SCRIPTS:
-                folderp = str(dst) #folder location after move/rename
+                folderp = dst #folder location after move/rename
                 nzbn = self.nzb_name #original nzb name
-                filen = str(nfilename + ext) #new filename
+                filen = nfilename + ext #new filename
                 #name, comicyear, comicid , issueid, issueyear, issue, publisher
                 #create the dic and send it.
                 seriesmeta = []

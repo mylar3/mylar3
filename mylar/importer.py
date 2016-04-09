@@ -512,24 +512,30 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     #cdes_removed = Cdesc[:cdes_find]
     #logger.fdebug('description: ' + cdes_removed)
 
-    controlValueDict = {"ComicID":      comicid}
-    newValueDict = {"ComicName":        comic['ComicName'],
-                    "ComicSortName":    sortname,
+    #dynamic-name generation here.
+    as_d = filechecker.FileChecker(watchcomic=comic['ComicName'])
+    as_dinfo = as_d.dynamic_replace(comic['ComicName'])
+    dynamic_seriesname = as_dinfo['mod_seriesname']
+
+    controlValueDict = {"ComicID":        comicid}
+    newValueDict = {"ComicName":          comic['ComicName'],
+                    "ComicSortName":      sortname,
                     "ComicName_Filesafe": comicname_filesafe,
-                    "ComicYear":        SeriesYear,
-                    "ComicImage":       ComicImage,
-                    "ComicImageURL":    comic.get("ComicImage", ""),
-                    "ComicImageALTURL": comic.get("ComicImageALT", ""),
-                    "Total":            comicIssues,
-                    "ComicVersion":     comicVol,
-                    "ComicLocation":    comlocation,
-                    "ComicPublisher":   comic['ComicPublisher'],
-#                    "Description":      Cdesc, #.dencode('utf-8', 'replace'),
-                    "DetailURL":        comic['ComicURL'],
-#                    "ComicPublished":   gcdinfo['resultPublished'],
-                    "ComicPublished":   "Unknown",
-                    "DateAdded":        helpers.today(),
-                    "Status":           "Loading"}
+                    "DynamicComicName":   dynamic_seriesname,
+                    "ComicYear":          SeriesYear,
+                    "ComicImage":         ComicImage,
+                    "ComicImageURL":      comic.get("ComicImage", ""),
+                    "ComicImageALTURL":   comic.get("ComicImageALT", ""),
+                    "Total":              comicIssues,
+                    "ComicVersion":       comicVol,
+                    "ComicLocation":      comlocation,
+                    "ComicPublisher":     comic['ComicPublisher'],
+#                    "Description":       Cdesc, #.dencode('utf-8', 'replace'),
+                    "DetailURL":          comic['ComicURL'],
+#                    "ComicPublished":    gcdinfo['resultPublished'],
+                    "ComicPublished":     "Unknown",
+                    "DateAdded":          helpers.today(),
+                    "Status":             "Loading"}
 
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -1335,8 +1341,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             logger.fdebug('this does not have an issue # that I can parse properly.')
                             return
                         else:
-                            logger.error(str(issnum) + ' this has an alpha-numeric in the issue # which I cannot account for.')
-                            return
+                            if issnum == '9-5':
+                                issnum = u'9\xbd'
+                                logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
+                                int_issnum = (9 * 1000) + (.5 * 1000)
+                            else:
+                                logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
+                                return
             #get the latest issue / date using the date.
             #logger.fdebug('issue : ' + str(issnum))
             #logger.fdebug('latest date: ' + str(latestdate))

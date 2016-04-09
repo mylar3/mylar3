@@ -570,13 +570,14 @@ class FileChecker(object):
                     if int(ab) > int(sctd):
                         logger.fdebug('year is in the future, ignoring and assuming part of series title.')
                         yearposition = None
+                        yearmodposition = None
                         continue
                     else:
                         issue_year = dc['date']
                         logger.fdebug('year verified as : ' + str(issue_year))
                         if highest_series_pos > dc['position']: highest_series_pos = dc['position']
                         yearposition = dc['position']
-
+                        yearmodposition = dc['mod_position']
                     if len(ab) == 4:
                         issue_year = ab
                         logger.fdebug('year verified as: ' + str(issue_year))
@@ -585,9 +586,11 @@ class FileChecker(object):
                         logger.fdebug('date verified as: ' + str(issue_year))
                     if highest_series_pos > dc['position']: highest_series_pos = dc['position']
                     yearposition = dc['position']
+                    yearmodposition = dc['mod_position']
             else:
                 issue_year = None
                 yearposition = None
+                yearmodposition = None
                 logger.fdebug('No year present within title - ignoring as a variable.')
 
             logger.fdebug('highest_series_position: ' + str(highest_series_pos))
@@ -595,6 +598,7 @@ class FileChecker(object):
             issue_number = None
             if len(possible_issuenumbers) > 0:
                 logger.fdebug('possible_issuenumbers: ' + str(possible_issuenumbers))
+                dash_numbers = []
                 if len(possible_issuenumbers) > 1:
                     p = 1
                     if '-' not in split_file[0]:
@@ -622,8 +626,12 @@ class FileChecker(object):
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             break
                         if pis['mod_position'] > finddash and finddash != -1:
-                            logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
-                            continue
+                            if finddash < yearposition and finddash > (yearmodposition + len(split_file.index(position))):
+                                logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
+                                dash_numbers.append({'mod_position': pis['mod_position'],
+                                                     'number':       pis['number'],
+                                                     'position':     pis['position']})
+                                continue
                         if yearposition == pis['position']:
                             logger.fdebug('Already validated year, ignoring as possible issue number: ' + str(pis['number']))
                             continue
@@ -639,8 +647,24 @@ class FileChecker(object):
                     logger.fdebug('issue verified as : ' + issue_number)
                     if highest_series_pos > possible_issuenumbers[0]['position']: highest_series_pos = possible_issuenumbers[0]['position']
 
-            if issue_number:
-                issue_number = re.sub('#', '', issue_number).strip()
+                if issue_number:
+                    issue_number = re.sub('#', '', issue_number).strip()
+                else:
+                    if len(dash_numbers) > 0 and finddash !=-1 :
+                        #there are numbers after a dash, which was incorrectly accounted for.
+                        fin_num_position = finddash
+                        fin_num = None
+                        for dn in dash_numbers:
+                            if dn['mod_position'] > finddash and dn['mod_position'] > fin_num_position:
+                                fin_num_position = dn['mod_position']
+                                fin_num = dn['number']
+                                fin_pos = dn['position']
+
+                        if fin_num:
+                            print 'Issue number re-corrected to : ' + fin_num
+                            issue_number = fin_num
+                            if highest_series_pos > fin_pos: highest_series_pos = fin_pos
+
 
             issue_volume = None
             if len(volume_found) > 0:
@@ -974,7 +998,7 @@ class FileChecker(object):
     #    Jan 1990
     #    January1990'''
 
-        fmts = ('%Y','%b %d, %Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y', '%Y-%m-%d')
+        fmts = ('%Y','%b %d, %Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m')
 
         parsed=[]
         for e in txt.splitlines():

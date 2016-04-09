@@ -232,7 +232,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 with open(os.path.join(os.path.dirname(comlocation), 'cvinfo')) as f:
                     urllink = f.readline()
 
-                print 'urllink: ' + str(urllink)
                 if urllink:
                     cid = urllink.split('/')
                     if '4050-' in cid[-2]:
@@ -556,7 +555,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                     updater.forceRescan(c) 
         if not len(import_by_comicids):
             return "Completed"
-    if len(import_by_comicids) > 0:
+
+    if len(import_by_comicids) > 0 or len(vals) > 0:
         #import_comicids['comic_info'] = import_by_comicids
         #if vals:
         #    import_comicids['issueid_info'] = vals
@@ -568,14 +568,15 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         else:
              cvimport_comicids = None
              import_cv_ids = 0
-        #logger.fdebug('import comicids: ' + str(import_by_comicids))
-        
-        return {'import_by_comicids':     import_by_comicids, 
-                'import_count':        len(import_by_comicids),
-                'CV_import_comicids':  cvimport_comicids,
-                'import_cv_ids':       import_cv_ids,
-                'issueid_list':        issueid_list,
-                'failure_list':        failure_list}
+    else:
+        import_cv_ids = 0
+                    
+    return {'import_by_comicids':  import_by_comicids, 
+            'import_count':        len(import_by_comicids),
+            'CV_import_comicids':  cvimport_comicids,
+            'import_cv_ids':       import_cv_ids,
+            'issueid_list':        issueid_list,
+            'failure_list':        failure_list}
 
 
 def scanLibrary(scan=None, queue=None):

@@ -2976,7 +2976,7 @@ class WebInterface(object):
     confirmResult.exposed = True
 
     def Check_ImportStatus(self):
-        logger.info('import_status: ' + mylar.IMPORT_STATUS)
+        #logger.info('import_status: ' + mylar.IMPORT_STATUS)
         return mylar.IMPORT_STATUS
     Check_ImportStatus.exposed = True
 
@@ -3390,6 +3390,25 @@ class WebInterface(object):
 
                 if resultset == 1:
                     logger.info('now adding...')
+                    #imported = {'ComicName':     ComicName,
+                    #            'DynamicName':   DynamicName,
+                    #            'Volume':        volume,
+                    #            'impid':         impid,
+                    # somehow need to pass in all of the files in this particular group sequence that can be added
+                    #            'comiclocation': comiclocation,
+                    #            'comicfilename': comicfilename,
+                    #            'issuenumber':   issuenumber}
+                    #if volume is None or volume == 'None':
+                    #    results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[dynamicname])
+                    #else:
+                    #    if not volume.lower().startswith('v'):
+                    #        volume = 'v' + str(volume)
+                    #    results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[dynamicname,volume])
+                    #files = []
+                    #for result in results:
+                    #    files.append({'comicfilename': result['ComicFilename'],
+                    #                   'comiclocation': result['ComicLocation']})
+
                     self.addbyid(sr['comicid'], calledby=True, imported='yes', ogcname=ogcname)
                     #implog = implog + "ogcname -- " + str(ogcname) + "\n"
                     #cresults = self.addComic(comicid=sr['comicid'],comicname=sr['name'],comicyear=sr['comicyear'],comicpublisher=sr['publisher'],comicimage=sr['comicimage'],comicissues=sr['issues'],imported='yes',ogcname=ogcname)  #imported=comicstoIMP,ogcname=ogcname)

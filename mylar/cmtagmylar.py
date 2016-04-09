@@ -32,7 +32,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     # Force mylar to use cmtagger_path = mylar.PROG_DIR to force the use of the included lib.
 
-    logger.fdebug(module + ' Filename is : ' + str(filename))
+    logger.fdebug(module + ' Filename is : ' + filename)
 
     filepath = filename
 
@@ -183,7 +183,17 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.FILE_OPTS == 'move':
                     tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
-                filepath = os.path.join(comicpath, tmpfilename)
+                tmpf = tmpfilename.decode('utf-8')
+                filepath = os.path.join(comicpath, tmpf)
+                if not os.path.isfile(filepath):
+                    logger.fdebug(module + 'Trying utf-8 conversion.')
+                    tmpf = tmpfilename.encode('utf-8')
+                    filepath = os.path.join(comicpath, tmpf)
+                    if not os.path.isfile(filepath):
+                        logger.fdebug(module + 'Trying latin-1 conversion.')
+                        tmpf = tmpfilename.encode('Latin-1')
+                        filepath = os.path.join(comicpath, tmpf)
+
                 logger.fdebug(module + '[COMIC-TAGGER][CBR-TO-CBZ] New filename: ' + filepath)
                 initial_ctrun = False
             elif initial_ctrun and 'Archive is not a RAR' in out:
