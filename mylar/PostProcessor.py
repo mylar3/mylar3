@@ -252,15 +252,35 @@ class PostProcessor(object):
                 logger.info(filelist)
                 logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
 
+                #preload the entire ALT list in here.
+                alt_list = []
+                alt_db = myDB.select("SELECT * FROM Comics WHERE AlternateSearch != 'None'")
+                if alt_db is not None:
+                    for aldb in alt_db:
+                        as_d = filechecker.FileChecker(AlternateSearch=aldb['AlternateSearch'].decode('utf-8'))
+                        as_dinfo = as_d.altcheck()
+                        alt_list.append({'AS_Alt':   as_dinfo['AS_Alt'],
+                                         'AS_Tuple': as_dinfo['AS_Tuple']})
+
                 manual_list = []
 
                 for fl in filelist['comiclist']:
-                    #mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
                     as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
                     as_dinfo = as_d.dynamic_replace(fl['series_name'])
                     mod_seriesname = as_dinfo['mod_seriesname']
                     logger.fdebug('Dynamic-ComicName: ' + mod_seriesname)
-                    comicseries = myDB.select('SELECT * FROM comics Where DynamicComicName=? COLLATE NOCASE', [mod_seriesname])
+                    loopchk = []
+                    for x in alt_list:
+                        if mod_seriesname in x['AS_Alt']:
+                            for ab in x['AS_Alt']:
+                                loopchk.append('%' + re.sub('\|', '%', ab) + '%')
+
+                    #make sure we add back in the original parsed filename here.
+                    loopchk.append('%' + re.sub('\|', '%', mod_seriesname) + '%')
+
+                    tmpsql = "SELECT * FROM comics WHERE DynamicComicName LIKE ({seq}) COLLATE NOCASE".format(seq=','.join(['?'] *(len(loopchk))))
+                    comicseries = myDB.select(tmpsql, loopchk)
+
                     if comicseries is None:
                         logger.error(module + ' No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?')
                         break

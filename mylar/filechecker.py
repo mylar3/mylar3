@@ -953,7 +953,7 @@ class FileChecker(object):
             if chkthealt == 0:
                 altsearchcomic = self.watchcomic
             for calt in chkthealt:
-                logger.info('calt: ' + calt)
+                #logger.info('calt: ' + calt)
                 AS_tupled = False
                 AS_Alternate = re.sub('##', '', calt)
                 if '!!' in AS_Alternate:
