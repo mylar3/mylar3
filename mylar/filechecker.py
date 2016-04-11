@@ -109,27 +109,16 @@ class FileChecker(object):
 
         if self.file:
             runresults = self.parseit(self.dir, self.file)
-            if runresults['parse_status'] == 'success':
-                return {'parse_status':   'success',
-                        'sub':            runresults['sub'],
-                        'comicfilename':  runresults['comicfilename'],
-                        'comiclocation':  runresults['comiclocation'],
-                        'series_name':    runresults['series_name'],
-                        'series_volume':  runresults['series_volume'],
-                        'issue_year':     runresults['issue_year'],
-                        'issue_number':   runresults['issue_number'],
-                        'scangroup':      runresults['scangroup']
-                        }
-            else:
-                return {'parse_status':   'failure',
-                        'comicfilename':  runresults['comicfilename'],
-                        'comiclocation':  runresults['comiclocation'],
-                        'series_name':    runresults['series_name'],
-                        'series_volume':  runresults['series_volume'],
-                        'issue_year':     runresults['issue_year'],
-                        'issue_number':   runresults['issue_number'],
-                        'scangroup':      runresults['scangroup']
-                        }
+            return {'parse_status':   runresults['parse_status'],
+                    'sub':            runresults['sub'],
+                    'comicfilename':  runresults['comicfilename'],
+                    'comiclocation':  runresults['comiclocation'],
+                    'series_name':    runresults['series_name'],
+                    'series_volume':  runresults['series_volume'],
+                    'issue_year':     runresults['issue_year'],
+                    'issue_number':   runresults['issue_number'],
+                    'scangroup':      runresults['scangroup']
+                    }
         else:
             filelist = self.traverse_directories(self.dir)
 
@@ -164,6 +153,7 @@ class FileChecker(object):
                                     })
                         else:
                             comiclist.append({
+                                     'sub':                     runresults['sub'],
                                      'ComicFilename':           runresults['comicfilename'],
                                      'ComicLocation':           runresults['comiclocation'],
                                      'ComicSize':               files['comicsize'],
@@ -178,6 +168,7 @@ class FileChecker(object):
                     else:
                         #failiure
                         self.failed_files.append({'parse_status':   'failure',
+                                                  'sub':            runresults['sub'],
                                                   'comicfilename':  runresults['comicfilename'],
                                                   'comiclocation':  runresults['comiclocation'],
                                                   'series_name':    runresults['series_name'],
@@ -200,22 +191,21 @@ class FileChecker(object):
 
             #filename = filename.encode('ASCII').decode('utf8')
             path_list = None
-            if self.manual or self.file:
-                if subpath is None:
-                    logger.fdebug('[CORRECTION] No sub-path found - file is located in root. Altering path configuration.')
-                    subpath = path
-                    tmppath = None
-                    path_list = None
-                else:
-                    #basepath the sub if it exists to get the parent folder.
-                    logger.fdebug('Checking Folder Name for more information.')
-                    #sub = re.sub(origpath, '', path).strip()})
-                    logger.fdebug('Original Path : ' + str(path))
-                    logger.fdebug('Sub-Path : ' + str(subpath))
-                    tmppath = re.sub(path, '', subpath).strip()
-                    tmppath = os.path.normpath(tmppath)
-                    path_list = tmppath.split(os.sep)[-1]
-                    logger.fdebug('subpath set to : ' + path_list)
+            if subpath is None:
+                subpath = path
+                tmppath = None
+                path_list = None
+            else:
+                logger.fdebug('[CORRECTION] Sub-directory found. Altering path configuration.')
+                #basepath the sub if it exists to get the parent folder.
+                logger.fdebug('[SUB-PATH] Checking Folder Name for more information.')
+                #sub = re.sub(origpath, '', path).strip()})
+                logger.fdebug('[SUB-PATH] Original Path : ' + str(path))
+                logger.fdebug('[SUB-PATH] Sub-direcotry : ' + str(subpath))
+                tmppath = re.sub(path, '', subpath).strip()
+                tmppath = os.path.normpath(tmppath)
+                path_list = tmppath.split(os.sep)[-1]
+                logger.fdebug('[SUB-PATH] subpath set to : ' + path_list)
 
 
             #parse out the extension for type
@@ -626,7 +616,7 @@ class FileChecker(object):
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             break
                         if pis['mod_position'] > finddash and finddash != -1:
-                            if finddash < yearposition and finddash > (yearmodposition + len(split_file.index(position))):
+                            if finddash < yearposition and finddash > (yearmodposition + len(split_file[yearposition])):
                                 logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
                                 dash_numbers.append({'mod_position': pis['mod_position'],
                                                      'number':       pis['number'],
@@ -697,10 +687,10 @@ class FileChecker(object):
 
             #check for annual in title(s) here.
 
-            if path_list is not None:
-                clocation = os.path.join(path_list, filename)
-            else:
-                clocation = self.dir
+            #if path_list is not None:
+            #    clocation = os.path.join(path, path_list, filename)
+            #else:
+            #    clocation = self.dir
 
             #if issue_number is None:
             #    sntmp = series_name.split()
@@ -713,8 +703,9 @@ class FileChecker(object):
             if issue_number is None or series_name is None:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
                 return {'parse_status':   'failure',
+                        'sub':            path_list,
                         'comicfilename':  filename,
-                        'comiclocation':  clocation,
+                        'comiclocation':  self.dir,
                         'series_name':    series_name,
                         'issue_number':   issue_number,
                         'justthedigits':   issue_number, #redundant but it's needed atm
@@ -728,7 +719,7 @@ class FileChecker(object):
                         'type':           re.sub('\.','', filetype).strip(),
                         'sub':            path_list,
                         'comicfilename':  filename,
-                        'comiclocation':  clocation,
+                        'comiclocation':  self.dir,
                         'series_name':    series_name,
                         'series_volume':  issue_volume,
                         'issue_year':     issue_year,
@@ -736,9 +727,9 @@ class FileChecker(object):
                         'scangroup':      scangroup}
 
             series_info = {}
-            series_info = {'sub':             path_list,
+            series_info = {'sub':            path_list,
                           'comicfilename':   filename,
-                          'comiclocation':   clocation,
+                          'comiclocation':   self.dir,
                           'series_name':     series_name,
                           'series_volume':   issue_volume,
                           'issue_year':      issue_year,
@@ -885,6 +876,7 @@ class FileChecker(object):
                         comicsize = os.path.getsize(os.path.join(dir, fname))
                     else:
                         comicsize = os.path.getsize(os.path.join(dir, direc, fname))
+
                     filelist.append({'directory':  direc,   #subdirectory if it exists
                                      'filename':   fname,
                                      'comicsize':  comicsize})

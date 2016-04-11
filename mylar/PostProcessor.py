@@ -198,7 +198,7 @@ class PostProcessor(object):
                 logger.fdebug(module + ' Not using SABnzbd : Manual Run')
             else:
                 # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
-                if mylar.SAB_DIRECTORY is not None and mylar.SAB_DIRECTORY is not 'None' and len(mylar.SAB_DIRECTORY) > 4:
+                if all([mylar.SAB_TO_MYLAR, mylar.SAB_DIRECTORY is not None, mylar.SAB_DIRECTORY != 'None', len(mylar.SAB_DIRECTORY) > 4]):
                     self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
 
@@ -249,7 +249,6 @@ class PostProcessor(object):
                 if filelist['comiccount'] == 0: # is None:
                     logger.warn('There were no files located - check the debugging logs if you think this is in error.')
                     return                    
-                logger.info(filelist)
                 logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
 
                 #preload the entire ALT list in here.
@@ -268,7 +267,6 @@ class PostProcessor(object):
                     as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
                     as_dinfo = as_d.dynamic_replace(fl['series_name'])
                     mod_seriesname = as_dinfo['mod_seriesname']
-                    logger.fdebug('Dynamic-ComicName: ' + mod_seriesname)
                     loopchk = []
                     for x in alt_list:
                         if mod_seriesname in x['AS_Alt']:
@@ -420,7 +418,11 @@ class PostProcessor(object):
                                     logger.info(module + ' Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
 
                                 if datematch == "True":
-                                    manual_list.append({"ComicLocation":   os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8')),
+                                    if watchmatch['sub']:
+                                        clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename'].decode('utf-8'))
+                                    else:
+                                        clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8'))
+                                    manual_list.append({"ComicLocation":   clocation,
                                                         "ComicID":         cs['ComicID'],
                                                         "IssueID":         issuechk['IssueID'],
                                                         "IssueNumber":     issuechk['Issue_Number'],
@@ -569,8 +571,12 @@ class PostProcessor(object):
                                                                 break
                                                         passit = True
                                                 if passit == False:
+                                                    if arcmatch['sub']:
+                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], arcmatch['comicfilename'].decode('utf-8'))
+                                                    else:
+                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['comicfilename'].decode('utf-8'))
                                                     logger.info('[' + k + ' #' + str(issuechk['IssueNumber']) + '] MATCH: ' + tmpfc['ComicLocation'] + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
-                                                    manual_arclist.append({"ComicLocation":   arcmatch['comiclocation'],
+                                                    manual_arclist.append({"ComicLocation":   clocation,
                                                                            "ComicID":         v[i]['WatchValues']['ComicID'],
                                                                            "IssueID":         v[i]['ArcValues']['IssueID'],
                                                                            "IssueNumber":     v[i]['ArcValues']['IssueNumber'],
