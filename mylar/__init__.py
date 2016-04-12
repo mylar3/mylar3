@@ -96,6 +96,7 @@ CONFIG_VERSION = None
 
 DB_FILE = None
 DBCHOICE = None
+DYNAMIC_UPDATE = 0
 
 #these are used depending on dbchoice.
 DBUSER = None
@@ -431,7 +432,7 @@ def check_setting_str(config, cfg_name, item_name, def_val, log=True):
 def initialize():
 
     with INIT_LOCK:
-        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, BLACKLISTED_PUBLISHERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
+        global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, DYNAMIC_UPDATE, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, BLACKLISTED_PUBLISHERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
                 queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, NOWEEKLY, AUTO_UPDATE, \
                 IMPORT_STATUS, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
@@ -482,6 +483,7 @@ def initialize():
         DBUSER = check_setting_str(CFG, 'General', 'dbuser', '')
         DBPASS = check_setting_str(CFG, 'General', 'dbpass', '')
         DBNAME = check_setting_str(CFG, 'General', 'dbname', '')
+        DYNAMIC_UPDATE = check_setting_int(CFG, 'General', 'dynamic_update', 0)
 
         COMICVINE_API = check_setting_str(CFG, 'General', 'comicvine_api', '')
         if not COMICVINE_API:
@@ -1233,7 +1235,7 @@ def config_write():
     new_config['General']['dbuser'] = DBUSER
     new_config['General']['dbpass'] = DBPASS
     new_config['General']['dbname'] = DBNAME
-
+    new_config['General']['dynamic_update'] = DYNAMIC_UPDATE
     if COMICVINE_API is None or COMICVINE_API == '':
         new_config['General']['comicvine_api'] = COMICVINE_API
     else:
@@ -1676,7 +1678,10 @@ def dbcheck():
 
     try:
         c.execute('SELECT DynamicComicName from comics')
-        dynamic_upgrade = False
+        if DYNAMIC_UPDATE < 1:
+            dynamic_upgrade = True
+        else:
+            dynamic_upgrade = False
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE comics ADD COLUMN DynamicComicName TEXT')
         dynamic_upgrade = True

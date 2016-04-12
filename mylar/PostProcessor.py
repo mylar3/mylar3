@@ -259,7 +259,8 @@ class PostProcessor(object):
                         as_d = filechecker.FileChecker(AlternateSearch=aldb['AlternateSearch'].decode('utf-8'))
                         as_dinfo = as_d.altcheck()
                         alt_list.append({'AS_Alt':   as_dinfo['AS_Alt'],
-                                         'AS_Tuple': as_dinfo['AS_Tuple']})
+                                         'AS_Tuple': as_dinfo['AS_Tuple'],
+                                         'AS_DyComicName': aldb['DynamicComicName']})
 
                 manual_list = []
 
@@ -269,15 +270,20 @@ class PostProcessor(object):
                     mod_seriesname = as_dinfo['mod_seriesname']
                     loopchk = []
                     for x in alt_list:
-                        if mod_seriesname in x['AS_Alt']:
-                            for ab in x['AS_Alt']:
-                                loopchk.append('%' + re.sub('\|', '%', ab) + '%')
+                        cname = x['AS_DyComicName']
+                        for ab in x['AS_Alt']:
+                            if re.sub('[\|\s]', '', mod_seriesname.lower()).strip() in re.sub('[\|\s]', '', ab.lower()).strip():
+                                if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
+                                    loopchk.append(re.sub('[\|\s]', '', cname.lower()))
+
+                    if 'annual' in mod_seriesname.lower():
+                        mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
 
                     #make sure we add back in the original parsed filename here.
-                    loopchk.append('%' + re.sub('\|', '%', mod_seriesname) + '%')
-
-                    tmpsql = "SELECT * FROM comics WHERE DynamicComicName LIKE ({seq}) COLLATE NOCASE".format(seq=','.join(['?'] *(len(loopchk))))
-                    comicseries = myDB.select(tmpsql, loopchk)
+                    if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
+                        loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
+                    tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
+                    comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if comicseries is None:
                         logger.error(module + ' No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?')

@@ -1141,7 +1141,7 @@ def upgrade_dynamic():
     for cl in clist:
         cl_d = mylar.filechecker.FileChecker(watchcomic=cl['ComicName'])
         cl_dyninfo = cl_d.dynamic_replace(cl['ComicName'])
-        dynamic_list.append({'DynamicComicName': cl_dyninfo['mod_seriesname'],
+        dynamic_list.append({'DynamicComicName': re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip(),
                              'ComicID':          cl['ComicID']})
 
     if len(dynamic_list) > 0:
@@ -1151,6 +1151,8 @@ def upgrade_dynamic():
             myDB.upsert("Comics", newVal, CtrlVal)
 
     logger.info('Finshed updating ' + str(len(dynamic_list)) + ' entries within the db.')
+    mylar.DYNAMIC_UPDATE = 1
+    mylar.config_write()
     return
 
 def checkFolder():

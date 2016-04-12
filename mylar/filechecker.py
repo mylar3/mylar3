@@ -357,12 +357,17 @@ class FileChecker(object):
                                                       'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                       'validcountchk': validcountchk})
 
-                    if '\xe2' in sf:
+                    if '\xe2' in sf:  #(maybe \u221e)
                         logger.fdebug('[SPECIAL-CHARACTER ISSUE] Possible issue # : ' + sf)
                         possible_issuenumbers.append({'number':       sf,
                                                       'position':     split_file.index(sf),
                                                       'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                       'validcountchk': validcountchk})
+
+                    #if '\xbc' in sf:
+                    #   '0.25'
+                    #if '\xbe' in sf::
+                    #   '0.75'
 
 
                 count = None
@@ -686,7 +691,10 @@ class FileChecker(object):
             logger.fdebug('series title possibly: ' + series_name)
 
             #check for annual in title(s) here.
-
+            if mylar.ANNUALS_ON:
+                if 'annual' in series_name.lower():
+                    issue_number = 'Annual ' + str(issue_number)
+                    series_name = re.sub('annual', '', series_name, flags=re.I).strip()
             #if path_list is not None:
             #    clocation = os.path.join(path, path_list, filename)
             #else:
@@ -752,9 +760,15 @@ class FileChecker(object):
             nspace_seriesname = re.sub(' ', '', mod_seriesname)
             nspace_watchcomic = re.sub(' ', '', mod_watchcomic)
 
-            logger.fdebug('Possible Alternate Names to match against (if necessary): ' + str(self.AS_Alt))
+            if self.AS_Alt != '127372873872871091383 abdkhjhskjhkjdhakajhf':
+                logger.fdebug('Possible Alternate Names to match against (if necessary): ' + str(self.AS_Alt))
 
             justthedigits = series_info['issue_number']
+
+            if mylar.ANNUALS_ON:
+                if 'annual' in series_name.lower():
+                    justthedigits = 'Annual ' + series_info['issue_number']
+                nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
 
             if re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip() or any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
                 logger.fdebug('[MATCH: ' + series_info['series_name'] + '] ' + filename)
@@ -784,12 +798,12 @@ class FileChecker(object):
                             if 'biannual' in nspace_seriesname.lower():
                                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                                     logger.fdebug('[FILECHECKER] BiAnnual detected - wouldn\'t Deadpool be proud?')
-                                nspace_seriesname = re.sub('biannual', 'biannual', nspace_seriesname).strip()
+                                nspace_seriesname = re.sub('biannual', '', nspace_seriesname).strip()
                                 enable_annual = True
                             else:
                                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                                     logger.fdebug('[FILECHECKER] Annual detected - proceeding cautiously.')
-                                nspace_seriesname = re.sub('annual', 'annual', nspace_seriesname).strip()
+                                nspace_seriesname = re.sub('annual', '', nspace_seriesname).strip()
                                 enable_annual = False
 
                     if mylar.FOLDER_SCAN_LOG_VERBOSE:
@@ -942,10 +956,13 @@ class FileChecker(object):
         AS_Tuple = []
         if self.AlternateSearch is not None and self.AlternateSearch != 'None':
             chkthealt = self.AlternateSearch.split('##')
-            if chkthealt == 0:
-                altsearchcomic = self.watchcomic
-            for calt in chkthealt:
-                #logger.info('calt: ' + calt)
+            #logger.info('[' + str(len(chkthealt)) + '] chkthealt: ' + str(chkthealt))
+            i = 0
+            while (i <= len(chkthealt)):
+                try:
+                    calt = chkthealt[i]
+                except IndexError:
+                    break
                 AS_tupled = False
                 AS_Alternate = re.sub('##', '', calt)
                 if '!!' in AS_Alternate:
@@ -971,6 +988,7 @@ class FileChecker(object):
                     AS_Tuple.append({"ComicID":      AS_ComicID,
                                      "AS_Alternate": altsearchcomic})
                 AS_Alt.append(altsearchcomic)
+                i+=1
         else:
             #create random characters so it will never match.
             altsearchcomic = "127372873872871091383 abdkhjhskjhkjdhakajhf"
