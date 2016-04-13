@@ -21,9 +21,9 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     searchName = searchName.replace("%20", " ")
     if "," in searchName:
         searchName = searchName.replace(",", "")
-    logger.fdebug("name:" + str(searchName))
-    logger.fdebug("issue:" + str(searchIssue))
-    logger.fdebug("year:" + str(searchYear))
+    #logger.fdebug("name:" + str(searchName))
+    #logger.fdebug("issue:" + str(searchIssue))
+    #logger.fdebug("year:" + str(searchYear))
     encodeSearch = urllib.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
@@ -72,7 +72,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         regList = []
         countUp = 0
 
-        logger.fdebug(str(totNum) + " results")
+        #logger.fdebug(str(totNum) + " results")
 
         while countUp < totNum:
      	    urlParse = feed.entries[countUp].enclosures[0]
@@ -83,7 +83,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             "length":    urlParse["length"],
                             "pubdate":   feed.entries[countUp].updated})
             countUp=countUp +1
-        logger.fdebug('keypair: ' + str(keyPair))
+        #logger.fdebug('keypair: ' + str(keyPair))
 
 
         # thanks to SpammyHagar for spending the time in compiling these regEx's!
@@ -105,13 +105,13 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
         for entry in keyPair:
             title = entry['title']
-            logger.fdebug("titlesplit: " + str(title.split("\"")))
+            #logger.fdebug("titlesplit: " + str(title.split("\"")))
             splitTitle = title.split("\"")
             noYear = 'False'
             _digits = re.compile('\d')
 
             for subs in splitTitle:
-                logger.fdebug('sub:' + subs)
+                #logger.fdebug('sub:' + subs)
                 regExCount = 0
                 if len(subs) >= len(cName) and not any(d in subs.lower() for d in except_list) and bool(_digits.search(subs)) is True:
                 #Looping through dictionary to run each regEx - length + regex is determined by regexList up top.
@@ -132,7 +132,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             #this is the crap we ignore. Continue (commented else, as it spams the logs)
                             #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
                             continue
-                    logger.fdebug('match.')
+                    #logger.fdebug('match.')
                     if IssDateFix != "no":
                         if IssDateFix == "01" or IssDateFix == "02": ComicYearFix = str(int(searchYear) - 1)
                         else: ComicYearFix = str(int(searchYear) + 1)

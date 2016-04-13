@@ -600,7 +600,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 break
                             data = False
 
-                        logger.info('status code: ' + str(r.status_code))
+                        #logger.fdebug('status code: ' + str(r.status_code))
 
                         if str(r.status_code) != '200':
                             logger.warn('Unable to retrieve search results from ' + tmpprov + ' [Status Code returned: ' + str(r.status_code) + ']')
@@ -914,7 +914,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 continue
 
                         if fndcomicversion:
-                            cleantitle = re.sub(origvol, '', cleantitle).strip()
+                            cleantitle = re.sub(fndcomicversion, '', cleantitle).strip()
                             logger.fdebug('Newly finished reformed cleantitle (with NO volume label): ' + cleantitle)
                             versionfound = "yes"                            
                             break

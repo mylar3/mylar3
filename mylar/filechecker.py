@@ -184,7 +184,7 @@ class FileChecker(object):
 
         if len(self.failed_files) > 0:
             logger.info('FAILED FILES: %s', self.failed_files)
-
+       
         return watchmatch
 
     def parseit(self, path, filename, subpath=None):
@@ -274,12 +274,12 @@ class FileChecker(object):
             ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
 
             #split_file = re.findall('\([\w\s-]+\)|[\w-]+', ret_sf1, re.UNICODE)
-            split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d+|\)', ret_sf1, re.UNICODE)
+            split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|\)', ret_sf1, re.UNICODE)
 
             if len(split_file) == 1:
                 logger.fdebug('Improperly formatted filename - there is no seperation using appropriate characters between wording.')
                 ret_sf1 = re.sub('\-',' ', ret_sf1).strip()
-                split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+', ret_sf1, re.UNICODE)
+                split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|\)', ret_sf1, re.UNICODE)
 
 
             possible_issuenumbers = []
@@ -394,7 +394,7 @@ class FileChecker(object):
                     logger.fdebug('Issue Number SHOULD BE: ' + str(lastissue_label))
                     validcountchk = True
 
-                if lastissue_position == (split_file.index(sf) -1) and lastissue_label is not None:
+                if lastissue_position == (split_file.index(sf) -1) and lastissue_label is not None and '#' not in sf:
                     #find it in the original file to see if there's a decimal between.
                     #logger.fdebug('lastissue_label: ' + str(lastissue_label))
                     #logger.fdebug('current sf: ' + str(sf))
@@ -404,7 +404,7 @@ class FileChecker(object):
                     findst = lastissue_mod_position+1
                     #findst = modfilename.find(lastissue_label, lastissue_mod_position+1) #lastissue_mod_position) #file_length - len(lastissue_label))
                     #logger.fdebug('findst: ' + str(findst))
-                    if findst != '.': #== -1:
+                    if findst != '.' and findst != '#':
                         if sf.isdigit():
                             logger.fdebug('2 seperate numbers detected. Assuming 2nd number is the actual issue')
                             possible_issuenumbers.append({'number':       sf,

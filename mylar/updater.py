@@ -1195,9 +1195,9 @@ def forceRescan(ComicID, archive=None, module=None):
                 logger.warn(module + ' you should either Refresh the series, and/or submit an issue on github in regards to the series and the error.')
                 return
 
-            if writeit == True:
-                logger.fdebug(module + ' issueID to write to db:' + str(iss_id))
-                controlValueDict = {"IssueID": iss_id}
+            if writeit == True and haveissue == 'yes':
+                #logger.fdebug(module + ' issueID to write to db:' + str(iss_id))
+                controlValueDict = {"IssueID": str(iss_id)}
 
                 #if Archived, increase the 'Have' count.
                 if archive:
@@ -1205,27 +1205,26 @@ def forceRescan(ComicID, archive=None, module=None):
                 else:
                     issStatus = "Downloaded"
 
-                if haveissue == "yes":                    
-                    newValueDict = {"Location":           isslocation,
-                                    "ComicSize":          issSize,
-                                    "Status":             issStatus
-                                    }
+                newValueDict = {"Location":           isslocation,
+                                "ComicSize":          issSize,
+                                "Status":             issStatus
+                                }
 
-                    issID_to_ignore.append(str(iss_id))
-
-                    if ANNComicID:
-#                   if 'annual' in temploc.lower():
-                        #issID_to_write.append({"tableName":        "annuals",
-                        #                       "newValueDict":     newValueDict,
-                        #                       "controlValueDict": controlValueDict})
-                        myDB.upsert("annuals", newValueDict, controlValueDict)
-                        ANNComicID = None
-                    else:
-                        logger.fdebug(newValueDict)
-                        #issID_to_write.append({"tableName":        "issues",
-                        #                       "valueDict":     newValueDict,
-                        #                       "keyDict": controlValueDict})
-                        myDB.upsert("issues", newValueDict, controlValueDict)
+                issID_to_ignore.append(str(iss_id))
+                if ANNComicID:
+#               if 'annual' in temploc.lower():
+                    #issID_to_write.append({"tableName":        "annuals",
+                    #                       "newValueDict":     newValueDict,
+                    #                       "controlValueDict": controlValueDict})
+                    myDB.upsert("annuals", newValueDict, controlValueDict)
+                    ANNComicID = None
+                else:
+                    #issID_to_write.append({"tableName":        "issues",
+                    #                       "valueDict":     newValueDict,
+                    #                       "keyDict": controlValueDict})
+                    myDB.upsert("issues", newValueDict, controlValueDict)
+            else:
+                ANNComicID = None
         fn+=1
 
 #    if len(issID_to_write) > 0:
@@ -1235,6 +1234,7 @@ def forceRescan(ComicID, archive=None, module=None):
 
     #logger.fdebug(module + ' IssueID to ignore: ' + str(issID_to_ignore))
 
+    sys.exit()    
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
     tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
@@ -1264,7 +1264,7 @@ def forceRescan(ComicID, archive=None, module=None):
             else:
                 issStatus = "Skipped"
 
-            #logger.fdebug("new status: " + str(issStatus))
+            #logger.fdebug('[' + chk['IssueID'] + '] new status: ' + str(issStatus))
 
             update_iss.append({"IssueID": chk['IssueID'],
                                "Status":  issStatus})
@@ -1340,7 +1340,7 @@ def forceRescan(ComicID, archive=None, module=None):
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
                 if os.path.exists(comicpath):
                     continue
-                    #print "Issue exists - no need to change status."
+                    print "Issue exists - no need to change status."
                 else:
                     if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
                         if os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
