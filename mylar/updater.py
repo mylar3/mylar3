@@ -1234,7 +1234,6 @@ def forceRescan(ComicID, archive=None, module=None):
 
     #logger.fdebug(module + ' IssueID to ignore: ' + str(issID_to_ignore))
 
-    sys.exit()    
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
     tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
