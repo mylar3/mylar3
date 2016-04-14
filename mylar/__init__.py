@@ -1678,7 +1678,7 @@ def dbcheck():
 
     try:
         c.execute('SELECT DynamicComicName from comics')
-        if DYNAMIC_UPDATE < 1:
+        if DYNAMIC_UPDATE < 2:
             dynamic_upgrade = True
         else:
             dynamic_upgrade = False

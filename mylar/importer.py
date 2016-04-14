@@ -515,7 +515,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     #dynamic-name generation here.
     as_d = filechecker.FileChecker(watchcomic=comic['ComicName'])
     as_dinfo = as_d.dynamic_replace(comic['ComicName'])
-    dynamic_seriesname = as_dinfo['mod_seriesname']
+    tmpseriesname = as_dinfo['mod_seriesname']
+    dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
 
     controlValueDict = {"ComicID":        comicid}
     newValueDict = {"ComicName":          comic['ComicName'],

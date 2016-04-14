@@ -1151,7 +1151,7 @@ def upgrade_dynamic():
             myDB.upsert("Comics", newVal, CtrlVal)
 
     logger.info('Finshed updating ' + str(len(dynamic_list)) + ' entries within the db.')
-    mylar.DYNAMIC_UPDATE = 1
+    mylar.DYNAMIC_UPDATE = 2
     mylar.config_write()
     return
 

@@ -257,6 +257,12 @@ class FileChecker(object):
 
             sf3 = re.compile(ur"[^,\s_]+", re.UNICODE)
             split_file3 = sf3.findall(modfilename)
+            if len(split_file3) == 1:
+                logger.fdebug('Improperly formatted filename - there is no seperation using appropriate characters between wording.')
+                sf3 = re.compile(ur"[^,\s_\.]+", re.UNICODE)
+                split_file3 = sf3.findall(modfilename)
+                logger.fdebug('NEW split_file3: ' + str(split_file3))
+
             #print split_file3
             ret_sf2 = ' '.join(split_file3)
 
