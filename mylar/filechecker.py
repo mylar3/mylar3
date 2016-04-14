@@ -166,7 +166,7 @@ class FileChecker(object):
                                      })
                         comiccnt +=1
                     else:
-                        #failiure
+                        #failure
                         self.failed_files.append({'parse_status':   'failure',
                                                   'sub':            runresults['sub'],
                                                   'comicfilename':  runresults['comicfilename'],
@@ -857,6 +857,7 @@ class FileChecker(object):
                 logger.info('[NO MATCH] ' + filename + ' [WATCHLIST:' + self.watchcomic + ']')
                 return {'process_status': 'fail',
                         'comicfilename':  filename,
+                        'sub':            series_info['sub'],
                         'comiclocation':  series_info['comiclocation'],
                         'series_name':    series_info['series_name'],
                         'issue_number':   series_info['issue_number'],

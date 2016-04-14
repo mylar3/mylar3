@@ -660,7 +660,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     #this is the crap we ignore. Continue (commented else, as it spams the logs)
                                     #logger.fdebug('this starts with FOR : ' + str(subs) + '. This is not present in the series - ignoring.')
                                     continue
-                            logger.fdebug('Detected crap within header. Ignoring this portion of the result in order to see if it\'s a valid match.')
+                                logger.fdebug('Detected crap within header. Ignoring this portion of the result in order to see if it\'s a valid match.')
                             ComicTitle = subs
                             break
 
@@ -914,6 +914,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 continue
 
                         if fndcomicversion:
+                            if origvol:
+                                fndcomicversion = origvol
                             cleantitle = re.sub(fndcomicversion, '', cleantitle).strip()
                             logger.fdebug('Newly finished reformed cleantitle (with NO volume label): ' + cleantitle)
                             versionfound = "yes"                            
