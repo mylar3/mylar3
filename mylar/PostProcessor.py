@@ -581,7 +581,7 @@ class PostProcessor(object):
                                                         clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], arcmatch['comicfilename'].decode('utf-8'))
                                                     else:
                                                         clocation = os.path.join(arcmatch['comiclocation'], arcmatch['comicfilename'].decode('utf-8'))
-                                                    logger.info('[' + k + ' #' + str(issuechk['IssueNumber']) + '] MATCH: ' + tmpfc['ComicLocation'] + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
+                                                    logger.info('[' + k + ' #' + issuechk['IssueNumber'] + '] MATCH: ' + clocation + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
                                                     manual_arclist.append({"ComicLocation":   clocation,
                                                                            "ComicID":         v[i]['WatchValues']['ComicID'],
                                                                            "IssueID":         v[i]['ArcValues']['IssueID'],
