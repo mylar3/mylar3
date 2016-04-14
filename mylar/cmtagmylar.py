@@ -165,14 +165,21 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             logger.info(module + ' ' + tagdisp + ' meta-tagging processing started.')
 
         currentScriptName = [sys.executable, comictagger_cmd]
-        logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
-            # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = currentScriptName + f_tagoptions
 
-            # use subprocess to run the command and capture output
-        logger.fdebug(module + ' Executing command: ' +str(script_cmd))
+        if initial_ctrun:
+            logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + str(f_tagoptions))
+            script_cmdlog = script_cmd
+
+        else:
+            logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(f_tagoptions)))
+            # generate a safe command line string to execute the script and provide all the parameters
+            script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(script_cmd))
+        
+        logger.fdebug(module + ' Executing command: ' +str(script_cmdlog))
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
         try:
+            # use subprocess to run the command and capture output
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out, err = p.communicate()
             #logger.info(out)
@@ -214,8 +221,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp + ' [' + filepath + ']')
                 i+=1
         except OSError, e:
-            #Cannot find The Walking Dead 150 (2016) (Digital) (Zone-Empire).cbr
-            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + str(script_cmd))
+            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(script_cmd)))
             return "fail"
 
         if mylar.CBR2CBZ_ONLY and initial_ctrun == False:
