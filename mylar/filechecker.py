@@ -1090,13 +1090,13 @@ def setperms(path, dir=False):
                     from pwd import getpwnam
                     chowner = getpwnam(mylar.CHOWNER)[2]
                 else:
-                    chowner = mylar.CHOWNER
+                    chowner = int(mylar.CHOWNER)
 
                 if not mylar.CHGROUP.isdigit():
                     from grp import getgrnam
                     chgroup = getgrnam(mylar.CHGROUP)[2]
                 else:
-                    chgroup = mylar.CHGROUP
+                    chgroup = int(mylar.CHGROUP)
 
                 if dir:
                     permission = int(mylar.CHMOD_DIR, 8)
