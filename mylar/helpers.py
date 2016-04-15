@@ -499,6 +499,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             issueyear = issuedate[:4]
             month = issuedate[5:7].replace('-', '').strip()
             month_name = fullmonth(month)
+            if month_names is None:
+                month_name = 'None'
             logger.fdebug('Issue Year : ' + str(issueyear))
             logger.fdebug('Publisher: ' + str(publisher))
             logger.fdebug('Series: ' + str(series))
@@ -1135,23 +1137,39 @@ def latestdate_fix():
 
 def upgrade_dynamic():
     import db, logger
-    dynamic_list = []
+    dynamic_comiclist = []
     myDB = db.DBConnection()
+    #update the comicdb to include the Dynamic Names (and any futher changes as required)
     clist = myDB.select('SELECT * FROM Comics')
     for cl in clist:
         cl_d = mylar.filechecker.FileChecker(watchcomic=cl['ComicName'])
         cl_dyninfo = cl_d.dynamic_replace(cl['ComicName'])
-        dynamic_list.append({'DynamicComicName': re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip(),
+        dynamic_comiclist.append({'DynamicComicName': re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip(),
                              'ComicID':          cl['ComicID']})
 
-    if len(dynamic_list) > 0:
-        for dl in dynamic_list:
+    if len(dynamic_comiclist) > 0:
+        for dl in dynamic_comiclist:
             CtrlVal = {"ComicID": dl['ComicID']}
             newVal = {"DynamicComicName": dl['DynamicComicName']}
             myDB.upsert("Comics", newVal, CtrlVal)
 
-    logger.info('Finshed updating ' + str(len(dynamic_list)) + ' entries within the db.')
-    mylar.DYNAMIC_UPDATE = 2
+    #update the readinglistdb to include the Dynamic Names (and any futher changes as required)
+    dynamic_storylist = []
+    rlist = myDB.select('SELECT * FROM readinglist WHERE StoryArcID is not NULL')
+    for rl in rlist:
+        rl_d = mylar.filechecker.FileChecker(watchcomic=rl['ComicName'])
+        rl_dyninfo = cl_d.dynamic_replace(rl['ComicName'])
+        dynamic_storylist.append({'DynamicComicName': re.sub('[\|\s]','', rl_dyninfo['mod_seriesname'].lower()).strip(),
+                                  'IssueArcID':          rl['IssueArcID']})
+
+    if len(dynamic_storylist) > 0:
+        for ds in dynamic_storylist:
+            CtrlVal = {"IssueArcID": ds['IssueArcID']}
+            newVal = {"DynamicComicName": ds['DynamicComicName']}
+            myDB.upsert("readinglist", newVal, CtrlVal)   
+
+    logger.info('Finshed updating ' + str(len(dynamic_comiclist)) + ' / ' + str(len(dynamic_storylist)) + ' entries within the db.')
+    mylar.DYNAMIC_UPDATE = 3
     mylar.config_write()
     return
 

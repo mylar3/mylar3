@@ -2,7 +2,7 @@
 <%!
         import os
         import mylar
-	from mylar.helpers import checked
+	from mylar.helpers import checked, listLibrary
 %>
 
 <%def name="headerIncludes()">
@@ -70,6 +70,9 @@
 			</tr>
 		</thead>
 		<tbody>
+                <%
+                     cids = listLibrary()
+                %>
 		%for item in readlist:
                         <%
                                 if item['Status'] == 'Skipped':
@@ -92,11 +95,25 @@
                                         grade = 'X'
                                 else:
                                         grade = 'Z'
+
+                                if item['ComicID'] in cids:
+                                        haveit = cids[item['ComicID']]
+                                else:
+                                        haveit = "No"
+
                         %>
 
                          <tr id="${item['ReadingOrder']}" class="grade${grade}">
                                 <td id="readingorder">${item['ReadingOrder']}</td>
-                                <td id="comicname" title="${item['IssueName']}">${item['ComicName']} (${item['SeriesYear']})</td>
+                                <td id="comicname" title="${item['IssueName']}">
+                                %if haveit == "No":
+                                     ${item['ComicName']} (${item['SeriesYear']})
+                                %else:
+                                    <a href="comicDetails?ComicID=${haveit}">${item['ComicName']} (${item['SeriesYear']})</a>
+
+                                %endif
+                                </td>
+
                                 <td id="issue">${item['IssueNumber']}</td>
                                 <% 
                                     try:

@@ -446,9 +446,28 @@ class PostProcessor(object):
                 #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
                 logger.fdebug(module + ' Now Checking if the issue also resides in one of the storyarc\'s that I am watching.')
                 for fl in filelist['comiclist']:
-                    mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
-                    arc_series = myDB.select("SELECT * FROM readinglist WHERE ComicName LIKE?", [fl['series_name']]) # by StoryArcID")
+                    #mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
+                    #arc_series = myDB.select("SELECT * FROM readinglist WHERE ComicName LIKE?", [fl['series_name']]) # by StoryArcID")
                     manual_arclist = []
+
+                    as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
+                    as_dinfo = as_d.dynamic_replace(fl['series_name'])
+                    mod_seriesname = as_dinfo['mod_seriesname']
+                    arcloopchk = []
+                    for x in alt_list:
+                        cname = x['AS_DyComicName']
+                        for ab in x['AS_Alt']:
+                            if re.sub('[\|\s]', '', mod_seriesname.lower()).strip() in re.sub('[\|\s]', '', ab.lower()).strip():
+                                if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in arcloopchk):
+                                    arcloopchk.append(re.sub('[\|\s]', '', cname.lower()))
+
+                    #make sure we add back in the original parsed filename here.
+                    if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in arcloopchk):
+                        arcloopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
+
+                    tmpsql = "SELECT * FROM readinglist WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(arcloopchk)))
+                    arc_series = myDB.select(tmpsql, tuple(arcloopchk))
+
                     if arc_series is None:
                         logger.error(module + ' No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?')
                         return
@@ -456,25 +475,26 @@ class PostProcessor(object):
                         arcvals = []
                         for av in arc_series:
                             arcvals.append({"ComicName":       av['ComicName'],
-                                            "ArcValues":       {"StoryArc":        av['StoryArc'],
-                                                                "StoryArcID":      av['StoryArcID'],
-                                                                "IssueArcID":      av['IssueArcID'],
-                                                                "ComicName":       av['ComicName'],
-                                                                "ComicPublisher":  av['IssuePublisher'],
-                                                                "IssueID":         av['IssueID'],
-                                                                "IssueNumber":     av['IssueNumber'],
-                                                                "IssueYear":       av['IssueYear'],   #for some reason this is empty 
-                                                                "ReadingOrder":    av['ReadingOrder'],
-                                                                "IssueDate":       av['IssueDate'],
-                                                                "Status":          av['Status'],
-                                                                "Location":        av['Location']},
-                                            "WatchValues":     {"SeriesYear":   av['SeriesYear'],
-                                                                "LatestDate":   av['IssueDate'],
-                                                                "ComicVersion": 'v' + str(av['SeriesYear']),
-                                                                "Publisher":    av['IssuePublisher'],
-                                                                "Total":        av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
-                                                                "ComicID":      av['ComicID'],
-                                                                "IsArc":        True}
+                                            "ArcValues":       {"StoryArc":         av['StoryArc'],
+                                                                "StoryArcID":       av['StoryArcID'],
+                                                                "IssueArcID":       av['IssueArcID'],
+                                                                "ComicName":        av['ComicName'],
+                                                                "DynamicComicName": av['DynamicComicName'],
+                                                                "ComicPublisher":   av['IssuePublisher'],
+                                                                "IssueID":          av['IssueID'],
+                                                                "IssueNumber":      av['IssueNumber'],
+                                                                "IssueYear":        av['IssueYear'],   #for some reason this is empty 
+                                                                "ReadingOrder":     av['ReadingOrder'],
+                                                                "IssueDate":        av['IssueDate'],
+                                                                "Status":           av['Status'],
+                                                                "Location":         av['Location']},
+                                            "WatchValues":     {"SeriesYear":       av['SeriesYear'],
+                                                                "LatestDate":       av['IssueDate'],
+                                                                "ComicVersion":     'v' + str(av['SeriesYear']),
+                                                                "Publisher":        av['IssuePublisher'],
+                                                                "Total":            av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
+                                                                "ComicID":          av['ComicID'],
+                                                                "IsArc":            True}
                                             })
 
                         ccnt=0
@@ -619,6 +639,7 @@ class PostProcessor(object):
                             grdst = storyarcd
 
                         #tag the meta.
+                        metaresponse = None
                         if mylar.ENABLE_META:
                             logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                             try:
@@ -676,10 +697,15 @@ class PostProcessor(object):
                         grab_dst = os.path.join(grdst, dfilename)
 
                         logger.fdebug(module + ' Destination Path : ' + grab_dst)
-                        grab_src = os.path.join(self.nzb_folder, ofilename)
+                        if metaresponse:
+                            src_location = odir
+                        else:
+                            src_location = self.nzb_folder
+
+                        grab_src = os.path.join(src_location, ofilename)
                         logger.fdebug(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + ' ' + mylar.FILE_OPTS + 'ing ' + str(ofilename) + ' into directory : ' + str(grab_dst))
+                        logger.info(module + '[' + mylar.FILE_OPTS + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
                         try:
                             self.fileop(grab_src, grab_dst)
                         except (OSError, IOError):
@@ -865,6 +891,7 @@ class PostProcessor(object):
 
                             issueid = arcdata['IssueID']
                         #tag the meta.
+                        metaresponse = None
                         if mylar.ENABLE_META:
                             self._log("Metatagging enabled - proceeding...")
                             try:
@@ -925,11 +952,16 @@ class PostProcessor(object):
                         self._log("Destination Path : " + grab_dst)
 
                         logger.info(module + ' Destination Path : ' + grab_dst)
-                        grab_src = os.path.join(self.nzb_folder, ofilename)
+                        if metaresponse:
+                            src_location = odir
+                        else:
+                            src_location = self.nzb_folder
+
+                        grab_src = os.path.join(src_location, ofilename)
                         self._log("Source Path : " + grab_src)
                         logger.info(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + ' ' + mylar.FILE_OPTS + 'ing ' + str(ofilename) + ' into directory : ' + str(grab_dst))
+                        logger.info(module + '[' + mylar.FILE_OPTS + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
 
                         try:
                             self.fileop(grab_src, grab_dst)
@@ -941,14 +973,26 @@ class PostProcessor(object):
                         #tidyup old path
                         if mylar.FILE_OPTS == 'move':
                             try:
-                                shutil.rmtree(self.nzb_folder)
+                                #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
+                                if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'):
+                                    tmp_folder = self.nzb_folder[:-1]
+                                else:
+                                    tmp_folder = self.nzb_folder
+
+                                if os.path.isdir(src_location) and odir != tmp_folder:
+                                    if not os.listdir(src_location):
+                                        shutil.rmtree(src_location)
+                                        logger.debug(module + ' Removed temporary directory : ' + src_location)
+                                        self._log("Removed temporary directory : " + src_location)
+                                    if not os.listdir(self.nzb_folder):
+                                        shutil.rmtree(self.nzb_folder)
+                                        logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
+                                        self._log("Removed temporary directory : " + self.nzb_folder)
                             except (OSError, IOError):
                                 self._log("Failed to remove temporary directory.")
                                 logger.debug(module + ' Failed to remove temporary directory - check directory and manually re-run.')
                                 return
 
-                            logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
-                            self._log("Removed temporary directory : " + self.nzb_folder)
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
@@ -1285,6 +1329,8 @@ class PostProcessor(object):
             logger.fdebug(module + ' Issue Year : ' + str(issueyear))
             month = issuenzb['IssueDate'][5:7].replace('-', '').strip()
             month_name = helpers.fullmonth(month)
+            if month_name is None:
+                month_name = 'None'
 #            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher)
@@ -1632,8 +1678,12 @@ class PostProcessor(object):
                 if mylar.FILE_OPTS == 'move':
                     #tidyup old path
                     try:
-                        if os.path.isdir(odir) and odir != self.nzb_folder:
-                            logger.fdebug(module + ' self.nzb_folder: ' + self.nzb_folder)
+                        #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
+                        if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'): 
+                            tmp_folder = self.nzb_folder[:-1]
+                        else:
+                            tmp_folder = self.nzb_folder
+                        if os.path.isdir(odir) and odir != tmp_folder:
                             # check to see if the directory is empty or not.
                             if not os.listdir(odir):
                                 logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)

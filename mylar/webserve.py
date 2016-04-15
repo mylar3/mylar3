@@ -1258,6 +1258,9 @@ class WebInterface(object):
             foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=None, IssueDate=IssueDate, StoreDate=StoreDate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " #" + ComicIssue + " (" + str(ComicYear) + ")")
+                controlValueDict = {"IssueArcID": IssueArcID}
+                newStatus = {"Status": "Snatched"}
+            myDB.upsert("readinglist", newStatus, controlValueDict)
             #raise cherrypy.HTTPRedirect("readlist")
             return foundcom
 
@@ -2453,6 +2456,35 @@ class WebInterface(object):
         if ArcWatch is None:
             logger.info("No Story Arcs to search")
         else:
+            #cycle through the story arcs here for matches on the watchlist
+            arcdir = helpers.filesafe(ArcWatch[0]['StoryArc'])
+            if mylar.REPLACE_SPACES:
+                arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
+            if mylar.STORYARCDIR:
+                dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
+            else:
+                dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
+
+#            if sarc_title != arc['StoryArc']:
+
+            if not os.path.isdir(dstloc):
+                logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
+                checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return
+
+            #get the list of files within the storyarc directory, if any.
+            fchk = filechecker.FileChecker(dir=dstloc, watchcomic=None, Publisher=None, sarc='true', justparse=True)
+            filechk = fchk.listFiles()
+            fccnt = filechk['comiccount']
+            logger.fdebug('[STORY ARC DIRECTORY] ' + str(fccnt) + ' files exist within this directory.')
+            if fccnt > 0:
+                filelist = filechk['comiclist']
+            else:
+                filelist = None
+
+            logger.info(filechk)
 
             arc_match = []
             wantedlist = []
@@ -2460,38 +2492,20 @@ class WebInterface(object):
             sarc_title = None
             showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show 
             for arc in ArcWatch:
-                #cycle through the story arcs here for matches on the watchlist
-                arcdir = helpers.filesafe(arc['StoryArc'])
-                if mylar.REPLACE_SPACES:
-                    arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
-                if mylar.STORYARCDIR:
-                    dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
-                else:
-                    dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
-
-#               if sarc_title != arc['StoryArc']:
-
-                if not os.path.isdir(dstloc):
-                    logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
-                    checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
-                    if not checkdirectory:
-                        logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                        return
-
                 sarc_title = arc['StoryArc']
-                logger.fdebug("arc: " + arc['StoryArc'] + " : " + arc['ComicName'] + " : " + arc['IssueNumber'])
+                logger.fdebug('[' + arc['StoryArc'] + '] ' + arc['ComicName'] + ' : ' + arc['IssueNumber'])
 
                 matcheroso = "no"
-                mod_seriesname = '%' + re.sub(' ', '%', arc['ComicName']).strip() + '%'
-                comics = myDB.select('SELECT * FROM comics Where ComicName LIKE ?', [mod_seriesname])
+                #fc = filechecker.FileChecker(watchcomic=arc['ComicName'])
+                #modi_names = fc.dynamic_replace(arc['ComicName'])
+                #mod_arc = re.sub('[\|\s]', '', modi_names['mod_watchcomic'].lower()).strip()   #is from the arc db
+
+                comics = myDB.select("SELECT * FROM comics WHERE DynamicComicName IN (?) COLLATE NOCASE", [arc['DynamicComicName']])
 
                 for comic in comics:
-                    fc = filechecker.FileChecker(watchcomic=arc['ComicName'])
-                    modi_names = fc.dynamic_replace(comic['ComicName'])
-                    mod_arc = modi_names['mod_watchcomic']   #is from the arc db
-                    mod_watch = modi_names['mod_seriesname'] #is from the comics db
+                    mod_watch = comic['DynamicComicName'] #is from the comics db
 
-                    if mod_watch == mod_arc:# and arc['SeriesYear'] == comic['ComicYear']:
+                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == re.sub('[\|\s]', '', mod_arc.lower()).strip():
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
@@ -2541,32 +2555,33 @@ class WebInterface(object):
                          "IssueYear":      arc['IssueYear']})
 
                     logger.fdebug('destination location set to  : ' + dstloc)
-
-                    fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
-                    filechk = fchk.listFiles()
+                    
+                    #fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
+                    #filechk = fchk.listFiles()
                     fn = 0
-                    fccnt = filechk['comiccount']
-                    logger.fdebug('files in directory: ' + str(fccnt))
-                    for tmpfc in filechk['comiclist']:
-                        haveissue = "no"
-                        issuedupe = "no"
-                        temploc = tmpfc['issue_number'].replace('_', ' ')
-                        fcdigit = helpers.issuedigits(arc['IssueNumber'])
-                        int_iss = helpers.issuedigits(temploc)
-                        if int_iss == fcdigit:
-                            logger.fdebug(arc['ComicName'] + ' Issue #' + arc['IssueNumber'] + ' already present in StoryArc directory.')
-                            #update readinglist db to reflect status.
-                            if mylar.READ2FILENAME:
-                                readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
-                                dfilename = str(readorder) + "-" + tmpfc['comicfilename']
-                            else:
-                                dfilename = tmpfc['comicfilename']
+                    valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', mod_arc.lower()).strip()]
+                    logger.info('valids: ' + str(valids))
+                    if len(valids) > 0:
+                        for tmpfc in filelist:
+                            haveissue = "no"
+                            issuedupe = "no"
+                            temploc = tmpfc['issue_number'].replace('_', ' ')
+                            fcdigit = helpers.issuedigits(arc['IssueNumber'])
+                            int_iss = helpers.issuedigits(temploc)
+                            if int_iss == fcdigit:
+                                logger.fdebug(arc['ComicName'] + ' Issue #' + arc['IssueNumber'] + ' already present in StoryArc directory.')
+                                #update readinglist db to reflect status.
+                                if mylar.READ2FILENAME:
+                                    readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
+                                    dfilename = str(readorder) + "-" + tmpfc['comicfilename']
+                                else:
+                                    dfilename = tmpfc['comicfilename']
 
-                            newVal = {"Status": "Downloaded",
-                                      "Location": dfilename} #tmpfc['ComicFilename']}
-                            ctrlVal = {"IssueArcID":  arc['IssueArcID']}
-                            myDB.upsert("readinglist", newVal, ctrlVal)
-                        fn+=1
+                                newVal = {"Status": "Downloaded",
+                                          "Location": dfilename} #tmpfc['ComicFilename']}
+                                ctrlVal = {"IssueArcID":  arc['IssueArcID']}
+                                myDB.upsert("readinglist", newVal, ctrlVal)
+                            fn+=1
 
             logger.fdebug("we matched on " + str(len(arc_match)) + " issues")
             for m_arc in arc_match:
