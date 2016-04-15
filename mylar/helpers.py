@@ -499,7 +499,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             issueyear = issuedate[:4]
             month = issuedate[5:7].replace('-', '').strip()
             month_name = fullmonth(month)
-            if month_names is None:
+            if month_name is None:
                 month_name = 'None'
             logger.fdebug('Issue Year : ' + str(issueyear))
             logger.fdebug('Publisher: ' + str(publisher))
