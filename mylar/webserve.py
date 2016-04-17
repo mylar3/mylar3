@@ -670,7 +670,7 @@ class WebInterface(object):
             PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder, queue=queue)
             if nzb_name == 'Manual Run' or nzb_name == 'Manual+Run':
                 threading.Thread(target=PostProcess.Process).start()
-                raise cherrypy.HTTPRedirect("home")
+                #raise cherrypy.HTTPRedirect("home")
             else:
                 thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")
                 thread_.start()
@@ -2565,7 +2565,7 @@ class WebInterface(object):
                     #fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
                     #filechk = fchk.listFiles()
                     fn = 0
-                    valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', mod_arc.lower()).strip()]
+                    valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
                     logger.info('valids: ' + str(valids))
                     if len(valids) > 0:
                         for tmpfc in filelist:
@@ -4279,7 +4279,6 @@ class WebInterface(object):
         mylar.SIGNAL = 'update'
         message = 'Updating...<br/><small>Main screen will appear in 60s</small>'
         return serve_template(templatename="shutdown.html", title="Updating", message=message, timer=30)
-        return page
     update.exposed = True
 
     def getInfo(self, ComicID=None, IssueID=None):
