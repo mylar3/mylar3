@@ -434,7 +434,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 cv_cid = None
 
             if issuevolume is None:
-                logger.fdebug('issue volume is none : ' + str(issuevolume))
+                logger.fdebug('issue volume is : ' + str(issuevolume))
                 if i['parsedinfo']['series_volume'] is None:
                     issuevolume = None
                 else:
@@ -460,7 +460,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 "comicname": i['parsedinfo']['series_name'],
                 "dynamicname": is_dyninfo['mod_seriesname'].lower(),
                 "comicyear": i['parsedinfo']['issue_year'],
-                "issuenumber": issuenumber,
+                "issuenumber": issuenumber, #issuenumber,
                 "volume": issuevolume,
                 "comfilename": comfilename,
                 "comlocation": comlocation.decode(mylar.SYS_ENCODING)
@@ -628,6 +628,15 @@ def scanLibrary(scan=None, queue=None):
                 
             if int(soma['import_count']) > 0:
                 for ss in soma['import_by_comicids']:
+                    if type(ss['issuenumber']) == str:
+                        try:
+                            theissuenumber = ss['issuenumber'].decode('utf-8')
+                        except:
+                            theissuenumber = ss['issuenumber'].decode('windows-1252').encode('utf-8')#mylar.SYS_ENCODING)
+                            theissuenumber = unicode(theissuenumber, mylar.SYS_ENCODING)
+                    else:
+                        theissuenumber = ss['issuenumber']
+
                     nspace_dynamicname = re.sub('[\|\s]', '', ss['dynamicname'].lower()).strip()                   
                     controlValue = {"impID":        ss['impid']}
                     newValue = {"ComicYear":        ss['comicyear'],
@@ -638,7 +647,7 @@ def scanLibrary(scan=None, queue=None):
                                 "ComicID":          ss['comicid'],  #if it's been scanned in for cvinfo, this will be the CID - otherwise it's None
                                 "IssueID":          None,
                                 "Volume":           ss['volume'],
-                                "IssueNumber":      ss['issuenumber'].decode('utf-8'),
+                                "IssueNumber":      theissuenumber,
                                 "ComicFilename":    ss['comfilename'].decode('utf-8'), #ss['comfilename'].encode('utf-8'),
                                 "ComicLocation":    ss['comlocation'],
                                 "ImportDate":       helpers.today(),

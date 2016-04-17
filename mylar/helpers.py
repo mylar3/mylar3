@@ -917,99 +917,101 @@ def issuedigits(issnum):
         #except:
         #    logger.fdebug('Unicode character detected: ' + issnum)
         #else: issnum.decode(mylar.SYS_ENCODING).decode('utf-8')
-
         if type(issnum) == str:
             try:
                 issnum = issnum.decode('utf-8')
             except:
                 issnum = issnum.decode('windows-1252')
 
-        if u'\xbd' in issnum:
-            int_issnum = .5 * 1000
-        elif u'\xbc' in issnum:
-            int_issnum = .25 * 1000
-        elif u'\xbe' in issnum:
-            int_issnum = .75 * 1000
-        elif u'\u221e' in issnum:
-            #issnum = utf-8 will encode the infinity symbol without any help
-            int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
-        elif '.' in issnum or ',' in issnum:
-            #logger.fdebug('decimal detected.')
-            if ',' in issnum: issnum = re.sub(',', '.', issnum)
-            issst = str(issnum).find('.')
-            if issst == 0:
-                issb4dec = 0
-            else:
-                issb4dec = str(issnum)[:issst]
-            decis = str(issnum)[issst +1:]
-            if len(decis) == 1:
-                decisval = int(decis) * 10
-                issaftdec = str(decisval)
-            elif len(decis) == 2:
-                decisval = int(decis)
-                issaftdec = str(decisval)
-            else:
-                decisval = decis
-                issaftdec = str(decisval)
-            #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
-            if issaftdec[-1:] == '.':
-                issaftdec = issaftdec[:-1]
-            try:
-                int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
-            except ValueError:
-                #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
-                int_issnum = 999999999999999
+        if type(issnum) == unicode:
+            vals = {u'\xbd':.5,u'\xbc':.25,u'\xbe':.75,u'\u221e':9999999999,u'\xe2':9999999999}
         else:
-            try:
-                x = float(issnum)
-                #validity check
-                if x < 0:
-                    #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
-                    int_issnum = (int(x) *1000) - 1
-                else: raise ValueError
-            except ValueError, e:
-                #this will account for any alpha in a issue#, so long as it doesn't have decimals.
-                x = 0
-                tstord = None
-                issno = None
-                invchk = "false"
-                while (x < len(issnum)):
-                    if issnum[x].isalpha():
-                    #take first occurance of alpha in string and carry it through
-                        tstord = issnum[x:].rstrip()
-                        tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
-                        issno = issnum[:x].rstrip()
-                        issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
-                        try:
-                            isschk = float(issno)
-                        except ValueError, e:
-                            if len(issnum) == 1 and issnum.isalpha():
-                                break
-                            logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
-                            issno = None
-                            tstord = None
-                            invchk = "true"
-                        break
-                    x+=1
-                if tstord is not None and issno is not None:
-                    a = 0
-                    ordtot = 0
-                    if len(issnum) == 1 and issnum.isalpha():
-                        int_issnum = ord(tstord.lower())
-                    else:
-                        while (a < len(tstord)):
-                            try:
-                                ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                            except ValueError:
-                                break
-                            a+=1
-                        int_issnum = (int(issno) * 1000) + ordtot
-                elif invchk == "true":
-                    logger.fdebug('this does not have an issue # that I can parse properly.')
-                    int_issnum = 999999999999999
+            vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\u221e':9999999999,'\xe2':9999999999}
+
+        x = [vals[key] for key in vals if key in issnum]
+
+        if x:
+            logger.info('Unicode Issue present - adjusting.')
+            int_issnum = x[0] * 1000
+            logger.info('int_issnum: ' + str(int_issnum))
+        else:
+            if any(['.' in issnum, ',' in issnum]):
+                #logger.fdebug('decimal detected.')
+                if ',' in issnum: issnum = re.sub(',', '.', issnum)
+                issst = str(issnum).find('.')
+                if issst == 0:
+                    issb4dec = 0
                 else:
-                    logger.error(str(issnum) + 'this has an alpha-numeric in the issue # which I cannot account for.')
+                    issb4dec = str(issnum)[:issst]
+                decis = str(issnum)[issst +1:]
+                if len(decis) == 1:
+                    decisval = int(decis) * 10
+                    issaftdec = str(decisval)
+                elif len(decis) == 2:
+                    decisval = int(decis)
+                    issaftdec = str(decisval)
+                else:
+                    decisval = decis
+                    issaftdec = str(decisval)
+                #if there's a trailing decimal (ie. 1.50.) and it's either intentional or not, blow it away.
+                if issaftdec[-1:] == '.':
+                    issaftdec = issaftdec[:-1]
+                try:
+                    int_issnum = (int(issb4dec) * 1000) + (int(issaftdec) * 10)
+                except ValueError:
+                    #logger.fdebug('This has no issue # for me to get - Either a Graphic Novel or one-shot.')
                     int_issnum = 999999999999999
+            else:
+                try:
+                    x = float(issnum)
+                    #validity check
+                    if x < 0:
+                        #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
+                        int_issnum = (int(x) *1000) - 1
+                    else: raise ValueError
+                except ValueError, e:
+                    #this will account for any alpha in a issue#, so long as it doesn't have decimals.
+                    x = 0
+                    tstord = None
+                    issno = None
+                    invchk = "false"
+                    while (x < len(issnum)):
+                        if issnum[x].isalpha():
+                        #take first occurance of alpha in string and carry it through
+                            tstord = issnum[x:].rstrip()
+                            tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
+                            issno = issnum[:x].rstrip()
+                            issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
+                            try:
+                                isschk = float(issno)
+                            except ValueError, e:
+                                if len(issnum) == 1 and issnum.isalpha():
+                                    break
+                                logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
+                                issno = None
+                                tstord = None
+                                invchk = "true"
+                            break
+                        x+=1
+                    if tstord is not None and issno is not None:
+                        a = 0
+                        ordtot = 0
+                        if len(issnum) == 1 and issnum.isalpha():
+                            int_issnum = ord(tstord.lower())
+                        else:
+                            while (a < len(tstord)):
+                                try:
+                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
+                                except ValueError:
+                                    break
+                                a+=1
+                            int_issnum = (int(issno) * 1000) + ordtot
+                    elif invchk == "true":
+                        logger.fdebug('this does not have an issue # that I can parse properly.')
+                        int_issnum = 999999999999999
+                    else:
+                        logger.error(str(issnum) + 'this has an alpha-numeric in the issue # which I cannot account for.')
+                        int_issnum = 999999999999999
     return int_issnum
 
 

@@ -442,6 +442,10 @@ class WebInterface(object):
                 except IndexError:
                     break
                 comicname = arcval['ComicName']
+                st_d = mylar.filechecker.FileChecker(watchcomic=comicname)
+                st_dyninfo = st_d.dynamic_replace(comicname)
+                dynamic_name = re.sub('[\|\s]','', st_dyninfo['mod_seriesname'].lower()).strip()
+
                 issname = arcval['Issue_Name']
                 issid = str(arcval['IssueID'])
                 comicid = str(arcval['ComicID'])
@@ -484,6 +488,7 @@ class WebInterface(object):
                                   "StoryArcID":         storyarcid,
                                   "IssueArcID":         st_issueid,
                                   "ComicName":          comicname,
+                                  "DynamicName":        dynamic_name,
                                   "IssueName":          issname,
                                   "Issue_Number":       issnum,
                                   "IssueDate":          issdate,
@@ -510,23 +515,24 @@ class WebInterface(object):
                         issuePublisher = cid['Publisher']
                         break
 
-                newCtrl = {"IssueArcID":      AD['IssueArcID'],
-                           "StoryArcID":      AD['StoryArcID']}
-                newVals = {"ComicID":         AD['ComicID'],
-                           "IssueID":         AD['IssueID'],
-                           "StoryArc":        storyarcname,
-                           "ComicName":       AD['ComicName'],
-                           "IssueName":       IssueName,
-                           "IssueNumber":     AD['Issue_Number'],
-                           "Publisher":       storyarcpublisher,
-                           "TotalIssues":     storyarcissues,
-                           "ReadingOrder":    AD['ReadingOrder'],
-                           "IssueDate":       AD['IssueDate'],
-                           "StoreDate":       AD['ReleaseDate'],
-                           "SeriesYear":      seriesYear,
-                           "IssuePublisher":  issuePublisher,
-                           "CV_ArcID":        arcid,
-                           "Int_IssueNumber": AD['Int_IssueNumber']}
+                newCtrl = {"IssueArcID":        AD['IssueArcID'],
+                           "StoryArcID":        AD['StoryArcID']}
+                newVals = {"ComicID":           AD['ComicID'],
+                           "IssueID":           AD['IssueID'],
+                           "StoryArc":          storyarcname,
+                           "ComicName":         AD['ComicName'],
+                           "DynamicComicName":  AD['DynamicName'],
+                           "IssueName":         IssueName,
+                           "IssueNumber":       AD['Issue_Number'],
+                           "Publisher":         storyarcpublisher,
+                           "TotalIssues":       storyarcissues,
+                           "ReadingOrder":      AD['ReadingOrder'],
+                           "IssueDate":         AD['IssueDate'],
+                           "StoreDate":         AD['ReleaseDate'],
+                           "SeriesYear":        seriesYear,
+                           "IssuePublisher":    issuePublisher,
+                           "CV_ArcID":          arcid,
+                           "Int_IssueNumber":   AD['Int_IssueNumber']}
 
                 myDB.upsert("readinglist", newVals, newCtrl)
 
@@ -1372,13 +1378,13 @@ class WebInterface(object):
 
             controlValueDict = {"IssueID": IssueID}
             if mode == 'failed' and mylar.FAILED_DOWNLOAD_HANDLING:
-                logger.info(u"Marking " + ComicName + " issue # " + str(IssueNumber) + " as Failed...")
+                logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
                 newValueDict = {"Status": "Failed"}
                 myDB.upsert("failed", newValueDict, controlValueDict)
                 yield cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
                 self.failed_handling(ComicID=ComicID, IssueID=IssueID)
             else:
-                logger.info(u"Marking " + ComicName + " issue # " + str(IssueNumber) + " as Skipped...")
+                logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Skipped...")
                 newValueDict = {"Status": "Skipped"}
 
             if annchk == 'yes':
@@ -1394,7 +1400,7 @@ class WebInterface(object):
                 thefuture = myDB.selectone('SELECT * FROM future WHERE ComicID=?', [ComicID]).fetchone()
             else:
                 logger.info('FutureID: ' + str(FutureID))
-                logger.info('no comicid - ComicName: ' + str(ComicName) + ' -- Issue: #' + str(Issue))
+                logger.info('no comicid - ComicName: ' + str(ComicName) + ' -- Issue: #' + Issue)
                 thefuture = myDB.selectone('SELECT * FROM future WHERE FutureID=?', [FutureID]).fetchone()
             if thefuture is None:
                 logger.info('Cannot find the corresponding issue in the Futures List for some reason. This is probably an Error.')
@@ -2505,7 +2511,7 @@ class WebInterface(object):
                 for comic in comics:
                     mod_watch = comic['DynamicComicName'] #is from the comics db
 
-                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == re.sub('[\|\s]', '', mod_arc.lower()).strip():
+                    if re.sub('[\|\s]','', mod_watch.lower()).strip() == re.sub('[\|\s]', '', arc['DynamicComicName'].lower()).strip():
                         logger.fdebug("initial name match - confirming issue # is present in series")
                         if comic['ComicID'][:1] == 'G':
                             # if it's a multi-volume series, it's decimalized - let's get rid of the decimal.
@@ -3233,7 +3239,7 @@ class WebInterface(object):
                     else:
                         comicstoIMP.append(result['ComicLocation'])#.decode(mylar.SYS_ENCODING, 'replace'))
                         getiss = result['IssueNumber']
-                        logger.info('getiss:' + str(getiss))
+                        logger.info('getiss:' + getiss)
                         if 'annual' in getiss.lower():
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
                             if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
@@ -3245,8 +3251,8 @@ class WebInterface(object):
                                     yearRANGE.append(str(result['ComicYear']))
                                     yearTOP = str(result['ComicYear'])
                             getiss_num = helpers.issuedigits(getiss)
-                            miniss_num = helpers.issuedigits(str(minISSUE))
-                            startiss_num = helpers.issuedigits(str(startISSUE))
+                            miniss_num = helpers.issuedigits(minISSUE)
+                            startiss_num = helpers.issuedigits(startISSUE)
                             if int(getiss_num) > int(miniss_num):
                                 #logger.fdebug('Minimum issue now set to : ' + getiss + ' - it was : ' + minISSUE)
                                 minISSUE = getiss
@@ -3266,13 +3272,14 @@ class WebInterface(object):
 
                 #figure out # of issues and the year range allowable
                 logger.info('yearTOP: ' + str(yearTOP))
-                logger.info('minISSUE: ' + str(minISSUE))
+                logger.info('minISSUE: ' + minISSUE)
                 logger.info('yearRANGE: ' + str(yearRANGE))
                 if starttheyear is None:
                     if all([yearTOP != None, yearTOP != 'None']):
                         if int(str(yearTOP)) > 0:
-                            minni = helpers.int_num(minISSUE)
-                            if minni < 1:
+                            minni = helpers.issuedigits(minISSUE)
+                            logger.info(minni)
+                            if minni < 1 or minni > 999999999:
                                 maxyear = int(str(yearTOP))
                             else:
                                 maxyear = int(str(yearTOP)) - (minni / 12)

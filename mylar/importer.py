@@ -599,11 +599,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             moveit.archivefiles(comicid, comlocation, ogcname)
 
     #check for existing files...
-    statbefore = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid, str(latestiss)]).fetchone()
-    logger.fdebug('issue: ' + str(latestiss) + ' status before chk :' + str(statbefore['Status']))
+    statbefore = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    logger.fdebug('issue: ' + latestiss + ' status before chk :' + str(statbefore['Status']))
     updater.forceRescan(comicid)
-    statafter = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid, str(latestiss)]).fetchone()
-    logger.fdebug('issue: ' + str(latestiss) + ' status after chk :' + str(statafter['Status']))
+    statafter = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
+    logger.fdebug('issue: ' + latestiss + ' status after chk :' + str(statafter['Status']))
 
     logger.fdebug('pullupd: ' + str(pullupd))
     logger.fdebug('lastpubdate: ' + str(lastpubdate))
@@ -613,10 +613,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     # do this for only Present comics....
         if mylar.AUTOWANT_UPCOMING and lastpubdate == 'Present' and series_status == 'Active': #and 'Present' in gcdinfo['resultPublished']:
             logger.fdebug('latestissue: #' + str(latestiss))
-            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [comicid, str(latestiss)]).fetchone()
+            chkstats = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
             if chkstats is None:
                 if mylar.ANNUALS_ON:
-                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [comicid, latestiss]).fetchone()
+                    chkstats = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
 
             if chkstats:
                 logger.fdebug('latestissue status: ' + chkstats['Status'])
@@ -669,9 +669,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             logger.info('[FROM THE FUTURE CHECKLIST] Attempting to grab wanted issues for : ' + comic['ComicName'])
             for result in chkresults:
                 for chkit in chkwant:
-                    logger.fdebug('checking ' + str(chkit['IssueNumber']) + ' against ' + str(result['Issue_Number']))
+                    logger.fdebug('checking ' + chkit['IssueNumber'] + ' against ' + result['Issue_Number'])
                     if chkit['IssueNumber'] == result['Issue_Number']:
-                        logger.fdebug('Searching for : ' + str(result['Issue_Number']))
+                        logger.fdebug('Searching for : ' + result['Issue_Number'])
                         logger.fdebug('Status of : ' + str(result['Status']))
                         search.searchforissue(result['IssueID'])
         else: logger.info('No issues marked as wanted for ' + comic['ComicName'])

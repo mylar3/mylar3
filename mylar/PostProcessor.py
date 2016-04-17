@@ -1075,15 +1075,16 @@ class PostProcessor(object):
                     #'dupe_file' - do not write new file as existing file is better quality
                     #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
                     if mylar.DUPLICATE_DUMP:
-                        dupchkit = self.duplicate_process(dupthis)
-                        if dupchkit == False:
-                            logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
-                            self.valreturn.append({"self.log": self.log,
-                                                   "mode": 'stop',
-                                                   "issueid": issueid,
-                                                   "comicid": comicid})
+                        if mylar.DDUMP and not all([mylar.DUPLICATE_DUMP is None, mylar.DUPLICATE_DUMP == '']): 
+                            dupchkit = self.duplicate_process(dupthis)
+                            if dupchkit == False:
+                                logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop',
+                                                       "issueid": issueid,
+                                                       "comicid": comicid})
 
-                            return self.queue.put(self.valreturn)
+                                return self.queue.put(self.valreturn)
  
                 if dupthis[0]['action'] == "write" or dupthis[0]['action'] == 'dupe_src':
                     return self.Process_next(comicid, issueid, issuenumOG)

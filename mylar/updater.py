@@ -12,7 +12,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
-
 import time
 import datetime
 from xml.dom.minidom import parseString
@@ -880,15 +879,15 @@ def forceRescan(ComicID, archive=None, module=None):
                 return
             else:
                 break
-        temploc= tmpfc['JusttheDigits'].replace('_', ' ')
-
+        temploc = tmpfc['JusttheDigits'].replace('_', ' ')
+ 
         temploc = re.sub('[\#\']', '', temploc)
-        logger.fdebug(module + ' temploc: ' + str(temploc))
+        logger.fdebug(module + ' temploc: ' + temploc)
         if 'annual' not in temploc.lower():
             #remove the extension here
             extensions = ('.cbr', '.cbz', '.cb7')
             if temploc.lower().endswith(extensions):
-                logger.fdebug(module + ' Removed extension for issue: ' + str(temploc))
+                logger.fdebug(module + ' Removed extension for issue: ' + temploc)
                 temploc = temploc[:-4]
             fcnew_af = re.findall('[^\()]+', temploc)
             fcnew = shlex.split(fcnew_af[0])
