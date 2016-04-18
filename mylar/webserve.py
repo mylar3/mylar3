@@ -3272,13 +3272,12 @@ class WebInterface(object):
 
                 #figure out # of issues and the year range allowable
                 logger.info('yearTOP: ' + str(yearTOP))
-                logger.info('minISSUE: ' + minISSUE)
                 logger.info('yearRANGE: ' + str(yearRANGE))
                 if starttheyear is None:
                     if all([yearTOP != None, yearTOP != 'None']):
                         if int(str(yearTOP)) > 0:
                             minni = helpers.issuedigits(minISSUE)
-                            logger.info(minni)
+                            #logger.info(minni)
                             if minni < 1 or minni > 999999999:
                                 maxyear = int(str(yearTOP))
                             else:
@@ -3320,7 +3319,6 @@ class WebInterface(object):
                 #we now need to cycle through the results until we get a hit on both dynamicname AND year (~count of issues possibly).
                 logger.fdebug('[' + str(len(sresults)) + '] search results')
                 search_matches = []
-
                 for results in sresults:                
                     rsn = filechecker.FileChecker()
                     rsn_run = rsn.dynamic_replace(results['name'])
