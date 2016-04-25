@@ -123,6 +123,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         if pickfeed != '4':
             payload = None
 
+            logger.info('Feed:' + str(feed))
             try:
                 r = requests.get(feed, params=payload, verify=verify)
             except Exception, e:
@@ -155,6 +156,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 i += 1
         else:
             for entry in feedme['entries']:
+                logger.info(entry)
                 if any([pickfeed == "3", pickfeed == "6"]):
                     tmpsz = feedme.entries[i].enclosures[0]
                     feeddata.append({
@@ -859,11 +861,14 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 logger.warn('[32P] Unable to authenticate using existing RSS Feed given. Make sure that you have provided a CURRENT feed from 32P')
                 return "fail"
         else:
+            logger.info('blah: ' + str(r.status_code))
             return "fail"
 
-    if str(r.status_code) == '403':
+    if site == 'KAT' and any([str(r.status_code) == '403', str(r.status_code) == '404']):
+        logger.warn('Unable to download from KAT [' + str(r.status_code) + ']') 
         #retry with the alternate torrent link.
         url = helpers.torrent_create('KAT', linkit, True)
+        logger.fdebug('Trying alternate url: ' + str(url))
         try:
             r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
 

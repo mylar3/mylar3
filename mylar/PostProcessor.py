@@ -244,8 +244,8 @@ class PostProcessor(object):
                 #write the series/issue/filename to a tuple
                 #when all done, iterate over the tuple until completion...
                 #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
-                fl = filechecker.FileChecker(self.nzb_folder, justparse=True)
-                filelist = fl.listFiles()
+                flc = filechecker.FileChecker(self.nzb_folder, justparse=True)
+                filelist = flc.listFiles()
                 if filelist['comiccount'] == 0: # is None:
                     logger.warn('There were no files located - check the debugging logs if you think this is in error.')
                     return                    

@@ -297,7 +297,7 @@ def GetComicInfo(comicid, dom, safechk=None):
     except:
         comic['Aliases'] = 'None'
 
-    comic['ComicVersion'] = 'noversion'
+    comic['ComicVersion'] = 'None' #noversion'
     #logger.info('comic_desc:' + comic_desc)
     #logger.info('comic_deck:' + comic_deck)
     #logger.info('desdeck: ' + str(desdeck))
@@ -365,7 +365,7 @@ def GetComicInfo(comicid, dom, safechk=None):
             else:
                 i += 1
 
-        if comic['ComicVersion'] == 'noversion':
+        if comic['ComicVersion'] == 'None':
             logger.fdebug('comic[ComicVersion]:' + str(comic['ComicVersion']))
             desdeck -= 1
         else:

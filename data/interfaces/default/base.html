@@ -40,7 +40,7 @@
             </div>
             % elif mylar.CURRENT_VERSION != mylar.LATEST_VERSION and mylar.INSTALL_TYPE != 'win' and mylar.COMMITS_BEHIND > 0:
             <div id="updatebar">
-                A <a href="http://github.com/evilhero/mylar/compare/${mylar.CURRENT_VERSION}...${mylar.LATEST_VERSION}" target="_blank"> newer version</a> is available. You're ${mylar.COMMITS_BEHIND} commits behind. <a href="update">Update</a> or <a href="#" onclick="$('#updatebar').slideUp('slow');">Close</a>
+                A <a href="https://github.com/evilhero/mylar/compare/${mylar.CURRENT_VERSION}...${mylar.LATEST_VERSION}" target="_blank"> newer version</a> is available. You're ${mylar.COMMITS_BEHIND} commits behind. <a href="update">Update</a> or <a href="#" onclick="$('#updatebar').slideUp('slow');">Close</a>
             </div>
 			% endif
 	

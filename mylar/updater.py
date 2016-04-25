@@ -995,8 +995,7 @@ def forceRescan(ComicID, archive=None, module=None):
                                         issuedupe_temp.append(x)
                                         tmphavefiles+=1
                                 issuedupechk = issuedupe_temp
-                                havefiles = tmphavefiles
-                                logger.fdebug(issuedupechk)
+                                havefiles = tmphavefiles + len(annualdupechk)
                                 foundchk = False
                                 break
 
@@ -1131,12 +1130,10 @@ def forceRescan(ComicID, archive=None, module=None):
                                 for x in annualdupechk:
                                     logger.fdebug('Comparing x: ' + x['filename'] + ' to di:' + di['filename'])
                                     if x['filename'] != di['filename']:
-                                        logger.fdebug('Matched.')
                                         annualdupe_temp.append(x)
                                         tmphavefiles+=1
                                 annualdupechk = annualdupe_temp
-                                havefiles = tmphavefiles
-                                logger.fdebug(annualdupechk)
+                                havefiles = tmphavefiles + len(issuedupechk)
                                 foundchk = False
                                 break
 

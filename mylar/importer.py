@@ -338,9 +338,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             comversion = 'None'
         #if comversion is None, remove it so it doesn't populate with 'None'
         if comversion == 'None':
-            chunk_f_f = re.sub('\$VolumeN', '', mylar.FILE_FORMAT)
+            chunk_f_f = re.sub('\$VolumeN', '', mylar.FOLDER_FORMAT)
             chunk_f = re.compile(r'\s+')
-            mylar.FILE_FORMAT = chunk_f.sub(' ', chunk_f_f)
+            mylar.FOLDER_FORMAT = chunk_f.sub('', chunk_f_f)
 
         #do work to generate folder path
 
@@ -353,12 +353,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                   '$VolumeN':       comversion,
                   '$Annual':        'Annual'
                   }
-
-
-
-        #print mylar.FOLDER_FORMAT
-        #print 'working dir:'
-        #print helpers.replace_all(mylar.FOLDER_FORMAT, values)
 
         if mylar.FOLDER_FORMAT == '':
             comlocation = os.path.join(mylar.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
@@ -593,10 +587,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         if mylar.IMP_MOVE:
             logger.info('Mass import - Move files')
-            moveit.movefiles(comicid, comlocation, ogcname)
+            moveit.movefiles(comicid, comlocation, imported)
         else:
             logger.info('Mass import - Moving not Enabled. Setting Archived Status for import.')
-            moveit.archivefiles(comicid, comlocation, ogcname)
+            moveit.archivefiles(comicid, comlocation, imported)
 
     #check for existing files...
     statbefore = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, helpers.issuedigits(latestiss)]).fetchone()
@@ -688,16 +682,21 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     if imported:
         logger.info('Successfully imported : ' + comic['ComicName'])
-        #now that it's moved / renamed ... we remove it from importResults or mark as completed.
-
-        results = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
-        if results is not None:
-            for result in results:
-                controlValue = {"ComicName":   ogcname}
-                newValue = {"Status":           "Imported",
-                            "SRID":             result['SRID'],
-                            "ComicID":          comicid}
-                myDB.upsert("importresults", newValue, controlValue)
+#        if imported['Volume'] is None or imported['Volume'] == 'None':
+#            results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[imported['DynamicName']])
+#        else:
+#            if not imported['Volume'].lower().startswith('v'):
+#                volume = 'v' + str(imported['Volume'])
+#            results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[imported['DynamicName'],imported['Volume']])
+#
+#        if results is not None:
+#            for result in results:
+#                controlValue = {"DynamicName":  imported['DynamicName'],
+#                                "Volume":       imported['Volume']}
+#                newValue = {"Status":           "Imported",
+#                            "SRID":             result['SRID'],
+#                            "ComicID":          comicid}
+#                myDB.upsert("importresults", newValue, controlValue)
 
 
 def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):

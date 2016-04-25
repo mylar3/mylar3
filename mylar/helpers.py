@@ -652,6 +652,14 @@ def apiremove(apistring, type):
     #need to remove the urlencoded-portions as well in future
     return apiremoved
 
+def remove_apikey(payd, key):
+        #payload = some dictionary with payload values
+        #key = the key to replace with REDACTED (normally apikey)
+    for k,v in payd.items():
+        payd[key] = 'REDACTED'
+
+    return payd
+
 def ComicSort(comicorder=None, sequence=None, imported=None):
     if sequence:
         # if it's on startup, load the sql into a tuple for use to avoid record-locking

@@ -204,8 +204,11 @@ class FileChecker(object):
                 logger.fdebug('[SUB-PATH] Original Path : ' + str(path))
                 logger.fdebug('[SUB-PATH] Sub-direcotry : ' + str(subpath))
                 tmppath = re.sub(path, '', subpath).strip()
-                tmppath = os.path.normpath(tmppath)
-                path_list = tmppath.split(os.sep)[-1]
+                path_list = os.path.normpath(tmppath)
+                if '/' == path_list[0] or '\\' == path_list[0]:
+                    #need to remove any leading slashes so the os join can properly join the components
+                    path_list = path_list[1:]
+                #path_list = tmppath.split(os.sep)[-1]
                 logger.fdebug('[SUB-PATH] subpath set to : ' + path_list)
 
 
@@ -411,7 +414,7 @@ class FileChecker(object):
                     findst = lastissue_mod_position+1
                     #findst = modfilename.find(lastissue_label, lastissue_mod_position+1) #lastissue_mod_position) #file_length - len(lastissue_label))
                     #logger.fdebug('findst: ' + str(findst))
-                    if findst != '.' and findst != '#':
+                    if modfilename[findst] != '.' or modfilename[findst] != '#': #findst != '.' and findst != '#':
                         if sf.isdigit():
                             logger.fdebug('2 seperate numbers detected. Assuming 2nd number is the actual issue')
                             possible_issuenumbers.append({'number':       sf,
@@ -511,6 +514,8 @@ class FileChecker(object):
 
                 else:
                     #check here for numeric or negative number
+                    if sf.isdigit() and split_file.index(sf) == 0:
+                        continue
                     if sf.isdigit():
                         possible_issuenumbers.append({'number':       sf,
                                                       'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
@@ -562,6 +567,7 @@ class FileChecker(object):
 
             highest_series_pos = len(split_file)
             issue_year = None
+            possible_years = []
             logger.fdebug('datecheck: ' + str(datecheck))
             if len(datecheck) > 0:
                 for dc in sorted(datecheck, key=operator.itemgetter('position'), reverse=True):
@@ -583,6 +589,9 @@ class FileChecker(object):
                     if len(ab) == 4:
                         issue_year = ab
                         logger.fdebug('year verified as: ' + str(issue_year))
+                        possible_years.append({'year':            issue_year,
+                                               'yearposition':    dc['position'],
+                                               'yearmodposition': dc['mod_position']})
                     else:
                         issue_year = ab
                         logger.fdebug('date verified as: ' + str(issue_year))
@@ -619,11 +628,13 @@ class FileChecker(object):
                         if lenn == len(a):
                             logger.fdebug('Numeric detected as the last digit after a hyphen. Typically this is the issue number.')
                             issue_number = pis['number']
+                            issue_number_position = pis['position']
                             logger.fdebug('Issue set to: ' + issue_number)
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
-                            break
+                            #break
                         if pis['validcountchk'] == True:
                             issue_number = pis['number']
+                            issue_number_position = pis['position']
                             logger.fdebug('Issue verified and detected as part of a numeric count sequnce: ' + issue_number)
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             break
@@ -639,6 +650,7 @@ class FileChecker(object):
                             continue
                         if p == 1:
                             issue_number = pis['number']
+                            issue_number_position = pis['position']
                             logger.fdebug('issue number :' + issue_number) #(pis)
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                         #else:
@@ -646,6 +658,7 @@ class FileChecker(object):
                         p+=1
                 else:
                     issue_number = possible_issuenumbers[0]['number']
+                    issue_number_position = possible_issuenumbers[0]['position']
                     logger.fdebug('issue verified as : ' + issue_number)
                     if highest_series_pos > possible_issuenumbers[0]['position']: highest_series_pos = possible_issuenumbers[0]['position']
 
@@ -663,22 +676,45 @@ class FileChecker(object):
                                 fin_pos = dn['position']
 
                         if fin_num:
-                            print 'Issue number re-corrected to : ' + fin_num
+                            logger.fdebug('Issue number re-corrected to : ' + fin_num)
                             issue_number = fin_num
                             if highest_series_pos > fin_pos: highest_series_pos = fin_pos
-
 
             issue_volume = None
             if len(volume_found) > 0:
                 issue_volume = 'v' + str(volume_found['volume'])
                 if highest_series_pos != volume_found['position'] + 1 and sep_volume == False:
                     logger.fdebug('Extra item(s) are present between the volume label and the issue number. Checking..')
-                    split_file.insert(highest_series_pos-1, split_file.pop(volume_found['position']))
+                    split_file.insert(int(issue_number_position), split_file.pop(volume_found['position'])) #highest_series_pos-1, split_file.pop(volume_found['position']))
                     logger.fdebug('new split: ' + str(split_file))
-                    highest_series_pos = highest_series_pos -1
+                    highest_series_pos = volume_found['position'] -1
                 else:
-                    if highest_series_pos > volume_found['position']: highest_series_pos = volume_found['position']
+                    if highest_series_pos > volume_found['position']:
+                        if sep_volume:
+                            highest_series_pos = volume_found['position'] - 1
+                        else:
+                            highest_series_pos = volume_found['position']
                 logger.fdebug('Volume detected as : ' + issue_volume)
+
+            #at this point it should be in a SERIES ISSUE VOLUME YEAR kind of format
+            #if the position of the issue number is greater than the highest series position, make it the highest series position.
+            if issue_number_position > highest_series_pos:
+                if not volume_found:
+                    highest_series_pos = issue_number_position
+                else:
+                    if sep_volume:
+                        highest_series_pos = issue_number_position -2
+                    else:
+                        highest_series_pos = issue_number_position -1
+
+            #make sure if we have multiple years detected, that the right one gets picked for the actual year vs. series title
+            if len(possible_years) > 1:
+                for x in possible_years:
+                    if x['yearposition'] <= highest_series_pos:
+                        logger.fdebug('year ' + str(x['year']) + ' is within series title. Ignoring as YEAR value')
+                    else:
+                        logger.fdebug('year ' + str(x['year']) + ' is outside of series title range. Accepting of year.')
+                        issue_year = x['year']
 
             match_type = None  #folder/file based on how it was matched.
 
@@ -768,7 +804,7 @@ class FileChecker(object):
             nspace_seriesname = re.sub(' ', '', mod_seriesname)
             nspace_watchcomic = re.sub(' ', '', mod_watchcomic)
 
-            if self.AS_Alt != '127372873872871091383 abdkhjhskjhkjdhakajhf':
+            if '127372873872871091383' not in self.AS_Alt:
                 logger.fdebug('Possible Alternate Names to match against (if necessary): ' + str(self.AS_Alt))
 
             justthedigits = series_info['issue_number']

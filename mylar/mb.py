@@ -49,7 +49,7 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
     u_comicquery = u_comicquery.replace(" ", "%20")
 
     if explicit == 'all' or explicit == 'loose':
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description&format=xml&page=' + str(offset)
+        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description,last_issue&format=xml&page=' + str(offset)
 
     else:
         # 02/22/2014 use the volume filter label to get the right results.
@@ -87,9 +87,12 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
     comiclist = []
     arcinfolist = []
     
-    chars = set('!?*&-')
+    if type == 'story_arc':
+        chars = set('!?*&')
+    else:
+        chars = set('!?*&-')
     if any((c in chars) for c in name) or 'annual' in name:
-        name = '"' +name +'"'
+            name = '"' +name +'"'
 
     #print ("limityear: " + str(limityear))
     if limityear is None: limityear = 'None'
@@ -265,6 +268,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                         cl = 0
                         xmlTag = 'None'
                         xmlimage = "cache/blankcover.jpg"
+                        xml_lastissueid = 'None'
                         while (cl < cnl):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'volume':
                                 xmlTag = result.getElementsByTagName('name')[cl].firstChild.wholeText
@@ -273,13 +277,29 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'image':
                                 xmlimage = result.getElementsByTagName('super_url')[0].firstChild.wholeText
 
+                            if result.getElementsByTagName('name')[cl].parentNode.nodeName == 'last_issue':
+                                xml_lastissueid = result.getElementsByTagName('id')[cl].firstChild.wholeText
+
                             cl+=1
 
                         if (result.getElementsByTagName('start_year')[0].firstChild) is not None:
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                         else: xmlYr = "0000"
-                        logger.info('name:' + xmlTag + ' -- ' + str(xmlYr) + ' [limityear: ' + str(limityear) + ']')
-                        if xmlYr in limityear or limityear == 'None':
+
+                        xmlYr = re.sub('\?', '', xmlYr)
+
+                        tmpyearRange = int(xmlcnt) / 12
+                        if float(tmpyearRange): tmpyearRange +1
+                        possible_years = int(xmlYr) + tmpyearRange
+
+                        yearRange = []
+                        for i in range(int(xmlYr), int(possible_years),1):
+                            if not any(int(x) == int(i) for x in yearRange):
+                                yearRange.append(str(i))
+
+                        logger.fdebug('[RESULT] ComicName:' + xmlTag + ' -- ' + str(xmlYr) + ' [Series years: ' + str(yearRange) + ']')
+                       
+                        if any([limityear in yearRange, limityear == 'None']):
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
                             idl = len (result.getElementsByTagName('id'))
                             idt = 0
@@ -336,7 +356,9 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     'publisher':            xmlpub,
                                     'description':          xmldesc,
                                     'deck':                 xmldeck,
-                                    'haveit':               haveit
+                                    'haveit':               haveit,
+                                    'lastissueid':          xml_lastissueid,
+                                    'seriesrange':          yearRange  # returning additional information about series run polled from CV
                                     })
                             #logger.fdebug('year: ' + str(xmlYr) + ' - constraint met: ' + str(xmlTag) + '[' + str(xmlYr) + '] --- 4050-' + str(xmlid))
                         else:

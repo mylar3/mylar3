@@ -4,22 +4,27 @@ import os
 import shutil
 
 
-def movefiles(comicid, comlocation, ogcname, imported=None):
+def movefiles(comicid, comlocation, imported):
+    #comlocation is destination
+    #comicid is used for rename
+    files_moved = []
+
     myDB = db.DBConnection()
+
     logger.fdebug('comlocation is : ' + str(comlocation))
-    logger.fdebug('original comicname is : ' + str(ogcname))
-    impres = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
+    logger.fdebug('original comicname is : ' + str(imported['ComicName']))
+
+    impres = imported['filelisting']
+    #impres = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
 
     if impres is not None:
-        #print ("preparing to move " + str(len(impres)) + " files into the right directory now.")
         for impr in impres:
-            srcimp = impr['ComicLocation']
-            orig_filename = impr['ComicFilename']
-            logger.fdebug("Issue :" + impr['IssueNumber'])
+            srcimp = impr['comiclocation']
+            orig_filename = impr['comicfilename']
             #before moving check to see if Rename to Mylar structure is enabled.
             if mylar.IMP_RENAME and mylar.FILE_FORMAT != '':
                 logger.fdebug("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
-                renameit = helpers.rename_param(comicid, impr['ComicName'], impr['IssueNumber'], orig_filename)
+                renameit = helpers.rename_param(comicid, imported['ComicName'], impr['issuenumber'], orig_filename)
                 nfilename = renameit['nfilename']
                 dstimp = os.path.join(comlocation, nfilename)
             else:
@@ -29,16 +34,20 @@ def movefiles(comicid, comlocation, ogcname, imported=None):
             logger.info("moving " + srcimp + " ... to " + dstimp)
             try:
                 shutil.move(srcimp, dstimp)
+                files_moved.append({'srid':     imported['srid'],
+                                    'filename': impr['comicfilename']})
             except (OSError, IOError):
                 logger.error("Failed to move files - check directories and manually re-run.")
+
         logger.fdebug("all files moved.")
         #now that it's moved / renamed ... we remove it from importResults or mark as completed.
 
-    results = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
-    if results is not None:
-        for result in results:
-            controlValue = {"impID":    result['impid']}
-            newValue = {"Status":           "Imported"}
+    if len(files_moved) > 0:
+        for result in files_moved:
+            controlValue = {"ComicFilename": result['filename'],
+                            "SRID":          result['srid']}
+            newValue = {"Status":            "Imported",
+                        "ComicID":           comicid}
             myDB.upsert("importresults", newValue, controlValue)
     return
 

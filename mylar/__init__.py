@@ -940,21 +940,21 @@ def initialize():
             from mylar.helpers import replace_all
 
             file_values = {'Issue':        '$Issue',
-                            'Title':        '$Title',
-                            'Series':       '$Series',
-                            'Year':         '$Year',
-                            'title':        '$title',
-                            'series':       '$series',
-                            'year':         '$year'
+                           'Title':        '$Title',
+                           'Series':       '$Series',
+                           'Year':         '$Year',
+                           'title':        '$title',
+                           'series':       '$series',
+                           'year':         '$year'
                             }
             folder_values = {'Series':       '$Series',
-                                'Publisher':    '$Publisher',
-                                'Year':         '$Year',
-                                'First':        '$First',
-                                'series':       '$series',
-                                'publisher':    '$publisher',
-                                'year':         '$year',
-                                'first':        '$first'
+                             'Publisher':    '$Publisher',
+                             'Year':         '$Year',
+                             'First':        '$First',
+                             'series':       '$series',
+                             'publisher':    '$publisher',
+                             'year':         '$year',
+                             'first':        '$first'
                             }
             FILE_FORMAT = replace_all(FILE_FORMAT, file_values)
             FOLDER_FORMAT = replace_all(FOLDER_FORMAT, folder_values)
