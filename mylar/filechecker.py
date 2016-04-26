@@ -607,6 +607,7 @@ class FileChecker(object):
             logger.fdebug('highest_series_position: ' + str(highest_series_pos))
 
             issue_number = None
+            issue_number_position = 0
             if len(possible_issuenumbers) > 0:
                 logger.fdebug('possible_issuenumbers: ' + str(possible_issuenumbers))
                 dash_numbers = []

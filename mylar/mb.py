@@ -286,16 +286,18 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             xmlYr = result.getElementsByTagName('start_year')[0].firstChild.wholeText
                         else: xmlYr = "0000"
 
-                        xmlYr = re.sub('\?', '', xmlYr)
-
-                        tmpyearRange = int(xmlcnt) / 12
-                        if float(tmpyearRange): tmpyearRange +1
-                        possible_years = int(xmlYr) + tmpyearRange
-
                         yearRange = []
-                        for i in range(int(xmlYr), int(possible_years),1):
-                            if not any(int(x) == int(i) for x in yearRange):
-                                yearRange.append(str(i))
+                        tmpYr = re.sub('\?', '', xmlYr)
+
+                        if tmpYr.isdigit():
+
+                            tmpyearRange = int(xmlcnt) / 12
+                            if float(tmpyearRange): tmpyearRange +1
+                            possible_years = int(tmpYr) + tmpyearRange
+
+                            for i in range(int(tmpYr), int(possible_years),1):
+                                if not any(int(x) == int(i) for x in yearRange):
+                                    yearRange.append(str(i))
 
                         logger.fdebug('[RESULT] ComicName:' + xmlTag + ' -- ' + str(xmlYr) + ' [Series years: ' + str(yearRange) + ']')
                        

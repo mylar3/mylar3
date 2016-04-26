@@ -1359,7 +1359,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     #logger.fdebug('assigning latest issue to : ' + str(issnum))
                     latestiss = issnum
                 latestdate = str(firstval['Issue_Date'])
-            if firstval['Issue_Date'] < firstdate:
+            if firstval['Issue_Date'] < firstdate and firstval['Issue_Date'] != '0000-00-00':
                 firstiss = issnum
                 firstdate = str(firstval['Issue_Date'])
 
