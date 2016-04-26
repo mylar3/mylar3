@@ -340,7 +340,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if comversion == 'None':
             chunk_f_f = re.sub('\$VolumeN', '', mylar.FOLDER_FORMAT)
             chunk_f = re.compile(r'\s+')
-            mylar.FOLDER_FORMAT = chunk_f.sub('', chunk_f_f)
+            mylar.FOLDER_FORMAT = chunk_f.sub(' ', chunk_f_f)
 
         #do work to generate folder path
 
