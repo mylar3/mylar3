@@ -91,7 +91,7 @@ class FileChecker(object):
 
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':','\'',',','&','?']
+        self.dynamic_handlers = ['/','-',':','\'',',','&','?','!']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp']
 

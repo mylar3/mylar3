@@ -123,7 +123,6 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         if pickfeed != '4':
             payload = None
 
-            logger.info('Feed:' + str(feed))
             try:
                 r = requests.get(feed, params=payload, verify=verify)
             except Exception, e:
@@ -131,7 +130,6 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 return
 
             feedme = feedparser.parse(r.content)
-            #feedme = feedparser.parse(feed)
 
 
         i = 0
@@ -156,7 +154,6 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 i += 1
         else:
             for entry in feedme['entries']:
-                logger.info(entry)
                 if any([pickfeed == "3", pickfeed == "6"]):
                     tmpsz = feedme.entries[i].enclosures[0]
                     feeddata.append({
