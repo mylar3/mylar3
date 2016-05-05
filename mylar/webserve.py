@@ -3585,6 +3585,11 @@ class WebInterface(object):
                     "nzbget_cat": mylar.NZBGET_CATEGORY,
                     "nzbget_priority": mylar.NZBGET_PRIORITY,
                     "nzbget_directory": mylar.NZBGET_DIRECTORY,
+                    "use_utorrent":helpers.checked(mylar.USE_UTORRENT),
+                    "utorrent_host": mylar.UTORRENT_HOST,
+                    "utorrent_username": mylar.UTORRENT_USERNAME,
+                    "utorrent_password": mylar.UTORRENT_PASSWORD,
+                    "utorrent_label": mylar.UTORRENT_LABEL,
                     "blackhole_dir": mylar.BLACKHOLE_DIR,
                     "usenet_retention": mylar.USENET_RETENTION,
                     "use_nzbsu": helpers.checked(mylar.NZBSU),
@@ -3909,7 +3914,7 @@ class WebInterface(object):
         enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, torrent_local=0, local_watchdir=None, torrent_seedbox=0, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
-        pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0,
+        pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0, use_utorrent=0, utorrent_host=None, utorrent_username=None, utorrent_password=None, utorrent_label=None,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
         tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, **kwargs):
         mylar.COMICVINE_API = comicvine_api
@@ -3982,6 +3987,11 @@ class WebInterface(object):
         mylar.SEEDBOX_PORT = seedbox_port
         mylar.SEEDBOX_USER = seedbox_user
         mylar.SEEDBOX_PASS = seedbox_pass
+        mylar.USE_UTORRENT = int(use_utorrent)
+        mylar.UTORRENT_HOST = utorrent_host
+        mylar.UTORRENT_USERNAME = utorrent_username
+        mylar.UTORRENT_PASSWORD = utorrent_password
+        mylar.UTORRENT_LABEL = utorrent_label
         mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
         mylar.ENABLE_KAT = int(enable_kat)
         mylar.ENABLE_32P = int(enable_32p)

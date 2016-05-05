@@ -383,6 +383,12 @@ RTORRENT_STARTONLOAD = 0
 RTORRENT_LABEL = None
 RTORRENT_DIRECTORY = None
 
+USE_UTORRENT = 0
+UTORRENT_HOST = None
+UTORRENT_USERNAME = None
+UTORRENT_PASSWORD = None
+UTORRENT_LABEL = None
+
 def CheckSection(sec):
     """ Check if INI section exists, if not create it """
     try:
@@ -441,7 +447,7 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, NZBSU_VERIFY, DOGNZB, DOGNZB_APIKEY, DOGNZB_VERIFY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_VERIFY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
-                EXPERIMENTAL, ALTEXPERIMENTAL, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
+                EXPERIMENTAL, ALTEXPERIMENTAL, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, \
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
@@ -749,6 +755,12 @@ def initialize():
         PR_NUM = 0  # provider counter here (used for provider orders)
         PR = []
 
+        USE_UTORRENT = bool(check_setting_int(CFG, 'uTorrent', 'use_utorrent', 0))
+        UTORRENT_HOST = check_setting_str(CFG, 'uTorrent', 'utorrent_host', '')
+        UTORRENT_USERNAME = check_setting_str(CFG, 'uTorrent', 'utorrent_username', '')
+        UTORRENT_PASSWORD = check_setting_str(CFG, 'uTorrent', 'utorrent_password', '')
+        UTORRENT_LABEL = check_setting_str(CFG, 'uTorrent', 'utorrent_label', '')
+        
         #add torrents to provider counter.
         if ENABLE_TORRENT_SEARCH:
             if ENABLE_32P:
@@ -1457,6 +1469,13 @@ def config_write():
 
     new_config['Newznab'] = {}
     new_config['Newznab']['newznab'] = int(NEWZNAB)
+
+    new_config['uTorrent'] = {}
+    new_config['uTorrent']['use_utorrent'] = int(USE_UTORRENT)
+    new_config['uTorrent']['utorrent_host'] = UTORRENT_HOST
+    new_config['uTorrent']['utorrent_username'] = UTORRENT_USERNAME
+    new_config['uTorrent']['utorrent_password'] = UTORRENT_PASSWORD
+    new_config['uTorrent']['utorrent_label'] = UTORRENT_LABEL
 
     # Need to unpack the extra newznabs for saving in config.ini
     flattened_newznabs = []

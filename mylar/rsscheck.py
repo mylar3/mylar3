@@ -10,7 +10,8 @@ import gzip
 from StringIO import StringIO
 
 import mylar
-from mylar import db, logger, ftpsshup, helpers, auth32p
+from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
+
 
 
 def _start_newznab_attr(self, attrsD):
@@ -724,8 +725,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if linkit[-7:] != "torrent": # and site != "KAT":
         filename += ".torrent"
-
-    if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
+    if mylar.USE_UTORRENT:
+        filepath = os.path.join(mylar.CACHE_DIR,filename)
+        logger.fdebug('filename for torrent set to : ' + filepath)
+        
+    elif mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
 
         filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
@@ -888,8 +892,17 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 f.flush()
 
     logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
-
-    if mylar.TORRENT_LOCAL:
+    if mylar.USE_UTORRENT:
+        utorrent.addTorrent(url)
+        if mylar.UTORRENT_LABEL:
+            torfile = open(filepath, 'rb')
+            tordata = torfile.read()
+            torfile.close()
+            hash = utorrent.calculate_torrent_hash(url, tordata)
+            utorrent.labelTorrent(hash)
+        return "pass"
+        
+    elif mylar.TORRENT_LOCAL:
         return "pass"
 
     elif mylar.TORRENT_SEEDBOX:
@@ -906,7 +919,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         else:
             tssh = ftpsshup.putfile(filepath, filename)
             return tssh
-	
 
 if __name__ == '__main__':
     #torrents(sys.argv[1])

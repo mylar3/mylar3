@@ -390,7 +390,7 @@
                                 <input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
                             </div>
                             <div class="config">
-                                       <div class="row">
+                                        <div class="row">
                                            <label>Minimum # of seeders</label>
                                            <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
                                        </div>
@@ -403,6 +403,28 @@
                                             <input type="text" name="local_watchdir" value="${config['local_watchdir']}" size="30"><br/>
                                             <small>Local Folder your torrent client watches</small>
                                           </div>
+                                       </div>
+                                       <div class="row checkbox left clearfix">
+                                            <input id="use_utorrent" type="checkbox" onclick="initConfigCheckbox($(this));" name="use_utorrent" value=1 ${config['use_utorrent']} /><label>uTorrent Client</label>
+                                       </div>
+                                       <div class="config">
+                                            <div class="row">
+                                                <label>uTorrent Host</label>
+                                                <input type="text" name="utorrent_host" value="${config['utorrent_host']}" size="30">
+                                            </div>
+                                            <div class="row">
+                                                <label>uTorrent Username</label>
+                                                <input type="text" name="utorrent_username" value="${config['utorrent_username']}" size="30">
+                                            </div>
+                                            <div class="row">
+                                                <label>uTorrent Password</label>
+                                                <input type="password" name="utorrent_password" value="${config['utorrent_password']}" size="30">
+                                            </div>
+                                            <div class="row">
+                                                <label>uTorrent Label</label>
+                                                <input type="text" name="utorrent_label" value="${config['utorrent_label']}" size="30"><br/>
+                                               <small>Label for your uTorrent downloads</small>
+                                           </div>
                                        </div>
                                        <div class="row checkbox left clearfix">
                                             <input id="torrent_seedbox" type="checkbox" onclick="initConfigCheckbox($(this));" name="torrent_seedbox" value=1 ${config['torrent_seedbox']} /><label>Seedbox Client</label>
@@ -1430,6 +1452,7 @@
                 initConfigCheckbox("#enable_torrents");
                 initConfigCheckbox("#torrent_local");
                 initConfigCheckbox("#torrent_seedbox");
+                initConfigCheckbox("#use_utorrent");
                 initConfigCheckbox("#enable_torrent_search");
                 initConfigCheckbox("#enable_32p");
                 initConfigCheckbox("#enable_rss");
