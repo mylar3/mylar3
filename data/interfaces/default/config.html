@@ -385,73 +385,70 @@
                    </td>
                    <td>
                       <legend>Torrents</legend>
-                       <fieldset>
-                            <div class="row checkbox">
-                                <input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
-                            </div>
-                            <div class="config">
-                                        <div class="row">
-                                           <label>Minimum # of seeders</label>
-                                           <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
-                                       </div>
-                                       <div class="row checkbox left clearfix">
-                                            <input id="torrent_local" type="checkbox" onclick="initConfigCheckbox($(this));" name="torrent_local" value=1 ${config['torrent_local']} /><label>Local Torrent Client</label>
-                                       </div> 
-                                       <div class="config">
-                                          <div Class="row">
-                                            <label>Watch Directory</label>
-                                            <input type="text" name="local_watchdir" value="${config['local_watchdir']}" size="30"><br/>
-                                            <small>Local Folder your torrent client watches</small>
-                                          </div>
-                                       </div>
-                                       <div class="row checkbox left clearfix">
-                                            <input id="use_utorrent" type="checkbox" onclick="initConfigCheckbox($(this));" name="use_utorrent" value=1 ${config['use_utorrent']} /><label>uTorrent Client</label>
-                                       </div>
-                                       <div class="config">
-                                            <div class="row">
-                                                <label>uTorrent Host</label>
-                                                <input type="text" name="utorrent_host" value="${config['utorrent_host']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>uTorrent Username</label>
-                                                <input type="text" name="utorrent_username" value="${config['utorrent_username']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>uTorrent Password</label>
-                                                <input type="password" name="utorrent_password" value="${config['utorrent_password']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>uTorrent Label</label>
-                                                <input type="text" name="utorrent_label" value="${config['utorrent_label']}" size="30"><br/>
-                                               <small>Label for your uTorrent downloads</small>
-                                           </div>
-                                       </div>
-                                       <div class="row checkbox left clearfix">
-                                            <input id="torrent_seedbox" type="checkbox" onclick="initConfigCheckbox($(this));" name="torrent_seedbox" value=1 ${config['torrent_seedbox']} /><label>Seedbox Client</label>
-                                       </div>
-                                       <div class="config">
-                                            <div class="row">
-                                                <label>Seedbox Host</label>
-                                                <input type="text" name="seedbox_host" value="${config['seedbox_host']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Seedbox Port (SFTP)</label>
-                                                <input type="text" name="seedbox_port" value="${config['seedbox_port']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Seedbox Username</label>
-                                                <input type="text" name="seedbox_user" value="${config['seedbox_user']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Seedbox Password</label>
-                                                <input type="password" name="seedbox_pass" value="${config['seedbox_pass']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Watch Directory</label>
-                                                <input type="text" name="seedbox_watchdir" value="${config['seedbox_watchdir']}" size="30"><br/>
-                                               <small>Folder path your torrent seedbox client watches</small>
-                                           </div>
-                                       </div>
+			<fieldset>
+				<div class="row checkbox">
+					<input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
+				</div>
+				<div class="config">
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_watchlist" value="0" ${config['torrent_downloader_watchlist']}>Local Watchdir 
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_utorrent" value="1" ${config['torrent_downloader_utorrent']}> uTorrent 
+					<!-- <input type="radio" name="torrent_downloader" id="torrent_downloader_rtorrent" value="2" ${config['torrent_downloader_rtorrent']}>rTorrent  -->
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_seedbox" value="3" ${config['torrent_downloader_seedbox']}>Seedbox
+					<div class="row">
+					   <label>Minimum # of seeders</label>
+					   <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
+				       </div>
+				</div>
+			</fieldset>
+			<fieldset id="watchlist_options">
+				<div Class="row">
+					<label>Watch Directory</label>
+					<input type="text" name="local_watchdir" value="${config['local_watchdir']}" size="30"><br/>
+					<small>Local Folder your torrent client watches</small>
+				</div>
+			</fieldset>
+			<fieldset id="utorrent_options">
+				<div class="row">
+					<label>uTorrent Host</label>
+					<input type="text" name="utorrent_host" value="${config['utorrent_host']}" size="30">
+				</div>
+				<div class="row">
+					<label>uTorrent Username</label>
+					<input type="text" name="utorrent_username" value="${config['utorrent_username']}" size="30">
+				</div>
+				<div class="row">
+					<label>uTorrent Password</label>
+					<input type="password" name="utorrent_password" value="${config['utorrent_password']}" size="30">
+				</div>
+				<div class="row">
+					<label>uTorrent Label</label>
+					<input type="text" name="utorrent_label" value="${config['utorrent_label']}" size="30"><br/>
+					<small>Label for your uTorrent downloads</small>
+				</div>
+			</fieldset>
+			<fieldset id="seedbox_options">
+				<div class="row">
+					<label>Seedbox Host</label>
+					<input type="text" name="seedbox_host" value="${config['seedbox_host']}" size="30">
+				</div>
+				<div class="row">
+					<label>Seedbox Port (SFTP)</label>
+					<input type="text" name="seedbox_port" value="${config['seedbox_port']}" size="30">
+				</div>
+				<div class="row">
+					<label>Seedbox Username</label>
+					<input type="text" name="seedbox_user" value="${config['seedbox_user']}" size="30">
+				</div>
+				<div class="row">
+					<label>Seedbox Password</label>
+					<input type="password" name="seedbox_pass" value="${config['seedbox_pass']}" size="30">
+				</div>
+				<div class="row">
+					<label>Watch Directory</label>
+					<input type="text" name="seedbox_watchdir" value="${config['seedbox_watchdir']}" size="30"><br/>
+					<small>Folder path your torrent seedbox client watches</small>
+				</div>
+			</fieldset>
                               </div>
                        </fieldset>
                 </td>
@@ -1307,6 +1304,28 @@
                                 $("#blackhole_options").show();
                         }
 
+                if ($("#torrent_downloader_watchlist").is(":checked"))
+                        {
+                                $("#utorrent_options,#rtorrent_options,#seedbox_options").hide();
+                                $("#watchlist_options").show();
+                        }
+                if ($("#torrent_downloader_utorrent").is(":checked"))
+                        {
+                                $("#watchlist_options,#rtorrent_options,#seedbox_options").hide();
+                                $("#utorrent_options").show();
+                        }
+               if ($("#torrent_downloader_rtorrent").is(":checked"))
+                        {
+                                $("#utorrent_options,#watchlist_options,#seedbox_options").hide();
+                                $("#rtorrent_options").show();
+                        }
+                if ($("#torrent_downloader_seedbox").is(":checked"))
+                        {
+                                $("#utorrent_options,#rtorrent_options,#watchlist_options").hide();
+                                $("#seedbox_options").show();
+                        }
+ 
+
                 $('input[type=radio]').change(function(){
                         if ($("#nzb_downloader_sabnzbd").is(":checked"))
                         {
@@ -1320,6 +1339,22 @@
                         {
                                 $("#sabnzbd_options,#nzbget_options").fadeOut("fast", function() { $("#blackhole_options").fadeIn() });
                         }
+		   if ($("#torrent_downloader_watchlist").is(":checked"))
+		   {
+			$("#utorrent_options,#rtorrent_options,#seedbox_options").fadeOut("fast", function() { $("#watchlist_options").fadeIn() });
+		   }
+		   if ($("#torrent_downloader_utorrent").is(":checked"))
+		   {
+			$("#watchlist_options,#rtorrent_options,#seedbox_options").fadeOut("fast", function() { $("#utorrent_options").fadeIn() });
+		   }
+		   if ($("#torrent_downloader_rtorrent").is(":checked"))
+		   {
+			$("#utorrent_options,#watchlist_options,#seedbox_options").fadeOut("fast", function() { $("#rtorrent_options").fadeIn() });
+		   }
+		   if ($("#torrent_downloader_seedbox").is(":checked"))
+		   {
+			$("#utorrent_options,#rtorrent_options,#watchlist_options").fadeOut("fast", function() { $("#seedbox_options").fadeIn() });
+		   }
                 });
 
                 var deletedNewznabs = 0;
@@ -1450,9 +1485,6 @@
 		initConfigCheckbox("#usenzbsu");
                 initConfigCheckbox("#usedognzb");
                 initConfigCheckbox("#enable_torrents");
-                initConfigCheckbox("#torrent_local");
-                initConfigCheckbox("#torrent_seedbox");
-                initConfigCheckbox("#use_utorrent");
                 initConfigCheckbox("#enable_torrent_search");
                 initConfigCheckbox("#enable_32p");
                 initConfigCheckbox("#enable_rss");

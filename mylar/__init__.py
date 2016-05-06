@@ -349,10 +349,11 @@ FAILED_DOWNLOAD_HANDLING = 0
 FAILED_AUTO = 0
 
 ENABLE_TORRENTS = 0
+TORRENT_DOWNLOADER = None  #0 = watchfolder, #1 = uTorrent, #2 = rTorrent, #3 = seedbox
 MINSEEDS = 0
-TORRENT_LOCAL = 0
+TORRENT_LOCAL = False
 LOCAL_WATCHDIR = None
-TORRENT_SEEDBOX = 0
+TORRENT_SEEDBOX = False
 SEEDBOX_HOST = None
 SEEDBOX_PORT = None
 SEEDBOX_USER = None
@@ -376,6 +377,7 @@ FEEDINFO_32P = None
 VERIFY_32P = 1
 SNATCHEDTORRENT_NOTIFY = 0
 
+USE_RTORRENT = False
 RTORRENT_HOST = None
 RTORRENT_USERNAME = None
 RTORRENT_PASSWORD = None
@@ -383,7 +385,7 @@ RTORRENT_STARTONLOAD = 0
 RTORRENT_LABEL = None
 RTORRENT_DIRECTORY = None
 
-USE_UTORRENT = 0
+USE_UTORRENT = False
 UTORRENT_HOST = None
 UTORRENT_USERNAME = None
 UTORRENT_PASSWORD = None
@@ -447,10 +449,10 @@ def initialize():
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, NZBSU_VERIFY, DOGNZB, DOGNZB_APIKEY, DOGNZB_VERIFY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_VERIFY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
-                EXPERIMENTAL, ALTEXPERIMENTAL, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, \
+                EXPERIMENTAL, ALTEXPERIMENTAL, USE_RTORRENT, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, \
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
-                ENABLE_TORRENTS, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
+                ENABLE_TORRENTS, TORRENT_DOWNLOADER, MINSEEDS, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, KAT_VERIFY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
@@ -470,6 +472,7 @@ def initialize():
         CheckSection('Newznab')
         CheckSection('Torznab')
         CheckSection('Torrents')
+        CheckSection('uTorrent')
         # Set global variables based on config file or use defaults
         try:
             HTTP_PORT = check_setting_int(CFG, 'General', 'http_port', 8090)
@@ -519,6 +522,7 @@ def initialize():
         CHECK_GITHUB_ON_STARTUP = bool(check_setting_int(CFG, 'General', 'check_github_on_startup', 1))
         CHECK_GITHUB_INTERVAL = check_setting_int(CFG, 'General', 'check_github_interval', 360)
         GIT_USER = check_setting_str(CFG, 'General', 'git_user', 'evilhero')
+        GIT_BRANCH = check_setting_str(CFG,'General', 'git_branch', 'master')
 
         DESTINATION_DIR = check_setting_str(CFG, 'General', 'destination_dir', '')
         MULTIPLE_DEST_DIRS = check_setting_str(CFG, 'General', 'multiple_dest_dirs', '')
@@ -664,9 +668,9 @@ def initialize():
         FAILED_AUTO = bool(check_setting_int(CFG, 'General', 'failed_auto', 0))
         ENABLE_TORRENTS = bool(check_setting_int(CFG, 'Torrents', 'enable_torrents', 0))
         MINSEEDS = check_setting_str(CFG, 'Torrents', 'minseeds', '0')
-        TORRENT_LOCAL = bool(check_setting_int(CFG, 'Torrents', 'torrent_local', 0))
+        # TORRENT_LOCAL = bool(check_setting_int(CFG, 'Torrents', 'torrent_local', 0)) -- Depriciated
         LOCAL_WATCHDIR = check_setting_str(CFG, 'Torrents', 'local_watchdir', '')
-        TORRENT_SEEDBOX = bool(check_setting_int(CFG, 'Torrents', 'torrent_seedbox', 0))
+        # TORRENT_SEEDBOX = bool(check_setting_int(CFG, 'Torrents', 'torrent_seedbox', 0)) -- Depriciated
         SEEDBOX_HOST = check_setting_str(CFG, 'Torrents', 'seedbox_host', '')
         SEEDBOX_PORT = check_setting_str(CFG, 'Torrents', 'seedbox_port', '')
         SEEDBOX_USER = check_setting_str(CFG, 'Torrents', 'seedbox_user', '')
@@ -754,8 +758,15 @@ def initialize():
 
         PR_NUM = 0  # provider counter here (used for provider orders)
         PR = []
-
-        USE_UTORRENT = bool(check_setting_int(CFG, 'uTorrent', 'use_utorrent', 0))
+        TORRENT_DOWNLOADER = check_setting_int(CFG, 'General', 'torrent_downloader', 0)
+        if TORRENT_DOWNLOADER == 0: TORRENT_LOCAL = True
+        elif TORRENT_DOWNLOADER == 1: USE_UTORRENT = True
+        elif TORRENT_DOWNLOADER == 2: USE_RTORRENT = True
+        elif TORRENT_DOWNLOADER == 3: TORRENT_SEEDBOX = True
+        else:
+                TORRENT_DOWNLOADER = 0
+                TORRENT_LOCAL = True
+        #USE_UTORRENT = bool(check_setting_int(CFG, 'uTorrent', 'use_utorrent', 0))
         UTORRENT_HOST = check_setting_str(CFG, 'uTorrent', 'utorrent_host', '')
         UTORRENT_USERNAME = check_setting_str(CFG, 'uTorrent', 'utorrent_username', '')
         UTORRENT_PASSWORD = check_setting_str(CFG, 'uTorrent', 'utorrent_password', '')
@@ -839,6 +850,7 @@ def initialize():
 
         EXTRA_NEWZNABS = list(itertools.izip(*[itertools.islice(flattened_newznabs, i, None, EN_NUM) for i in range(EN_NUM)]))
 
+        #if ConfigV3 add the nzb_name to it..
         #if ConfigV3 add the nzb_name to it..
         if CONFIG_VERSION != '6':   #just bump it up to V6 and throw in the VERIFY too.
             ENABS = []
@@ -1391,13 +1403,14 @@ def config_write():
 
     new_config['General']['provider_order'] = flattened_providers
     new_config['General']['nzb_downloader'] = int(NZB_DOWNLOADER)
+    new_config['General']['torrent_downloader'] = int(TORRENT_DOWNLOADER)
 
     new_config['Torrents'] = {}
     new_config['Torrents']['enable_torrents'] = int(ENABLE_TORRENTS)
     new_config['Torrents']['minseeds'] = int(MINSEEDS)
-    new_config['Torrents']['torrent_local'] = int(TORRENT_LOCAL)
+    # new_config['Torrents']['torrent_local'] = int(TORRENT_LOCAL) - Depriciated
     new_config['Torrents']['local_watchdir'] = LOCAL_WATCHDIR
-    new_config['Torrents']['torrent_seedbox'] = int(TORRENT_SEEDBOX)
+    # new_config['Torrents']['torrent_seedbox'] = int(TORRENT_SEEDBOX) - Depriciated
     new_config['Torrents']['seedbox_host'] = SEEDBOX_HOST
     new_config['Torrents']['seedbox_port'] = SEEDBOX_PORT
     new_config['Torrents']['seedbox_user'] = SEEDBOX_USER
@@ -1471,7 +1484,7 @@ def config_write():
     new_config['Newznab']['newznab'] = int(NEWZNAB)
 
     new_config['uTorrent'] = {}
-    new_config['uTorrent']['use_utorrent'] = int(USE_UTORRENT)
+    #new_config['uTorrent']['use_utorrent'] = int(USE_UTORRENT)
     new_config['uTorrent']['utorrent_host'] = UTORRENT_HOST
     new_config['uTorrent']['utorrent_username'] = UTORRENT_USERNAME
     new_config['uTorrent']['utorrent_password'] = UTORRENT_PASSWORD

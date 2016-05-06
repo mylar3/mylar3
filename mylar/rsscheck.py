@@ -7,6 +7,7 @@ import lib.requests as requests
 import ftpsshup
 import datetime
 import gzip
+import time
 from StringIO import StringIO
 
 import mylar
@@ -899,6 +900,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             tordata = torfile.read()
             torfile.close()
             hash = utorrent.calculate_torrent_hash(url, tordata)
+            time.sleep(10)
             utorrent.labelTorrent(hash)
         return "pass"
         
