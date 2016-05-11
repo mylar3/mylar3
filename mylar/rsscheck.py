@@ -7,10 +7,12 @@ import lib.requests as requests
 import ftpsshup
 import datetime
 import gzip
+import time
 from StringIO import StringIO
 
 import mylar
-from mylar import db, logger, ftpsshup, helpers, auth32p
+from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
+
 
 
 def _start_newznab_attr(self, attrsD):
@@ -724,17 +726,20 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if linkit[-7:] != "torrent": # and site != "KAT":
         filename += ".torrent"
-
-    if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
-
-        filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
-        logger.fdebug('filename for torrent set to : ' + filepath)
-    elif mylar.TORRENT_SEEDBOX and mylar.SEEDBOX_WATCHDIR is not None:
+    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT]):
         filepath = os.path.join(mylar.CACHE_DIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
-    else:
-        logger.error('No Local Watch Directory or Seedbox Watch Directory specified. Set it and try again.')
-        return "fail"
+        
+    elif mylar.USE_WATCHDIR:
+        if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
+            filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
+            logger.fdebug('filename for torrent set to : ' + filepath)
+        elif mylar.TORRENT_SEEDBOX and mylar.SEEDBOX_WATCHDIR is not None:
+            filepath = os.path.join(mylar.CACHE_DIR, filename)
+            logger.fdebug('filename for torrent set to : ' + filepath)
+        else:
+            logger.error('No Local Watch Directory or Seedbox Watch Directory specified. Set it and try again.')
+            return "fail"
 
     if site == '32P':
         url = 'https://32pag.es/torrents.php'
@@ -888,25 +893,34 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 f.flush()
 
     logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
-
-    if mylar.TORRENT_LOCAL:
+    if mylar.USE_UTORRENT:
+        utorrent.addTorrent(url)
+        if mylar.UTORRENT_LABEL:
+            torfile = open(filepath, 'rb')
+            tordata = torfile.read()
+            torfile.close()
+            hash = utorrent.calculate_torrent_hash(url, tordata)
+            time.sleep(10)
+            utorrent.labelTorrent(hash)
         return "pass"
-
-    elif mylar.TORRENT_SEEDBOX:
-        if mylar.RTORRENT_HOST:
-            import test
-            rp = test.RTorrent()
-            torrent_info = rp.main(filepath=filepath)        
-
-            logger.info(torrent_info)
-            if torrent_info:
-                return "pass"
-            else:
-                return "fail"
+        
+    elif mylar.USE_WATCHDIR:
+        if mylar.TORRENT_LOCAL:
+            return "pass"
         else:
             tssh = ftpsshup.putfile(filepath, filename)
             return tssh
-	
+
+    elif mylar.USE_RTORRENT:
+        import test
+        rp = test.RTorrent()
+        torrent_info = rp.main(filepath=filepath)        
+
+        logger.info(torrent_info)
+        if torrent_info:
+            return "pass"
+        else:
+            return "fail"
 
 if __name__ == '__main__':
     #torrents(sys.argv[1])
