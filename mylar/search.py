@@ -2015,7 +2015,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
     #torrents (32P & KAT)
     elif nzbprov == '32P' or nzbprov == 'KAT' or nzbprov == 'Torznab':
-        logger.fdebug("sending .torrent to watchdir.")
         logger.fdebug("ComicName:" + ComicName)
         logger.fdebug("link:" + link)
         logger.fdebug("Torrent Provider:" + nzbprov)
@@ -2040,10 +2039,17 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             else:
                 logger.error('Unable to send torrent - check logs and settings (this would be marked as a BAD torrent if Failed Handling was enabled)')
                 return "torrent-fail"
-        if mylar.TORRENT_LOCAL:
-            sent_to = "your local Watch folder"
-        else:
-            sent_to = "your seedbox Watch folder"
+        if mylar.USE_WATCHDIR:
+            if TORRENT_LOCAL:
+                sent_to = "your local Watch folder"
+            else:
+                sent_to = "your seedbox Watch folder"
+        elif mylar.USE_UTORRENT:
+            sent_to = "your uTorrent client"
+        elif mylar.USE_RTORRENT:
+            sent_to = "your rTorrent client"
+        elif mylar.USE_TRANSMISSION:
+            sent_to = "your Transmission client"
     #end torrents
 
     else:

@@ -3588,11 +3588,20 @@ class WebInterface(object):
                     "torrent_downloader_watchlist": helpers.radio(mylar.TORRENT_DOWNLOADER, 0),
                     "torrent_downloader_utorrent": helpers.radio(mylar.TORRENT_DOWNLOADER, 1),
                     "torrent_downloader_rtorrent": helpers.radio(mylar.TORRENT_DOWNLOADER, 2),
-                    "torrent_downloader_seedbox": helpers.radio(mylar.TORRENT_DOWNLOADER, 3),
+                    "torrent_downloader_transmission": helpers.radio(mylar.TORRENT_DOWNLOADER, 3),
                     "utorrent_host": mylar.UTORRENT_HOST,
                     "utorrent_username": mylar.UTORRENT_USERNAME,
                     "utorrent_password": mylar.UTORRENT_PASSWORD,
                     "utorrent_label": mylar.UTORRENT_LABEL,
+                    "rtorrent_host": mylar.RTORRENT_HOST,
+                    "rtorrent_username": mylar.RTORRENT_USERNAME,
+                    "rtorrent_password": mylar.RTORRENT_PASSWORD,
+                    "rtorrent_directory": mylar.RTORRENT_DIRECTORY,
+                    "rtorrent_label": mylar.RTORRENT_LABEL,
+                    "rtorrent_startonload": helpers.checked(mylar.RTORRENT_STARTONLOAD),
+                    "transmission_host": mylar.TRANSMISSION_HOST,
+                    "transmission_username": mylar.TRANSMISSION_USERNAME,
+                    "transmission_password": mylar.TRANSMISSION_PASSWORD,
                     "blackhole_dir": mylar.BLACKHOLE_DIR,
                     "usenet_retention": mylar.USENET_RETENTION,
                     "use_nzbsu": helpers.checked(mylar.NZBSU),
@@ -3621,7 +3630,9 @@ class WebInterface(object):
                     "provider_order": mylar.PROVIDER_ORDER,
                     "enable_torrents": helpers.checked(mylar.ENABLE_TORRENTS),
                     "minseeds": mylar.MINSEEDS,
+                    "torrent_local": helpers.checked(mylar.TORRENT_LOCAL),
                     "local_watchdir": mylar.LOCAL_WATCHDIR,
+                    "torrent_seedbox": helpers.checked(mylar.TORRENT_SEEDBOX),
                     "seedbox_watchdir": mylar.SEEDBOX_WATCHDIR,
                     "seedbox_host": mylar.SEEDBOX_HOST,
                     "seedbox_port": mylar.SEEDBOX_PORT,
@@ -3915,7 +3926,8 @@ class WebInterface(object):
         enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, local_watchdir=None, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
-        pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0, torrent_downloader=0, utorrent_host=None, utorrent_username=None, utorrent_password=None, utorrent_label=None,
+        pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0, torrent_downloader=0, torrent_local=0, torrent_seedbox=0, utorrent_host=None, utorrent_username=None, utorrent_password=None, utorrent_label=None,
+        rtorrent_host=None, rtorrent_username=None, rtorrent_password=None, rtorrent_directory=None, rtorrent_label=None, rtorrent_startonload=0, transmission_host=None, transmission_username=None, transmission_password=None,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
         tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, **kwargs):
         mylar.COMICVINE_API = comicvine_api
@@ -3981,19 +3993,27 @@ class WebInterface(object):
         mylar.ENABLE_TORRENTS = int(enable_torrents)
         mylar.MINSEEDS = int(minseeds)
         mylar.TORRENT_DOWNLOADER = int(torrent_downloader)
-        #mylar.TORRENT_LOCAL = int(torrent_local)
+        mylar.TORRENT_LOCAL = int(torrent_local)
         mylar.LOCAL_WATCHDIR = local_watchdir
-        #mylar.TORRENT_SEEDBOX = int(torrent_seedbox)
+        mylar.TORRENT_SEEDBOX = int(torrent_seedbox)
         mylar.SEEDBOX_WATCHDIR = seedbox_watchdir
         mylar.SEEDBOX_HOST = seedbox_host
         mylar.SEEDBOX_PORT = seedbox_port
         mylar.SEEDBOX_USER = seedbox_user
         mylar.SEEDBOX_PASS = seedbox_pass
-        #mylar.USE_UTORRENT = int(use_utorrent)
         mylar.UTORRENT_HOST = utorrent_host
         mylar.UTORRENT_USERNAME = utorrent_username
         mylar.UTORRENT_PASSWORD = utorrent_password
         mylar.UTORRENT_LABEL = utorrent_label
+        mylar.RTORRENT_HOST = rtorrent_host
+        mylar.RTORRENT_USERNAME = rtorrent_username
+        mylar.RTORRENT_PASSWORD = rtorrent_password
+        mylar.RTORRENT_DIRECTORY = rtorrent_directory
+        mylar.RTORRENT_LABEL = rtorrent_label
+        mylar.RTORRENT_STARTONLOAD = int(rtorrent_startonload)
+        mylar.TRANSMISSION_HOST = transmission_host
+        mylar.TRANSMISSION_USERNAME = transmission_username
+        mylar.TRANSMISSION_PASSWORD = transmission_password
         mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
         mylar.ENABLE_KAT = int(enable_kat)
         mylar.ENABLE_32P = int(enable_32p)
@@ -4151,10 +4171,10 @@ class WebInterface(object):
         elif mylar.NZB_DOWNLOADER == 1: mylar.USE_NZBGET = True
         elif mylar.NZB_DOWNLOADER == 2: mylar.USE_BLACKHOLE = True
         
-        if mylar.TORRENT_DOWNLOADER == 0: mylar.TORRENT_LOCAL = True
+        if mylar.TORRENT_DOWNLOADER == 0: mylar.USE_WATCHDIR = True
         elif mylar.TORRENT_DOWNLOADER == 1: mylar.USE_UTORRENT = True
         elif mylar.TORRENT_DOWNLOADER == 2: mylar.USE_RTORRENT = True
-        elif mylar.TORRENT_DOWNLOADER == 3: mylar.USE_SEEDBOX = True
+        elif mylar.TORRENT_DOWNLOADER == 3: mylar.USE_TRANSMISSION = True
 
         # Write the config
         mylar.config_write()

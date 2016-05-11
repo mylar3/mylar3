@@ -261,7 +261,7 @@
                 <td>
                        <fieldset>
                          <legend>Usenet</legend>
-                            <input type="radio" name="nzb_downloader" id="nzb_downloader_sabnzbd" value="0" ${config['nzb_downloader_sabnzbd']}>Sabnzbd <input type="radio" name="nzb_downloader" id="nzb_downloader_nzbget" value="1" ${config['nzb_downloader_nzbget']}> NZBget <input type="radio" name="nzb_downloader" id="nzb_downloader_blackhole" value="2" ${config['nzb_downloader_blackhole']}>Black Hole
+                            <input type="radio" name="nzb_downloader" id="nzb_downloader_sabnzbd" value="0" ${config['nzb_downloader_sabnzbd']}> Sabnzbd&nbsp;&nbsp;<input type="radio" name="nzb_downloader" id="nzb_downloader_nzbget" value="1" ${config['nzb_downloader_nzbget']}> NZBget&nbsp;&nbsp;<input type="radio" name="nzb_downloader" id="nzb_downloader_blackhole" value="2" ${config['nzb_downloader_blackhole']}> Black Hole
                        </fieldset>
                        <fieldset id="sabnzbd_options">
 	                	<div class="row">
@@ -390,22 +390,53 @@
 					<input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
 				</div>
 				<div class="config">
-					<input type="radio" name="torrent_downloader" id="torrent_downloader_watchlist" value="0" ${config['torrent_downloader_watchlist']}>Local Watchdir 
-					<input type="radio" name="torrent_downloader" id="torrent_downloader_utorrent" value="1" ${config['torrent_downloader_utorrent']}> uTorrent 
-					<!-- <input type="radio" name="torrent_downloader" id="torrent_downloader_rtorrent" value="2" ${config['torrent_downloader_rtorrent']}>rTorrent  -->
-					<input type="radio" name="torrent_downloader" id="torrent_downloader_seedbox" value="3" ${config['torrent_downloader_seedbox']}>Seedbox
-					<div class="row">
-					   <label>Minimum # of seeders</label>
-					   <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
-				       </div>
+                                        <div class="row">
+                                           <label>Minimum # of seeders</label>
+                                           <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
+                                       </div>
+
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_watchlist" value="0" ${config['torrent_downloader_watchlist']}> Watchdir&nbsp;&nbsp;
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_utorrent" value="1" ${config['torrent_downloader_utorrent']}> uTorrent&nbsp;&nbsp;
+					<input type="radio" name="torrent_downloader" id="torrent_downloader_rtorrent" value="2" ${config['torrent_downloader_rtorrent']}> rTorrent&nbsp;&nbsp;
+					<!--<input type="radio" name="torrent_downloader" id="torrent_downloader_transmission" value="3" ${config['torrent_downloader_transmission']}> Transmission-->
 				</div>
 			</fieldset>
 			<fieldset id="watchlist_options">
-				<div Class="row">
+                                <div class="row checkbox left clearfix">
+                                        <input id="local_watchdir" type="checkbox" name="torrent_local" value="1" ${config['torrent_local']} /><label>Local Watch dir</label>
+                                </div>
+				  <div id="watchdir_local_options">
+                                    <div class="row">
 					<label>Watch Directory</label>
 					<input type="text" name="local_watchdir" value="${config['local_watchdir']}" size="30"><br/>
 					<small>Local Folder your torrent client watches</small>
-				</div>
+                                    </div>
+  				  </div>
+                                <div class="row checkbox left clearfix">
+                                        <input id="remote_watchdir" type="checkbox" name="torrent_seedbox" value="1" ${config['torrent_seedbox']} /><label>Remote Watch dir</label>
+                                </div>
+                                <div id="watchdir_remote_options">
+                                  <div class="row">
+                                        <label>Seedbox Host</label>
+                                        <input type="text" name="seedbox_host" value="${config['seedbox_host']}" size="30">
+                                  </div>
+                                  <div class="row">
+                                        <label>Seedbox Port (SFTP)</label>
+                                        <input type="text" name="seedbox_port" value="${config['seedbox_port']}" size="30">
+                                  </div>
+                                  <div class="row">
+                                        <label>Seedbox Username</label>
+                                        <input type="text" name="seedbox_user" value="${config['seedbox_user']}" size="30">
+                                  </div>
+                                  <div class="row">
+                                        <label>Seedbox Password</label>
+                                        <input type="password" name="seedbox_pass" value="${config['seedbox_pass']}" size="30">
+                                  </div>
+                                  <div class="row">
+                                        <label>Watch Directory</label>
+                                        <input type="text" name="seedbox_watchdir" value="${config['seedbox_watchdir']}" size="30"><br/>
+                                        <small>Folder path your torrent seedbox client watches</small>
+                                  </div>
 			</fieldset>
 			<fieldset id="utorrent_options">
 				<div class="row">
@@ -426,31 +457,51 @@
 					<small>Label for your uTorrent downloads</small>
 				</div>
 			</fieldset>
-			<fieldset id="seedbox_options">
+                        <fieldset id="rtorrent_options">
+                                <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Will *ONLY* work if rtorrent has RPC Support</small>
+                                <div class="row">
+                                        <label>rTorrent Host:Port/RPC</label>
+                                        <input type="text" name="rtorrent_host" value="${config['rtorrent_host']}" size="30">
+					<small>ie. https://my.rtorrent:80/myuser/RPC1</small>
+                                </div>
+                                <div class="row">
+                                        <label>rTorrent Username</label>
+                                        <input type="text" name="rtorrent_username" value="${config['rtorrent_username']}" size="30">
+                                </div>
+                                <div class="row">
+                                        <label>rTorrent Password</label>
+                                        <input type="password" name="rtorrent_password" value="${config['rtorrent_password']}" size="30">
+                                </div>
+                                <div class="row">
+                                        <label>Watch Directory</label>
+                                        <input type="text" name="rtorrent_directory" value="${config['rtorrent_directory']}" size="30"><br/>
+                                        <small>Folder path where torrent download will be assigned</small>
+                                </div>
+                                <div class="row">
+                                        <label>Label</label>
+                                        <input type="text" name="rtorrent_label" value="${config['rtorrent_label']}" size="30"><br/>
+                                        <small>Label to assign for torrents</small>
+                                </div>
+                                <div class="row checkbox left clearfix">
+                                        <input id="rtorrent_startonload" type="checkbox" name="rtorrent_startonload" value="1" ${config['rtorrent_startonload']} /><label>Start Torrent on Successful Load</label>
+                                        <small>Automatically start torrent on successful loading within rtorrent client</small>
+                                </div>
+                        </fieldset>
+<!--			<fieldset id="transmission_options">
 				<div class="row">
-					<label>Seedbox Host</label>
-					<input type="text" name="seedbox_host" value="${config['seedbox_host']}" size="30">
+					<label>Transmission Host</label>
+					<input type="text" name="transmission_host" value="${config['transmission_host']}" size="30">
 				</div>
 				<div class="row">
-					<label>Seedbox Port (SFTP)</label>
-					<input type="text" name="seedbox_port" value="${config['seedbox_port']}" size="30">
+					<label>Transmission Username</label>
+					<input type="text" name="transmission_username" value="${config['transmission_username']}" size="30">
 				</div>
 				<div class="row">
-					<label>Seedbox Username</label>
-					<input type="text" name="seedbox_user" value="${config['seedbox_user']}" size="30">
-				</div>
-				<div class="row">
-					<label>Seedbox Password</label>
-					<input type="password" name="seedbox_pass" value="${config['seedbox_pass']}" size="30">
-				</div>
-				<div class="row">
-					<label>Watch Directory</label>
-					<input type="text" name="seedbox_watchdir" value="${config['seedbox_watchdir']}" size="30"><br/>
-					<small>Folder path your torrent seedbox client watches</small>
+					<label>Transmission Password</label>
+					<input type="password" name="transmission_password" value="${config['transmission_password']}" size="30">
 				</div>
 			</fieldset>
-                              </div>
-                       </fieldset>
+-->
                 </td>
             </tr>            
     
@@ -1288,6 +1339,46 @@
                         }
                 });
 
+                if ($("#local_watchdir").is(":checked"))
+                        {
+                                $("#watchdir_local_options").show();
+                        }
+                else
+                        {
+                                $("#watchdir_local_options").hide();
+                        }
+
+                $("#local_watchdir").click(function(){
+                        if ($("#local_watchdir").is(":checked"))
+                        {
+                                $("#watchdir_local_options").slideDown();
+                        }
+                        else
+                        {
+                                $("#watchdir_local_options").slideUp();
+                        }
+                });
+
+                if ($("#remote_watchdir").is(":checked"))
+                        {
+                                $("#watchdir_remote_options").show();
+                        }
+                else
+                        {
+                                $("#watchdir_remote_options").hide();
+                        }
+
+                $("#remote_watchdir").click(function(){
+                        if ($("#remote_watchdir").is(":checked"))
+                        {
+                                $("#watchdir_remote_options").slideDown();
+                        }
+                        else
+                        {
+                                $("#watchdir_remote_options").slideUp();
+                        }
+                });
+
                 if ($("#nzb_downloader_sabnzbd").is(":checked"))
                         {
                                 $("#nzbget_options,#blackhole_options").hide();
@@ -1306,23 +1397,23 @@
 
                 if ($("#torrent_downloader_watchlist").is(":checked"))
                         {
-                                $("#utorrent_options,#rtorrent_options,#seedbox_options").hide();
+                                $("#utorrent_options,#rtorrent_options,#transmission_options").hide();
                                 $("#watchlist_options").show();
                         }
                 if ($("#torrent_downloader_utorrent").is(":checked"))
                         {
-                                $("#watchlist_options,#rtorrent_options,#seedbox_options").hide();
+                                $("#watchlist_options,#rtorrent_options,#transmission_options").hide();
                                 $("#utorrent_options").show();
                         }
                if ($("#torrent_downloader_rtorrent").is(":checked"))
                         {
-                                $("#utorrent_options,#watchlist_options,#seedbox_options").hide();
+                                $("#utorrent_options,#watchlist_options,#transmission_options").hide();
                                 $("#rtorrent_options").show();
                         }
-                if ($("#torrent_downloader_seedbox").is(":checked"))
+                if ($("#torrent_downloader_transmission").is(":checked"))
                         {
                                 $("#utorrent_options,#rtorrent_options,#watchlist_options").hide();
-                                $("#seedbox_options").show();
+                                $("#transmission_options").show();
                         }
  
 
@@ -1341,19 +1432,19 @@
                         }
 		   if ($("#torrent_downloader_watchlist").is(":checked"))
 		   {
-			$("#utorrent_options,#rtorrent_options,#seedbox_options").fadeOut("fast", function() { $("#watchlist_options").fadeIn() });
+			$("#utorrent_options,#rtorrent_options,#transmission_options").fadeOut("fast", function() { $("#watchlist_options").fadeIn() });
 		   }
 		   if ($("#torrent_downloader_utorrent").is(":checked"))
 		   {
-			$("#watchlist_options,#rtorrent_options,#seedbox_options").fadeOut("fast", function() { $("#utorrent_options").fadeIn() });
+			$("#watchlist_options,#rtorrent_options,#transmission_options").fadeOut("fast", function() { $("#utorrent_options").fadeIn() });
 		   }
 		   if ($("#torrent_downloader_rtorrent").is(":checked"))
 		   {
-			$("#utorrent_options,#watchlist_options,#seedbox_options").fadeOut("fast", function() { $("#rtorrent_options").fadeIn() });
+			$("#utorrent_options,#watchlist_options,#transmission_options").fadeOut("fast", function() { $("#rtorrent_options").fadeIn() });
 		   }
-		   if ($("#torrent_downloader_seedbox").is(":checked"))
+		   if ($("#torrent_downloader_transmission").is(":checked"))
 		   {
-			$("#utorrent_options,#rtorrent_options,#watchlist_options").fadeOut("fast", function() { $("#seedbox_options").fadeIn() });
+			$("#utorrent_options,#rtorrent_options,#watchlist_options").fadeOut("fast", function() { $("#transmission_options").fadeIn() });
 		   }
                 });
 
