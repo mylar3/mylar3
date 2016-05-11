@@ -2040,7 +2040,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 logger.error('Unable to send torrent - check logs and settings (this would be marked as a BAD torrent if Failed Handling was enabled)')
                 return "torrent-fail"
         if mylar.USE_WATCHDIR:
-            if TORRENT_LOCAL:
+            if mylar.TORRENT_LOCAL:
                 sent_to = "your local Watch folder"
             else:
                 sent_to = "your seedbox Watch folder"
