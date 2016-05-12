@@ -1976,7 +1976,6 @@ class WebInterface(object):
         myDB = db.DBConnection()
         myDB.action('DELETE from importresults')
         logger.info("Flushing all Import Results and clearing the tables")
-        raise cherrypy.HTTPRedirect("importResults")
     flushImports.exposed = True
 
     def markImports(self, action=None, **args):
@@ -2047,6 +2046,7 @@ class WebInterface(object):
                 controlValueDict = {'ComicID': ComicID}
                 newValueDict = {'Status': 'Paused'}
                 myDB.upsert("comics", newValueDict, controlValueDict)
+                logger.info('Pausing Series ID: ' + str(ComicID))
             elif action == 'resume':
                 controlValueDict = {'ComicID': ComicID}
                 newValueDict = {'Status': 'Active'}
@@ -2056,7 +2056,6 @@ class WebInterface(object):
         if len(comicsToAdd) > 0:
             logger.fdebug("Refreshing comics: %s" % comicsToAdd)
             threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
-        raise cherrypy.HTTPRedirect("home")
     markComics.exposed = True
 
     def forceUpdate(self):
@@ -2073,7 +2072,7 @@ class WebInterface(object):
 
     def forceRescan(self, ComicID):
         threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
+        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     forceRescan.exposed = True
 
     def checkGithub(self):
@@ -2086,7 +2085,6 @@ class WebInterface(object):
         myDB = db.DBConnection()
         history = myDB.select('''SELECT * from snatched order by DateAdded DESC''')
         return serve_template(templatename="history.html", title="History", history=history)
-        return page
     history.exposed = True
 
     def reOrder(request):
@@ -2846,6 +2844,8 @@ class WebInterface(object):
         else:
             logger.info(u"Clearing history where status is %s" % type)
             myDB.action('DELETE from snatched WHERE Status=?', [type])
+            if type == 'Processed':
+                myDB.action("DELETE from snatched WHERE Status='Post-Processed'")
         raise cherrypy.HTTPRedirect("history")
     clearhistory.exposed = True
 
@@ -3151,7 +3151,7 @@ class WebInterface(object):
             #we need to remove these items from the comiclist now, so they don't get processed again
             if len(RemoveIDS) > 0:
                 for RID in RemoveIDS:
-                    newlist = {k:comiclist[k] for k in comiclist if k['ComicID'] != RID}
+                    newlist = [k for k in comiclist if k['ComicID'] != RID]
                     comiclist = newlist
                     logger.info('newlist: ' + str(newlist))
 
@@ -3290,10 +3290,15 @@ class WebInterface(object):
                 logger.fdebug('displaycomic : ' + displaycomic)
                 logger.fdebug('comicname : ' + ComicName)
                 searchterm = '"' + displaycomic + '"'
-                if yearRANGE is None:
-                    sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
-                else:
-                    sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                try:
+                    if yearRANGE is None:
+                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                    else:
+                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                except TypeError:
+                    logger.warn('Comicvine API limit has been reached, and/or the comicvine website is not responding. Aborting process at this time, try again in an ~ hr when the api limit is reset.')
+                    break
+
                 type='comic'
 
                 #we now need to cycle through the results until we get a hit on both dynamicname AND year (~count of issues possibly).

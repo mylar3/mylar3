@@ -1107,6 +1107,10 @@ div#artistheader h2 a {
   min-width: 50px;
   text-align: left;
 }
+#manage_comic th#stat_icon{
+  max-width: 15px;
+  text-align: center;
+}
 #manage_comic th#have,
 #manage_comic th#publisher {
   text-align: center;
@@ -1122,6 +1126,11 @@ div#artistheader h2 a {
 #manage_comic td#publisher {
   min-width: 50px;
   text-align: left;
+  vertical-align: middle;
+}
+#manage_comic td#stat_icon{
+  max-width: 15px;
+  text-align: center;
   vertical-align: middle;
 }
 #manage_comic td#latest {

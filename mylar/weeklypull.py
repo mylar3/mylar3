@@ -29,7 +29,7 @@ import datetime
 import shutil
 
 import mylar
-from mylar import db, updater, helpers, logger, newpull, importer, mb
+from mylar import db, updater, helpers, logger, newpull, importer, mb #, locg
 
 def pullit(forcecheck=None):
     myDB = db.DBConnection()
@@ -45,94 +45,36 @@ def pullit(forcecheck=None):
         except (sqlite3.OperationalError, TypeError), msg:
             logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
             myDB.action("DROP TABLE weekly")
-            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text)")
+            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, DynamicName text)")
             pulldate = '00000000'
             logger.fdebug(u"Table re-created, trying to populate")
     else:
         logger.info(u"No pullist found...I'm going to try and get a new list now.")
         pulldate = '00000000'
     if pulldate is None: pulldate = '00000000'
+
+    #only for pw-file or ALT_PULL = 1
     #PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
     PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
-
-    #Prepare the Substitute name switch for pulllist to comic vine conversion
-    substitutes = os.path.join(mylar.DATA_DIR, "substitutes.csv")
-    if not os.path.exists(substitutes):
-        logger.debug('no substitues.csv file located - not performing substitutions on weekly pull list')
-        substitute_check = False
-    else:
-        substitute_check = True
-        #shortrep is the name to be replaced, longrep the replacement
-        shortrep=[]
-        longrep=[]
-        #open the file data
-        with open(substitutes) as f:
-            reader = csv.reader(f, delimiter='|')
-            for row in reader:
-                if not row[0].startswith('#'):
-                    logger.fdebug("Substitutes file read : " +str(row))
-                    shortrep.append(row[0])
-                    longrep.append(row[1])
-        f.close()
-
-    not_these=['PREVIEWS',
-               'Shipping',
-               'Every Wednesday',
-               'Please check with',
-               'PREMIER PUBLISHERS',
-               'BOOKS',
-               'COLLECTIBLES',
-               'MCFARLANE TOYS',
-               'New Releases',
-               'Upcoming Releases']
-
-    excludes=['2ND PTG',
-              '3RD PTG',
-              '4TH PTG',
-              '5TH PTG',
-              '6TH PTG',
-              '7TH PTG',
-              '8TH PTG',
-              '9TH PTG',
-              'NEW PTG',
-              'POSTER',
-              'COMBO PACK']
-
-    # this checks for the following lists
-    # first need to only look for checkit variables
-    checkit=['COMICS',
-             'IDW PUBLISHING',
-             'MAGAZINES',
-             'MERCHANDISE']
-             #'COMIC & GRAPHIC NOVELS',
-
-    #if COMICS is found, determine which publisher
-    checkit2=['DC',
-              'MARVEL',
-              'DARK HORSE',
-              'IMAGE']
-    # used to determine type of comic (one shot, hardcover, tradeback, softcover, graphic novel)
-    cmty=['HC',
-          'TP',
-          'GN',
-          'SC',
-          'ONE SHOT',
-          'PI']
-
-    #denotes issues that contain special characters within that would normally fail when checked if issue ONLY contained numerics.
-    #add freely, just lowercase and exclude decimals (they get stripped during comparisons)
-    specialissues = {'au', 'ai', 'inh', 'now'}
-
-    pub = "COMICS"
-    prevcomic = ""
-    previssue = ""
-
     newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
 
-    if mylar.ALT_PULL:
-        #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.') 
+    if mylar.ALT_PULL == 1:
+        #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.')
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
         newpull.newpull()
+    #elif mylar.ALT_PULL == 2:
+    #    logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
+    #    chk_locg = locg.locg(pulldate)
+    #    if chk_locg['status'] == 'up2date':
+    #        logger.info('[PULL-LIST] Pull-list is already up-to-date with ' + str(chk_locg['count']) + 'issues. Polling watchlist against it to see if anything is new.')
+    #        mylar.PULLNEW = 'no'
+    #        return pullitcheck()
+    #    elif chk_locg['status'] == 'success':
+    #        logger.info('[PULL-LIST] Weekly Pull List successfully loaded with ' + str(chk_locg['count']) + ' issues.')
+
+    #    else:
+    #        logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
+    #        f= urllib.urlretrieve(PULLURL, newrl)
     else:
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
         f = urllib.urlretrieve(PULLURL, newrl)
@@ -143,296 +85,380 @@ def pullit(forcecheck=None):
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
 
-    newfl = os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt')
-    newtxtfile = open(newfl, 'wb')
+    if mylar.ALT_PULL != 2:
+        newfl = os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt')
 
-    if check(newrl, 'Service Unavailable'):
-        logger.info('Retrieval site is offline at the moment.Aborting pull-list update amd will try again later.')
-        pullitcheck(forcecheck=forcecheck)
-    else:
-        pass
+        newtxtfile = open(newfl, 'wb')
 
-    for i in open(newrl):
-        if not i.strip():
-            continue
-        if 'MAGAZINES' in i: break
-        if 'MERCHANDISE' in i: break
-        for nono in not_these:
-            if nono in i:
-                #let's try and grab the date for future pull checks
-                if i.startswith('Shipping') or i.startswith('New Releases') or i.startswith('Upcoming Releases'):
-                    shipdatechk = i.split()
-                    if i.startswith('Shipping'):
-                        shipdate = shipdatechk[1]
-                    elif i.startswith('New Releases'):
-                        shipdate = shipdatechk[3]
-                    elif i.startswith('Upcoming Releases'):
-                        shipdate = shipdatechk[3]
-                    sdsplit = shipdate.split('/')
-                    mo = sdsplit[0]
-                    dy = sdsplit[1]
-                    if len(mo) == 1: mo = "0" + sdsplit[0]
-                    if len(dy) == 1: dy = "0" + sdsplit[1]
-                    shipdate = sdsplit[2] + "-" + mo + "-" + dy
-                    shipdaterep = shipdate.replace('-', '')
-                    pulldate = re.sub('-', '', str(pulldate))
-                    logger.fdebug("shipdate: " + str(shipdaterep))
-                    logger.fdebug("today: " + str(pulldate))
-                    if pulldate == shipdaterep:
-                        logger.info(u"No new pull-list available - will re-check again in 24 hours.")
-                        pullitcheck()
-                        mylar.PULLNEW = 'no'
-                        return
-                    else:
-                        logger.info(u"Preparing to update to the new listing.")
-                break
+        if check(newrl, 'Service Unavailable'):
+            logger.info('Retrieval site is offline at the moment.Aborting pull-list update amd will try again later.')
+            pullitcheck(forcecheck=forcecheck)
         else:
-            mylar.PULLNEW = 'yes'
-            for yesyes in checkit:
-                if yesyes in i:
-                    #logger.info('yesyes found: ' + yesyes)
-                    if format(str(yesyes)) == 'COMICS':
-                        #logger.info('yesyes = comics: ' + format(str(yesyes)))
-                        for chkchk in checkit2:
-                            flagged = "no"
-                            #logger.info('chkchk is : ' + chkchk)
-                            if chkchk in i:
-                                #logger.info('chkchk found in i: ' + chkchk)
-                                bl = i.split()
-                                blchk = str(bl[0]) + " " + str(bl[1])
-                                if chkchk in blchk:
-                                    pub = format(str(chkchk)) + " COMICS"
-                                    #logger.info("chkchk: " + str(pub))
-                                    break
-                            else:
-                                #logger.info('chkchk not in i - i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
-                                if all([i.find("COMICS") < 1, len(i.strip()) == 6]) or ("GRAPHIC NOVELS" in i):
-#                                if i.find("COMICS") < 1 and (len(i.strip()) == 6 or "& GRAPHIC NOVELS" in i):
-                                    pub = "COMICS"
-                                    #logger.info("i.find comics & len =6 : " + pub)
-                                    break
-                                elif i.find("COMICS") > 12:
-                                    #logger.info("comics word found in comic title")
-                                    flagged = "yes"
-                                    break
-                    else:
-                        #logger.info('yesyes not found: ' + yesyes + ' i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
-                        if all([i.find("COMICS") < 1, len(i.strip()) == 6]) or ("GRAPHIC NOVELS" in i):
-                            #logger.info("format string not comics & i.find < 1: " + pub)
-                            pub = "COMICS"
-                            break
+            pass
+
+        #PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
+        PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
+
+        #Prepare the Substitute name switch for pulllist to comic vine conversion
+        substitutes = os.path.join(mylar.DATA_DIR, "substitutes.csv")
+        if not os.path.exists(substitutes):
+            logger.debug('no substitues.csv file located - not performing substitutions on weekly pull list')
+            substitute_check = False
+        else:
+            substitute_check = True
+            #shortrep is the name to be replaced, longrep the replacement
+            shortrep=[]
+            longrep=[]
+            #open the file data
+            with open(substitutes) as f:
+                reader = csv.reader(f, delimiter='|')
+                for row in reader:
+                    if not row[0].startswith('#'):
+                        logger.fdebug("Substitutes file read : " +str(row))
+                        shortrep.append(row[0])
+                        longrep.append(row[1])
+            f.close()
+
+        not_these=['PREVIEWS',
+                   'Shipping',
+                   'Every Wednesday',
+                   'Please check with',
+                   'PREMIER PUBLISHERS',
+                   'BOOKS',
+                   'COLLECTIBLES',
+                   'MCFARLANE TOYS',
+                   'New Releases',
+                   'Upcoming Releases']
+
+        excludes=['2ND PTG',
+                  '3RD PTG',
+                  '4TH PTG',
+                  '5TH PTG',
+                  '6TH PTG',
+                  '7TH PTG',
+                  '8TH PTG',
+                  '9TH PTG',
+                  'NEW PTG',
+                  'POSTER',
+                  'COMBO PACK']
+
+        # this checks for the following lists
+        # first need to only look for checkit variables
+        checkit=['COMICS',
+                 'IDW PUBLISHING',
+                 'MAGAZINES',
+                 'MERCHANDISE']
+                 #'COMIC & GRAPHIC NOVELS',
+
+        #if COMICS is found, determine which publisher
+        checkit2=['DC',
+                  'MARVEL',
+                  'DARK HORSE',
+                  'IMAGE']
+        # used to determine type of comic (one shot, hardcover, tradeback, softcover, graphic novel)
+        cmty=['HC',
+              'TP',
+              'GN',
+              'SC',
+              'ONE SHOT',
+              'PI']
+
+        #denotes issues that contain special characters within that would normally fail when checked if issue ONLY contained numerics.
+        #add freely, just lowercase and exclude decimals (they get stripped during comparisons)
+        specialissues = {'au', 'ai', 'inh', 'now'}
+
+        pub = "COMICS"
+        prevcomic = ""
+        previssue = ""
+
+        for i in open(newrl):
+            if not i.strip():
+                continue
+            if 'MAGAZINES' in i: break
+            if 'MERCHANDISE' in i: break
+            for nono in not_these:
+                if nono in i:
+                    #let's try and grab the date for future pull checks
+                    if i.startswith('Shipping') or i.startswith('New Releases') or i.startswith('Upcoming Releases'):
+                        shipdatechk = i.split()
+                        if i.startswith('Shipping'):
+                            shipdate = shipdatechk[1]
+                        elif i.startswith('New Releases'):
+                            shipdate = shipdatechk[3]
+                        elif i.startswith('Upcoming Releases'):
+                            shipdate = shipdatechk[3]
+                        sdsplit = shipdate.split('/')
+                        mo = sdsplit[0]
+                        dy = sdsplit[1]
+                        if len(mo) == 1: mo = "0" + sdsplit[0]
+                        if len(dy) == 1: dy = "0" + sdsplit[1]
+                        shipdate = sdsplit[2] + "-" + mo + "-" + dy
+                        shipdaterep = shipdate.replace('-', '')
+                        pulldate = re.sub('-', '', str(pulldate))
+                        logger.fdebug("shipdate: " + str(shipdaterep))
+                        logger.fdebug("today: " + str(pulldate))
+                        if pulldate == shipdaterep:
+                            logger.info(u"No new pull-list available - will re-check again in 24 hours.")
+                            pullitcheck()
+                            mylar.PULLNEW = 'no'
+                            return
                         else:
-                            pub = format(str(yesyes))
-                            #logger.info("format string not comics & i.find > 1: " + pub)
-                            break
-                    if flagged == "no":
-                        break
+                            logger.info(u"Preparing to update to the new listing.")
+                    break
             else:
-                dupefound = "no"
-                if '#' in i:
-                    issname = i.split()
-                    #print (issname)
-                    issnamec = len(issname)
-                    n = 0
-                    while (n < issnamec):
-                        #find the issue
-                        if '#' in (issname[n]):
-                            if issname[n] == "PI":
-                                issue = "NA"
-                                break
-
-                            #this is to ensure we don't get any comps added by removing them entirely (ie. #1-4, etc)
-                            x = None
-                            try:
-                                x = float(re.sub('#', '', issname[n].strip()))
-                            except ValueError, e:
-                                if any(d in re.sub(r'[^a-zA-Z0-9]', '', issname[n]).strip() for d in specialissues):
-                                    issue = issname[n]
+                mylar.PULLNEW = 'yes'
+                for yesyes in checkit:
+                    if yesyes in i:
+                        #logger.info('yesyes found: ' + yesyes)
+                        if format(str(yesyes)) == 'COMICS':
+                            #logger.info('yesyes = comics: ' + format(str(yesyes)))
+                            for chkchk in checkit2:
+                                flagged = "no"
+                                #logger.info('chkchk is : ' + chkchk)
+                                if chkchk in i:
+                                    #logger.info('chkchk found in i: ' + chkchk)
+                                    bl = i.split()
+                                    blchk = str(bl[0]) + " " + str(bl[1])
+                                    if chkchk in blchk:
+                                        pub = format(str(chkchk)) + " COMICS"
+                                        #logger.info("chkchk: " + str(pub))
+                                        break
                                 else:
-                                    logger.fdebug('Comp issue set detected as : ' + str(issname[n]) + '. Ignoring.')
-                                    issue = 'NA'
+                                    #logger.info('chkchk not in i - i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
+                                    if all([i.find("COMICS") < 1, len(i.strip()) == 6]) or ("GRAPHIC NOVELS" in i):
+#                                    if i.find("COMICS") < 1 and (len(i.strip()) == 6 or "& GRAPHIC NOVELS" in i):
+                                        pub = "COMICS"
+                                        #logger.info("i.find comics & len =6 : " + pub)
+                                        break
+                                    elif i.find("COMICS") > 12:
+                                        #logger.info("comics word found in comic title")
+                                        flagged = "yes"
+                                        break
+                        else:
+                            #logger.info('yesyes not found: ' + yesyes + ' i.findcomics: ' + str(i.find("COMICS")) + ' length: ' + str(len(i.strip())))
+                            if all([i.find("COMICS") < 1, len(i.strip()) == 6]) or ("GRAPHIC NOVELS" in i):
+                                #logger.info("format string not comics & i.find < 1: " + pub)
+                                pub = "COMICS"
+                                break
                             else:
-                                issue = issname[n]
-
-                            if 'ongoing' not in issname[n -1].lower() and '(vu)' not in issname[n -1].lower():
-                                #print ("issue found : " + issname[n])
-                                comicend = n - 1
-                            else:
-                                comicend = n - 2
+                                pub = format(str(yesyes))
+                                #logger.info("format string not comics & i.find > 1: " + pub)
+                                break
+                        if flagged == "no":
                             break
-                        n+=1
-                    if issue == "": issue = 'NA'
-                    #find comicname
-                    comicnm = issname[1]
-                    n = 2
-                    while (n < comicend + 1):
-                        comicnm = comicnm + " " + issname[n]
-                        n+=1
-                    comcnm = re.sub('1 FOR \$1', '', comicnm).strip()
-                    #logger.info("Comicname: " + str(comicnm) )
-                    #get remainder
-                    try:
-                        comicrm = issname[comicend +2]
-                    except:
+                else:
+                    dupefound = "no"
+                    if '#' in i:
+                        issname = i.split()
+                        #print (issname)
+                        issnamec = len(issname)
+                        n = 0
+                        while (n < issnamec):
+                            #find the issue
+                            if '#' in (issname[n]):
+                                if issname[n] == "PI":
+                                    issue = "NA"
+                                    break
+
+                                #this is to ensure we don't get any comps added by removing them entirely (ie. #1-4, etc)
+                                x = None
+                                try:
+                                     x = float(re.sub('#', '', issname[n].strip()))
+                                except ValueError, e:
+                                     if any(d in re.sub(r'[^a-zA-Z0-9]', '', issname[n]).strip() for d in specialissues):
+                                        issue = issname[n]
+                                     else:
+                                        logger.fdebug('Comp issue set detected as : ' + str(issname[n]) + '. Ignoring.')
+                                        issue = 'NA'
+                                else:
+                                    issue = issname[n]
+
+                                if 'ongoing' not in issname[n -1].lower() and '(vu)' not in issname[n -1].lower():
+                                    #print ("issue found : " + issname[n])
+                                    comicend = n - 1
+                                else:
+                                    comicend = n - 2
+                                break
+                            n+=1
+                        if issue == "": issue = 'NA'
+                        #find comicname
+                        comicnm = issname[1]
+                        n = 2
+                        while (n < comicend + 1):
+                            comicnm = comicnm + " " + issname[n]
+                            n+=1
+                        comcnm = re.sub('1 FOR \$1', '', comicnm).strip()
+                        #logger.info("Comicname: " + str(comicnm) )
+                        #get remainder
                         try:
-                            comicrm = issname[comicend +1]
+                            comicrm = issname[comicend +2]
                         except:
                             try:
-                                comicrm = issname[comicend]
+                                comicrm = issname[comicend +1]
                             except:
-                                comicrm = '$'
-                    if '$' in comicrm:
-                        comicrm="None"
-                    n = (comicend + 3)
-                    while (n < issnamec):
-                        if '$' in (issname[n]):
-                            break
-                        comicrm = str(comicrm) + " " + str(issname[n])
-                        n+=1
-                    #logger.info("Comic Extra info: " + str(comicrm) )
-                    #logger.info("ship: " + str(shipdate))
-                    #logger.info("pub: " + str(pub))
-                    #logger.info("issue: " + str(issue))
-
-                    #--let's make sure we don't wipe out decimal issues ;)
-#                    if '.' in issue:
-#                        issue_decimal = re.compile(r'[^\d.]+')
-#                        issue = issue_decimal.sub('', str(issue))
-#                    else: issue = re.sub('#','', issue)
-                    issue = re.sub('#', '', issue)
-                    #issue = re.sub("\D", "", str(issue))
-                    #store the previous comic/issue for comparison to filter out duplicate issues/alt covers
-                    #print ("Previous Comic & Issue: " + str(prevcomic) + "--" + str(previssue))
-                    dupefound = "no"
-                else:
-                    #if it doesn't have a '#' in the line, then we know it's either
-                    #a special edition of some kind, or a non-comic
-                    issname = i.split()
-                    #print (issname)
-                    issnamec = len(issname)
-                    n = 1
-                    issue = ''
-                    while (n < issnamec):
-                        #find the type of non-issue (TP,HC,GN,SC,OS,PI etc)
-                        for cm in cmty:
-                            if "ONE" in issue and "SHOT" in issname[n +1]: issue = "OS"
-                            if cm == (issname[n]):
-                                if issname[n] == 'PI':
-                                    issue = 'NA'
-                                    break
-                                issue = issname[n]
-                                #print ("non-issue found : " + issue)
-                                comicend = n - 1
+                                try:
+                                    comicrm = issname[comicend]
+                                except:
+                                    comicrm = '$'
+                        if '$' in comicrm:
+                            comicrm="None"
+                        n = (comicend + 3)
+                        while (n < issnamec):
+                            if '$' in (issname[n]):
                                 break
-                        n+=1
-                    #if the comic doesn't have an issue # or a keyword, adjust.
-                    #set it to 'NA' and it'll be filtered out anyways.
-                    if issue == "" or issue is None:
-                        issue = 'NA'
-                        comicend = n - 1  #comicend = comicend - 1  (adjustment for nil)
-                    #find comicname
-                    comicnm = issname[1]
-                    n = 2
-                    while (n < comicend + 1):
-                        #stupid - this errors out if the array mistakingly goes to far.
-                        try:
-                            comicnm = comicnm + " " + issname[n]
-                        except IndexError:
-                            #print ("went too far looking at this comic...adjusting.")
-                            comicnm = comicnm
-                            break
-                        n+=1
-                    #print ("Comicname: " + str(comicnm) )
-                    #get remainder
-                    if len(issname) <= (comicend + 2):
-                        comicrm = "None"
-                    else:
-                        #print ("length:" + str(len(issname)))
-                        #print ("end:" + str(comicend + 2))
-                        comicrm = issname[comicend +2]
-                    if '$' in comicrm:
-                        comicrm="None"
-                    n = (comicend + 3)
-                    while (n < issnamec):
-                        if '$' in (issname[n]) or 'PI' in (issname[n]):
-                            break
-                        comicrm = str(comicrm) + " " + str(issname[n])
-                        n+=1
-                    #print ("Comic Extra info: " + str(comicrm) )
-                    if "NA" not in issue and issue != "":
-                        #print ("shipdate:" + str(shipdate))
-                        #print ("pub: " + str(pub))
-                        #print ("issue: " + str(issue))
+                            comicrm = str(comicrm) + " " + str(issname[n])
+                            n+=1
+                        #logger.info("Comic Extra info: " + str(comicrm) )
+                        #logger.info("ship: " + str(shipdate))
+                        #logger.info("pub: " + str(pub))
+                        #logger.info("issue: " + str(issue))
+
+                        #--let's make sure we don't wipe out decimal issues ;)
+    #                    if '.' in issue:
+    #                        issue_decimal = re.compile(r'[^\d.]+')
+    #                        issue = issue_decimal.sub('', str(issue))
+    #                    else: issue = re.sub('#','', issue)
+                        issue = re.sub('#', '', issue)
+                        #issue = re.sub("\D", "", str(issue))
+                        #store the previous comic/issue for comparison to filter out duplicate issues/alt covers
+                        #print ("Previous Comic & Issue: " + str(prevcomic) + "--" + str(previssue))
                         dupefound = "no"
+                    else:
+                        #if it doesn't have a '#' in the line, then we know it's either
+                        #a special edition of some kind, or a non-comic
+                        issname = i.split()
+                        #print (issname)
+                        issnamec = len(issname)
+                        n = 1
+                        issue = ''
+                        while (n < issnamec):
+                            #find the type of non-issue (TP,HC,GN,SC,OS,PI etc)
+                            for cm in cmty:
+                                if "ONE" in issue and "SHOT" in issname[n +1]: issue = "OS"
+                                if cm == (issname[n]):
+                                    if issname[n] == 'PI':
+                                        issue = 'NA'
+                                        break
+                                    issue = issname[n]
+                                    #print ("non-issue found : " + issue)
+                                    comicend = n - 1
+                                    break
+                            n+=1
+                        #if the comic doesn't have an issue # or a keyword, adjust.
+                        #set it to 'NA' and it'll be filtered out anyways.
+                        if issue == "" or issue is None:
+                            issue = 'NA'
+                            comicend = n - 1  #comicend = comicend - 1  (adjustment for nil)
+                        #find comicname
+                        comicnm = issname[1]
+                        n = 2
+                        while (n < comicend + 1):
+                            #stupid - this errors out if the array mistakingly goes to far.
+                            try:
+                                comicnm = comicnm + " " + issname[n]
+                            except IndexError:
+                                #print ("went too far looking at this comic...adjusting.")
+                                comicnm = comicnm
+                                break
+                            n+=1
+                        #print ("Comicname: " + str(comicnm) )
+                        #get remainder
+                        if len(issname) <= (comicend + 2):
+                            comicrm = "None"
+                        else:
+                            #print ("length:" + str(len(issname)))
+                            #print ("end:" + str(comicend + 2))
+                            comicrm = issname[comicend +2]
+                        if '$' in comicrm:
+                            comicrm="None"
+                        n = (comicend + 3)
+                        while (n < issnamec):
+                            if '$' in (issname[n]) or 'PI' in (issname[n]):
+                                break
+                            comicrm = str(comicrm) + " " + str(issname[n])
+                            n+=1
+                        #print ("Comic Extra info: " + str(comicrm) )
+                        if "NA" not in issue and issue != "":
+                            #print ("shipdate:" + str(shipdate))
+                            #print ("pub: " + str(pub))
+                            #print ("issue: " + str(issue))
+                            dupefound = "no"
 
-                #-- remove html tags when alt_pull is enabled
-                if mylar.ALT_PULL:
-                    if '&amp;' in comicnm:
-                        comicnm = re.sub('&amp;', '&', comicnm).strip()
-                    if '&amp;' in pub:
-                        pub = re.sub('&amp;', '&', pub).strip()
-                    if '&amp;' in comicrm:
-                        comicrm = re.sub('&amp;', '&', comicrm).strip()
+                    #-- remove html tags when alt_pull is enabled
+                    if mylar.ALT_PULL:
+                        if '&amp;' in comicnm:
+                            comicnm = re.sub('&amp;', '&', comicnm).strip()
+                        if '&amp;' in pub:
+                            pub = re.sub('&amp;', '&', pub).strip()
+                        if '&amp;' in comicrm:
+                            comicrm = re.sub('&amp;', '&', comicrm).strip()
 
-                #--start duplicate comic / issue chk
-                # pullist has shortforms of a series' title sometimes and causes problems
-                if 'O/T' in comicnm:
-                    comicnm = re.sub('O/T', 'OF THE', comicnm)
+                    #--start duplicate comic / issue chk
+                    # pullist has shortforms of a series' title sometimes and causes problems
+                    if 'O/T' in comicnm:
+                        comicnm = re.sub('O/T', 'OF THE', comicnm)
 
-                if substitute_check == True:
-                    #Step through the list - storing an index
-                    for repindex, repcheck in enumerate(shortrep):
-                        if len(comicnm) >= len(repcheck):
-                            #if the leftmost chars match the short text then replace them with the long text
-                            if comicnm[:len(repcheck)]==repcheck:
-                                logger.fdebug("Switch worked on " +comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
-                                comicnm = re.sub(repcheck, longrep[repindex], comicnm)
+                    if substitute_check == True:
+                        #Step through the list - storing an index
+                        for repindex, repcheck in enumerate(shortrep):
+                            if len(comicnm) >= len(repcheck):
+                                #if the leftmost chars match the short text then replace them with the long text
+                                if comicnm[:len(repcheck)]==repcheck:
+                                    logger.fdebug("Switch worked on " +comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
+                                    comicnm = re.sub(repcheck, longrep[repindex], comicnm)
 
-                for excl in excludes:
-                    if excl in str(comicrm):
-                        #duplicate comic / issue detected - don't add...
+                    for excl in excludes:
+                        if excl in str(comicrm):
+                            #duplicate comic / issue detected - don't add...
+                            dupefound = "yes"
+                    if prevcomic == str(comicnm) and previssue == str(issue):
+                        #duplicate comic/issue detected - don't add...
                         dupefound = "yes"
-                if prevcomic == str(comicnm) and previssue == str(issue):
-                    #duplicate comic/issue detected - don't add...
-                    dupefound = "yes"
-                #--end duplicate chk
-                if (dupefound != "yes") and ('NA' not in str(issue)):
-                    newtxtfile.write(str(shipdate) + '\t' + str(pub) + '\t' + str(issue) + '\t' + str(comicnm) + '\t' + str(comicrm) + '\tSkipped' + '\n')
-                prevcomic = str(comicnm)
-                previssue = str(issue)
-    logger.info(u"Populating the NEW Weekly Pull list into Mylar.")
-    newtxtfile.close()
+                    #--end duplicate chk
+                    if (dupefound != "yes") and ('NA' not in str(issue)):
+                        newtxtfile.write(str(shipdate) + '\t' + str(pub) + '\t' + str(issue) + '\t' + str(comicnm) + '\t' + str(comicrm) + '\tSkipped' + '\n')
+                    prevcomic = str(comicnm)
+                    previssue = str(issue)
 
-    myDB.action("drop table if exists weekly")
-    myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text)")
+        newtxtfile.close()
 
-    csvfile = open(newfl, "rb")
-    creader = csv.reader(csvfile, delimiter='\t')
-    t=1
+        logger.info(u"Populating the NEW Weekly Pull list into Mylar.")
 
-    for row in creader:
-        if "MERCHANDISE" in row: break
-        if "MAGAZINES" in row: break
-        if "BOOK" in row: break
-        try:
-            #logger.debug("Row: %s" % row)
-            controlValueDict = {'COMIC': row[3],
-                                'ISSUE': row[2],
-                                'EXTRA': row[4]}
-            newValueDict = {'SHIPDATE': row[0],
-                            'PUBLISHER': row[1],
-                            'STATUS': row[5],
-                            'COMICID': None}
-            myDB.upsert("weekly", newValueDict, controlValueDict)
-        except Exception, e:
-            #print ("Error - invald arguments...-skipping")
-            pass
-        t+=1
-    csvfile.close()
-    logger.info(u"Weekly Pull List successfully loaded.")
-    #let's delete the files
-    os.remove(os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt'))
-    os.remove(os.path.join(mylar.CACHE_DIR, 'newreleases.txt'))
+        myDB.action("drop table if exists weekly")
+        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, DynamicName text)")
+
+        csvfile = open(newfl, "rb")
+        creader = csv.reader(csvfile, delimiter='\t')
+        t=1
+
+        for row in creader:
+            if "MERCHANDISE" in row: break
+            if "MAGAZINES" in row: break
+            if "BOOK" in row: break
+            try:
+                cl_d = mylar.filechecker.FileChecker()
+                cl_dyninfo = cl_d.dynamic_replace(row[3])
+                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                controlValueDict = {'COMIC': row[3],
+                                    'ISSUE': row[2],
+                                    'EXTRA': row[4]}
+                newValueDict = {'SHIPDATE': row[0],
+                                'PUBLISHER': row[1],
+                                'STATUS': row[5],
+                                'COMICID': None,
+                                'DYNAMICNAME': dynamic_name}
+                myDB.upsert("weekly", newValueDict, controlValueDict)
+            except Exception, e:
+                #print ("Error - invald arguments...-skipping")
+                pass
+            t+=1
+        csvfile.close()
+        #let's delete the files
+        os.remove(os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt'))
+        os.remove(os.path.join(mylar.CACHE_DIR, 'newreleases.txt'))
+
+        logger.info(u"Weekly Pull List successfully loaded.")
+
     pullitcheck(forcecheck=forcecheck)
 
 def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):
@@ -483,16 +509,17 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
 
             for weekly in comiclist:
                 #assign it.
-                weeklylist.append({"ComicName": weekly['ComicName'],
-                                   "ComicID":   weekly['ComicID'],
+                weeklylist.append({"ComicName":          weekly['ComicName'],
+                                   "ComicID":            weekly['ComicID'],
                                    "ComicName_Filesafe": weekly['ComicName_Filesafe'],
-                                   "ComicYear": weekly['ComicYear'],
-                                   "ComicPublisher": weekly['ComicPublisher'],
-                                   "ComicPublished": weekly['ComicPublished'],
-                                   "LatestDate": weekly['LatestDate'],
-                                   "LatestIssue": weekly['LatestIssue'],
-                                   "ForceContinuing": weekly['ForceContinuing'],
-                                   "AlternateSearch": weekly['AlternateSearch']})
+                                   "ComicYear":          weekly['ComicYear'],
+                                   "ComicPublisher":     weekly['ComicPublisher'],
+                                   "ComicPublished":     weekly['ComicPublished'],
+                                   "LatestDate":         weekly['LatestDate'],
+                                   "LatestIssue":        weekly['LatestIssue'],
+                                   "ForceContinuing":    weekly['ForceContinuing'],
+                                   "AlternateSearch":    weekly['AlternateSearch'],
+                                   "DynamicName":        weekly['DynamicComicName']})
 
         if len(weeklylist) > 0:
             for week in weeklylist:
@@ -530,7 +557,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                         if week['ForceContinuing'] == 1:
                             logger.fdebug('Forcing Continuing Series enabled for series...')
                         # let's not even bother with comics that are not in the Present.
-                        a_list.append(week['ComicName_Filesafe'])
+                        a_list.append(week['ComicName'])
                         b_list.append(week['ComicYear'])
                         comicid.append(week['ComicID'])
                         pubdate.append(week['ComicPublished'])
@@ -591,21 +618,25 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
         if w > 0:
             while (cnt > -1):
                 latestiss = latestissue[cnt]
-                lines[cnt] = lines[cnt].upper()
+                if mylar.ALT_PULL != 2:
+                    lines[cnt] = lines[cnt].upper()
                 #llen[cnt] = str(llen[cnt])
                 logger.fdebug("looking for : " + lines[cnt])
-                sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', ' ', lines[cnt])
-                sqlsearch = re.sub("\&", '%', sqlsearch)
-                sqlsearch = re.sub("\\bAND\\b", '%', sqlsearch)
-                sqlsearch = re.sub("\\bTHE\\b", '', sqlsearch)
-                if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
-                sqlsearch = re.sub(r'\s', '%', sqlsearch)
-                sqlsearch = sqlsearch + '%'
-                #logger.fdebug("searchsql: " + sqlsearch)
+                cl_d = mylar.filechecker.FileChecker()
+                cl_dyninfo = cl_d.dynamic_replace(lines[cnt])
+                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                #sqlsearch = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@\']', ' ', lines[cnt])
+                #sqlsearch = re.sub("\&", '%', sqlsearch)
+                #sqlsearch = re.sub("\\bAND\\b", '%', sqlsearch)
+                #sqlsearch = re.sub("\\bTHE\\b", '', sqlsearch)
+                #if '+' in sqlsearch: sqlsearch = re.sub('\+', '%PLUS%', sqlsearch)
+                #sqlsearch = re.sub(r'\s', '%', sqlsearch)
+                sqlsearch = '%' + dynamic_name + '%'
+                logger.fdebug("searchsql: " + sqlsearch)
                 if futurepull is None:
-                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [sqlsearch])
+                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE, DynamicName FROM weekly WHERE DynamicName LIKE (?) COLLATE NOCASE', [sqlsearch])
                 else:
-                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM future WHERE COMIC LIKE (?)', [sqlsearch])
+                    weekly = myDB.select('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM future WHERE COMIC LIKE (?) COLLATE NOCASE', [sqlsearch])
                 #cur.execute('SELECT PUBLISHER, ISSUE, COMIC, EXTRA, SHIPDATE FROM weekly WHERE COMIC LIKE (?)', [lines[cnt]])
                 for week in weekly:
                     if week == None:
@@ -618,52 +649,57 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                             #logger.fdebug("graphic novel/tradeback detected..ignoring.")
                             break
                         for nothere in not_c:
-                            if nothere in week['EXTRA']:
-                                #logger.fdebug("nothere present")
-                                break
+                            if week['EXTRA'] is not None:
+                                if nothere in week['EXTRA']:
+                                    #logger.fdebug("nothere present")
+                                    break
                             else:
                                 comicnm = week['COMIC']
+                                dyn_comicnm = week['DynamicName']
+                                dyn_watchnm = dynamic_name
                                 #here's the tricky part, ie. BATMAN will match on
                                 #every batman comic, not exact
                                 logger.fdebug("comparing" + comicnm + "..to.." + unlines[cnt].upper())
+                                watchcomic = unlines[cnt]
 
                                 #-NEW-
                                 # strip out all special characters and compare
-                                watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', unlines[cnt])
-                                comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', comicnm)
-                                if "THE" in watchcomic.upper() or "THE" in comicnm.upper():
-                                    modwatchcomic = re.sub("\\bTHE\\b", "", watchcomic.upper())
-                                    modcomicnm = re.sub("\\bTHE\\b", "", comicnm)
-                                else:
-                                    modwatchcomic = watchcomic
-                                    modcomicnm = comicnm
-                                if '&' in watchcomic.upper():
-                                    modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
-                                    modcomicnm = re.sub('\&', 'AND', modcomicnm)
-                                if '&' in comicnm:
-                                    modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
-                                    modcomicnm = re.sub('\&', 'AND', modcomicnm)
+                                #watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', unlines[cnt])
+                                #comicnm = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\'\?\@]', '', comicnm)
+                                #if "THE" in watchcomic.upper() or "THE" in comicnm.upper():
+                                #    modwatchcomic = re.sub("\\bTHE\\b", "", watchcomic.upper())
+                                #    modcomicnm = re.sub("\\bTHE\\b", "", comicnm)
+                                #else:
+                                #    modwatchcomic = watchcomic
+                                #    modcomicnm = comicnm
+                                #if '&' in watchcomic.upper():
+                                #    modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
+                                #    modcomicnm = re.sub('\&', 'AND', modcomicnm)
+                                #if '&' in comicnm:
+                                #    modwatchcomic = re.sub('\&', 'AND', modwatchcomic.upper())
+                                #    modcomicnm = re.sub('\&', 'AND', modcomicnm)
                                 #thnx to A+X for this...
-                                if '+' in watchcomic:
-                                    logger.fdebug("+ detected...adjusting.")
-                                    #logger.fdebug("comicnm:" + comicnm)
-                                    #logger.fdebug("watchcomic:" + watchcomic)
-                                    modwatchcomic = re.sub('\+', 'PLUS', modwatchcomic)
-                                    #logger.fdebug("modcomicnm:" + modcomicnm)
-                                    #logger.fdebug("modwatchcomic:" + modwatchcomic)
+                                #if '+' in watchcomic:
+                                #    logger.fdebug("+ detected...adjusting.")
+                                #    #logger.fdebug("comicnm:" + comicnm)
+                                #    #logger.fdebug("watchcomic:" + watchcomic)
+                                #    modwatchcomic = re.sub('\+', 'PLUS', modwatchcomic)
+                                #    #logger.fdebug("modcomicnm:" + modcomicnm)
+                                #    #logger.fdebug("modwatchcomic:" + modwatchcomic)
 
                                 #annuals!
-                                if 'ANNUAL' in comicnm.upper():
-                                    modcomicnm = re.sub("\\bANNUAL\\b", "", modcomicnm.upper())
+                                #if 'ANNUAL' in comicnm.upper():
+                                #    modcomicnm = re.sub("\\bANNUAL\\b", "", modcomicnm.upper())
 
-                                watchcomic = re.sub(r'\s', '', watchcomic)
-                                comicnm = re.sub(r'\s', '', comicnm)
-                                modwatchcomic = re.sub(r'\s', '', modwatchcomic)
-                                modcomicnm = re.sub(r'\s', '', modcomicnm)
-                                logger.fdebug("watchcomic : " + str(watchcomic) + " / mod :" + str(modwatchcomic))
-                                logger.fdebug("comicnm : " + str(comicnm) + " / mod :" + str(modcomicnm))
+                                #watchcomic = re.sub(r'\s', '', watchcomic)
+                                #comicnm = re.sub(r'\s', '', comicnm)
+                                #modwatchcomic = re.sub(r'\s', '', modwatchcomic)
+                                #modcomicnm = re.sub(r'\s', '', modcomicnm)
+                                logger.fdebug("watchcomic : " + str(watchcomic))  # / mod :" + str(modwatchcomic))
+                                logger.fdebug("comicnm : " + str(comicnm)) # / mod :" + str(modcomicnm))
 
-                                if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
+                                if dyn_comicnm == dyn_watchnm:
+                                #if comicnm == watchcomic.upper() or modcomicnm == modwatchcomic.upper():
                                     if mylar.ANNUALS_ON:
                                         if 'annual' in watchcomic.lower() and 'annual' not in comicnm.lower():
                                             logger.fdebug('Annual detected in issue, but annuals are not enabled and no series match in wachlist.')
@@ -690,8 +726,9 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
 
 
                                 if ("NA" not in week['ISSUE']) and ("HC" not in week['ISSUE']):
-                                    if ("COMBO PACK" not in week['EXTRA']) and ("2ND PTG" not in week['EXTRA']) and ("3RD PTG" not in week['EXTRA']):
-
+                                    if week['EXTRA'] is not None and any(["COMBO PACK" in week['EXTRA'],"2ND PTG" in week['EXTRA'], "3RD PTG" in week['EXTRA']]):
+                                        continue
+                                    else:
                                     #this all needs to get redone, so the ability to compare issue dates can be done systematically.
                                     #Everything below should be in it's own function - at least the callable sections - in doing so, we can
                                     #then do comparisons when two titles of the same name exist and are by definition 'current'. Issue date comparisons

@@ -226,11 +226,12 @@ class PostProcessor(object):
             if mylar.USE_NZBGET==1:
                 if self.nzb_name != 'Manual Run':
                     logger.fdebug(module + ' Using NZBGET')
-                logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                    logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
                 # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
                 if self.nzb_name == 'Manual Run':
                     logger.fdebug(module + ' Manual Run Post-Processing enabled.')
                 elif mylar.NZBGET_DIRECTORY is not None and mylar.NZBGET_DIRECTORY is not 'None' and len(mylar.NZBGET_DIRECTORY) > 4:
+                    logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
                     self.nzb_folder = os.path.join(mylar.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
             myDB = db.DBConnection()
@@ -291,7 +292,12 @@ class PostProcessor(object):
                     else:
                         watchvals = []
                         for wv in comicseries:
-
+                            #do some extra checks in here to ignore these types:
+                            #check for Paused status /
+                            #check for Ended status and 100% completion of issues.
+                            if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
+                                logger.warn(wv['ComicName'] + ' is either Paused or in an Ended status with 100% completion.')
+                                continue
                             wv_comicname = wv['ComicName']
                             wv_comicpublisher = wv['ComicPublisher']
                             wv_alternatesearch = wv['AlternateSearch']

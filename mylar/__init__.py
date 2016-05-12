@@ -114,7 +114,7 @@ IMPORTBUTTON = False
 DONATEBUTTON = True
 
 PULLNEW = None
-ALT_PULL = False
+ALT_PULL = 0
 
 LOCAL_IP = None
 EXT_IP = None
@@ -542,7 +542,7 @@ def initialize():
         CHOWNER = check_setting_str(CFG, 'General', 'chowner', '')
         CHGROUP = check_setting_str(CFG, 'General', 'chgroup', '')
         USENET_RETENTION = check_setting_int(CFG, 'General', 'usenet_retention', '1500')
-        ALT_PULL = bool(check_setting_int(CFG, 'General', 'alt_pull', 0))
+        ALT_PULL = check_setting_int(CFG, 'General', 'alt_pull', 0)
         SEARCH_INTERVAL = check_setting_int(CFG, 'General', 'search_interval', 360)
         NZB_STARTUP_SEARCH = bool(check_setting_int(CFG, 'General', 'nzb_startup_search', 0))
         ADD_COMICS = bool(check_setting_int(CFG, 'General', 'add_comics', 0))
@@ -1626,7 +1626,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
@@ -1870,6 +1870,16 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE weekly ADD COLUMN IssueID TEXT')
 
+    try:
+        c.execute('SELECT DynamicName from weekly')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE weekly ADD COLUMN DynamicName TEXT')
+
+    try:
+        c.execute('SELECT CV_Last_Update from weekly')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE weekly ADD COLUMN CV_Last_Update TEXT')
+
     ## -- Nzblog Table --
 
     try:
@@ -2001,7 +2011,7 @@ def dbcheck():
 
     try:
         c.execute('SELECT DynamicComicName from readinglist')
-        if DYNAMIC_UPDATE < 3:
+        if DYNAMIC_UPDATE < 4:
             dynamic_upgrade = True
         else:
             dynamic_upgrade = False

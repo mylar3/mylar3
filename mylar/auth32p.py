@@ -1,9 +1,14 @@
 import urllib2
-import lib.requests as requests
 import re
+import time
+import datetime
+import os
+import lib.requests as requests
 from bs4 import BeautifulSoup
+from cookielib import LWPCookieJar
+
 import mylar
-from mylar import logger
+from mylar import logger, filechecker
 
 
 class info32p(object):
@@ -11,12 +16,30 @@ class info32p(object):
     def __init__(self, reauthenticate=False, searchterm=None, test=False):
 
         self.module = '[32P-AUTHENTICATION]'
-        self.url = 'https://32pag.es/login.php'
-        self.payload = {'username': mylar.USERNAME_32P,
-                        'password': mylar.PASSWORD_32P}
+        self.url = 'https://32pag.es/user.php?action=notify'
         self.headers = {'Content-type': 'application/x-www-form-urlencoded',
                         'Accept-Charset': 'utf-8',
                         'User-Agent': 'Mozilla/5.0'}
+
+        self.error = None
+        self.method = None
+        lses = self.LoginSession(mylar.USERNAME_32P, mylar.PASSWORD_32P)
+
+        if not lses.login():
+            if not self.test:
+                logger.error(self.module + ' [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.')
+                return "disable"
+            else:
+                if self.error:
+                    return self.error #rtnmsg
+                else:
+                    return self.method
+        else:
+            logger.info(self.module + '[LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...')
+            self.authkey = lses.authkey
+            self.passkey = lses.passkey
+            self.uid = lses.uid
+         
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
         self.test = test
@@ -26,7 +49,12 @@ class info32p(object):
         feedinfo = []
 
         try:
-            with requests.session() as s:
+            with requests.Session() as s:
+                s.headers = self.headers
+                cj = LWPCookieJar(os.path.join(os.environ['HOME'], ".32p_cookies.dat"))
+                cj.load()
+                s.cookies = cj
+
                 if mylar.VERIFY_32P == 1 or mylar.VERIFY_32P == True:
                     verify = True
                 else:
@@ -39,117 +67,21 @@ class info32p(object):
                     from lib.requests.packages.urllib3.exceptions import InsecureRequestWarning
                     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-
-                # fetch the login page
-
-                s.headers = self.headers
-                try:
-                    t = s.get(self.url, verify=verify, timeout=30)
-                except (requests.exceptions.SSLError, requests.exceptions.Timeout) as e:
-                    logger.error(self.module + ' Unable to establish connection to 32P: ' + str(e))
-                    return
-                    
-                chksoup = BeautifulSoup(t.content)
-                chksoup.prettify()
-                chk_login = chksoup.find_all("form", {"id":"loginform"})
-                if not chk_login:
-                    logger.warn(self.module + ' Something is wrong - either 32p is offline, or your account has been temporarily banned (possibly).')
-                    logger.warn(self.module + ' Disabling provider until this gets addressed by manual intervention.')
-                    return "disable"
-
-                for ck in chk_login:
-                   #<div><div id='recaptchadiv'></div><input type='hidden' id='recaptchainp' value='' name='recaptchainp' /></div>
-                    captcha = ck.find("div", {"id":"recaptchadiv"})
-                    capt_error = ck.find("span", {"class":"notice hidden","id":"formnotice"})
-                    error_msg = ck.find("span", {"id":"formerror"})
-                    if error_msg:
-                        loginerror = " ".join(list(error_msg.stripped_strings)) 
-                        logger.warn(self.module + ' Warning: ' + loginerror)
-  
-                    if capt_error:
-                        aleft = ck.find("span", {"class":"info"})
-                        attemptsleft = " ".join(list(aleft.stripped_strings))
-                        if int(attemptsleft) < 6:
-                            logger.warn(self.module + ' ' + str(attemptsleft) + ' sign-on attempts left.')
-
-                    if captcha:
-                        logger.warn(self.module + ' Captcha detected. Temporariliy disabling 32p (to re-enable answer the captcha manually in a normal browswer or wait ~10 minutes...')
-                        return "disable"
-                    else:
-                        logger.fdebug(self.module + ' Captcha currently not present - continuing to signon...')
-
-                if self.test:
-                    rtnmsg = ''
-                    if (not capt_error and not error_msg) or (capt_error and int(attemptsleft) == 6):
-                        rtnmsg += '[No Warnings/Errors]'
-                    else:
-                        if capt_error and int(attemptsleft) < 6:
-                            rtnmsg = '[' + str(attemptsleft) + ' sign-on attempts left]'
-                        if error_msg:
-                            rtnmsg += '[' + error_msg + ']'
-                    if not captcha:
-                        rtnmsg += '[No Captcha]'
-                    else:
-                        rtnmsg += '[Captcha Present!]'
-
-                    return rtnmsg
-
                 # post to the login form
-                r = s.post(self.url, data=self.payload, verify=verify)
+                r = s.post(self.url, verify=verify)
 
                 #need a way to find response code (200=OK), but returns 200 for everything even failed signons (returns a blank page)
                 #logger.info('[32P] response: ' + str(r.content))
                 soup = BeautifulSoup(r.content)
                 soup.prettify()
-                #check for invalid username/password and if it's invalid - disable provider so we don't autoban (manual intervention is required after).
-                chk_login = soup.find_all("form", {"id":"loginform"})
 
-                for ck in chk_login:
-                    captcha = ck.find("div", {"id":"recaptchadiv"})
-                    errorlog = ck.find("span", {"id":"formerror"})
-                    errornot = ck.find("span", {"class":"notice hidden","id":"formnotice"})
-                    loginerror = " ".join(list(errorlog.stripped_strings)) #login_error.findNext(text=True)
-                    noticeerror = " ".join(list(errornot.stripped_strings)) #notice_error.findNext(text=True)
-                    if captcha:
-                        logger.warn(self.module + ' Captcha detected. Temporariliy disabling 32p (to re-enable answer the captcha manually in a normal browswer or wait ~10 minutes')
-                    if errorlog:
-                        logger.error(self.module + ' Error: ' + loginerror)
-                    if errornot:
-                        aleft = ck.find("span", {"class":"info"})
-                        attemptsleft = " ".join(list(aleft.stripped_strings))
-                        if int(attemptsleft) < 6:
-                            logger.warn(self.module + ' ' + str(attemptsleft) + ' sign-on attempts left.')
-                    logger.error(self.module + ' Disabling 32P provider until errors can be fixed in order to avoid temporary bans.')
-                    return "disable"
-
-
-                if not self.searchterm:
-                    logger.info('[32P] Successfully authenticated. Verifying authentication & passkeys for usage.')
-                else:
+                if self.searchterm:
                     logger.info('[32P] Successfully authenticated. Initiating search for : ' + self.searchterm)
                     return self.search32p(s)
-                
+
+                logger.info('[32P] Successfully authenticated.')
                 all_script = soup.find_all("script", {"src": False})
                 all_script2 = soup.find_all("link", {"rel": "alternate"})
-
-                for ind_s in all_script:
-                    all_value = str(ind_s)
-                    all_items = all_value.split()
-                    auth_found = False
-                    user_found = False
-                    for al in all_items:
-                        if al == 'authkey':
-                            auth_found = True
-                        elif auth_found == True and al != '=':
-                            authkey = re.sub('["/;]', '', al).strip()
-                            auth_found = False
-                            logger.fdebug(self.module + ' Authkey found: ' + str(authkey))
-                        if al == 'userid':
-                            user_found = True
-                        elif user_found == True and al != '=':
-                            userid = re.sub('["/;]', '', al).strip()
-                            user_found = False
-                            logger.fdebug(self.module + ' Userid found: ' + str(userid))
 
                 authfound = False
                 logger.info(self.module + ' Atttempting to integrate with all of your 32P Notification feeds.')
@@ -160,15 +92,15 @@ class info32p(object):
                         f1 = alurl.find('auth=')
                         f2 = alurl.find('&', f1 + 1)
                         auth = alurl[f1 +5:f2]
-                        logger.fdebug(self.module + ' Auth:' + str(auth))
                         authfound = True
-                        p1 = alurl.find('passkey=')
-                        p2 = alurl.find('&', p1 + 1)
-                        passkey = alurl[p1 +8:p2]
-                        logger.fdebug(self.module + ' Passkey:' + str(passkey))
+                        #logger.fdebug(self.module + ' Auth:' + str(auth))
+                        #p1 = alurl.find('passkey=')
+                        #p2 = alurl.find('&', p1 + 1)
+                        #passkey = alurl[p1 +8:p2]
+                        #logger.fdebug(self.module + ' Passkey:' + str(passkey))
                         if self.reauthenticate: break
 
-                    if 'torrents_notify' in alurl and ('torrents_notify_' + str(passkey)) not in alurl:
+                    if 'torrents_notify' in alurl and ('torrents_notify_' + str(self.passkey)) not in alurl:
                         notifyname_st = alurl.find('name=')
                         notifyname_en = alurl.find('&', notifyname_st +1)
                         if notifyname_en == -1: notifyname_en = len(alurl)
@@ -179,25 +111,26 @@ class info32p(object):
                         logger.fdebug(self.module + ' [NOTIFICATION: ' + str(notifyname) + '] Notification ID: ' + str(notifynumber))
 
                         #generate the rss-url here
-                        feedinfo.append({'feed':     notifynumber + '_' + str(passkey),
+                        feedinfo.append({'feed':     notifynumber + '_' + str(self.passkey),
                                          'feedname': notifyname,
-                                         'user':     userid,
+                                         'user':     str(self.uid),
                                          'auth':     auth,
-                                         'passkey':  passkey,
-                                         'authkey':  authkey})
+                                         'passkey':  str(self.passkey),
+                                         'authkey':  str(self.authkey)})
+
         except (requests.exceptions.Timeout, EnvironmentError):
             logger.warn('Unable to retrieve information from 32Pages - either it is not responding/is down or something else is happening that is stopping me.')
             return
 
         #set the keys here that will be used to download.
         try:
-            mylar.PASSKEY_32P = passkey
-            mylar.AUTHKEY_32P = authkey  # probably not needed here.
+            mylar.PASSKEY_32P = str(self.passkey)
+            mylar.AUTHKEY_32P = str(self.authkey)  # probably not needed here.
             mylar.KEYS_32P = {}
-            mylar.KEYS_32P = {"user": userid,
+            mylar.KEYS_32P = {"user": str(self.uid),
                               "auth": auth,
-                              "passkey": passkey,
-                              "authkey": authkey}
+                              "passkey": str(self.passkey),
+                              "authkey": str(self.authkey)}
         except NameError:
             logger.warn('Unable to retrieve information from 32Pages - either it is not responding/is down or something else is happening that is stopping me.')
             return
@@ -207,3 +140,311 @@ class info32p(object):
         else:
             mylar.FEEDINFO_32P = feedinfo
             return feedinfo
+
+    def searchit(self):
+        with requests.Session() as s:
+            #self.searchterm is a tuple containing series name, issue number and volume.
+            series_search = self.searchterm['series']
+            issue_search = self.searchterm['issue']
+            volume_search = self.searchterm['volume']
+            #generate the dynamic name of the series here so we can match it up
+            as_d = filechecker.FileChecker()
+            as_dinfo = as_d.dynamic_replace(series_search)
+            mod_series = as_dinfo['mod_seriesname']
+
+            if '/' in series_search:
+                series_search = series_search[:series_search.find('/')]
+            if ':' in series_search:
+                series_search = series_search[:series_search.find(':')]
+
+            url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
+            params = {'action': 'serieslist', 'filter': series_search}
+            s.headers = self.headers
+            cj = LWPCookieJar(os.path.join(os.environ['HOME'], ".32p_cookies.dat"))
+            cj.load()
+            s.cookies = cj
+            time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+            t = s.get(url, params=params, verify=True)
+            soup = BeautifulSoup(t.content)
+            results = soup.find_all("a", {"class":"object-qtip"},{"data-type":"torrentgroup"})
+
+            data = []
+
+            for r in results:
+                torrentid = r['data-id']
+                torrentname = r.findNext(text=True)
+                torrentname = torrentname.strip()
+                as_d = filechecker.FileChecker()
+                as_dinfo = as_d.dynamic_replace(torrentname)
+                seriesresult = as_dinfo['mod_seriesname']
+                logger.info('searchresult: ' + seriesresult + ' --- ' + mod_series)
+                if seriesresult == mod_series:
+                    logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
+                    data.append({"id":      torrentid,
+                                 "series":  torrentname})
+
+            logger.info(str(len(data)) + ' series listed for searching that match.')
+
+            if len(data) == 1:
+                logger.info(str(len(data)) + ' series match the title being search for')
+                payload = {'action': 'groupsearch',
+                           'id':     data[0]['id'],
+                           'issue':  issue_search}
+                #in order to match up against 0-day stuff, volume has to be none at this point
+                #when doing other searches tho, this should be allowed to go through
+                #if all([volume_search != 'None', volume_search is not None]):
+                #    payload.update({'volume': re.sub('v', '', volume_search).strip()})
+
+                logger.info('payload: ' + str(payload))
+                url = 'https://32pag.es/ajax.php'
+
+                time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+                d = s.get(url, params=payload, verify=True)
+
+                results32p = []
+                results = {}
+                try:
+                    searchResults = d.json()
+                except:
+                    searchResults = d.text
+                if searchResults['status'] == 'success' and searchResults['count'] > 0:
+                    logger.info('successfully retrieved ' + str(searchResults['count']) + ' search results.')
+                    for a in searchResults['details']:
+                        results32p.append({'link':      a['id'],
+                                           'title':     self.searchterm['series'] + ' v' + a['volume'] + ' #' + a['issues'],
+                                           'filesize':  a['size'],
+                                           'pack':      a['pack'],
+                                           'format':    a['format'],
+                                           'language':  a['language'],
+                                           'seeders':   a['seeders'],
+                                           'leechers':  a['leechers'],
+                                           'scanner':   a['scanner'],
+                                           'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%c')})
+                    results['entries'] = results32p
+                else:
+                    results = 'no results'
+            else:
+                results = 'no results'
+
+        return results
+
+    class LoginSession(object):
+        def __init__(self, un, pw, session_path=None):
+            '''
+                Params:
+                    un: account username (required)
+                    pw: account password (required)
+                    session_path: the path to the actual file you want to persist your cookies in
+                                If blank, saves to $HOME/.32p_cookies.dat
+
+            '''
+            self.module = '[32P-AUTHENTICATION]'
+            self.ses = requests.Session()
+            self.session_path = session_path if session_path is not None else os.path.join(os.environ['HOME'], ".32p_cookies.dat")
+            self.ses.cookies = LWPCookieJar(self.session_path)
+            if not os.path.exists(self.session_path):
+                logger.fdebug(self.module + ' Session cookie does not exist. Signing in and Creating.')
+                self.ses.cookies.save()
+            else:
+                logger.fdebug(self.module + ' Session cookie found. Attempting to load...')
+                self.ses.cookies.load(ignore_discard=True)
+            self.un = un
+            self.pw = pw
+            self.authkey = None
+            self.passkey = None
+            self.uid = None
+
+        def cookie_exists(self, name):
+            '''
+                Checks if cookie <name> exists in self.ses.cookies
+                Beware - this doesn't match domain, so only use this method on one domain
+            '''
+
+            for ci in self.ses.cookies:
+                if (ci.name == name):
+                    return True
+            return False
+
+        def cookie_value(self, name, default=None):
+            '''
+                Returns the value of the cookie name, returning default if it doesn't exist.
+                Beware - this doesn't match domain too, so only use this method on one domain
+            '''
+            for ci in self.ses.cookies:
+                if (ci.name == name):
+                    return ci.value
+
+            return default
+
+        def valid_skey_attempt(self, skey):
+            '''
+                Not generally the proper method to call - call test_key_valid()
+                instead - which calls this method.
+
+                Attempts to fetch data via an ajax method that will fail if not
+                authorized.  The parameter skey should be set to the string
+                value of the cookie named session.
+
+                Returns: True on success, False on failure.  Side Effects: Sets
+                self.uid, self,authkey and self.passkey
+            '''
+
+            u = '''https://32pag.es/ajax.php'''
+            params = {'action': 'index'}
+            testcookie = dict(session=skey)
+
+            try:
+                r = self.ses.get(u, params=params, timeout=60, allow_redirects=False, cookies=testcookie)
+            except Exception as e:
+                print "Got an exception trying to GET from to: %s", u
+                self.error = {'status':'error', 'message':'exception trying to retrieve site'}
+                return False
+
+            if r.status_code != 200:
+                if r.status_code == 302:
+                    newloc = r.headers.get('location', '')
+                    print "Got redirect from the POST-ajax action=login GET: %s", newloc
+                    self.error = {'status':'redirect-error', 'message':'got redirect from POST-ajax login action : ' + newloc}
+                else:
+                    print "Got bad status code in the POST-ajax action=login GET: %d", r.status_code
+                    self.error = {'status':'bad status code', 'message':'bad status code received in the POST-ajax login action :' + str(r.status_code)}
+                return False
+
+            try:
+                j = r.json()
+            except:
+                print "Error - response from session-based skey check was not JSON: %s", r.text
+                return False
+
+            self.uid = j['response']['id']
+            self.authkey = j['response']['authkey']
+            self.passkey = pk = j['response']['passkey']
+            return True
+
+        def valid_login_attempt(self, un, pw):
+            '''
+                Does the actual POST to the login.php method (using the ajax parameter, which is far more reliable
+                than HTML parsing.
+
+                Input: un: The username (usually would be self.un, but that's not a requirement
+                       pw: The password (usually self.pw but not a requirement)
+
+                Note: The underlying self.ses object will handle setting the session cookie from a valid login,
+                but you'll need to call the save method if your cookies are being persisted.
+
+                Returns: True (success) False (failure)
+
+            '''
+
+            postdata = {'username': un, 'password': pw, 'keeplogged': 1}
+            u = 'https://32pag.es/login.php?ajax=1'
+
+            try:
+                r = self.ses.post(u, data=postdata, timeout=60, allow_redirects=False)
+            except Exception as e:
+                print "Got an exception when trying to login to %s POST", u
+                self.error = {'status':'exception', 'message':'Exception when trying to login'}
+                return False
+
+            if r.status_code != 200:
+                print "Got bad status code from login POST: %d\n%s\n%s", r.status_code, r.text, r.headers
+                self.error = {'status':'Bad Status code', 'message':(r.status_code, r.text, r.headers)}
+                return False
+
+            try:
+                d = r.json()
+            except:
+                print "The data returned by the login page was not JSON: %s", r.text
+                self.error = {'status':'JSON not returned', 'message':r.text}
+                return False
+
+            if d['status'] == 'success':
+                return True
+
+            print "Got unexpected status result: %s", d
+            self.error = d
+            return False
+
+        def test_skey_valid(self, skey=None):
+            '''
+                You should call this method to test if the specified session key
+                (skey) is still valid.  If skey is left out or None, it
+                automatically gets the value of the session cookie currently
+                set.
+
+
+                Returns:  True (success) False (failure)
+                          Side effects: Saves the cookies file.
+
+            '''
+
+            if skey is None:
+                skey = self.cookie_value('session', '')
+
+            if skey is None or skey == '':
+                return False
+
+            if (self.valid_skey_attempt(skey)):
+                self.ses.cookies.save(ignore_discard=True)
+                return True
+
+            self.ses.cookies.save(ignore_discard=true)
+            return False
+
+        def test_login(self):
+            '''
+               This is the method to call if you JUST want to login using self.un & self.pw
+
+                Note that this will generate a new session on 32pag.es every time you login successfully!
+                This is why the "keeplogged" option is only for when you persist cookies to disk.
+ 
+                Note that after a successful login, it will test the session key, which has the side effect of
+                getting the authkey,passkey & uid
+
+                Returns: True (login success) False (login failure)
+                Side Effects: On success: Sets the authkey, uid, passkey and saves the cookies to disk
+                         (on failure): clears the cookies and saves that to disk.
+            '''
+            if (self.valid_login_attempt(self.un, self.pw)):
+                if self.cookie_exists('session'):
+                    self.ses.cookies.save(ignore_discard=True)
+                    if (not self.test_skey_valid()):
+                        console.error("Bad error: The attempt to get your attributes after successful login failed!")
+                        self.error = {'status': 'Bad error', 'message': 'Attempt to get attributes after successful login failed.'}
+                        return False
+                    return True
+
+                print "Missing session cookie after successful login: %s", self.ses.cookies
+            self.ses.cookies.clear()
+            self.ses.cookies.save()
+            return False
+
+
+        def login(self):
+            '''
+                This is generally the only method you'll want to call, as it handles testing test_skey_valid() before
+                trying test_login().
+
+                Returns: True (success) / False (failure)
+                Side effects: Methods called will handle saving the cookies to disk, and setting
+                              self.authkey, self.passkey, and self.uid
+            '''
+            if (self.test_skey_valid()):
+                logger.fdebug(self.module + ' Session key-based login was good.')
+                self.method = 'Session Cookie retrieved OK.'
+                return True
+
+            if (self.test_login()):
+                logger.fdebug(self.module + ' Credential-based login was good.')
+                self.method = 'Session Cookie retrieved OK.'
+                return True
+
+            logger.warn(self.module + ' Both session key and credential-based logins failed.')
+            self.method = 'Failed to retrieve Session Cookie.'
+            return False
+
+
+#if __name__ == '__main__':
+#   ab = DoIt()
+#    c = ab.loadit()
+

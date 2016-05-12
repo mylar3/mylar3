@@ -49,7 +49,7 @@ def newpull():
         endthis = False
         pull_list = []
 
-        publishers = {'PREVIEWS PUBLICATIONS', 'DARK HORSE COMICS', 'DC COMICS', 'IDW PUBLISHING', 'IMAGE COMICS', 'MARVEL COMICS', 'COMICS & GRAPHIC NOVELS'}
+        publishers = {'PREVIEWS PUBLICATIONS', 'DARK HORSE COMICS', 'DC COMICS', 'IDW PUBLISHING', 'IMAGE COMICS', 'MARVEL COMICS', 'COMICS & GRAPHIC NOVELS', 'MAGAZINES', 'MERCHANDISE'}
         isspublisher = None
 
         while (x < lenlinks):
@@ -66,7 +66,16 @@ def newpull():
             if isspublisher == 'PREVIEWS PUBLICATIONS' or isspublisher is None:
                 pass
 
+            elif any([isspublisher == 'MAGAZINES', isspublisher == 'MERCHANDISE']):
+                #logger.fdebug('End.')
+                endthis = True
+                break
+
             else:
+                if "PREVIEWS" in headt:
+                    #logger.fdebug('Ignoring: ' + found_iss[0])
+                    break
+
                 if '/Catalog/' in str(headt):
                     findurl_link = headt.findAll('a', href=True)[0]
                     urlID = findurl_link.findNext(text=True)
@@ -86,14 +95,6 @@ def newpull():
                                           "price":     found_iss[2],
                                           "publisher": isspublisher,
                                           "ID": urlID})
-
-                if "PREVIEWS" in headt:
-                    #logger.fdebug('Ignoring: ' + found_iss[0])
-                    break
-                if "MAGAZINES" in headt:
-                    #logger.fdebug('End.')
-                    endthis = True
-                    break
 
             x+=1
 

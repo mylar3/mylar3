@@ -795,9 +795,9 @@ def updateComicLocation():
                           }
 
                 #set the paths here with the seperator removed allowing for cross-platform altering.
-                ccdir = re.sub(r'[\\|/]', '*', mylar.NEWCOM_DIR)
-                ddir = re.sub(r'[\\|/]', '*', mylar.DESTINATION_DIR)
-                dlc = re.sub(r'[\\|/]', '*', dl['ComicLocation'])
+                ccdir = re.sub(r'[\\|/]', '%&', mylar.NEWCOM_DIR)
+                ddir = re.sub(r'[\\|/]', '%&', mylar.DESTINATION_DIR)
+                dlc = re.sub(r'[\\|/]', '%&', dl['ComicLocation'])
 
                 if mylar.FFTONEWCOM_DIR:
                     #if this is enabled (1) it will apply the Folder_Format to all the new dirs
@@ -817,7 +817,7 @@ def updateComicLocation():
                     comlocation = re.sub(ddir, ccdir, dlc).strip()
 
                 #regenerate the new path location so that it's os.dependent now.
-                com_done = re.sub('\*', os.sep, comlocation).strip()
+                com_done = re.sub('%&', os.sep, comlocation).strip()
 
                 comloc.append({"comlocation":  com_done,
                                "origlocation": dl['ComicLocation'],
@@ -1179,7 +1179,7 @@ def upgrade_dynamic():
             myDB.upsert("readinglist", newVal, CtrlVal)   
 
     logger.info('Finshed updating ' + str(len(dynamic_comiclist)) + ' / ' + str(len(dynamic_storylist)) + ' entries within the db.')
-    mylar.DYNAMIC_UPDATE = 3
+    mylar.DYNAMIC_UPDATE = 4
     mylar.config_write()
     return
 
@@ -2002,6 +2002,25 @@ def humanize_time(self, amount, units = 'seconds'):
         i += 1
 
     return buf
+
+def issue_status(IssueID):
+    import db, logger
+    myDB = db.DBConnection()
+
+    logger.fdebug('[ISSUE-STATUS] Issue Status Check for ' + str(IssueID))
+
+    isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
+    if isschk is None:
+        isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
+        if isschk is None:
+            logger.warn('Unable to retrieve IssueID from db. This is a problem. Aborting.')
+            return False
+
+    if any([isschk['Status'] == 'Downloaded', isschk['Status'] == 'Snatched']):
+        return True
+    else:
+        return False
+
 
 #def file_ops(path,dst):
 #    # path = source path + filename
