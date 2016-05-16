@@ -219,7 +219,7 @@ class FileChecker(object):
 
 
             #parse out the extension for type
-            comic_ext = ('.cbr','.cbz')
+            comic_ext = ('.cbr','.cbz','.cb7')
             if os.path.splitext(filename)[1].endswith(comic_ext):
                 filetype = os.path.splitext(filename)[1]
             else:
@@ -922,7 +922,7 @@ class FileChecker(object):
 
     def traverse_directories(self, dir):
         filelist = []
-        comic_ext = ('.cbr','.cbz')
+        comic_ext = ('.cbr','.cbz','.cb7')
 
         dir = dir.encode(mylar.SYS_ENCODING)
 
