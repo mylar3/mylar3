@@ -2018,7 +2018,7 @@ class WebInterface(object):
                     DynamicName = v
                     if volume is None or volume == 'None':
                         logger.info('Removing ' + ComicName + ' from the Import list')
-                        myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume is NULL', [DynamicName])
+                        myDB.action('DELETE from importresults WHERE DynamicName=? AND (Volume is NULL OR Volume="None")', [DynamicName])
                     else:
                         logger.info('Removing ' + ComicName + ' [' + str(volume) + '] from the Import list')
                         myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume=?', [DynamicName, volume])
@@ -3102,7 +3102,7 @@ class WebInterface(object):
             logname = ComicName + '[' + str(volume) + ']'
         logger.info("Removing import data for Comic: " + logname)
         if volume is None or volume == 'None':
-            myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume is NULL AND Status=?', [DynamicName, Status])
+            myDB.action('DELETE from importresults WHERE DynamicName=? AND Status=? AND (Volume is NULL OR Volume="None")', [DynamicName, Status])
         else:
             myDB.action('DELETE from importresults WHERE DynamicName=? AND Volume=? AND Status=?', [DynamicName, volume, Status])
         raise cherrypy.HTTPRedirect("importResults")
@@ -3470,9 +3470,11 @@ class WebInterface(object):
                                 'srid':          SRID}
 
                     self.addbyid(sr['comicid'], calledby=True, imported=imported, ogcname=ogcname)  #imported=yes)
+                else:
+                    logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
 
         mylar.IMPORTLOCK = False
-        logger.info('Importing finished.')
+        logger.info('[IMPORT] Importing complete.')
 
     preSearchit.exposed = True
 

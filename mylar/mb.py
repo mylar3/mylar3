@@ -291,6 +291,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
                         if tmpYr.isdigit():
 
+                            yearRange.append(tmpYr)
                             tmpyearRange = int(xmlcnt) / 12
                             if float(tmpyearRange): tmpyearRange +1
                             possible_years = int(tmpYr) + tmpyearRange
@@ -300,6 +301,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     yearRange.append(str(i))
 
                         logger.fdebug('[RESULT] ComicName:' + xmlTag + ' -- ' + str(xmlYr) + ' [Series years: ' + str(yearRange) + ']')
+                        if tmpYr != xmlYr:
+                            xmlYr = tmpYr
                        
                         if any([limityear in yearRange, limityear == 'None']):
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
