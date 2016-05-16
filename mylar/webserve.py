@@ -1198,17 +1198,17 @@ class WebInterface(object):
 
                 for newznab_info in mylar.EXTRA_NEWZNABS:
                     if tmpprov.lower() in newznab_info[0].lower():
-                        if (newznab_info[4] == '1' or newznab_info[4] == 1):
+                        if (newznab_info[5] == '1' or newznab_info[5] == 1):
                             if newznab_info[1].endswith('/'):
                                 newznab_host = newznab_info[1]
                             else:
                                 newznab_host = newznab_info[1] + '/'
-                            newznab_api = newznab_info[2]
-                            newznab_uid = newznab_info[3]
+                            newznab_api = newznab_info[3]
+                            newznab_uid = newznab_info[4]
                             link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
                             logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
                             logger.info('link : ' + str(link))
-                            newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3])
+                            newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3], newznab_info[4])
                             break
                         else:
                             logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
@@ -2513,7 +2513,7 @@ class WebInterface(object):
                             logger.fdebug('int_issue = ' + str(issue_int))
                             isschk = myDB.selectone("SELECT * FROM issues WHERE Int_IssueNumber=? AND ComicID=? AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
                         if isschk is None:
-                            logger.fdebug("we matched on name, but issue " + str(arc['IssueNumber']) + " doesn't exist for " + comic['ComicName'])
+                            logger.fdebug("we matched on name, but issue " + arc['IssueNumber'] + " doesn't exist for " + comic['ComicName'])
                         else:
                             #this gets ugly - if the name matches and the issue, it could still be wrong series
                             #use series year to break it down further.
@@ -2542,7 +2542,7 @@ class WebInterface(object):
                                 matcheroso = "yes"
                                 break
                 if matcheroso == "no":
-                    logger.fdebug("Unable to find a match for " + arc['ComicName'] + " :#" + str(arc['IssueNumber']))
+                    logger.fdebug("Unable to find a match for " + arc['ComicName'] + " :#" + arc['IssueNumber'])
                     wantedlist.append({
                          "ComicName":      arc['ComicName'],
                          "IssueNumber":    arc['IssueNumber'],
@@ -2585,10 +2585,10 @@ class WebInterface(object):
                 if issue is None: pass
                 else:
 
-                    logger.fdebug("issue: " + str(issue['Issue_Number']) + "..." + str(m_arc['match_issue']))
+                    logger.fdebug("issue: " + issue['Issue_Number'] + "..." + m_arc['match_issue'])
 #                   if helpers.decimal_issue(issuechk['Issue_Number']) == helpers.decimal_issue(m_arc['match_issue']):
                     if issue['Issue_Number'] == m_arc['match_issue']:
-                        logger.fdebug("we matched on " + str(issue['Issue_Number']) + " for " + str(m_arc['match_name']))
+                        logger.fdebug("we matched on " + issue['Issue_Number'] + " for " + m_arc['match_name'])
                         if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived' or issue['Status'] == 'Snatched':
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
                             newVal = {"Status":   issue['Status'],
@@ -2603,7 +2603,7 @@ class WebInterface(object):
                                 myDB.upsert("readlist", shownewVal, showctrlVal)
 
                             myDB.upsert("readinglist",newVal,ctrlVal)
-                            logger.fdebug("Already have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                            logger.fdebug("Already have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             if issue['Status'] == 'Downloaded':
                                 issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
                                 logger.fdebug('source location set to  : ' + issloc)
@@ -2631,12 +2631,12 @@ class WebInterface(object):
                                         logger.fdebug('Source file does not exist: ' + issloc)
 
                         else:
-                            logger.fdebug("We don't have " + issue['ComicName'] + " :# " + str(issue['Issue_Number']))
+                            logger.fdebug("We don't have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
                             newVal = {"Status":  "Wanted",
                                       "IssueID": issue['IssueID']}
                             myDB.upsert("readinglist", newVal, ctrlVal)
-                            logger.info("Marked " + issue['ComicName'] + " :# " + str(issue['Issue_Number']) + " as Wanted.")
+                            logger.info("Marked " + issue['ComicName'] + " :# " + issue['Issue_Number'] + " as Wanted.")
 
             return
 
