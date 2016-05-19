@@ -51,7 +51,7 @@ class info32p(object):
         try:
             with requests.Session() as s:
                 s.headers = self.headers
-                cj = LWPCookieJar(os.path.join(os.environ['HOME'], ".32p_cookies.dat"))
+                cj = LWPCookieJar(os.path.join(mylar.CACHE_DIR, ".32p_cookies.dat"))
                 cj.load()
                 s.cookies = cj
 
@@ -160,7 +160,7 @@ class info32p(object):
             url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
             params = {'action': 'serieslist', 'filter': series_search}
             s.headers = self.headers
-            cj = LWPCookieJar(os.path.join(os.environ['HOME'], ".32p_cookies.dat"))
+            cj = LWPCookieJar(os.path.join(mylar.CACHE_DIR, ".32p_cookies.dat"))
             cj.load()
             s.cookies = cj
             time.sleep(1)  #just to make sure we don't hammer, 1s pause.
@@ -240,7 +240,7 @@ class info32p(object):
             '''
             self.module = '[32P-AUTHENTICATION]'
             self.ses = requests.Session()
-            self.session_path = session_path if session_path is not None else os.path.join(os.environ['HOME'], ".32p_cookies.dat")
+            self.session_path = session_path if session_path is not None else os.path.join(mylar.CACHE_DIR, ".32p_cookies.dat")
             self.ses.cookies = LWPCookieJar(self.session_path)
             if not os.path.exists(self.session_path):
                 logger.fdebug(self.module + ' Session cookie does not exist. Signing in and Creating.')
