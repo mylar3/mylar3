@@ -219,7 +219,7 @@ class FileChecker(object):
 
 
             #parse out the extension for type
-            comic_ext = ('.cbr','.cbz','.cb7')
+            comic_ext = ('.cbr','.cbz','.cb7','.pdf')
             if os.path.splitext(filename)[1].endswith(comic_ext):
                 filetype = os.path.splitext(filename)[1]
             else:
@@ -316,8 +316,9 @@ class FileChecker(object):
             file_length = 0
             validcountchk = False
             sep_volume = False
-   
+            current_pos = -1   
             for sf in split_file:
+                current_pos +=1
                 #the series title will always be first and be AT LEAST one word.
                 if split_file.index(sf) >= 1 and not volumeprior:
                     dtcheck = re.sub('[\(\)\,]', '', sf).strip()
@@ -520,16 +521,16 @@ class FileChecker(object):
 
                 else:
                     #check here for numeric or negative number
-                    if sf.isdigit() and split_file.index(sf) == 0:
+                    if sf.isdigit() and split_file.index(sf, current_pos) == 0:
                         continue
                     if sf.isdigit():
                         possible_issuenumbers.append({'number':       sf,
-                                                      'position':     split_file.index(sf, lastissue_position), #modfilename.find(sf)})
+                                                      'position':     split_file.index(sf, current_pos), #modfilename.find(sf)})
                                                       'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                       'validcountchk': validcountchk})
 
                         #used to see if the issue is an alpha-numeric (ie. 18.NOW, 50-X, etc)
-                        lastissue_position = split_file.index(sf, lastissue_position)
+                        lastissue_position = split_file.index(sf, current_pos)
                         lastissue_label = sf
                         lastissue_mod_position = file_length
                         #logger.fdebug('possible issue found: ' + str(sf)
@@ -922,7 +923,7 @@ class FileChecker(object):
 
     def traverse_directories(self, dir):
         filelist = []
-        comic_ext = ('.cbr','.cbz','.cb7')
+        comic_ext = ('.cbr','.cbz','.cb7','.pdf')
 
         dir = dir.encode(mylar.SYS_ENCODING)
 
