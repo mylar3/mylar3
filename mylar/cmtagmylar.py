@@ -78,9 +78,13 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     else:
         cbr2cbzoptions = ["-e"]
 
-    if comversion is None or comversion == '':
-        comversion = '1'
-    comversion = re.sub('[^0-9]', '', comversion).strip()
+    if mylar.CMTAG_START_YEAR_AS_VOLUME:
+        comversion = 'V' + str(comversion)
+    else:
+        if comversion is None or comversion == '':
+            comversion = '1'
+        comversion = re.sub('[^0-9]', '', comversion).strip()
+
     cvers = 'volume=' + str(comversion)
     tagoptions = ["-s", "-m", cvers] #"--verbose"
 

@@ -396,49 +396,105 @@ class PostProcessor(object):
                                     #compare the ReleaseDate for the issue, to the found issue date in the filename.
                                     #if ReleaseDate doesn't exist, use IssueDate
                                     #if no issue date was found, then ignore.
+                                    logger.fdebug(module + '[ISSUE-VERIFY] Now checking against ' + cs['ComicName'] + '-' + cs['ComicID'])
                                     issyr = None
-                                    #logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
-                                    #logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
+                                    #logger.fdebug(module + ' issuedate:' + str(issuechk['IssueDate']))
+                                    #logger.fdebug(module + ' issuechk: ' + str(issuechk['IssueDate'][5:7]))
  
-                                    #logger.info('ReleaseDate: ' + str(issuechk['ReleaseDate']))
-                                    #logger.info('IssueDate: ' + str(issuechk['IssueDate']))
+                                    #logger.info(module + ' ReleaseDate: ' + str(issuechk['ReleaseDate']))
+                                    #logger.info(module + ' IssueDate: ' + str(issuechk['IssueDate']))
                                     if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
                                         monthval = issuechk['ReleaseDate']
+                                        watch_issueyear = issuechk['ReleaseDate'][:4]
                                         if int(issuechk['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + ' ' + str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                             datematch = "False"
                                     else:
                                         monthval = issuechk['IssueDate']
+                                        watch_issueyear = issuechk['IssueDate'][:4]
                                         if int(issuechk['IssueDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + ' ' + str(issuechk['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                             datematch = "False"
 
                                     if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                         issyr = int(monthval[:4]) + 1
-                                        logger.fdebug(module + ' IssueYear (issyr) is ' + str(issyr))
+                                        logger.fdebug(module + '[ISSUE-VERIFY] IssueYear (issyr) is ' + str(issyr))
                                     elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
                                         issyr = int(monthval[:4]) - 1
 
                                     if datematch == "False" and issyr is not None:
-                                        logger.fdebug(module + ' ' + str(issyr) + ' comparing to ' + str(watchmatch['issue_year']) + ' : rechecking by month-check versus year.')
+                                        logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issyr) + ' comparing to ' + str(watchmatch['issue_year']) + ' : rechecking by month-check versus year.')
                                         datematch = "True"
                                         if int(issyr) != int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
+                                            logger.fdebug(module + '[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
                                             datematch = "False"
 
                                 else:
-                                    logger.info(module + ' Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
+                                    logger.info(module + '[ISSUE-VERIFY] Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
 
                                 if datematch == "True":
-                                    if watchmatch['sub']:
-                                        clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename'].decode('utf-8'))
+                                    # if we get to here, we need to do some more comparisons just to make sure we have the right volume
+                                    # first we chk volume label if it exists, then we drop down to issue year
+                                    # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
+                                    # then spit out the error message and don't post-process it.
+                                    watch_values = cs['WatchValues']
+                                    logger.info(watch_values)
+                                    if watch_values['ComicVersion'] is None:
+                                        tmp_watchlist_vol = '1'
                                     else:
-                                        clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8'))
-                                    manual_list.append({"ComicLocation":   clocation,
-                                                        "ComicID":         cs['ComicID'],
-                                                        "IssueID":         issuechk['IssueID'],
-                                                        "IssueNumber":     issuechk['Issue_Number'],
-                                                        "ComicName":       cs['ComicName']})
+                                        tmp_watchlist_vol = re.sub("[^0-9]", "", watch_values['ComicVersion']).strip()
+                                    if not any([watchmatch['series_volume'] != 'None', watchmatch['series_volume'] is not None]):
+                                        tmp_watchmatch_vol = re.sub("[^0-9]","", watchmatch['series_volume']).strip()
+                                        if len(tmp_watchmatch_vol) == 4:
+                                            if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of ' + str(watch_values['SeriesYear']) + ' matched to volume/year label of ' + str(tmp_watchmatch_vol))
+                                            else:
+                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of ' + str(watch_values['SeriesYear']) + ' DID NOT match to volume/year label of ' + tmp_watchmatch_vol)
+                                                datematch = "False"
+                                        if len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
+                                            if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
+                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of ' + str(watch_values['ComicVersion']) + ' matched to volume label of ' + str(watchmatch['series_volume']))
+                                            else:
+                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of ' + str(watch_values['ComicVersion']) + ' DID NOT match to volume label of ' + str(watchmatch['series_volume']))
+                                                datematch = "False"
+                                    else:
+                                        if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
+                                            logger.fdebug(module + '[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.')
+                                            datematch = "False"
+                                        elif len(watchvals) == 1 and int(tmp_watchlist_vol) == 1:
+                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume MATCH] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates only volume for this series on your watchlist.')
+                                        elif int(tmp_watchlist_vol) > 1:    
+                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.')
+                                            datematch = "False"
+
+                                    if datematch == "False" and any([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None']):
+                                        #now we see if the issue year matches exactly to what we have within Mylar.
+                                        if int(watch_issueyear) == int(watchmatch['issue_year']):
+                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Issue Year of ' + str(watch_issueyear) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                            datematch = 'True'      
+                                        else:
+                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Issue Year of ' + str(watch_issueyear) + ' does NOT match the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                            logger.fdebug(module + '[ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.')
+                                            if issyr is not None:
+                                                if int(issyr) != int(watchmatch['issue_year']):
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of ' + str(issyr) + ' is before the modified issue year of ' + str(issyr))
+                                                else:
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of ' + str(issyr) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                                    datematch = 'True'
+
+                                    if datematch == 'True':
+                                        if watchmatch['sub']:
+                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename'].decode('utf-8'))
+                                        else:
+                                            clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8'))
+                                        manual_list.append({"ComicLocation":   clocation,
+                                                            "ComicID":         cs['ComicID'],
+                                                            "IssueID":         issuechk['IssueID'],
+                                                            "IssueNumber":     issuechk['Issue_Number'],
+                                                            "ComicName":       cs['ComicName']})
+                                    else:
+                                        logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
+                                        continue
                                 else:
                                     logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                     continue
@@ -1106,7 +1162,7 @@ class PostProcessor(object):
             if stat is None: stat = ' [1/1]'
             module = self.module
             annchk = "no"
-            extensions = ('.cbr', '.cbz')
+            extensions = ('.cbr', '.cbz', '.pdf')
             snatchedtorrent = False
             myDB = db.DBConnection()
             comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
@@ -1430,12 +1486,17 @@ class PostProcessor(object):
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug(module + ' Metatagging enabled - proceeding...')
                 pcheck = "pass"
+                if mylar.CMTAG_START_YEAR_AS_VOLUME:
+                    vol_label = seriesyear
+                else:
+                    vol_label = comversion
+
                 try:
                     import cmtagmylar
                     if ml is None:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion, filename=os.path.join(odir, ofilename))
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename))
                     else:
-                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=comversion, manual="yes", filename=ml['ComicLocation'])
+                        pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'])
 
                 except ImportError:
                     logger.fdebug(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')

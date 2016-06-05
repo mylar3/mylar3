@@ -176,7 +176,7 @@ CHECK_FOLDER = None
 ENABLE_CHECK_FOLDER = False
 INTERFACE = None
 DUPECONSTRAINT = None
-DDUMP = 0
+DDUMP = False
 DUPLICATE_DUMP = None
 PREFERRED_QUALITY = 0
 CORRECT_METADATA = False
@@ -315,6 +315,9 @@ STORYARCDIR = 0
 COPY2ARCDIR = 0
 
 CVURL = None
+CURRENT_WEEKNUMBER = None
+CURRENT_YEAR = None
+PULL_REFRESH = None
 WEEKFOLDER = 0
 WEEKFOLDER_LOC = None
 LOCMOVE = 0
@@ -334,6 +337,7 @@ CT_TAG_CBL = 1
 CT_CBZ_OVERWRITE = 0
 UNRAR_CMD = None
 CT_SETTINGSPATH = None
+CMTAG_START_YEAR_AS_VOLUME = False
 
 UPCOMING_SNATCHED = 1
 
@@ -458,14 +462,14 @@ def initialize():
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
                 EXPERIMENTAL, ALTEXPERIMENTAL, USE_RTORRENT, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
                 USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, USE_TRANSMISSION, TRANSMISSION_HOST, TRANSMISSION_USERNAME, TRANSMISSION_PASSWORD, \
-                ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ENABLE_TORRENTS, TORRENT_DOWNLOADER, MINSEEDS, USE_WATCHDIR, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, KAT_VERIFY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
-                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, WEEKFOLDER, WEEKFOLDER_LOC, UMASK
+                COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, SYNO_FIX, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, UMASK
 
         if __INITIALIZED__:
             return False
@@ -659,6 +663,7 @@ def initialize():
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
         CT_CBZ_OVERWRITE = bool(check_setting_int(CFG, 'General', 'ct_cbz_overwrite', 0))
         UNRAR_CMD = check_setting_str(CFG, 'General', 'unrar_cmd', '')
+        CMTAG_START_YEAR_AS_VOLUME = bool(check_setting_int(CFG, 'General', 'cmtag_start_year_as_volume', 0))
 
         UPCOMING_SNATCHED = bool(check_setting_int(CFG, 'General', 'upcoming_snatched', 1))
         UPDATE_ENDED = bool(check_setting_int(CFG, 'General', 'update_ended', 0))
@@ -1191,6 +1196,12 @@ def initialize():
                                                      runImmediately=True,
                                                      delay=60)
 
+
+        # set the current week for the pull-list
+        todaydate = datetime.datetime.today()
+        CURRENT_WEEKNUMBER = todaydate.strftime("%U")
+        CURRENT_YEAR = todaydate.strftime("%Y")
+
         # Store the original umask
         UMASK = os.umask(0)
         os.umask(UMASK)
@@ -1336,7 +1347,7 @@ def config_write():
     new_config['General']['check_folder'] = CHECK_FOLDER
     new_config['General']['interface'] = INTERFACE
     new_config['General']['dupeconstraint'] = DUPECONSTRAINT
-    new_config['General']['ddump'] = DDUMP
+    new_config['General']['ddump'] = int(DDUMP)
     new_config['General']['duplicate_dump'] = DUPLICATE_DUMP
     new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
     new_config['General']['autowant_upcoming'] = int(AUTOWANT_UPCOMING)
@@ -1394,6 +1405,7 @@ def config_write():
     new_config['General']['ct_tag_cbl'] = int(CT_TAG_CBL)
     new_config['General']['ct_cbz_overwrite'] = int(CT_CBZ_OVERWRITE)
     new_config['General']['unrar_cmd'] = UNRAR_CMD
+    new_config['General']['cmtag_start_year_as_volume'] = int(CMTAG_START_YEAR_AS_VOLUME)
     new_config['General']['update_ended'] = int(UPDATE_ENDED)
     new_config['General']['indie_pub'] = INDIE_PUB
     new_config['General']['biggie_pub'] = BIGGIE_PUB
@@ -1626,7 +1638,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
@@ -1879,6 +1891,16 @@ def dbcheck():
         c.execute('SELECT CV_Last_Update from weekly')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE weekly ADD COLUMN CV_Last_Update TEXT')
+
+    try:
+        c.execute('SELECT weeknumber from weekly')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE weekly ADD COLUMN weeknumber TEXT')
+
+    try:
+        c.execute('SELECT year from weekly')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE weekly ADD COLUMN year TEXT')
 
     ## -- Nzblog Table --
 
