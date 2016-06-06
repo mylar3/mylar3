@@ -1895,7 +1895,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     host_newznab_fix = host_newznab
 
                 #account for nzbmegasearch & nzbhydra
-                if 'warp?x=' in link or 'indexerguid' in link:
+                if 'warp?x=' in link or 'searchresultid' in link:
                     logger.fdebug('NZBMegaSearch / NZBHydra url detected. Adjusting...')
                     nzbmega = True
                 else:
@@ -1909,7 +1909,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             if nzbmega == True:
                 down_url = link
-                verify = False               
+                verify = False
             else:
                 payload = {'t': 'get',
                            'id': str(nzbid),
