@@ -439,7 +439,7 @@ class PostProcessor(object):
                                     # then spit out the error message and don't post-process it.
                                     watch_values = cs['WatchValues']
                                     logger.info(watch_values)
-                                    if watch_values['ComicVersion'] is None:
+                                    if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
                                         tmp_watchlist_vol = '1'
                                     else:
                                         tmp_watchlist_vol = re.sub("[^0-9]", "", watch_values['ComicVersion']).strip()
