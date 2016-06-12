@@ -9,7 +9,7 @@ from base64 import b16encode, b32decode
 from torrent.helpers.variable import link, symlink, is_rarfile
 
 import lib.requests as requests
-from lib.unrar2 import RarFile
+#from lib.unrar2 import RarFile
 
 import torrent.clients.rtorrent as TorClient
 
