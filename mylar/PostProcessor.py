@@ -391,6 +391,13 @@ class PostProcessor(object):
                                 continue
                             else:
                                 datematch = "True"
+                                if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
+                                    monthval = issuechk['ReleaseDate']
+                                    watch_issueyear = issuechk['ReleaseDate'][:4]
+                                else:
+                                    monthval = issuechk['IssueDate']
+                                    watch_issueyear = issuechk['IssueDate'][:4]
+
                                 if len(watchmatch) >= 1 and watchmatch['issue_year'] is not None:
                                     #if the # of matches is more than 1, we need to make sure we get the right series
                                     #compare the ReleaseDate for the issue, to the found issue date in the filename.
@@ -404,14 +411,10 @@ class PostProcessor(object):
                                     #logger.info(module + ' ReleaseDate: ' + str(issuechk['ReleaseDate']))
                                     #logger.info(module + ' IssueDate: ' + str(issuechk['IssueDate']))
                                     if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
-                                        monthval = issuechk['ReleaseDate']
-                                        watch_issueyear = issuechk['ReleaseDate'][:4]
                                         if int(issuechk['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
                                             logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                             datematch = "False"
                                     else:
-                                        monthval = issuechk['IssueDate']
-                                        watch_issueyear = issuechk['IssueDate'][:4]
                                         if int(issuechk['IssueDate'][:4]) < int(watchmatch['issue_year']):
                                             logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                             datematch = "False"
