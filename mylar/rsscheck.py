@@ -12,7 +12,7 @@ from StringIO import StringIO
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
-
+import mylar.torrent.clients.transmission as transmission
 
 
 def _start_newznab_attr(self, attrsD):
@@ -726,7 +726,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if linkit[-7:] != "torrent": # and site != "KAT":
         filename += ".torrent"
-    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT]):
+    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION]):
         filepath = os.path.join(mylar.CACHE_DIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
         
@@ -920,6 +920,19 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         if torrent_info:
             return "pass"
         else:
+            return "fail"
+
+    elif mylar.USE_TRANSMISSION:
+        try:
+            rpc = transmission.TorrentClient()
+            if not rpc.connect(mylar.TRANSMISSION_HOST, mylar.TRANSMISSION_USERNAME, mylar.TRANSMISSION_PASSWORD):
+                return "fail"
+            if rpc.load_torrent(filepath):
+                return "pass"
+            else:
+                return "fail"
+        except Exception as e:
+            logger.error(e)
             return "fail"
 
 if __name__ == '__main__':
