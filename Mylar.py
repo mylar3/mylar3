@@ -72,6 +72,7 @@ def main():
     parser.add_argument('-d', '--daemon', action='store_true', help='Run as a daemon')
     parser.add_argument('-p', '--port', type=int, help='Force mylar to run on a specified port')
     parser.add_argument('-b', '--backup', action='store_true', help='Will automatically backup & keep the last 2 copies of the .db & ini files prior to startup')
+    parser.add_argument('-w', '--noweekly', action='store_true', help='Turn off weekly pull list check on startup (quicker boot sequence)')
     parser.add_argument('--datadir', help='Specify a directory where to store your data files')
     parser.add_argument('--config', help='Specify a config file to use')
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
@@ -134,6 +135,11 @@ def main():
         mylar.SAFESTART = True
     else:
         mylar.SAFESTART = False
+
+    if args.noweekly:
+        mylar.NOWEEKLY = True
+    else:
+        mylar.NOWEEKLY = False
 
     # Try to create the DATA_DIR if it doesn't exist
     #if not os.path.exists(mylar.DATA_DIR):
@@ -228,6 +234,7 @@ def main():
         'enable_https': mylar.ENABLE_HTTPS,
         'https_cert': mylar.HTTPS_CERT,
         'https_key': mylar.HTTPS_KEY,
+        'https_chain': mylar.HTTPS_CHAIN,
         'http_username': mylar.HTTP_USERNAME,
         'http_password': mylar.HTTP_PASSWORD,
     }

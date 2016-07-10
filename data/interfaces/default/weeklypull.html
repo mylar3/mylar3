@@ -11,30 +11,38 @@
                         <a id="menu_link_refresh" href="manualpull">Refresh Pull-list</a>
                         <a id="menu_link_retry" href="pullrecreate">Recreate Pull-list</a>
                         <a id="menu_link_scan" class="button">Download</a>
-                      <!--  <a id="menu_link_scan" onclick="doAjaxCall('MassWeeklyDownload?pulldate=${pulldate}, $(this)),'table'" href="#" data-success="Now Downloading Comics to : ${mylar.GRABBAG_DIR}">Download.</a> -->
 		</div>
 	</div>
 	<a href="home" class="back">&laquo; Back to overview</a>
 </%def>
 
 <%def name="body()">
-        <div class="clearfix">
+        <div>
+           </br></br>
+           <table width="100%" align="center">
+              <tr>
+              <td style="vertical-align: middle; text-align: right"><a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['year']}" title="Previous Week (${weekinfo['prev_weeknumber']})"><img src="interfaces/default/images/prev.gif" width="16" height="18" Alt="Previous"/></td>
+              <td style="vertical-align: middle; text-align: center">
               %if wantedcount == 0:
-                   <h1>Weekly Pull list for : ${pulldate}</h1>
+                   <h1><center>Weekly Pull list for week ${weekinfo['weeknumber']} :</br>${weekinfo['startweek']} - ${weekinfo['endweek']}</center></h1>
               %else:
-                   <h1>Weekly Pull list for : ${pulldate} (${wantedcount})</h1>
+                   <h1><center>Weekly Pull list for week ${weekinfo['weeknumber']} :</br>${weekinfo['startweek']} - ${weekinfo['endweek']} (${wantedcount})</center></h1>
               %endif
+              </td><td style="vertical-align: middle; text-align: left">
+              <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['year']}" title="Next Week (${weekinfo['next_weeknumber']})"><img src="interfaces/default/images/next.gif" width="16" height="18" Alt="Next"/></a></td>
+           <tr>
+           </table>
         </div>
 
         <div>
           <form action="MassWeeklyDownload" method="GET" id="MassDownload">
              <fieldset>
-                  <div class="row">
-                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory</label> 
-                       <small>Create weekly folder (${weekfold})</small>
+                  <div class="row checkbox left clearfix">
+                       </br>
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
                  </div>
 
-               <input type="hidden" name="pulldate" value=${pulldate}>
+               <input type="hidden" name="pulldate" value=${weekinfo}>
                <input type="submit" style="display:none" />
              </fieldset>
           </form>
@@ -67,12 +75,16 @@
                                 if weekly['AUTOWANT'] == True:
                                         grade = 'H'
 
+                                #if the comicid is present, but issue isn't marked as wanted.
+                                if weekly['HAVEIT'] == 'Yes' and weekly['STATUS'] == 'Skipped':
+                                        grade = 'E'
+                                                               
 			%>
 			<tr class="grade${grade}">
                                 %if pullfilter is True:
                                         <td class="publisher">${weekly['PUBLISHER']}</td>
                                         <td class="comicname">
-                                        %if weekly['COMICID'] == '' or weekly['COMICID'] is None:
+                                        %if weekly['HAVEIT'] == 'No':
                                              ${weekly['COMIC']}
                                         %else:
                                              <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
@@ -84,11 +96,16 @@
                                         %else:
               	                            <td class="status">${weekly['STATUS']}
                                             %if weekly['STATUS'] == 'Skipped':
-                                                %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
-                                                      <a href="#" title="Watch for this series" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${pulldate}', $(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><span class="ui-icon ui-icon-plus"></span>Watch</a>
+                                                %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
+                                                    <a href="#" title="auto-add by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><span class="ui-icon ui-icon-plus"></span>add series</a>
+                                                %else:
+                                                    %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
+                                                        <a href="#" title="Watch for this series" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo}', $(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><span class="ui-icon ui-icon-plus"></span>Watch</a>
+                                                    %else:
+                                                        <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Add this series to your watchlist"><span class="ui-icon ui-icon-plus"></span>add series</a>
+                                                    %endif
                                                 %endif
-                                                <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries"><span class="ui-icon ui-icon-plus"></span>add series</a>
-                                                <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}"><span class="ui-icon ui-icon-plus"></span>one off</a>
+                                                <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>one off</a>
                                             %endif
                                         %endif
                                         </td>
@@ -151,7 +168,7 @@
                                 "bStateSave": true,
                                 "iDisplayLength": 25,
                                 "sPaginationType": "full_numbers",
-                                "aaSorting": [[0, 'desc']]
+                                "aaSorting": [[0, 'asc']]
                         });
                         resetFilters("weekly");
                         setTimeout(function(){

@@ -81,7 +81,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     if mylar.CMTAG_START_YEAR_AS_VOLUME:
         comversion = 'V' + str(comversion)
     else:
-        if comversion is None or comversion == '':
+        if any([comversion is None, comversion == '', comversion == 'None']):
             comversion = '1'
         comversion = re.sub('[^0-9]', '', comversion).strip()
 

@@ -140,7 +140,7 @@
                                                 %endif
                                                 [<a href="deleteimport?ComicName=${result['ComicName']| u}&volume=${result['Volume']}&DynamicName=${result['DynamicName']}&Status=${result['Status']}">Remove</a>]
                                                 %if result['SRID'] is not None and result['Status'] != 'Imported':
-                                                     [<a title="Manual intervention is required - more than one result when attempting to import" href="importresults_popup?SRID=${result['SRID']}&ComicName=${result['ComicName'] |u}&imported=yes&ogcname=${result['ComicName'] |u}&DynamicName=${result['DynamicName']}">Select</a>]
+                                                     [<a title="Manual intervention is required - more than one result when attempting to import" href="importresults_popup?SRID=${result['SRID']}&ComicName=${result['ComicName'] |u}&imported=yes&ogcname=${result['ComicName'] |u}&DynamicName=${result['DynamicName']}&Volume=${result['Volume']}">Select</a>]
                                                 %endif
                                             </td>
                                           </tr>

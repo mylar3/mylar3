@@ -263,7 +263,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                     comicname = issueinfo[0]['series']
                     if comicname is not None:
                         logger.fdebug('[IMPORT-CBZ] Series Name: ' + comicname)
-                        as_d = filechecker.FileChecker(watchcomic=comicname.decode('utf-8'))
+                        as_d = filechecker.FileChecker()
                         as_dyninfo = as_d.dynamic_replace(comicname)
                         logger.fdebug('Dynamic-ComicName: ' + as_dyninfo['mod_seriesname'])
                     else:

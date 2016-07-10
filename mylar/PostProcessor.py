@@ -266,14 +266,16 @@ class PostProcessor(object):
                 manual_list = []
 
                 for fl in filelist['comiclist']:
-                    as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
+                    as_d = filechecker.FileChecker()#watchcomic=fl['series_name'].decode('utf-8'))
                     as_dinfo = as_d.dynamic_replace(fl['series_name'])
                     mod_seriesname = as_dinfo['mod_seriesname']
                     loopchk = []
                     for x in alt_list:
                         cname = x['AS_DyComicName']
                         for ab in x['AS_Alt']:
-                            if re.sub('[\|\s]', '', mod_seriesname.lower()).strip() in re.sub('[\|\s]', '', ab.lower()).strip():
+                            tmp_ab = re.sub(' ', '', ab)
+                            tmp_mod_seriesname = re.sub(' ', '', mod_seriesname)
+                            if re.sub('\|', '', tmp_mod_seriesname.lower()).strip() == re.sub('\|', '', tmp_ab.lower()).strip():
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
@@ -446,7 +448,7 @@ class PostProcessor(object):
                                         tmp_watchlist_vol = '1'
                                     else:
                                         tmp_watchlist_vol = re.sub("[^0-9]", "", watch_values['ComicVersion']).strip()
-                                    if not any([watchmatch['series_volume'] != 'None', watchmatch['series_volume'] is not None]):
+                                    if any([watchmatch['series_volume'] != 'None', watchmatch['series_volume'] is not None]):
                                         tmp_watchmatch_vol = re.sub("[^0-9]","", watchmatch['series_volume']).strip()
                                         if len(tmp_watchmatch_vol) == 4:
                                             if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
@@ -459,7 +461,8 @@ class PostProcessor(object):
                                                 logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of ' + str(watch_values['ComicVersion']) + ' matched to volume label of ' + str(watchmatch['series_volume']))
                                             else:
                                                 logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of ' + str(watch_values['ComicVersion']) + ' DID NOT match to volume label of ' + str(watchmatch['series_volume']))
-                                                datematch = "False"
+                                                continue
+                                                #datematch = "False"
                                     else:
                                         if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
                                             logger.fdebug(module + '[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.')

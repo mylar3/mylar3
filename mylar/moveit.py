@@ -11,11 +11,10 @@ def movefiles(comicid, comlocation, imported):
 
     myDB = db.DBConnection()
 
-    logger.fdebug('comlocation is : ' + str(comlocation))
-    logger.fdebug('original comicname is : ' + str(imported['ComicName']))
+    logger.fdebug('comlocation is : ' + comlocation)
+    logger.fdebug('original comicname is : ' + imported['ComicName'])
 
     impres = imported['filelisting']
-    #impres = myDB.select("SELECT * from importresults WHERE ComicName=?", [ogcname])
 
     if impres is not None:
         for impr in impres:
@@ -43,11 +42,22 @@ def movefiles(comicid, comlocation, imported):
         #now that it's moved / renamed ... we remove it from importResults or mark as completed.
 
     if len(files_moved) > 0:
+        logger.info('files_moved: ' + str(files_moved))
         for result in files_moved:
-            controlValue = {"ComicFilename": result['filename'],
-                            "SRID":          result['srid']}
-            newValue = {"Status":            "Imported",
-                        "ComicID":           comicid}
+            try:
+                res = result['import_id']
+            except:
+                #if it's an 'older' import that wasn't imported, just make it a basic match so things can move and update properly.
+                controlValue = {"ComicFilename": result['filename'],
+                                "SRID":          result['srid']}
+                newValue = {"Status":            "Imported",
+                            "ComicID":           comicid}
+            else:                 
+                controlValue = {"impID":         result['import_id'],
+                                "ComicFilename": result['filename']}
+                newValue = {"Status":            "Imported",
+                            "SRID":              result['srid'],
+                            "ComicID":           comicid}
             myDB.upsert("importresults", newValue, controlValue)
     return
 

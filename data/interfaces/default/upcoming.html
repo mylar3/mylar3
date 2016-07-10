@@ -117,7 +117,7 @@
 		    <tbody>
                     %for upcome in upcoming:
 		   	    <tr class="gradeZ">
-			   	    <td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['DisplayComicName']}</a></td>
+			   	    <td id="comicname"><a href="comicDetails?ComicID=${upcome['ComicID']}">${upcome['ComicName']}</a></td>
 				    <td id="issuenumber">${upcome['IssueNumber']}</td>
 				    <td id="reldate">${upcome['IssueDate']}</td>
 				    <td id="status">${upcome['Status']}</td>
@@ -184,7 +184,7 @@
                 <tbody>
                     %for f_upcome in futureupcoming:
                             <tr class="gradeZ">
-                                    <td id="comicname">${f_upcome['DisplayComicName']}</td>
+                                    <td id="comicname">${f_upcome['ComicName']}</td>
                                     <td id="issuenumber">${f_upcome['IssueNumber']}</td>
                                     <td id="reldate">${f_upcome['IssueDate']}</td>
                                     <td id="status">${f_upcome['Status']}</td>

@@ -876,7 +876,13 @@ def issuedigits(issnum):
     try:
         tst = issnum.isdigit()
     except:
-        return 9999999999
+        try:
+            isstest = str(issnum)
+            tst = isstest.isdigit()
+        except:
+            return 9999999999
+        else:
+            issnum = str(issnum)
 
     if issnum.isdigit():
         int_issnum = int(issnum) * 1000
@@ -939,9 +945,9 @@ def issuedigits(issnum):
         x = [vals[key] for key in vals if key in issnum]
 
         if x:
-            logger.info('Unicode Issue present - adjusting.')
+            logger.fdebug('Unicode Issue present - adjusting.')
             int_issnum = x[0] * 1000
-            logger.info('int_issnum: ' + str(int_issnum))
+            logger.fdebug('int_issnum: ' + str(int_issnum))
         else:
             if any(['.' in issnum, ',' in issnum]):
                 #logger.fdebug('decimal detected.')
@@ -972,10 +978,14 @@ def issuedigits(issnum):
             else:
                 try:
                     x = float(issnum)
+                    logger.info(x)
                     #validity check
                     if x < 0:
                         #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
                         int_issnum = (int(x) *1000) - 1
+                    elif bool(x):
+                        logger.fdebug('Infinity issue found.')
+                        int_issnum = 9999999999 * 1000
                     else: raise ValueError
                 except ValueError, e:
                     #this will account for any alpha in a issue#, so long as it doesn't have decimals.
@@ -1222,7 +1232,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         Alternate_Names['AlternateName'] = AS_Alt
         Alternate_Names['ComicID'] = comicid
         Alternate_Names['Count'] = alt_count
-        #logger.info('AlternateNames returned:' + str(Alternate_Names))
+        logger.info('AlternateNames returned:' + str(Alternate_Names))
 
         return Alternate_Names
 
@@ -2020,6 +2030,56 @@ def issue_status(IssueID):
         return True
     else:
         return False
+
+def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
+    import db, logger
+
+    myDB = db.DBConnection()
+
+    issuelist = myDB.select("SELECT * FROM issues WHERE ComicID=?", [ComicID])
+
+    if 'Annual' not in pack:
+        pack_issues = range(int(pack[:pack.find('-')]),int(pack[pack.find('-')+1:])+1)
+        annualize = False
+    else:
+        #remove the annuals wording
+        tmp_annuals = pack[pack.find('Annual'):]
+        tmp_ann = re.sub('[annual/annuals/+]', '', tmp_annuals.lower()).strip()
+        tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip() 
+        pack_issues = range(int(tmp_pack[:tmp_pack.find('-')]),int(tmp_pack[tmp_pack.find('-')+1:])+1)
+        annualize = True
+
+    issues = {}
+    issueinfo = []
+
+    Int_IssueNumber = issuedigits(IssueNumber)
+    valid = False
+
+    for iss in pack_issues:
+       int_iss = issuedigits(iss)
+       for xb in issuelist:
+           if xb['Status'] != 'Downloaded':
+               if xb['Int_IssueNumber'] == int_iss:
+                   issueinfo.append({'issueid':      xb['IssueID'],
+                                     'int_iss':      int_iss,
+                                     'issuenumber':  xb['Issue_Number']})
+                   break
+
+    for x in issueinfo:
+       if Int_IssueNumber == x['int_iss']:
+           valid = True
+           break
+
+    issues['issues'] = issueinfo
+
+    if len(issues['issues']) == len(pack_issues):
+        logger.info('Complete issue count of ' + str(len(pack_issues)) + ' issues are available within this pack for ' + ComicName)
+    else:
+        logger.info('Issue counts are not complete (not a COMPLETE pack) for ' + ComicName)
+
+    issues['issue_range'] = pack_issues
+    issues['valid'] = valid
+    return issues
 
 
 #def file_ops(path,dst):

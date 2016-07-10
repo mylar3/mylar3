@@ -1552,7 +1552,10 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                         if int(sr['issues']) == 0 and len(issued['issuechoice']) == 1:
                             sr_issues = 1
                         else:
-                            sr_issues = sr['issues']
+                            if int(sr['issues']) != len(issued['issuechoice']):
+                                sr_issues = len(issued['issuechoice'])
+                            else:
+                                sr_issues = sr['issues']
                         logger.fdebug('[IMPORTER-ANNUAL] - There are ' + str(sr_issues) + ' annuals in this series.')
                         while (n < int(sr_issues)):
                             try:

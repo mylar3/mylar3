@@ -1,4 +1,5 @@
 
+
 #  This file is part of Mylar.
 # -*- coding: utf-8 -*-
 #
@@ -21,6 +22,7 @@ import os
 import sys
 import cherrypy
 import datetime
+from datetime import timedelta, date
 import re
 import json
 
@@ -147,6 +149,7 @@ class WebInterface(object):
                  "Snatched": str(isCounts[7])
                }
         usethefuzzy = comic['UseFuzzy']
+        allowpacks = comic['AllowPacks']
         skipped2wanted = "0"
         if usethefuzzy is None:
             usethefuzzy = "0"
@@ -155,6 +158,8 @@ class WebInterface(object):
             force_continuing = 0
         if mylar.DELETE_REMOVE_DIR is None:
             mylar.DELETE_REMOVE_DIR = 0    
+        if allowpacks is None:
+            allowpacks = "0"
         comicConfig = {
                     "comiclocation": mylar.COMIC_LOCATION,
                     "fuzzy_year0": helpers.radio(int(usethefuzzy), 0),
@@ -162,7 +167,8 @@ class WebInterface(object):
                     "fuzzy_year2": helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted": helpers.checked(skipped2wanted),
                     "force_continuing": helpers.checked(force_continuing),
-                    "delete_dir": helpers.checked(mylar.DELETE_REMOVE_DIR)
+                    "delete_dir": helpers.checked(mylar.DELETE_REMOVE_DIR),
+                    "allow_packs": helpers.checked(int(allowpacks))
                }
         if mylar.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
@@ -1279,7 +1285,7 @@ class WebInterface(object):
             if Publisher == 'COMICS': Publisher = None
             if ComicYear == '': ComicYear = now.year
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None,allowpacks=False)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue)
             raise cherrypy.HTTPRedirect("pullist")
@@ -1291,6 +1297,7 @@ class WebInterface(object):
             AlternateSearch = cdname['AlternateSearch']
             Publisher = cdname['ComicPublisher']
             UseAFuzzy = cdname['UseFuzzy']
+            AllowPacks= cdname['AllowPacks']
             ComicVersion = cdname['ComicVersion']
             ComicName = cdname['ComicName']
             controlValueDict = {"IssueID": IssueID}
@@ -1338,7 +1345,7 @@ class WebInterface(object):
         #Publisher = miy['ComicPublisher']
         #UseAFuzzy = miy['UseFuzzy']
         #ComicVersion = miy['ComicVersion']
-        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe)
+        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks)
         if foundcom  == "yes":
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -1464,7 +1471,7 @@ class WebInterface(object):
     archiveissue.exposed = True
 
 
-    def pullist(self):
+    def pullist(self, week=None, year=None):
         myDB = db.DBConnection()
         autowants = myDB.select("SELECT * FROM futureupcoming WHERE Status='Wanted'")
         autowant = []
@@ -1477,10 +1484,63 @@ class WebInterface(object):
                                  "DisplayComicName": aw['DisplayComicName']})
         weeklyresults = []
         wantedcount = 0
+
+        #find the current week and save it as a reference point.
+        todaydate = datetime.datetime.today()
+        current_weeknumber = todaydate.strftime("%U")
+
+        if week:
+            weeknumber = int(week)
+            year = int(year)
+            #view specific week (prev_week, next_week)
+            startofyear = date(year,1,1)
+            week0 = startofyear - timedelta(days=startofyear.isoweekday())
+            stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
+            startweek = stweek + timedelta(weeks = weeknumber)
+            midweek = startweek + timedelta(days = 3)
+            endweek = startweek + timedelta(days = 6)
+        else:
+            #find the given week number for the current day
+            weeknumber = current_weeknumber
+            stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
+            startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
+            midweek = startweek + timedelta(days = 3)
+            endweek = startweek + timedelta(days = 6)
+            year = todaydate.strftime("%Y")
+
+        prev_week = int(weeknumber) - 1
+        next_week = int(weeknumber) + 1
+
+        weekinfo = {'weeknumber':         weeknumber,
+                    'startweek':          startweek.strftime('%B %d, %Y'),
+                    'midweek':            midweek.strftime('%Y-%m-%d'),
+                    'endweek':            endweek.strftime('%B %d, %Y'),
+                    'year':               year,
+                    'prev_weeknumber':    prev_week,
+                    'next_weeknumber':    next_week,
+                    'current_weeknumber': current_weeknumber}
+
+        logger.info(weekinfo)
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
-            w_results = myDB.select("SELECT * from weekly")
+            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+            if len(w_results) == 0:
+                logger.info('trying to repopulate to different week')
+                repoll = self.manualpull(weeknumber=weeknumber,year=year)
+                if repoll['status'] == 'success':
+                    logger.info('Successfully populated ' + str(repoll['count']) + ' issues into the pullist for the week of ' + str(weeknumber) + ', ' + str(year))
+                    w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+                else:
+                    logger.warn('Problem repopulating the pullist for week ' + str(weeknumber) + ', ' + str(year))
+
+            watchlibrary = helpers.listLibrary()
+
             for weekly in w_results:
+                if weekly['ComicID'] in watchlibrary:
+                    haveit = watchlibrary[weekly['ComicID']]
+                else:
+                    haveit = "No"
+
                 x = None
                 try:
                     x = float(weekly['ISSUE'])
@@ -1497,6 +1557,7 @@ class WebInterface(object):
                                            "STATUS": weekly['STATUS'],
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "HAVEIT":  haveit,
                                            "AUTOWANT": False
                                          })
                     else:
@@ -1508,6 +1569,7 @@ class WebInterface(object):
                                            "STATUS": weekly['STATUS'],
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "HAVEIT":  haveit,
                                            "AUTOWANT": True
                                          })
                         else:
@@ -1518,6 +1580,7 @@ class WebInterface(object):
                                            "STATUS": weekly['STATUS'],
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "HAVEIT":  haveit,
                                            "AUTOWANT": False
                                          })
 
@@ -1525,17 +1588,19 @@ class WebInterface(object):
                         wantedcount +=1
 
             weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER', 'COMIC'), reverse=False)
-            pulldate = myDB.selectone("SELECT * from weekly").fetchone()
-            if pulldate is None:
-                return self.manualpull()
-                #raise cherrypy.HTTPRedirect("home")
         else:
             return self.manualpull()
+
         if mylar.WEEKFOLDER_LOC is not None:
-            weekfold = os.path.join(mylar.WEEKFOLDER_LOC, pulldate['SHIPDATE'])
+            weekdst = mylar.WEEKFOLDER_LOC
         else:
-            weekfold = os.path.join(mylar.DESTINATION_DIR, pulldate['SHIPDATE'])
-        return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True, weekfold=weekfold, wantedcount=wantedcount)
+            weekdst = mylar.DESTINATION_DIR
+        weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+
+        if week:
+            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=wantedcount, weekinfo=weekinfo)
+        else:
+            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=wantedcount, weekinfo=weekinfo)
     pullist.exposed = True
 
     def removeautowant(self, comicname, release):
@@ -1627,9 +1692,10 @@ class WebInterface(object):
     futurepulllist.exposed = True
 
     def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, FutureID=None):
+        #ShipDate is a tuple ('weeknumber','startweek','midweek','endweek','year')
         myDB = db.DBConnection()
         if FutureID is not None:
-            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=?', [ComicName, Issue]).fetchone()
+            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=? WHERE weeknumber=?', [ComicName, Issue, ShipDate['weeknumber']]).fetchone()
             if chkfuture is not None:
                 logger.info('Already on Future Upcoming list - not adding at this time.')
                 return
@@ -1640,7 +1706,7 @@ class WebInterface(object):
                    "Publisher":   Publisher}
 
         newVal = {"Status":       "Wanted",
-                  "IssueDate":     ShipDate}
+                  "IssueDate":     ShipDate['midweek']}
 
         myDB.upsert("futureupcoming", newVal, newCtrl)
 
@@ -1665,10 +1731,15 @@ class WebInterface(object):
         return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pulldate=pulldate['SHIPDATE'], pullfilter=True)
     filterpull.exposed = True
 
-    def manualpull(self):
+    def manualpull(self,weeknumber=None,year=None):
         from mylar import weeklypull
-        threading.Thread(target=weeklypull.pullit).start()
-        raise cherrypy.HTTPRedirect("pullist")
+        if weeknumber:
+            #threading.Thread(target=mylar.locg.locg,args=[None,weeknumber,year]).start()
+            mylar.locg.locg(weeknumber=weeknumber,year=year)
+            raise cherrypy.HTTPRedirect("pullist?week=" + str(weeknumber) + "&year=" + str(year))
+        else:
+            threading.Thread(target=weeklypull.pullit).start()
+            raise cherrypy.HTTPRedirect("pullist")
     manualpull.exposed = True
 
     def pullrecreate(self):
@@ -1683,9 +1754,23 @@ class WebInterface(object):
     pullrecreate.exposed = True
 
     def upcoming(self):
+        todaydate = datetime.datetime.today()
+        current_weeknumber = todaydate.strftime("%U")
+
+        #find the given week number for the current day
+        weeknumber = current_weeknumber
+        stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
+        startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
+        midweek = startweek + timedelta(days = 3)
+        endweek = startweek + timedelta(days = 6)
+        weekyear = todaydate.strftime("%Y")
+
+
         myDB = db.DBConnection()
         #upcoming = myDB.select("SELECT * from issues WHERE ReleaseDate > date('now') order by ReleaseDate DESC")
-        upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueID is NULL AND IssueNumber is not NULL AND ComicName is not NULL order by IssueDate DESC")
+        #upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueID is NULL AND IssueNumber is not NULL AND ComicName is not NULL order by IssueDate DESC")
+        #upcomingdata = myDB.select("SELECT * from upcoming WHERE IssueNumber is not NULL AND ComicName is not NULL order by IssueDate DESC")
+        upcomingdata = myDB.select("SELECT * from weekly WHERE Issue is not NULL AND Comic is not NULL order by weeknumber DESC")
         if upcomingdata is None:
             logger.info('No upcoming data as of yet...')
         else:
@@ -1693,62 +1778,75 @@ class WebInterface(object):
             upcoming = []
             upcoming_count = 0
             futureupcoming_count = 0
-            try:
-                pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
-                logger.fdebug(u"Weekly pull list present - retrieving pull-list date.")
-                if (pull_date is None):
-                    pulldate = '00000000'
-                else:
-                    pulldate = pull_date['SHIPDATE']
-            except (sqlite3.OperationalError, TypeError), msg:
-                logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
-                pulldate = '00000000'
+            #try:
+            #    pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
+            #    if (pull_date is None):
+            #        pulldate = '00000000'
+            #    else:
+            #        pulldate = pull_date['SHIPDATE']
+            #except (sqlite3.OperationalError, TypeError), msg:
+            #    logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
+            #    pulldate = '00000000'
 
             for upc in upcomingdata:
-                if len(upc['IssueDate']) <= 7:
-                    #if it's less than or equal 7, then it's a future-pull so let's check the date and display
-                    #tmpdate = datetime.datetime.com
-                    tmpdatethis = upc['IssueDate']
-                    if tmpdatethis[:2] == '20':
-                        tmpdate = tmpdatethis + '01' #in correct format of yyyymm
-                    else:
-                        findst = tmpdatethis.find('-')  #find the '-'
-                        tmpdate = tmpdatethis[findst +1:] + tmpdatethis[:findst] + '01' #rebuild in format of yyyymm
-                    #timenow = datetime.datetime.now().strftime('%Y%m')
-                else:
-                    #if it's greater than 7 it's a full date.
-                    tmpdate = re.sub("[^0-9]", "", upc['IssueDate'])  #convert date to numerics only (should be in yyyymmdd)
+#                if len(upc['IssueDate']) <= 7:
+#                    #if it's less than or equal 7, then it's a future-pull so let's check the date and display
+#                    #tmpdate = datetime.datetime.com
+#                    tmpdatethis = upc['IssueDate']
+#                    if tmpdatethis[:2] == '20':
+#                        tmpdate = tmpdatethis + '01' #in correct format of yyyymm
+#                    else:
+#                        findst = tmpdatethis.find('-')  #find the '-'
+#                        tmpdate = tmpdatethis[findst +1:] + tmpdatethis[:findst] + '01' #rebuild in format of yyyymm
+#                    #timenow = datetime.datetime.now().strftime('%Y%m')
+#                else:
+#                    #if it's greater than 7 it's a full date.
+#                    tmpdate = re.sub("[^0-9]", "", upc['IssueDate'])  #convert date to numerics only (should be in yyyymmdd)
 
-                timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
-                #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
+#                timenow = datetime.datetime.now().strftime('%Y%m%d') #convert to yyyymmdd
+#                #logger.fdebug('comparing pubdate of: ' + str(tmpdate) + ' to now date of: ' + str(timenow))
 
-                pulldate = re.sub("[^0-9]", "", pulldate)  #convert pulldate to numerics only (should be in yyyymmdd)
+#                pulldate = re.sub("[^0-9]", "", pulldate)  #convert pulldate to numerics only (should be in yyyymmdd)
 
-                if int(tmpdate) >= int(timenow) and int(tmpdate) == int(pulldate): #int(pulldate) <= int(timenow):
+#                if int(tmpdate) >= int(timenow) and int(tmpdate) == int(pulldate): #int(pulldate) <= int(timenow):
+                if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
                     if upc['Status'] == 'Wanted':
                         upcoming_count +=1
-                        upcoming.append({"ComicName":    upc['ComicName'],
-                                         "IssueNumber":  upc['IssueNumber'],
-                                         "IssueDate":    upc['IssueDate'],
+                        upcoming.append({"ComicName":    upc['Comic'],
+                                         "IssueNumber":  upc['Issue'],
+                                         "IssueDate":    upc['ShipDate'],
                                          "ComicID":      upc['ComicID'],
                                          "IssueID":      upc['IssueID'],
                                          "Status":       upc['Status'],
-                                         "DisplayComicName": upc['DisplayComicName']})
+                                         "WeekNumber":   upc['weeknumber'],
+                                         "DynamicName":  upc['DynamicName']})
 
-                elif int(tmpdate) >= int(timenow):
-                    if len(upc['IssueDate']) <= 7:
-                        issuedate = tmpdate[:4] + '-' + tmpdate[4:6] + '-00'
-                    else:
-                        issuedate = upc['IssueDate']
-                    if upc['Status'] == 'Wanted':
+                else:
+                    if int(upc['weeknumber']) > int(weeknumber) and upc['Status'] == 'Wanted':
                         futureupcoming_count +=1
-                        futureupcoming.append({"ComicName":    upc['ComicName'],
-                                               "IssueNumber":  upc['IssueNumber'],
-                                               "IssueDate":    issuedate,
+                        futureupcoming.append({"ComicName":    upc['Comic'],
+                                               "IssueNumber":  upc['Issue'],
+                                               "IssueDate":    upc['ShipDate'],
                                                "ComicID":      upc['ComicID'],
                                                "IssueID":      upc['IssueID'],
                                                "Status":       upc['Status'],
-                                               "DisplayComicName": upc['DisplayComicName']})
+                                               "WeekNumber":   upc['weeknumber'],
+                                               "DynamicName":  upc['DynamicName']})
+
+#                elif int(tmpdate) >= int(timenow):
+#                    if len(upc['IssueDate']) <= 7:
+#                        issuedate = tmpdate[:4] + '-' + tmpdate[4:6] + '-00'
+#                    else:
+#                        issuedate = upc['IssueDate']
+#                    if upc['Status'] == 'Wanted':
+#                        futureupcoming_count +=1
+#                        futureupcoming.append({"ComicName":    upc['ComicName'],
+#                                               "IssueNumber":  upc['IssueNumber'],
+#                                               "IssueDate":    issuedate,
+#                                               "ComicID":      upc['ComicID'],
+#                                               "IssueID":      upc['IssueID'],
+#                                               "Status":       upc['Status'],
+#                                               "DisplayComicName": upc['DisplayComicName']})
 
         futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate', 'ComicName', 'IssueNumber'), reverse=True)
 
@@ -1937,7 +2035,10 @@ class WebInterface(object):
         for iss in issues:
             results.append(iss)
         annuals = myDB.select('SELECT * from annuals WHERE Status=?', [status])
-        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results)
+        for ann in annuals:
+            results.append(ann)
+
+        return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results, status=status)
     manageIssues.exposed = True
 
     def manageFailed(self):
@@ -2037,24 +2138,39 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comicsToAdd = []
         for ComicID in args:
+            logger.info(ComicID)
             if ComicID == 'manage_comic_length':
-                break
-            if action == 'delete':
-                myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
-                myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-            elif action == 'pause':
-                controlValueDict = {'ComicID': ComicID}
-                newValueDict = {'Status': 'Paused'}
-                myDB.upsert("comics", newValueDict, controlValueDict)
-                logger.info('Pausing Series ID: ' + str(ComicID))
-            elif action == 'resume':
-                controlValueDict = {'ComicID': ComicID}
-                newValueDict = {'Status': 'Active'}
-                myDB.upsert("comics", newValueDict, controlValueDict)
+                continue
             else:
-                comicsToAdd.append(ComicID)
+                for k,v in args.items():
+                    #k = Comicname[ComicYear]
+                    #v = ComicID
+                    comyr = k.find('[')
+                    ComicYear = re.sub('[\[\]]', '', k[comyr:]).strip()
+                    ComicName = k[:comyr].strip()
+                    ComicID = v
+                    #cid = ComicName.decode('utf-8', 'replace')
+
+                if action == 'delete':
+                    logger.info('[MANAGE COMICS][DELETION] Now deleting ' + ComicName + ' (' + str(ComicYear) + ') [' + str(ComicID) + '] form the DB.')
+                    myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+                    myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+                    logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + ComicName + '(' + str(ComicYear) + ')')
+                elif action == 'pause':
+                    controlValueDict = {'ComicID': ComicID}
+                    newValueDict = {'Status': 'Paused'}
+                    myDB.upsert("comics", newValueDict, controlValueDict)
+                    logger.info('[MANAGE COMICS][PAUSE] ' + ComicName + ' has now been put into a Paused State.')
+                elif action == 'resume':
+                    controlValueDict = {'ComicID': ComicID}
+                    newValueDict = {'Status': 'Active'}
+                    myDB.upsert("comics", newValueDict, controlValueDict)
+                    logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
+                else:
+                    comicsToAdd.append(ComicID)
+
         if len(comicsToAdd) > 0:
-            logger.fdebug("Refreshing comics: %s" % comicsToAdd)
+            logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + len(comicsToAdd) + ' series')
             threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
     markComics.exposed = True
 
@@ -2178,7 +2294,7 @@ class WebInterface(object):
                             "SpanYears":   spanyears,
                             "Total":       al['TotalIssues'],
                             "CV_ArcID":    al['CV_ArcID']})
-        return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist)
+        return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist, delete_type=0)
     storyarc_main.exposed = True
 
     def detailStoryArc(self, StoryArcID, StoryArcName):
@@ -2230,26 +2346,31 @@ class WebInterface(object):
 
     markreads.exposed = True
 
-    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None, ArcName=None):
+    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None, ArcName=None, delete_type=None):
         myDB = db.DBConnection()
         if IssueID:
             myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
-            logger.info("Removed " + str(IssueID) + " from Reading List")
+            logger.info("[DELETE-READ-ISSUE] Removed " + str(IssueID) + " from Reading List")
         elif StoryArcID:
+            logger.info('[DELETE-ARC] Removing ' + ArcName + ' from your Story Arc Watchlist')
             myDB.action('DELETE from readinglist WHERE StoryArcID=?', [StoryArcID])
             #ArcName should be an optional flag so that it doesn't remove arcs that have identical naming (ie. Secret Wars)
-            #if ArcName:
-            #    myDB.action('DELETE from readinglist WHERE StoryArc=?', [ArcName])
+            if delete_type:
+                if ArcName:
+                    logger.info('[DELETE-STRAGGLERS-OPTION] Removing all traces of arcs with the name of : ' + ArcName)
+                    myDB.action('DELETE from readinglist WHERE StoryArc=?', [ArcName])
+                else:
+                    logger.warn('[DELETE-STRAGGLERS-OPTION] No ArcName provided - just deleting by Story Arc ID')
             stid = 'S' + str(StoryArcID) + '_%'
             #delete from the nzblog so it will always find the most current downloads. Nzblog has issueid, but starts with ArcID
             myDB.action('DELETE from nzblog WHERE IssueID LIKE ?', [stid])
-            logger.info("Removed " + str(StoryArcID) + " from Story Arcs.")
+            logger.info("[DELETE-ARC] Removed " + str(StoryArcID) + " from Story Arcs.")
         elif IssueArcID:
             myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
-            logger.info("Removed " + str(IssueArcID) + " from the Story Arc.")
+            logger.info("[DELETE-ARC] Removed " + str(IssueArcID) + " from the Story Arc.")
         elif AllRead:
             myDB.action("DELETE from readlist WHERE Status='Read'")
-            logger.info("Removed All issues that have been marked as Read from Reading List")
+            logger.info("[DELETE-ALL-READ] Removed All issues that have been marked as Read from Reading List")
     removefromreadlist.exposed = True
 
     def markasRead(self, IssueID=None, IssueArcID=None):
@@ -2936,9 +3057,10 @@ class WebInterface(object):
         myDB = db.DBConnection()
         if mylar.WEEKFOLDER:
             if mylar.WEEKFOLDER_LOC:
-                desdir = os.path.join(mylar.WEEKFOLDER_LOC, pulldate)
+                dstdir = mylar.WEEKFOLDER_LOC
             else:
-                desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+                dstdir = mylar.DESTINATION_DIR
+            desdir = os.path.join(dstdir, str( str(pulldate['year']) + '-' + str(pulldate['weeknumber']) ))
             if os.path.isdir(desdir):
                 logger.info(u"Directory (" + desdir + ") already exists! Continuing...")
             else:
@@ -2954,7 +3076,7 @@ class WebInterface(object):
         else:
             desdir = mylar.GRABBAG_DIR
 
-        clist = myDB.select("SELECT * FROM Weekly WHERE Status='Downloaded'")
+        clist = myDB.select("SELECT * FROM Weekly AND weeknumber=? WHERE Status='Downloaded'", [pulldate['weeknumber']])
         if clist is None:   # nothing on the list, just go go gone
             logger.info("There aren't any issues downloaded from this week yet.")
         else:
@@ -3109,6 +3231,7 @@ class WebInterface(object):
     deleteimport.exposed = True
 
     def preSearchit(self, ComicName, comiclist=None, mimp=0, volume=None, displaycomic=None, comicid=None, dynamicname=None, displayline=None):
+        logger.info('here')
         if mylar.IMPORTLOCK:
             logger.info('There is an import already running. Please wait for it to finish, and then you can resubmit this import.')
             return
@@ -3135,12 +3258,31 @@ class WebInterface(object):
                 if comicinfo['ComicID'] is None or comicinfo['ComicID'] == 'None':
                     continue
                 else:
-                    #issue_count = Counter(im['ComicID'])
-                    logger.info('Issues found with valid ComicID information for : ' + comicinfo['ComicName'] + ' [' + str(comicinfo['ComicID']) + ']')
-                    self.addbyid(comicinfo['ComicID'], calledby=True, imported='yes', ogcname=comicinfo['ComicName'])
-                    #status update.
+                    if any([comicinfo['Volume'] is None, comicinfo['Volume'] == 'None']):
+                        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[comicinfo['DynamicName']])
+                    else:
+                        if not comicinfo['Volume'].lower().startswith('v'):
+                            volume = 'v' + str(comicinfo['Volume'])
+                        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[comicinfo['DynamicName'],comicinfo['Volume']])
+                    files = []
+                    for result in results:
+                        files.append({'comicfilename': result['ComicFilename'],
+                                      'comiclocation': result['ComicLocation'],
+                                      'issuenumber':   result['IssueNumber'],
+                                      'import_id':     result['impID']})
+
                     import random
                     SRID = str(random.randint(100000, 999999))
+
+                    logger.info('Issues found with valid ComicID information for : ' + comicinfo['ComicName'] + ' [' + str(comicinfo['ComicID']) + ']')
+                    imported = {'ComicName':     comicinfo['ComicName'],
+                                'DynamicName':   comicinfo['DynamicName'],
+                                'Volume':        comicinfo['Volume'],
+                                'filelisting':   files,
+                                'srid':          SRID}
+                    self.addbyid(comicinfo['ComicID'], calledby=True, imported=imported, ogcname=comicinfo['ComicName'])
+
+                    #status update.
                     ctrlVal = {"ComicID":     comicinfo['ComicID']}
                     newVal = {"Status":       'Imported',
                               "SRID":         SRID}
@@ -3281,6 +3423,7 @@ class WebInterface(object):
                 #this needs to be reworked / refined ALOT more.
                 #minISSUE = highest issue #, startISSUE = lowest issue #
                 numissues = len(comicstoIMP)
+                logger.info('numissues: ' + str(numissues))
                 ogcname = ComicName
 
                 mode='series'
@@ -3391,21 +3534,24 @@ class WebInterface(object):
                 import random
                 SRID = str(random.randint(100000, 999999))
 
-                if len(sresults) > 1 or len(search_matches) > 1:
                     #link the SRID to the series that was just imported so that it can reference the search results when requested.
 
-                    if volume is None or volume == 'None':
-                        ctrlVal = {"DynamicName": DynamicName,
+                if volume is None or volume == 'None':
+                    ctrlVal = {"DynamicName": DynamicName,
                                    "ComicName":   ComicName}
-                    else:
-                        ctrlVal = {"DynamicName": DynamicName,
-                                   "ComicName":   ComicName,
-                                   "Volume":      volume}
+                else:
+                    ctrlVal = {"DynamicName": DynamicName,
+                               "ComicName":   ComicName,
+                               "Volume":      volume}
 
+                if len(sresults) > 1 or len(search_matches) > 1:
                     newVal = {"SRID":         SRID,
                               "Status":       'Manual Intervention'}
+                else:
+                    newVal = {"SRID":         SRID,
+                              "Status":       'Importing'}
 
-                    myDB.upsert("importresults", newVal, ctrlVal)
+                myDB.upsert("importresults", newVal, ctrlVal)
 
                 if len(search_matches) > 1:
                     # if we matched on more than one series above, just save those results instead of the entire search result set.
@@ -3461,7 +3607,8 @@ class WebInterface(object):
                     for result in results:
                         files.append({'comicfilename': result['ComicFilename'],
                                       'comiclocation': result['ComicLocation'],
-                                      'issuenumber':   result['IssueNumber']})
+                                      'issuenumber':   result['IssueNumber'],
+                                      'import_id':     result['impID']})
 
                     imported = {'ComicName':     ComicName,
                                 'DynamicName':   DynamicName,
@@ -3474,18 +3621,39 @@ class WebInterface(object):
                     logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
 
         mylar.IMPORTLOCK = False
-        logger.info('[IMPORT] Importing complete.')
+        logger.info('[IMPORT] Initial Import complete (I might still be populating the series data).')
 
     preSearchit.exposed = True
 
-    def importresults_popup(self, SRID, ComicName, imported=None, ogcname=None, DynamicName=None):
+    def importresults_popup(self, SRID, ComicName, imported=None, ogcname=None, DynamicName=None, Volume=None):
         myDB = db.DBConnection()
-        results = myDB.select("SELECT * FROM searchresults WHERE SRID=?", [SRID])
-        if results:
-            return serve_template(templatename="importresults_popup.html", title="results", searchtext=ComicName, searchresults=results)
-        else:
+        resultset = myDB.select("SELECT * FROM searchresults WHERE SRID=?", [SRID])
+        if not resultset:
             logger.warn('There are no search results to view for this entry ' + ComicName + ' [' + str(SRID) + ']. Something is probably wrong.')
             raise cherrypy.HTTPRedirect("importResults")
+
+        searchresults = resultset
+        if any([Volume is None, Volume == 'None']):
+            results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[DynamicName])
+        else:
+            if not Volume.lower().startswith('v'):
+                volume = 'v' + str(Volume)
+        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[DynamicName,Volume])
+        files = []
+        for result in results:
+            files.append({'comicfilename': result['ComicFilename'],
+                          'comiclocation': result['ComicLocation'],
+                          'issuenumber':   result['IssueNumber'],
+                          'import_id':     result['impID']})
+
+        imported = {'ComicName':     ComicName,
+                    'DynamicName':   DynamicName,
+                    'Volume':        Volume,
+                    'filelisting':   files,
+                    'srid':          SRID}      
+  
+        return serve_template(templatename="importresults_popup.html", title="results", searchtext=ComicName, searchresults=results, imported=imported)
+
     importresults_popup.exposed = True
 
     def pretty_git(self, br_history):
@@ -3779,7 +3947,7 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, alt_filename=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, alt_filename=None, allow_packs=None):
         myDB = db.DBConnection()
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
@@ -3863,6 +4031,11 @@ class WebInterface(object):
             newValues['ForceContinuing'] = 0
         else:
             newValues['ForceContinuing'] = 1
+
+        if allow_packs is None:
+            newValues['AllowPacks'] = 0
+        else:
+            newValues['AllowPacks'] = 1
 
         if alt_filename is None or alt_filename == 'None':
             newValues['AlternateFileName'] = "None"
@@ -4209,7 +4382,6 @@ class WebInterface(object):
                 logger.error('No Username / Password provided for SABnzbd credentials. Unable to test API key')
                 return "Invalid Username/Password provided"
             logger.fdebug('testing connection to SABnzbd @ ' + sab_host)
-            logger.fdebug('SAB API Key :' + sab_apikey)
             if sab_host.endswith('/'):
                 sabhost = sab_host
             else:
@@ -4465,11 +4637,20 @@ class WebInterface(object):
 
     IssueInfo.exposed = True
 
-    def manual_metatag(self, dirName, issueid, filename, comicid, comversion):
+    def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None):
         module = '[MANUAL META-TAGGING]'
         try:
             import cmtagmylar
-            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=comversion, manualmeta=True)
+            if mylar.CMTAG_START_YEAR_AS_VOLUME:
+                if all([seriesyear is not None, seriesyear != 'None']):
+                    vol_label = seriesyear
+                else:
+                    logger.warn('Cannot populate the year for the series for some reason. Dropping down to numeric volume label.')
+                    vol_label = comversion
+            else:
+                vol_label = comversion
+
+            metaresponse = cmtagmylar.run(dirName, issueid=issueid, filename=filename, comversion=vol_label, manualmeta=True)
         except ImportError:
             logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/ directory.')
             metaresponse = "fail"
@@ -4492,15 +4673,14 @@ class WebInterface(object):
 
     def group_metatag(self, dirName, ComicID):
         myDB = db.DBConnection()
-        cinfo = myDB.selectone('SELECT ComicVersion FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        cinfo = myDB.selectone('SELECT ComicVersion, ComicYear FROM comics WHERE ComicID=?', [ComicID]).fetchone()
         groupinfo = myDB.select('SELECT * FROM issues WHERE ComicID=? and Location is not NULL', [ComicID])
         if groupinfo is None:
             logger.warn('No issues physically exist within the series directory for me to (re)-tag.')
             return
         for ginfo in groupinfo:
-            logger.info('tagging : ' + str(ginfo))
-            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'])
-        logger.info('Finished doing a complete series (re)tagging of metadata.')
+            self.manual_metatag(dirName, ginfo['IssueID'], os.path.join(dirName, ginfo['Location']), ComicID, comversion=cinfo['ComicVersion'], seriesyear=cinfo['ComicYear'])
+        logger.info('[SERIES-METATAGGER] Finished doing a complete series (re)tagging of metadata.')
     group_metatag.exposed = True
 
     def CreateFolders(self, createfolders=None):

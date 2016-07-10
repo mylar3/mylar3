@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#  This file is part of Headphones.
+#  This file is part of Mylar.
 #
-#  Headphones is free software: you can redistribute it and/or modify
+#  Mylar is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  Headphones is distributed in the hope that it will be useful,
+#  Mylar is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with Headphones.  If not, see <http://www.gnu.org/licenses/>.
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
 import sys
@@ -32,6 +32,7 @@ def initialize(options):
     enable_https = options['enable_https']
     https_cert = options['https_cert']
     https_key = options['https_key']
+    https_chain = options['https_chain']
 
     if enable_https:
         # If either the HTTPS certificate or key do not exist, try to make
@@ -61,6 +62,8 @@ def initialize(options):
     if enable_https:
         options_dict['server.ssl_certificate'] = https_cert
         options_dict['server.ssl_private_key'] = https_key
+        if https_chain:
+            options_dict['server.ssl_certificate_chain'] = https_chain
         protocol = "https"
     else:
         protocol = "http"
@@ -77,9 +80,14 @@ def initialize(options):
 #                'engine.autoreload_on': False,
 #        })
 
+    #conf = {
+    #    '/': {
+    #        'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')
+    #    },
     conf = {
         '/': {
             'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')
+            #'tools.proxy.on': True  # pay attention to X-Forwarded-Proto header
         },
         '/interfaces': {
             'tools.staticdir.on': True,

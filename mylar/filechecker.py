@@ -142,15 +142,16 @@ class FileChecker(object):
                     if any([run_status == 'success', run_status == 'match']):
                         if self.justparse:
                             comiclist.append({
-                                    'sub':            runresults['sub'],
-                                    'comicfilename':  runresults['comicfilename'],
-                                    'comiclocation':  runresults['comiclocation'],
-                                    'series_name':    runresults['series_name'],
-                                    'dynamic_name':   runresults['dynamic_name'],
-                                    'series_volume':  runresults['series_volume'],
-                                    'issue_year':     runresults['issue_year'],
-                                    'issue_number':   runresults['issue_number'],
-                                    'scangroup':      runresults['scangroup']
+                                    'sub':                 runresults['sub'],
+                                    'comicfilename':       runresults['comicfilename'],
+                                    'comiclocation':       runresults['comiclocation'],
+                                    'series_name':         runresults['series_name'],
+                                    'series_name_decoded': runresults['series_name_decoded'],
+                                    'dynamic_name':        runresults['dynamic_name'],
+                                    'series_volume':       runresults['series_volume'],
+                                    'issue_year':          runresults['issue_year'],
+                                    'issue_number':        runresults['issue_number'],
+                                    'scangroup':           runresults['scangroup']
                                     })
                         else:
                             comiclist.append({
@@ -265,6 +266,19 @@ class FileChecker(object):
             #the remaining strings should be the series title and/or issue title if present (has to be detected properly)
             modseries = modfilename
 
+            #try and remove /remember unicode character strings here (multiline ones get seperated/removed in below regex)
+            pat = re.compile(u'[\x00-\x7f]{3,}', re.UNICODE)
+            replack = pat.sub('XCV', modfilename)
+            wrds = replack.split('XCV')
+            tmpfilename = modfilename
+            if len(wrds) > 1:
+                for i in list(wrds):
+                    if i != '':
+                        tmpfilename = re.sub(i, 'XCV', tmpfilename)
+
+            tmpfilename = ''.join(tmpfilename)
+            modfilename = tmpfilename
+
             sf3 = re.compile(ur"[^,\s_]+", re.UNICODE)
             split_file3 = sf3.findall(modfilename)
             if len(split_file3) == 1:
@@ -273,11 +287,10 @@ class FileChecker(object):
                 split_file3 = sf3.findall(modfilename)
                 logger.fdebug('NEW split_file3: ' + str(split_file3))
 
-            #print split_file3
             ret_sf2 = ' '.join(split_file3)
 
             sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\S+''', ret_sf2, re.VERBOSE)
-            #print sf
+
             ret_sf1 = ' '.join(sf)
 
             #here we should account for some characters that get stripped out due to the regex's
@@ -290,12 +303,12 @@ class FileChecker(object):
             ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
 
             #split_file = re.findall('\([\w\s-]+\)|[\w-]+', ret_sf1, re.UNICODE)
-            split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|\)', ret_sf1, re.UNICODE)
+            split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
 
             if len(split_file) == 1:
                 logger.fdebug('Improperly formatted filename - there is no seperation using appropriate characters between wording.')
                 ret_sf1 = re.sub('\-',' ', ret_sf1).strip()
-                split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|\)', ret_sf1, re.UNICODE)
+                split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+||#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
 
 
             possible_issuenumbers = []
@@ -731,6 +744,14 @@ class FileChecker(object):
             #namely, unique characters - known so far: +
             #c1 = '+'
             series_name = ' '.join(split_file[:highest_series_pos])
+
+            for x in list(wrds):
+                if x != '':
+                    if 'XCV' in series_name:
+                        series_name = re.sub('XCV', x, series_name,1)
+                    elif 'XCV' in issue_number:
+                        issue_number = re.sub('XCV', x, issue_number,1)
+
             series_name = re.sub('c11', '+', series_name)
             series_name = re.sub('f11', '&', series_name)
             series_name = re.sub('g11', '\'', series_name)
@@ -741,11 +762,16 @@ class FileChecker(object):
 
             logger.fdebug('series title possibly: ' + series_name)
 
+            #if the filename is unicoded, it won't match due to the unicode translation. Keep the unicode as well as the decoded.
+            series_name_decoded= unicodedata.normalize('NFKD', series_name.decode('utf-8')).encode('ASCII', 'ignore')
+
             #check for annual in title(s) here.
             if mylar.ANNUALS_ON:
                 if 'annual' in series_name.lower():
                     issue_number = 'Annual ' + str(issue_number)
                     series_name = re.sub('annual', '', series_name, flags=re.I).strip()
+                    series_name_decoded = re.sub('annual', '', series_name_decoded, flags=re.I).strip()
+                   
             #if path_list is not None:
             #    clocation = os.path.join(path, path_list, filename)
             #else:
@@ -761,40 +787,43 @@ class FileChecker(object):
 
             if issue_number is None or series_name is None:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
-                return {'parse_status':   'failure',
-                        'sub':            path_list,
-                        'comicfilename':  filename,
-                        'comiclocation':  self.dir,
-                        'series_name':    series_name,
-                        'issue_number':   issue_number,
-                        'justthedigits':   issue_number, #redundant but it's needed atm
-                        'series_volume':  issue_volume,
-                        'issue_year':     issue_year,
-                        'annual_comicid': None,
-                        'scangroup':      scangroup}
+                return {'parse_status':        'failure',
+                        'sub':                 path_list,
+                        'comicfilename':       filename,
+                        'comiclocation':       self.dir,
+                        'series_name':         series_name,
+                        'series_name_decoded': series_name_decoded,
+                        'issue_number':        issue_number,
+                        'justthedigits':       issue_number, #redundant but it's needed atm
+                        'series_volume':       issue_volume,
+                        'issue_year':          issue_year,
+                        'annual_comicid':      None,
+                        'scangroup':           scangroup}
 
             if self.justparse:
-                return {'parse_status':   'success',
-                        'type':           re.sub('\.','', filetype).strip(),
-                        'sub':            path_list,
-                        'comicfilename':  filename,
-                        'comiclocation':  self.dir,
-                        'series_name':    series_name,
-                        'dynamic_name':   self.dynamic_replace(series_name)['mod_seriesname'],
-                        'series_volume':  issue_volume,
-                        'issue_year':     issue_year,
-                        'issue_number':   issue_number,
-                        'scangroup':      scangroup}
+                return {'parse_status':           'success',
+                        'type':                   re.sub('\.','', filetype).strip(),
+                        'sub':                    path_list,
+                        'comicfilename':          filename,
+                        'comiclocation':          self.dir,
+                        'series_name':            series_name,
+                        'series_name_decoded':    series_name_decoded,
+                        'dynamic_name':           self.dynamic_replace(series_name)['mod_seriesname'],
+                        'series_volume':          issue_volume,
+                        'issue_year':             issue_year,
+                        'issue_number':           issue_number,
+                        'scangroup':              scangroup}
 
             series_info = {}
-            series_info = {'sub':            path_list,
-                          'comicfilename':   filename,
-                          'comiclocation':   self.dir,
-                          'series_name':     series_name,
-                          'series_volume':   issue_volume,
-                          'issue_year':      issue_year,
-                          'issue_number':    issue_number,
-                          'scangroup':       scangroup}
+            series_info = {'sub':                   path_list,
+                          'comicfilename':          filename,
+                          'comiclocation':          self.dir,
+                          'series_name':            series_name,
+                          'series_name_decoded':    series_name_decoded,
+                          'series_volume':          issue_volume,
+                          'issue_year':             issue_year,
+                          'issue_number':           issue_number,
+                          'scangroup':              scangroup}
 
             return self.matchIT(series_info)
 
@@ -802,15 +831,22 @@ class FileChecker(object):
             series_name = series_info['series_name']
             filename = series_info['comicfilename']
             #compare here - match comparison against u_watchcomic.
-            logger.info('Series_Name: ' + series_name.lower() + ' --- WatchComic: ' + self.watchcomic.lower())
+            logger.info('Series_Name: ' + series_name + ' --- WatchComic: ' + self.watchcomic)
             #check for dynamic handles here.
             mod_dynamicinfo = self.dynamic_replace(series_name)
             mod_seriesname = mod_dynamicinfo['mod_seriesname'] 
             mod_watchcomic = mod_dynamicinfo['mod_watchcomic'] 
 
+            mod_series_decoded = self.dynamic_replace(series_info['series_name_decoded'])
+            mod_seriesname_decoded = mod_dynamicinfo['mod_seriesname']
+            mod_watch_decoded = self.dynamic_replace(self.og_watchcomic)
+            mod_watchname_decoded = mod_dynamicinfo['mod_seriesname']
+
             #remove the spaces...
             nspace_seriesname = re.sub(' ', '', mod_seriesname)
             nspace_watchcomic = re.sub(' ', '', mod_watchcomic)
+            nspace_seriesname_decoded = re.sub(' ', '', mod_seriesname_decoded)
+            nspace_watchname_decoded = re.sub(' ', '', mod_watchname_decoded)
 
             if '127372873872871091383' not in self.AS_Alt:
                 logger.fdebug('Possible Alternate Names to match against (if necessary): ' + str(self.AS_Alt))
@@ -821,8 +857,10 @@ class FileChecker(object):
                 if 'annual' in series_name.lower():
                     justthedigits = 'Annual ' + series_info['issue_number']
                 nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
+                nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
 
-            if re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip() or any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
+
+            if any([re.sub('\|','', nspace_seriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip(), re.sub('\|','', nspace_seriesname_decoded.lower()).strip() == re.sub('\|', '', nspace_watchname_decoded.lower()).strip()]) or any(re.sub('[\|\s]','', x.lower()).strip() == re.sub('[\|\s]','', nspace_seriesname.lower()).strip() for x in self.AS_Alt):
                 logger.fdebug('[MATCH: ' + series_info['series_name'] + '] ' + filename)
                 enable_annual = False
                 annual_comicid = None
@@ -1013,7 +1051,12 @@ class FileChecker(object):
 
         if mod_watchcomic:
             mod_watchcomic = re.sub('\|+', '|', mod_watchcomic)
+            if mod_watchcomic.endswith('|'):
+                mod_watchcomic = mod_watchcomic[:-1]
+
         mod_seriesname = re.sub('\|+', '|', mod_seriesname)
+        if mod_seriesname.endswith('|'):
+            mod_seriesname = mod_seriesname[:-1]
 
         return {'mod_watchcomic': mod_watchcomic,
                 'mod_seriesname': mod_seriesname}

@@ -282,9 +282,9 @@
                                         <label>SABnzbd API:</label>
                                         <input type="text" name="sab_apikey" id="sab_apikey" value="${config['sab_api']}" size="28">
 <!--
-                                        <input style="float:right" type="button"><image src="interfaces/default/images/submit.png" height="20" width="20" title="Attempt to auto-populate SABnzbd API" id="find_sabapi">
+                                        <a href="#" style="float:right" type="button" onclick="doAjaxCall('findsabapi',$(this))" data-success="Successfully retrieved SABnzbd key" data-error="Unable to retrieve SABnzbd key"><span class="ui-icon ui-icon-extlink"></span>GET API</a>
 -->
-                                     <a href="#" style="float:right" type="button" id="find_sabapi" data-success="Sucessfully retrieved SABnzbd API" data-error="Error auto-populating SABnzbd API"><span class="ui-icon ui-icon-extlink"></span>Get API</a>
+                                        <a href="#" style="float:right" type="button" id="find_sabapi" data-success="Sucessfully retrieved SABnzbd API" data-error="Error auto-populating SABnzbd API"><span class="ui-icon ui-icon-extlink"></span>Get API</a>
                                      </div>
                                 </div>
 
