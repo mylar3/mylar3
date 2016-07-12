@@ -423,7 +423,7 @@ def pullit(forcecheck=None):
 
         newtxtfile.close()
 
-        if pulldate == '00000000' and ALT_PULL != 2:
+        if pulldate == '00000000' and mylar.ALT_PULL != 2:
             pulldate = shipdate
 
         weektmp = datetime.date(*(int(s) for s in pulldate.split('-')))
