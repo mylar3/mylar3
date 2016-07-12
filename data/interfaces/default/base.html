@@ -50,7 +50,13 @@
 				<a href="home"><img src="images/mylarlogo.png" height="64" width="64" alt="mylar"></a>
 			</div>
 			<ul id="nav">
-				<li><a href="upcoming">wanted</a></li>
+				<li>
+                                %if mylar.WANTED_TAB_OFF:
+                                    <a href="#">wanted</a>
+                                %else:
+                                    <a href="upcoming">wanted</a>
+                                %endif
+                                </li>
 				<li><a href="pullist">
                                 %if mylar.PULLNEW == 'no':
                                   <img src="interfaces/default/images/grey-circle.png" height="10" width="10" />

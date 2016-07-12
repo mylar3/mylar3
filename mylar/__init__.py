@@ -89,6 +89,7 @@ DATA_DIR = None
 DBLOCK = False
 
 UMASK = None
+WANTED_TAB_OFF = False
 
 CONFIG_FILE = None
 CFG = None
@@ -455,7 +456,7 @@ def initialize():
 
     with INIT_LOCK:
         global __INITIALIZED__, DBCHOICE, DBUSER, DBPASS, DBNAME, DYNAMIC_UPDATE, COMICVINE_API, DEFAULT_CVAPI, CVAPI_RATE, CV_HEADERS, BLACKLISTED_PUBLISHERS, FULL_PATH, PROG_DIR, VERBOSE, DAEMON, UPCOMING_SNATCHED, COMICSORT, DATA_DIR, CONFIG_FILE, CFG, CONFIG_VERSION, LOG_DIR, CACHE_DIR, MAX_LOGSIZE, OLDCONFIG_VERSION, OS_DETECT, \
-                queue, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_CHAIN, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, NOWEEKLY, AUTO_UPDATE, \
+                queue, WANTED_TAB_OFF, LOCAL_IP, EXT_IP, HTTP_PORT, HTTP_HOST, HTTP_USERNAME, HTTP_PASSWORD, HTTP_ROOT, ENABLE_HTTPS, HTTPS_CERT, HTTPS_KEY, HTTPS_CHAIN, HTTPS_FORCE_ON, HOST_RETURN, API_ENABLED, API_KEY, DOWNLOAD_APIKEY, LAUNCH_BROWSER, GIT_PATH, SAFESTART, NOWEEKLY, AUTO_UPDATE, \
                 IMPORT_STATUS, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, \
                 CURRENT_VERSION, LATEST_VERSION, CHECK_GITHUB, CHECK_GITHUB_ON_STARTUP, CHECK_GITHUB_INTERVAL, GIT_USER, GIT_BRANCH, USER_AGENT, DESTINATION_DIR, MULTIPLE_DEST_DIRS, CREATE_FOLDERS, DELETE_REMOVE_DIR, \
                 DOWNLOAD_DIR, USENET_RETENTION, SEARCH_INTERVAL, NZB_STARTUP_SEARCH, INTERFACE, DUPECONSTRAINT, DDUMP, DUPLICATE_DUMP, AUTOWANT_ALL, AUTOWANT_UPCOMING, ZERO_LEVEL, ZERO_LEVEL_N, COMIC_COVER_LOCAL, HIGHCOUNT, \
@@ -1096,6 +1097,10 @@ def initialize():
             logger.info('Search interval too low. Resetting to 6 hour minimum')
             SEARCH_INTERVAL = 360
 
+        # set the current week for the pull-list
+        todaydate = datetime.datetime.today()
+        CURRENT_WEEKNUMBER = todaydate.strftime("%U")
+        CURRENT_YEAR = todaydate.strftime("%Y")
 
         # Initialize the database
         logger.info('Checking to see if the database has all tables....')
@@ -1203,11 +1208,6 @@ def initialize():
                                                      runImmediately=True,
                                                      delay=60)
 
-
-        # set the current week for the pull-list
-        todaydate = datetime.datetime.today()
-        CURRENT_WEEKNUMBER = todaydate.strftime("%U")
-        CURRENT_YEAR = todaydate.strftime("%Y")
 
         # Store the original umask
         UMASK = os.umask(0)

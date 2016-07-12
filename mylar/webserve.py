@@ -1809,6 +1809,15 @@ class WebInterface(object):
 #                pulldate = re.sub("[^0-9]", "", pulldate)  #convert pulldate to numerics only (should be in yyyymmdd)
 
 #                if int(tmpdate) >= int(timenow) and int(tmpdate) == int(pulldate): #int(pulldate) <= int(timenow):
+                mylar.WANTED_TAB_OFF = False
+                try:
+                    ab = upc['weeknumber']
+                except TypeError:
+                    logger.warn('Weekly Pull hasn\'t finished being generated as of yet (or has yet to initialize). Try to wait a few seconds more to accomodate processing.')
+                    mylar.WANTED_TAB_OFF = True
+                    return
+                    
+                    
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
                     if upc['Status'] == 'Wanted':
                         upcoming_count +=1
