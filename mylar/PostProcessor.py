@@ -443,7 +443,7 @@ class PostProcessor(object):
                                     # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
                                     # then spit out the error message and don't post-process it.
                                     watch_values = cs['WatchValues']
-                                    logger.fdebuginfo('WATCH_VALUES:' + str(watch_values))
+                                    #logger.fdebug('WATCH_VALUES:' + str(watch_values))
                                     if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
                                         tmp_watchlist_vol = '1'
                                     else:
