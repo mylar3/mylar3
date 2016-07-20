@@ -346,6 +346,20 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                             except:
                                 xmldeck = "None"
 
+                            xmltype = None
+                            if xmldeck != 'None':
+                                if any(['print' in xmldeck.lower(), 'digital' in xmldeck.lower()]):
+                                    if 'print' in xmldeck.lower():
+                                        xmltype = 'Print'
+                                    elif 'digital' in xmldeck.lower():
+                                        xmltype = 'Digital'
+                            if xmldesc != 'None' and xmltype is None:
+                                if 'print' in xmldesc[:60].lower() and 'print edition can be found' not in xmldesc.lower():
+                                    xmltype = 'Print'
+                                elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
+                                    xmltype = 'Digital'
+                            else:
+                                xmltype = 'Print'
 
                             if xmlid in comicLibrary:
                                 haveit = comicLibrary[xmlid]
@@ -361,6 +375,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     'publisher':            xmlpub,
                                     'description':          xmldesc,
                                     'deck':                 xmldeck,
+                                    'type':                 xmltype,
                                     'haveit':               haveit,
                                     'lastissueid':          xml_lastissueid,
                                     'seriesrange':          yearRange  # returning additional information about series run polled from CV

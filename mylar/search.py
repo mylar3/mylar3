@@ -489,9 +489,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             mod_isssearch = str(issdig) + str(isssearch)
 
             #--- this is basically for RSS Feeds ---
-            logger.fdebug('RSS Check: ' + str(RSS))
-            logger.fdebug('nzbprov: ' + str(nzbprov))
-            logger.fdebug('comicid: ' + str(ComicID))
+            #logger.fdebug('RSS Check: ' + str(RSS))
+            #logger.fdebug('nzbprov: ' + str(nzbprov))
+            #logger.fdebug('comicid: ' + str(ComicID))
             if RSS == "yes":
                 if nzbprov == '32P' or nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
@@ -1966,7 +1966,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         else:
             logger.info('Download URL: ' + down_url + '?' + urllib.urlencode(payload) + ' [VerifySSL:' + str(verify) + ']')
 
-        if down_url.startswith('https'):
+        if down_url.startswith('https') and verify == False:
             try:
                 from lib.requests.packages.urllib3 import disable_warnings
                 disable_warnings()

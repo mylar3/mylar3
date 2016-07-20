@@ -529,6 +529,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "DetailURL":          comic['ComicURL'],
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
+                    "Type":               comic['Type'],
                     "DateAdded":          helpers.today(),
                     "Status":             "Loading"}
 

@@ -37,6 +37,7 @@
                  %>
 
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>${searchtext}</h1>
+<!--
             <div>
               <form action="CreateFolders" method="GET" id="CreatetheFolders">
                   <fieldset>
@@ -47,6 +48,7 @@
                   </fieldset>
               </form>
             </div>
+-->
         </div>
         <div class="table_wrapper">
 	<table class="display" id="searchresults_table">
@@ -70,13 +72,25 @@
 						grade = 'Z'
 					if result['haveit'] != "No":
 						grade = 'H';
+                                        if result['type'] == 'Digital':
+                                                rtype = '[Digital]'
+                                        else:
+                                                rtype = None
 				%>
 				<tr class="grade${grade}">
 					<td class="blank"></td>
                                         %if result['deck'] == 'None' or result['deck'] is None:
-					<td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
+                                            %if rtype is None:
+   					        <td class="name"><a href="${result['url']}" target="_blank">${result['name']}</a></td>
+                                            %else:
+   					        <td class="name"><a href="${result['url']}" target="_blank">${result['name']} ${rtype}</a></td>
+                                            %endif
                                         %else:
-					<td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']}</a></td>
+                                            %if rtype is None:
+   					        <td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']}</a></td>
+                                            %else:
+   					        <td class="name"><a href="${result['url']}" title="${result['deck']}" target="_blank">${result['name']} ${rtype}</a></td>
+                                            %endif
                                         %endif
                                         <td class="publisher">${result['publisher']}</a></td>
                                         <td class="comicyear">${result['comicyear']}</a></td>

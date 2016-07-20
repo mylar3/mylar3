@@ -306,6 +306,23 @@ def GetComicInfo(comicid, dom, safechk=None):
     #logger.info('comic_desc:' + comic_desc)
     #logger.info('comic_deck:' + comic_deck)
     #logger.info('desdeck: ' + str(desdeck))
+
+    #figure out if it's a print / digital edition.
+    comic['Type'] = 'None'
+    if comic_deck != 'None':
+        if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower()]):
+            if 'print' in comic_deck.lower():
+                comic['Type'] = 'Print'
+            elif 'digital' in comic_deck.lower():
+                comic['Type'] = 'Digital'    
+    if comic_desc != 'None' and comic['Type'] == 'None':
+        if 'print' in comic_desc[:60].lower() and 'print edition can be found' not in comic_desc.lower():
+            comic['Type'] = 'Print'
+        elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
+            comic['Type'] = 'Digital'
+        else:
+            comic['Type'] = 'Print'
+
     while (desdeck > 0):
         if desdeck == 1:
             if comic_desc == 'None':

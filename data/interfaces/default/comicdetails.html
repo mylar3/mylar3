@@ -134,6 +134,15 @@
                                 <div>
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
+                                <%
+                                      if comic['Type'] == 'None' or comic['Type'] is None:
+                                          comictype = 'Print'
+                                      else:
+                                          comictype = 'Digital'
+                                %>
+                                <div>
+                                    <label><big>Edition: </big><norm>${comictype}</norm></label>
+                                </div>
                                 <div>
                                     <label><big>Last Updated: </big>
                                 %if comic['LastUpdated'] is None:
