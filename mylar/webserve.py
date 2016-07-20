@@ -1285,7 +1285,7 @@ class WebInterface(object):
             if Publisher == 'COMICS': Publisher = None
             if ComicYear == '': ComicYear = now.year
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None,allowpacks=False)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=cyear['SHIPDATE'], StoreDate=cyear['SHIPDATE'], IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, allow_packs=False)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " " + ComicIssue)
             raise cherrypy.HTTPRedirect("pullist")
@@ -3069,7 +3069,12 @@ class WebInterface(object):
                 dstdir = mylar.WEEKFOLDER_LOC
             else:
                 dstdir = mylar.DESTINATION_DIR
-            desdir = os.path.join(dstdir, str( str(pulldate['year']) + '-' + str(pulldate['weeknumber']) ))
+            import ast
+            pulldate = ast.literal_eval(pulldate)
+            logger.info('pulldate: ' + str(pulldate))
+            yr = pulldate['year']
+            wk = pulldate['weeknumber']
+            desdir = os.path.join(dstdir, str(yr) + '-' + str(wk))
             if os.path.isdir(desdir):
                 logger.info(u"Directory (" + desdir + ") already exists! Continuing...")
             else:
@@ -3085,7 +3090,7 @@ class WebInterface(object):
         else:
             desdir = mylar.GRABBAG_DIR
 
-        clist = myDB.select("SELECT * FROM Weekly AND weeknumber=? WHERE Status='Downloaded'", [pulldate['weeknumber']])
+        clist = myDB.select("SELECT * FROM weekly WHERE weeknumber=? AND Status='Downloaded'", [pulldate['weeknumber']])
         if clist is None:   # nothing on the list, just go go gone
             logger.info("There aren't any issues downloaded from this week yet.")
         else:
