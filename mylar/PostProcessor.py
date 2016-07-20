@@ -513,10 +513,10 @@ class PostProcessor(object):
                 #we should setup for manual post-processing of story-arc issues here
                 #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
                 logger.fdebug(module + ' Now Checking if the issue also resides in one of the storyarc\'s that I am watching.')
+                manual_arclist = []
                 for fl in filelist['comiclist']:
                     #mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
                     #arc_series = myDB.select("SELECT * FROM readinglist WHERE ComicName LIKE?", [fl['series_name']]) # by StoryArcID")
-                    manual_arclist = []
 
                     as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
                     as_dinfo = as_d.dynamic_replace(fl['series_name'])
