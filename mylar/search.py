@@ -2147,7 +2147,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             nzbcontent64 = standard_b64encode(nzbcontent)
 
             tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
-            tmpapi = str(tmpapi) + "@" + str(nzbget_host) + ":" + str(mylar.NZBGET_PORT) + "/xmlrpc"
+            tmpapi = str(tmpapi) + "@" + str(nzbget_host)
+            if str(mylar.NZBGET_PORT).strip() != '':
+                tmpapi += ":" + str(mylar.NZBGET_PORT)
+            tmpapi += "/xmlrpc"
             server = ServerProxy(tmpapi)
             send_to_nzbget = server.append(nzbpath, str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, nzbcontent64)
             sent_to = "NZBGet"
