@@ -2130,12 +2130,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #nzb.get
         if mylar.USE_NZBGET:
             from xmlrpclib import ServerProxy
-            if mylar.NZBGET_HOST[:4] == 'http':
-                tmpapi = "http://"
-                nzbget_host = mylar.NZBGET_HOST[7:]
-            elif mylar.NZBGET_HOST[:5] == 'https':
+            if mylar.NZBGET_HOST[:5] == 'https':
                 tmpapi = "https://"
                 nzbget_host = mylar.NZBGET_HOST[8:]
+            elif mylar.NZBGET_HOST[:4] == 'http':
+                tmpapi = "http://"
+                nzbget_host = mylar.NZBGET_HOST[7:]
             else:
                 logger.error("You have an invalid nzbget hostname specified. Exiting")
                 return "nzbget-fail"
