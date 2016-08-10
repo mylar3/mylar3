@@ -2,12 +2,13 @@ import mylar
 from mylar import db, logger, helpers, updater
 import os
 import shutil
-
+import ast
 
 def movefiles(comicid, comlocation, imported):
     #comlocation is destination
     #comicid is used for rename
     files_moved = []
+    imported = ast.literal_eval(imported)
 
     myDB = db.DBConnection()
 
@@ -61,19 +62,22 @@ def movefiles(comicid, comlocation, imported):
             myDB.upsert("importresults", newValue, controlValue)
     return
 
-def archivefiles(comicid, ogdir, ogcname):
+def archivefiles(comicid, comlocation, imported):
     myDB = db.DBConnection()
     # if move files isn't enabled, let's set all found comics to Archive status :)
-    result = myDB.select("SELECT * FROM importresults WHERE ComicName=?", [ogcname])
-    if result is None:
-        pass
-    else:
+    imported = ast.literal_eval(imported)
+    ComicName = imported['ComicName']
+    impres = imported['filelisting']
+
+    if impres is not None:
         scandir = []
-        for res in result:
-            if any([os.path.dirname(res['ComicLocation']) in x for x in scandir]):
-                pass
-            else:
-                scandir.append(os.path.dirname(res['ComicLocation']))
+        for impr in impres:
+            srcimp = impr['comiclocation']
+            orig_filename = impr['comicfilename']
+
+            if not any([os.path.abspath(os.path.join(srcimp, os.pardir)) == x for x in scandir]):
+                scandir.append(os.path.abspath(os.path.join(srcimp, os.pardir)))
+
 
         for sdir in scandir:
             logger.info('Updating issue information and setting status to Archived for location: ' + sdir)
@@ -81,5 +85,23 @@ def archivefiles(comicid, ogdir, ogcname):
 
         logger.info('Now scanning in files.')
         updater.forceRescan(comicid)
+
+        for result in impres:
+            try:
+                res = result['import_id']
+            except:
+                #if it's an 'older' import that wasn't imported, just make it a basic match so things can move and update properly.
+                controlValue = {"ComicFilename": result['comicfilename'],
+                                "SRID":          imported['srid']}
+                newValue = {"Status":            "Imported",
+                            "ComicID":           comicid}
+            else:
+                controlValue = {"impID":         result['import_id'],
+                                "ComicFilename": result['comicfilename']}
+                newValue = {"Status":            "Imported",
+                            "SRID":              imported['srid'],
+                            "ComicID":           comicid}
+            myDB.upsert("importresults", newValue, controlValue)
+
 
     return

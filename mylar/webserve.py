@@ -551,16 +551,16 @@ class WebInterface(object):
             raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
     addStoryArc.exposed = True
 
-    def wanted_Export(self):
+    def wanted_Export(self,mode):
         import unicodedata
         myDB = db.DBConnection()
-        wantlist = myDB.select("SELECT * FROM issues WHERE Status='Wanted' AND ComicName NOT NULL")
+        wantlist = myDB.select("SELECT * FROM issues WHERE Status=? AND ComicName NOT NULL", [mode])
         if wantlist is None:
-            logger.info("There aren't any issues marked as Wanted. Aborting Export.")
+            logger.info("There aren't any issues marked as " + mode + ". Aborting Export.")
             return
         #write it a wanted_list.csv
         logger.info("gathered data - writing to csv...")
-        except_file = os.path.join(mylar.DATA_DIR, "wanted_list.csv")
+        except_file = os.path.join(mylar.DATA_DIR, str(mode) + "_list.csv")
         if os.path.exists(except_file):
             try:
                  os.remove(except_file)
@@ -576,11 +576,11 @@ class WebInterface(object):
             for want in wantlist:
                 wantcomic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [want['ComicID']]).fetchone()
                 exceptln = wantcomic['ComicName'].encode('ascii', 'replace') + "," + str(wantcomic['ComicYear']) + "," + str(want['Issue_Number']) + "," + str(want['IssueDate']) + "," + str(want['ComicID']) + "," + str(want['IssueID'])
-                logger.fdebug(exceptln)
+                #logger.fdebug(exceptln)
                 wcount+=1
                 f.write('%s\n' % (exceptln.encode('ascii', 'replace').strip()))
 
-        logger.info("Successfully wrote to csv file " + str(wcount) + " entries from your Wanted list.")
+        logger.info("Successfully wrote to csv file " + str(wcount) + " entries from your " + mode + " list.")
 
         raise cherrypy.HTTPRedirect("home")
     wanted_Export.exposed = True
@@ -1691,11 +1691,12 @@ class WebInterface(object):
 
     futurepulllist.exposed = True
 
-    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, FutureID=None):
-        #ShipDate is a tuple ('weeknumber','startweek','midweek','endweek','year')
+    def add2futurewatchlist(self, ComicName, Issue, Publisher, ShipDate, weeknumber, year, FutureID=None):
+        #ShipDate is just weekinfo['midweek'] #a tuple ('weeknumber','startweek','midweek','endweek','year')
         myDB = db.DBConnection()
+        logger.info(ShipDate)
         if FutureID is not None:
-            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=? WHERE weeknumber=?', [ComicName, Issue, ShipDate['weeknumber']]).fetchone()
+            chkfuture = myDB.selectone('SELECT * FROM futureupcoming WHERE ComicName=? AND IssueNumber=? WHERE weeknumber=? AND year=?', [ComicName, Issue, weeknumber, year]).fetchone()
             if chkfuture is not None:
                 logger.info('Already on Future Upcoming list - not adding at this time.')
                 return
@@ -1706,7 +1707,9 @@ class WebInterface(object):
                    "Publisher":   Publisher}
 
         newVal = {"Status":       "Wanted",
-                  "IssueDate":     ShipDate['midweek']}
+                  "IssueDate":    ShipDate,
+                  "weeknumber":   weeknumber,
+                  "year":         year}
 
         myDB.upsert("futureupcoming", newVal, newCtrl)
 
@@ -2040,10 +2043,14 @@ class WebInterface(object):
         status = kwargs['status']
         results = []
         myDB = db.DBConnection()
-        issues = myDB.select('SELECT * from issues WHERE Status=?', [status])
+        if mylar.ANNUALS_ON:
+            issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
+            annuals = myDB.select("SELECT * from annuals WHERE Status=?", [status])
+        else:
+            issues = myDB.select("SELECT * from issues WHERE Status=?", [status])
+            annuals = []
         for iss in issues:
             results.append(iss)
-        annuals = myDB.select('SELECT * from annuals WHERE Status=?', [status])
         for ann in annuals:
             results.append(ann)
 
@@ -2176,10 +2183,13 @@ class WebInterface(object):
                     myDB.upsert("comics", newValueDict, controlValueDict)
                     logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
                 else:
+                    logger.info('appending ' + str(ComicID) + ' to refresh list.')
                     comicsToAdd.append(ComicID)
 
+        logger.info(comicsToAdd)
+
         if len(comicsToAdd) > 0:
-            logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + len(comicsToAdd) + ' series')
+            logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + str(len(comicsToAdd)) + ' series')
             threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
     markComics.exposed = True
 
@@ -2641,7 +2651,7 @@ class WebInterface(object):
                         else:
                             issue_int = helpers.issuedigits(arc['IssueNumber'])
                             logger.fdebug('int_issue = ' + str(issue_int))
-                            isschk = myDB.selectone("SELECT * FROM issues WHERE Int_IssueNumber=? AND ComicID=? AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
+                            isschk = myDB.selectone("SELECT * FROM issues WHERE Int_IssueNumber=? AND ComicID=?", [issue_int, comic['ComicID']]).fetchone() #AND STATUS !='Snatched'", [issue_int, comic['ComicID']]).fetchone()
                         if isschk is None:
                             logger.fdebug("we matched on name, but issue " + arc['IssueNumber'] + " doesn't exist for " + comic['ComicName'])
                         else:
@@ -3402,10 +3412,8 @@ class WebInterface(object):
 
                 #taking this outside of the transaction in an attempt to stop db locking.
                 if mylar.IMP_MOVE and movealreadyonlist == "yes":
-    #                 for md in movedata:
                      mylar.moveit.movefiles(movedata_comicid, movedata_comiclocation, movedata_comicname)
                      updater.forceRescan(comicid)
-
                      raise cherrypy.HTTPRedirect("importResults")
 
                 #figure out # of issues and the year range allowable
@@ -3415,12 +3423,16 @@ class WebInterface(object):
                     if all([yearTOP != None, yearTOP != 'None']):
                         if int(str(yearTOP)) > 0:
                             minni = helpers.issuedigits(minISSUE)
-                            #logger.info(minni)
+                            logger.info(minni)
                             if minni < 1 or minni > 999999999:
+                                logger.info('here')
                                 maxyear = int(str(yearTOP))
                             else:
-                                maxyear = int(str(yearTOP)) - (minni / 12)
+                                logger.info('there')
+                                maxyear = int(str(yearTOP)) - ( (minni/1000) / 12 )
                             if str(maxyear) not in yearRANGE:
+                                logger.info('maxyear:' + str(maxyear))
+                                logger.info('yeartop:' + str(yearTOP))
                                 for i in range(maxyear, int(yearTOP),1):
                                     if not any(int(x) == int(i) for x in yearRANGE):
                                         yearRANGE.append(str(i))
@@ -3570,8 +3582,8 @@ class WebInterface(object):
                 if len(search_matches) > 1:
                     # if we matched on more than one series above, just save those results instead of the entire search result set.
                     for sres in search_matches:
-                        cVal = {"SRID": SRID,
-                                "comicid":  sres['comicid']}
+                        cVal = {"SRID":        SRID,
+                                "comicid":     sres['comicid']}
                         #should store ogcname in here somewhere to account for naming conversions above.
                         nVal = {"Series":      ComicName,
                                 "results":     len(search_matches),
@@ -3591,8 +3603,8 @@ class WebInterface(object):
                     # store the search results for series that returned more than one result for user to select later / when they want.
                     # should probably assign some random numeric for an id to reference back at some point.
                     for sres in sresults:
-                        cVal = {"SRID": SRID,
-                                "comicid":  sres['comicid']}
+                        cVal = {"SRID":        SRID,
+                                "comicid":     sres['comicid']}
                         #should store ogcname in here somewhere to account for naming conversions above.
                         nVal = {"Series":      ComicName,
                                 "results":     len(sresults),
@@ -3652,7 +3664,9 @@ class WebInterface(object):
         else:
             if not Volume.lower().startswith('v'):
                 volume = 'v' + str(Volume)
-        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[DynamicName,Volume])
+            else:
+                volume = Volume
+            results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[DynamicName,volume])
         files = []
         for result in results:
             files.append({'comicfilename': result['ComicFilename'],
@@ -3666,7 +3680,7 @@ class WebInterface(object):
                     'filelisting':   files,
                     'srid':          SRID}      
   
-        return serve_template(templatename="importresults_popup.html", title="results", searchtext=ComicName, searchresults=results, imported=imported)
+        return serve_template(templatename="importresults_popup.html", title="results", searchtext=ComicName, searchresults=searchresults, imported=imported)
 
     importresults_popup.exposed = True
 

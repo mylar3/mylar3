@@ -138,7 +138,7 @@
                 </div>
 
         <div id="tabs-3">
-           <table class="configtable" summary="Advanced Options">
+           <table summary="Advanced Options" class="configtable">
 
                <tr>
                  <td>
@@ -155,9 +155,12 @@
                     <fieldset>
                         <legend>Export</legend>
                         <div class="links">
-                          <a href="#" onclick="doAjaxCall('wanted_Export',$(this))" data-sucess="Exported to Wanted list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Wanted to CSV</a>
+                          <a href="#" onclick="doAjaxCall('wanted_Export?mode=Wanted',$(this))" data-sucess="Exported to Wanted list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Wanted to CSV</a>
+                          <a href="#" onclick="doAjaxCall('wanted_Export?mode=Downloaded',$(this))" data-sucess="Exported to Downloaded list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Downloaded to CSV</a>
                         </div>
-                        <br/><br/>
+                    </fieldset>
+                    </br>
+                    <fieldset>
                         <legend>Additional Options</legend>
                         <div classs="links">
                           <a href="readlist">Reading List Management</a><br/>

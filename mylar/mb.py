@@ -300,11 +300,11 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                 if not any(int(x) == int(i) for x in yearRange):
                                     yearRange.append(str(i))
 
-                        logger.fdebug('[RESULT] ComicName:' + xmlTag + ' -- ' + str(xmlYr) + ' [Series years: ' + str(yearRange) + ']')
+                        logger.fdebug('[RESULT][' + str(limityear) + '] ComicName:' + xmlTag + ' -- ' + str(xmlYr) + ' [Series years: ' + str(yearRange) + ']')
                         if tmpYr != xmlYr:
                             xmlYr = tmpYr
                        
-                        if any([limityear in yearRange, limityear == 'None']):
+                        if any(map(lambda v: v in limityear, yearRange)) or limityear == 'None':
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
                             idl = len (result.getElementsByTagName('id'))
                             idt = 0
@@ -358,8 +358,8 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                     xmltype = 'Print'
                                 elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
                                     xmltype = 'Digital'
-                            else:
-                                xmltype = 'Print'
+                                else:
+                                    xmltype = 'Print'
 
                             if xmlid in comicLibrary:
                                 haveit = comicLibrary[xmlid]

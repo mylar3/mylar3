@@ -100,7 +100,7 @@
                                                     <a href="#" title="auto-add by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><span class="ui-icon ui-icon-plus"></span>add series</a>
                                                 %else:
                                                     %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
-                                                        <a href="#" title="Watch for this series" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo}', $(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><span class="ui-icon ui-icon-plus"></span>Watch</a>
+                                                        <a href="#" title="Watch for this series" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo['midweek']}&weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><span class="ui-icon ui-icon-plus"></span>Watch</a>
                                                     %else:
                                                         <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Add this series to your watchlist"><span class="ui-icon ui-icon-plus"></span>add series</a>
                                                     %endif

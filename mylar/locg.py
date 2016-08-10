@@ -105,14 +105,16 @@ def locg(pulldate=None,weeknumber=None,year=None):
             cl_dyninfo = cl_d.dynamic_replace(comicname)
             dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
 
-            controlValueDict = {'COMIC':   comicname,
+            controlValueDict = {'DYNAMICNAME':   dynamic_name,
                                 'ISSUE':   re.sub('#', '', x['issue']).strip()}
+                
             newValueDict = {'SHIPDATE':    x['shipdate'],
                             'PUBLISHER':   x['publisher'],
                             'STATUS':      'Skipped',
+                            'COMIC':       comicname,
                             'COMICID':     comicid,
                             'ISSUEID':     issueid,
-                            'DYNAMICNAME': dynamic_name,
+                            #'DYNAMICNAME': dynamic_name,
                             'WEEKNUMBER':  x['weeknumber'],
                             'YEAR':        x['year']}
             myDB.upsert("weekly", newValueDict, controlValueDict)

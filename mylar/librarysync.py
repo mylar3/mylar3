@@ -67,6 +67,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 comic = files
                 comicpath = os.path.join(r, files)
                 comicsize = os.path.getsize(comicpath)
+                logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
+
                 t = filechecker.FileChecker(dir=r, file=comic)
                 results = t.listFiles()
                 #logger.info(results)
@@ -83,7 +85,6 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 #'annualcomicid':  annual_comicid,
                 #'scangroup':      scangroup}
 
-                logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
 
                 if results:
                     resultline = '[PARSE-' + results['parse_status'].upper() + ']'

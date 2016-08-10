@@ -426,14 +426,10 @@ class FileChecker(object):
 
                 if lastissue_position == (split_file.index(sf) -1) and lastissue_label is not None and '#' not in sf:
                     #find it in the original file to see if there's a decimal between.
-                    #logger.fdebug('lastissue_label: ' + str(lastissue_label))
-                    #logger.fdebug('current sf: ' + str(sf))
-                    #logger.fdebug('file_length: ' + str(file_length))
-                    #logger.fdebug('search_file_length: ' + str(lastissue_mod_position))
-                    #logger.fdebug('trunced_search_length: ' + modfilename[lastissue_mod_position+1:]
                     findst = lastissue_mod_position+1
-                    #findst = modfilename.find(lastissue_label, lastissue_mod_position+1) #lastissue_mod_position) #file_length - len(lastissue_label))
-                    #logger.fdebug('findst: ' + str(findst))
+                    if findst > len(modfilename):
+                        findst = len(modfilename) -1
+
                     if modfilename[findst] != '.' or modfilename[findst] != '#': #findst != '.' and findst != '#':
                         if sf.isdigit():
                             logger.fdebug('2 seperate numbers detected. Assuming 2nd number is the actual issue')

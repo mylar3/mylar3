@@ -168,23 +168,27 @@ class PostProcessor(object):
             path_to_move = dupeinfo[0]['to_dupe']
             file_to_move = os.path.split(path_to_move)[1]
 
-            if dupeinfo[0]['action'] == 'dupe_src':
+            if dupeinfo[0]['action'] == 'dupe_src' and mylar.FILE_OPTS == 'move':
                 logger.info('[DUPLICATE-CLEANUP] New File will be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
             else:
-                logger.info('[DUPLICATE-CLEANUP] New File will not be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
-
-            #check to make sure duplicate_dump directory exists:
-            checkdirectory = filechecker.validateAndCreateDirectory(mylar.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
+                if mylar.FILE_OPTS == 'move':
+                    logger.info('[DUPLICATE-CLEANUP][MOVE-MODE] New File will not be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
+                else:
+                    logger.info('[DUPLICATE-CLEANUP][COPY-MODE] NEW File will not be post-processed. Retaining file in original location [' + path_to_move + ']')
+                    return True
 
             #this gets tricky depending on if it's the new filename or the existing filename, and whether or not 'copy' or 'move' has been selected.
-            try:
-                shutil.move(path_to_move, os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
-            except (OSError, IOError):
-                logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
-                return False
+            if mylar.FILE_OPTS == 'move':
+                #check to make sure duplicate_dump directory exists:
+                checkdirectory = filechecker.validateAndCreateDirectory(mylar.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
+                try:
+                    shutil.move(path_to_move, os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                except (OSError, IOError):
+                    logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                    return False
 
-            logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
-            return True
+                logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                return True
 
     def Process(self):
             module = self.module
@@ -279,7 +283,7 @@ class PostProcessor(object):
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
-                    if 'annual' in mod_seriesname.lower():
+                    if all([mylar.ANNUALS_ON, 'annual' in mod_seriesname.lower()]):
                         mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
 
                     #make sure we add back in the original parsed filename here.

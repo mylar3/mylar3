@@ -64,7 +64,7 @@ def pullit(forcecheck=None):
         newpull.newpull()
     elif mylar.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
-        chk_locg = locg.locg(pulldate)
+        chk_locg = locg.locg('00000000')  #setting this to 00000000 will do a Recreate on every call instead of a Refresh
         if chk_locg['status'] == 'up2date':
             logger.info('[PULL-LIST] Pull-list is already up-to-date with ' + str(chk_locg['count']) + 'issues. Polling watchlist against it to see if anything is new.')
             mylar.PULLNEW = 'no'

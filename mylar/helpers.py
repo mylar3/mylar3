@@ -2031,6 +2031,19 @@ def issue_status(IssueID):
     else:
         return False
 
+def crc(filename):
+    import hashlib
+    #memory in lieu of speed (line by line)
+    #prev = 0
+    #for eachLine in open(filename,"rb"):
+    #    prev = zlib.crc32(eachLine, prev)
+    #return "%X"%(prev & 0xFFFFFFFF)
+
+    #speed in lieu of memory (file into memory entirely)
+    #return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
+
+    return hashlib.md5(filename).hexdigest()
+
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
     import db, logger
 

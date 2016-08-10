@@ -135,7 +135,7 @@
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
                                 <%
-                                      if comic['Type'] == 'None' or comic['Type'] is None:
+                                      if comic['Type'] == 'None' or comic['Type'] is None or comic['Type'] == 'Print':
                                           comictype = 'Print'
                                       else:
                                           comictype = 'Digital'

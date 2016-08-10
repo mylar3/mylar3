@@ -582,7 +582,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     lastpubdate = issuedata['LastPubDate']
     series_status = issuedata['SeriesStatus']
     #move the files...if imported is not empty & not futurecheck (meaning it's not from the mass importer.)
-    logger.info('imported is : ' + str(imported))
+    #logger.info('imported is : ' + str(imported))
     if imported is None or imported == 'None' or imported == 'futurecheck':
         pass
     else:

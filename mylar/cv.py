@@ -169,11 +169,6 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
         #within the tagging (with CT). This compiles all of the IssueID's during a scan (in 100's), and returns the corresponding CV data
         #related to the given IssueID's - namely ComicID, Name, Volume (more at some point, but those are the important ones).
         offset = 1
-        if len(comicidlist) <= 100:
-            endcnt = len(comicidlist)
-        else:
-            endcnt = 100
-
         id_count = 0
         import_list = []
         logger.fdebug('comicidlist:' + str(comicidlist))
@@ -182,6 +177,11 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
             #break it up by 100 per api hit
             #do the first 100 regardless
             in_cnt = 0
+            if id_count + 100 <= len(comicidlist):
+                endcnt = id_count + 100
+            else:
+                endcnt = len(comicidlist)
+
             for i in range(id_count, endcnt):
                 if in_cnt == 0:
                     tmpidlist = str(comicidlist[i])
@@ -198,7 +198,6 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
                 tGIL = GetImportList(searched)
                 import_list += tGIL
 
-            endcnt +=100
             id_count +=100
 
         return import_list

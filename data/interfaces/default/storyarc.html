@@ -96,20 +96,7 @@
                                 <td id="years">${item['SpanYears']}</td>
                                 <td id="have"><span title="${item['percent']}"></span>${css}<div style="width:${item['percent']}%"><span class="progressbar-front-text">${item['Have']}/${item['Total']}</span></div></td>
                                 <td id="options">
-                                    <a href="#" id="remove_confirm" title="Remove Arc from Watchlist" onclick="openDelete(${item['StoryArc']| u},${item['StoryArcID']});"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
-                                    <div id="dialogit" title="Delete Story Arc Confirmation" style="display:none" class="configtable">
-                                       <form action="removefromreadlist" method="GET" style="vertical-align: middle; text-align: center">
-                                          <div class="row checkbox left clearfix">
-                                             </br>
-                                                 <h1><center>${['storyarc']}</center></h1></br>
-                                                 <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="delete_type" id="deleteCheck" value="1" ${checked(delete_type)} /><label>Remove Story Arc based on Arc Name</br> (default is ID)</label>
-                                          </div>
-                                          </br><input type="submit" value="Delete Story Arc">
-                                          <input type="hidden" name="ArcName" value=${['storyarc']}>
-                                          <input type="hidden" name="StoryArcID" value=${['storyarcid']}>
-                                       </form>
-                                    </div>
-
+                                   <a title="Remove Arc from Watchlist" onclick="doAjaxCall('removefromreadlist?ArcName=${item['StoryArc']| u}&StoryArcID=${item['StoryArcID']}',$(this),'table')" data-success='Successfully deleted ${item['StoryArc']}'><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" /></a>
                                    %if item['CV_ArcID']:
                                        <a title="Refresh Series" onclick="doAjaxCall('addStoryArc_thread?arcid=${item['StoryArcID']}&cvarcid=${item['CV_ArcID']}&storyarcname=${item['StoryArc']}&arcrefresh=True',$(this),'table')" data-success="Now refreshing ${item['StoryArc']}."><img src="interfaces/default/images/refresh.png" height="25" width="25" /></a>
                                    %endif

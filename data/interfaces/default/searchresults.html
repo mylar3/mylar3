@@ -67,15 +67,16 @@
 				%for result in searchresults:
 				<%
 					if result['comicyear'] == '2016':
-						grade = 'A'
+					    grade = 'A'
 					else:
-						grade = 'Z'
+					    grade = 'Z'
 					if result['haveit'] != "No":
-						grade = 'H';
-                                        if result['type'] == 'Digital':
+					    grade = 'H';
+
+                                        rtype = None
+                                        if type != 'story_arc':
+                                            if result['type'] == 'Digital':
                                                 rtype = '[Digital]'
-                                        else:
-                                                rtype = None
 				%>
 				<tr class="grade${grade}">
 					<td class="blank"></td>

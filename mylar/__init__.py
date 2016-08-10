@@ -1190,8 +1190,13 @@ def initialize():
                                            runImmediately=True,
                                            delay=30)
 
+        if ALT_PULL == 2:
+            weektimer = 4
+        else:
+            weektimer = 24
+
         WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
-                                              cycleTime=datetime.timedelta(hours=24),
+                                              cycleTime=datetime.timedelta(hours=weektimer),
                                               threadName="WEEKLYCHECK",
                                               runImmediately=True,
                                               delay=10)
@@ -1654,7 +1659,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
     conn.commit
@@ -2085,6 +2090,17 @@ def dbcheck():
         c.execute('SELECT ogcname from searchresults')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE searchresults ADD COLUMN ogcname TEXT')
+
+    ## -- futureupcoming Table --
+    try:
+        c.execute('SELECT weeknumber from futureupcoming')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE futureupcoming ADD COLUMN weeknumber TEXT')
+
+    try:
+        c.execute('SELECT year from futureupcoming')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE futureupcoming ADD COLUMN year TEXT')
 
     ## -- Failed Table --
     try:

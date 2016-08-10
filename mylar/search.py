@@ -286,13 +286,15 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 logger.info('Finished searching via :' + str(searchmode) + '. Issue not found - status kept as Wanted.')
             else:
                 logger.fdebug('Could not find issue doing a manual search via : ' + str(searchmode))
+            if searchprov == '32P' and mylar.MODE_32P == 0:
+                return findit, 'None'
             i+=1
 
     return findit, 'None'
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None):
 
-    if any([allow_packs is None, allow_packs == 'None']):
+    if any([allow_packs is None, allow_packs == 'None', allow_packs == 0]):
         allow_packs = False
     logger.info('allow_packs set to :' + str(allow_packs))
 
@@ -304,6 +306,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         verify = bool(mylar.DOGNZB_VERIFY)
     elif nzbprov == 'experimental':
         apikey = 'none'
+        verify = False
+    elif nzbprov == 'Torznab':
         verify = False
     elif nzbprov == 'newznab':
         #updated to include Newznab Name now
@@ -515,13 +519,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 if nzbprov == '':
                     bb = "no results"
                     rss = "no"
-                elif nzbprov == '32P':
-                    searchterm = {'series': ComicName, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
-                    #first we find the id on the serieslist of 32P
-                    #then we call the ajax against the id and issue# and volume (if exists)
-                    a = auth32p.info32p(searchterm=searchterm)
-                    bb = a.searchit()
-                    rss = "no"
+                if nzbprov == '32P':
+                    if all([mylar.MODE_32P == 1,mylar.ENABLE_32P]):
+                        searchterm = {'series': ComicName, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
+                        #first we find the id on the serieslist of 32P
+                        #then we call the ajax against the id and issue# and volume (if exists)
+                        a = auth32p.info32p(searchterm=searchterm)
+                        bb = a.searchit()
+                        rss = "no"
+                    else:
+                        bb = "no results"
+                        rss = "no"
                 elif nzbprov == 'KAT':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [KAT] for " + str(cmname) + " : " + str(mod_isssearch))
@@ -797,11 +805,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             # convert it to a tuple
                             dateconv = email.utils.parsedate_tz(pubdate)
-                            # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
-                            if dateconv[-1] is not None:
-                                postdate_int = time.mktime(dateconv[:len(dateconv) -1]) - dateconv[-1]
-                            else:
-                                postdate_int = time.mktime(dateconv[:len(dateconv) -1])
+                            try:
+                                # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
+                                if dateconv[-1] is not None:
+                                    postdate_int = time.mktime(dateconv[:len(dateconv) -1]) - dateconv[-1]
+                                else:
+                                    postdate_int = time.mktime(dateconv[:len(dateconv) -1])
+                            except:
+                                logger.warn('Unable to parse posting date from provider result set for :' + entry['title'])
+                                continue
 
                         #convert it to a Thu, 06 Feb 2014 00:00:00 format
                         issue_convert = datetime.datetime.strptime(stdate.rstrip(), '%Y-%m-%d')
