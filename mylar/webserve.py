@@ -3282,12 +3282,7 @@ class WebInterface(object):
                 if comicinfo['ComicID'] is None or comicinfo['ComicID'] == 'None':
                     continue
                 else:
-                    if any([comicinfo['Volume'] is None, comicinfo['Volume'] == 'None']):
-                        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[comicinfo['DynamicName']])
-                    else:
-                        if not comicinfo['Volume'].lower().startswith('v'):
-                            volume = 'v' + str(comicinfo['Volume'])
-                        results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume=?",[comicinfo['DynamicName'],comicinfo['Volume']])
+                    results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND ComicID=?", [comicinfo['ComicID']])
                     files = []
                     for result in results:
                         files.append({'comicfilename': result['ComicFilename'],
@@ -3311,7 +3306,7 @@ class WebInterface(object):
                     newVal = {"Status":       'Imported',
                               "SRID":         SRID}
                     myDB.upsert("importresults", newVal, ctrlVal)
-                    logger.info('Successfully imported :' + comicinfo['ComicName'])
+                    logger.info('Successfully verified import sequence data for : ' + comicinfo['ComicName'] + '. Currently adding to your watchlist.')
                     RemoveIDS.append(comicinfo['ComicID'])
 
             #we need to remove these items from the comiclist now, so they don't get processed again

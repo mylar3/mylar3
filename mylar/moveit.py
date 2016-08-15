@@ -8,7 +8,10 @@ def movefiles(comicid, comlocation, imported):
     #comlocation is destination
     #comicid is used for rename
     files_moved = []
-    imported = ast.literal_eval(imported)
+    try:
+        imported = ast.literal_eval(imported)
+    except ValueError:
+        pass
 
     myDB = db.DBConnection()
 
@@ -65,7 +68,10 @@ def movefiles(comicid, comlocation, imported):
 def archivefiles(comicid, comlocation, imported):
     myDB = db.DBConnection()
     # if move files isn't enabled, let's set all found comics to Archive status :)
-    imported = ast.literal_eval(imported)
+    try:
+        imported = ast.literal_eval(imported)
+    except ValueError:
+        pass
     ComicName = imported['ComicName']
     impres = imported['filelisting']
 
