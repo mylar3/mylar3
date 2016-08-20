@@ -1084,34 +1084,46 @@ class WebInterface(object):
             logger.info('Unable to locate how issue was downloaded (name, provider). Cannot continue.')
             return
 
+        providers_snatched = []
         confirmedsnatch = False
         for cs in chk_snatch:
-            if cs['Provider'] == 'CBT':
-                logger.info('Invalid provider attached to download (CBT). I cannot find this on 32P, so ignoring this result.')
+            if cs['Provider'] == 'CBT' or cs['Provider'] == 'KAT':
+                logger.info('Invalid provider attached to download (' + cs['Provider'] + '). I cannot find this on 32P, so ignoring this result.')
             elif cs['Status'] == 'Snatched':
                 logger.info('Located snatched download:')
                 logger.info('--Referencing : ' + cs['Provider'] + ' @ ' + str(cs['DateAdded']))
-                Provider = cs['Provider']
+                providers_snatched.append({'Provider':    cs['Provider'],
+                                           'DateAdded':   cs['DateAdded']})
                 confirmedsnatch = True
-                break
             elif (cs['Status'] == 'Post-Processed' or cs['Status'] == 'Downloaded') and confirmedsnatch == True:
                 logger.info('Issue has already been Snatched, Downloaded & Post-Processed.')
                 logger.info('You should be using Manual Search or Mark Wanted - not retry the same download.')
-                return
+                #return
 
-        try:
-            Provider_sql = '%' + Provider + '%'
-            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
-        except:
-            logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
-            chk_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider != "CBT"', [IssueID]).fetchone()
-
-        if chk_log is None:
-            logger.info('Unable to locate provider information from nzblog - if you wiped the log, you have to search/download as per normal')
+        if len(providers_snatched) == 0:
             return
-        nzbname = chk_log['NZBName']
-        id = chk_log['ID']
-        fullprov = chk_log['PROVIDER'] #the full newznab name if it exists will appear here as 'sitename (newznab)'
+
+        chk_logresults = []
+        for ps in sorted(providers_snatched, key=itemgetter('DateAdded', 'Provider'), reverse=True):
+            try:
+                Provider_sql = '%' + ps['Provider'] + '%'
+                chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? AND Provider like (?)', [IssueID, Provider_sql]).fetchone()
+            except:
+                logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
+                chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider != "CBT" and Provider != "KAT"', [IssueID]).fetchone()
+           
+            if chk_the_log is None:
+                if len(providers_snatched) == 1:
+                    logger.info('Unable to locate provider information ' + ps['Provider'] + ' from nzblog - if you wiped the log, you have to search/download as per normal')
+                    return
+                else:
+                    logger.info('Unable to locate provider information ' + ps['Provider'] + ' from nzblog. Checking additional providers that came back as being used to download this issue')
+                    continue
+            else:
+                chk_logresults.append({'NZBName':   chk_the_log['NZBName'],
+                                       'ID':        chk_the_log['ID'],
+                                       'PROVIDER':  chk_the_log['PROVIDER']})
+
 
         if all([ComicYear is not None, ComicYear != 'None']) and all([IssueID is not None, IssueID != 'None']):
             getYear = myDB.selectone('SELECT IssueDate, ReleaseDate FROM Issues WHERE IssueID=?', [IssueID]).fetchone()
@@ -1127,100 +1139,108 @@ class WebInterface(object):
             else:
                 ComicYear = getYear['IssueDate'][:4]
 
+        for chk_log in chk_logresults:
+            nzbname = chk_log['NZBName']
+            id = chk_log['ID']
+            fullprov = chk_log['PROVIDER'] #the full newznab name if it exists will appear here as 'sitename (newznab)'
 
-        #now we break it down by provider to recreate the link.
-        #torrents first.
-        if Provider == '32P' or Provider == 'KAT':
-            if not mylar.ENABLE_TORRENT_SEARCH:
-               logger.error('Torrent Providers are not enabled - unable to process retry request until provider is re-enabled.')
-               return
+            #now we break it down by provider to recreate the link.
+            #torrents first.
+            if any([fullprov == '32P', fullprov == 'TPSE', fullprov == 'WWT', fullprov == 'DEM']):
+                if not mylar.ENABLE_TORRENT_SEARCH:
+                   logger.error('Torrent Providers are not enabled - unable to process retry request until provider is re-enabled.')
+                   continue
 
-            if Provider == '32P':
-                if not mylar.ENABLE_32P:
-                    logger.error('32P is not enabled - unable to process retry request until provider is re-enabled.')
-                    return
-                link = str(id)
+                if fullprov == '32P':
+                    if not mylar.ENABLE_32P:
+                        logger.error('32P is not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
 
-            elif Provider == 'KAT':
-                if not mylar.ENABLE_KAT:
-                    logger.error('KAT is not enabled - unable to process retry request until provider is re-enabled.')
-                    return
-                link = 'http://torcache.net/torrent/' + str(id) + '.torrent'
+                elif any([fullprov == 'TPSE', fullprov == 'WWT', fullprov == 'DEM']):
+                    if not mylar.ENABLE_TPSE:
+                        logger.error('TPSE is not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
 
-            logger.fdebug("sending .torrent to watchdir.")
-            logger.fdebug("ComicName:" + ComicName)
-            logger.fdebug("link:" + str(link))
-            logger.fdebug("Torrent Provider:" + Provider)
+                logger.fdebug("sending .torrent to watchdir.")
+                logger.fdebug("ComicName:" + ComicName)
+                logger.fdebug("Torrent Provider:" + fullprov)
+                logger.fdebug("Torrent ID:" + str(id))
 
-            rcheck = mylar.rsscheck.torsend2client(ComicName, IssueNumber, ComicYear, link, Provider)
-            if rcheck == "fail":
-                logger.error("Unable to send torrent - check logs and settings.")
-        else:
-            annualize = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
-            if annualize is None:
-                modcomicname = ComicName
+                rcheck = mylar.rsscheck.torsend2client(ComicName, IssueNumber, ComicYear, id, fullprov)
+                if rcheck == "fail":
+                   logger.error("Unable to send torrent - check logs and settings.")
+                   continue
+                else:
+                   logger.info('Successfully retried issue.')
+                   break
             else:
-                modcomicname = ComicName + ' Annual'
+                annualize = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                if annualize is None:
+                    modcomicname = ComicName
+                else:
+                    modcomicname = ComicName + ' Annual'
 
-            comicinfo = []
-            comicinfo.append({"ComicName":     ComicName,
-                              "IssueNumber":   IssueNumber,
-                              "comyear":       ComicYear,
-                              "modcomicname":  modcomicname})
+                comicinfo = []
+                comicinfo.append({"ComicName":     ComicName,
+                                  "IssueNumber":   IssueNumber,
+                                  "comyear":       ComicYear,
+                                  "modcomicname":  modcomicname})
 
-            newznabinfo = None
+                newznabinfo = None
 
-            if Provider == 'nzb.su':
-                if not mylar.NZBSU:
-                    logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
-                    return
-                # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
-                link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
-                logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
-            elif Provider == 'dognzb':
-                if not mylar.DOGNZB:
-                    logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
-                    return
-                # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
-                link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.DOGNZB_APIKEY)
-                logger.info('fetched via dognzb. Retrying the send : ' + str(link))
-            elif Provider == 'experimental':
-                if not mylar.EXPERIMENTAL:
-                    logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
-                    return
-                # http://nzbindex.nl/download/110818178
-                link = 'http://nzbindex.nl/download/' + str(id)
-                logger.info('fetched via experimental. Retrying the send : ' + str(link))
-            elif 'newznab' in Provider:
-                if not mylar.NEWZNAB:
-                    logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
-                    return
+                if Provider == 'nzb.su':
+                    if not mylar.NZBSU:
+                        logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
+                    # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
+                    link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
+                    logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
+                elif Provider == 'dognzb':
+                    if not mylar.DOGNZB:
+                        logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
+                    # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
+                    link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.DOGNZB_APIKEY)
+                    logger.info('fetched via dognzb. Retrying the send : ' + str(link))
+                elif Provider == 'experimental':
+                    if not mylar.EXPERIMENTAL:
+                        logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
+                    # http://nzbindex.nl/download/110818178
+                    link = 'http://nzbindex.nl/download/' + str(id)
+                    logger.info('fetched via experimental. Retrying the send : ' + str(link))
+                elif 'newznab' in Provider:
+                    if not mylar.NEWZNAB:
+                        logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
+                        continue
 
-                # http://192.168.2.2/getnzb/4323f9c567c260e3d9fc48e09462946c.nzb&i=<uid>&r=<passkey>
-                # trickier - we have to scroll through all the newznabs until we find a match.
-                logger.info('fetched via newnzab. Retrying the send.')
-                m = re.findall('[^()]+', fullprov)
-                tmpprov = m[0].strip()
+                    # http://192.168.2.2/getnzb/4323f9c567c260e3d9fc48e09462946c.nzb&i=<uid>&r=<passkey>
+                    # trickier - we have to scroll through all the newznabs until we find a match.
+                    logger.info('fetched via newnzab. Retrying the send.')
+                    m = re.findall('[^()]+', fullprov)
+                    tmpprov = m[0].strip()
 
-                for newznab_info in mylar.EXTRA_NEWZNABS:
-                    if tmpprov.lower() in newznab_info[0].lower():
-                        if (newznab_info[5] == '1' or newznab_info[5] == 1):
-                            if newznab_info[1].endswith('/'):
-                                newznab_host = newznab_info[1]
+                    for newznab_info in mylar.EXTRA_NEWZNABS:
+                        if tmpprov.lower() in newznab_info[0].lower():
+                            if (newznab_info[5] == '1' or newznab_info[5] == 1):
+                                if newznab_info[1].endswith('/'):
+                                    newznab_host = newznab_info[1]
+                                else:
+                                    newznab_host = newznab_info[1] + '/'
+                                newznab_api = newznab_info[3]
+                                newznab_uid = newznab_info[4]
+                                link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
+                                logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
+                                logger.info('link : ' + str(link))
+                                newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3], newznab_info[4])
+                                break
                             else:
-                                newznab_host = newznab_info[1] + '/'
-                            newznab_api = newznab_info[3]
-                            newznab_uid = newznab_info[4]
-                            link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
-                            logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
-                            logger.info('link : ' + str(link))
-                            newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3], newznab_info[4])
-                            break
-                        else:
-                            logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
-                            return
+                                logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
+                                continue
 
-            sendit = search.searcher(Provider, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
+                sendit = search.searcher(Provider, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
+                break
+        return
     retryissue.exposed = True
 
     def queueit(self, **kwargs):
@@ -1815,6 +1835,7 @@ class WebInterface(object):
                 mylar.WANTED_TAB_OFF = False
                 try:
                     ab = upc['weeknumber']
+                    bc = upc['year']
                 except TypeError:
                     logger.warn('Weekly Pull hasn\'t finished being generated as of yet (or has yet to initialize). Try to wait a few seconds more to accomodate processing.')
                     mylar.WANTED_TAB_OFF = True
@@ -2062,7 +2083,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         failedlist = myDB.select('SELECT * from Failed')
         for f in failedlist:
-            if f['Provider'] == 'KAT': #if any([f['Provider'] == 'KAT', f['Provider'] == '32P']):
+            if f['Provider'] == 'TPSE': #if any([f['Provider'] == 'TPSE', f['Provider'] == '32P']):
                 link = helpers.torrent_create(f['Provider'], f['ID'])
             else:
                 link = f['ID']
@@ -3314,7 +3335,6 @@ class WebInterface(object):
                 for RID in RemoveIDS:
                     newlist = [k for k in comiclist if k['ComicID'] != RID]
                     comiclist = newlist
-                    logger.info('newlist: ' + str(newlist))
 
             for cl in comiclist:
                 ComicName = cl['ComicName']
@@ -3837,7 +3857,7 @@ class WebInterface(object):
                     "seedbox_user": mylar.SEEDBOX_USER,
                     "seedbox_pass": mylar.SEEDBOX_PASS,
                     "enable_torrent_search": helpers.checked(mylar.ENABLE_TORRENT_SEARCH),
-                    "enable_kat": helpers.checked(mylar.ENABLE_KAT),
+                    "enable_tpse": helpers.checked(mylar.ENABLE_TPSE),
                     "enable_32p": helpers.checked(mylar.ENABLE_32P),
                     "legacymode_32p": helpers.radio(mylar.MODE_32P, 0),
                     "authmode_32p": helpers.radio(mylar.MODE_32P, 1),
@@ -4126,7 +4146,7 @@ class WebInterface(object):
         nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
         usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, nzbsu_verify=0, dognzb=0, dognzb_apikey=None, dognzb_verify=0, newznab=0, newznab_host=None, newznab_name=None, newznab_verify=0, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
         enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
-        enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_kat=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
+        enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_tpse=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
         enable_torrents=0, minseeds=0, local_watchdir=None, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
         prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
         pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_onsnatch=0, torrent_downloader=0, torrent_local=0, torrent_seedbox=0, utorrent_host=None, utorrent_username=None, utorrent_password=None, utorrent_label=None,
@@ -4218,7 +4238,7 @@ class WebInterface(object):
         mylar.TRANSMISSION_USERNAME = transmission_username
         mylar.TRANSMISSION_PASSWORD = transmission_password
         mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
-        mylar.ENABLE_KAT = int(enable_kat)
+        mylar.ENABLE_TPSE = int(enable_tpse)
         mylar.ENABLE_32P = int(enable_32p)
         mylar.MODE_32P = int(mode_32p)
         mylar.RSSFEED_32P = rssfeed_32p

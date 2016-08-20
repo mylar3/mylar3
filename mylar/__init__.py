@@ -254,6 +254,7 @@ USE_BLACKHOLE = False
 BLACKHOLE_DIR = None
 
 PROVIDER_ORDER = None
+TMP_PROV = None   #to be used to compare provider being used against provider that actually found the result (ie. TPSE != WWT, != DEM)
 
 NZBSU = False
 NZBSU_UID = None
@@ -371,9 +372,9 @@ SEEDBOX_PASS = None
 SEEDBOX_WATCHDIR = None
 
 ENABLE_TORRENT_SEARCH = 0
-ENABLE_KAT = 0
-KAT_PROXY = None
-KAT_VERIFY = True
+ENABLE_TPSE = 0
+TPSE_PROXY = None
+TPSE_VERIFY = True
 
 ENABLE_32P = 0
 MODE_32P = None  #0 = legacymode, #1 = authmode
@@ -466,10 +467,10 @@ def initialize():
                 ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
                 EXPERIMENTAL, ALTEXPERIMENTAL, USE_RTORRENT, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
                 USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, USE_TRANSMISSION, TRANSMISSION_HOST, TRANSMISSION_USERNAME, TRANSMISSION_PASSWORD, \
-                ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, \
+                ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, TMP_PROV, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ALLOW_PACKS, ENABLE_TORRENTS, TORRENT_DOWNLOADER, MINSEEDS, USE_WATCHDIR, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_KAT, KAT_PROXY, KAT_VERIFY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
@@ -569,6 +570,7 @@ def initialize():
         DUPECONSTRAINT = check_setting_str(CFG, 'General', 'dupeconstraint', 'filesize')
         DDUMP = bool(check_setting_int(CFG, 'General', 'ddump', 0))
         DUPLICATE_DUMP = check_setting_str(CFG, 'General', 'duplicate_dump', '')
+        PULL_REFRESH = check_setting_str(CFG, 'General', 'pull_refresh', '')
         AUTOWANT_ALL = bool(check_setting_int(CFG, 'General', 'autowant_all', 0))
         AUTOWANT_UPCOMING = bool(check_setting_int(CFG, 'General', 'autowant_upcoming', 1))
         COMIC_COVER_LOCAL = bool(check_setting_int(CFG, 'General', 'comic_cover_local', 0))
@@ -700,9 +702,9 @@ def initialize():
         SEEDBOX_WATCHDIR = check_setting_str(CFG, 'Torrents', 'seedbox_watchdir', '')
 
         ENABLE_TORRENT_SEARCH = bool(check_setting_int(CFG, 'Torrents', 'enable_torrent_search', 0))
-        ENABLE_KAT = bool(check_setting_int(CFG, 'Torrents', 'enable_kat', 0))
-        KAT_PROXY = check_setting_str(CFG, 'Torrents', 'kat_proxy', '')
-        KAT_VERIFY = bool(check_setting_int(CFG, 'Torrents', 'kat_verify', 1))
+        ENABLE_TPSE = bool(check_setting_int(CFG, 'Torrents', 'enable_tpse', 0))
+        TPSE_PROXY = check_setting_str(CFG, 'Torrents', 'tpse_proxy', '')
+        TPSE_VERIFY = bool(check_setting_int(CFG, 'Torrents', 'tpse_verify', 1))
 
         ENABLE_CBT = check_setting_str(CFG, 'Torrents', 'enable_cbt', '-1')
         if ENABLE_CBT != '-1':
@@ -804,8 +806,8 @@ def initialize():
             if ENABLE_32P:
                 PR.append('32p')
                 PR_NUM +=1
-            if ENABLE_KAT:
-                PR.append('kat')
+            if ENABLE_TPSE:
+                PR.append('tpse')
                 PR_NUM +=1
 
 
@@ -1362,6 +1364,7 @@ def config_write():
     new_config['General']['dupeconstraint'] = DUPECONSTRAINT
     new_config['General']['ddump'] = int(DDUMP)
     new_config['General']['duplicate_dump'] = DUPLICATE_DUMP
+    new_config['General']['pull_refresh'] = PULL_REFRESH
     new_config['General']['autowant_all'] = int(AUTOWANT_ALL)
     new_config['General']['autowant_upcoming'] = int(AUTOWANT_UPCOMING)
     new_config['General']['preferred_quality'] = int(PREFERRED_QUALITY)
@@ -1458,9 +1461,9 @@ def config_write():
     new_config['Torrents']['seedbox_watchdir'] = SEEDBOX_WATCHDIR
 
     new_config['Torrents']['enable_torrent_search'] = int(ENABLE_TORRENT_SEARCH)
-    new_config['Torrents']['enable_kat'] = int(ENABLE_KAT)
-    new_config['Torrents']['kat_proxy'] = KAT_PROXY
-    new_config['Torrents']['kat_verify'] = KAT_VERIFY
+    new_config['Torrents']['enable_tpse'] = int(ENABLE_TPSE)
+    new_config['Torrents']['tpse_proxy'] = TPSE_PROXY
+    new_config['Torrents']['tpse_verify'] = TPSE_VERIFY
     new_config['Torrents']['enable_32p'] = int(ENABLE_32P)
     new_config['Torrents']['mode_32p'] = int(MODE_32P)
     new_config['Torrents']['passkey_32p'] = PASSKEY_32P

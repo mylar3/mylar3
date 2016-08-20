@@ -426,7 +426,10 @@ def pullit(forcecheck=None):
         if pulldate == '00000000' and mylar.ALT_PULL != 2:
             pulldate = shipdate
 
-        weektmp = datetime.date(*(int(s) for s in pulldate.split('-')))
+        try:
+            weektmp = datetime.date(*(int(s) for s in pulldate.split('-')))
+        except TypeError:
+            weektmp = datetime.date.today()
         weeknumber = weektmp.strftime("%U")
 
         logger.info(u"Populating the NEW Weekly Pull list into Mylar for week " + str(weeknumber))

@@ -477,7 +477,7 @@ class PostProcessor(object):
                                             logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.')
                                             datematch = "False"
 
-                                    if datematch == "False" and any([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None']):
+                                    if datematch == "False" and any([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None', watch_issueyear is not None]):
                                         #now we see if the issue year matches exactly to what we have within Mylar.
                                         if int(watch_issueyear) == int(watchmatch['issue_year']):
                                             logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Issue Year of ' + str(watch_issueyear) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))

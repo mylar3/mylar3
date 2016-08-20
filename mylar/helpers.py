@@ -161,7 +161,9 @@ def human2bytes(s):
     symbols = ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
     letter = s[-1:].strip().upper()
     num = s[:-1]
-    assert num.isdigit() and letter in symbols
+    #assert num.isdigit() and letter in symbols
+    #use below assert statement to handle sizes with decimal places
+    assert float(num) and letter in symbols
     num = float(num)
     prefix = {symbols[0]: 1}
     for i, s in enumerate(symbols[1:]):
@@ -817,7 +819,7 @@ def updateComicLocation():
                     comlocation = re.sub(ddir, ccdir, dlc).strip()
 
                 #regenerate the new path location so that it's os.dependent now.
-                com_done = re.sub('%&', os.sep, comlocation).strip()
+                com_done = re.sub('%&', os.sep.encode('unicode-escape'), comlocation).strip()
 
                 comloc.append({"comlocation":  com_done,
                                "origlocation": dl['ComicLocation'],
@@ -1906,20 +1908,17 @@ def create_https_certificates(ssl_cert, ssl_key):
     return True
 
 def torrent_create(site, linkid, alt=None):
-    if site == '32P' or site == 'TOR':
+    if any([site == '32P', site == 'TOR']):
         pass
-    elif site == 'KAT':
-        if 'http' in linkid:
-            if alt is None:
-                #if it's being passed here with the http alread in, then it's an old rssdb entry and we can take it as is.
-                url = linkid
-            else:
-                url = re.sub('http://torcache.net/','http://torrage.com/', linkid).strip()
+    elif site == 'TPSE':
+        if alt is None:
+            url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
         else:
-            if alt is None:
-                url = 'http://torcache.net/torrent/' + str(linkid) + '.torrent'
-            else:
-                url = 'http://torrage.com/' + str(linkid) + '.torrent'
+            url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
+    elif site == 'DEM':
+        url = 'https://www.demonoid.pw/files/download/' + str(linkid) + '/'
+    elif site == 'WWT':
+        url = 'https://worldwidetorrents.eu/download.php'
 
     return url
 
