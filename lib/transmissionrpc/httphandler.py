@@ -4,7 +4,7 @@
 
 import sys
 
-from error import HTTPHandlerError
+from transmissionrpc.error import HTTPHandlerError
 
 from six import PY3
 

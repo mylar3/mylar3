@@ -1,6 +1,6 @@
 import os
 
-from lib.rtorrent import RTorrent
+from rtorrent import RTorrent
 
 import mylar
 from mylar import logger, helpers

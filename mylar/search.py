@@ -606,7 +606,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         if findurl.startswith('https:') and verify == False:
                             try:
-                                from lib.requests.packages.urllib3 import disable_warnings
+                                from requests.packages.urllib3 import disable_warnings
                                 disable_warnings()
                             except:
                                 logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
@@ -2010,7 +2010,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         if down_url.startswith('https') and verify == False:
             try:
-                from lib.requests.packages.urllib3 import disable_warnings
+                from requests.packages.urllib3 import disable_warnings
                 disable_warnings()
             except:
                 logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
@@ -2246,7 +2246,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 else:
                     if mylar.EXT_IP is None:
                         #if mylar isn't local, get the external IP using pystun.
-                        import lib.pystun as stun
+                        import stun
                         sip = mylar.HTTP_HOST
                         port = int(mylar.HTTP_PORT)
                         try:
@@ -2296,7 +2296,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi, '&')))
 
             try:
-                from lib.requests.packages.urllib3 import disable_warnings
+                from requests.packages.urllib3 import disable_warnings
                 disable_warnings()
             except:
                 logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
