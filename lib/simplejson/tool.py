@@ -11,7 +11,7 @@ Usage::
 
 """
 import sys
-import lib.simplejson as json
+import simplejson as json
 
 def main():
     if len(sys.argv) == 1:

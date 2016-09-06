@@ -887,7 +887,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
         #disable SSL warnings - too many 'warning' messages about invalid certificates
         try:
-            from lib.requests.packages.urllib3 import disable_warnings
+            from requests.packages.urllib3 import disable_warnings
             disable_warnings()
         except ImportError:
             #this is probably not necessary and redudant, but leaving in for the time being.

@@ -29,7 +29,7 @@ try:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
         if config_path not in sys.path:
             sys.path.append(config_path)
-        from lib.configobj import ConfigObj
+        from configobj import ConfigObj
 except ImportError:
         print "Unable to use configobj module. This is a CRITICAL error and ComicTagger cannot proceed. Exiting."
 
@@ -43,9 +43,9 @@ class ComicTaggerSettings:
 		if folder is not None:
 			folder = folder.decode(filename_encoding)
 		return folder
-		
+
 	frozen_win_exe_path = None
-	
+
 	@staticmethod
 	def baseDir():
 		if getattr(sys, 'frozen', None):
@@ -63,7 +63,7 @@ class ComicTaggerSettings:
 	def getGraphic( filename ):
 		graphic_folder = os.path.join(ComicTaggerSettings.baseDir(), 'graphics')
 		return os.path.join( graphic_folder, filename )
-		
+
 	@staticmethod
 	def getUIFile( filename ):
 		ui_folder = os.path.join(ComicTaggerSettings.baseDir(), 'ui')
@@ -77,7 +77,7 @@ class ComicTaggerSettings:
 		self.allow_cbi_in_rar = True
 		self.check_for_new_version = True
 		self.send_usage_stats = False
-		
+
 		# automatic settings
 		self.install_id = uuid.uuid4().hex
 		self.last_selected_save_data_style = 0
@@ -91,29 +91,29 @@ class ComicTaggerSettings:
 		self.last_list_side_width = -1
 		self.last_filelist_sorted_column = -1
 		self.last_filelist_sorted_order = 0
-		
+
 		# identifier settings
 		self.id_length_delta_thresh = 5
 		self.id_publisher_blacklist = "Panini Comics, Abril, Planeta DeAgostini, Editorial Televisa"
-		
+
 		# Show/ask dialog flags
 		self.ask_about_cbi_in_rar = True
 		self.show_disclaimer = True
 		self.dont_notify_about_this_version = ""
 		self.ask_about_usage_stats = True
 		self.show_no_unrar_warning = True
-		
+
 		#filename parsing settings
 		self.parse_scan_info = True
-		
+
 		# Comic Vine settings
 		self.use_series_start_as_volume = False
 		self.clear_form_before_populating_from_cv = False
 		self.remove_html_tables = False
 		self.cv_api_key = ""
-		
+
 		# CBL Tranform settings
-		
+
 		self.assume_lone_credit_is_primary = False
 		self.copy_characters_to_tags = False
 		self.copy_teams_to_tags = False
@@ -129,7 +129,7 @@ class ComicTaggerSettings:
 		self.rename_issue_number_padding = 3
 		self.rename_use_smart_string_cleanup = True
 		self.rename_extension_based_on_archive = True
-		
+
 		#Auto-tag stickies
 		self.save_on_low_confidence = False
 		self.dont_use_year_when_identifying = False
@@ -139,26 +139,26 @@ class ComicTaggerSettings:
 		self.wait_and_retry_on_rate_limit = False
 
 	def __init__(self):
-		
+
 		self.settings_file = ""
 		self.folder = ""
 		self.setDefaultValues()
 
 		#self.config = configparser.RawConfigParser()
 		self.folder = ComicTaggerSettings.getSettingsFolder()
-		
+
 		if not os.path.exists( self.folder ):
 			os.makedirs( self.folder )
-		
+
 		self.settings_file = os.path.join( self.folder, "settings.ini")
                 self.CFG = ConfigObj(self.settings_file, encoding='utf-8')
-		
+
 		# if config file doesn't exist, write one out
 		if not os.path.exists( self.settings_file ):
 			self.save()
 		else:
 			self.load()
-		
+
 		# take a crack at finding rar exes, if not set already
 		if self.rar_exe_path == "":
 			if platform.system() == "Windows":
@@ -173,7 +173,7 @@ class ComicTaggerSettings:
 					self.rar_exe_path = utils.which("rar")
 			if self.rar_exe_path != "":
 				self.save()
-					
+
 		if self.unrar_exe_path == "":
 			if platform.system() != "Windows":
 				# see if it's in the path of unix user
@@ -181,7 +181,7 @@ class ComicTaggerSettings:
 					self.unrar_exe_path = utils.which("unrar")
 			if self.unrar_exe_path != "":
 				self.save()
-				
+
 		# make sure unrar/rar program is now in the path for the UnRAR class to use
 		utils.addtopath(os.path.dirname(self.unrar_exe_path))
 		utils.addtopath(os.path.dirname(self.rar_exe_path))
@@ -189,7 +189,7 @@ class ComicTaggerSettings:
 	def reset( self ):
 		os.unlink( self.settings_file )
 		self.__init__()
-		
+
         def CheckSection(self, sec):
             """ Check if INI section exists, if not create it """
             try:
@@ -235,7 +235,7 @@ class ComicTaggerSettings:
                 self.rar_exe_path = self.check_setting_str(self.CFG, 'settings', 'rar_exe_path', '')
                 self.unrar_exe_path = self.check_setting_str(self.CFG, 'settings', 'unurar_exe_path', '')
  		self.check_for_new_version = bool(self.check_setting_int(self.CFG, 'settings', 'check_for_new_version', 0))
-		self.send_usage_stats = bool(self.check_setting_int(self.CFG, 'settings', 'send_usage_stats', 0))	
+		self.send_usage_stats = bool(self.check_setting_int(self.CFG, 'settings', 'send_usage_stats', 0))
 		self.install_id = self.check_setting_str(self.CFG, 'auto', 'install_id', '')
 		self.last_selected_load_data_style = self.check_setting_str(self.CFG, 'auto', 'last_selected_load_data_style', '')
 		self.last_selected_save_data_style = self.check_setting_str(self.CFG, 'auto', 'last_selected_save_data_style', '')
@@ -260,24 +260,24 @@ class ComicTaggerSettings:
 		self.ask_about_cbi_in_rar = bool(self.check_setting_int(self.CFG,  'dialogflags', 'ask_about_cbi_in_rar', 0))
 		self.show_disclaimer = bool(self.check_setting_int(self.CFG, 'dialogflags', 'show_disclaimer', 0))
 		self.dont_notify_about_this_version = self.check_setting_str(self.CFG, 'dialogflags', 'dont_notify_about_this_version', '')
-		self.ask_about_usage_stats = bool(self.check_setting_int(self.CFG, 'dialogflags', 'ask_about_usage_stats', 0))		
-		self.show_no_unrar_warning = bool(self.check_setting_int(self.CFG, 'dialogflags', 'show_no_unrar_warning', 0))		
-					
+		self.ask_about_usage_stats = bool(self.check_setting_int(self.CFG, 'dialogflags', 'ask_about_usage_stats', 0))
+		self.show_no_unrar_warning = bool(self.check_setting_int(self.CFG, 'dialogflags', 'show_no_unrar_warning', 0))
+
 		self.use_series_start_as_volume = bool(self.check_setting_int(self.CFG, 'comicvine', 'use_series_start_as_volume', 0))
 		self.clear_form_before_populating_from_cv = bool(self.check_setting_int(self.CFG, 'comicvine', 'clear_form_before_populating_from_cv', 0))
 		self.remove_html_tables = bool(self.check_setting_int(self.CFG, 'comicvine', 'remove_html_tables', 0))
 		self.cv_api_key = self.check_setting_str(self.CFG, 'comicvine', 'cv_api_key', '')
 
 		self.assume_lone_credit_is_primary = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'assume_lone_credit_is_primary', 0))
-		self.copy_characters_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_characters_to_tags', 0))		
-		self.copy_teams_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_teams_to_tags', 0))	
-		self.copy_locations_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_locations_to_tags', 0))	
+		self.copy_characters_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_characters_to_tags', 0))
+		self.copy_teams_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_teams_to_tags', 0))
+		self.copy_locations_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_locations_to_tags', 0))
 		self.copy_notes_to_comments = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_notes_to_comments', 0))
-		self.copy_storyarcs_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_storyarcs_to_tags', 0))	
-		self.copy_weblink_to_comments = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_weblink_to_comments', 0))		
+		self.copy_storyarcs_to_tags = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_storyarcs_to_tags', 0))
+		self.copy_weblink_to_comments = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'copy_weblink_to_comments', 0))
 		self.apply_cbl_transform_on_cv_import = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'apply_cbl_transform_on_cv_import', 0))
 		self.apply_cbl_transform_on_bulk_operation = bool(self.check_setting_int(self.CFG, 'cbl_transform', 'apply_cbl_transform_on_bulk_operation', 0))
-			
+
 		self.rename_template = bool(self.check_setting_int(self.CFG, 'rename', 'rename_template', 0))
 		self.rename_issue_number_padding = self.check_setting_str(self.CFG, 'rename', 'rename_issue_number_padding', '')
 		self.rename_use_smart_string_cleanup = bool(self.check_setting_int(self.CFG, 'rename', 'rename_use_smart_string_cleanup', 0))
@@ -287,9 +287,9 @@ class ComicTaggerSettings:
 		self.dont_use_year_when_identifying = bool(self.check_setting_int(self.CFG, 'autotag', 'dont_use_year_when_identifying', 0))
 		self.assume_1_if_no_issue_num = bool(self.check_setting_int(self.CFG, 'autotag', 'assume_1_if_no_issue_num', 0))
 		self.ignore_leading_numbers_in_filename = bool(self.check_setting_int(self.CFG, 'autotag', 'ignore_leading_numbers_in_filename', 0))
-		self.remove_archive_after_successful_match = bool(self.check_setting_int(self.CFG, 'autotag', 'remove_archive_after_successful_match', 0))	
+		self.remove_archive_after_successful_match = bool(self.check_setting_int(self.CFG, 'autotag', 'remove_archive_after_successful_match', 0))
 		self.wait_and_retry_on_rate_limit = bool(self.check_setting_int(self.CFG, 'autotag', 'wait_and_retry_on_rate_limit', 0))
-		
+
 	def save( self ):
                 new_config = ConfigObj()
                 new_config.filename = self.settings_file
@@ -329,7 +329,7 @@ class ComicTaggerSettings:
 
                 new_config['filenameparser'] = {}
                 new_config['filenameparser']['parse_scan_info'] = self.parse_scan_info
-			
+
                 new_config['comicvine'] = {}
                 new_config['comicvine']['use_series_start_as_volume'] = self.use_series_start_as_volume
                 new_config['comicvine']['clear_form_before_populating_from_cv'] = self.clear_form_before_populating_from_cv
@@ -360,6 +360,6 @@ class ComicTaggerSettings:
                 new_config['autotag']['ignore_leading_numbers_in_filename'] = self.ignore_leading_numbers_in_filename
                 new_config['autotag']['remove_archive_after_successful_match'] = self.remove_archive_after_successful_match
                 new_config['autotag']['wait_and_retry_on_rate_limit'] = self.wait_and_retry_on_rate_limit
-                
+
 #make sure the basedir is cached, in case we're  on windows running a script from frozen binary
 ComicTaggerSettings.baseDir()

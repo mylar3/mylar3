@@ -19,11 +19,11 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # from rtorrent.rpc import Method
-import rpc
+import rtorrent.rpc
 
-from common import safe_repr
+from rtorrent.common import safe_repr
 
-Method = rpc.Method
+Method = rtorrent.rpc.Method
 
 
 class Peer:
