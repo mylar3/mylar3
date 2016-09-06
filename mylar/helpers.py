@@ -1349,8 +1349,8 @@ def filesafe(comic):
     import unicodedata
     u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
 
-    comicname_filesafe = re.sub('[\:\'\,\?\!\\\]', '', u_comic)
-    comicname_filesafe = re.sub('[\/]', '-', comicname_filesafe)
+    comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
+    comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
 
     return comicname_filesafe
 

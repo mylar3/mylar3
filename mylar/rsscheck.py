@@ -4,6 +4,7 @@ import os, sys
 import re
 import lib.feedparser as feedparser
 import lib.requests as requests
+import lib.cfscrape as cfscrape
 import urlparse
 import ftpsshup
 import datetime
@@ -143,9 +144,10 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
 
         if all([pickfeed != '4', pickfeed != '3', pickfeed != '5', pickfeed != '999']):
             payload = None
-
+            
             try:
-                r = requests.get(feed, params=payload, verify=verify)
+                scraper = cfscrape.create_scraper()
+                r = scraper.get(feed, verify=verify)#requests.get(feed, params=payload, verify=verify)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
                 return
@@ -253,38 +255,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     issue = feedme.entries[i].title[iss_st +3:].strip()
                     #logger.fdebug('issue # : ' + str(issue))
 
-                    #break it down to get the Size since it's available on THIS 32P feed only so far.
-                    #when it becomes available in the new feeds, this will be working, for now it just nulls out.
-                    sizestart = tmpdesc.find('Size:')
-                    justdigits = 0
-                    if sizestart >= 0:
-                        sizeend = tmpdesc.find('Leechers:')
-                        sizestart +=5  # to get to the end of the word 'Size:'
-                        tmpsize = tmpdesc[sizestart:sizeend].strip()
-                        fdigits = re.sub("[^0123456789\.]", "", tmpsize).strip()
-                        if '.' in fdigits:
-                            decfind = fdigits.find('.')
-                            wholenum = fdigits[:decfind]
-                            decnum = fdigits[decfind +1:]
-                        else:
-                            wholenum = fdigits
-                        decnum = 0
-                        if 'MB' in tmpsize:
-                            wholebytes = int(wholenum) * 1048576
-                            wholedecimal = (int(decnum) * 1048576) / 100
-                            justdigits = wholebytes + wholedecimal
-                        else:
-                            #it's 'GB' then
-                            wholebytes = (int(wholenum) * 1024) * 1048576
-                            wholedecimal = ((int(decnum) * 1024) * 1048576) / 100
-                            justdigits = wholebytes + wholedecimal
-                    #this is not currently working for 32p
-                    #Get the # of seeders.
-                    #seedstart = tmpdesc.find('Seeders:')
-                    #seedend = tmpdesc.find('Added:')
-                    #seedstart +=8  # to get to the end of the word 'Seeders:'
-                    #tmpseed = tmpdesc[seedstart:seedend].strip()
-                    #seeddigits = re.sub("[^0123456789\.]", "", tmpseed).strip()
+                    justdigits = feedme.entries[i].torrent_contentlength
                     seeddigits = 0
 
                     if int(mylar.MINSEEDS) >= int(seeddigits):
@@ -799,6 +770,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             logger.error('No Local Watch Directory or Seedbox Watch Directory specified. Set it and try again.')
             return "fail"
 
+    cf_cookievalue = None
     if site == '32P':
         url = 'https://32pag.es/torrents.php'
 
@@ -854,9 +826,14 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         else:
             tpse_referrer = 'http://torrentproject.se/'
 
-        headers = {'Accept-encoding': 'gzip',
-                   'User-Agent':      str(mylar.USER_AGENT),
-                   'Referer':         tpse_referrer}
+        try:
+            scraper = cfscrape.create_scraper()
+            cf_cookievalue, cf_user_agent = cfscrape.get_tokens(url)
+            headers = {'Accept-encoding': 'gzip',
+                       'User-Agent':       cf_user_agent}
+
+        except Exception, e:
+            return "fail"
 
         logger.fdebug('Grabbing torrent from url:' + str(url))
 
@@ -924,7 +901,12 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 return "fail"
 
     try:
-        r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+        scraper = cfscrape.create_scraper()
+        if cf_cookievalue:
+            r = scraper.get(url, params=payload, cookies=cf_cookievalue, verify=verify, stream=True, headers=headers)
+        else:
+            r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers)
+        #r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
 
     except Exception, e:
         logger.warn('Error fetching data from %s: %s' % (site, e))
@@ -949,16 +931,28 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             logger.info('blah: ' + str(r.status_code))
             return "fail"
 
-    if any([site == 'TPSE', site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404']):
-        logger.warn('Unable to download from ' + site + ' [' + str(r.status_code) + ']') 
-        #retry with the alternate torrent link.
-        url = helpers.torrent_create(site, linkit, True)
-        logger.fdebug('Trying alternate url: ' + str(url))
-        try:
-            r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+    if any([site == 'TPSE', site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
+        if str(r.status_code) != '503':
+            logger.warn('Unable to download from ' + site + ' [' + str(r.status_code) + ']')
+            #retry with the alternate torrent link.
+            url = helpers.torrent_create(site, linkit, True)
+            logger.fdebug('Trying alternate url: ' + str(url))
+            try:
+                r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
 
-        except Exception, e:
-            return "fail"
+            except Exception, e:
+                return "fail"
+        else:
+            logger.warn('Cloudflare protection online for ' + site + '. Attempting to bypass...')
+            try:
+                scraper = cfscrape.create_scraper()
+                cf_cookievalue, cf_user_agent = cfscrape.get_cookie_string(url)
+                headers = {'Accept-encoding': 'gzip',
+                           'User-Agent':       cf_user_agent}
+                
+                r = scraper.get(url, verify=verify, cookies=cf_cookievalue, stream=True, headers=headers)
+            except Exception, e:
+                return "fail"
 
     if str(r.status_code) != '200':
         logger.warn('Unable to download torrent from ' + site + ' [Status Code returned: ' + str(r.status_code) + ']')

@@ -972,7 +972,7 @@ class FileChecker(object):
                         #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
                         continue
 
-                if fname.endswith(comic_ext):
+                if os.path.splitext(fname)[1].lower().endswith(comic_ext):
                     if direc is None:
                         comicsize = os.path.getsize(os.path.join(dir, fname))
                     else:

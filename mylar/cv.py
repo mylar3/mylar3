@@ -242,6 +242,7 @@ def GetComicInfo(comicid, dom, safechk=None):
     try:
         names = len(dom.getElementsByTagName('name'))
         n = 0
+        comic['ComicPublisher'] = 'Unknown'   #set this to a default value here so that it will carry through properly
         while (n < names):
             if dom.getElementsByTagName('name')[n].parentNode.nodeName == 'results':
                 try:

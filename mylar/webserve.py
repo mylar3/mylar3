@@ -1,5 +1,3 @@
-
-
 #  This file is part of Mylar.
 # -*- coding: utf-8 -*-
 #
@@ -2174,12 +2172,14 @@ class WebInterface(object):
     def markComics(self, action=None, **args):
         myDB = db.DBConnection()
         comicsToAdd = []
+        logger.info(args)
         for ComicID in args:
-            logger.info(ComicID)
             if ComicID == 'manage_comic_length':
                 continue
             else:
                 for k,v in args.items():
+                    if k == 'manage_comic_length':
+                        break
                     #k = Comicname[ComicYear]
                     #v = ComicID
                     comyr = k.find('[')
@@ -2188,26 +2188,24 @@ class WebInterface(object):
                     ComicID = v
                     #cid = ComicName.decode('utf-8', 'replace')
 
-                if action == 'delete':
-                    logger.info('[MANAGE COMICS][DELETION] Now deleting ' + ComicName + ' (' + str(ComicYear) + ') [' + str(ComicID) + '] form the DB.')
-                    myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
-                    myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-                    logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + ComicName + '(' + str(ComicYear) + ')')
-                elif action == 'pause':
-                    controlValueDict = {'ComicID': ComicID}
-                    newValueDict = {'Status': 'Paused'}
-                    myDB.upsert("comics", newValueDict, controlValueDict)
-                    logger.info('[MANAGE COMICS][PAUSE] ' + ComicName + ' has now been put into a Paused State.')
-                elif action == 'resume':
-                    controlValueDict = {'ComicID': ComicID}
-                    newValueDict = {'Status': 'Active'}
-                    myDB.upsert("comics", newValueDict, controlValueDict)
-                    logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
-                else:
-                    logger.info('appending ' + str(ComicID) + ' to refresh list.')
-                    comicsToAdd.append(ComicID)
-
-        logger.info(comicsToAdd)
+                    if action == 'delete':
+                        logger.info('[MANAGE COMICS][DELETION] Now deleting ' + ComicName + ' (' + str(ComicYear) + ') [' + str(ComicID) + '] form the DB.')
+                        myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+                        myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+                        logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + ComicName + '(' + str(ComicYear) + ')')
+                    elif action == 'pause':
+                        controlValueDict = {'ComicID': ComicID}
+                        newValueDict = {'Status': 'Paused'}
+                        myDB.upsert("comics", newValueDict, controlValueDict)
+                        logger.info('[MANAGE COMICS][PAUSE] ' + ComicName + ' has now been put into a Paused State.')
+                    elif action == 'resume':
+                        controlValueDict = {'ComicID': ComicID}
+                        newValueDict = {'Status': 'Active'}
+                        myDB.upsert("comics", newValueDict, controlValueDict)
+                        logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
+                    else:
+                        logger.info('appending ' + str(ComicID) + ' to refresh list.')
+                        comicsToAdd.append(ComicID)
 
         if len(comicsToAdd) > 0:
             logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + str(len(comicsToAdd)) + ' series')
@@ -3236,6 +3234,10 @@ class WebInterface(object):
     importResults.exposed = True
 
     def ImportFilelisting(self, comicname, dynamicname, volume):
+        if type(comicname) != unicode:
+            comicname = urllib.unquote(comicname).decode('utf-8')
+        if type(dynamicname) != unicode:
+            dynamicname = urllib.unquote(dynamicname).decode('utf-8')
         myDB = db.DBConnection()
         if volume is None or volume == 'None':
             results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[dynamicname])

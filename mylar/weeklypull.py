@@ -666,8 +666,8 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                     logger.fdebug("comparing" + comicnm + "..to.." + unlines[cnt].upper())
                     watchcomic = unlines[cnt]
 
-                    logger.fdebug("watchcomic : " + str(watchcomic))  # / mod :" + str(modwatchcomic))
-                    logger.fdebug("comicnm : " + str(comicnm)) # / mod :" + str(modcomicnm))
+                    logger.fdebug("watchcomic : " + watchcomic)  # / mod :" + str(modwatchcomic))
+                    logger.fdebug("comicnm : " + comicnm) # / mod :" + str(modcomicnm))
 
                     if dyn_comicnm == dyn_watchnm:
                         if mylar.ANNUALS_ON:
@@ -1121,8 +1121,14 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                     else:
                         logger.fdebug('issue exists in db already: ' + str(issueid))
-                        pass
-                        #make sure the status is Wanted if auto-upcoming is enabled.
+                        if isschk['Status'] == newValue['Status']:
+                            pass
+                        else:
+                            if all([isschk['Status'] != 'Downloaded', isschk['Status'] != 'Snatched', isschk['Status'] != 'Archived', isschk['Status'] != 'Ignored']) and newValue['Status'] == 'Wanted':
+                            #make sure the status is Wanted and that the issue status is identical if not.
+                                newStat = {'Status': 'Wanted'}
+                                ctrlStat = {'IssueID': issueid}
+                                myDB.upsert("issues", newStat, ctrlStat)
             else:
                 continue
 #                else:
@@ -1395,6 +1401,7 @@ def future_check():
                     if str(sr['comicyear']) == str(theissdate):
                         logger.fdebug('Matched to : ' + str(theissdate))
                         matches.append(sr)
+
             if len(matches) == 1:
                 logger.info('Narrowed down to one series as a direct match: ' + matches[0]['name'] + '[' + str(matches[0]['comicid']) + ']')
                 cid = matches[0]['comicid']
@@ -1426,16 +1433,21 @@ def future_check():
                             matchword = split_match[i].lower()
                         except:
                             break
-                        if split_match.index(ss) == split_series.index(ss):
-                            #will return word position in string.
-                            #logger.fdebug('word match to position found in both strings at position : ' + str(split_match.index(ss)))
-                            word_match+=1
-                        elif any([x == matchword for x in catch_words]):
+
+                        if any([x == matchword for x in catch_words]):
                             #logger.fdebug('[MW] common word detected of : ' + matchword)
                             word_match+=.5
                         elif any([cw == ss for cw in catch_words]):
                             #logger.fdebug('[CW] common word detected of : ' + matchword)
                             word_match+=.5
+                        else:
+                            try:
+                                #will return word position in string.
+                                #logger.fdebug('word match to position found in both strings at position : ' + str(split_match.index(ss)))
+                                if split_match.index(ss) == split_series.index(ss):
+                                    word_match+=1
+                            except ValueError:
+                                break
                         i+=1                                
                     logger.fdebug('word match score of : ' + str(word_match) + ' / ' + str(len(split_series)))
                     if word_match == len(split_series) or (word_match / len(split_series)) > 80:

@@ -705,7 +705,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #rss for experimental doesn't have the size constraints embedded. So we do it here.
                         if RSS == "yes":
                             if nzbprov == '32P':
-                                comsize_b = None  #entry['length']
+                                try:
+                                    #newer rss feeds will now return filesize from 32p. Safe-guard it incase it's an older result
+                                    comsize_b = entry['length']
+                                except:
+                                    comsize_b = None 
                             elif nzbprov == 'TPSE':
                                 comsize_b = entry['length']
                             else:
@@ -1845,7 +1849,7 @@ def nzbname_create(provider, title=None, info=None):
 
             logger.fdebug("nzb name to be used for post-processing is : " + str(nzbname))
 
-    elif provider == '32P' or provider == 'TPSE':
+    elif any([provider == '32P', provider == 'TPSE', provider == 'WWT', provider == 'DEM']):
         #filesafe the name cause people are idiots when they post sometimes.
         nzbname = re.sub('\s{2,}', ' ', helpers.filesafe(title)).strip()
         #let's change all space to decimals for simplicity
