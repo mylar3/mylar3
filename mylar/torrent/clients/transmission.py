@@ -1,7 +1,7 @@
 import os
 import mylar
 from mylar import logger
-from lib.transmissionrpc import Client
+from transmissionrpc import Client
 
 
 class TorrentClient(object):

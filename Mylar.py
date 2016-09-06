@@ -21,16 +21,14 @@ import time
 import threading
 import signal
 
-from lib.configobj import ConfigObj
+sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
 
 import mylar
 
 from mylar import webstart, logger, filechecker, versioncheck
 
-try:
-    import argparse
-except ImportError:
-    import lib.argparse as argparse
+import argparse
+
 
 if ( sys.platform == 'win32' and sys.executable.split( '\\' )[-1] == 'pythonw.exe'):
     sys.stdout = open(os.devnull, "w")
@@ -198,6 +196,7 @@ def main():
 
             i += 1
 
+    from configobj import ConfigObj
     mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
 
     # Rename the main thread

@@ -1883,7 +1883,7 @@ def create_https_certificates(ssl_cert, ssl_key):
     from mylar import logger
 
     from OpenSSL import crypto
-    from lib.certgen import createKeyPair, createCertRequest, createCertificate, \
+    from certgen import createKeyPair, createCertRequest, createCertificate, \
         TYPE_RSA, serial
 
     # Create the CA Certificate

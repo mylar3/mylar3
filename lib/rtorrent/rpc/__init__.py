@@ -19,12 +19,12 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import inspect
-import lib.rtorrent
+import rtorrent
 import re
-from lib.rtorrent.common import bool_to_int, convert_version_tuple_to_str,\
+from rtorrent.common import bool_to_int, convert_version_tuple_to_str,\
     safe_repr
-from lib.rtorrent.err import MethodError
-from lib.rtorrent.compat import xmlrpclib
+from rtorrent.err import MethodError
+from rtorrent.compat import xmlrpclib
 
 
 def get_varname(rpc_call):
@@ -225,11 +225,11 @@ def call_method(class_obj, method, *args):
 def find_method(rpc_call):
     """Return L{Method} instance associated with given RPC call"""
     method_lists = [
-        lib.rtorrent.methods,
-        lib.rtorrent.file.methods,
-        lib.rtorrent.tracker.methods,
-        lib.rtorrent.peer.methods,
-        lib.rtorrent.torrent.methods,
+        rtorrent.methods,
+        rtorrent.file.methods,
+        rtorrent.tracker.methods,
+        rtorrent.peer.methods,
+        rtorrent.torrent.methods,
     ]
 
     for l in method_lists:
