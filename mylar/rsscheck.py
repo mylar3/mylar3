@@ -147,12 +147,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             
             try:
                 cf_cookievalue = None
+                scraper = cfscrape.create_scraper()
                 if pickfeed == '2':
-                    scraper = cfscrape.create_scraper()
                     cf_cookievalue, cf_user_agent = scraper.get_tokens(feed)
                     headers = {'Accept-encoding': 'gzip',
                                'User-Agent':       cf_user_agent}
-                logger.info(cf_cookievalue)
 
                 if cf_cookievalue:
                     r = scraper.get(feed, verify=verify, cookies=cf_cookievalue, headers=headers)
