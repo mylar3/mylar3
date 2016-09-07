@@ -1,7 +1,7 @@
 import mylar
 from mylar import logger
 
-import lib.requests as requests
+import requests
 from bs4 import BeautifulSoup, UnicodeDammit
 import re
 import datetime

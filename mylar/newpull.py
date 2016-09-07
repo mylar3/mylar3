@@ -12,7 +12,7 @@ import unicodedata
 from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
-import lib.requests as requests
+import requests
 
 import mylar
 from mylar import logger

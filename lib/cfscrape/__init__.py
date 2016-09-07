@@ -3,9 +3,9 @@ import logging
 import random
 import re
 import os
-from lib.requests.sessions import Session
-import lib.js2py as js2py
-from lib.js2py import eval_js as eval_js
+from requests.sessions import Session
+import js2py
+from js2py import eval_js
 
 try:
     from urlparse import urlparse

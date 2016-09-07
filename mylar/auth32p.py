@@ -3,7 +3,7 @@ import re
 import time
 import datetime
 import os
-import requests as requests
+import requests
 from bs4 import BeautifulSoup
 from cookielib import LWPCookieJar
 

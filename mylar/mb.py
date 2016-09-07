@@ -21,7 +21,7 @@ import threading
 import platform
 import urllib, urllib2
 from xml.dom.minidom import parseString, Element
-import lib.requests as requests
+import requests
 
 import mylar
 from mylar import logger, db, cv

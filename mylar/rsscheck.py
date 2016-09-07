@@ -2,9 +2,9 @@
 
 import os, sys
 import re
-import lib.feedparser as feedparser
-import lib.requests as requests
-import lib.cfscrape as cfscrape
+import feedparser
+import requests
+import cfscrape
 import urlparse
 import ftpsshup
 import datetime
@@ -14,7 +14,7 @@ from StringIO import StringIO
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
-import mylar.torrent.clients.transmission as transmission
+import torrent.clients.transmission as transmission
 
 
 def _start_newznab_attr(self, attrsD):
@@ -146,8 +146,18 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             payload = None
             
             try:
-                scraper = cfscrape.create_scraper()
-                r = scraper.get(feed, verify=verify)#requests.get(feed, params=payload, verify=verify)
+                cf_cookievalue = None
+                if pickfeed == '2':
+                    scraper = cfscrape.create_scraper()
+                    cf_cookievalue, cf_user_agent = scraper.get_tokens(feed)
+                    headers = {'Accept-encoding': 'gzip',
+                               'User-Agent':       cf_user_agent}
+                logger.info(cf_cookievalue)
+
+                if cf_cookievalue:
+                    r = scraper.get(feed, verify=verify, cookies=cf_cookievalue, headers=headers)
+                else:
+                    r = scraper.get(feed, verify=verify)#requests.get(feed, params=payload, verify=verify)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
                 return
@@ -828,7 +838,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
         try:
             scraper = cfscrape.create_scraper()
-            cf_cookievalue, cf_user_agent = cfscrape.get_tokens(url)
+            cf_cookievalue, cf_user_agent = scraper.get_tokens(url)
             headers = {'Accept-encoding': 'gzip',
                        'User-Agent':       cf_user_agent}
 

@@ -8,7 +8,7 @@ from base64 import b16encode, b32decode
 
 from torrent.helpers.variable import link, symlink, is_rarfile
 
-import lib.requests as requests
+import requests
 #from lib.unrar2 import RarFile
 
 import torrent.clients.rtorrent as TorClient
@@ -64,7 +64,7 @@ class RTorrent(object):
 
     def get_the_hash(self, filepath):
         import hashlib, StringIO
-        import lib.rtorrent.lib.bencode as bencode
+        import rtorrent.lib.bencode as bencode
 
         # Open torrent file
         torrent_file = open(filepath, "rb")

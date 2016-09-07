@@ -2,8 +2,7 @@
 
 import os
 import sys
-import lib.feedparser as feedparser
-#import feedparser
+import feedparser
 import re
 import logger
 import mylar

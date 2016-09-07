@@ -39,7 +39,7 @@ import mylar
 
 from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers #,rsscheck
 
-import lib.simplejson as simplejson
+import simplejson as simplejson
 
 from operator import itemgetter
 
@@ -4419,7 +4419,7 @@ class WebInterface(object):
         logger.fdebug('sab_password: ' + str(sab_password))
         logger.fdebug('sab_apikey: ' + str(sab_apikey))
         if mylar.USE_SABNZBD:
-            import lib.requests as requests
+            import requests
             from xml.dom.minidom import parseString, Element
 
             #if user/pass given, we can auto-fill the API ;)
@@ -4450,7 +4450,7 @@ class WebInterface(object):
                 if requests.exceptions.SSLError:
                     logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
                     try:
-                        from lib.requests.packages.urllib3 import disable_warnings
+                        from requests.packages.urllib3 import disable_warnings
                         disable_warnings()
                     except:
                         logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
@@ -4842,7 +4842,7 @@ class WebInterface(object):
 
     def get_the_hash(self, filepath):
         import hashlib, StringIO
-        import lib.rtorrent.lib.bencode as bencode
+        import rtorrent.lib.bencode as bencode
 
         # Open torrent file
         torrent_file = open(os.path.join('/home/hero/mylar/cache', filepath), "rb")

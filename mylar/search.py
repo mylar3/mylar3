@@ -18,8 +18,8 @@ from __future__ import division
 import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p
 
-import lib.feedparser as feedparser
-import lib.requests as requests
+import feedparser
+import requests
 import urllib
 import os, errno
 import string

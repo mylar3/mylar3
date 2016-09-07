@@ -24,9 +24,9 @@ from urllib import urlencode
 import os.path
 import subprocess
 import time
-import lib.simplejson as simplejson
+import simplejson
 import json
-import lib.requests as requests
+import requests
 
 # This was obviously all taken from headphones with great appreciation :)
 

@@ -28,7 +28,7 @@ import shutil
 import imghdr
 import sqlite3
 import cherrypy
-import lib.requests as requests
+import requests
 import gzip
 from StringIO import StringIO
 

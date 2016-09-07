@@ -18,7 +18,7 @@ import platform, subprocess, re, os, urllib2, tarfile
 import mylar
 from mylar import logger, version
 
-import lib.requests as requests
+import requests
 import re
 
 #user = "evilhero"

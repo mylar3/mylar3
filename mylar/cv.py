@@ -25,7 +25,7 @@ import mylar
 import platform
 from bs4 import BeautifulSoup as Soup
 import httplib
-import lib.requests as requests
+import requests
 
 def patch_http_response_read(func):
     def inner(*args):

@@ -18,7 +18,7 @@
 
 import mylar
 from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
-import lib.simplejson as simplejson
+import simplejson as simplejson
 import cherrypy
 import os
 import urllib2
