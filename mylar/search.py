@@ -757,7 +757,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     logger.fdebug('Quality restriction enforced [ .cbz only ]. Rejecting this result.')
                                     continue
 
-                        if comsize_b is None:
+                        if comsize_b is None or comsize_b == '0':
                             logger.fdebug('Size of file cannot be retrieved. Ignoring size-comparison and continuing.')
                             #comsize_b = 0
                         else:

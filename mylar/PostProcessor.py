@@ -1658,8 +1658,8 @@ class PostProcessor(object):
                 if mylar.REPLACE_SPACES:
                     #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
-            nfilename = re.sub('[\,\:\?]', '', nfilename)
-            nfilename = re.sub('[\/]', '-', nfilename)
+            nfilename = re.sub('[\,\:\?\"\']', '', nfilename)
+            nfilename = re.sub('[\/\*]', '-', nfilename)
             self._log("New Filename: " + nfilename)
             logger.fdebug(module + ' New Filename: ' + nfilename)
 

@@ -579,11 +579,13 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
             seriesfilename = seriesfilename.encode('ascii', 'ignore').strip()
-            filebad = [':', ',', '/', '?', '!', '\''] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
+            filebad = [':', ',', '/', '?', '!', '\'', '\"', '\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
                 if dbd in seriesfilename:
-                    if dbd == '/': repthechar = '-'
-                    else: repthechar = ''
+                    if any([dbd == '/', dbd == '*']): 
+                        repthechar = '-'
+                    else:
+                        repthechar = ''
                     seriesfilename = seriesfilename.replace(dbd, repthechar)
                     logger.fdebug('Altering series name due to filenaming restrictions: ' + seriesfilename)
 
