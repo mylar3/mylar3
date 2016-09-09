@@ -85,7 +85,11 @@
                                         <td class="publisher">${weekly['PUBLISHER']}</td>
                                         <td class="comicname">
                                         %if weekly['HAVEIT'] == 'No':
-                                             ${weekly['COMIC']}
+                                             %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
+                                                 <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                             %else:
+                                                 ${weekly['COMIC']}
+                                             %endif
                                         %else:
                                              <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
                                         %endif

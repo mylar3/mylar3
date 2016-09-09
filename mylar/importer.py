@@ -1008,7 +1008,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if mylar.CVINFO:
         if not os.path.exists(comlocation + "/cvinfo"):
             with open(comlocation + "/cvinfo", "w") as text_file:
-                text_file.write("http://www.comicvine.com/volume/49-" + str(comicid))
+                text_file.write("http://comicvine.gamespot.com/volume/49-" + str(comicid))
 
     logger.info(u"Updating complete for: " + ComicName)
 

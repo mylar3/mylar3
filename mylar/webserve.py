@@ -1406,16 +1406,19 @@ class WebInterface(object):
                 logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
                 newValueDict = {"Status": "Failed"}
                 myDB.upsert("failed", newValueDict, controlValueDict)
+                if annchk == 'yes':
+                   myDB.upsert("annuals", newValueDict, controlValueDict)
+                else:
+                   myDB.upsert("issues", newValueDict, controlValueDict)
                 yield cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
                 self.failed_handling(ComicID=ComicID, IssueID=IssueID)
             else:
                 logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Skipped...")
                 newValueDict = {"Status": "Skipped"}
-
-            if annchk == 'yes':
-               myDB.upsert("annuals", newValueDict, controlValueDict)
-            else:
-               myDB.upsert("issues", newValueDict, controlValueDict)
+                if annchk == 'yes':
+                   myDB.upsert("annuals", newValueDict, controlValueDict)
+                else:
+                   myDB.upsert("issues", newValueDict, controlValueDict)
             raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
         else:
             #if ComicName is not None, then it's from the FuturePull list that we're 'unwanting' an issue.
@@ -1559,6 +1562,10 @@ class WebInterface(object):
                 else:
                     haveit = "No"
 
+                linkit = None
+                if all([weekly['ComicID'] is not None, weekly['ComicID'] != '']) and haveit == 'No':
+                    linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
+                
                 x = None
                 try:
                     x = float(weekly['ISSUE'])
@@ -1576,6 +1583,7 @@ class WebInterface(object):
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
                                            "HAVEIT":  haveit,
+                                           "LINK":    linkit,
                                            "AUTOWANT": False
                                          })
                     else:
@@ -1588,6 +1596,7 @@ class WebInterface(object):
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
                                            "HAVEIT":  haveit,
+                                           "LINK":    linkit,
                                            "AUTOWANT": True
                                          })
                         else:
@@ -1599,6 +1608,7 @@ class WebInterface(object):
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
                                            "HAVEIT":  haveit,
+                                           "LINK":    linkit,
                                            "AUTOWANT": False
                                          })
 
