@@ -1178,7 +1178,7 @@ class PostProcessor(object):
             comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             issuenzb = myDB.selectone("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid, comicid]).fetchone()
             if ml is not None and mylar.SNATCHEDTORRENT_NOTIFY:
-                snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'KAT', '32P']).fetchone()
+                snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=? OR provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'TPSE', 'DEM', 'WWT', '32P']).fetchone()
                 if snatchnzb is None:
                     logger.fdebug(module + ' Was not downloaded with Mylar and the usage of torrents. Disabling torrent manual post-processing completion notification.')
                 else:
