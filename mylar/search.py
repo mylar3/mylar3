@@ -398,8 +398,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", cm1.lower()) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
     cm = re.sub("\\bthe\\b", "", cm.lower()) # remove 'the' from the search pattern to accomodate naming differences
-    cm = re.sub(" ", "%20", str(cm))
     cm = re.sub("[\&\:\?\,]", "", str(cm))
+    cm = re.sub('\s+', ' ', cm)
+    cm = re.sub(" ", "%20", str(cm))
 
     #determine the amount of loops here
     i = 0
@@ -648,6 +649,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 if bb['feed']['error']['code'] == '910':
                                     logger.warn('DAILY API limit reached. Disabling provider usage until 12:01am')
                                     mylar.DOGNZB = 0
+                                    foundc = False
+                                    done = True
+                                else:
+                                    logger.warn('API Error. Check the error message and take action if required.')
                                     foundc = False
                                     done = True
                                 break
