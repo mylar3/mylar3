@@ -1937,9 +1937,7 @@ class PostProcessor(object):
 
             if mylar.PUSHOVER_ENABLED:
                 pushover = notifiers.PUSHOVER()
-		title = prline + " complete!";
-		message = "Mylar has downloaded and post-processed: " + prline;
-                pushover.notify(message, title, module=module)
+                pushover.notify(prline, prline2, module=module)
 
             if mylar.BOXCAR_ENABLED:
                 boxcar = notifiers.BOXCAR()

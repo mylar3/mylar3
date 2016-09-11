@@ -2371,9 +2371,8 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         nma.notify(snline=snline, snatched_nzb=nzbname, sent_to=sent_to, prov=nzbprov)
     if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
         logger.info(u"Sending Pushover notification")
-        thisline = 'Mylar has snatched: ' + nzbname + ' from ' + nzbprov + ' and has sent it to ' + sent_to
         pushover = notifiers.PUSHOVER()
-        pushover.notify(thisline, snline)
+        pushover.notify(snline, snatched_nzb=nzbname, sent_to=sent_to, prov=nzbprov)
     if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
         logger.info(u"Sending Boxcar notification")
         boxcar = notifiers.BOXCAR()

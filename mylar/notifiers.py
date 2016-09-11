@@ -154,12 +154,17 @@ class PUSHOVER:
         self._session = requests.Session()
         self._session.headers = {'Content-type': "application/x-www-form-urlencoded"}
 
-    def notify(self, message, event, module=None):
+    def notify(self, event, message=None, snatched_nzb=None, prov=None, sent_to=None, module=None):
         if not mylar.PUSHOVER_ENABLED:
             return
         if module is None:
             module = ''
         module += '[NOTIFIER]'
+
+        if snatched_nzb:
+            if snatched_nzb[-1] == '\.': 
+                snatched_nzb = snatched_nzb[:-1]
+            message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and has sent it to " + sent_to
 
         data = {'token': mylar.PUSHOVER_APIKEY,
                 'user': mylar.PUSHOVER_USERKEY,
