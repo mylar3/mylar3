@@ -2301,6 +2301,7 @@ class WebInterface(object):
         alist = myDB.select("SELECT * from readinglist WHERE ComicName is not Null group by StoryArcID") #COLLATE NOCASE")
         for al in alist:
             totalcnt = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=?", [al['StoryArcID']])
+            totalissues = myDB.select("SELECT COUNT(*) as count from readinglist WHERE StoryARcID=?", [al['StoryArcID']])
             lowyear = 9999
             maxyear = 0
             for la in totalcnt:
@@ -2321,7 +2322,7 @@ class WebInterface(object):
 
             havecnt = myDB.select("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=? AND (Status='Downloaded' or Status='Archived')", [al['StoryArcID']])
             havearc = havecnt[0][0]
-            totalarc = int(al['TotalIssues'])
+            totalarc = totalissues[0][0]
             if not havearc:
                  havearc = 0
             try:
@@ -2340,7 +2341,7 @@ class WebInterface(object):
                             "percent":     percent,
                             "Have":        havearc,
                             "SpanYears":   spanyears,
-                            "Total":       al['TotalIssues'],
+                            "Total":       totalissues[0][0],
                             "CV_ArcID":    al['CV_ArcID']})
         return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist, delete_type=0)
     storyarc_main.exposed = True
