@@ -626,17 +626,19 @@ class PostProcessor(object):
 
                                             logger.info('StoreDate ' + str(issuechk['StoreDate']))
                                             logger.info('IssueDate: ' + str(issuechk['IssueDate']))
-                                            if issuechk['StoreDate'] is not None and issuechk['StoreDate'] != '0000-00-00':
-                                                monthval = issuechk['StoreDate']
-                                                if int(issuechk['StoreDate'][:4]) < int(arcmatch['issue_year']):
-                                                    logger.fdebug(module + ' ' + str(issuechk['StoreDate']) + ' is before the issue year of ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
-                                                    datematch = "False"
-   
-                                                else:
-                                                    monthval = issuechk['IssueDate']
-                                                    if int(issuechk['IssueDate'][:4]) < int(arcmatch['issue_year']):
-                                                        logger.fdebug(module + ' ' + str(issuechk['IssueDate']) + ' is before the issue year ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
+                                            if all([issuechk['StoreDate'] is not None, issuechk['StoreDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
+                                                if issuechk['StoreDate'] == '0000-00-00':
+                                                    datevalue = issuechk['IssueDate']
+                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
                                                         datematch = "False"
+                                                else:
+                                                    datevalue = issuechk['StoreDate']
+                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year of ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
+                                                        datematch = "False"
+
+                                                monthval = datevalue
 
                                                 if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                                     issyr = int(monthval[:4]) + 1
@@ -762,7 +764,7 @@ class PostProcessor(object):
                             if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                             elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                             else: readord = str(ml['ReadingOrder'])
-                            dfilename = str(readord) + "-" + dfilename
+                            dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
                         else:
                             dfilename = dfilename
 
