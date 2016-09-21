@@ -24,7 +24,9 @@ getComic&id=$comicid (fetch artist data. returns the artist object (see above) a
 
 getIssue&id=$comicid (fetch data from album page. Returns the album object, a description object and a tracks object. Tracks contain: AlbumASIN, AlbumTitle, TrackID, Format, TrackDuration (ms), ArtistName, TrackTitle, AlbumID, ArtistID, Location, TrackNumber, CleanName (stripped of punctuation /styling), BitRate)
 
-getUpcoming (Returns: Status, AlbumASIN, DateAdded, AlbumTitle, ArtistName, ReleaseDate, AlbumID, ArtistID, Type)
+getUpcoming[&include_downloaded_issues=Y] (fetch "This Week's Upcoming". Add the &include_downloaded_issues parameter to.. include downloaded issues.
+                                           This essentially forces the results to look like they would have at the start of the week, when all of the
+                                           issues were still Wanted. Returns: Status, ComicName, IssueID, DisplayComicName, IssueNumber, IssueDate, ComicID)
 
 getWanted (Returns: Status, AlbumASIN, DateAdded, AlbumTitle, ArtistName, ReleaseDate, AlbumID, ArtistID, Type)
 

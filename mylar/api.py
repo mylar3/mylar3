@@ -160,7 +160,15 @@ class Api(object):
         return
 
     def _getUpcoming(self, **kwargs):
-        self.data = self._dic_from_query("SELECT * from upcoming WHERE IssueID is NULL order by IssueDate DESC")
+        if 'include_downloaded_issues' in kwargs and kwargs['include_downloaded_issues'].upper() == 'Y':
+            select_status_clause = "w.STATUS IN ('Wanted', 'Downloaded')"
+        else:
+            select_status_clause = "w.STATUS = 'Wanted'"
+
+        self.data = self._dic_from_query(
+            "SELECT w.COMIC AS ComicName, w.ISSUE AS IssueNumber, w.ComicID, w.IssueID, w.SHIPDATE AS IssueDate, w.STATUS AS Status, c.ComicName AS DisplayComicName \
+            FROM weekly w JOIN comics c ON w.ComicID = c.ComicID WHERE w.COMIC IS NOT NULL AND w.ISSUE IS NOT NULL AND \
+            w.weeknumber = strftime('%W', 'now') AND w.year = strftime('%Y', 'now') AND " + select_status_clause + " ORDER BY c.ComicSortName")
         return
 
     def _getWanted(self, **kwargs):
