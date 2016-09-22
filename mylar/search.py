@@ -892,8 +892,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     cleantitle = helpers.cleanName(cleantitle)
                     # this is new - if title contains a '&' in the title it will assume the filename has ended at that point
                     # which causes false positives (ie. wolverine & the x-men becomes the x-men, which matches on x-men.
+                    # handle escaped and/or possibly double escaped ampersands as well.
                     # 'the' is removed for comparisons later on
-                    if '&' in cleantitle: cleantitle = re.sub('[\&]', 'and', cleantitle)
+                    if '&' in cleantitle: cleantitle = re.sub('\&amp;(amp;)?|\&', 'and', cleantitle)
 
                     nzbname = cleantitle
 
@@ -1875,7 +1876,7 @@ def nzbname_create(provider, title=None, info=None):
         # let's change all space to decimals for simplicity
         logger.fdebug('[SEARCHER] entry[title]: ' + title)
         #gotta replace & or escape it
-        nzbname = re.sub("\&", 'and', title)
+        nzbname = re.sub('\&amp;(amp;)?|\&', 'and', title)
         nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
         nzbname = re.sub('[\(\)]', ' ', nzbname)
         logger.fdebug('[SEARCHER] nzbname (remove chars): ' + nzbname)
@@ -2085,7 +2086,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 alt_nzbname = re.sub('.nzb', '', filen).strip()
                 alt_nzbname = re.sub('[\s+]', ' ', alt_nzbname)
                 alt_nzbname = re.sub('[\s\_]', '.', alt_nzbname)
-                logger.info('filen: ' + alt_nzbname + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
+                logger.info('filen: ' + filen + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
 
             #make sure the cache directory exists - if not, create it (used for storing nzbs).
             if os.path.exists(mylar.CACHE_DIR):
