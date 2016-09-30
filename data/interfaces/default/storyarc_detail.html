@@ -41,9 +41,11 @@
                      <div class="row checkbox left clearfix">
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><br/>
                          <small>Arcs in StoryArc Directory: <% sdir = os.path.join(mylar.DESTINATION_DIR, "StoryArcs") %>${sdir}</small><br/>
+<!--
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading# to filename</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
+-->
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading# to filename</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.COPY2ARCDIR)} /><label>Copy watchlisted issues to StoryArc Directory</label>
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
                        <input type="hidden" name="StoryArcName" value="${storyarcname}">

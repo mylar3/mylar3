@@ -2182,44 +2182,46 @@ class WebInterface(object):
     def markComics(self, action=None, **args):
         myDB = db.DBConnection()
         comicsToAdd = []
-        logger.info(args)
-        for ComicID in args:
-            if ComicID == 'manage_comic_length':
+        for k,v in args.items():
+            if k == 'manage_comic_length':
                 continue
-            else:
-                for k,v in args.items():
-                    if k == 'manage_comic_length':
-                        break
-                    #k = Comicname[ComicYear]
-                    #v = ComicID
-                    comyr = k.find('[')
-                    ComicYear = re.sub('[\[\]]', '', k[comyr:]).strip()
-                    ComicName = k[:comyr].strip()
-                    ComicID = v
-                    #cid = ComicName.decode('utf-8', 'replace')
+            #k = Comicname[ComicYear]
+            #v = ComicID
+            comyr = k.find('[')
+            ComicYear = re.sub('[\[\]]', '', k[comyr:]).strip()
+            ComicName = k[:comyr].strip()
+            ComicID = v
+            #cid = ComicName.decode('utf-8', 'replace')
 
-                    if action == 'delete':
-                        logger.info('[MANAGE COMICS][DELETION] Now deleting ' + ComicName + ' (' + str(ComicYear) + ') [' + str(ComicID) + '] form the DB.')
-                        myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
-                        myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-                        logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + ComicName + '(' + str(ComicYear) + ')')
-                    elif action == 'pause':
-                        controlValueDict = {'ComicID': ComicID}
-                        newValueDict = {'Status': 'Paused'}
-                        myDB.upsert("comics", newValueDict, controlValueDict)
-                        logger.info('[MANAGE COMICS][PAUSE] ' + ComicName + ' has now been put into a Paused State.')
-                    elif action == 'resume':
-                        controlValueDict = {'ComicID': ComicID}
-                        newValueDict = {'Status': 'Active'}
-                        myDB.upsert("comics", newValueDict, controlValueDict)
-                        logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
-                    else:
-                        logger.info('appending ' + str(ComicID) + ' to refresh list.')
-                        comicsToAdd.append(ComicID)
+            if action == 'delete':
+                logger.info('[MANAGE COMICS][DELETION] Now deleting ' + ComicName + ' (' + str(ComicYear) + ') [' + str(ComicID) + '] form the DB.')
+                myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
+                myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
+                logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + ComicName + '(' + str(ComicYear) + ')')
+            elif action == 'pause':
+                controlValueDict = {'ComicID': ComicID}
+                newValueDict = {'Status': 'Paused'}
+                myDB.upsert("comics", newValueDict, controlValueDict)
+                logger.info('[MANAGE COMICS][PAUSE] ' + ComicName + ' has now been put into a Paused State.')
+            elif action == 'resume':
+                controlValueDict = {'ComicID': ComicID}
+                newValueDict = {'Status': 'Active'}
+                myDB.upsert("comics", newValueDict, controlValueDict)
+                logger.info('[MANAGE COMICS][RESUME] ' + ComicName + ' has now been put into a Resumed State.')
+            elif action == 'recheck':
+                comicsToAdd.append({'ComicID':   ComicID,
+                                    'ComicName': ComicName,
+                                    'ComicYear': ComicYear})
+            else:
+                comicsToAdd.append(ComicID)
 
         if len(comicsToAdd) > 0:
-            logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + str(len(comicsToAdd)) + ' series')
-            threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
+            if action == 'recheck':
+                logger.info('[MANAGE COMICS][RECHECK-FILES] Rechecking Files for  ' + str(len(comicsToAdd)) + ' series')
+                threading.Thread(target=self.forceRescan, args=[comicsToAdd,True]).start()
+            else:
+                logger.info('[MANAGE COMICS][REFRESH] Refreshing ' + str(len(comicsToAdd)) + ' series')
+                threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
     markComics.exposed = True
 
     def forceUpdate(self):
@@ -2234,9 +2236,16 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("home")
     forceSearch.exposed = True
 
-    def forceRescan(self, ComicID):
-        threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
-        #raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
+    def forceRescan(self, ComicID, bulk=False):
+        if bulk:
+            cnt = 1
+            for cid in ComicID:
+                logger.info('[MASS BATCH][RECHECK-FILES][' + str(cnt) + '/' + str(len(ComicID)) + '] Rechecking ' + cid['ComicName'] + '(' + str(cid['ComicYear']) + ')')
+                updater.forceRescan(cid['ComicID'])
+                cnt+=1
+            logger.info('[MASS BATCH][RECHECK-FILES] I have completed rechecking files for ' + str(len(ComicID)) + ' series.')
+        else:
+            threading.Thread(target=updater.forceRescan, args=[ComicID]).start()
     forceRescan.exposed = True
 
     def checkGithub(self):

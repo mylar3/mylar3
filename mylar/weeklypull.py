@@ -831,7 +831,11 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
     myDB = db.DBConnection()
     watchlist = []
     weeklylist = []
-    comiclist = myDB.select("SELECT * FROM comics WHERE Status='Active'")
+    if comic1off_name:
+        comiclist = myDB.select("SELECT * FROM comics WHERE Status='Active' AND ComicID=?",[comic1off_id])
+    else:
+        comiclist = myDB.select("SELECT * FROM comics WHERE Status='Active'")
+
     if comiclist is None:
         pass
     else:
@@ -926,7 +930,9 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
         ki = []
         kc = []
         otot = 0
-        logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
+        if not comic1off_id:
+            logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
+
         weekly = myDB.select('SELECT a.comicid, IFNULL(a.Comic,IFNULL(b.ComicName, c.ComicName)) as ComicName, a.rowid, a.issue, a.issueid, c.ComicPublisher, a.weeknumber, a.shipdate, a.dynamicname FROM weekly as a INNER JOIN annuals as b INNER JOIN comics as c ON b.releasecomicid = a.comicid OR c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname WHERE weeknumber = ? GROUP BY a.dynamicname', [weeknumber]) #comics INNER JOIN weekly ON comics.DynamicComicName = weekly.dynamicname OR comics.comicid = weekly.comicid INNER JOIN annuals ON annuals.comicid = weekly.comicid WHERE weeknumber = ? GROUP BY weekly.dynamicname', [weeknumber])
         for week in weekly:
             idmatch = None

@@ -565,7 +565,10 @@ def weekly_update(ComicName, IssueNumber, CStatus, CID, weeknumber, year, altiss
 
 def newpullcheck(ComicName, ComicID, issue=None):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    mylar.weeklypull.pullitcheck(comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
+    if mylar.ALT_PULL != '2':
+        mylar.weeklypull.pullitcheck(comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
+    else:
+        mylar.weeklypull.new_pullcheck(weeknumber=mylar.CURRENT_WEEKNUMBER, pullyear=mylar.CURRENT_YEAR, comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
     return
 
 def no_searchresults(ComicID):

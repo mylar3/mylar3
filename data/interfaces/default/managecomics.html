@@ -20,10 +20,11 @@
         <div id="markcomics" style="top:0;">
 		<select name="action" onChange="doAjaxCall('markComics',$(this),'table',true);" data-error="You didn't select any comics">
   			<option disabled="disabled" selected="selected">Choose...</option>
-  			<option value="pause">Pause</option>
-  			<option value="resume">Resume</option>
-  			<option value="refresh">Refresh</option>
-  			<option value="delete">Delete</option>
+  			<option value="pause">Delete Series</option>
+                        <option value="pause">Pause Series</option>
+  			<option value="recheck">Recheck Files</option>
+  			<option value="refresh">Refresh Series</option>
+  			<option value="delete">Resume Series</option>
 		</select>
 		selected comics
 		<input type="hidden" value="Go">
@@ -37,8 +38,8 @@
 				<th id="albumart"></th>
 				<th id="name">Comic Name</th>
 				<th id="status">Status</th>
-                                <th id+"stat_icon"></th>
-				<th id="latest">Latest Issue</th>
+                                <th id="stat_icon"></th>
+                                <th id="latest">Latest Issue</th>
                                 <th id="publisher">Publisher</th>
                                 <th id="have">Have</th>
 				<th id="lastupdated">Updated</th>
