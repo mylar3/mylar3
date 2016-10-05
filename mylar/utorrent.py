@@ -21,7 +21,7 @@ from hashlib import sha1
 from cStringIO import StringIO
 
 import mylar
-from mylar import logger, upload
+from mylar import logger
 
 class utorrentclient(object):
 
