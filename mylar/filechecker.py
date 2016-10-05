@@ -691,8 +691,10 @@ class FileChecker(object):
                         issue_number = re.sub('XCV', x, split_file[issue_number_position-1])
                         highest_series_pos -=1
                         issue_number_position -=1
-
-            logger.fdebug('issue verified as : ' + issue_number)
+            if issue_number is None:
+                logger.fdebug('No issue number present in filename.')
+            else:
+                logger.fdebug('issue verified as : ' + issue_number)
             issue_volume = None
             if len(volume_found) > 0:
                 issue_volume = 'v' + str(volume_found['volume'])
