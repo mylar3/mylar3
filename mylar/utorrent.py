@@ -1,29 +1,33 @@
-#  This file is part of Mylar and is adapted from Headphones.
-
-import hashlib
-import urllib
-import json
-import time
-from collections import namedtuple
-import urllib2
-import urlparse
-import cookielib
+#  This file is part of Mylar.
+#
+#  Mylar is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Mylar is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
 import os
-import mylar
-from mylar import logger
+import requests
 from bencode import bencode, bdecode
 from hashlib import sha1
+from cStringIO import StringIO
 
+import mylar
+from mylar import logger, upload
 
 class utorrentclient(object):
-    TOKEN_REGEX = "<div id='token' style='display:none;'>([^<>]+)</div>"
-    UTSetting = namedtuple("UTSetting", ["name", "int", "str", "access"])
 
-    def __init__(self, base_url=None, username=None, password=None, ):
+    def __init__(self):
 
-        host = mylar.UTORRENT_HOST
+        host = mylar.UTORRENT_HOST   #has to be in the format of URL:PORT
         if not host.startswith('http'):
             host = 'http://' + host
 
@@ -36,183 +40,111 @@ class utorrentclient(object):
         self.base_url = host
         self.username = mylar.UTORRENT_USERNAME
         self.password = mylar.UTORRENT_PASSWORD
-        self.opener = self._make_opener('uTorrent', self.base_url, self.username, self.password)
-        self.token = self._get_token()
-        # TODO refresh token, when necessary
-
-    def _make_opener(self, realm, base_url, username, password):
-        """uTorrent API need HTTP Basic Auth and cookie support for token verify."""
-        auth = urllib2.HTTPBasicAuthHandler()
-        auth.add_password(realm=realm, uri=base_url, user=username, passwd=password)
-        opener = urllib2.build_opener(auth)
-        urllib2.install_opener(opener)
-
-        cookie_jar = cookielib.CookieJar()
-        cookie_handler = urllib2.HTTPCookieProcessor(cookie_jar)
-
-        handlers = [auth, cookie_handler]
-        opener = urllib2.build_opener(*handlers)
-        return opener
+        self.utorrent_url = '%s/gui/' % (self.base_url)
+        self.auth = requests.auth.HTTPBasicAuth(self.username, self.password)
+        self.token, self.cookies = self._get_token()
 
     def _get_token(self):
-        url = urlparse.urljoin(self.base_url, 'gui/token.html')
+        TOKEN_REGEX = r'<div[^>]*id=[\"\']token[\"\'][^>]*>([^<]*)</div>'
+        utorrent_url_token = '%stoken.html' % self.utorrent_url
         try:
-            response = self.opener.open(url)
-        except urllib2.HTTPError as err:
-            logger.debug('URL: ' + str(url))
+            r = requests.get(utorrent_url_token, auth=self.auth)
+        except requests.exceptions.RequestException as err:
+            logger.debug('URL: ' + str(utorrent_url_token))
             logger.debug('Error getting Token. uTorrent responded with error: ' + str(err))
-            return
-        match = re.search(utorrentclient.TOKEN_REGEX, response.read())
-        return match.group(1)
+            return 'fail'
 
-    def list(self, **kwargs):
-        params = [('list', '1')]
-        params += kwargs.items()
-        return self._action(params)
+        token = re.search(TOKEN_REGEX, r.text).group(1)
+        guid = r.cookies['GUID']
+        cookies = dict(GUID = guid)
+        return token, cookies
 
-    def add_url(self, url):
-        # can receive magnet or normal .torrent link
-        params = [('action', 'add-url'), ('s', url)]
-        return self._action(params)
-
-    def start(self, *hashes):
-        params = [('action', 'start'), ]
-        for hash in hashes:
-            params.append(('hash', hash))
-        return self._action(params)
-
-    def stop(self, *hashes):
-        params = [('action', 'stop'), ]
-        for hash in hashes:
-            params.append(('hash', hash))
-        return self._action(params)
-
-    def pause(self, *hashes):
-        params = [('action', 'pause'), ]
-        for hash in hashes:
-            params.append(('hash', hash))
-        return self._action(params)
-
-    def forcestart(self, *hashes):
-        params = [('action', 'forcestart'), ]
-        for hash in hashes:
-            params.append(('hash', hash))
-        return self._action(params)
-
-    def getfiles(self, hash):
-        params = [('action', 'getfiles'), ('hash', hash)]
-        return self._action(params)
-
-    def getprops(self, hash):
-        params = [('action', 'getprops'), ('hash', hash)]
-        return self._action(params)
-
-    def setprops(self, hash, s, val):
-        params = [('action', 'setprops'), ('hash', hash), ("s", s), ("v", val)]
-        logger.debug('Params: ' + str(params))
-        return self._action(params)
-
-    def setprio(self, hash, priority, *files):
-        params = [('action', 'setprio'), ('hash', hash), ('p', str(priority))]
-        for file_index in files:
-            params.append(('f', str(file_index)))
-
-        return self._action(params)
-
-    def get_settings(self, key=None):
-        params = [('action', 'getsettings'), ]
-        status, value = self._action(params)
-        settings = {}
-        for args in value['settings']:
-            settings[args[0]] = self.UTSetting(*args)
-        if key:
-            return settings[key]
-        return settings
-
-    def remove(self, hash, remove_data=False):
-        if remove_data:
-            params = [('action', 'removedata'), ('hash', hash)]
-        else:
-            params = [('action', 'remove'), ('hash', hash)]
-        return self._action(params)
-
-    def _action(self, params, body=None, content_type=None):
-
-        if not self.token:
-            return
-
-        url = self.base_url + '/gui/' + '?token=' + self.token + '&' + urllib.urlencode(params)
-        request = urllib2.Request(url)
-
-        if body:
-            request.add_data(body)
-            request.add_header('Content-length', len(body))
-        if content_type:
-            request.add_header('Content-type', content_type)
-
+    def addfile(self, filepath=None, filename=None, bytes=None):
+        params = {'action': 'add-file', 'token': self.token}
         try:
-            response = self.opener.open(request)
-            return response.code, json.loads(response.read())
-        except urllib2.HTTPError as err:
-            logger.debug('URL: ' + str(url))
-            logger.debug('uTorrent webUI raised the following error: ' + str(err))
+            d = open(filepath, 'rb')
+            tordata = d.read()
+            d.close()
+        except:
+            logger.warn('Unable to load torrent file. Aborting at this time.')
+            return 'fail'
+
+        files = {'torrent_file': tordata}
+        try:
+            r = requests.post(url=self.utorrent_url, auth=self.auth, cookies=self.cookies, params=params, files=files)
+        except requests.exceptions.RequestException as err:
+            logger.debug('URL: ' + str(self.utorrent_url))
+            logger.debug('Error sending to uTorrent Client. uTorrent responded with error: ' + str(err))
+            return 'fail'
 
 
-def labelTorrent(hash):
-    label = mylar.UTORRENT_LABEL
-    uTorrentClient = utorrentclient()
-    if label:
-        uTorrentClient.setprops(hash, 'label', str(label))
+        # (to-do) verify the hash in order to ensure it's loaded here
+        if str(r.status_code) == '200':
+            logger.info('Successfully added torrent to uTorrent client.')
+            if mylar.UTORRENT_LABEL:
+                try:
+                    hash = self.calculate_torrent_hash(data=tordata)
+                    self.setlabel(hash)
+                except:
+                    logger.warn('Unable to set label for torrent.')
 
+            return 'pass'
+        else:
+            return 'fail'
 
-def removeTorrent(hash, remove_data=False):
-    uTorrentClient = utorrentclient()
-    status, torrentList = uTorrentClient.list()
-    torrents = torrentList['torrents']
-    for torrent in torrents:
-        if torrent[0].upper() == hash.upper():
-            if torrent[21] == 'Finished':
-                logger.info('%s has finished seeding, removing torrent and data' % torrent[2])
-                uTorrentClient.remove(hash, remove_data)
-                return True
+    def setlabel(self, hash):
+        params = {'token': self.token, 'action': 'setprops', 'hash': hash, 's': 'label', 'v': str(mylar.UTORRENT_LABEL)}
+        r = requests.post(url=self.utorrent_url, auth=self.auth, cookies=self.cookies, params=params)
+        if str(r.status_code) == '200':
+            logger.info('label ' + str(mylar.UTORRENT_LABEL) + ' successfully applied')
+        else:
+            logger.info('Unable to label torrent')
+        return
+
+    def calculate_torrent_hash(link=None, filepath=None, data=None):
+        thehash = None
+        if not link:
+            if filepath:
+                torrent_file = open(filepath, "rb")
+                metainfo = bdecode(torrent_file.read())
             else:
-                logger.info(
-                    '%s has not finished seeding yet, torrent will not be removed, will try again on next run' %
-                    torrent[2])
-                return False
-    return False
+                metainfo = bdecode(data)
+            info = metainfo['info']
+            thehash = hashlib.sha1(bencode(info)).hexdigest().upper()
+            logger.info('Hash: ' + thehash)
+        else:
+            if link.startswith("magnet:"):
+                torrent_hash = re.findall("urn:btih:([\w]{32,40})", link)[0]
+                if len(torrent_hash) == 32:
+                    torrent_hash = b16encode(b32decode(torrent_hash)).lower()
+                thehash = torrent_hash.upper()
 
+        if thehash is None:
+            logger.warn('Cannot calculate torrent hash without magnet link or data')
 
-def setSeedRatio(hash, ratio):
-    uTorrentClient = utorrentclient()
-    uTorrentClient.setprops(hash, 'seed_override', '1')
-    if ratio != 0:
-        uTorrentClient.setprops(hash, 'seed_ratio', ratio * 10)
-    else:
-        # TODO passing -1 should be unlimited
-        uTorrentClient.setprops(hash, 'seed_ratio', -10)
+        return thehash
 
-def addTorrent(link):
-    uTorrentClient = utorrentclient()
-    uTorrentClient.add_url(link)
+# not implemented yet #
+#    def load_torrent(self, filepath):
+#        start = bool(mylar.UTORRENT_STARTONLOAD)
 
+#        logger.info('filepath to torrent file set to : ' + filepath)
+#
+#        torrent = self.addfile(filepath, verify_load=True)
+         #torrent should return the hash if it's valid and loaded (verify_load checks)
+#        if not torrent:
+#            return False
 
-def calculate_torrent_hash(link, data=None):
-    """
-    Calculate the torrent hash from a magnet link or data. Raises a ValueError
-    when it cannot create a torrent hash given the input data.
-    """
+#        if mylar.UTORRENT_LABEL:
+#            self.setlabel(torrent)
+#            logger.info('Setting label for torrent to : ' + mylar.UTORRENT_LABEL)
 
-    if link.startswith("magnet:"):
-        torrent_hash = re.findall("urn:btih:([\w]{32,40})", link)[0]
-        if len(torrent_hash) == 32:
-            torrent_hash = b16encode(b32decode(torrent_hash)).lower()
-    elif data:
-        info = bdecode(data)["info"]
-        torrent_hash = sha1(bencode(info)).hexdigest()
-    else:
-        raise ValueError("Cannot calculate torrent hash without magnet link " \
-                         "or data")
-    logger.debug("Torrent hash: " + torrent_hash)
-    return torrent_hash.upper()
-    
+#        logger.info('Successfully loaded torrent.')
+
+#        #note that if set_directory is enabled, the torrent has to be started AFTER it's loaded or else it will give chunk errors and not seed
+#        if start:
+#            logger.info('[' + str(start) + '] Now starting torrent.')
+#            torrent.start()
+#        else:
+#            logger.info('[' + str(start) + '] Not starting torrent due to configuration setting.')
+#        return True

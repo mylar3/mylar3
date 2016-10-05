@@ -261,7 +261,7 @@ class PostProcessor(object):
                 alt_db = myDB.select("SELECT * FROM Comics WHERE AlternateSearch != 'None'")
                 if alt_db is not None:
                     for aldb in alt_db:
-                        as_d = filechecker.FileChecker(AlternateSearch=aldb['AlternateSearch'].decode('utf-8'))
+                        as_d = filechecker.FileChecker(AlternateSearch=helpers.conversion(aldb['AlternateSearch']))
                         as_dinfo = as_d.altcheck()
                         alt_list.append({'AS_Alt':   as_dinfo['AS_Alt'],
                                          'AS_Tuple': as_dinfo['AS_Tuple'],
@@ -270,8 +270,8 @@ class PostProcessor(object):
                 manual_list = []
 
                 for fl in filelist['comiclist']:
-                    as_d = filechecker.FileChecker()#watchcomic=fl['series_name'].decode('utf-8'))
-                    as_dinfo = as_d.dynamic_replace(fl['series_name'])
+                    as_d = filechecker.FileChecker()
+                    as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
                     mod_seriesname = as_dinfo['mod_seriesname']
                     loopchk = []
                     for x in alt_list:
@@ -279,6 +279,8 @@ class PostProcessor(object):
                         for ab in x['AS_Alt']:
                             tmp_ab = re.sub(' ', '', ab)
                             tmp_mod_seriesname = re.sub(' ', '', mod_seriesname)
+                            logger.info(tmp_mod_seriesname)
+                            logger.info(tmp_ab.lower)
                             if re.sub('\|', '', tmp_mod_seriesname.lower()).strip() == re.sub('\|', '', tmp_ab.lower()).strip():
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
@@ -494,9 +496,9 @@ class PostProcessor(object):
 
                                     if datematch == 'True':
                                         if watchmatch['sub']:
-                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename'].decode('utf-8'))
+                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
                                         else:
-                                            clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename'].decode('utf-8'))
+                                            clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
                                         manual_list.append({"ComicLocation":   clocation,
                                                             "ComicID":         cs['ComicID'],
                                                             "IssueID":         issuechk['IssueID'],
@@ -509,7 +511,7 @@ class PostProcessor(object):
                                     logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                     continue
                                 #ccnt+=1
-                        logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + fl['comicfilename'].decode('utf-8'))
+                        logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                         break
 
                 logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything and will be ignored.')
@@ -522,8 +524,8 @@ class PostProcessor(object):
                     #mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
                     #arc_series = myDB.select("SELECT * FROM readinglist WHERE ComicName LIKE?", [fl['series_name']]) # by StoryArcID")
 
-                    as_d = filechecker.FileChecker(watchcomic=fl['series_name'].decode('utf-8'))
-                    as_dinfo = as_d.dynamic_replace(fl['series_name'])
+                    as_d = filechecker.FileChecker()
+                    as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
                     mod_seriesname = as_dinfo['mod_seriesname']
                     arcloopchk = []
                     for x in alt_list:
@@ -672,9 +674,9 @@ class PostProcessor(object):
                                                         passit = True
                                                 if passit == False:
                                                     if arcmatch['sub']:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], arcmatch['comicfilename'].decode('utf-8'))
+                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], helpers.conversion(arcmatch['comicfilename']))
                                                     else:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['comicfilename'].decode('utf-8'))
+                                                        clocation = os.path.join(arcmatch['comiclocation'], helpers.conversion(arcmatch['comicfilename']))
                                                     logger.info('[' + k + ' #' + issuechk['IssueNumber'] + '] MATCH: ' + clocation + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
                                                     manual_arclist.append({"ComicLocation":   clocation,
                                                                            "ComicID":         v[i]['WatchValues']['ComicID'],

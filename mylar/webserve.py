@@ -1763,7 +1763,6 @@ class WebInterface(object):
     filterpull.exposed = True
 
     def manualpull(self,weeknumber=None,year=None):
-        from mylar import weeklypull
         if weeknumber:
             #threading.Thread(target=mylar.locg.locg,args=[None,weeknumber,year]).start()
             mylar.locg.locg(weeknumber=weeknumber,year=year)
@@ -1774,7 +1773,6 @@ class WebInterface(object):
     manualpull.exposed = True
 
     def pullrecreate(self):
-        from mylar import weeklypull
         myDB = db.DBConnection()
         myDB.action("DROP TABLE weekly")
         mylar.dbcheck()
@@ -1842,13 +1840,16 @@ class WebInterface(object):
 #                if int(tmpdate) >= int(timenow) and int(tmpdate) == int(pulldate): #int(pulldate) <= int(timenow):
                 mylar.WANTED_TAB_OFF = False
                 try:
-                    ab = upc['weeknumber']
-                    bc = upc['year']
+                    ab = int(upc['weeknumber'])
+                    bc = int(upc['year'])
                 except TypeError:
-                    logger.warn('Weekly Pull hasn\'t finished being generated as of yet (or has yet to initialize). Try to wait a few seconds more to accomodate processing.')
+                    logger.warn('Weekly Pull hasn\'t finished being generated as of yet (or has yet to initialize). Try to wait up to a minute to accomodate processing.')
                     mylar.WANTED_TAB_OFF = True
-                    return
-                    
+                    myDB.action("DROP TABLE weekly")
+                    mylar.dbcheck()
+                    logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+                    forcecheck = 'yes'
+                    return threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
                     
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
                     if upc['Status'] == 'Wanted':
@@ -3216,6 +3217,10 @@ class WebInterface(object):
                 mylar.IMPORTBUTTON = True   #globally set it to ON after the scan so that it will be picked up.
                 mylar.IMPORT_STATUS = 'Import completed.'
                 break
+            else:
+                yield ckh[0]['result']
+                mylar.IMPORTBUTTON = False
+                break
         return
     ThreadcomicScan.exposed = True
 
@@ -3254,10 +3259,8 @@ class WebInterface(object):
     importResults.exposed = True
 
     def ImportFilelisting(self, comicname, dynamicname, volume):
-        if type(comicname) != unicode:
-            comicname = urllib.unquote(comicname).decode('utf-8')
-        if type(dynamicname) != unicode:
-            dynamicname = urllib.unquote(dynamicname).decode('utf-8')
+        comicname = urllib.unquote_plus(helpers.econversion(comicname))
+        dynamicname = helpers.econversion(urllib.unquote_plus(dynamicname)) #urllib.unquote(dynamicname).decode('utf-8')
         myDB = db.DBConnection()
         if volume is None or volume == 'None':
             results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[dynamicname])
@@ -3269,9 +3272,9 @@ class WebInterface(object):
         filelisting = '<table width="500"><tr><td>'
         filelisting += '<center><b>Files that have been scanned in for:</b></center>'
         if volume is None or volume == 'None':
-            filelisting += '<center><b>' + re.sub('\+', ' ', comicname) + '</b></center></td></tr><tr><td>'
+            filelisting += '<center><b>' + comicname + '</b></center></td></tr><tr><td>'
         else:
-            filelisting += '<center><b>' + re.sub('\+', ' ', comicname) + ' [' + str(volume) + ']</b></center></td></tr><tr><td>'
+            filelisting += '<center><b>' + comicname + ' [' + str(volume) + ']</b></center></td></tr><tr><td>'
         #filelisting += '<div style="height:300px;overflow:scroll;overflow-x:hidden;">'
         filelisting += '<div style="display:inline-block;overflow-y:auto:overflow-x:hidden;">'
         cnt = 0
@@ -3601,7 +3604,7 @@ class WebInterface(object):
 
                 if volume is None or volume == 'None':
                     ctrlVal = {"DynamicName": DynamicName,
-                                   "ComicName":   ComicName}
+                               "ComicName":   ComicName}
                 else:
                     ctrlVal = {"DynamicName": DynamicName,
                                "ComicName":   ComicName,
@@ -3682,6 +3685,10 @@ class WebInterface(object):
                     self.addbyid(sr['comicid'], calledby=True, imported=imported, ogcname=ogcname)  #imported=yes)
                 else:
                     logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
+                    #force the status here just in case
+                    newVal = {'SRID':     SRID,
+                              'Status':   'Manual Intervention'}
+                    myDB.upsert("importresults", newVal, ctrlVal)
 
         mylar.IMPORTLOCK = False
         logger.info('[IMPORT] Initial Import complete (I might still be populating the series data).')
@@ -4842,21 +4849,41 @@ class WebInterface(object):
            return
         else:
             rp = test.RTorrent()
-            torrent_info = rp.main(torrent_hash)
+            torrent_info = rp.main(torrent_hash, check=True)
 
-        if torrent_info['completed']:
+        if torrent_info:
+            torrent_name = torrent_info['name']
+            torrent_info['filesize'] = helpers.human_size(torrent_info['total_filesize'])
+            torrent_info['download'] = helpers.human_size(torrent_info['download_total'])
+            torrent_info['upload'] = helpers.human_size(torrent_info['upload_total'])
+            torrent_info['seedtime'] = helpers.humanize_time(amount=int(time.time()) - torrent_info['time_started'])
+
             logger.info("Client: %s", mylar.RTORRENT_HOST)
             logger.info("Directory: %s", torrent_info['folder'])
             logger.info("Name: %s", torrent_info['name'])
             logger.info("Hash: %s", torrent_info['hash'])
-            logger.info("FileSize: %s", helpers.human_size(torrent_info['total_filesize']))
+            logger.info("FileSize: %s", torrent_info['filesize'])
             logger.info("Completed: %s", torrent_info['completed'])
-            logger.info("Downloaded: %s", helpers.human_size(torrent_info['download_total']))
-            logger.info("Uploaded: %s", helpers.human_size(torrent_info['upload_total']))
+            logger.info("Downloaded: %s", torrent_info['download'])
+            logger.info("Uploaded: %s", torrent_info['upload'])
             logger.info("Ratio: %s", torrent_info['ratio'])
+            logger.info("Seeding Time: %s", torrent_info['seedtime'])
 
             if torrent_info['label']:
                 logger.info("Torrent Label: %s", torrent_info['label'])
+
+            ti = '<table><tr><td>'
+            ti += '<center><b>' + torrent_name + '</b></center></br>'
+            ti += '<center>' + torrent_info['hash'] + '</center>'
+            ti += '<tr><td><center>Filesize: ' + torrent_info['filesize'] + '</center></td></tr>'
+            ti += '<tr><td><center>' + torrent_info['download'] + ' DOWN / ' + torrent_info['upload'] + ' UP</center></td></tr>'
+            ti += '<tr><td><center>Ratio: ' + str(torrent_info['ratio']) + '</center></td></tr>'
+            ti += '<tr><td><center>Seedtime: ' + torrent_info['seedtime'] + '</center></td</tr>'
+            ti += '</table>'
+        else:
+            torrent_name = 'Not Found'
+            ti = 'Torrent not found (' + str(torrent_hash)
+        return ti
 
     torrentit.exposed = True
 
@@ -4877,5 +4904,6 @@ class WebInterface(object):
         import auth32p
         p = auth32p.info32p(test=True)
         rtnvalues = p.authenticate()
+        logger.info('32p return values: ' + str(rtnvalues))
         return rtnvalues
     test_32p.exposed = True

@@ -1918,7 +1918,7 @@ def torrent_create(site, linkid, alt=None):
         else:
             url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
     elif site == 'DEM':
-        url = 'https://www.demonoid.pw/files/download/' + str(linkid) + '/'
+        url = 'https://www.demonoid.cc/files/download/' + str(linkid) + '/'
     elif site == 'WWT':
         url = 'https://worldwidetorrents.eu/download.php'
 
@@ -1955,7 +1955,7 @@ def parse_32pfeed(rssfeedline):
 
     return KEYS_32P
 
-def humanize_time(self, amount, units = 'seconds'):
+def humanize_time(amount, units = 'seconds'):
 
     def process_time(amount, units):
 
@@ -2095,6 +2095,13 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
     issues['valid'] = valid
     return issues
 
+def conversion(value):
+    if type(value) == str:
+        try:
+            value = value.decode('utf-8')
+        except:
+            value = value.decode('windows-1252')
+    return value
 
 #def file_ops(path,dst):
 #    # path = source path + filename

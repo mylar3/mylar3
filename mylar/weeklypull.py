@@ -57,6 +57,7 @@ def pullit(forcecheck=None):
     #PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
     PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
     newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
+    mylar.PULLBYFILE = None
 
     if mylar.ALT_PULL == 1:
         #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.')
@@ -75,10 +76,12 @@ def pullit(forcecheck=None):
 
         else:
             logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
-            f= urllib.urlretrieve(PULLURL, newrl)
+            urllib.urlretrieve(PULLURL, newrl)
+            mylar.PULLBYFILE = True
     else:
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
-        f = urllib.urlretrieve(PULLURL, newrl)
+        urllib.urlretrieve(PULLURL, newrl)
+        mylar.PULLBYFILE = True
 
         #set newrl to a manual file to pull in against that particular file
         #newrl = '/mylar/tmp/newreleases.txt'
@@ -86,7 +89,7 @@ def pullit(forcecheck=None):
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
 
-    if mylar.ALT_PULL != 2:
+    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         newfl = os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt')
 
         newtxtfile = open(newfl, 'wb')
@@ -386,7 +389,7 @@ def pullit(forcecheck=None):
                             dupefound = "no"
 
                     #-- remove html tags when alt_pull is enabled
-                    if mylar.ALT_PULL:
+                    if mylar.ALT_PULL == 1:
                         if '&amp;' in comicnm:
                             comicnm = re.sub('&amp;', '&', comicnm).strip()
                         if '&amp;' in pub:
@@ -423,7 +426,7 @@ def pullit(forcecheck=None):
 
         newtxtfile.close()
 
-        if pulldate == '00000000' and mylar.ALT_PULL != 2:
+        if all([pulldate == '00000000', mylar.ALT_PULL != 2]) or mylar.PULLBYFILE is True:
             pulldate = shipdate
 
         try:
@@ -471,7 +474,7 @@ def pullit(forcecheck=None):
 
         logger.info(u"Weekly Pull List successfully loaded.")
 
-    if mylar.ALT_PULL != 2:
+    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         pullitcheck(forcecheck=forcecheck)
 
 def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):

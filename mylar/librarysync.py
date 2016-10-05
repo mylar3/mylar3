@@ -41,7 +41,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
     if not os.path.isdir(dir):
         logger.warn('Cannot find directory: %s. Not scanning' % dir.decode(mylar.SYS_ENCODING, 'replace'))
-        return
+        return "Fail"
 
 
     logger.info('Scanning comic directory: %s' % dir.decode(mylar.SYS_ENCODING, 'replace'))
@@ -421,8 +421,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
 
             logger.fdebug('[' + mod_series + '] Adding to the import-queue!')
-            isd = filechecker.FileChecker(watchcomic=mod_series.decode('utf-8'))
-            is_dyninfo = isd.dynamic_replace(mod_series)
+            isd = filechecker.FileChecker()
+            is_dyninfo = isd.dynamic_replace(helpers.conversion(mod_series))
             logger.fdebug('Dynamic-ComicName: ' + is_dyninfo['mod_seriesname'])
 
             #impid = dispname + '-' + str(result_comyear) + '-' + str(comiss) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
@@ -464,7 +464,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 "issuenumber": issuenumber, #issuenumber,
                 "volume": issuevolume,
                 "comfilename": comfilename,
-                "comlocation": comlocation.decode(mylar.SYS_ENCODING)
+                "comlocation": helpers.conversion(comlocation)
                                       })
         cnt+=1
     #logger.fdebug('import_by_ids: ' + str(import_by_comicids))
@@ -588,9 +588,16 @@ def scanLibrary(scan=None, queue=None):
         except Exception, e:
             logger.error('[IMPORT] Unable to complete the scan: %s' % e)
             mylar.IMPORT_STATUS = None
-            return
+            valreturn.append({"somevalue":  'self.ie',
+                              "result":     'error'})
+            return queue.put(valreturn)
         if soma == "Completed":
             logger.info('[IMPORT] Sucessfully completed import.')
+        elif soma == "Fail":
+            mylar.IMPORT_STATUS = 'Failure'
+            valreturn.append({"somevalue":  'self.ie',
+                              "result":     'error'})
+            return queue.put(valreturn)
         else:
             mylar.IMPORT_STATUS = 'Now adding the completed results to the DB.'
             logger.info('[IMPORT] Parsing/Reading of files completed!')
@@ -613,55 +620,37 @@ def scanLibrary(scan=None, queue=None):
                     #these all have related ComicID/IssueID's...just add them as is.
                     controlValue = {"impID":        ghi['impid']}
                     newValue = {"Status":           "Not Imported",
-                                "ComicName":        i['ComicName'],
-                                "DisplayName":      i['ComicName'],
-                                "DynamicName":      nspace_dynamicname,
+                                "ComicName":        helpers.conversion(i['ComicName']),
+                                "DisplayName":      helpers.conversion(i['ComicName']),
+                                "DynamicName":      helpers.conversion(nspace_dynamicname),
                                 "ComicID":          i['ComicID'],
                                 "IssueID":          i['IssueID'],
-                                "IssueNumber":      i['Issue_Number'],
+                                "IssueNumber":      helpers.conversion(i['Issue_Number']),
                                 "Volume":           ghi['volume'],
                                 "ComicYear":        ghi['comicyear'],
-                                "ComicFilename":    ghi['comfilename'].decode('utf-8'),
-                                "ComicLocation":    ghi['comlocation'],
+                                "ComicFilename":    helpers.conversion(ghi['comfilename']),
+                                "ComicLocation":    helpres.conversion(ghi['comlocation']),
                                 "ImportDate":       helpers.today(),
                                 "WatchMatch":       None} #i['watchmatch']}
                     myDB.upsert("importresults", newValue, controlValue)
                 
             if int(soma['import_count']) > 0:
                 for ss in soma['import_by_comicids']:
-                    if type(ss['issuenumber']) == str:
-                        try:
-                            theissuenumber = ss['issuenumber'].decode('utf-8')
-                        except:
-                            theissuenumber = ss['issuenumber'].decode('windows-1252').encode('utf-8')#mylar.SYS_ENCODING)
-                            theissuenumber = unicode(theissuenumber, mylar.SYS_ENCODING)
-                    else:
-                        theissuenumber = ss['issuenumber']
-
-                    thefilename = ss['comfilename']
-                    thelocation = ss['comlocation']
-
-                    if type(ss['comfilename']) != unicode:
-                        thefilename = thefilename.decode('utf-8')
-                    if type(ss['comlocation']) != unicode:
-                        thelocation = thelocation.decode('utf-8')
 
                     nspace_dynamicname = re.sub('[\|\s]', '', ss['dynamicname'].lower()).strip()                   
-                    if type(nspace_dynamicname) != unicode:
-                        nspace_dynamicname = nspace_dynamicname.decode('utf-8')
 
                     controlValue = {"impID":        ss['impid']}
                     newValue = {"ComicYear":        ss['comicyear'],
                                 "Status":           "Not Imported",
-                                "ComicName":        ss['comicname'].decode('utf-8'),
-                                "DisplayName":      ss['displayname'].decode('utf-8'),
-                                "DynamicName":      nspace_dynamicname,
+                                "ComicName":        helpers.conversion(ss['comicname']),
+                                "DisplayName":      helpers.conversion(ss['displayname']),
+                                "DynamicName":      helpers.conversion(nspace_dynamicname),
                                 "ComicID":          ss['comicid'],  #if it's been scanned in for cvinfo, this will be the CID - otherwise it's None
                                 "IssueID":          None,
                                 "Volume":           ss['volume'],
-                                "IssueNumber":      theissuenumber,
-                                "ComicFilename":    thefilename,#.decode('utf-8'), #ss['comfilename'].encode('utf-8'),
-                                "ComicLocation":    thelocation,
+                                "IssueNumber":      helpers.conversion(ss['issuenumber']),
+                                "ComicFilename":    helpers.conversion(ss['comfilename']),
+                                "ComicLocation":    helpers.conversion(ss['comlocation']),
                                 "ImportDate":       helpers.today(),
                                 "WatchMatch":       ss['watchmatch']}
                     myDB.upsert("importresults", newValue, controlValue)

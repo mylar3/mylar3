@@ -1,3 +1,18 @@
+#  This file is part of Mylar.
+#
+#  Mylar is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Mylar is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
+
 import os
 import sys
 import re
@@ -25,13 +40,20 @@ class RTorrent(object):
             logger.error('could not connect to %s, exiting', mylar.RTORRENT_HOST)
             sys.exit(-1)
 
-    def main(self, torrent_hash=None, filepath=None):
+    def main(self, torrent_hash=None, filepath=None, check=False):
 
         torrent = self.client.find_torrent(torrent_hash)
         if torrent:
-            logger.warn("%s Torrent already exists. Not downloading at this time.", torrent_hash)
-            return
-
+            if check:
+                logger.info('Successfully located torrent %s by hash on client. Detailed statistics to follow', torrent_hash)
+            else:
+                logger.warn("%s Torrent already exists. Not downloading at this time.", torrent_hash)
+                return
+        else:
+            if check:
+                logger.warn('Unable to locate torrent with a hash value of %s', torrent_hash)
+                return
+        
         if filepath:
             loadit = self.client.load_torrent(filepath)
             if loadit:
@@ -45,6 +67,9 @@ class RTorrent(object):
             sys.exit(-1)
 
         torrent_info = self.client.get_torrent(torrent)
+        if check:
+            return torrent_info
+
         if torrent_info['completed']:
             logger.info("Directory: %s", torrent_info['folder'])
             logger.info("Name: %s", torrent_info['name'])
@@ -59,7 +84,7 @@ class RTorrent(object):
             if torrent_info['label']:
                 logger.info("Torrent Label: %s", torrent_info['label'])
 
-        logger.info(torrent_info)
+        #logger.info(torrent_info)
         return torrent_info           
 
     def get_the_hash(self, filepath):

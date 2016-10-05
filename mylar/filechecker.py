@@ -376,29 +376,16 @@ class FileChecker(object):
                                                           'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                           'validcountchk': validcountchk})
  
-                try:
-                    sf.decode('ascii')
-                except:
-                    logger.fdebug('Unicode character detected: ' + sf)
-                    if '\xbd' in sf: #.encode('utf-8'):
-                        logger.fdebug('[SPECIAL-CHARACTER ISSUE] Possible issue # : ' + sf)
-                        possible_issuenumbers.append({'number':       sf,
-                                                      'position':     split_file.index(sf),
-                                                      'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                      'validcountchk': validcountchk})
-
-                    if '\xe2' in sf:  #(maybe \u221e)
-                        logger.fdebug('[SPECIAL-CHARACTER ISSUE] Possible issue # : ' + sf)
-                        possible_issuenumbers.append({'number':       sf,
-                                                      'position':     split_file.index(sf),
-                                                      'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
-                                                      'validcountchk': validcountchk})
-
-                    #if '\xbc' in sf:
-                    #   '0.25'
-                    #if '\xbe' in sf::
-                    #   '0.75'
-
+                if sf == 'XCV':
+#  new 2016-09-19 \ attempt to check for XCV which replaces any unicode above
+                    for x in list(wrds):
+                        if x != '':
+                            tmpissue_number = re.sub('XCV', x, split_file[split_file.index(sf)])
+                    logger.info('[SPECIAL-CHARACTER ISSUE] Possible issue # : ' + tmpissue_number)
+                    possible_issuenumbers.append({'number':       sf,
+                                                  'position':     split_file.index(sf),
+                                                  'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                  'validcountchk': validcountchk})
 
                 count = None
                 found = False
@@ -676,7 +663,6 @@ class FileChecker(object):
                 else:
                     issue_number = possible_issuenumbers[0]['number']
                     issue_number_position = possible_issuenumbers[0]['position']
-                    logger.fdebug('issue verified as : ' + issue_number)
                     if highest_series_pos > possible_issuenumbers[0]['position']: highest_series_pos = possible_issuenumbers[0]['position']
 
                 if issue_number:
@@ -697,6 +683,16 @@ class FileChecker(object):
                             issue_number = fin_num
                             if highest_series_pos > fin_pos: highest_series_pos = fin_pos
 
+   #--- this is new - 2016-09-18 /account for unicode in issue number when issue number is not deteted above
+            logger.fdebug('issue_position: ' + str(issue_number_position))
+            if all([issue_number_position == highest_series_pos, 'XCV' in split_file, issue_number is None]):
+                for x in list(wrds):
+                    if x != '':
+                        issue_number = re.sub('XCV', x, split_file[issue_number_position-1])
+                        highest_series_pos -=1
+                        issue_number_position -=1
+
+            logger.fdebug('issue verified as : ' + issue_number)
             issue_volume = None
             if len(volume_found) > 0:
                 issue_volume = 'v' + str(volume_found['volume'])
@@ -759,7 +755,7 @@ class FileChecker(object):
             logger.fdebug('series title possibly: ' + series_name)
 
             #if the filename is unicoded, it won't match due to the unicode translation. Keep the unicode as well as the decoded.
-            series_name_decoded= unicodedata.normalize('NFKD', series_name.decode('utf-8')).encode('ASCII', 'ignore')
+            series_name_decoded= unicodedata.normalize('NFKD', helpers.conversion(series_name)).encode('ASCII', 'ignore')
 
             #check for annual in title(s) here.
             if mylar.ANNUALS_ON:

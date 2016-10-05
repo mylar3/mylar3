@@ -308,7 +308,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     else:
         if CV_EXcomicid['variloop'] == '99':
             mismatch = "yes"
-    if mylar.ALT_PULL != 2:
+    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         lastupdatechk = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         if lastupdatechk is None:
             pullupd = "yes"
@@ -352,7 +352,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     if issuechk is None:
         if futurepull is None:
             og_status = None
-            if mylar.ALT_PULL != 2:
+            if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
                 logger.fdebug(adjComicName + ' Issue: ' + str(IssueNumber) + ' not present in listings to mark for download...updating comic and adding to Upcoming Wanted Releases.')
                 # we need to either decrease the total issue count, OR indicate that an issue is upcoming.
                 upco_results = myDB.select("SELECT COUNT(*) FROM UPCOMING WHERE ComicID=?", [ComicID])
@@ -565,7 +565,7 @@ def weekly_update(ComicName, IssueNumber, CStatus, CID, weeknumber, year, altiss
 
 def newpullcheck(ComicName, ComicID, issue=None):
     # When adding a new comic, let's check for new issues on this week's pullist and update.
-    if mylar.ALT_PULL != '2':
+    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         mylar.weeklypull.pullitcheck(comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
     else:
         mylar.weeklypull.new_pullcheck(weeknumber=mylar.CURRENT_WEEKNUMBER, pullyear=mylar.CURRENT_YEAR, comic1off_name=ComicName, comic1off_id=ComicID, issue=issue)
@@ -1028,7 +1028,7 @@ def forceRescan(ComicID, archive=None, module=None):
                             logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = tmpfc['ComicFilename'].decode('utf-8')
+                            isslocation = helpers.conversion(tmpfc['ComicFilename'])
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
@@ -1166,7 +1166,7 @@ def forceRescan(ComicID, archive=None, module=None):
                             logger.fdebug(module + ' Matched...annual issue: ' + rescan['ComicName'] + '#' + str(reann['Issue_Number']) + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = tmpfc['ComicFilename'].decode('utf-8')
+                            isslocation = helpers.conversion(tmpfc['ComicFilename'])
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))
