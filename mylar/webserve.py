@@ -1541,6 +1541,12 @@ class WebInterface(object):
                     'next_weeknumber':    next_week,
                     'current_weeknumber': current_weeknumber}
 
+        if mylar.WEEKFOLDER_LOC is not None:
+            weekdst = mylar.WEEKFOLDER_LOC
+        else:
+            weekdst = mylar.DESTINATION_DIR
+        weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+
         logger.info(weekinfo)
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
@@ -1549,10 +1555,19 @@ class WebInterface(object):
                 logger.info('trying to repopulate to different week')
                 repoll = self.manualpull(weeknumber=weeknumber,year=year)
                 if repoll['status'] == 'success':
-                    logger.info('Successfully populated ' + str(repoll['count']) + ' issues into the pullist for the week of ' + str(weeknumber) + ', ' + str(year))
                     w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
                 else:
                     logger.warn('Problem repopulating the pullist for week ' + str(weeknumber) + ', ' + str(year))
+                    if mylar.ALT_PULL == 2:
+                        logger.warn('Attempting to repoll against legacy pullist in order to have some kind of updated listing for the week.')
+                        repoll = self.manualpull()                    
+                        if repoll['status'] == 'success':
+                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+                        else:
+                            logger.warn('Unable to populate the pull-list. Not continuing at this time (will try again in abit)')
+
+            if len(w_results) == 0:
+                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=0, weekinfo=weekinfo)
 
             watchlibrary = helpers.listLibrary()
 
@@ -1617,13 +1632,7 @@ class WebInterface(object):
 
             weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER', 'COMIC'), reverse=False)
         else:
-            return self.manualpull()
-
-        if mylar.WEEKFOLDER_LOC is not None:
-            weekdst = mylar.WEEKFOLDER_LOC
-        else:
-            weekdst = mylar.DESTINATION_DIR
-        weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+            self.manualpull()
 
         if week:
             return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=wantedcount, weekinfo=weekinfo)
@@ -1763,13 +1772,12 @@ class WebInterface(object):
     filterpull.exposed = True
 
     def manualpull(self,weeknumber=None,year=None):
-        if weeknumber:
-            #threading.Thread(target=mylar.locg.locg,args=[None,weeknumber,year]).start()
-            mylar.locg.locg(weeknumber=weeknumber,year=year)
-            raise cherrypy.HTTPRedirect("pullist?week=" + str(weeknumber) + "&year=" + str(year))
+        if all([mylar.ALT_PULL == 2, mylar.PULLBYFILE is False]) and weeknumber:
+            return mylar.locg.locg(weeknumber=weeknumber,year=year)
+            #raise cherrypy.HTTPRedirect("pullist?week=" + str(weeknumber) + "&year=" + str(year))
         else:
-            threading.Thread(target=weeklypull.pullit).start()
-            raise cherrypy.HTTPRedirect("pullist")
+            weeklypull.pullit()
+            return {'status' : 'success'}
     manualpull.exposed = True
 
     def pullrecreate(self):
@@ -2361,10 +2369,19 @@ class WebInterface(object):
         arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
         try:
             cvarcid = arcinfo[0]['CV_ArcID']
+            arcdir = helpers.filesafe(arcinfo[0]['StoryArc'])
+            if mylar.REPLACE_SPACES:
+                arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
+
+            if mylar.STORYARCDIR:
+                sdir = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
+            else:
+                logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.GRABBAG_DIR)
+                sdir = mylar.GRABBAG_DIR
         except:
             cvarcid = None
-
-        return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid)
+            sdir = mylar.GRABBAG_DIR
+        return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid, sdir=sdir)
     detailStoryArc.exposed = True
 
     def markreads(self, action=None, **args):
@@ -2637,7 +2654,8 @@ class WebInterface(object):
             if mylar.STORYARCDIR:
                 dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcdir)
             else:
-                dstloc = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
+                logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.GRABBAG_DIR)
+                dstloc = mylar.GRABBAG_DIR
 
 #            if sarc_title != arc['StoryArc']:
 
@@ -2732,7 +2750,7 @@ class WebInterface(object):
                     
                     #fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
                     #filechk = fchk.listFiles()
-                    if filelist:
+                    if filelist is not None:
                         fn = 0
                         valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
                         logger.info('valids: ' + str(valids))
@@ -4146,7 +4164,7 @@ class WebInterface(object):
 
     readlistOptions.exposed = True
 
-    def readOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, copy2arcdir=0):
+    def arcOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, copy2arcdir=0):
         mylar.READ2FILENAME = int(read2filename)
         mylar.STORYARCDIR = int(storyarcdir)
         mylar.COPY2ARCDIR = int(copy2arcdir)
@@ -4166,8 +4184,8 @@ class WebInterface(object):
         if StoryArcID is not None:
             raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (StoryArcID, StoryArcName))
         else:
-            raise cherrypy.HTTPRedirect("readlist")
-    readOptions.exposed = True
+            raise cherrypy.HTTPRedirect("storyarc_main")
+    arcOptions.exposed = True
 
 
     def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0,

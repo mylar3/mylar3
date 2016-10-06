@@ -116,7 +116,7 @@ DONATEBUTTON = True
 
 PULLNEW = None
 ALT_PULL = 0
-PULBYFILE = None
+PULLBYFILE = None
 
 LOCAL_IP = None
 EXT_IP = None
@@ -596,7 +596,7 @@ def initialize():
         GRABBAG_DIR = check_setting_str(CFG, 'General', 'grabbag_dir', '')
         if not GRABBAG_DIR:
             #default to ComicLocation
-            GRABBAG_DIR = DESTINATION_DIR
+            GRABBAG_DIR = os.path.join(DESTINATION_DIR, 'GrabBag')
         WEEKFOLDER = bool(check_setting_int(CFG, 'General', 'weekfolder', 0))
         WEEKFOLDER_LOC = check_setting_str(CFG, 'General', 'weekfolder_loc', '')
         LOCMOVE = bool(check_setting_int(CFG, 'General', 'locmove', 0))

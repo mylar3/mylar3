@@ -710,8 +710,8 @@ class PostProcessor(object):
                             logger.fdebug(module + ' Story Arc Directory set to : ' + storyarcd)
                             grdst = storyarcd
                         else:
-                            logger.fdebug(module + ' Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
-                            storyarcd = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
+                            logger.fdebug(module + ' Story Arc Directory not configured. Using grabbag directory : ' + mylar.GRABBAG_DIR)
+                            storyarcd = mylar.GRABBAG_DIR
                             grdst = storyarcd
 
                         #tag the meta.
@@ -1828,9 +1828,9 @@ class PostProcessor(object):
                             logger.fdebug(module + ' Story Arc Directory set to : ' + storyarcd)
                             grdst = storyarcd
                         else:
-                            logger.fdebug(module + ' Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
-                            storyarcd = os.path.join(mylar.DESTINATION_DIR, mylar.GRABBAG_DIR)
-                            grdst = mylar.DESTINATION_DIR
+                            logger.fdebug(module + ' Story Arc Directory not configured. Setting to grabbag directory: ' + mylar.GRABBAG_DIR)
+                            storyarcd = mylar.GRABBAG_DIR
+                            grdst = mylar.GRABBAG_DIR
 
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:

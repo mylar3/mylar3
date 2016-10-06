@@ -203,9 +203,8 @@ def pullit(forcecheck=None):
                         logger.fdebug("today: " + str(pulldate))
                         if pulldate == shipdaterep:
                             logger.info(u"No new pull-list available - will re-check again in 24 hours.")
-                            pullitcheck()
                             mylar.PULLNEW = 'no'
-                            return
+                            return pullitcheck()
                         else:
                             logger.info(u"Preparing to update to the new listing.")
                     break
@@ -795,7 +794,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                     ComicIssue = str(watchfndiss[tot -1])
                                 ComicDate = str(week['SHIPDATE'])
                                 logger.fdebug("Watchlist hit for : " + ComicName + " ISSUE: " + str(watchfndiss[tot -1]))
-
+ 
                                 # here we add to comics.latest
                                 updater.latest_update(ComicID=ComicID, LatestIssue=ComicIssue, LatestDate=ComicDate)
                                 # here we add to upcoming table...
@@ -825,7 +824,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
 
         logger.fdebug("There are " + str(otot) + " comics this week to get!")
         logger.info(u"Finished checking for comics on my watchlist.")
-    return
+    return {'status': 'success'}
 
 def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, forcecheck=None, issue=None):
     #the new pull method (ALT_PULL=2) already has the comicid & issueid (if available) present in the response that's polled by mylar.
