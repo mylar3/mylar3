@@ -243,11 +243,6 @@ class PostProcessor(object):
             if self.nzb_name == 'Manual Run':
                 logger.fdebug (module + ' Manual Run initiated')
                 #Manual postprocessing on a folder.
-                #use the nzb_folder to determine every file
-                #walk the dir,
-                #once a series name and issue are matched,
-                #write the series/issue/filename to a tuple
-                #when all done, iterate over the tuple until completion...
                 #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
                 flc = filechecker.FileChecker(self.nzb_folder, justparse=True)
                 filelist = flc.listFiles()
@@ -268,6 +263,7 @@ class PostProcessor(object):
                                          'AS_DyComicName': aldb['DynamicComicName']})
 
                 manual_list = []
+                manual_arclist = []
 
                 for fl in filelist['comiclist']:
                     as_d = filechecker.FileChecker()
@@ -279,8 +275,6 @@ class PostProcessor(object):
                         for ab in x['AS_Alt']:
                             tmp_ab = re.sub(' ', '', ab)
                             tmp_mod_seriesname = re.sub(' ', '', mod_seriesname)
-                            logger.info(tmp_mod_seriesname)
-                            logger.info(tmp_ab.lower)
                             if re.sub('\|', '', tmp_mod_seriesname.lower()).strip() == re.sub('\|', '', tmp_ab.lower()).strip():
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
@@ -510,37 +504,32 @@ class PostProcessor(object):
                                 else:
                                     logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                     continue
-                                #ccnt+=1
+
                         logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                         break
 
-                logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything and will be ignored.')
 
-                #we should setup for manual post-processing of story-arc issues here
-                #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
-                logger.fdebug(module + ' Now Checking if the issue also resides in one of the storyarc\'s that I am watching.')
-                manual_arclist = []
-                for fl in filelist['comiclist']:
-                    #mod_seriesname = '%' + re.sub(' ', '%', fl['series_name']).strip() + '%'
-                    #arc_series = myDB.select("SELECT * FROM readinglist WHERE ComicName LIKE?", [fl['series_name']]) # by StoryArcID")
+                    #we should setup for manual post-processing of story-arc issues here
+                    #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
+                    logger.fdebug(module + ' Now Checking if the issue also resides in one of the storyarc\'s that I am watching.')
+                    
+                    #as_d = filechecker.FileChecker()
+                    #as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
+                    #mod_seriesname = as_dinfo['mod_seriesname']
+                    #arcloopchk = []
+                    #for x in alt_list:
+                    #    cname = x['AS_DyComicName']
+                    #    for ab in x['AS_Alt']:
+                    #        if re.sub('[\|\s]', '', mod_seriesname.lower()).strip() in re.sub('[\|\s]', '', ab.lower()).strip():
+                    #            if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in arcloopchk):
+                    #                arcloopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
-                    as_d = filechecker.FileChecker()
-                    as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
-                    mod_seriesname = as_dinfo['mod_seriesname']
-                    arcloopchk = []
-                    for x in alt_list:
-                        cname = x['AS_DyComicName']
-                        for ab in x['AS_Alt']:
-                            if re.sub('[\|\s]', '', mod_seriesname.lower()).strip() in re.sub('[\|\s]', '', ab.lower()).strip():
-                                if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in arcloopchk):
-                                    arcloopchk.append(re.sub('[\|\s]', '', cname.lower()))
+                    ##make sure we add back in the original parsed filename here.
+                    #if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in arcloopchk):
+                    #    arcloopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
 
-                    #make sure we add back in the original parsed filename here.
-                    if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in arcloopchk):
-                        arcloopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
-
-                    tmpsql = "SELECT * FROM readinglist WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(arcloopchk)))
-                    arc_series = myDB.select(tmpsql, tuple(arcloopchk))
+                    tmpsql = "SELECT * FROM readinglist WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk))) #len(arcloopchk)))
+                    arc_series = myDB.select(tmpsql, tuple(loopchk)) #arcloopchk))
 
                     if arc_series is None:
                         logger.error(module + ' No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?')
@@ -693,8 +682,9 @@ class PostProcessor(object):
 
                             i+=1
 
+                    logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything.')
 
-
+                delete_arc = []
                 if len(manual_arclist) > 0:
                     logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found ' + str(len(manual_arclist)) + ' issues that belong to Story Arcs. Flinging them into the correct directories.')
                     for ml in manual_arclist:
@@ -789,14 +779,23 @@ class PostProcessor(object):
                             return
 
                         #tidyup old path
-                        try:
-                            pass
-                            #shutil.rmtree(self.nzb_folder)
-                        except (OSError, IOError):
-                            logger.warn(module + ' Failed to remove temporary directory - check directory and manually re-run.')
-                            return
+                        if mylar.FILE_OPTS == 'move':
+                            try:
+                                #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
+                                if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'):
+                                    tmp_folder = self.nzb_folder[:-1]
+                                else:
+                                    tmp_folder = self.nzb_folder
 
-                        logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
+                                if os.path.isdir(src_location) and src_location != tmp_folder:
+                                    if not os.listdir(src_location):
+                                        shutil.rmtree(src_location)
+                                        logger.debug(module + ' Removed temporary directory : ' + src_location)
+                                        self._log("Removed temporary directory : " + src_location)
+                            except (OSError, IOError):
+                                self._log('Failed to remove temporary directory: ' + src_location)
+                                logger.debug(module + ' Failed to remove temporary directory [' + src_location + '] - check directory and manually re-run.')
+                                return
 
                         #delete entry from nzblog table
                         #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
@@ -1113,7 +1112,7 @@ class PostProcessor(object):
                         waiting = False
                         try:
                             ctime = max(os.path.getctime(ml['ComicLocation']), os.path.getmtime(ml['ComicLocation']))
-                            if time.time() > ctime > time.time() - 15:
+                            if time.time() > ctime > time.time() - 10:
                                 time.sleep(max(time.time() - ctime, 0))
                                 waiting = True
                             else:
