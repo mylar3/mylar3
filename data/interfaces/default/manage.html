@@ -96,8 +96,8 @@
                                                <small>Rename files to configuration settings</small>
                                         </div>
                                         <br/>
-                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted.">
-                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully">
+                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted." data-error="Unable to start the scan. Check the logs.">
+                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully" data-error="Unable to save settings. Check the logs.">
                                       %if mylar.IMPORTBUTTON:
                                           <input type="button" value="Import Results Management" style="float: right;" onclick="location.href='importResults';" />
                                       %endif

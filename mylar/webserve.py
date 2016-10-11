@@ -2359,7 +2359,7 @@ class WebInterface(object):
                             "percent":     percent,
                             "Have":        havearc,
                             "SpanYears":   spanyears,
-                            "Total":       totalissues[0][0],
+                            "Total":       totalarc,
                             "CV_ArcID":    al['CV_ArcID']})
         return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist, delete_type=0)
     storyarc_main.exposed = True

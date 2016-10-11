@@ -1230,63 +1230,51 @@ def forceRescan(ComicID, archive=None, module=None):
                                 }
 
                 issID_to_ignore.append(str(iss_id))
+
                 if ANNComicID:
-#               if 'annual' in temploc.lower():
-                    #issID_to_write.append({"tableName":        "annuals",
-                    #                       "newValueDict":     newValueDict,
-                    #                       "controlValueDict": controlValueDict})
                     myDB.upsert("annuals", newValueDict, controlValueDict)
                     ANNComicID = None
                 else:
-                    #issID_to_write.append({"tableName":        "issues",
-                    #                       "valueDict":     newValueDict,
-                    #                       "keyDict": controlValueDict})
                     myDB.upsert("issues", newValueDict, controlValueDict)
             else:
                 ANNComicID = None
         fn+=1
 
-#    if len(issID_to_write) > 0:
-#        for iss in issID_to_write:
-#            logger.info('writing ' + str(iss))
-#            writethis = myDB.upsert(iss['tableName'], iss['valueDict'], iss['keyDict'])
-
-    #logger.fdebug(module + ' IssueID to ignore: ' + str(issID_to_ignore))
-
     #here we need to change the status of the ones we DIDN'T FIND above since the loop only hits on FOUND issues.
     update_iss = []
     #break this up in sequnces of 200 so it doesn't break the sql statement.
-    tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(issID_to_ignore) -1)))
-    chkthis = myDB.select(tmpsql, issID_to_ignore)
-#    chkthis = None
-    if chkthis is None:
-        pass
-    else:
-        for chk in chkthis:
-            old_status = chk['Status']
-            #logger.fdebug('old_status:' + str(old_status))
-            if old_status == "Skipped":
-                if mylar.AUTOWANT_ALL:
+    cnt = 0
+    for genlist in helpers.chunker(issID_to_ignore, 200):
+        tmpsql = "SELECT * FROM issues WHERE ComicID=? AND IssueID not in ({seq})".format(seq=','.join(['?'] *(len(genlist) -1)))
+        chkthis = myDB.select(tmpsql, genlist)
+        if chkthis is None:
+            pass
+        else:
+            for chk in chkthis:
+                a = [True for x in update_iss if str(x['IssueID']) == str(chk['IssueID'])]
+                if a is True:
+                    continue
+                old_status = chk['Status']
+                if old_status == "Skipped":
+                    if mylar.AUTOWANT_ALL:
+                        issStatus = "Wanted"
+                    else:
+                        issStatus = "Skipped"
+                elif old_status == "Archived":
+                    issStatus = "Archived"
+                elif old_status == "Downloaded":
+                    issStatus = "Archived"
+                elif old_status == "Wanted":
                     issStatus = "Wanted"
+                elif old_status == "Ignored":
+                    issStatus = "Ignored"
+                elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
+                    issStatus = "Snatched"
                 else:
                     issStatus = "Skipped"
-            elif old_status == "Archived":
-                issStatus = "Archived"
-            elif old_status == "Downloaded":
-                issStatus = "Archived"
-            elif old_status == "Wanted":
-                issStatus = "Wanted"
-            elif old_status == "Ignored":
-                issStatus = "Ignored"
-            elif old_status == "Snatched":   #this is needed for torrents, or else it'll keep on queuing..
-                issStatus = "Snatched"
-            else:
-                issStatus = "Skipped"
 
-            #logger.fdebug('[' + chk['IssueID'] + '] new status: ' + str(issStatus))
-
-            update_iss.append({"IssueID": chk['IssueID'],
-                               "Status":  issStatus})
+                update_iss.append({"IssueID": chk['IssueID'],
+                                   "Status":  issStatus})
 
     if len(update_iss) > 0:
         i = 0
@@ -1304,17 +1292,18 @@ def forceRescan(ComicID, archive=None, module=None):
     arcanns = 0
     # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
     # the loop below won't work...let's adjust :)
-    arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
-    if int(arcissues[0][0]) > 0:
-        arcfiles = arcissues[0][0]
-    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
-    if int(arcannuals[0][0]) > 0:
-        arcanns = arcannuals[0][0]
+    if havefiles == 0:
+        arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
+        if int(arcissues[0][0]) > 0:
+            arcfiles = arcissues[0][0]
+        arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
+        if int(arcannuals[0][0]) > 0:
+            arcanns = arcannuals[0][0]
 
-    if arcfiles > 0 or arcanns > 0:
-        arcfiles = arcfiles + arcanns
-        havefiles = havefiles + arcfiles
-        logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files:' + str(arcfiles))
+        if arcfiles > 0 or arcanns > 0:
+            arcfiles = arcfiles + arcanns
+            havefiles = havefiles + arcfiles
+            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files:' + str(arcfiles))
 
     ignorecount = 0
     if mylar.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status

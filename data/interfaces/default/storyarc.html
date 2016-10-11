@@ -49,7 +49,10 @@
                    <fieldset>
                      <legend>Options</legend>
                      <div class="row checkbox left clearfix">
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory (off of ComicLocationRoot)?</label>
+                         <%
+                             storyarcdest = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs')
+                         %>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label>
                      </div>
                    </fieldset>

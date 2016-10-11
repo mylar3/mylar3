@@ -2103,6 +2103,10 @@ def conversion(value):
             value = value.decode('windows-1252')
     return value
 
+def chunker(seq, size):
+    #returns a list from a large group of tuples by size (ie. for group in chunker(seq, 3))
+    return [seq[pos:pos + size] for pos in xrange(0, len(seq), size)]
+
 #def file_ops(path,dst):
 #    # path = source path + filename
 #    # dst = destination path + filename
