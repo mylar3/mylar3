@@ -72,8 +72,12 @@ class TorrentClient(object):
         return torrent.stop()
 
     def load_torrent(self, filepath):
+        if any([mylar.TRANSMISSION_DIRECTORY is None, mylar.TRANSMISSION_DIRECTORY == '', mylar.TRANSMISSION_DIRECTORY == 'None']):
+            down_dir = mylar.CHECK_FOLDER
+        else:
+            down_dir = mylar.TRANSMISSION_DIRECTORY
         torrent = self.conn.add_torrent(filepath,
-                                        download_dir=mylar.CHECK_FOLDER)
+                                        download_dir=down_dir)
 
         torrent.start()
         return self.get_torrent(torrent)
