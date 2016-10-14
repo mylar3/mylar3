@@ -1346,6 +1346,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                 issnum = u'9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                                 int_issnum = (9 * 1000) + (.5 * 1000)
+                            elif issnum == '112/113':
+                                int_issnum = (112 * 1000) + (.5 * 1000)
                             else:
                                 logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
                                 return

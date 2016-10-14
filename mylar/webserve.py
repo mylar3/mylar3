@@ -1276,16 +1276,21 @@ class WebInterface(object):
                 if dateload is None:
                     IssueDate = None
                     StoreDate = None
+                    Publisher = None
+                    SeriesYear = None
                 else:
                     IssueDate = dateload['IssueDate']
                     StoreDate = dateload['StoreDate']
-
+                    Publisher = dateload['IssuePublisher']
+                    SeriesYear = dateload['SeriesYear']
+                    
             if ComicYear is None: ComicYear = SeriesYear
-            logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
+            logger.info('Marking ' + ComicName + ' #' + ComicIssue + ' as wanted...')
+            logger.fdebug('publisher: ' + Publisher)
             controlValueDict = {"IssueArcID": IssueArcID}
             newStatus = {"Status": "Wanted"}
             myDB.upsert("readinglist", newStatus, controlValueDict)
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=None, IssueDate=IssueDate, StoreDate=StoreDate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=StoreDate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
             if foundcom  == "yes":
                 logger.info(u"Downloaded " + ComicName + " #" + ComicIssue + " (" + str(ComicYear) + ")")
                 controlValueDict = {"IssueArcID": IssueArcID}

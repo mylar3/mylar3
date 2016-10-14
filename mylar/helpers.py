@@ -1022,18 +1022,23 @@ def issuedigits(issnum):
                             int_issnum = ord(tstord.lower())
                         else:
                             while (a < len(tstord)):
-                                try:
-                                    ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
-                                except ValueError:
-                                    break
+                                ordtot += ord(tstord[a].lower())  #lower-case the letters for simplicty
                                 a+=1
                             int_issnum = (int(issno) * 1000) + ordtot
                     elif invchk == "true":
                         logger.fdebug('this does not have an issue # that I can parse properly.')
-                        int_issnum = 999999999999999
+                        return 999999999999999
                     else:
-                        logger.error(str(issnum) + 'this has an alpha-numeric in the issue # which I cannot account for.')
-                        int_issnum = 999999999999999
+                        if issnum == '9-5':
+                            issnum = u'9\xbd'
+                            logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
+                            int_issnum = (9 * 1000) + (.5 * 1000)
+                        elif issnum == '112/113':
+                            int_issnum = (112 * 1000) + (.5 * 1000)
+                        else:
+                            logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
+                            return 999999999999999
+
     return int_issnum
 
 
@@ -1691,7 +1696,7 @@ def IssueDetails(filelocation, IssueID=None):
 
     return issuedetails
 
-def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None):
+def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
     import db, logger
     myDB = db.DBConnection()
     if IssueID:
@@ -1706,8 +1711,14 @@ def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None):
         if issue is None:
             issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
             if issue is None:
-                logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
-                return None
+                if IssueArcID:
+                    issue = myDB.selectone('SELECT * FROM readlist WHERE IssueArcID=?', [IssueArcID]).fetchone()
+                    if issue is None:
+                        logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
+                        return None
+                else:
+                    logger.fdebug('Unable to locate given IssueID within the db. Assuming Issue Title is None.')
+                    return None
 
     return issue['IssueName']
 

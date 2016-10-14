@@ -808,7 +808,7 @@ def forceRescan(ComicID, archive=None, module=None):
         comiccnt = int(tmpval['comiccount'])
         logger.fdebug(module + 'comiccnt is:' + str(comiccnt))
         fca.append(tmpval)
-        if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])) != rescan['ComicLocation']:
+        if all([mylar.MULTIPLE_DEST_DIRS is not None, mylar.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])) != rescan['ComicLocation'], os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation'])))]):
             logger.fdebug(module + 'multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
             logger.fdebug(module + 'dir: ' + rescan['ComicLocation'])
             logger.fdebug(module + 'os.path.basename: ' + os.path.basename(rescan['ComicLocation']))
@@ -930,7 +930,6 @@ def forceRescan(ComicID, archive=None, module=None):
                 fnd_iss_except = 'None'
 
                 fcdigit = helpers.issuedigits(temploc)
-
                 if int(fcdigit) == int_iss:
                     logger.fdebug(module + ' [' + str(reiss['IssueID']) + '] Issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
 

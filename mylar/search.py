@@ -56,7 +56,12 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if Publisher == 'IDW Publishing':
             Publisher = 'IDW'
         logger.fdebug('Publisher is : ' + Publisher)
-    issuetitle = helpers.get_issue_title(IssueID)
+
+    if IssueArcID and not IssueID:
+        issuetitle = helpers.get_issue_title(IssueArcID)
+    else:
+        issuetitle = helpers.get_issue_title(IssueID)
+
     if issuetitle:
         logger.info('Issue Title given as : ' + issuetitle)
     else:
@@ -1934,7 +1939,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #one-off information
             logger.fdebug("ComicName: " + ComicName)
             logger.fdebug("Issue: " + str(IssueNumber))
-            logger.fdebug("Year: " + str(ComicYear))
+            logger.fdebug("Year: " + str(comyear))
             logger.fdebug("IssueDate:" + str(IssueDate))
         logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + IssueNumber + " using " + str(tmpprov))
 

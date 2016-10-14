@@ -190,6 +190,54 @@ class PostProcessor(object):
                 logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
                 return True
 
+    def tidyup(self, odir=None, del_nzbdir = False):
+            # del_nzbdir will remove the original directory location. Must be set to False for manual pp or else will delete manual dir that's provided (if empty).
+            # move = cleanup/delete original location (self.nzb_folder) AND cache location (odir) if metatagging is enabled.
+            # copy = cleanup/delete cache location (odir) only if enabled.
+            #tidyup old path
+            try:
+                logger.fdebug('File Option: ' + mylar.FILE_OPTS + '[META-ENABLED: ' + str(mylar.ENABLE_META) + ']')
+                logger.fdebug('odir: ' + odir + '[self.nzb_folder: ' + self.nzb_folder + ']')
+                #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
+                if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'):
+                    tmp_folder = self.nzb_folder[:-1]
+                else:
+                    tmp_folder = self.nzb_folder
+
+                if os.path.isdir(odir) and odir != tmp_folder:
+                    # check to see if the directory is empty or not.
+                    if mylar.FILE_OPTS == 'move' and del_nzbdir is True:
+                        if not os.listdir(tmp_folder):
+                            logger.fdebug(self.module + ' Tidying up. Deleting original folder location : ' + tmp_folder)
+                            shutil.rmtree(tmp_folder)
+                            self._log("Removed temporary directory : " + tmp_folder)
+                        else:
+                            self._log('Failed to remove temporary directory: ' + tmp_folder)
+                            raise OSError(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+
+                    if mylar.ENABLE_META:
+                        #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
+                        #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
+                        for filename in os.listdir(odir):
+                            filepath = os.path.join(odir, filename)
+                            try:
+                                os.remove(filepath)
+                            except OSError:
+                                pass
+
+                        if not os.listdir(odir):
+                            logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
+                            shutil.rmtree(odir)
+                            self._log("Removed temporary directory : " + odir)
+                        else:
+                            self._log('Failed to remove temporary directory: ' + odir)
+                            raise OSError(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
+
+            except (OSError, IOError):
+                logger.fdebug(self.module + ' Failed to remove directory - Processing will continue, but manual removal is necessary')
+                self._log('Failed to remove temporary directory')
+
+
     def Process(self):
             module = self.module
             self._log("nzb name: " + self.nzb_name)
@@ -779,23 +827,8 @@ class PostProcessor(object):
                             return
 
                         #tidyup old path
-                        if mylar.FILE_OPTS == 'move':
-                            try:
-                                #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
-                                if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'):
-                                    tmp_folder = self.nzb_folder[:-1]
-                                else:
-                                    tmp_folder = self.nzb_folder
-
-                                if os.path.isdir(src_location) and src_location != tmp_folder:
-                                    if not os.listdir(src_location):
-                                        shutil.rmtree(src_location)
-                                        logger.debug(module + ' Removed temporary directory : ' + src_location)
-                                        self._log("Removed temporary directory : " + src_location)
-                            except (OSError, IOError):
-                                self._log('Failed to remove temporary directory: ' + src_location)
-                                logger.debug(module + ' Failed to remove temporary directory [' + src_location + '] - check directory and manually re-run.')
-                                return
+                        if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                            self.tidyup(src_location, True)
 
                         #delete entry from nzblog table
                         #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
@@ -1046,27 +1079,8 @@ class PostProcessor(object):
                             return
 
                         #tidyup old path
-                        if mylar.FILE_OPTS == 'move':
-                            try:
-                                #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
-                                if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'):
-                                    tmp_folder = self.nzb_folder[:-1]
-                                else:
-                                    tmp_folder = self.nzb_folder
-
-                                if os.path.isdir(src_location) and odir != tmp_folder:
-                                    if not os.listdir(src_location):
-                                        shutil.rmtree(src_location)
-                                        logger.debug(module + ' Removed temporary directory : ' + src_location)
-                                        self._log("Removed temporary directory : " + src_location)
-                                    if not os.listdir(self.nzb_folder):
-                                        shutil.rmtree(self.nzb_folder)
-                                        logger.debug(module + ' Removed temporary directory : ' + self.nzb_folder)
-                                        self._log("Removed temporary directory : " + self.nzb_folder)
-                            except (OSError, IOError):
-                                self._log("Failed to remove temporary directory.")
-                                logger.debug(module + ' Failed to remove temporary directory - check directory and manually re-run.')
-                                return
+                        if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                            self.tidyup(src_location, True)
 
                         #delete entry from nzblog table
                         myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -1717,19 +1731,9 @@ class PostProcessor(object):
                     return self.queue.put(self.valreturn)
 
                 #tidyup old path
-                if mylar.FILE_OPTS == 'move':
-                    try:
-                        shutil.rmtree(self.nzb_folder)
-                    except (OSError, IOError):
-                        self._log("Failed to remove temporary directory - check directory and manually re-run.")
-                        self._log("Post-Processing ABORTED.")
-                        logger.warn(module + ' Failed to remove temporary directory : ' + self.nzb_folder)
-                        logger.warn(module + ' Post-Processing ABORTED')
-                        self.valreturn.append({"self.log": self.log,
-                                               "mode": 'stop'})
-                        return self.queue.put(self.valreturn)
-                    self._log("Removed temporary directory : " + self.nzb_folder)
-                    logger.fdebug(module + ' Removed temporary directory : ' + self.nzb_folder)
+                if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                    self.tidyup(del_nzbdir=True)                    
+
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
                 downtype = 'PP'
@@ -1756,25 +1760,8 @@ class PostProcessor(object):
                     return self.queue.put(self.valreturn)
                 logger.info(module + ' ' + mylar.FILE_OPTS + ' successful to : ' + dst)
 
-                if mylar.FILE_OPTS == 'move':
-                    #tidyup old path
-                    try:
-                        #make sure we don't delete the directory passed via manual-pp and ajust for trailling slashes or not
-                        if self.nzb_folder.endswith('/') or self.nzb_folder.endswith('\\'): 
-                            tmp_folder = self.nzb_folder[:-1]
-                        else:
-                            tmp_folder = self.nzb_folder
-                        if os.path.isdir(odir) and odir != tmp_folder:
-                            # check to see if the directory is empty or not.
-                            if not os.listdir(odir):
-                                logger.fdebug(module + ' Tidying up. Deleting folder : ' + odir)
-                                shutil.rmtree(odir)
-                            else:
-                                raise OSError(module + ' ' + odir + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be removed manually.')
-                        else:
-                            raise OSError(module + ' ' + odir + ' unable to remove at this time.')
-                    except (OSError, IOError):
-                        logger.fdebug(module + ' Failed to remove temporary directory (' + odir + ') - Processing will continue, but manual removal is necessary')
+                if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                    self.tidyup(odir, False)
 
             #Hopefully set permissions on downloaded file
             if mylar.OS_DETECT != 'windows':
