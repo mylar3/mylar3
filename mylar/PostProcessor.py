@@ -1732,7 +1732,7 @@ class PostProcessor(object):
 
                 #tidyup old path
                 if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
-                    self.tidyup(del_nzbdir=True)                    
+                    self.tidyup(odir, True)
 
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
