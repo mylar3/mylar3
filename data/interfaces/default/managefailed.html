@@ -36,7 +36,7 @@
 				<th id="series">Series</th>
 				<th id="issue">Issue</th>
                                 <th id="site">Site</th>
-                                <th id="link">Link</th>
+                                <th id="link">Filename</th>
                                 <th id="datefailed">Attempt</th>
 			</tr>
 		</thead>
@@ -44,10 +44,10 @@
 		%for f in failed:
 			<tr>
 				<td id="select"><input type="checkbox" name="${f['ID']}" class="checkbox" /></td>
-				<td id="series">${f['Series']}</td>
+				<td id="series"><a href="comicDetails?ComicID=${f['ComicID']}">${f['Series']}</td>
 				<td id="issue">${f['Issue_Number']}</td>
-				<td id="site"><a href="${f['Link']}">${f['Provider']}</a></td>
-				<td id="link"><a href="#" title="${f['ID']}">${f['FileName']}</a></td>
+				<td id="site">${f['Provider']}</td>
+				<td id="link">${f['FileName']}</a></td>
 				<td id="datefailed">${f['DateFailed']}</td>
 			</tr>
 		%endfor

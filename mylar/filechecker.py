@@ -587,7 +587,8 @@ class FileChecker(object):
                     ab = str(a)
                     sctd = self.checkthedate(str(dt.datetime.now().year))
                     logger.fdebug('sctd: ' + str(sctd))
-                    if int(ab) > int(sctd):
+                    # + 1 sctd so that we can allow for issue dates that cross over into the following year when it's nearer to the end of said year.
+                    if int(ab) > int(sctd) + 1:
                         logger.fdebug('year is in the future, ignoring and assuming part of series title.')
                         yearposition = None
                         yearmodposition = None
@@ -1162,10 +1163,13 @@ def validateAndCreateDirectory(dir, create=False, module=None):
                 if dir.strip():
                     logger.info(module + ' Creating comic directory (' + str(mylar.CHMOD_DIR) + ') : ' + dir)
                     try:
-                        permission = int(mylar.CHMOD_DIR, 8)
                         os.umask(0) # this is probably redudant, but it doesn't hurt to clear the umask here.
-                        os.makedirs(dir.rstrip(), permission)
-                        setperms(dir.rstrip(), True)
+                        if mylar.ENFORCE_PERMS:
+                            permission = int(mylar.CHMOD_DIR, 8)
+                            os.makedirs(dir.rstrip(), permission)
+                            setperms(dir.rstrip(), True)
+                        else:
+                            os.makedirs(dir.rstrip())
                     except OSError as e:
                         logger.warn(module + ' Could not create directory: ' + dir + '[' + str(e) + ']. Aborting.')
                         return False

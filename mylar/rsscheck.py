@@ -984,13 +984,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         resp = uTC.addfile(filepath, filename)
         return resp   #resp = pass / fail
 
-    elif mylar.USE_WATCHDIR:
-        if mylar.TORRENT_LOCAL:
-            return "pass"
-        else:
-            tssh = ftpsshup.putfile(filepath, filename)
-            return tssh
-
     elif mylar.USE_RTORRENT:
         import test
         rp = test.RTorrent()
@@ -1014,6 +1007,14 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         except Exception as e:
             logger.error(e)
             return "fail"
+
+    elif mylar.USE_WATCHDIR:
+        if mylar.TORRENT_LOCAL:
+            return "pass"
+        else:
+            tssh = ftpsshup.putfile(filepath, filename)
+            return tssh
+
 
 if __name__ == '__main__':
     #torrents(sys.argv[1])

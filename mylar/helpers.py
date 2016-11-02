@@ -19,8 +19,10 @@ import datetime
 import re
 import platform
 import itertools
-import os
+import shutil
+import os, errno
 import mylar
+import logger
 
 def multikeysort(items, columns):
 
@@ -668,8 +670,7 @@ def ComicSort(comicorder=None, sequence=None, imported=None):
     if sequence:
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
-        import logger
-        import db
+        import db, logger
         myDB = db.DBConnection()
         comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
@@ -982,7 +983,7 @@ def issuedigits(issnum):
             else:
                 try:
                     x = float(issnum)
-                    logger.info(x)
+                    #logger.info(x)
                     #validity check
                     if x < 0:
                         #logger.info("I've encountered a negative issue #: " + str(issnum) + ". Trying to accomodate.")
@@ -1354,7 +1355,10 @@ def havetotals(refreshit=None):
 
 def filesafe(comic):
     import unicodedata
-    u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
+    try:
+        u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
+    except TypeError:
+        u_comic = comic.encode('ASCII', 'ignore').strip()
 
     comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
     comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
@@ -1362,7 +1366,7 @@ def filesafe(comic):
     return comicname_filesafe
 
 def IssueDetails(filelocation, IssueID=None):
-    import zipfile, logger, shutil
+    import zipfile, logger
     from xml.dom.minidom import parseString
 
     dstlocation = os.path.join(mylar.CACHE_DIR, 'temp.zip')
@@ -1893,8 +1897,7 @@ def create_https_certificates(ssl_cert, ssl_key):
     This code is stolen from SickBeard (http://github.com/midgetspy/Sick-Beard).
     """
 
-    from mylar import logger
-
+    import logger
     from OpenSSL import crypto
     from certgen import createKeyPair, createCertRequest, createCertificate, \
         TYPE_RSA, serial
@@ -2118,53 +2121,139 @@ def chunker(seq, size):
     #returns a list from a large group of tuples by size (ie. for group in chunker(seq, 3))
     return [seq[pos:pos + size] for pos in xrange(0, len(seq), size)]
 
-#def file_ops(path,dst):
+def file_ops(path,dst,arc=False):
 #    # path = source path + filename
 #    # dst = destination path + filename
+#    # arc = to denote if the file_operation is being performed as part of a story arc or not
 
 #    #get the crc of the file prior to the operation and then compare after to ensure it's complete.
 #    crc_check = mylar.filechecker.crc(path)
-
 #    #will be either copy / move
-#    if mylar.FILE_OPS == 'copy':
-#        shutil.copy( path , dst )
+
+    if mylar.FILE_OPTS == 'copy' or (arc is True and any([mylar.FILE_OPTS == 'copy', mylar.FILE_OPTS == 'move'])):
+        try:
+            shutil.copy( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
-#            return True
-#        else:
-#            return False
-#    elif mylar.FILE_OPS == 'move':
-#        shutil.move( path , dst )
+        except:
+            return False
+        return True
+
+    elif mylar.FILE_OPTS == 'move':
+        try:
+            shutil.move( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
-#            return True
-#        else:
-#            return False
+        except:
+            return False
+        return True
 
-#    elif mylar.FILE_OPS == 'hardlink':
-#        import sys
+    elif any([mylar.FILE_OPTS == 'hardlink', mylar.FILE_OPTS == 'softlink']):
+        if 'windows' not in mylar.OS_DETECT.lower():
+            # if it's an arc, then in needs to go reverse since we want to keep the src files (in the series directory)
+            if mylar.FILE_OPTS == 'hardlink':
+                import sys
 
-#        # Open a file
-#        fd = os.open( path, os.O_RDWR|os.O_CREAT )
-#        os.close( fd )
+                # Open a file
+                try:
+                    fd = os.open( path, os.O_RDWR|os.O_CREAT )
+                    os.close( fd )
 
-#        # Now create another copy of the above file.
-#        os.link( path, dst )
+                    # Now create another copy of the above file.
+                    os.link( path, dst )
+                    logger.info('Created hard link successfully!!')
+                except OSError, e:
+                    if e.errno == errno.EXDEV:
+                        logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - dropping down to copy mode so that this operation can complete. Intervention is required if you wish to continue using hardlinks.')
+                        try:
+                            shutil.copy( path, dst )
+                            logger.fdebug('Successfully copied file to : ' + dst) 
+                            return True
+                        except:
+                            return False
+                    else:
+                        logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - Intervention is required if you wish to continue using hardlinks.')
+                        return False
 
-#        print "Created hard link successfully!!"
-#        return True
-#    elif mylar.FILE_OPS ==  'softlink':
-#        try:
-#            os.symlink( path, dst )
-#        except OSError, e:
-#            if e.errno == errno.EEXIST:
-#                os.remove(dst)
-#                os.symlink( path, dst )
-#            else:
-#                raise e
-#                print 'Unable to create symlink.'
-#                return False
-#        return True
-#    else:
-#        return False
+                hardlinks = os.lstat( dst ).st_nlink
+                if hardlinks > 1:
+                    logger.info('Created hard link [' + str(hardlinks) + '] successfully!! (' + dst + ')')
+                else:
+                    logger.warn('Hardlink cannot be verified. You should probably verify that it is created properly.')
+
+                return True
+
+            elif mylar.FILE_OPTS ==  'softlink':
+                try:
+                    #first we need to copy the file to the new location, then create the symlink pointing from new -> original
+                    if not arc:
+                        shutil.move( path, dst )            
+                        if os.path.lexists( path ):
+                            os.remove( path )
+                        os.symlink( dst, path )
+                    else:
+                        os.symlink ( path, dst )
+                    logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                except OSError, e:
+                    #if e.errno == errno.EEXIST:
+                    #    os.remove(dst)
+                    #    os.symlink( path, dst )
+                    #else:
+                    logger.warn('[' + str(e) + '] Unable to create symlink. Dropping down to copy mode so that this operation can continue.')
+                    try:
+                        shutil.copy( dst, path )
+                        logger.fdebug('Successfully copied file [' + dst + ' --> ' + path + ']')
+                    except:
+                        return False
+
+                return True
+
+        else:
+            #Not ready just yet.
+            pass
+
+            #softlinks = shortcut (normally junctions are called softlinks, but for this it's being called a softlink)
+            #hardlinks = MUST reside on the same drive as the original
+            #junctions = not used (for directories across same machine only but different drives)
+
+            #option 1
+            #this one needs to get tested
+            #import ctypes
+            #kdll = ctypes.windll.LoadLibrary("kernel32.dll")
+            #kdll.CreateSymbolicLinkW(path, dst, 0)
+
+            #option 2
+            import lib.winlink as winlink
+            if mylar.FILE_OPTS == 'hardlink':
+                try:
+                    os.system(r'mklink /H dst path')
+                    logger.fdebug('Successfully hardlinked file [' + dst + ' --> ' + path + ']')
+                except OSError, e:
+                    logger.warn('[' + e + '] Unable to create symlink. Dropping down to copy mode so that this operation can continue.')
+                    try:
+                        shutil.copy( dst, path )
+                        logger.fdebug('Successfully copied file [' + dst + ' --> ' + path + ']')
+                    except:
+                        return False
+
+            elif mylar.FILE_OPTS == 'softlink':  #ie. shortcut.
+                try:
+                    shutil.move( path, dst )
+                    if os.path.lexists( path ):
+                        os.remove( path )
+                    os.system(r'mklink dst path')
+                    logger.fdebug('Successfully created symlink [' + dst + ' --> ' + path + ']')
+                except OSError, e:
+                    raise e
+                    logger.warn('[' + e + '] Unable to create softlink. Dropping down to copy mode so that this operation can continue.')
+                    try:
+                        shutil.copy( dst, path )
+                        logger.fdebug('Successfully copied file [' + dst + ' --> ' + path + ']')
+                    except:
+                        return False
+
+
+    else:
+        return False
+
 
 from threading import Thread
 

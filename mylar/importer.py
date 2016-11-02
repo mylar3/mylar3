@@ -50,7 +50,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None):
+def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None):
     # Putting this here to get around the circular import. Will try to use this to update images at later date.
 #    from mylar import cache
 
@@ -166,6 +166,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             SeriesYear = gcdinfo['SeriesYear']
     else:
         SeriesYear = comic['ComicYear']
+
+    logger.info(SeriesYear)
+    if any([int(SeriesYear) > int(datetime.datetime.now().year) + 1, int(SeriesYear) == 2099]) and csyear is not None:
+        logger.info('Corrected year of ' + str(SeriesYear) + ' to corrected year for series that was manually entered previously of ' + str(csyear))
+        SeriesYear = csyear
 
     logger.info('Sucessfully retrieved details for ' + comic['ComicName'])
 

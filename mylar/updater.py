@@ -34,7 +34,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
         if mylar.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -58,15 +58,19 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                     recentstatus = 'Ended'
 
                 if recentstatus == 'Continuing':
-                    comiclist.append({"LatestDate":    comlist['LatestDate'],
-                                      "LastUpdated":   comlist['LastUpdated'],
-                                      "ComicID":       comlist['ComicID'],
-                                      "ComicName":     comlist['ComicName']})
+                    comiclist.append({"LatestDate":            comlist['LatestDate'],
+                                      "LastUpdated":           comlist['LastUpdated'],
+                                      "ComicID":               comlist['ComicID'],
+                                      "ComicName":             comlist['ComicName'],
+                                      "Corrected_SeriesYear":  comlist['Corrected_SeriesYear']})
 
         else:
             comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
     else:
-        comiclist = ComicIDList
+        comiclist = []
+        comiclisting = ComicIDList
+        for cl in comiclisting:
+            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE ComicID=?', [cl])
 
     if calledfrom is None:
         logger.info('Starting update for %i active comics' % len(comiclist))
@@ -91,8 +95,21 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                     continue
             logger.info('[' + str(cnt) + '/' + str(len(comiclist)) + '] Refreshing :' + ComicName + ' [' + str(ComicID) + ']')
         else:
-            ComicID = comic
-            logger.fdebug('Refreshing :' + str(ComicID))
+            ComicID = comic['ComicID']
+            ComicName = comic['ComicName']
+            logger.info('csyear: ' + str(comic['Corrected_SeriesYear']))
+            dspyear = comic['ComicYear']
+            csyear = None
+
+            if comic['Corrected_SeriesYear'] is not None:
+                csyear = comic['Corrected_SeriesYear']
+                if int(csyear) != int(comic['ComicYear']):
+                    comic['ComicYear'] = csyear
+                    dspyear = csyear
+            
+           
+            logger.fdebug('Refreshing: ' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
+
         mismatch = "no"
         if not mylar.CV_ONLY or ComicID[:1] == "G":
 
@@ -154,7 +171,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
                 if whack == False:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload)
+                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
                     #reload the annuals here.
 
                     issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
@@ -266,7 +283,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                     forceRescan(ComicID)
 
                 else:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload)
+                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
 
             else:
                 cchk = mylar.importer.addComictoDB(ComicID, mismatch)
@@ -1250,6 +1267,7 @@ def forceRescan(ComicID, archive=None, module=None):
             pass
         else:
             for chk in chkthis:
+                logger.info('OLDSTATUS: ' + chk['Issue_Number'] + ' -- ' + chk['Status'])
                 a = [True for x in update_iss if str(x['IssueID']) == str(chk['IssueID'])]
                 if a is True:
                     continue
@@ -1260,7 +1278,7 @@ def forceRescan(ComicID, archive=None, module=None):
                     else:
                         issStatus = "Skipped"
                 elif old_status == "Archived":
-                    issStatus = "Archived"
+                    issStatus = "Archived"  #"Downloaded"
                 elif old_status == "Downloaded":
                     issStatus = "Archived"
                 elif old_status == "Wanted":
@@ -1271,6 +1289,8 @@ def forceRescan(ComicID, archive=None, module=None):
                     issStatus = "Snatched"
                 else:
                     issStatus = "Skipped"
+
+                logger.info('NEWSTATUS: ' + chk['Issue_Number'] + ' -- ' + issStatus)
 
                 update_iss.append({"IssueID": chk['IssueID'],
                                    "Status":  issStatus})
@@ -1291,18 +1311,22 @@ def forceRescan(ComicID, archive=None, module=None):
     arcanns = 0
     # if filechecker returns 0 files (it doesn't find any), but some issues have a status of 'Archived'
     # the loop below won't work...let's adjust :)
-    if havefiles == 0:
-        arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
-        if int(arcissues[0][0]) > 0:
-            arcfiles = arcissues[0][0]
-        arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
-        if int(arcannuals[0][0]) > 0:
-            arcanns = arcannuals[0][0]
+    arcissues = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? and Status='Archived'", [ComicID])
+    if int(arcissues[0][0]) > 0:
+        arcfiles = arcissues[0][0]
+    arcannuals = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? and Status='Archived'", [ComicID])
+    if int(arcannuals[0][0]) > 0:
+        arcanns = arcannuals[0][0]
 
+    if havefiles == 0:
         if arcfiles > 0 or arcanns > 0:
             arcfiles = arcfiles + arcanns
             havefiles = havefiles + arcfiles
-            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files:' + str(arcfiles))
+            logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files already in Archive status :' + str(arcfiles))
+    else:
+        #if files exist in the given directory, but are in an archived state - the numbers will get botched up here.
+        logger.fdebug(module + ' ' + str(int(arcfiles + arcanns)) + ' issue(s) are in an Archive status already. Increasing Have total from ' + str(havefiles) + ' to include these archives.') 
+        havefiles = havefiles + (arcfiles + arcanns)
 
     ignorecount = 0
     if mylar.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
@@ -1347,7 +1371,7 @@ def forceRescan(ComicID, archive=None, module=None):
                 comicpath = os.path.join(rescan['ComicLocation'], down['Location'])
                 if os.path.exists(comicpath):
                     continue
-                    print "Issue exists - no need to change status."
+                    logger.fdebug('Issue exists - no need to change status.')
                 else:
                     if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
                         if os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(rescan['ComicLocation']))):
@@ -1358,14 +1382,20 @@ def forceRescan(ComicID, archive=None, module=None):
                     newValue = {"Status":    "Archived"}
                     myDB.upsert("issues", newValue, controlValue)
                     archivedissues+=1
+        logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
+
         totalarc = arcfiles + archivedissues
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
         logger.fdebug(module + ' arcfiles : ' + str(arcfiles))
         logger.fdebug(module + ' havefiles: ' + str(havefiles))
-        logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
     #combined total for dispay total purposes only.
     combined_total = iscnt + anncnt #(rescan['Total'] + anncnt)
+
+    #quick check
+    if havefiles > combined_total:
+        logger.warn(module + ' It looks like you have physical issues in the series directory, but are forcing these issues to an Archived Status. Adjusting have counts.')
+        havefiles = havefiles - arcfiles
 
     #let's update the total count of comics that was found.
     #store just the total of issues, since annuals gets tracked seperately.
@@ -1375,8 +1405,9 @@ def forceRescan(ComicID, archive=None, module=None):
 
     myDB.upsert("comics", newValueStat, controlValueStat)
     #enforce permissions
-    logger.fdebug(module + ' Ensuring permissions/ownership enforced for series: ' + rescan['ComicName'])
-    filechecker.setperms(rescan['ComicLocation'])
+    if mylar.ENFORCE_PERMS:
+        logger.fdebug(module + ' Ensuring permissions/ownership enforced for series: ' + rescan['ComicName'])
+        filechecker.setperms(rescan['ComicLocation'])
     logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, snatched ' + str(snatchedcount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state [ Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total) + ' ]')
 
     return

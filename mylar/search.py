@@ -2089,9 +2089,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             #make sure the cache directory exists - if not, create it (used for storing nzbs).
             if os.path.exists(mylar.CACHE_DIR):
-                logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR + ". Ensuring proper permissions.")
-                #enforce the permissions here to ensure the lower portion writes successfully
-                filechecker.setperms(mylar.CACHE_DIR, True)
+                if mylar.ENFORCE_PERMS:
+                    logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR + ". Ensuring proper permissions.")
+                    #enforce the permissions here to ensure the lower portion writes successfully
+                    filechecker.setperms(mylar.CACHE_DIR, True)
+                else:
+                    logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR)
             else:
                 #let's make the dir.
                 logger.fdebug("Could not locate Cache Directory, attempting to create at : " + mylar.CACHE_DIR)

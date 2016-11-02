@@ -211,6 +211,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
                     if xmlid is not None:
                         arcinfolist = storyarcinfo(xmlid)
+                        logger.info('[IMAGE] : ' + arcinfolist['comicimage'])
                         comiclist.append({
                                 'name':                 xmlTag,
                                 'comicyear':            arcinfolist['comicyear'],

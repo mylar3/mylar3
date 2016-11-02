@@ -629,7 +629,7 @@ def scanLibrary(scan=None, queue=None):
                                 "Volume":           ghi['volume'],
                                 "ComicYear":        ghi['comicyear'],
                                 "ComicFilename":    helpers.conversion(ghi['comfilename']),
-                                "ComicLocation":    helpres.conversion(ghi['comlocation']),
+                                "ComicLocation":    helpers.conversion(ghi['comlocation']),
                                 "ImportDate":       helpers.today(),
                                 "WatchMatch":       None} #i['watchmatch']}
                     myDB.upsert("importresults", newValue, controlValue)

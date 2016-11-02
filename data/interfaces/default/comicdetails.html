@@ -26,7 +26,7 @@
                         %endif
                             <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this),'table')"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
                         %if mylar.ENABLE_META:
-                            <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?dirName=${comic['ComicLocation'] |u}&ComicID=${comic['ComicID']}', $(this),'table')" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table')" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
                         %if comic['Status'] == 'Paused':
                                 <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeSeries?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
@@ -159,11 +159,7 @@
                                 </label>
                                 </div>
                                 <div>
-                                   <label><big>Issues in Series: </big><norm>${comic['Total']} issues 
-                                    %if comic['not_updated_db'] > 0:
-                                      (${comic['not_updated_db']} issue not updated yet)
-                                    %endif
-                                    </norm></label>
+                                   <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
                                 </div>
                                 <div>
                                     %if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
@@ -301,10 +297,16 @@
                         <fieldset>
                                 <br/><br/>
                                 <div class="row checkbox left clearfix">
-                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="force_continuing" value="2" ${comicConfig['force_continuing']} /><label>Forcibly Mark as Continuing Series<a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a></label>
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="force_continuing" value="2" ${comicConfig['force_continuing']} /></a><label>Forcibly Mark as Continuing Series<a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/default/images/info32.png" height="16" alt="" /></label>
                                 </div>
+                                %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
+                                    <div class="row">
+                                        <label>Series Year</label>
+                                        <input type="text" title="The series year currently is probably incorrect. This option allows it to be manually changed." name="corrected_seriesyear" value="${comic['ComicYear']}" size="10"><br/>
+                                    </div>
+                                %endif
                                 <div class="row">
-                                    <label>Version Number</label>
+                                    <label>Volume Number</label>
                                     <input type="text" name="comic_version" value="${comic['ComicVersion']}" size="20"><br/>
                                 </div>
 
@@ -362,6 +364,10 @@
         %if mylar.FAILED_DOWNLOAD_HANDLING:
             <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
         %endif
+    </div>
+    <div class="pull-right" style="padding-bottom: 5px;">
+        <button class="btn btn-mini seriesCheck"><a href="#" onclick="return false;">Select Filtered Issues</a></button>
+        <button class="btn btn-mini clearAll"><a href="#" onclick="return false;">Clear All</a></button>
     </div>
    </div>
 
@@ -421,7 +427,7 @@
                         %>
                         <tr class="${issue['Status']} grade${grade}">
 
-                                <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="checkbox" value="${issue['IssueID']}"/></td>
+                                <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="issCheck" value="${issue['IssueID']}"/></td>
                                 <td id="int_issuenumber">${issue['Int_IssueNumber']}</td>
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
                                 <%    
@@ -467,7 +473,7 @@
                                             %if linky:
                                             <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
+                                                <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
@@ -743,18 +749,53 @@
         };
         function deleteDirCheck() {
             return document.getElementById("deleteCheck").checked;
-        }
+        };
         </script>
 
         <script>
+        var lastCheck = null;
+        $('.issCheck').click(function(event) {
+
+            if(!lastCheck || !event.shiftKey) {
+                lastCheck = this;
+                return;
+            }
+
+            var check = this;
+            var found = 0;
+
+            $('.issCheck').each(function() {
+                switch (found) {
+                    case 2: return false;
+                    case 1: this.checked = lastCheck.checked;
+                }
+
+                if (this == check || this == lastCheck) {
+                    found++;
+                }
+            });
+
+            lastClick = this;
+        });
+
+        // selects all visible episode checkboxes.
+        $('.seriesCheck').click(function() {
+            $('.issCheck:visible').each(function() {
+                    this.checked = true;
+            });
+        });
+
+        // clears all visible episode checkboxes and the season selectors
+        $('.clearAll').click(function() {
+            $('.issCheck:visible').each(function() {
+                    this.checked = false;
+            });
+        });
+
         // show/hide different types of rows when the checkboxes are changed
         $("#checkboxControls input").change(function(e){
             var whichClass = $(this).attr('id')
             $(this).showHideRows(whichClass)
-            return
-            $('tr.'+whichClass).each(function(i){
-                $(this).toggle();
-            });
         });
 
         // initially show/hide all the rows according to the checkboxes
