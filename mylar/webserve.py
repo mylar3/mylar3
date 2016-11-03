@@ -155,7 +155,7 @@ class WebInterface(object):
         if force_continuing is None:
             force_continuing = 0
         if mylar.DELETE_REMOVE_DIR is None:
-            mylar.DELETE_REMOVE_DIR = 0    
+            mylar.DELETE_REMOVE_DIR = 0
         if allowpacks is None:
             allowpacks = "0"
         if all([comic['Corrected_SeriesYear'] is not None, comic['Corrected_SeriesYear'] != '', comic['Corrected_SeriesYear'] != 'None']):
@@ -524,7 +524,7 @@ class WebInterface(object):
                         issuePublisher = cid['Publisher']
                         break
 
-                newCtrl = {"IssueArcID":        AD['IssueArcID'],
+                newCtrl = {"IssueID":           AD['IssueID'],
                            "StoryArcID":        AD['StoryArcID']}
                 newVals = {"ComicID":           AD['ComicID'],
                            "IssueID":           AD['IssueID'],
@@ -765,7 +765,7 @@ class WebInterface(object):
                 except:
                     logger.warn('Unable to remove directory after removing series from Mylar.')
             else:
-                logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)            
+                logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
 
         helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
@@ -1115,7 +1115,7 @@ class WebInterface(object):
             except:
                 logger.warn('Unable to locate provider reference for attempted Retry. Will see if I can just get the last attempted download.')
                 chk_the_log = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=? and Provider != "CBT" and Provider != "KAT"', [IssueID]).fetchone()
-           
+
             if chk_the_log is None:
                 if len(providers_snatched) == 1:
                     logger.info('Unable to locate provider information ' + ps['Provider'] + ' from nzblog - if you wiped the log, you have to search/download as per normal')
@@ -1289,7 +1289,7 @@ class WebInterface(object):
                     StoreDate = dateload['StoreDate']
                     Publisher = dateload['IssuePublisher']
                     SeriesYear = dateload['SeriesYear']
-                    
+
             if ComicYear is None: ComicYear = SeriesYear
             logger.info('Marking ' + ComicName + ' #' + ComicIssue + ' as wanted...')
             logger.fdebug('publisher: ' + Publisher)
@@ -1571,7 +1571,7 @@ class WebInterface(object):
                     logger.warn('Problem repopulating the pullist for week ' + str(weeknumber) + ', ' + str(year))
                     if mylar.ALT_PULL == 2:
                         logger.warn('Attempting to repoll against legacy pullist in order to have some kind of updated listing for the week.')
-                        repoll = self.manualpull()                    
+                        repoll = self.manualpull()
                         if repoll['status'] == 'success':
                             w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
                         else:
@@ -1591,7 +1591,7 @@ class WebInterface(object):
                 linkit = None
                 if all([weekly['ComicID'] is not None, weekly['ComicID'] != '']) and haveit == 'No':
                     linkit = 'http://comicvine.gamespot.com/volume/4050-' + str(weekly['ComicID'])
-                
+
                 x = None
                 try:
                     x = float(weekly['ISSUE'])
@@ -1869,7 +1869,7 @@ class WebInterface(object):
                     logger.info("Deleted existed pull-list data. Recreating Pull-list...")
                     forcecheck = 'yes'
                     return threading.Thread(target=weeklypull.pullit, args=[forcecheck]).start()
-                    
+
                 if int(upc['weeknumber']) == int(weeknumber) and int(upc['year']) == int(weekyear):
                     if upc['Status'] == 'Wanted':
                         upcoming_count +=1
@@ -2353,7 +2353,7 @@ class WebInterface(object):
                         maxyear = int(la['IssueDate'][:4])
                     if int(la['IssueDate'][:4]) < lowyear:
                         lowyear = int(la['IssueDate'][:4])
-                
+
             if maxyear == 0:
                 spanyears = la['SeriesYear']
             elif lowyear == maxyear:
@@ -2714,7 +2714,7 @@ class WebInterface(object):
             wantedlist = []
 
             sarc_title = None
-            showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show 
+            showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show
             for arc in ArcWatch:
                 sarc_title = arc['StoryArc']
                 logger.fdebug('[' + arc['StoryArc'] + '] ' + arc['ComicName'] + ' : ' + arc['IssueNumber'])
@@ -2759,7 +2759,7 @@ class WebInterface(object):
                                 logger.fdebug("Issue: " + str(arc['IssueNumber']))
                                 logger.fdebug("IssueArcID: " + str(arc['IssueArcID']))
                                 #gather the matches now.
-                                arc_match.append({ 
+                                arc_match.append({
                                     "match_storyarc":          arc['StoryArc'],
                                     "match_name":              arc['ComicName'],
                                     "match_id":                isschk['ComicID'],
@@ -2779,7 +2779,7 @@ class WebInterface(object):
                          "IssueYear":      arc['IssueYear']})
 
                     logger.fdebug('destination location set to  : ' + dstloc)
-                    
+
                     #fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
                     #filechk = fchk.listFiles()
                     if filelist is not None:
@@ -3251,11 +3251,11 @@ class WebInterface(object):
             mylar.IMPORTLOCK = False
 
         #thread the scan.
-        if scan == '1': 
+        if scan == '1':
             scan = True
             mylar.IMPORT_STATUS = 'Now starting the import'
             return self.ThreadcomicScan(scan, queue)
-        else: 
+        else:
             scan = False
             return
     comicScan.exposed = True
@@ -3422,11 +3422,11 @@ class WebInterface(object):
                 DynamicName = cl['DynamicName']
                 logger.fdebug('comicname: ' + ComicName)
                 logger.fdebug('dyn: ' + DynamicName)
- 
+
                 if volume is None or volume == 'None':
                     comic_and_vol = ComicName
                 else:
-                    comic_and_vol = ComicName + ' (' + str(volume) + ')' 
+                    comic_and_vol = ComicName + ' (' + str(volume) + ')'
                 logger.info('[' + comic_and_vol + '] Now preparing to import. First I need to determine the highest issue, and possible year(s) of the series.')
                 if volume is None or volume == 'None':
                     logger.info('[none] dynamicname: ' + DynamicName)
@@ -3568,7 +3568,7 @@ class WebInterface(object):
                 #we now need to cycle through the results until we get a hit on both dynamicname AND year (~count of issues possibly).
                 logger.fdebug('[' + str(len(sresults)) + '] search results')
                 search_matches = []
-                for results in sresults:                
+                for results in sresults:
                     rsn = filechecker.FileChecker()
                     rsn_run = rsn.dynamic_replace(results['name'])
                     result_name = rsn_run['mod_seriesname']
@@ -3599,7 +3599,7 @@ class WebInterface(object):
                                                    'issues':        results['issues'],
                                                    'ogcname':       ogcname,
                                                    'comicyear':     results['comicyear']})
-                        
+
                 if len(search_matches) == 1:
                     sr = search_matches[0]
                     logger.info("There is only one result...automagik-mode enabled for " + sr['series'] + " :: " + str(sr['comicid']))
@@ -3628,7 +3628,7 @@ class WebInterface(object):
                                     search_matches.append({'comicid':       results['comicid'],
                                                            'series':        results['name'],
                                                            'dynamicseries': result_name,
-                                                           'seriesyear':    result_year, 
+                                                           'seriesyear':    result_year,
                                                            'publisher':     results['publisher'],
                                                            'haveit':        results['haveit'],
                                                            'name':          results['name'],
@@ -3639,7 +3639,7 @@ class WebInterface(object):
                                                            'issues':        results['issues'],
                                                            'ogcname':       ogcname,
                                                            'comicyear':     results['comicyear']})
- 
+
                         if len(search_matches) == 1:
                             sr = search_matches[0]
                             logger.info("There is only one result...automagik-mode enabled for " + sr['series'] + " :: " + str(sr['comicid']))
@@ -3651,7 +3651,7 @@ class WebInterface(object):
                         resultset = 0
 
                 #generate random Search Results ID to allow for easier access for viewing logs / search results.
-                
+
                 import random
                 SRID = str(random.randint(100000, 999999))
 
@@ -3777,8 +3777,8 @@ class WebInterface(object):
                     'DynamicName':   DynamicName,
                     'Volume':        Volume,
                     'filelisting':   files,
-                    'srid':          SRID}      
-  
+                    'srid':          SRID}
+
         return serve_template(templatename="importresults_popup.html", title="results", searchtext=ComicName, searchresults=searchresults, imported=imported)
 
     importresults_popup.exposed = True
@@ -4435,7 +4435,7 @@ class WebInterface(object):
                     newznab_enabled = int(kwargs['newznab_enabled' + newznab_number])
                 except KeyError:
                     newznab_enabled = 0
-                
+
                 mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
         # Sanity checking
@@ -4469,7 +4469,7 @@ class WebInterface(object):
 
         if mylar.FILE_OPTS is None:
             mylar.FILE_OPTS = 'move'
-        
+
         if any([mylar.FILE_OPTS == 'hardlink', mylar.FILE_OPTS == 'softlink']):
             #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
             mylar.ENABLE_META = 0
@@ -4483,7 +4483,7 @@ class WebInterface(object):
         if mylar.NZB_DOWNLOADER == 0: mylar.USE_SABNZBD = True
         elif mylar.NZB_DOWNLOADER == 1: mylar.USE_NZBGET = True
         elif mylar.NZB_DOWNLOADER == 2: mylar.USE_BLACKHOLE = True
-        
+
         if mylar.TORRENT_DOWNLOADER == 0:
             mylar.USE_WATCHDIR = True
         elif mylar.TORRENT_DOWNLOADER == 1:
@@ -4559,7 +4559,7 @@ class WebInterface(object):
                         return 'Unable to retrieve data from SABnzbd'
                 else:
                     return 'Unable to retrieve data from SABnzbd'
-            
+
 
             logger.info('status code: ' + str(r.status_code))
 
@@ -4812,7 +4812,7 @@ class WebInterface(object):
                 shutil.rmtree(cache_dir)
             else:
                 logger.fdebug('Failed to remove temporary directory: ' + cache_dir)
-             
+
         updater.forceRescan(comicid)
 
     manual_metatag.exposed = True
