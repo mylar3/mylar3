@@ -267,9 +267,6 @@ textarea:invalid {
 .no-boxshadow textarea:invalid {
   background-color: #f0dddd;
 }
-input[type="checkbox"] {
-  vertical-align: bottom;
-}
 label,
 input[type="button"],
 input[type="submit"],
@@ -782,7 +779,7 @@ div#searchbar .mini-icon {
   margin-top: 6px;
 }
 .checkbox.inline {
-  padding: 0 5px;
+  padding: 5px;
 }
 .checkbox.inline > input {
   margin-right: 5px;
@@ -1904,6 +1901,6 @@ img.btn_close {
 fieldset {
     border: none;
 }
-img.highqual { 
+img.highqual {
     -ms-interpolation-mode: bicubuic;
 }

@@ -64,17 +64,17 @@
                              </div>
 
 	</div>
-	
+
 	<div id="tabs">
 		<ul>
 			<li><a href="#tabs-1">Comic Details</a></li>
 			<li><a href="#tabs-2">Download settings</a></li>
                         <li><a href="#tabs-3">Edit Settings</a></li>
                 </ul>
-	
+
        <div id="tabs-1">
-		
-		
+
+
         <table class="comictable" summary="Comic Details">
             <tr>
                 <td id="mainimg">
@@ -129,14 +129,14 @@
                         <img src="interfaces/default/images/publisherlogos/logo-actionlabs.png" align="right" alt="Action Lab" height="100" width="100"/>
                        %elif comic['ComicPublisher'] == 'Zenescope Entertainment':
                         <img src="interfaces/default/images/publisherlogos/logo-zenescope.png" align="right" alt="Zenescope" height="100" width="160"/>
-                       %endif     
+                       %endif
         		 <fieldset>
                                 <div>
                                    <label><big>Publication Date: </big><norm>${comic['ComicPublished']}</norm></label>
                                 </div>
                                 <div>
                                    <label><big>Publisher: </big><norm>${comic['ComicPublisher']}</norm></label>
-	            		</div> 
+	            		</div>
                                 <div>
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
@@ -179,11 +179,11 @@
                                         %endif
                                     %else:
                                        <label><big>Directory</big><br/><norm>${comic['ComicLocation']}</norm></label>
-                                    %endif                               
+                                    %endif
                                 </div>
 <!--                            <div>
                                    <label><big>Description:</big></label><br/>
-                                   <small>${comic['Description']}</small> 
+                                   <small>${comic['Description']}</small>
 -->                             </div>
                          </fieldset>
 
@@ -219,7 +219,7 @@
 	                        </div>
 	                   	<div>
 		                    <label><big>Scanner :</big><norm>${comic['QUALscanner']}</norm></label>
-	                        </div>	               
+	                        </div>
 	                	<div>
 		                    <label><big>Type :</big><norm>${comic['QUALtype']}</norm></label>
 	                        </div>
@@ -266,7 +266,7 @@
 
                     </fieldset>
                 </td>
-            </tr>            
+            </tr>
 	    </table>
 	</div>
        <div id="tabs-3">
@@ -353,7 +353,7 @@
            </div>
  </div>
 
-   <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 3px; margin-top: -1px;">
+   <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
     <div style="padding-bottom: 5px;">
         <label for="Wanted" class="checkbox inline Wanted"><input type="checkbox" id="Wanted" checked="checked" /> Wanted: <b>${isCounts['Wanted']}</b></label>
         <label for="Archived" class="checkbox inline Archived"><input type="checkbox" id="Archived" checked="checked" /> Archived: <b>${isCounts['Archived']}</b></label>
@@ -430,7 +430,7 @@
                                 <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="issCheck" value="${issue['IssueID']}"/></td>
                                 <td id="int_issuenumber">${issue['Int_IssueNumber']}</td>
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
-                                <%    
+                                <%
                                     if len(issue['IssueName']) > 70:
                                         issuename = issue['IssueName'][:70] + '...'
                                     else:
@@ -453,7 +453,7 @@
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                 %elif (issue['Status'] == 'Snatched'):
                                        <a href="#" onclick="doAjaxCall('retryit?ComicName=${issue['ComicName'] |u}&ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&IssueNumber=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
-                                       <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>                          
+                                       <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                        %if mylar.FAILED_DOWNLOAD_HANDLING:
                                                <a href="#" title="Mark issue as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode=failed',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
                                        %endif
@@ -527,7 +527,7 @@
                 <input type="hidden" value="Go">
         </div>
 
-         
+
               <table class="display_no_select" id="annual_table">
 
                    <thead>
@@ -541,7 +541,7 @@
                                 <th id="aoptions">Options</th>
                         </tr>
                    </thead>
-                   <tbody>           
+                   <tbody>
 
                    %for annual in annuals:
 
@@ -565,7 +565,7 @@
                         %>
                         <tr class="${annual['Status']} grade${agrade}">
                                 <td id="select"><input type="checkbox" name="${annual['IssueID']}" class="checkbox" value="${annual['IssueID']}" /></td>
-                                <% 
+                                <%
                                     if annual['Int_IssueNumber'] is None:
                                         annual_Number = annual['Int_IssueNumber']
                                     else:
@@ -607,7 +607,7 @@
                                             %if linky:
                                               <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the annual" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a> 
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
@@ -641,7 +641,7 @@
                 </table>
                 </form>
             %endif
-            %if mylar.ANNUALS_ON:       
+            %if mylar.ANNUALS_ON:
                         <div style="position:relative; width:960px; height:10px; margin:10px auto;">
                             <form action="manual_annual_add" method="GET">
                                  <input type="hidden" name="comicid" value=${comic['ComicID']}>
@@ -691,34 +691,34 @@
         <script>
         $(document).ready(function() {
         $('a.issue-window').click(function() {
-    
-                    //Getting the variable's value from a link 
+
+                    //Getting the variable's value from a link
             var issueBox = $(this).attr('href');
 
             //Fade in the Popup
             $(issueBox).fadeIn(300);
-    
+
             //Set the center alignment padding + border see css style
-            var popMargTop = ($(issueBox).height() + 24) / 2; 
-            var popMargLeft = ($(issueBox).width() + 24) / 2; 
-    
-            $(issueBox).css({ 
+            var popMargTop = ($(issueBox).height() + 24) / 2;
+            var popMargLeft = ($(issueBox).width() + 24) / 2;
+
+            $(issueBox).css({
                 'margin-top' : -popMargTop,
                 'margin-left' : -popMargLeft
             });
-    
+
             // Add the mask to body
             $('body').append('<div id="mask"></div>');
             $('#mask').fadeIn(300);
-    
+
             return false;
         });
 
         // When clicking on the button close or the mask layer the popup closed
-        $('a.close, #mask').on('click', function() { 
+        $('a.close, #mask').on('click', function() {
           $('#mask , .issue-popup').fadeOut(300 , function() {
-            $('#mask').remove();  
-        }); 
+            $('#mask').remove();
+        });
         return false;
         });
         });
@@ -884,6 +884,6 @@
                 $("issue_table").dataTable();
                 $("annual_table").dataTable();
                 initThisPage();
-        }); 
+        });
       </script>
 </%def>
