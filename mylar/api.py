@@ -50,20 +50,20 @@ class Api(object):
     def checkParams(self, *args, **kwargs):
 
         if 'apikey' not in kwargs:
-            self.data = 'Missing api key'
+            self.data = self._error_with_message('Missing api key')
             return
 
         if 'cmd' not in kwargs:
-            self.data = 'Missing parameter: cmd'
+            self.data = self._error_with_message('Missing parameter: cmd')
             return
 
         if not mylar.API_ENABLED:
             if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
-               self.data = 'API not enabled'
+               self.data = self._error_with_message('API not enabled')
                return
 
         if kwargs['apikey'] != mylar.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
-            self.data = 'Incorrect API key'
+            self.data = self._error_with_message('Incorrect API key')
             return
         else:
             if kwargs['apikey'] == mylar.API_KEY:
@@ -74,22 +74,22 @@ class Api(object):
             self.apikey = kwargs.pop('apikey')
 
         if not([mylar.API_KEY, mylar.DOWNLOAD_APIKEY]):
-            self.data = 'API key not generated'
+            self.data = self._error_with_message('API key not generated')
             return
 
         if self.apitype:
             if self.apitype == 'normal' and len(mylar.API_KEY) != 32:
-                self.data = 'API key not generated correctly'
+                self.data = self._error_with_message('API key not generated correctly')
                 return
             if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
-                self.data = 'Download API key not generated correctly'
+                self.data = self._error_with_message('Download API key not generated correctly')
                 return
         else:
-            self.data = 'API key not generated correctly'
+            self.data = self._error_with_message('API key not generated correctly')
             return
 
         if kwargs['cmd'] not in cmd_list:
-            self.data = 'Unknown command: %s' % kwargs['cmd']
+            self.data = self._error_with_message('Unknown command: %s' % kwargs['cmd'])
             return
         else:
             self.cmd = kwargs.pop('cmd')
@@ -134,13 +134,18 @@ class Api(object):
 
         return rows_as_dic
 
+    def _error_with_message(self, message):
+        error = {'error': {'message': message} }
+        cherrypy.response.headers['Content-Type'] = "application/json"
+        return simplejson.dumps(error)
+
     def _getIndex(self, **kwargs):
         self.data = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
         return
 
     def _getComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -186,7 +191,7 @@ class Api(object):
 
     def _delComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -198,7 +203,7 @@ class Api(object):
 
     def _pauseComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -210,7 +215,7 @@ class Api(object):
 
     def _resumeComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -222,7 +227,7 @@ class Api(object):
 
     def _refreshComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -236,7 +241,7 @@ class Api(object):
 
     def _addComic(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -250,7 +255,7 @@ class Api(object):
 
     def _queueIssue(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -263,7 +268,7 @@ class Api(object):
 
     def _unqueueIssue(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -278,13 +283,13 @@ class Api(object):
 
     def _forceProcess(self, **kwargs):
         if 'nzb_name' not in kwargs:
-            self.data = 'Missing parameter: nzb_name'
+            self.data = self._error_with_message('Missing parameter: nzb_name')
             return
         else:
             self.nzb_name = kwargs['nzb_name']
 
         if 'nzb_folder' not in kwargs:
-            self.data = 'Missing parameter: nzb_folder'
+            self.data = self._error_with_message('Missing parameter: nzb_folder')
             return
         else:
             self.nzb_folder = kwargs['nzb_folder']
@@ -316,7 +321,7 @@ class Api(object):
 
     def _getArtistArt(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -325,7 +330,7 @@ class Api(object):
 
     def _getIssueArt(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -334,7 +339,7 @@ class Api(object):
 
     def _getComicInfo(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -343,7 +348,7 @@ class Api(object):
 
     def _getIssueInfo(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -352,7 +357,7 @@ class Api(object):
 
     def _getArt(self, **kwargs):
         if 'id' not in kwargs:
-            self.data = 'Missing parameter: id'
+            self.data = self._error_with_message('Missing parameter: id')
             return
         else:
             self.id = kwargs['id']
@@ -387,9 +392,9 @@ class Api(object):
                     self.img = image_path
                     return
                 else:
-                    self.data = 'Failed return a image'
+                    self.data = self._error_with_message('Failed return a image')
             else:
-                self.data = 'Failed to return a image'
+                self.data = self._error_with_message('Failed to return a image')
 
     def _findComic(self, name, issue=None, type_=None, mode=None, explisit=None, serinfo=None):
         # set defaults
@@ -400,7 +405,7 @@ class Api(object):
 
         # Dont do shit if name is missing
         if len(name) == 0:
-            self.data = 'Missing a Comic name'
+            self.data = self._error_with_message('Missing a Comic name')
             return
 
         if type_ == 'comic' and mode == 'series':
@@ -417,7 +422,7 @@ class Api(object):
 
     def _downloadIssue(self, id):
         if not id:
-            self.data = 'You need to provide a issueid'
+            self.data = self._error_with_message('You need to provide a issueid')
             return
 
         self.id = id
@@ -425,7 +430,7 @@ class Api(object):
         i = self._dic_from_query('SELECT * from issues WHERE issueID="' + self.id + '"')
 
         if not len(i):
-            self.data = 'Couldnt find a issue with issueID %s' % self.id
+            self.data = self._error_with_message('Couldnt find a issue with issueID %s' % self.id)
             return
 
         # issueid is unique so it should one dict in the list
@@ -449,12 +454,12 @@ class Api(object):
                 self.file = f
                 self.filename = issuelocation
         else:
-            self.data = 'You need to download that issue first'
+            self.data = self._error_with_message('You need to download that issue first')
             return
 
     def _downloadNZB(self, nzbname):
         if not nzbname:
-            self.data = 'You need to provide a nzbname'
+            self.data = self._error_with_message('You need to provide a nzbname')
             return
 
         self.nzbname = nzbname
@@ -463,6 +468,5 @@ class Api(object):
             self.file = f
             self.filename = nzbname
         else:
-            self.data = 'NZBname does not exist within the cache directory. Unable to retrieve.'
+            self.data = self._error_with_message('NZBname does not exist within the cache directory. Unable to retrieve.')
             return
-
