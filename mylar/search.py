@@ -2390,6 +2390,10 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         logger.info(u"Sending Pushbullet notification")
         pushbullet = notifiers.PUSHBULLET()
         pushbullet.notify(snline=snline, snatched=nzbname, sent_to=sent_to, prov=nzbprov, method='POST')
+    if mylar.TELEGRAM_ENABLED and mylar.TELEGRAM_ONSNATCH:
+        logger.info(u"Sending Telegram notification")
+        telegram = notifiers.TELEGRAM()
+        telegram.notify(snline, nzbname)
 
     return
 

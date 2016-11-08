@@ -1964,6 +1964,10 @@ class PostProcessor(object):
                 pushbullet = notifiers.PUSHBULLET()
                 pushbullet.notify(prline=prline, prline2=prline2, module=module)
 
+            if mylar.TELEGRAM_ENABLED:
+                telegram = notifiers.TELEGRAM()
+                telegram.notify(prline, prline2)
+
             logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
             self._log(u"Post Processing SUCCESSFUL! ")
 
