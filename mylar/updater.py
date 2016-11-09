@@ -1089,7 +1089,6 @@ def forceRescan(ComicID, archive=None, module=None):
                 old_status = reann['Status']
 
                 fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
-                logger.fdebug(module + ' fcdigit:' + str(fcdigit))
 
                 if int(fcdigit) == int_iss:
                     logger.fdebug(module + ' [' + str(ANNComicID) + '] Annual match - issue : ' + str(int_iss))
@@ -1267,18 +1266,18 @@ def forceRescan(ComicID, archive=None, module=None):
             pass
         else:
             for chk in chkthis:
-                logger.info('OLDSTATUS: ' + chk['Issue_Number'] + ' -- ' + chk['Status'])
-                a = [True for x in update_iss if str(x['IssueID']) == str(chk['IssueID'])]
-                if a is True:
+                if chk['IssueID'] in issID_to_ignore:
                     continue
+                    
                 old_status = chk['Status']
+
                 if old_status == "Skipped":
                     if mylar.AUTOWANT_ALL:
                         issStatus = "Wanted"
                     else:
                         issStatus = "Skipped"
                 elif old_status == "Archived":
-                    issStatus = "Archived"  #"Downloaded"
+                    issStatus = "Archived"
                 elif old_status == "Downloaded":
                     issStatus = "Archived"
                 elif old_status == "Wanted":
@@ -1289,8 +1288,6 @@ def forceRescan(ComicID, archive=None, module=None):
                     issStatus = "Snatched"
                 else:
                     issStatus = "Skipped"
-
-                logger.info('NEWSTATUS: ' + chk['Issue_Number'] + ' -- ' + issStatus)
 
                 update_iss.append({"IssueID": chk['IssueID'],
                                    "Status":  issStatus})
@@ -1386,8 +1383,6 @@ def forceRescan(ComicID, archive=None, module=None):
 
         totalarc = arcfiles + archivedissues
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
-        logger.fdebug(module + ' arcfiles : ' + str(arcfiles))
-        logger.fdebug(module + ' havefiles: ' + str(havefiles))
 
     #combined total for dispay total purposes only.
     combined_total = iscnt + anncnt #(rescan['Total'] + anncnt)

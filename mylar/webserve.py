@@ -2837,35 +2837,41 @@ class WebInterface(object):
                             logger.fdebug("Already have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             if issue['Status'] == 'Downloaded':
                                 issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
-                                logger.fdebug('source location set to  : ' + issloc)
+                                #check multiple destination directory usage here.
+                                if not os.path.isfile(issloc):
+                                    if all([mylar.MULTIPLE_DEST_DIRS is not None, mylar.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
+                                        issloc = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
+                                        if not os.path.isfile(issloc):
+                                            logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
+                                            continue
 
+                                logger.fdebug('source location set to  : ' + issloc)
                                 logger.fdebug('Destination location set to  : ' + m_arc['destination_location'])
 
                                 if mylar.COPY2ARCDIR:
                                     logger.fdebug('Attempting to copy into StoryArc directory')
                                     #copy into StoryArc directory...
-                                    if os.path.isfile(issloc):
-                                        if mylar.READ2FILENAME:
-                                            readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
-                                            dfilename = str(readorder) + "-" + issue['Location']
-                                        else:
-                                            dfilename = issue['Location']
-
-                                        dstloc = os.path.join(m_arc['destination_location'], dfilename)
-
-                                        if not os.path.isfile(dstloc):
-                                            logger.fdebug('Copying ' + issloc + ' to ' + dstloc)
-                                            try:
-                                               fileoperation = helpers.file_ops(issloc, dstloc, arc=True)
-                                               if not fileoperation:
-                                                   raise OSError
-                                            except (OSError, IOError):
-                                                logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
-                                        else:
-                                            logger.fdebug('Destination file exists: ' + dstloc)
+                                    if mylar.READ2FILENAME:
+                                        readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
+                                        dfilename = str(readorder) + "-" + issue['Location']
                                     else:
-                                        logger.fdebug('Source file does not exist: ' + issloc)
+                                        dfilename = issue['Location']
 
+                                    dstloc = os.path.join(m_arc['destination_location'], dfilename)
+
+                                    if not os.path.isfile(dstloc):
+                                        logger.fdebug('Copying ' + issloc + ' to ' + dstloc)
+                                        try:
+                                           fileoperation = helpers.file_ops(issloc, dstloc, arc=True)
+                                           if not fileoperation:
+                                               raise OSError
+                                        except (OSError, IOError):
+                                            logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
+                                    else:
+                                        logger.fdebug('Destination file exists: ' + dstloc)
+                                else:
+                                    logger.fdebug('Source file does not exist: ' + issloc)
+                                           
                         else:
                             logger.fdebug("We don't have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
