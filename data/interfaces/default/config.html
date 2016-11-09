@@ -1105,30 +1105,31 @@
                         </div>
                      </fieldset>
                                         
-                                        <fieldset>
-                                             <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
-                                             <div class="row checkbox">
-                                                 <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
-                                             </div>
-                                             <div id="pushoveroptions">
-                                                   <div class="row">
-                                                       <label>API key</label><input type="text" title="Leave blank if you don't have your own API (recommended to get your own)" name="pushover_apikey" value="${config['pushover_apikey']}" size="50">
-                                                   </div>
-                                                   <div class="row">
-                                                       <label>User key</label><input type="text" name="pushover_userkey" value="${config['pushover_userkey']}" size="50">
-                                                   </div>
-                                                   <div class="row checkbox">
-                                                       <input type="checkbox" name="pushover_onsnatch" value="1" ${config['pushover_onsnatch']} /><label>Notify on snatch?</label>
-                                                   </div>
-                                                   <div class="row">
-                                                       <label>Priority (-2,-1,0,1 or 2):</label>
-                                                       <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
-                                                   </div>
-                                                   <div class="row">
-                                                        <input type="button" value="Test Pushover" id="pushover_test" />
-                                                   </div>
-                                             </div>
-                                        </fieldset>            
+                     <fieldset>
+                        <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
+                        <div class="row checkbox">
+                             <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
+                        </div>
+                        <div id="pushoveroptions">
+                             <div class="row">
+                                 <label>API key</label><input type="text" title="Leave blank if you don't have your own API (recommended to get your own)" name="pushover_apikey" value="${config['pushover_apikey']}" size="50">
+                             </div>
+                             <div class="row">
+                                 <label>User key</label><input type="text" name="pushover_userkey" value="${config['pushover_userkey']}" size="50">
+                             </div>
+                             <div class="row checkbox">
+                                 <input type="checkbox" name="pushover_onsnatch" value="1" ${config['pushover_onsnatch']} /><label>Notify on snatch?</label>
+                             </div>
+                             <div class="row">
+                                 <label>Priority (-2,-1,0,1 or 2):</label>
+                                 <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
+                             </div>
+                             <div class="row">
+                                 <input type="button" value="Test Pushover" id="pushover_test" />
+                             </div>
+                        </div>
+                     </fieldset>            
+
                      <fieldset>
                         <h3><img src="interfaces/default/images/boxcar_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Boxcar.IO</h3>
                         <div class="checkbox row">
@@ -1173,6 +1174,28 @@
                                     </div>
                                 </div>
                             </fieldset>
+
+                     <fieldset>
+                        <h3><img src="interfaces/default/images/telegram.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Telegram</h3>
+                        <div class="row checkbox">
+                             <input type="checkbox" name="telegram_enabled" id="telegram" value="1" ${config['telegram_enabled']} /><label>Enable Telegram Notifications</label>
+                        </div>
+                        <div id="telegramoptions">
+                             <div class="row">
+                                 <label>Userid</label><input type="text" name="telegram_userid" value="${config['telegram_userid']}" size="50">
+                             </div>
+                             <div class="row">
+                                 <label>Token</label><input type="text" name="telegram_token" value="${config['telegram_token']}" size="50">
+                             </div>
+                             <div class="row checkbox">
+                                 <input type="checkbox" name="telegram_onsnatch" value="1" ${config['telegram_onsnatch']} /><label>Notify on snatch?</label>
+                             </div>
+                             <div class="row">
+                                 <input type="button" value="Test Telegram" id="telegram_test" />
+                             </div>
+                        </div>
+                     </fieldset>
+
 	       </td>
              </tr>
         </table>
@@ -1308,6 +1331,26 @@
                         else
                         {
                                 $("#pushoveroptions").slideUp();
+                        }
+                });
+
+                if ($("#telegram").is(":checked"))
+                        {
+                                $("#telegramoptions").show();
+                        }
+                else
+                        {
+                                $("#telegramoptions").hide();
+                        }
+
+                $("#telegram").click(function(){
+                        if ($("#telegram").is(":checked"))
+                        {
+                                $("#telegramoptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#telegramoptions").slideUp();
                         }
                 });
 
@@ -1611,6 +1654,12 @@
 
                 $('#pushbullet_test').click(function () {
                     $.get("testpushbullet",
+                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#telegram_test').click(function () {
+                    $.get("testtelegram",
                         function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
