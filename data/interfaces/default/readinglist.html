@@ -164,18 +164,8 @@
                                 <td id="options">
                                     <a onclick="doAjaxCall('removefromreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="Sucessfully removed ${issue['ComicName']} #${issue['Issue_Number']} from Reading List"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" title="Remove from Reading List" /></a>
                                     <a onclick="doAjaxCall('markasRead?IssueID=${issue['IssueID']}', $(this),'table')" data-success="Marked ${issue['ComicName']} ${issue['Issue_Number']} as Read."><img src="interfaces/default/images/wanted_icon.png" height="25" width="25" title="Mark as Read" /></a>
-                                    <%
-                                      if issue['Location'] is not None:
-                                          linky = issue['Location']
-                                          if not os.path.isfile(linky):
-                                              if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
-                                                  linky = os.path.join(mylar.MULTIPLE_DEST_DIRS,issue['Location'])
-                                              else:
-                                                  linky = None
-                                      else:
-                                          linky = None
-                                    %>
-                                    %if linky:
+                                    
+                                    %if issue['Location'] is not None:
                                     <a href="downloadthis?pathfile=${issue['Location'] |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
                                     %endif
                                 </td>
