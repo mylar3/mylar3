@@ -528,6 +528,7 @@ class WebInterface(object):
                            "StoryArcID":        AD['StoryArcID']}
                 newVals = {"ComicID":           AD['ComicID'],
                            "IssueID":           AD['IssueID'],
+                           "IssueArcID":        AD['IssueArcID'],
                            "StoryArc":          storyarcname,
                            "ComicName":         AD['ComicName'],
                            "DynamicComicName":  AD['DynamicName'],
