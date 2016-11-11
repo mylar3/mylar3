@@ -2422,18 +2422,18 @@ class WebInterface(object):
                     comicname = mi['ComicName']
 
                 if action == 'Downloaded':
-                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], action))
+                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
                     read = readinglist.Readinglist(IssueID)
                     read.addtoreadlist()
                 elif action == 'Read':
-                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], action))
+                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
                     markasRead(IssueID)
                 elif action == 'Added':
-                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], action))
-                    read = readinglist.Readinglist(IssueID)
+                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
+                    read = readinglist.Readinglist(IssueID=IssueID)
                     read.addtoreadlist()
                 elif action == 'Remove':
-                    logger.fdebug('Deleting %s %s' % (comicname, mi['Issue_Number']))
+                    logger.fdebug('Deleting %s #%s' % (comicname, mi['Issue_Number']))
                     myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
                 elif action == 'Send':
                     logger.fdebug('Queuing ' + mi['Location'] + ' to send to tablet.')

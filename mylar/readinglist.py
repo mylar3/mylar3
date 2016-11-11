@@ -60,9 +60,6 @@ class Readinglist(object):
         else:
             locpath = None
             if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation'])) != comicinfo['ComicLocation']:
-                logger.fdebug(self.module + ' Multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
-                logger.fdebug(self.module + ' Dir: ' + comicinfo['ComicLocation'])
-                logger.fdebug(self.module + ' Os.path.basename: ' + os.path.basename(comicinfo['ComicLocation']))
                 pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))
                 if os.path.exists(os.path.join(pathdir, readlist['Location'])):
                     locpath = os.path.join(pathdir, readlist['Location'])

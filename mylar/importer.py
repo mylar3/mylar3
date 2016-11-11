@@ -491,7 +491,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
             shutil.copy(coverfile, comiclocal)
-            filechecker.setperms(comiclocal)
+            if mylar.ENFORCE_PERMS:
+                filechecker.setperms(comiclocal)
         except IOError as e:
             logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
 
