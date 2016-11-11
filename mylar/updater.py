@@ -604,15 +604,17 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     newValue = {'NZBName':  NZBName}
 
     if SARC:
+       logger.fdebug("Story Arc (SARC) detected as: " + str(SARC))
        IssueID = 'S' + str(IssueArcID)
        newValue['SARC'] = SARC
 
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
        #give it a generic ID above the last one so it doesn't throw an error later.
-       logger.fdebug("Story Arc (SARC) detected as: " + str(SARC))
        if mylar.HIGHCOUNT == 0:
-           IssueID = '900000'
+           mylar.HIGHCOUNT = 900000
+           IssueID = mylar.HIGHCOUNT
+           mylar.config_write()
        else:
            IssueID = int(mylar.HIGHCOUNT) + 1
 

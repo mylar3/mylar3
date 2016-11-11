@@ -383,6 +383,7 @@ TPSE_PROXY = None
 TPSE_VERIFY = True
 
 ENABLE_32P = 0
+SEARCH_32P = 0   #0 = use WS to grab torrent groupings, #1 = use 32P to grab torrent groupings
 MODE_32P = None  #0 = legacymode, #1 = authmode
 KEYS_32P = None
 RSSFEED_32P = None
@@ -477,7 +478,7 @@ def initialize():
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, TMP_PROV, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
                 ALLOW_PACKS, ENABLE_TORRENTS, TORRENT_DOWNLOADER, MINSEEDS, USE_WATCHDIR, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, SEARCH_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
@@ -615,7 +616,7 @@ def initialize():
         FFTONEWCOM_DIR = bool(check_setting_int(CFG, 'General', 'fftonewcom_dir', 0))
         if FFTONEWCOM_DIR is None:
             FFTONEWCOM_DIR = 0
-        HIGHCOUNT = check_setting_str(CFG, 'General', 'highcount', '')
+        HIGHCOUNT = check_setting_int(CFG, 'General', 'highcount', 0)
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
         SEND2READ = bool(check_setting_int(CFG, 'General', 'send2read', 0))
@@ -731,6 +732,7 @@ def initialize():
             print 'Converting CBT settings to 32P - ENABLE_32P: ' + str(ENABLE_32P)
         else:
             ENABLE_32P = bool(check_setting_int(CFG, 'Torrents', 'enable_32p', 0))
+        SEARCH_32P = bool(check_setting_int(CFG, 'Torrents', 'search_32p', 0))
 
         MODE_32P = check_setting_int(CFG, 'Torrents', 'mode_32p', 0)
         #legacy support of older config - reload into old values for consistency.
@@ -1493,6 +1495,7 @@ def config_write():
     new_config['Torrents']['tpse_proxy'] = TPSE_PROXY
     new_config['Torrents']['tpse_verify'] = TPSE_VERIFY
     new_config['Torrents']['enable_32p'] = int(ENABLE_32P)
+    new_config['Torrents']['search_32p'] = int(SEARCH_32P)
     new_config['Torrents']['mode_32p'] = int(MODE_32P)
     new_config['Torrents']['passkey_32p'] = PASSKEY_32P
     new_config['Torrents']['rssfeed_32p'] = RSSFEED_32P

@@ -150,56 +150,87 @@ class info32p(object):
             return feedinfo
 
     def searchit(self):
+        #self.searchterm is a tuple containing series name, issue number, volume and publisher.
+        series_search = self.searchterm['series']
+        annualize = False
+        if 'Annual' in series_search:
+            series_search = re.sub(' Annual', '', series_search).strip()
+            annualize = True
+        issue_search = self.searchterm['issue']
+        volume_search = self.searchterm['volume']
+        publisher_search = self.searchterm['publisher']
+        spl = [x for x in self.publisher_list if x in publisher_search]
+        for x in spl:
+            publisher_search = re.sub(x, '', publisher_search).strip()
+
+        logger.info('publisher search set to : ' + publisher_search)
+        #generate the dynamic name of the series here so we can match it up
+        as_d = filechecker.FileChecker()
+        as_dinfo = as_d.dynamic_replace(series_search)
+        mod_series = as_dinfo['mod_seriesname']
+        as_puinfo = as_d.dynamic_replace(publisher_search)
+        pub_series = as_puinfo['mod_seriesname']
+
+        logger.info('series_search: ' + series_search)
+
+        if '/' in series_search:
+            series_search = series_search[:series_search.find('/')]
+        if ':' in series_search:
+            series_search = series_search[:series_search.find(':')]
+        if ',' in series_search:
+            series_search = series_search[:series_search.find(',')]
+
+        if not mylar.SEARCH_32P:
+            url = 'https://walksoftly.itsaninja.party/serieslist.php'
+            params = {'series': series_search}
+            try:
+                t = requests.get(url, params=params, verify=True)
+            except requests.exceptions.RequestException as e:
+                logger.warn(e)
+                return "no results"
+
+            if t.status_code == '619':
+                logger.warn('[' + str(t.status_code) + '] Unable to retrieve data from site.')
+                return "no results"
+            elif t.status_code == '999':
+                logger.warn('[' + str(t.status_code) + '] No series title was provided to the search query.')
+                return "no results"
+
+            try:
+                results = t.json()
+            except:
+                results = t.text
+
+            if len(results) == 0:
+                logger.warn('No results found for search on 32P.')
+                return "no results"
+
         with requests.Session() as s:
-            #self.searchterm is a tuple containing series name, issue number, volume and publisher.
-            series_search = self.searchterm['series']
-            annualize = False
-            if 'Annual' in series_search:
-                series_search = re.sub(' Annual', '', series_search).strip()
-                annualize = True
-            issue_search = self.searchterm['issue']
-            volume_search = self.searchterm['volume']
-            publisher_search = self.searchterm['publisher']
-            spl = [x for x in self.publisher_list if x in publisher_search]
-            for x in spl:
-                publisher_search = re.sub(x, '', publisher_search).strip()
-
-            logger.info('publisher search set to : ' + publisher_search)
-            #generate the dynamic name of the series here so we can match it up
-            as_d = filechecker.FileChecker()
-            as_dinfo = as_d.dynamic_replace(series_search)
-            mod_series = as_dinfo['mod_seriesname']
-            as_puinfo = as_d.dynamic_replace(publisher_search)
-            pub_series = as_puinfo['mod_seriesname']
-
-            logger.info('series_search: ' + series_search)
-
-            if '/' in series_search:
-                series_search = series_search[:series_search.find('/')]
-            if ':' in series_search:
-                series_search = series_search[:series_search.find(':')]
-            if ',' in series_search:
-                series_search = series_search[:series_search.find(',')]
-
-            url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
-            params = {'action': 'serieslist', 'filter': series_search}
             s.headers = self.headers
             cj = LWPCookieJar(os.path.join(mylar.CACHE_DIR, ".32p_cookies.dat"))
             cj.load()
             s.cookies = cj
-            time.sleep(1)  #just to make sure we don't hammer, 1s pause.
-            t = s.get(url, params=params, verify=True)
-            soup = BeautifulSoup(t.content, "html.parser")
-            results = soup.find_all("a", {"class":"object-qtip"},{"data-type":"torrentgroup"})
+            if mylar.SEARCH_32P:
+                url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
+                params = {'action': 'serieslist', 'filter': series_search}
+                time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+                t = s.get(url, params=params, verify=True)
+                soup = BeautifulSoup(t.content, "html.parser")
+                results = soup.find_all("a", {"class":"object-qtip"},{"data-type":"torrentgroup"})
 
             data = []
             pdata = []
             pubmatch = False
 
             for r in results:
-                torrentid = r['data-id']
-                torrentname = r.findNext(text=True)
-                torrentname = torrentname.strip()
+                if mylar.SEARCH_32P:
+                    torrentid = r['data-id']
+                    torrentname = r.findNext(text=True)
+                    torrentname = torrentname.strip()
+                else:
+                    torrentid = r['id']
+                    torrentname = r['series']
+
                 as_d = filechecker.FileChecker()
                 as_dinfo = as_d.dynamic_replace(torrentname)
                 seriesresult = as_dinfo['mod_seriesname']
@@ -215,56 +246,57 @@ class info32p(object):
                     if as_tinfo['mod_seriesname'] == mod_series:
                         logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
                         pdata.append({"id":      torrentid,
-                                     "series":  torrentname})
+                                      "series":  torrentname})
                         pubmatch = True
 
             logger.info(str(len(data)) + ' series listed for searching that match.')
+            if all([len(data) == 0, len(pdata) == 0]):
+                return "no results"
 
             if len(data) == 1 or len(pdata) == 1:
                 logger.info(str(len(data)) + ' series match the title being search for')
-                if len(pdata) == 1:
-                    dataset = pdata[0]['id']
-                else:
-                    dataset = data[0]['id']
+            if len(pdata) == 1:
+                dataset = pdata[0]['id']
+            else:
+                dataset = data[0]['id']
 
-                payload = {'action': 'groupsearch',
-                           'id':     dataset,
-                           'issue':  issue_search}
-                #in order to match up against 0-day stuff, volume has to be none at this point
-                #when doing other searches tho, this should be allowed to go through
-                #if all([volume_search != 'None', volume_search is not None]):
-                #    payload.update({'volume': re.sub('v', '', volume_search).strip()})
+            payload = {'action': 'groupsearch',
+                       'id':     dataset,
+                       'issue':  issue_search}
+            #in order to match up against 0-day stuff, volume has to be none at this point
+            #when doing other searches tho, this should be allowed to go through
+            #if all([volume_search != 'None', volume_search is not None]):
+            #    payload.update({'volume': re.sub('v', '', volume_search).strip()})
 
-                logger.info('payload: ' + str(payload))
-                url = 'https://32pag.es/ajax.php'
+            logger.info('payload: ' + str(payload))
+            url = 'https://32pag.es/ajax.php'
 
-                time.sleep(1)  #just to make sure we don't hammer, 1s pause.
-                d = s.get(url, params=payload, verify=True)
+            time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+            d = s.get(url, params=payload, verify=True)
 
-                results32p = []
-                resultlist = {}
-                try:
-                    searchResults = d.json()
-                except:
-                    searchResults = d.text
-                if searchResults['status'] == 'success' and searchResults['count'] > 0:
-                    logger.info('successfully retrieved ' + str(searchResults['count']) + ' search results.')
-                    for a in searchResults['details']:
-                        results32p.append({'link':      a['id'],
-                                           'title':     self.searchterm['series'] + ' v' + a['volume'] + ' #' + a['issues'],
-                                           'filesize':  a['size'],
-                                           'issues':     a['issues'],
-                                           'pack':      a['pack'],
-                                           'format':    a['format'],
-                                           'language':  a['language'],
-                                           'seeders':   a['seeders'],
-                                           'leechers':  a['leechers'],
-                                           'scanner':   a['scanner'],
-                                           'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%c')})
+            results32p = []
+            resultlist = {}
+            try:
+                searchResults = d.json()
+            except:
+                searchResults = d.text
+            logger.info(searchResults)
+            if searchResults['status'] == 'success' and searchResults['count'] > 0:
+                logger.info('successfully retrieved ' + str(searchResults['count']) + ' search results.')
+                for a in searchResults['details']:
+                    results32p.append({'link':      a['id'],
+                                       'title':     self.searchterm['series'] + ' v' + a['volume'] + ' #' + a['issues'],
+                                       'filesize':  a['size'],
+                                       'issues':     a['issues'],
+                                       'pack':      a['pack'],
+                                       'format':    a['format'],
+                                       'language':  a['language'],
+                                       'seeders':   a['seeders'],
+                                       'leechers':  a['leechers'],
+                                       'scanner':   a['scanner'],
+                                       'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%c')})
                     
-                    resultlist['entries'] = sorted(results32p, key=itemgetter('pack','title'), reverse=False)
-                else:
-                    resultlist = 'no results'
+                resultlist['entries'] = sorted(results32p, key=itemgetter('pack','title'), reverse=False)
             else:
                 resultlist = 'no results'
 

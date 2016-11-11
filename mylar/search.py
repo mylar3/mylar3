@@ -294,8 +294,11 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 logger.info('Finished searching via :' + str(searchmode) + '. Issue not found - status kept as Wanted.')
             else:
                 logger.fdebug('Could not find issue doing a manual search via : ' + str(searchmode))
-            if searchprov == '32P' and mylar.MODE_32P == 0:
-                return findit, 'None'
+            if searchprov == '32P':
+                if mylar.MODE_32P == 0:
+                    return findit, 'None'
+                elif mylar.MODE_32P == 1 and searchmode == 'api':
+                    return findit, 'None'
             i+=1
 
     return findit, 'None'
@@ -1519,6 +1522,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                                 comicinfo.append({"ComicName":     ComicName,
                                                   "IssueNumber":   IssueNumber,
+                                                  "IssueDate":     IssueDate,
                                                   "comyear":       cyear,
                                                   "pack":          False,
                                                   "pack_numbers":  None,
@@ -1941,22 +1945,23 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.fdebug("ComicName: " + ComicName)
             logger.fdebug("Issue: " + str(IssueNumber))
             logger.fdebug("Year: " + str(comyear))
-            logger.fdebug("IssueDate:" + str(IssueDate))
+            logger.fdebug("IssueDate: " + comicinfo[0]['IssueDate'])
         logger.info(u"Found " + ComicName + " (" + str(comyear) + ") issue: " + IssueNumber + " using " + str(tmpprov))
 
     logger.fdebug("link given by: " + str(nzbprov))
 
     if mylar.FAILED_DOWNLOAD_HANDLING:
-        if nzbid is not None:
-            try:
-                # only nzb providers will have a filen, try it and pass exception
-                if IssueID is None:
-                    logger.fdebug('One-off mode was initiated - Failed Download handling for : ' + ComicName + ' #' + str(IssueNumber))
-                    comicinfo = {"ComicName":   ComicName,
-                                 "IssueNumber": IssueNumber}
-                    return FailedMark(ComicID=ComicID, IssueID=IssueID, id=nzbid, nzbname=nzbname, prov=nzbprov, oneoffinfo=comicinfo)
-            except:
-                pass
+        if all([nzbid is not None, IssueID is not None]):
+            # --- this causes any possible snatch to get marked as a Failed download when doing a one-off search...
+            #try:
+            #    # only nzb providers will have a filen, try it and pass exception
+            #    if IssueID is None:
+            #        logger.fdebug('One-off mode was initiated - Failed Download handling for : ' + ComicName + ' #' + str(IssueNumber))
+            #        comicinfo = {"ComicName":   ComicName,
+            #                     "IssueNumber": IssueNumber}
+            #        return FailedMark(ComicID=ComicID, IssueID=IssueID, id=nzbid, nzbname=nzbname, prov=nzbprov, oneoffinfo=comicinfo)
+            #except:
+            #    pass
             call_the_fail = Failed.FailedProcessor(nzb_name=nzbname, id=nzbid, issueid=IssueID, comicid=ComicID, prov=tmpprov)
             check_the_fail = call_the_fail.failed_check()
             if check_the_fail == 'Failed':
@@ -1964,7 +1969,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 return "downloadchk-fail"
             elif check_the_fail == 'Good':
                 logger.fdebug('[FAILED_DOWNLOAD_CHECKER] This is not in the failed downloads list. Will continue with the download.')
-
+        else:
+            logger.fdebug('[FAILED_DOWNLOAD_CHECKER] Failed download checking is not available for one-off downloads atm. Fixed soon!')
+ 
     if link and all([nzbprov != 'TPSE', nzbprov != 'WWT', nzbprov != 'DEM', nzbprov != '32P', nzbprov != 'Torznab']):
 
         #generate nzbid here.
