@@ -54,8 +54,6 @@ def pullit(forcecheck=None):
     if pulldate is None: pulldate = '00000000'
 
     #only for pw-file or ALT_PULL = 1
-    #PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
-    PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
     newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
     mylar.PULLBYFILE = None
 
@@ -76,12 +74,10 @@ def pullit(forcecheck=None):
 
         else:
             logger.info('[PULL-LIST] Unable to retrieve weekly pull-list. Dropping down to legacy method of PW-file')
-            urllib.urlretrieve(PULLURL, newrl)
-            mylar.PULLBYFILE = True
+            mylar.PULLBYFILE = pull_the_file(newrl)
     else:
         logger.info('[PULL-LIST] Populating & Loading pull-list data from file')
-        urllib.urlretrieve(PULLURL, newrl)
-        mylar.PULLBYFILE = True
+        mylar.PULLBYFILE = pull_the_file(newrl)
 
         #set newrl to a manual file to pull in against that particular file
         #newrl = '/mylar/tmp/newreleases.txt'
@@ -99,9 +95,6 @@ def pullit(forcecheck=None):
             pullitcheck(forcecheck=forcecheck)
         else:
             pass
-
-        #PULLURL = 'http://www.previewsworld.com/shipping/prevues/newreleases.txt'
-        PULLURL = 'http://www.previewsworld.com/shipping/newreleases.txt'
 
         #Prepare the Substitute name switch for pulllist to comic vine conversion
         substitutes = os.path.join(mylar.DATA_DIR, "substitutes.csv")
@@ -966,7 +959,11 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
                     #do a quick issue check to see if the next issue number is in sequence and not a #1, or like #900
                     latestiss = namematch[0]['latestIssue'].strip()
-                    diff = int(week['Issue']) - int(latestiss)
+                    try:
+                        diff = int(week['Issue']) - int(latestiss)
+                    except ValueError as e:
+                        logger.warn('[WEEKLY-PULL] Invalid issue number detected. Skipping this entry for the time being.')
+                        continue
                     if diff >= 0 and diff < 3:
                         comicname = namematch[0]['ComicName'].strip()
                         comicid = namematch[0]['ComicID'].strip()
@@ -1225,6 +1222,24 @@ def checkthis(datecheck, datestatus, usedate):
             valid_check = False
 
     return valid_check
+
+def pull_the_file(newrl):
+    import requests
+    PULLURL = 'https://www.previewsworld.com/shipping/newreleases.txt'
+    PULL_AGENT = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
+    try:
+        r = requests.get(PULLURL, verify=False, headers=PULL_AGENT, stream=True)
+    except requests.exceptions.RequestException as e:
+        logger.warn(e)
+        return False
+
+    with open(newrl, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
+                f.flush()
+
+    return True
 
 def weekly_check(comicid, issuenum, file=None, path=None, module=None, issueid=None):
 
