@@ -1747,6 +1747,32 @@ def listLibrary():
             library[row['ReleaseComicId']] = row['ComicID']
     return library
 
+def listIssues(weeknumber, year):
+    import db
+    library = []
+    myDB = db.DBConnection()
+    # Get individual issues
+    list = myDB.select("SELECT issues.Status, issues.ComicID, issues.IssueID, issues.ComicName, weekly.publisher, issues.Issue_Number from weekly, issues where weekly.IssueID = issues.IssueID and weeknumber = ? and year = ?", [weeknumber, year])
+    for row in list:
+        library.append({'ComicID': row['ComicID'],
+                       'Status':  row['Status'],
+                       'IssueID': row['IssueID'],
+                       'ComicName': row['ComicName'],
+                       'Publisher': row['publisher'],
+                       'Issue_Number': row['Issue_Number']})
+    # Add the annuals
+    if mylar.ANNUALS_ON:
+        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [weeknumber, year])
+        for row in list:
+            library.append({'ComicID': row['ComicID'],
+                            'Status':  row['Status'],
+                            'IssueID': row['IssueID'],
+                            'ComicName': row['ComicName'],
+                            'Publisher': row['publisher'],
+                            'Issue_Number': row['Issue_Number']})
+
+    return library
+
 def incr_snatched(ComicID):
     import db, logger
     myDB = db.DBConnection()
@@ -2117,20 +2143,157 @@ def conversion(value):
             value = value.decode('windows-1252')
     return value
 
+def clean_url(url):
+    leading = len(url) - len(url.lstrip(' '))
+    ending = len(url) - len(url.rstrip(' '))
+    if leading >= 1:
+        url = url[leading:]
+    if ending >=1:
+        url = url[:-ending]
+    return url
+
 def chunker(seq, size):
     #returns a list from a large group of tuples by size (ie. for group in chunker(seq, 3))
     return [seq[pos:pos + size] for pos in xrange(0, len(seq), size)]
 
-def file_ops(path,dst,arc=False):
+def cleanHost(host, protocol = True, ssl = False, username = None, password = None):
+    """  Return a cleaned up host with given url options set
+            taken verbatim from CouchPotato
+    Changes protocol to https if ssl is set to True and http if ssl is set to false.
+    >>> cleanHost("localhost:80", ssl=True)
+    'https://localhost:80/'
+    >>> cleanHost("localhost:80", ssl=False)
+    'http://localhost:80/'
+
+    Username and password is managed with the username and password variables
+    >>> cleanHost("localhost:80", username="user", password="passwd")
+    'http://user:passwd@localhost:80/'
+
+    Output without scheme (protocol) can be forced with protocol=False
+    >>> cleanHost("localhost:80", protocol=False)
+    'localhost:80'
+    """
+
+    if not '://' in host and protocol:
+        host = ('https://' if ssl else 'http://') + host
+
+    if not protocol:
+        host = host.split('://', 1)[-1]
+
+    if protocol and username and password:
+        try:
+            auth = re.findall('^(?:.+?//)(.+?):(.+?)@(?:.+)$', host)
+            if auth:
+                log.error('Cleanhost error: auth already defined in url: %s, please remove BasicAuth from url.', host)
+            else:
+                host = host.replace('://', '://%s:%s@' % (username, password), 1)
+        except:
+            pass
+
+    host = host.rstrip('/ ')
+    if protocol:
+        host += '/'
+
+    return host
+
+def checkthe_id(comicid=None, up_vals=None):
+    import db, logger
+    myDB = db.DBConnection()
+    if not up_vals:
+        chk = myDB.selectone("SELECT * from ref32p WHERE ComicID=?", [comicid]).fetchone()
+        if chk is None:
+           return None
+        else:
+           return {'id':     chk['ID'],
+                   'series': chk['Series']}
+    else:
+        ctrlVal = {'ComicID':     comicid}
+        newVal =  {'Series':      up_vals[0]['series'],
+                   'ID':          up_vals[0]['id']}
+        myDB.upsert("ref32p", newVal, ctrlVal)
+
+
+def spantheyears(storyarcid):
+    import db
+    myDB = db.DBConnection()
+
+    totalcnt = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=?", [storyarcid])
+    lowyear = 9999
+    maxyear = 0
+    for la in totalcnt:
+        if la['IssueDate'] is None:
+            continue
+        else:
+            if int(la['IssueDate'][:4]) > maxyear:
+                maxyear = int(la['IssueDate'][:4])
+            if int(la['IssueDate'][:4]) < lowyear:
+                lowyear = int(la['IssueDate'][:4])
+
+    if maxyear == 0:
+        spanyears = la['SeriesYear']
+    elif lowyear == maxyear:
+        spanyears = str(maxyear)
+    else:
+        spanyears = str(lowyear) + ' - ' + str(maxyear) #la['SeriesYear'] + ' - ' + str(maxyear)
+    return spanyears
+
+def arcformat(arc, spanyears, publisher):
+    arcdir = filesafe(arc)
+    if publisher is None:
+        publisher = 'None'
+
+    values = {'$arc':         arcdir,
+              '$spanyears':   spanyears,
+              '$publisher':   publisher}
+
+    tmp_folderformat = mylar.ARC_FOLDERFORMAT
+
+    if publisher == 'None':
+        chunk_f_f = re.sub('\$publisher', '', tmp_folderformat)
+        chunk_f = re.compile(r'\s+')
+        tmp_folderformat = chunk_f.sub(' ', chunk_f_f)
+
+
+    if any([tmp_folderformat == '', tmp_folderformat is None]):
+        arcpath = arcdir
+    else:
+        arcpath = replace_all(tmp_folderformat, values)
+
+    if mylar.REPLACE_SPACES:
+        arcpath = arcpath.replace(' ', mylar.REPLACE_CHAR)
+
+    if arcpath.startswith('/'):
+        arcpath = arcpath[1:]
+    elif arcpath.startswith('//'):
+        arcpath = arcpath[2:]
+
+    if mylar.STORYARCDIR:
+        logger.info(mylar.DESTINATION_DIR)
+        logger.info('StoryArcs')
+        logger.info(arcpath)
+        dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcpath)
+    else:
+        logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.GRABBAG_DIR)
+        dstloc = mylar.GRABBAG_DIR
+
+    return dstloc
+
+def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
 #    # dst = destination path + filename
-#    # arc = to denote if the file_operation is being performed as part of a story arc or not
+#    # arc = to denote if the file_operation is being performed as part of a story arc or not where the series exists on the watchlist already
+#    # one-off = if the file_operation is being performed where it is either going into the grabbab_dst or story arc folder
 
 #    #get the crc of the file prior to the operation and then compare after to ensure it's complete.
 #    crc_check = mylar.filechecker.crc(path)
 #    #will be either copy / move
 
-    if mylar.FILE_OPTS == 'copy' or (arc is True and any([mylar.FILE_OPTS == 'copy', mylar.FILE_OPTS == 'move'])):
+    if any([one_off, arc]):
+        action_op = mylar.ARC_FILEOPS
+    else:
+        action_op = mylar.FILE_OPTS
+
+    if action_op == 'copy' or (arc is True and any([action_op == 'copy', action_op == 'move'])):
         try:
             shutil.copy( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
@@ -2138,7 +2301,7 @@ def file_ops(path,dst,arc=False):
             return False
         return True
 
-    elif mylar.FILE_OPTS == 'move':
+    elif action_op == 'move':
         try:
             shutil.move( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
@@ -2146,10 +2309,10 @@ def file_ops(path,dst,arc=False):
             return False
         return True
 
-    elif any([mylar.FILE_OPTS == 'hardlink', mylar.FILE_OPTS == 'softlink']):
+    elif any([action_op == 'hardlink', action_op == 'softlink']):
         if 'windows' not in mylar.OS_DETECT.lower():
             # if it's an arc, then in needs to go reverse since we want to keep the src files (in the series directory)
-            if mylar.FILE_OPTS == 'hardlink':
+            if action_op == 'hardlink':
                 import sys
 
                 # Open a file
@@ -2181,7 +2344,7 @@ def file_ops(path,dst,arc=False):
 
                 return True
 
-            elif mylar.FILE_OPTS ==  'softlink':
+            elif action_op ==  'softlink':
                 try:
                     #first we need to copy the file to the new location, then create the symlink pointing from new -> original
                     if not arc:
@@ -2189,9 +2352,10 @@ def file_ops(path,dst,arc=False):
                         if os.path.lexists( path ):
                             os.remove( path )
                         os.symlink( dst, path )
+                        logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
                     else:
                         os.symlink ( path, dst )
-                    logger.fdebug('Successfully created softlink [' + dst + ' --> ' + path + ']')
+                        logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
                 except OSError, e:
                     #if e.errno == errno.EEXIST:
                     #    os.remove(dst)

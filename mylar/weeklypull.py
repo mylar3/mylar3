@@ -55,7 +55,7 @@ def pullit(forcecheck=None):
 
     #only for pw-file or ALT_PULL = 1
     newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
-    mylar.PULLBYFILE = None
+    mylar.PULLBYFILE = False
 
     if mylar.ALT_PULL == 1:
         #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.')
@@ -953,7 +953,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 elif annualidmatch:
                     comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
                     latestiss = annualidmatch[0]['latestIssue'].strip()
-                    comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
+                    if mylar.ANNUALS_ON:
+                        comicid = annualidmatch[0]['ComicID'].strip()
+                    else:
+                        comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
                     logger.fdebug('[WEEKLY-PULL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                 else:
                     #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
@@ -1112,12 +1115,16 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                 #if the issueid exists on the pull, but not in the series issue list, we need to forcibly refresh the series so it's in line
                 if issueid:
-                    logger.info('issue id check passed.')
-                    isschk = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+                    #logger.info('issue id check passed.')
+                    if annualidmatch:
+                        isschk = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+                    else:
+                        isschk = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+
                     if isschk is None:
                         isschk = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
                         if isschk is None:
-                            logger.fdebug('REFRESH THE SERIES.')
+                            logger.fdebug('[WEEKLY-PULL] Forcing a refresh of the series to ensure it is current.')
                             cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck')
                             #refresh series.
                         else:
@@ -1133,7 +1140,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             #make sure the status is Wanted and that the issue status is identical if not.
                                 newStat = {'Status': 'Wanted'}
                                 ctrlStat = {'IssueID': issueid}
-                                myDB.upsert("issues", newStat, ctrlStat)
+                                if all([annualidmatch, mylar.ANNUALS_ON]):
+                                    myDB.upsert("annuals", newStat, ctrlStat)
+                                else:
+                                    myDB.upsert("issues", newStat, ctrlStat)
             else:
                 continue
 #                else:

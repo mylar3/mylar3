@@ -305,7 +305,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None):
 
-    if any([allow_packs is None, allow_packs == 'None', allow_packs == 0]):
+    if any([allow_packs is None, allow_packs == 'None', allow_packs == 0]) and all([mylar.ENABLE_TORRENT_SEARCH, mylar.ENABLE_32P]):
         allow_packs = False
     logger.info('allow_packs set to :' + str(allow_packs))
 
@@ -533,7 +533,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     rss = "no"
                 if nzbprov == '32P':
                     if all([mylar.MODE_32P == 1,mylar.ENABLE_32P]):
-                        searchterm = {'series': ComicName, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
+                        searchterm = {'series': ComicName, 'id': ComicID, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
                         #first we find the id on the serieslist of 32P
                         #then we call the ajax against the id and issue# and volume (if exists)
                         a = auth32p.info32p(searchterm=searchterm)
@@ -629,28 +629,34 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         try:
                             r = requests.get(findurl, params=payload, verify=verify, headers=headers)
-                        except Exception, e:
-                            logger.warn('Error fetching data from %s: %s' % (nzbprov, e))
-                            if 'HTTP Error 503' in e:
+                        except requests.exceptions.Timeout as e:
+                            logger.warn('Timeout occured fetching data from %s: %s' % (nzbprov, e))
+                            break
+                        except requests.exceptions.ConnectionError as e:
+                            logger.warn('Connection error trying to retrieve data from %s: %s' % (nzbprov, e))
+                            break
+                        except requests.exceptions.RequestException as e:
+                            logger.warn('General Error fetching data from %s: %s' % (nzbprov, e))
+                            if e.r.status_code == 503: 
+                                #HTTP Error 503
                                 logger.warn('Aborting search due to Provider unavailability')
                                 foundc = "no"
                                 break
-                            data = False
 
-                        #logger.fdebug('status code: ' + str(r.status_code))
-
-                        if str(r.status_code) != '200':
-                            logger.warn('Unable to retrieve search results from ' + tmpprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                        try:
+                            if str(r.status_code) != '200':
+                                logger.warn('Unable to retrieve search results from ' + tmpprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                                data = False
+                            else:
+                                data = r.content
+                        except:
                             data = False
-                        else:
-                            data = r.content
 
                         if data:
                             bb = feedparser.parse(data)
                         else:
                             bb = "no results"
 
-                        #logger.info('Search results:' + str(bb))
                         try:
                             if bb['feed']['error']:
                                 logger.error('[ERROR CODE: ' + str(bb['feed']['error']['code']) + '] ' + str(bb['feed']['error']['description']))
@@ -665,7 +671,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     done = True
                                 break
                         except:
-                            #logger.info('no errors on data retrieval...proceeding')
+                            logger.info('no errors on data retrieval...proceeding')
                             pass
                 elif nzbprov == 'experimental':
                     #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
@@ -1219,7 +1225,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                             #find the pack range.
                             pack_issuelist = entry['issues']
-                            issueid_info = helpers.issue_find_ids(ComicName,ComicID, pack_issuelist, IssueNumber)
+                            issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
                             logger.info('issueid_info:' + str(issueid_info))
                             if issueid_info['valid'] == True:
                                 logger.info('Issue Number ' + IssueNumber + ' exists within pack. Continuing.')

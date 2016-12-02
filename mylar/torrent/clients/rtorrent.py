@@ -1,4 +1,5 @@
 import os
+from urlparse import urlparse
 
 from lib.rtorrent import RTorrent
 
@@ -9,21 +10,53 @@ class TorrentClient(object):
     def __init__(self):
         self.conn = None
 
-    def connect(self, host, username, password):
+    def getVerifySsl(self):
+        # Ensure verification has been enabled
+        if not mylar.RTORRENT_VERIFY:
+            return False
+
+        # Use ca bundle if defined
+        if mylar.RTORRENT_CA_BUNDLE and os.path.exists(ca_bundle):
+            return mylar.RTORRENT_CA_BUNDLE
+
+        # Use default ssl verification
+        return True
+
+    def connect(self, host, username, password, auth):
         if self.conn is not None:
             return self.conn
 
         if not host:
             return False
 
+        url = helpers.cleanHost(host, protocol = True, ssl = mylar.RTORRENT_SSL)
+
+        # Automatically add '+https' to 'httprpc' protocol if SSL is enabled
+        if mylar.RTORRENT_SSL and url.startswith('httprpc://'):
+            url = url.replace('httprpc://', 'httprpc+https://')
+
+        parsed = urlparse(url)
+
+        # rpc_url is only used on http/https scgi pass-through
+        if parsed.scheme in ['http', 'https']:
+            url += mylar.RTORRENT_RPC_URL
+
+        logger.info(url)
+
         if username and password:
-            self.conn = RTorrent(
-                host,
-                username,
-                password
+            try:
+                self.conn = RTorrent(
+                    url,(auth, username, password),
+                    verify_server=True,
+                    verify_ssl=self.getVerifySsl()
             )
+            except:
+                return False
         else:
-            self.conn = RTorrent(host)
+            try:
+                self.conn = RTorrent(host)
+            except:
+                return False
 
         return self.conn
 

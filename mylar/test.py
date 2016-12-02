@@ -36,7 +36,8 @@ class RTorrent(object):
         self.client = TorClient.TorrentClient()
         if not self.client.connect(mylar.RTORRENT_HOST,
                                    mylar.RTORRENT_USERNAME,
-                                   mylar.RTORRENT_PASSWORD):
+                                   mylar.RTORRENT_PASSWORD,
+                                   mylar.RTORRENT_AUTHENTICATION):
             logger.error('could not connect to %s, exiting', mylar.RTORRENT_HOST)
             sys.exit(-1)
 

@@ -150,7 +150,7 @@
 	            		 
 	            		 <div class="row">
 	            		   <label>HTTP Password</label>
-	            		   <input type="password" name="http_password" value="${config['http_pass']}" size="30">
+	            		   <input type="password" name="http_password" value="${config['http_pass']| h}" size="30">
 	            		 </div>
                                  <div class="row checkbox">
                                     <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
@@ -283,7 +283,7 @@
     	                        </div>	               
                                 <div class="row">
                                     <label>SABnzbd Password:</label>
-                                    <input type="password" name="sab_password" value="${config['sab_pass']}" size="20">
+                                    <input type="password" name="sab_password" value="${config['sab_pass']| h}" size="20">
                                 </div>
                                 <div Class="row">
                                      <div class="populatesab">
@@ -349,7 +349,7 @@
                                 </div>
                                 <div class="row">
                                     <label>NZBGet Password:</label>
-                                    <input type="password" name="nzbget_password" value="${config['nzbget_pass']}" size="20">
+                                    <input type="password" name="nzbget_password" value="${config['nzbget_pass']| h}" size="20">
                                </div>
                                 <div class="row">
                                     <label>NZBGet Download Directory</label>
@@ -438,7 +438,7 @@
                                   </div>
                                   <div class="row">
                                         <label>Seedbox Password</label>
-                                        <input type="password" name="seedbox_pass" value="${config['seedbox_pass']}" size="30">
+                                        <input type="password" name="seedbox_pass" value="${config['seedbox_pass']| h}" size="30">
                                   </div>
                                   <div class="row">
                                         <label>Watch Directory</label>
@@ -457,7 +457,7 @@
 				</div>
 				<div class="row">
 					<label>uTorrent Password</label>
-					<input type="password" name="utorrent_password" value="${config['utorrent_password']}" size="30">
+					<input type="password" name="utorrent_password" value="${config['utorrent_password']| h}" size="30">
 				</div>
 				<div class="row">
 					<label>uTorrent Label</label>
@@ -466,11 +466,37 @@
 				</div>
 			</fieldset>
                         <fieldset id="rtorrent_options">
-                                <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Will *ONLY* work if rtorrent has RPC Support</small>
                                 <div class="row">
-                                        <label>rTorrent Host:Port/RPC</label>
+                                        <label>rTorrent Host:port(optional)</label>
                                         <input type="text" name="rtorrent_host" value="${config['rtorrent_host']}" size="30">
-					<small>ie. https://my.rtorrent:80/myuser/RPC1</small>
+					<small>ie. my.rtorrent:80, 192.168.1.1, scgi://localhost:5000</small>
+                                </div>
+                                <div class="row checkbox left clearfix">
+                                        <input id="rtorrent_ssl" type="checkbox" onclick="initConfigCheckbox($this));" name="rtorrent_ssl" value="1" ${config['rtorrent_ssl']} /><label>SSL</label>
+                                </div>
+                                <div class="config">
+                                    <div class="row checkbox left clearfix">
+                                        <input id="rtorrent_verify" type="checkbox" name="rtorrent_verify" value="1" ${config['rtorrent_verify']} /><label>Verify SSL</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <label>rTorrent Authentication</label>
+                                    <select name="rtorrent_authenticaiton">
+                                    %for x in ['basic', 'digest']:
+                                        <%
+                                            if config['rtorrent_authentication'] == x:
+                                                outputselect = 'selected'
+                                            else:
+                                                outputselect = ''
+                                         %>
+                                    <option value=${x} ${outputselect}>${x}</option>
+                                    %endfor
+                                    </select>
+                                </div>
+                                <div class="row">
+                                        <label>rTorrent RPC</label>
+                                        <input type="text" name="rtorrent_rpc_url" value="${config['rtorrent_rpc_url']}" size="30">
+					<small>ie. httprpc plugin = rutorrent/plugins/httprpc/action.php<br>rpc plugin = user/RPC2</small>
                                 </div>
                                 <div class="row">
                                         <label>rTorrent Username</label>
@@ -478,10 +504,10 @@
                                 </div>
                                 <div class="row">
                                         <label>rTorrent Password</label>
-                                        <input type="password" name="rtorrent_password" value="${config['rtorrent_password']}" size="30">
+                                        <input type="password" name="rtorrent_password" value="${config['rtorrent_password']| h}" size="30">
                                 </div>
                                 <div class="row">
-                                        <label>Watch Directory</label>
+                                        <label>rTorrent Directory</label>
                                         <input type="text" name="rtorrent_directory" value="${config['rtorrent_directory']}" size="30"><br/>
                                         <small>Folder path where torrent download will be assigned</small>
                                 </div>
@@ -506,7 +532,7 @@
 				</div>
 				<div class="row">
 					<label>Transmission Password</label>
-					<input type="password" name="transmission_password" value="${config['transmission_password']}" size="30">
+					<input type="password" name="transmission_password" value="${config['transmission_password']| h}" size="30">
 				</div>
                                 <div class="row">
                                         <label>Transmission Directory</label>
@@ -624,7 +650,7 @@
                                                 </div>
                                                 <div class="row">
                                                     <label>&nbspPassword</label>
-                                                    <input type="password" name="password_32p" value="${config['password_32p']}" size="36">
+                                                    <input type="password" name="password_32p" value="${config['password_32p']| h}" size="36">
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
                                                 <div align="center" class="row">
@@ -1674,6 +1700,7 @@
                 initConfigCheckbox("#enforce_perms");
                 initConfigCheckbox("#enable_api");
                 initConfigCheckbox("#sab_to_mylar");
+                initConfigCheckbox("#rtorrent_ssl");
                 initConfigCheckbox("#usenewznab");
                 initConfigCheckbox("#enable_torznab");
 		initConfigCheckbox("#usenzbsu");

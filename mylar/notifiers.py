@@ -91,8 +91,11 @@ class NMA:
         self._session = requests.Session()
 
     def _send(self, data, module):
-
-        r = self._session.post(self.NMA_URL, data=data, verify=True)
+        try:
+            r = self._session.post(self.NMA_URL, data=data, verify=True)
+        except requests.exceptions.RequestException as e:                
+            logger.error(module + '[' + str(e) + '] Unable to send via NMA. Aborting notification for this item.')
+            return False
 
         logger.fdebug('[NMA] Status code returned: ' + str(r.status_code))
         if r.status_code == 200:

@@ -116,7 +116,7 @@ DONATEBUTTON = True
 
 PULLNEW = None
 ALT_PULL = 0
-PULLBYFILE = None
+PULLBYFILE = False
 
 LOCAL_IP = None
 EXT_IP = None
@@ -322,6 +322,8 @@ TAB_PASS = None
 TAB_DIRECTORY = None
 STORYARCDIR = 0
 COPY2ARCDIR = 0
+ARC_FOLDERFORMAT = None
+ARC_FILEOPS = 'copy'
 
 CVURL = None
 CURRENT_WEEKNUMBER = None
@@ -329,6 +331,7 @@ CURRENT_YEAR = None
 PULL_REFRESH = None
 WEEKFOLDER = 0
 WEEKFOLDER_LOC = None
+WEEKFOLDER_FORMAT = 0
 LOCMOVE = 0
 NEWCOM_DIR = None
 FFTONEWCOM_DIR = 0
@@ -397,6 +400,11 @@ SNATCHEDTORRENT_NOTIFY = 0
 
 USE_RTORRENT = False
 RTORRENT_HOST = None
+RTORRENT_AUTHENTICATION = 'basic'
+RTORRENT_RPC_URL = None
+RTORRENT_SSL = 0
+RTORRENT_VERIFY = 0
+RTORRENT_CA_BUNDLE = None
 RTORRENT_USERNAME = None
 RTORRENT_PASSWORD = None
 RTORRENT_STARTONLOAD = 0
@@ -472,8 +480,8 @@ def initialize():
                 DOWNLOAD_SCAN_INTERVAL, FOLDER_SCAN_LOG_VERBOSE, IMPORTLOCK, NZB_DOWNLOADER, USE_SABNZBD, SAB_HOST, SAB_USERNAME, SAB_PASSWORD, SAB_APIKEY, SAB_CATEGORY, SAB_PRIORITY, SAB_TO_MYLAR, SAB_DIRECTORY, USE_BLACKHOLE, BLACKHOLE_DIR, ADD_COMICS, COMIC_DIR, IMP_MOVE, IMP_RENAME, IMP_METADATA, \
                 USE_NZBGET, NZBGET_HOST, NZBGET_PORT, NZBGET_USERNAME, NZBGET_PASSWORD, NZBGET_CATEGORY, NZBGET_PRIORITY, NZBGET_DIRECTORY, NZBSU, NZBSU_UID, NZBSU_APIKEY, NZBSU_VERIFY, DOGNZB, DOGNZB_APIKEY, DOGNZB_VERIFY, \
                 NEWZNAB, NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_APIKEY, NEWZNAB_VERIFY, NEWZNAB_UID, NEWZNAB_ENABLED, EXTRA_NEWZNABS, NEWZNAB_EXTRA, \
-                ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, \
-                EXPERIMENTAL, ALTEXPERIMENTAL, USE_RTORRENT, RTORRENT_HOST, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
+                ENABLE_TORZNAB, TORZNAB_NAME, TORZNAB_HOST, TORZNAB_APIKEY, TORZNAB_CATEGORY, TORZNAB_VERIFY, EXPERIMENTAL, ALTEXPERIMENTAL, \
+                USE_RTORRENT, RTORRENT_HOST, RTORRENT_AUTHENTICATION, RTORRENT_RPC_URL, RTORRENT_SSL, RTORRENT_VERIFY, RTORRENT_CA_BUNDLE, RTORRENT_USERNAME, RTORRENT_PASSWORD, RTORRENT_STARTONLOAD, RTORRENT_LABEL, RTORRENT_DIRECTORY, \
                 USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, USE_TRANSMISSION, TRANSMISSION_HOST, TRANSMISSION_USERNAME, TRANSMISSION_PASSWORD, TRANSMISSION_DIRECTORY, \
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, TMP_PROV, \
                 dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
@@ -481,9 +489,12 @@ def initialize():
                 ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, SEARCH_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
-                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, STORYARCDIR, COPY2ARCDIR, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
+                PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, \
+                FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, \
+                FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, \
+                STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
-                SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, UMASK, \
+                SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, WEEKFOLDER_FORMAT, UMASK, \
                 TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID
 
         if __INITIALIZED__:
@@ -609,6 +620,7 @@ def initialize():
             GRABBAG_DIR = os.path.join(DESTINATION_DIR, 'GrabBag')
         WEEKFOLDER = bool(check_setting_int(CFG, 'General', 'weekfolder', 0))
         WEEKFOLDER_LOC = check_setting_str(CFG, 'General', 'weekfolder_loc', '')
+        WEEKFOLDER_FORMAT = bool(check_setting_int(CFG, 'General', 'weekfolder_format', 0))
         LOCMOVE = bool(check_setting_int(CFG, 'General', 'locmove', 0))
         if LOCMOVE is None:
             LOCMOVE = 0
@@ -627,6 +639,10 @@ def initialize():
         TAB_DIRECTORY = check_setting_str(CFG, 'General', 'tab_directory', '')
         STORYARCDIR = bool(check_setting_int(CFG, 'General', 'storyarcdir', 0))
         COPY2ARCDIR = bool(check_setting_int(CFG, 'General', 'copy2arcdir', 0))
+        ARC_FOLDERFORMAT = check_setting_str(CFG, 'General', 'arc_folderformat', '$arc ($spanyears)')
+        if any([ARC_FOLDERFORMAT is None, ARC_FOLDERFORMAT == 'None']):
+            ARC_FOLDERFORMAT = '$arc ($spanyears)'
+        ARC_FILEOPS = check_setting_str(CFG,'General', 'arc_fileops', 'copy')
         PROWL_ENABLED = bool(check_setting_int(CFG, 'Prowl', 'prowl_enabled', 0))
         PROWL_KEYS = check_setting_str(CFG, 'Prowl', 'prowl_keys', '')
         PROWL_ONSNATCH = bool(check_setting_int(CFG, 'Prowl', 'prowl_onsnatch', 0))
@@ -756,6 +772,11 @@ def initialize():
         SNATCHEDTORRENT_NOTIFY = bool(check_setting_int(CFG, 'Torrents', 'snatchedtorrent_notify', 0))
         
         RTORRENT_HOST = check_setting_str(CFG, 'Torrents', 'rtorrent_host', '')
+        RTORRENT_AUTHENTICATION = check_setting_str(CFG, 'Torrents', 'rtorrent_authentication', 'basic')
+        RTORRENT_RPC_URL = check_setting_str(CFG, 'Torrents', 'rtorrent_rpc_url', '')
+        RTORRENT_SSL = bool(check_setting_int(CFG, 'Torrents', 'rtorrent_ssl', 0))
+        RTORRENT_VERIFY = bool(check_setting_int(CFG, 'Torrents', 'rtorrent_verify', 0))
+        RTORRENT_CA_BUNDLE = check_setting_str(CFG, 'Torrents', 'rtorrent_ca_bundle', '')
         RTORRENT_USERNAME = check_setting_str(CFG, 'Torrents', 'rtorrent_username', '')
         RTORRENT_PASSWORD = check_setting_str(CFG, 'Torrents', 'rtorrent_password', '')
         RTORRENT_STARTONLOAD = bool(check_setting_int(CFG, 'Torrents', 'rtorrent_startonload', 0))
@@ -877,7 +898,7 @@ def initialize():
         NEWZNAB = bool(check_setting_int(CFG, 'Newznab', 'newznab', 0))
 
         if CONFIG_VERSION:
-            NEWZNAB_HOST = check_setting_str(CFG, 'Newznab', 'newznab_host', '')
+            NEWZNAB_HOST = helpers.clean_url(check_setting_str(CFG, 'Newznab', 'newznab_host', ''))
             NEWZNAB_APIKEY = check_setting_str(CFG, 'Newznab', 'newznab_apikey', '')
             NEWZNAB_UID = 1
             NEWZNAB_ENABLED = bool(check_setting_int(CFG, 'Newznab', 'newznab_enabled', 1))
@@ -928,7 +949,7 @@ def initialize():
 
         #to counteract the loss of the 1st newznab entry because of a switch, let's rewrite to the tuple
         if NEWZNAB_HOST and CONFIG_VERSION:
-            EXTRA_NEWZNABS.append((NEWZNAB_NAME, NEWZNAB_HOST, NEWZNAB_VERIFY, NEWZNAB_APIKEY, NEWZNAB_UID, int(NEWZNAB_ENABLED)))
+            EXTRA_NEWZNABS.append((NEWZNAB_NAME, helpers.clean_url(NEWZNAB_HOST), NEWZNAB_VERIFY, NEWZNAB_APIKEY, NEWZNAB_UID, int(NEWZNAB_ENABLED)))
             #PR_NUM +=1
             # Need to rewrite config here and bump up config version
             CONFIG_VERSION = '6'
@@ -1427,6 +1448,8 @@ def config_write():
     new_config['General']['tab_directory'] = TAB_DIRECTORY
     new_config['General']['storyarcdir'] = int(STORYARCDIR)
     new_config['General']['copy2arcdir'] = int(COPY2ARCDIR)
+    new_config['General']['arc_folderformat'] = ARC_FOLDERFORMAT
+    new_config['General']['arc_fileops'] = ARC_FILEOPS
     new_config['General']['use_minsize'] = int(USE_MINSIZE)
     new_config['General']['minsize'] = MINSIZE
     new_config['General']['use_maxsize'] = int(USE_MAXSIZE)
@@ -1443,6 +1466,7 @@ def config_write():
     new_config['General']['file_opts'] = FILE_OPTS
     new_config['General']['weekfolder'] = int(WEEKFOLDER)
     new_config['General']['weekfolder_loc'] = WEEKFOLDER_LOC
+    new_config['General']['weekfolder_format'] = int(WEEKFOLDER_FORMAT)
     new_config['General']['locmove'] = int(LOCMOVE)
     new_config['General']['newcom_dir'] = NEWCOM_DIR
     new_config['General']['fftonewcom_dir'] = int(FFTONEWCOM_DIR)
@@ -1504,6 +1528,11 @@ def config_write():
     new_config['Torrents']['verify_32p'] = int(VERIFY_32P)
     new_config['Torrents']['snatchedtorrent_notify'] = int(SNATCHEDTORRENT_NOTIFY)
     new_config['Torrents']['rtorrent_host'] = RTORRENT_HOST
+    new_config['Torrents']['rtorrent_authentication'] = RTORRENT_AUTHENTICATION
+    new_config['Torrents']['rtorrent_rpc_url'] = RTORRENT_RPC_URL
+    new_config['Torrents']['rtorrent_ssl'] = int(RTORRENT_SSL)
+    new_config['Torrents']['rtorrent_verify'] = int(RTORRENT_VERIFY)
+    new_config['Torrents']['rtorrent_ca_bundle'] = RTORRENT_CA_BUNDLE
     new_config['Torrents']['rtorrent_username'] = RTORRENT_USERNAME
     new_config['Torrents']['rtorrent_password'] = RTORRENT_PASSWORD
     new_config['Torrents']['rtorrent_startonload'] = int(RTORRENT_STARTONLOAD)
@@ -1697,12 +1726,13 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ref32p (ComicID TEXT UNIQUE, ID TEXT, Series TEXT)')
     conn.commit
     c.close
     #new
@@ -2116,6 +2146,11 @@ def dbcheck():
         c.execute('ALTER TABLE readinglist ADD COLUMN DynamicComicName TEXT')
         dynamic_upgrade = True
 
+    try:
+        c.execute('SELECT Volume from readinglist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readinglist ADD COLUMN Volume TEXT')
+
     ## -- searchresults Table --
     try:
         c.execute('SELECT SRID from searchresults')
@@ -2180,6 +2215,7 @@ def dbcheck():
     #let's delete errant comics that are stranded (ie. Comicname = Comic ID: )
     c.execute("DELETE from comics WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
     c.execute("DELETE from issues WHERE ComicName='None' OR ComicName LIKE 'Comic ID%' OR ComicName is NULL")
+    c.execute("DELETE from issues WHERE ComicID is NULL")
     c.execute("DELETE from annuals WHERE ComicName='None' OR ComicName is NULL or Issue_Number is NULL")
     c.execute("DELETE from upcoming WHERE ComicName='None' OR ComicName is NULL or IssueNumber is NULL")
     c.execute("DELETE from importresults WHERE ComicName='None' OR ComicName is NULL")

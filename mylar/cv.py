@@ -72,7 +72,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     elif type == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif type == 'comicyears':
-        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher&offset=' + str(offset)
+        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck&offset=' + str(offset)
     elif type == 'import':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
     elif type == 'update_dates':
@@ -159,7 +159,7 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
         dom = pulldetails(arc, 'storyarc', None, 1)
         return GetComicInfo(issueid, dom)
     elif type == 'comicyears':
-        #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year.
+        #used by the story arc searcher when adding a given arc to poll each ComicID in order to populate the Series Year & volume (hopefully).
         #this grabs each issue based on issueid, and then subsets the comicid for each to be used later.
         #set the offset to 0, since we're doing a filter.
         dom = pulldetails(arcid, 'comicyears', offset=0, comicidlist=comicidlist)
@@ -572,10 +572,100 @@ def GetSeriesYears(dom):
             logger.warn('There was a problem retrieving the start year for a particular series within the story arc.')
             tempseries['SeriesYear'] = '0000'
 
+        desdeck = 0
+        tempseries['Volume'] = 'None'
+
+        #the description field actually holds the Volume# - so let's grab it
+        try:
+            descchunk = dm.getElementsByTagName('description')[0].firstChild.wholeText
+            comic_desc = drophtml(descchunk)
+            desdeck +=1
+        except:
+            comic_desc = 'None'
+
+        #sometimes the deck has volume labels
+        try:
+            deckchunk = dm.getElementsByTagName('deck')[0].firstChild.wholeText
+            comic_deck = deckchunk
+            desdeck +=1
+        except:
+            comic_deck = 'None'
+
+        while (desdeck > 0):
+            if desdeck == 1:
+                if comic_desc == 'None':
+                    comicDes = comic_deck[:30]
+                else:
+                    #extract the first 60 characters
+                    comicDes = comic_desc[:60].replace('New 52', '')
+            elif desdeck == 2:
+                #extract the characters from the deck
+                comicDes = comic_deck[:30].replace('New 52', '')
+            else:
+                break
+
+            i = 0
+            while (i < 2):
+                if 'volume' in comicDes.lower():
+                    #found volume - let's grab it.
+                    v_find = comicDes.lower().find('volume')
+                    #arbitrarily grab the next 10 chars (6 for volume + 1 for space + 3 for the actual vol #)
+                    #increased to 10 to allow for text numbering (+5 max)
+                    #sometimes it's volume 5 and ocassionally it's fifth volume.
+                    if i == 0:
+                        vfind = comicDes[v_find:v_find +15]   #if it's volume 5 format
+                        basenums = {'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        logger.fdebug('volume X format - ' + str(i) + ': ' + vfind)
+                    else:
+                        vfind = comicDes[:v_find]   # if it's fifth volume format
+                        basenums = {'zero': '0', 'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5', 'sixth': '6', 'seventh': '7', 'eighth': '8', 'nineth': '9', 'tenth': '10', 'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5'}
+                        logger.fdebug('X volume format - ' + str(i) + ': ' + vfind)
+                    volconv = ''
+                    for nums in basenums:
+                        if nums in vfind.lower():
+                            sconv = basenums[nums]
+                            vfind = re.sub(nums, sconv, vfind.lower())
+                            break
+                    #logger.info('volconv: ' + str(volconv))
+
+                    if i == 0:
+                        volthis = vfind.lower().find('volume')
+                        volthis = volthis + 6  # add on the actual word to the position so that we can grab the subsequent digit
+                        vfind = vfind[volthis:volthis + 4]  # grab the next 4 characters ;)
+                    elif i == 1:
+                        volthis = vfind.lower().find('volume')
+                        vfind = vfind[volthis - 4:volthis]  # grab the next 4 characters ;)
+
+                    if '(' in vfind:
+                        #bracket detected in versioning'
+                        vfindit = re.findall('[^()]+', vfind)
+                        vfind = vfindit[0]
+                    vf = re.findall('[^<>]+', vfind)
+                    try:
+                        ledigit = re.sub("[^0-9]", "", vf[0])
+                        if ledigit != '':
+                            tempseries['Volume'] = ledigit
+                            logger.fdebug("Volume information found! Adding to series record : volume " + tempseries['Volume'])
+                            break
+                    except:
+                        pass
+
+                    i += 1
+                else:
+                    i += 1
+
+            if tempseries['Volume'] == 'None':
+                logger.fdebug('tempseries[Volume]:' + str(tempseries['Volume']))
+                desdeck -= 1
+            else:
+                break
+
+
         serieslist.append({"ComicID":    tempseries['ComicID'],
                            "ComicName":  tempseries['Series'],
                            "SeriesYear": tempseries['SeriesYear'],
-                           "Publisher": tempseries['Publisher']})
+                           "Publisher":  tempseries['Publisher'],
+                           "Volume":     tempseries['Volume']})
 
     return serieslist
 

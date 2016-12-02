@@ -404,8 +404,8 @@ def storyarcinfo(xmlid):
         comicapi = mylar.COMICVINE_API
 
     #respawn to the exact id for the story arc and count the # of issues present.
-    ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
-    logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
+    ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,publisher,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
+    #logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
 
     #new CV API restriction - one api request / second.
     if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
@@ -488,6 +488,11 @@ def storyarcinfo(xmlid):
         xmldesc = "None"
 
     try:
+        xmlpub = arcdom.getElementsByTagName('publisher')[0].firstChild.wholeText
+    except:
+        xmlpub = "None"
+
+    try:
         xmldeck = arcdom.getElementsByTagName('deck')[0].firstChild.wholeText
     except:
         xmldeck = "None"
@@ -508,7 +513,8 @@ def storyarcinfo(xmlid):
             'description':          xmldesc,
             'deck':                 xmldeck,
             'arclist':              arclist,
-            'haveit':               haveit
+            'haveit':               haveit,
+            'publisher':            xmlpub
             }
 
     return arcinfo

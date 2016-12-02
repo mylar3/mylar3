@@ -53,7 +53,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
         url = 'https://walksoftly.itsaninja.party/newcomics.php'
 
         try:
-            r = requests.get(url, params=params, verify=True)
+            r = requests.get(url, params=params, verify=True, headers={'User-Agent': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
         except requests.exceptions.RequestException as e:
             logger.warn(e)
             return {'status': 'failure'}
@@ -114,7 +114,6 @@ def locg(pulldate=None,weeknumber=None,year=None):
                             'COMIC':       comicname,
                             'COMICID':     comicid,
                             'ISSUEID':     issueid,
-                            #'DYNAMICNAME': dynamic_name,
                             'WEEKNUMBER':  x['weeknumber'],
                             'YEAR':        x['year']}
             myDB.upsert("weekly", newValueDict, controlValueDict)

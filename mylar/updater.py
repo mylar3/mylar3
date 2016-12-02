@@ -34,7 +34,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
         if mylar.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -62,10 +62,11 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                                       "LastUpdated":           comlist['LastUpdated'],
                                       "ComicID":               comlist['ComicID'],
                                       "ComicName":             comlist['ComicName'],
+                                      "ComicYear":             comlist['ComicYear'],
                                       "Corrected_SeriesYear":  comlist['Corrected_SeriesYear']})
 
         else:
-            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
     else:
         comiclist = []
         comiclisting = ComicIDList
@@ -78,6 +79,15 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
     cnt = 1
 
     for comic in comiclist:
+        dspyear = comic['ComicYear']
+        csyear = None
+
+        if comic['Corrected_SeriesYear'] is not None:
+            csyear = comic['Corrected_SeriesYear']
+            if int(csyear) != int(comic['ComicYear']):
+                comic['ComicYear'] = csyear
+                dspyear = csyear
+
         if ComicIDList is None:
             ComicID = comic['ComicID']
             ComicName = comic['ComicName']
@@ -93,20 +103,10 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                     logger.info(ComicName + '[' + str(ComicID) + '] Was refreshed less than 5 hours ago. Skipping Refresh at this time.')
                     cnt +=1
                     continue
-            logger.info('[' + str(cnt) + '/' + str(len(comiclist)) + '] Refreshing :' + ComicName + ' [' + str(ComicID) + ']')
+            logger.info('[' + str(cnt) + '/' + str(len(comiclist)) + '] Refreshing :' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
         else:
             ComicID = comic['ComicID']
             ComicName = comic['ComicName']
-            logger.info('csyear: ' + str(comic['Corrected_SeriesYear']))
-            dspyear = comic['ComicYear']
-            csyear = None
-
-            if comic['Corrected_SeriesYear'] is not None:
-                csyear = comic['Corrected_SeriesYear']
-                if int(csyear) != int(comic['ComicYear']):
-                    comic['ComicYear'] = csyear
-                    dspyear = csyear
-            
            
             logger.fdebug('Refreshing: ' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
 
@@ -356,6 +356,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
     if 'annual' in ComicName.lower():
         if mylar.ANNUALS_ON:
+            logger.info('checking: ' + str(ComicID) + ' -- issue#: ' + str(IssueNumber))
             issuechk = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
         else:
             logger.fdebug('Annual detected, but annuals not enabled. Ignoring result.')

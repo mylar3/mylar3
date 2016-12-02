@@ -8,7 +8,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-                        <a id="menu_link_refresh" href="manualpull">Refresh Pull-list</a>
+                        <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullist?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Refresh submitted.">Refresh Pull-list</a>
                         <a id="menu_link_retry" href="pullrecreate">Recreate Pull-list</a>
                         <a id="menu_link_scan" class="button">Download</a>
 		</div>

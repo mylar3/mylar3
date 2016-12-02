@@ -39,7 +39,7 @@
               <form action="importReadlist" method="get">
                <fieldset>
                     <input type="text" value="" runat="server" placeholder="Enter full path to .cbl file to import" onfocus="if
-                    (this.value==this.defaultValue) this.value='';" name="filename" size="40" />
+                    (this.value==this.defaultValue) this.value='';" name="filename" size="45" />
                     <input type="submit" value="Import">
                </fieldset>
               </form>
@@ -48,12 +48,43 @@
                  <form action="arcOptions" id="chkoptions" method="GET">
                    <fieldset>
                      <legend>Options</legend>
-                     <div class="row checkbox left clearfix">
+                         <div class="row checkbox left clearfix">
                          <%
                              storyarcdest = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs')
                          %>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label>
+                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
+                         </div>
+                         <div id="arc_options">
+                           <div class="row">
+                               <label>Arc Folder Format</label>
+                               <input type="text" title="$publisher, $spanyears, $arc" name="arc_folderformat" value="${mylar.ARC_FOLDERFORMAT}" size="25">
+                           </div>
+                         </div>
+                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label></br>
+                         <%
+                               if mylar.STORYARCDIR:
+                                   carcdir = 'StoryArc'
+                               else:
+                                   carcdir = 'GrabBag'
+                         %>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.COPY2ARCDIR)} />
+                                        <select name="arc_fileops" id="arc_fileops">
+                                         <%
+                                               if 'windows' in mylar.OS_DETECT.lower():
+                                                   optionlist = ['move', 'copy']
+                                               else:
+                                                   optionlist = ['move', 'copy', 'hardlink', 'softlink']
+                                         %>
+                                         %for x in optionlist:
+                                             <%
+                                                    if mylar.ARC_FILEOPS == x:
+                                                        outputselect = 'selected'
+                                                    else:
+                                                        outputselect = ''
+                                              %>
+                                              <option value=${x} ${outputselect}>${x}</option>
+                                         %endfor
+                                        </select><label> watchlisted issues to ${carcdir} Directory</label>
                      </div>
                    </fieldset>
                    <div>
@@ -132,6 +163,24 @@
         <script>
         function initThisPage() {
 
+                if ($("#storyarcdir").is(":checked"))
+                        {
+                            $("#arc_options").show();
+                        }
+                else
+                        {
+                            $("#arc_options").hide();
+                        }
+                $("#storyarcdir").click(function(){
+                        if ($("#storyarcdir").is(":checked"))
+                        {
+                            $("#arc_options").slideDown();
+                        }
+                        else
+                        {
+                            $("#arc_options").slideUp();
+                        }
+                });
                 $(function() {
                         $( "#tabs" ).tabs();
                 });
