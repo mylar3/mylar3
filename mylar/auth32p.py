@@ -244,7 +244,8 @@ class info32p(object):
 
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(torrentname)
-                    seriesresult = as_dinfo['mod_seriesname']
+                    seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
+                    #seriesresult = as_dinfo['mod_seriesname']
                     logger.info('searchresult: ' + seriesresult + ' --- ' + mod_series + '[' + publisher_search + ']')
                     if seriesresult == mod_series:
                         logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
@@ -257,7 +258,7 @@ class info32p(object):
                         as_tinfo = as_t.dynamic_replace(tmp_torrentname)
                         logger.info('tmp_torrentname:' + tmp_torrentname)
                         logger.info('as_tinfo:' + as_tinfo['mod_seriesname'])
-                        if as_tinfo['mod_seriesname'] == mod_series:
+                        if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series:
                             logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
                             pdata.append({"id":      torrentid,
                                           "series":  torrentname})
