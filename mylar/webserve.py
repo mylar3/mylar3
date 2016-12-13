@@ -681,6 +681,7 @@ class WebInterface(object):
             failed = True
 
         queue = Queue.Queue()
+        retry_outside = False
 
         if not failed:
             PostProcess = PostProcessor.PostProcessor(nzb_name, nzb_folder, queue=queue)
@@ -702,6 +703,10 @@ class WebInterface(object):
                         break
                     elif chk[0]['mode'] == 'stop':
                         yield chk[0]['self.log']
+                        break
+                    elif chk[0]['mode'] == 'outside':
+                        yield chk[0]['self.log']
+                        retry_outside = True
                         break
                     else:
                         logger.error('mode is unsupported: ' + chk[0]['mode'])
@@ -730,6 +735,29 @@ class WebInterface(object):
                     yield failchk[0]['self.log']
             else:
                 logger.warn('Failed Download Handling is not enabled. Leaving Failed Download as-is.')
+
+        if retry_outside:
+            PostProcess = PostProcessor.PostProcessor('Manual Run', nzb_folder, queue=queue)
+            thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")
+            thread_.start()
+            thread_.join()
+            chk = queue.get()
+            while True:
+                if chk[0]['mode'] == 'fail':
+                    yield chk[0]['self.log']
+                    logger.info('Initiating Failed Download handling')
+                    if chk[0]['annchk'] == 'no': mode = 'want'
+                    else: mode = 'want_ann'
+                    failed = True
+                    break
+                elif chk[0]['mode'] == 'stop':
+                    yield chk[0]['self.log']
+                    break
+                else:
+                    logger.error('mode is unsupported: ' + chk[0]['mode'])
+                    yield chk[0]['self.log']
+                    break
+
     post_process.exposed = True
 
     def pauseSeries(self, ComicID):

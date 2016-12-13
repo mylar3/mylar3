@@ -896,10 +896,11 @@ class PostProcessor(object):
                     logger.fdebug(module + ' Trying to locate nzbfile again with nzbname of : ' + str(nzbname))
                     nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
                     if nzbiss is None:
-                        logger.error(module + ' Unable to locate downloaded file to rename. PostProcessing aborted.')
-                        self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
+                        logger.error(module + ' Unable to locate downloaded file to rename within items I have snatched. Attempting to parse the filename directly and process.')
+                        #set it up to run manual post-processing on self.nzb_folder
+                        self._log('Unable to locate downloaded file to rename within items I have snatched. Attempting to parse the filename directly and process.')
                         self.valreturn.append({"self.log": self.log,
-                                               "mode": 'stop'})
+                                               "mode": 'outside'})
                         return self.queue.put(self.valreturn)
                     else:
                         self._log("I corrected and found the nzb as : " + str(nzbname))
