@@ -478,9 +478,9 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
     tresults = []
     tsearch = '%' + tsearch
 
-    if mylar.ENABLE_32P:
+    if mylar.ENABLE_32P and nzbprov == '32P':
         tresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='32P'", [tsearch])
-    if mylar.ENABLE_TPSE:
+    if mylar.ENABLE_TPSE and nzbprov == 'TPSE':
         tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [tsearch])
 
     logger.fdebug('seriesname_alt:' + str(seriesname_alt))
@@ -517,9 +517,9 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
                  AS_Alternate += "%"
 
             AS_Alternate = '%' + AS_Alternate
-            if mylar.ENABLE_32P:
+            if mylar.ENABLE_32P and nzbprov == '32P':
                 tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='32P'", [AS_Alternate])
-            if mylar.ENABLE_TPSE:
+            if mylar.ENABLE_TPSE and nzbprov == 'TPSE':
                 tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [AS_Alternate])
 
     if tresults is None:
