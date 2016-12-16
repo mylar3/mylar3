@@ -1,90 +1,112 @@
 # mako/exceptions.py
-# Copyright (C) 2006-2011 the Mako authors and contributors <see AUTHORS file>
+# Copyright (C) 2006-2016 the Mako authors and contributors <see AUTHORS file>
 #
 # This module is part of Mako and is released under
 # the MIT License: http://www.opensource.org/licenses/mit-license.php
 
 """exception classes"""
 
-import traceback, sys, re
-from mako import util
+import traceback
+import sys
+from mako import util, compat
+
 
 class MakoException(Exception):
     pass
 
+
 class RuntimeException(MakoException):
     pass
+
 
 def _format_filepos(lineno, pos, filename):
     if filename is None:
         return " at line: %d char: %d" % (lineno, pos)
     else:
         return " in file '%s' at line: %d char: %d" % (filename, lineno, pos)
- 
- 
+
+
 class CompileException(MakoException):
+
     def __init__(self, message, source, lineno, pos, filename):
-        MakoException.__init__(self, message + _format_filepos(lineno, pos, filename))
-        self.lineno =lineno
-        self.pos = pos
-        self.filename = filename
-        self.source = source
- 
-class SyntaxException(MakoException):
-    def __init__(self, message, source, lineno, pos, filename):
-        MakoException.__init__(self, message + _format_filepos(lineno, pos, filename))
-        self.lineno =lineno
+        MakoException.__init__(
+            self,
+            message + _format_filepos(lineno, pos, filename))
+        self.lineno = lineno
         self.pos = pos
         self.filename = filename
         self.source = source
 
+
+class SyntaxException(MakoException):
+
+    def __init__(self, message, source, lineno, pos, filename):
+        MakoException.__init__(
+            self,
+            message + _format_filepos(lineno, pos, filename))
+        self.lineno = lineno
+        self.pos = pos
+        self.filename = filename
+        self.source = source
+
+
 class UnsupportedError(MakoException):
+
     """raised when a retired feature is used."""
- 
+
+
+class NameConflictError(MakoException):
+
+    """raised when a reserved word is used inappropriately"""
+
+
 class TemplateLookupException(MakoException):
     pass
 
+
 class TopLevelLookupException(TemplateLookupException):
     pass
- 
+
+
 class RichTraceback(object):
-    """Pulls the current exception from the sys traceback and extracts
+
+    """Pull the current exception from the ``sys`` traceback and extracts
     Mako-specific template information.
- 
+
     See the usage examples in :ref:`handling_exceptions`.
- 
+
     """
+
     def __init__(self, error=None, traceback=None):
         self.source, self.lineno = "", 0
 
         if error is None or traceback is None:
             t, value, tback = sys.exc_info()
- 
+
         if error is None:
             error = value or t
- 
+
         if traceback is None:
             traceback = tback
- 
+
         self.error = error
         self.records = self._init(traceback)
- 
+
         if isinstance(self.error, (CompileException, SyntaxException)):
-            import mako.template
             self.source = self.error.source
             self.lineno = self.error.lineno
             self._has_source = True
- 
+
         self._init_message()
- 
+
     @property
     def errorname(self):
-        return util.exception_name(self.error)
- 
+        return compat.exception_name(self.error)
+
     def _init_message(self):
         """Find a unicode representation of self.error"""
         try:
-            self.message = unicode(self.error)
+            self.message = compat.text_type(self.error)
         except UnicodeError:
             try:
                 self.message = str(self.error)
@@ -92,8 +114,8 @@ class RichTraceback(object):
                 # Fallback to args as neither unicode nor
                 # str(Exception(u'\xe6')) work in Python < 2.6
                 self.message = self.error.args[0]
-        if not isinstance(self.message, unicode):
-            self.message = unicode(self.message, 'ascii', 'replace')
+        if not isinstance(self.message, compat.text_type):
+            self.message = compat.text_type(self.message, 'ascii', 'replace')
 
     def _get_reformatted_records(self, records):
         for rec in records:
@@ -101,25 +123,25 @@ class RichTraceback(object):
                 yield (rec[4], rec[5], rec[2], rec[6])
             else:
                 yield tuple(rec[0:4])
- 
+
     @property
     def traceback(self):
-        """return a list of 4-tuple traceback records (i.e. normal python
+        """Return a list of 4-tuple traceback records (i.e. normal python
         format) with template-corresponding lines remapped to the originating
         template.
- 
+
         """
         return list(self._get_reformatted_records(self.records))
- 
+
     @property
     def reverse_records(self):
         return reversed(self.records)
- 
+
     @property
     def reverse_traceback(self):
-        """return the same data as traceback, except in reverse order.
+        """Return the same data as traceback, except in reverse order.
         """
- 
+
         return list(self._get_reformatted_records(self.reverse_records))
 
     def _init(self, trcback):
@@ -145,7 +167,7 @@ class RichTraceback(object):
                     template_filename = info.template_filename or filename
                 except KeyError:
                     # A normal .py file (not a Template)
-                    if not util.py3k:
+                    if not compat.py3k:
                         try:
                             fp = open(filename, 'rb')
                             encoding = util.parse_encoding(fp)
@@ -156,32 +178,32 @@ class RichTraceback(object):
                             line = line.decode(encoding)
                         else:
                             line = line.decode('ascii', 'replace')
-                    new_trcback.append((filename, lineno, function, line, 
-                                            None, None, None, None))
+                    new_trcback.append((filename, lineno, function, line,
+                                        None, None, None, None))
                     continue
 
-                template_ln = module_ln = 1
-                line_map = {}
-                for line in module_source.split("\n"):
-                    match = re.match(r'\s*# SOURCE LINE (\d+)', line)
-                    if match:
-                        template_ln = int(match.group(1))
-                    module_ln += 1
-                    line_map[module_ln] = template_ln
-                template_lines = [line for line in
-                                    template_source.split("\n")]
+                template_ln = 1
+
+                source_map = mako.template.ModuleInfo.\
+                    get_module_source_metadata(
+                        module_source, full_line_map=True)
+                line_map = source_map['full_line_map']
+
+                template_lines = [line_ for line_ in
+                                  template_source.split("\n")]
                 mods[filename] = (line_map, template_lines)
 
-            template_ln = line_map[lineno]
+            template_ln = line_map[lineno - 1]
+
             if template_ln <= len(template_lines):
                 template_line = template_lines[template_ln - 1]
             else:
                 template_line = None
-            new_trcback.append((filename, lineno, function, 
-                                line, template_filename, template_ln, 
+            new_trcback.append((filename, lineno, function,
+                                line, template_filename, template_ln,
                                 template_line, template_source))
         if not self.source:
-            for l in range(len(new_trcback)-1, 0, -1):
+            for l in range(len(new_trcback) - 1, 0, -1):
                 if new_trcback[l][5]:
                     self.source = new_trcback[l][7]
                     self.lineno = new_trcback[l][5]
@@ -202,13 +224,13 @@ class RichTraceback(object):
                     self.lineno = new_trcback[-1][1]
         return new_trcback
 
- 
+
 def text_error_template(lookup=None):
     """Provides a template that renders a stack trace in a similar format to
     the Python interpreter, substituting source template filenames, line
     numbers and code for that of the originating source template, as
     applicable.
- 
+
     """
     import mako.template
     return mako.template.Template(r"""
@@ -227,22 +249,48 @@ Traceback (most recent call last):
 ${tback.errorname}: ${tback.message}
 """)
 
+
+def _install_pygments():
+    global syntax_highlight, pygments_html_formatter
+    from mako.ext.pygmentplugin import syntax_highlight  # noqa
+    from mako.ext.pygmentplugin import pygments_html_formatter  # noqa
+
+
+def _install_fallback():
+    global syntax_highlight, pygments_html_formatter
+    from mako.filters import html_escape
+    pygments_html_formatter = None
+
+    def syntax_highlight(filename='', language=None):
+        return html_escape
+
+
+def _install_highlighting():
+    try:
+        _install_pygments()
+    except ImportError:
+        _install_fallback()
+_install_highlighting()
+
+
 def html_error_template():
     """Provides a template that renders a stack trace in an HTML format,
     providing an excerpt of code as well as substituting source template
     filenames, line numbers and code for that of the originating source
     template, as applicable.
 
-    The template's default encoding_errors value is 'htmlentityreplace'. the
-    template has two options. With the full option disabled, only a section of
-    an HTML document is returned. with the css option disabled, the default
-    stylesheet won't be included.
- 
+    The template's default ``encoding_errors`` value is
+    ``'htmlentityreplace'``. The template has two options. With the
+    ``full`` option disabled, only a section of an HTML document is
+    returned. With the ``css`` option disabled, the default stylesheet
+    won't be included.
+
     """
     import mako.template
     return mako.template.Template(r"""
 <%!
-    from mako.exceptions import RichTraceback
+    from mako.exceptions import RichTraceback, syntax_highlight,\
+            pygments_html_formatter
 %>
 <%page args="full=True, css=True, error=None, traceback=None"/>
 % if full:
@@ -256,10 +304,29 @@ def html_error_template():
         .stacktrace { margin:5px 5px 5px 5px; }
         .highlight { padding:0px 10px 0px 10px; background-color:#9F9FDF; }
         .nonhighlight { padding:0px; background-color:#DFDFDF; }
-        .sample { padding:10px; margin:10px 10px 10px 10px; font-family:monospace; }
+        .sample { padding:10px; margin:10px 10px 10px 10px;
+                  font-family:monospace; }
         .sampleline { padding:0px 10px 0px 10px; }
         .sourceline { margin:5px 5px 10px 5px; font-family:monospace;}
         .location { font-size:80%; }
+        .highlight { white-space:pre; }
+        .sampleline { white-space:pre; }
+
+    % if pygments_html_formatter:
+        ${pygments_html_formatter.get_style_defs()}
+        .linenos { min-width: 2.5em; text-align: right; }
+        pre { margin: 0; }
+        .syntax-highlighted { padding: 0 10px; }
+        .syntax-highlightedtable { border-spacing: 1px; }
+        .nonhighlight { border-top: 1px solid #DFDFDF;
+                        border-bottom: 1px solid #DFDFDF; }
+        .stacktrace .nonhighlight { margin: 5px 15px 10px; }
+        .sourceline { margin: 0 0; font-family:monospace; }
+        .code { background-color: #F8F8F8; width: 100%; }
+        .error .code { background-color: #FFBDBD; }
+        .error .syntax-highlighted { background-color: #FFBDBD; }
+    % endif
+
     </style>
 % endif
 % if full:
@@ -277,16 +344,29 @@ def html_error_template():
     else:
         lines = None
 %>
-<h3>${tback.errorname}: ${tback.message}</h3>
+<h3>${tback.errorname}: ${tback.message|h}</h3>
 
 % if lines:
     <div class="sample">
     <div class="nonhighlight">
 % for index in range(max(0, line-4),min(len(lines), line+5)):
+    <%
+       if pygments_html_formatter:
+           pygments_html_formatter.linenostart = index + 1
+    %>
     % if index + 1 == line:
-<div class="highlight">${index + 1} ${lines[index] | h}</div>
+    <%
+       if pygments_html_formatter:
+           old_cssclass = pygments_html_formatter.cssclass
+           pygments_html_formatter.cssclass = 'error ' + old_cssclass
+    %>
+        ${lines[index] | syntax_highlight(language='mako')}
+    <%
+       if pygments_html_formatter:
+           pygments_html_formatter.cssclass = old_cssclass
+    %>
     % else:
-<div class="sampleline">${index + 1} ${lines[index] | h}</div>
+        ${lines[index] | syntax_highlight(language='mako')}
     % endif
 % endfor
     </div>
@@ -296,7 +376,13 @@ def html_error_template():
 <div class="stacktrace">
 % for (filename, lineno, function, line) in tback.reverse_traceback:
     <div class="location">${filename}, line ${lineno}:</div>
-    <div class="sourceline">${line | h}</div>
+    <div class="nonhighlight">
+    <%
+       if pygments_html_formatter:
+           pygments_html_formatter.linenostart = lineno
+    %>
+      <div class="sourceline">${line | syntax_highlight(filename)}</div>
+    </div>
 % endfor
 </div>
 
@@ -304,4 +390,5 @@ def html_error_template():
 </body>
 </html>
 % endif
-""", output_encoding=sys.getdefaultencoding(), encoding_errors='htmlentityreplace')
+""", output_encoding=sys.getdefaultencoding(),
+                                  encoding_errors='htmlentityreplace')
