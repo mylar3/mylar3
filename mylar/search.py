@@ -2182,6 +2182,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             sent_to = "your rTorrent client"
         elif mylar.USE_TRANSMISSION:
             sent_to = "your Transmission client"
+        elif mylar.USE_DELUGE:
+            sent_to = "your Deluge client"            
     #end torrents
 
     else:

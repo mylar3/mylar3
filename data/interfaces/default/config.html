@@ -407,6 +407,7 @@
 					<input type="radio" name="torrent_downloader" id="torrent_downloader_utorrent" value="1" ${config['torrent_downloader_utorrent']}> uTorrent&nbsp;&nbsp;
 					<input type="radio" name="torrent_downloader" id="torrent_downloader_rtorrent" value="2" ${config['torrent_downloader_rtorrent']}> rTorrent&nbsp;&nbsp;
 					<input type="radio" name="torrent_downloader" id="torrent_downloader_transmission" value="3" ${config['torrent_downloader_transmission']}> Transmission
+                    <input type="radio" name="torrent_downloader" id="torrent_downloader_deluge" value="4" ${config['torrent_downloader_deluge']}> Deluge
 				</div>
 			</fieldset>
 			<fieldset id="watchlist_options">
@@ -534,11 +535,30 @@
 					<label>Transmission Password</label>
 					<input type="password" name="transmission_password" value="${config['transmission_password']| h}" size="30">
 				</div>
-                                <div class="row">
-                                        <label>Transmission Directory</label>
-                                        <input type="text" name="transmission_directory" value="${config['transmission_directory']}" size="30"><br/>
-                                        <small>Folder path where torrent download will be assigned</small>
-                                </div>
+                <div class="row">
+                        <label>Transmission Directory</label>
+                        <input type="text" name="transmission_directory" value="${config['transmission_directory']}" size="30"><br/>
+                        <small>Folder path where torrent download will be assigned</small>
+                </div>
+			</fieldset>
+            			<fieldset id="deluge_options">
+				<div class="row">
+					<label>Deluge Host:Port </label>
+					<input type="text" name="deluge_host" value="${config['deluge_host']}" size="30">
+				</div>
+				<div class="row">
+					<label>Deluge Username</label>
+					<input type="text" name="deluge_username" value="${config['deluge_username']}" size="30">
+				</div>
+				<div class="row">
+					<label>Deluge Password</label>
+					<input type="password" name="deluge_password" value="${config['deluge_password']}" size="30">
+				</div>
+				<div class="row">
+					<label>Deluge Label</label>
+					<input type="text" name="deluge_label" value="${config['deluge_label']}" size="30"><br/>
+					<small>Label to be used on the torrents</small>
+				</div>
 			</fieldset>
                 </td>
             </tr>
@@ -1500,25 +1520,29 @@
 
                 if ($("#torrent_downloader_watchlist").is(":checked"))
                         {
-                                $("#utorrent_options,#rtorrent_options,#transmission_options").hide();
+                                $("#utorrent_options,#rtorrent_options,#transmission_options,#deluge_options").hide();
                                 $("#watchlist_options").show();
                         }
                 if ($("#torrent_downloader_utorrent").is(":checked"))
                         {
-                                $("#watchlist_options,#rtorrent_options,#transmission_options").hide();
+                                $("#watchlist_options,#rtorrent_options,#transmission_options,#deluge_options").hide();
                                 $("#utorrent_options").show();
                         }
                if ($("#torrent_downloader_rtorrent").is(":checked"))
                         {
-                                $("#utorrent_options,#watchlist_options,#transmission_options").hide();
+                                $("#utorrent_options,#watchlist_options,#transmission_options,#deluge_options").hide();
                                 $("#rtorrent_options").show();
                         }
                 if ($("#torrent_downloader_transmission").is(":checked"))
                         {
-                                $("#utorrent_options,#rtorrent_options,#watchlist_options").hide();
+                                $("#utorrent_options,#rtorrent_options,#watchlist_options,#deluge_options").hide();
                                 $("#transmission_options").show();
                         }
- 
+                 if ($("#torrent_downloader_deluge").is(":checked"))
+                        {
+                                $("#utorrent_options,#rtorrent_options,#watchlist_options,#transmission_options").hide();
+                                $("#deluge_options").show();
+                        } 
 
                 $('input[type=radio]').change(function(){
                         if ($("#nzb_downloader_sabnzbd").is(":checked"))
@@ -1535,19 +1559,23 @@
                         }
 		   if ($("#torrent_downloader_watchlist").is(":checked"))
 		   {
-			$("#utorrent_options,#rtorrent_options,#transmission_options").fadeOut("fast", function() { $("#watchlist_options").fadeIn() });
+			$("#utorrent_options,#rtorrent_options,#transmission_options,#deluge_options").fadeOut("fast", function() { $("#watchlist_options").fadeIn() });
 		   }
 		   if ($("#torrent_downloader_utorrent").is(":checked"))
 		   {
-			$("#watchlist_options,#rtorrent_options,#transmission_options").fadeOut("fast", function() { $("#utorrent_options").fadeIn() });
+			$("#watchlist_options,#rtorrent_options,#transmission_options,#deluge_options").fadeOut("fast", function() { $("#utorrent_options").fadeIn() });
 		   }
 		   if ($("#torrent_downloader_rtorrent").is(":checked"))
 		   {
-			$("#utorrent_options,#watchlist_options,#transmission_options").fadeOut("fast", function() { $("#rtorrent_options").fadeIn() });
+			$("#utorrent_options,#watchlist_options,#transmission_options,#deluge_options").fadeOut("fast", function() { $("#rtorrent_options").fadeIn() });
 		   }
 		   if ($("#torrent_downloader_transmission").is(":checked"))
 		   {
-			$("#utorrent_options,#rtorrent_options,#watchlist_options").fadeOut("fast", function() { $("#transmission_options").fadeIn() });
+			$("#utorrent_options,#rtorrent_options,#watchlist_options,#deluge_options").fadeOut("fast", function() { $("#transmission_options").fadeIn() });
+		   }
+		   if ($("#torrent_downloader_deluge").is(":checked"))
+		   {
+			$("#utorrent_options,#rtorrent_options,#watchlist_options,#transmission_options").fadeOut("fast", function() { $("#deluge_options").fadeIn() });
 		   }
                 });
 

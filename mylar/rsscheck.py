@@ -15,7 +15,7 @@ from StringIO import StringIO
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
 import torrent.clients.transmission as transmission
-
+import torrent.clients.deluge as deluge
 
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
@@ -764,7 +764,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if linkit[-7:] != "torrent":
         filename += ".torrent"
-    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION]):
+    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION,mylar.USE_DELUGE]):
         filepath = os.path.join(mylar.CACHE_DIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
         
@@ -1008,6 +1008,24 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             logger.error(e)
             return "fail"
 
+    elif mylar.USE_DELUGE:
+        try:
+            dc = deluge.TorrentClient()
+            if not dc.connect(mylar.DELUGE_HOST, mylar.DELUGE_USERNAME, mylar.DELUGE_PASSWORD):
+                return "fail"
+                logger.info('Not connected to Deluge! (rsscheck)')
+            else:
+                logger.info('Connected to Deluge! Will try to add torrent now! (rsscheck)')
+            if dc.load_torrent(filepath):
+                return "pass"
+            else:
+                return "fail"
+                logger.info('Unable to connect to Deluge (rsscheck)')
+        except Exception as e:
+            logger.error(e)
+            return "fail"
+            
+            
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:
             return "pass"
