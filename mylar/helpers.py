@@ -1325,9 +1325,10 @@ def havetotals(refreshit=None):
                 c_date = datetime.date(int(latestdate[:4]), int(latestdate[5:7]), 1)
                 n_date = datetime.date.today()
                 recentchk = (n_date - c_date).days
-                if comic['NewPublish']:
+                if comic['NewPublish'] is True:
                     recentstatus = 'Continuing'
                 else:
+                    #do this just incase and as an extra measure of accuracy hopefully.
                     if recentchk < 55:
                         recentstatus = 'Continuing'
                     else:
