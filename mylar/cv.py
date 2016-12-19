@@ -491,6 +491,16 @@ def GetIssuesInfo(comicid, dom, arcid=None):
             except:
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
 
+            try:
+                tempissue['ComicImage'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+            except:
+                tempissue['ComicImage'] = 'None'
+
+            try:
+                tempissue['ComicImageALT'] = dom.getElementsByTagName('medium_url')[0].firstChild.wholeText
+            except:
+                tempissue['ComicImageALT'] = 'None'
+
             if arcid is None:
                 issuech.append({
                     'Comic_ID':                comicid,
@@ -498,7 +508,9 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                     'Issue_Number':            tempissue['Issue_Number'],
                     'Issue_Date':              tempissue['CoverDate'],
                     'Store_Date':              tempissue['StoreDate'],
-                    'Issue_Name':              tempissue['Issue_Name']
+                    'Issue_Name':              tempissue['Issue_Name'],
+                    'Image':                   tempissue['ComicImage'],
+                    'ImageALT':                tempissue['ComicImageALT']
                     })
 
             else:

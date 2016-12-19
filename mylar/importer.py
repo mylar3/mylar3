@@ -1073,7 +1073,9 @@ def issue_collection(issuedata, nostatus):
                             "Issue_Number":       issue['Issue_Number'],
                             "IssueDate":          issue['IssueDate'],
                             "ReleaseDate":        issue['ReleaseDate'],
-                            "Int_IssueNumber":    issue['Int_IssueNumber']
+                            "Int_IssueNumber":    issue['Int_IssueNumber'],
+                            "ImageURL":           issue['ImageURL'],
+                            "ImageURL_ALT":       issue['ImageURL_ALT']
                             #"Status":             "Skipped"  #set this to Skipped by default to avoid NULL entries.
                             }
 
@@ -1389,7 +1391,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                               "Issue_Number":       issnum,
                               "IssueDate":          issdate,
                               "ReleaseDate":        storedate,
-                              "Int_IssueNumber":    int_issnum})
+                              "Int_IssueNumber":    int_issnum,
+                              "ImageURL":           firstval['Image'],
+                              "ImageURL_ALT":       firstval['ImageALT']})
 
             n+=1
 
