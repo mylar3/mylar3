@@ -1245,7 +1245,8 @@ div#artistheader h2 a {
   max-width: 25px;
   text-align: left;
 }
-#series_table th#have_percent {
+#series_table th#have_percent,
+#series_table th#active_status {
   max-width: 25px;
   text-align: left;
   display: none;
@@ -1279,7 +1280,8 @@ div#artistheader h2 a {
   text-align: left;
   vertical-align: middle;
 }
-#series_table td#have_percent {
+#series_table td#have_percent,
+#series_table td#active_status {
   max-width: 25px;
   text-align: left;
   vertical-align: middle;

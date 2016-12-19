@@ -19,6 +19,7 @@
 				<th id="have">Have</th>
                                 <th id="status">Status</th>
                                 <th id="active">Active</th>
+                                <th class="hidden" id="active_state">ActiveSt</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -53,10 +54,15 @@
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
                                     <img src="interfaces/default/images/checkmark.png" alt="Y" width="16" height="16" />
+                                %elif comic['Status'] == 'Paused':
+                                    <img src="interfaces/default/images/pause-icon.png" alt="Paused" width="16" height="16" />
+                                %elif comic['Status'] == 'Loading':
+                                    <img src="interfaces/default/images/hourglass.png" alt="Loading" width="16" height="16" />
                                 %else:
                                     <img src="interfaces/default/images/cross.png" alt="N" width="16" height="16" />
                                 %endif
                                 </td>
+                                <td class="hidden" id="active_state">${comic['Status']}</td>
                          </tr>
 		%endfor
 		</tbody>
@@ -77,10 +83,11 @@
                         {
 			        "bDestroy": true,
                                 "aoColumnDefs": [
-                                     { 'bSortable': false, 'aTargets': [5] },
-                                     { 'bVisible': false, 'aTargets': [5] },
+                                     { 'bSortable': false, 'aTargets': [5, 9] },
+                                     { 'bVisible': false, 'aTargets': [5, 9] },
                                      { 'sType': 'numeric', 'aTargets': [5] },
-                                     { 'iDataSort': [5], 'aTargets': [6] }
+                                     { 'iDataSort': [5], 'aTargets': [6] },
+                                     { 'iDataSort': [9], 'aTargets': [8] }
                                 ],
                                 "aLengthMenu": [[10, 15, 25, 50, -1], [10, 15, 25, 50, 'All' ]],
 			        "oLanguage": {
