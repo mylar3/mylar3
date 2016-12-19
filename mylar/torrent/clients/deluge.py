@@ -72,7 +72,17 @@ class TorrentClient(object):
             logger.info('Label: ' + mylar.DELUGE_LABEL)
             if torrent_id and mylar.DELUGE_LABEL:
                 logger.info ('Setting label to ' + mylar.DELUGE_LABEL)
-                self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                try:
+                    self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                except:
+                    #if label isn't set, let's try and create one.
+                    try:
+                        self.client.call('label.add', mylar.DELUGE_LABEL)
+                        self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                    except:
+                        logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')            
+                        return False
+                logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
         return True
 
 
