@@ -492,12 +492,12 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
 
             try:
-                tempissue['ComicImage'] = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+                tempissue['ComicImage'] = subtrack.getElementsByTagName('small_url')[0].firstChild.wholeText
             except:
                 tempissue['ComicImage'] = 'None'
 
             try:
-                tempissue['ComicImageALT'] = dom.getElementsByTagName('medium_url')[0].firstChild.wholeText
+                tempissue['ComicImageALT'] = subtrack.getElementsByTagName('medium_url')[0].firstChild.wholeText
             except:
                 tempissue['ComicImageALT'] = 'None'
 
