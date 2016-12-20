@@ -603,7 +603,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             else:
                                 hnc = host_newznab_fix
 
-                            if hnc[:3] == '10.' or hnc[:4] == '172.' or hnc[:4] == '192.' or hnc.startswith('localhost'):
+                            if any([hnc[:3] == '10.', hnc[:4] == '172.', hnc[:4] == '192.', hnc.startswith('localhost'), name_newznab[-6:] != '#local']):
+                                logger.info('LOCAL BYPASS ENABLED FOR ' + name_newznab)
                                 localbypass = True
 
                         if localbypass == False:
