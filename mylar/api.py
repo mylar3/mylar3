@@ -27,10 +27,13 @@ import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
 
-cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory', 'getLogs', 'clearLogs',
-            'findComic', 'addComic', 'delComic', 'pauseComic', 'resumeComic', 'refreshComic',
-            'addIssue', 'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess', 'getVersion', 'checkGithub',
-            'shutdown', 'restart', 'update', 'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue', 'downloadNZB']
+cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
+            'getLogs', 'clearLogs','findComic', 'addComic', 'delComic',
+            'pauseComic', 'resumeComic', 'refreshComic', 'addIssue',
+            'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess',
+            'getVersion', 'checkGithub','shutdown', 'restart', 'update',
+            'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
+            'downloadNZB', 'getReadList']
 
 
 class Api(object):
@@ -141,6 +144,10 @@ class Api(object):
 
     def _getIndex(self, **kwargs):
         self.data = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        return
+
+    def _getReadList(self, **kwargs):
+        self.data = self._dic_from_query('SELECT * from readlist order by IssueDate ASC')
         return
 
     def _getComic(self, **kwargs):
