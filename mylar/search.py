@@ -247,7 +247,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                         loopit = len(chkthealt)
                         for calt in chkthealt:
                             AS_Alternate = re.sub('##', '', calt)
-                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate))
                             findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=AS_Alternate, allow_packs=allow_packs)
                             if findit == 'yes':
                                 break
@@ -266,7 +266,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                         loopit = len(chkthealt)
                         for calt in chkthealt:
                             AS_Alternate = re.sub('##', '', calt)
-                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate) + " " + str(ComicYear))
+                            logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate))
                             findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs)
                             if findit == 'yes':
                                 break
@@ -274,7 +274,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
             if searchprov == 'newznab':
                 searchprov = newznab_host[0].rstrip()
-            logger.info('Could not find Issue ' + IssueNumber + ' of ' + ComicName + '(' + str(SeriesYear) + ') using ' + str(searchprov) + ' [' + str(searchmode) + ']')
+            logger.info('Could not find Issue ' + IssueNumber + ' of ' + ComicName + ' (' + str(SeriesYear) + ') using ' + str(searchprov) + ' [' + str(searchmode) + ']')
             prov_count+=1
             #torprtmp+=1  #torprtmp-=1
 
@@ -309,6 +309,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         allow_packs = False
     logger.info('allow_packs set to :' + str(allow_packs))
 
+    newznab_local = False
+
     if nzbprov == 'nzb.su':
         apikey = mylar.NZBSU_APIKEY
         verify = bool(mylar.NZBSU_VERIFY)
@@ -324,6 +326,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         #updated to include Newznab Name now
         name_newznab = newznab_host[0].rstrip()
         host_newznab = newznab_host[1].rstrip()
+        if name_newznab[-7:] == '[local]':
+            name_newznab = name_newznab[:-7].strip()
+            newznab_local = True
         apikey = newznab_host[3].rstrip()
         verify = bool(newznab_host[2].rstrip())
         if '#' in newznab_host[4].rstrip():
@@ -603,8 +608,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             else:
                                 hnc = host_newznab_fix
 
-                            if any([hnc[:3] == '10.', hnc[:4] == '172.', hnc[:4] == '192.', hnc.startswith('localhost'), name_newznab[-6:] != '#local']):
-                                logger.info('LOCAL BYPASS ENABLED FOR ' + name_newznab)
+                            if any([hnc[:3] == '10.', hnc[:4] == '172.', hnc[:4] == '192.', hnc.startswith('localhost'), newznab_local]):
+                                logger.info('local domain bypass for ' + name_newznab + ' is active.')
                                 localbypass = True
 
                         if localbypass == False:
