@@ -779,7 +779,6 @@ class WebInterface(object):
     resumeSeries.exposed = True
 
     def deleteSeries(self, ComicID, delete_dir=None):
-        print delete_dir
         myDB = db.DBConnection()
         comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [ComicID]).fetchone()
         if comic['ComicName'] is None: ComicName = "None"
@@ -801,6 +800,7 @@ class WebInterface(object):
                     logger.warn('Unable to remove directory after removing series from Mylar.')
             else:
                 logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
+            myDB.action('DELETE from readlist WHERE ComicID=?', [ComicID])
 
         helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
@@ -2436,7 +2436,19 @@ class WebInterface(object):
             arcpub = arcinfo[0]['Publisher']
             lowyear = 9999
             maxyear = 0
+            issref = []
             for la in arcinfo:
+                if all([la['Status'] == 'Downloaded', la['Location'] is None,]):
+                    issref.append({'IssueID':         la['IssueID'],
+                                   'ComicID':         la['ComicID'],
+                                   'IssuePublisher':  la['IssuePublisher'],
+                                   'Publisher':       la['Publisher'],
+                                   'StoryArc':        la['StoryArc'],
+                                   'StoryArcID':      la['StoryArcID'],
+                                   'ComicName':       la['ComicName'],
+                                   'IssueNumber':     la['IssueNumber'],
+                                   'ReadingOrder':    la['ReadingOrder']})
+
                 if la['IssueDate'] is None:
                     continue
                 else:
@@ -2444,6 +2456,7 @@ class WebInterface(object):
                         maxyear = int(la['IssueDate'][:4])
                     if int(la['IssueDate'][:4]) < lowyear:
                         lowyear = int(la['IssueDate'][:4])
+                                   
 
             if maxyear == 0:
                 spanyears = la['SeriesYear']
@@ -2457,6 +2470,12 @@ class WebInterface(object):
         except:
             cvarcid = None
             sdir = mylar.GRABBAG_DIR
+
+        if len(issref) > 0:
+            logger.info(issref)
+            helpers.updatearc_locs(StoryArcID, issref)
+            arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
+
         return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid, sdir=sdir)
     detailStoryArc.exposed = True
 
@@ -2749,14 +2768,14 @@ class WebInterface(object):
             logger.info('arcpub: ' + arcpub)
             dstloc = helpers.arcformat(arcdir, spanyears, arcpub)
 
-            if not os.path.isdir(dstloc):
-                logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
-                checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
-                if not checkdirectory:
-                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                    return
+            #if not os.path.isdir(dstloc) and mylar.STORYARCDIR:
+            #    logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
+            #    checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
+            #    if not checkdirectory:
+            #        logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+            #        return
 
-            if mylar.CVINFO or (mylar.CV_ONLY and mylar.CVINFO):
+            if all([mylar.CVINFO, mylar.STORYARCDIR]):
                 if not os.path.isfile(os.path.join(dstloc, "cvinfo")) or mylar.CV_ONETIMER:
                     logger.fdebug('Generating cvinfo file for story-arc.')
                     with open(os.path.join(dstloc, "cvinfo"), "w") as text_file:
@@ -2770,16 +2789,15 @@ class WebInterface(object):
                         filechecker.setperms(os.path.join(dstloc, 'cvinfo'))
 
             #get the list of files within the storyarc directory, if any.
-            fchk = filechecker.FileChecker(dir=dstloc, watchcomic=None, Publisher=None, sarc='true', justparse=True)
-            filechk = fchk.listFiles()
-            fccnt = filechk['comiccount']
-            logger.fdebug('[STORY ARC DIRECTORY] ' + str(fccnt) + ' files exist within this directory.')
-            if fccnt > 0:
-                filelist = filechk['comiclist']
-            else:
-                filelist = None
-
-            logger.info(filechk)
+            filelist = None
+            if mylar.STORYARCDIR:
+                fchk = filechecker.FileChecker(dir=dstloc, watchcomic=None, Publisher=None, sarc='true', justparse=True)
+                filechk = fchk.listFiles()
+                fccnt = filechk['comiccount']
+                logger.fdebug('[STORY ARC DIRECTORY] ' + str(fccnt) + ' files exist within this directory.')
+                if fccnt > 0:
+                    filelist = filechk['comiclist']
+                logger.info(filechk)
 
             arc_match = []
             wantedlist = []
@@ -2838,8 +2856,8 @@ class WebInterface(object):
                                     "match_issuearcid":        arc['IssueArcID'],
                                     "match_seriesyear":        comic['ComicYear'],
                                     "match_readingorder":      arc['ReadingOrder'],
-                                    "match_filedirectory":     comic['ComicLocation'],
-                                    "destination_location":    dstloc})
+                                    "match_filedirectory":     comic['ComicLocation'],   #series directory path
+                                    "destination_location":    dstloc})                  #path to given storyarc / grab-bag directory
                                 matcheroso = "yes"
                                 break
                 if matcheroso == "no":
@@ -2849,11 +2867,7 @@ class WebInterface(object):
                          "IssueNumber":    arc['IssueNumber'],
                          "IssueYear":      arc['IssueYear']})
 
-                    logger.fdebug('destination location set to  : ' + dstloc)
-
-                    #fchk = filechecker.FileChecker(dir=dstloc, watchcomic=arc['ComicName'], Publisher=None, sarc='true', justparse=True)
-                    #filechk = fchk.listFiles()
-                    if filelist is not None:
+                    if filelist is not None and mylar.STORYARCDIR:
                         fn = 0
                         valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
                         logger.info('valids: ' + str(valids))
@@ -2873,11 +2887,20 @@ class WebInterface(object):
                                     else:
                                         dfilename = tmpfc['comicfilename']
 
-                                    newVal = {"Status": "Downloaded",
-                                              "Location": dfilename} #tmpfc['ComicFilename']}
+                                    if all([tmpfc['sub'] is not None, tmpfc['sub'] != 'None']):
+                                        loc_path = os.path.join(tmpfc['ComicLocation'], tmpfc['sub'], dfilename)
+                                    else:
+                                        loc_path = os.path.join(tmpfc['ComicLocation'], dfilename)
+
+                                    newVal = {"Status":   "Downloaded",
+                                              "Location": loc_path}    #dfilename}
                                     ctrlVal = {"IssueArcID":  arc['IssueArcID']}
                                     myDB.upsert("readinglist", newVal, ctrlVal)
                                 fn+=1
+                    else:
+                        newVal = {"Status":   "Skipped"}
+                        ctrlVal = {"IssueArcID":  arc['IssueArcID']}
+                        myDB.upsert("readinglist", newVal, ctrlVal)
 
             logger.fdebug("we matched on " + str(len(arc_match)) + " issues")
             for m_arc in arc_match:
@@ -2891,9 +2914,6 @@ class WebInterface(object):
                     if issue['Issue_Number'] == m_arc['match_issue']:
                         logger.fdebug("we matched on " + issue['Issue_Number'] + " for " + m_arc['match_name'])
                         if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived' or issue['Status'] == 'Snatched':
-                            ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
-                            newVal = {"Status":   issue['Status'],
-                                      "IssueID":  issue['IssueID']}
                             if showonreadlist:
                                 showctrlVal = {"IssueID":       issue['IssueID']}
                                 shownewVal = {"ComicName":      issue['ComicName'],
@@ -2903,10 +2923,14 @@ class WebInterface(object):
                                               "ComicID":        m_arc['match_id']}
                                 myDB.upsert("readlist", shownewVal, showctrlVal)
 
-                            myDB.upsert("readinglist",newVal,ctrlVal)
                             logger.fdebug("Already have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
-                            if issue['Status'] == 'Downloaded':
+                            if issue['Location'] is not None:
                                 issloc = os.path.join(m_arc['match_filedirectory'], issue['Location'])
+                            else:
+                                issloc = None
+                            location_path = issloc
+
+                            if issue['Status'] == 'Downloaded':
                                 #check multiple destination directory usage here.
                                 if not os.path.isfile(issloc):
                                     if all([mylar.MULTIPLE_DEST_DIRS is not None, mylar.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
@@ -2916,9 +2940,9 @@ class WebInterface(object):
                                             continue
 
                                 logger.fdebug('source location set to  : ' + issloc)
-                                logger.fdebug('Destination location set to  : ' + m_arc['destination_location'])
 
-                                if mylar.COPY2ARCDIR:
+                                if all([mylar.STORYARCDIR, mylar.COPY2ARCDIR]):
+                                    logger.fdebug('Destination location set to  : ' + m_arc['destination_location'])
                                     logger.fdebug('Attempting to copy into StoryArc directory')
                                     #copy into StoryArc directory...
                                     if mylar.READ2FILENAME:
@@ -2937,9 +2961,20 @@ class WebInterface(object):
                                                raise OSError
                                         except (OSError, IOError):
                                             logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
+                                            continue
                                     else:
                                         logger.fdebug('Destination file exists: ' + dstloc)
-                                           
+                                    location_path = dstloc
+                                else:
+                                    location_path = issloc
+
+                            ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
+                            newVal = {'Status':   issue['Status'],
+                                      'IssueID':  issue['IssueID'],
+                                      'Location': location_path}
+
+                            myDB.upsert("readinglist",newVal,ctrlVal)
+               
                         else:
                             logger.fdebug("We don't have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}

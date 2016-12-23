@@ -52,21 +52,15 @@
                          <%
                              storyarcdest = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs')
                          %>
-                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
+                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="getOption(this)" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.STORYARCDIR)} /><label>Arcs in StoryArc Directory </br><small>(${storyarcdest})</small></label>
                          </div>
                          <div id="arc_options">
                            <div class="row">
                                <label>Arc Folder Format</label>
                                <input type="text" title="$publisher, $spanyears, $arc" name="arc_folderformat" value="${mylar.ARC_FOLDERFORMAT}" size="25">
                            </div>
+                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label></br>
                          </div>
-                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.READ2FILENAME)} /><label>Append Reading # to filename</label></br>
-                         <%
-                               if mylar.STORYARCDIR:
-                                   carcdir = 'StoryArc'
-                               else:
-                                   carcdir = 'GrabBag'
-                         %>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.COPY2ARCDIR)} />
                                         <select name="arc_fileops" id="arc_fileops">
                                          <%
@@ -84,7 +78,7 @@
                                               %>
                                               <option value=${x} ${outputselect}>${x}</option>
                                          %endfor
-                                        </select><label> watchlisted issues to ${carcdir} Directory</label>
+                                        </select><label> watchlisted issues to <span id="arcopts"></span> Directory</label>
                      </div>
                    </fieldset>
                    <div>
@@ -155,6 +149,15 @@
         };
         </script>
         <script type="text/javascript">
+        function getOption(sel){
+            if (sel.checked) {
+                document.getElementById('arcopts').innerHTML = 'StoryArc';
+            } else {
+                document.getElementById('arcopts').innerHTML = 'GrabBag';               
+            }
+        };
+        </script>
+        <script type="text/javascript">
         $("#menu_link_scan").click(function() {
             $('#chkoptions').submit();
             return true;
@@ -166,10 +169,12 @@
                 if ($("#storyarcdir").is(":checked"))
                         {
                             $("#arc_options").show();
+                            document.getElementById('arcopts').innerHTML = 'StoryArc';
                         }
                 else
                         {
                             $("#arc_options").hide();
+                            document.getElementById('arcopts').innerHTML = 'GrabBag';
                         }
                 $("#storyarcdir").click(function(){
                         if ($("#storyarcdir").is(":checked"))

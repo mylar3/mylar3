@@ -940,10 +940,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
             annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
             #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
             namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
-            logger.info('rowid: ' + str(week['rowid']))
-            logger.info('idmatch: ' + str(idmatch))
-            logger.info('annualidmatch: ' + str(annualidmatch))
-            logger.info('namematch: ' + str(namematch))
+            #logger.fdebug('rowid: ' + str(week['rowid']))
+            #logger.fdebug('idmatch: ' + str(idmatch))
+            #logger.fdebug('annualidmatch: ' + str(annualidmatch))
+            #logger.fdebug('namematch: ' + str(namematch))
             if any([idmatch,namematch,annualidmatch]):
                 if idmatch:
                     comicname = idmatch[0]['ComicName'].strip()
@@ -1238,7 +1238,7 @@ def pull_the_file(newrl):
     PULLURL = 'https://www.previewsworld.com/shipping/newreleases.txt'
     PULL_AGENT = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'}
     try:
-        r = requests.get(PULLURL, verify=False, headers=PULL_AGENT, stream=True)
+        r = requests.get(PULLURL, verify=True, headers=PULL_AGENT, stream=True)
     except requests.exceptions.RequestException as e:
         logger.warn(e)
         return False

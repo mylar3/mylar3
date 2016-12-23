@@ -1833,9 +1833,10 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     mylar.updater.dbUpdate(ComicIDList=cid, calledfrom='dupechk')
                     return duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
                 else:
-                    #not sure if this one is correct - should never actually get to this point.
-                    rtnval.append({'action':  "dupe_file",
-                                   'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                    #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
+                    logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
+                    rtnval.append({'action':  "dont_dupe"})
+
             else:
                 rtnval.append({'action':  "dupe_file",
                                'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
@@ -2213,6 +2214,85 @@ def checkthe_id(comicid=None, up_vals=None):
                    'ID':          up_vals[0]['id']}
         myDB.upsert("ref32p", newVal, ctrlVal)
 
+def updatearc_locs(storyarcid, issues):
+    import db, logger
+    myDB = db.DBConnection()
+    issuelist = []
+    for x in issues:
+        issuelist.append(x['IssueID'])
+    tmpsql = "SELECT a.comicid, a.comiclocation, b.comicid, b.status, b.issueid, b.location FROM comics as a INNER JOIN issues as b ON a.comicid = b.comicid WHERE b.issueid in ({seq})".format(seq=','.join(['?'] *(len(issuelist))))
+    chkthis = myDB.select(tmpsql, issuelist)
+    update_iss = []
+    if chkthis is None:
+        return
+    else:
+        for chk in chkthis:
+            if chk['Status'] == 'Downloaded':
+                pathsrc = os.path.join(chk['ComicLocation'], chk['Location'])
+                if not os.path.exists(pathsrc):
+                    if all([mylar.MULTIPLE_DEST_DIRS is not None, mylar.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])) != chk['ComicLocation'], os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])))]):
+                        pathsrc = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']), chk['Location'])
+                    else:
+                        logger.fdebug(module + ' file does not exist in location: ' + pathdir + '. Cannot valid location - some options will not be available for this item.')
+                        continue
+
+#                update_iss.append({'IssueID':    chk['IssueID'],
+#                                   'Location':   pathdir})
+                arcinfo = None
+                for la in issues:
+                    if la['IssueID'] == chk['IssueID']:
+                        arcinfo = la
+                        break
+
+                if arcinfo is None:
+                    continue
+
+                if arcinfo['Publisher'] is None:
+                    arcpub = arcinfo['IssuePublisher']
+                else:
+                    arcpub = arcinfo['Publisher']
+
+                grdst = arcformat(arcinfo['StoryArc'], spantheyears(arcinfo['StoryArcID']), arcpub)
+                logger.info('grdst:' + grdst)
+
+                #send to renamer here if valid.
+                dfilename = chk['Location']
+                if mylar.RENAME_FILES:
+                    renamed_file = rename_param(arcinfo['ComicID'], arcinfo['ComicName'], arcinfo['IssueNumber'], chk['Location'], issueid=arcinfo['IssueID'], arc=arcinfo['StoryArc'])
+                    if renamed_file:
+                        dfilename = renamed_file['nfilename']
+
+                if mylar.READ2FILENAME:
+                    #logger.fdebug('readingorder#: ' + str(arcinfo['ReadingOrder']))
+                    #if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
+                    #elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
+                    #else: readord = str(arcinfo['ReadingOrder'])
+                    readord = renamefile_readingorder(arcinfo['ReadingOrder'])
+                    dfilename = str(readord) + "-" + dfilename
+
+                pathdst = os.path.join(grdst, dfilename)
+
+                logger.fdebug('Destination Path : ' + pathdst)
+                logger.fdebug('Source Path : ' + pathsrc)
+                if not os.path.isfile(pathdst):
+                    logger.info('[' + mylar.ARC_FILEOPS.upper() + '] ' + pathsrc + ' into directory : ' + pathdst)
+
+                    try:
+                        #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
+                        fileoperation = file_ops(pathsrc, pathdst, arc=True)
+                        if not fileoperation:
+                            raise OSError
+                    except (OSError, IOError):
+                        logger.fdebug('[' + mylar.ARC_FILEOPS.upper() + '] Failure ' + pathsrc + ' - check directories and manually re-run.')
+                        continue
+
+                update_iss.append({'IssueID':    chk['IssueID'],
+                                   'Location':   pathdst})
+
+    for ui in update_iss:
+        logger.info(ui['IssueID'] + ' to update location to: ' + ui['Location'])
+        myDB.upsert("readinglist", {'Location': ui['Location']}, {'IssueID': ui['IssueID'], 'StoryArcID': storyarcid})
+
 
 def spantheyears(storyarcid):
     import db
@@ -2273,9 +2353,11 @@ def arcformat(arc, spanyears, publisher):
         logger.info('StoryArcs')
         logger.info(arcpath)
         dstloc = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs', arcpath)
-    else:
+    elif mylar.COPY2ARCDIR:
         logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.GRABBAG_DIR)
         dstloc = mylar.GRABBAG_DIR
+    else:
+        dstloc = None
 
     return dstloc
 

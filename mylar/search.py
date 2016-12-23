@@ -519,7 +519,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + ComicName + " : " + str(mod_isssearch))
                     bb = rsscheck.torrentdbsearch(ComicName, mod_isssearch, ComicID, nzbprov)
                     rss = "yes"
-                    #if bb is not None: logger.fdebug("bb results: " + str(bb))
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch) + " (" + str(ComicYear) + ")")
@@ -528,7 +527,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     else: nzbprov_fix = nzbprov
                     bb = rsscheck.nzbdbsearch(findcomic, mod_isssearch, ComicID, nzbprov_fix, ComicYear, ComicVersion)
                     rss = "yes"
-                    #if bb is not None: logger.fdebug("bb results: " +  str(bb))
+                if bb is None:
+                    bb = 'no results'
             #this is the API calls
             else:
                 #32P is redudant now since only RSS works
@@ -544,6 +544,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         a = auth32p.info32p(searchterm=searchterm)
                         bb = a.searchit()
                         rss = "no"
+                        if bb is None:
+                            bb = 'no results'
                     else:
                         bb = "no results"
                         rss = "no"
@@ -552,7 +554,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug("Sending request to [TPSE] for " + str(cmname) + " : " + str(mod_isssearch))
                     bb = rsscheck.torrents(pickfeed='TPSE-SEARCH', seriesname=cmname, issue=mod_isssearch)#cmname,issue=mod_isssearch)
                     rss = "no"
-                    #if bb is not None: logger.fdebug("results: " + str(bb))
+                    if bb is None:
+                        bb = 'no results'
                 elif nzbprov != 'experimental':
                     if nzbprov == 'dognzb':
                         findurl = "https://api.dognzb.cr/api?t=search&q=" + str(comsearch) + "&o=xml&cat=7030"
@@ -647,7 +650,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 #HTTP Error 503
                                 logger.warn('Aborting search due to Provider unavailability')
                                 foundc = "no"
-                                break
+                            break
 
                         try:
                             if str(r.status_code) != '200':
