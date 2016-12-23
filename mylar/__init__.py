@@ -315,6 +315,7 @@ GRABBAG_DIR = None
 HIGHCOUNT = 0
 READ2FILENAME = 0
 SEND2READ = 0
+MAINTAINSERIESFOLDER = 0
 TAB_ENABLE = 0
 TAB_HOST = None
 TAB_USER = None
@@ -638,6 +639,7 @@ def initialize():
         HIGHCOUNT = check_setting_int(CFG, 'General', 'highcount', 0)
         if not HIGHCOUNT: HIGHCOUNT = 0
         READ2FILENAME = bool(check_setting_int(CFG, 'General', 'read2filename', 0))
+        MAINTAINSERIESFOLDER = bool(check_setting_int(CFG, 'General', 'maintainseriesfolder', 0))
         SEND2READ = bool(check_setting_int(CFG, 'General', 'send2read', 0))
         TAB_ENABLE = bool(check_setting_int(CFG, 'General', 'tab_enable', 0))
         TAB_HOST = check_setting_str(CFG, 'General', 'tab_host', '')
@@ -1456,6 +1458,7 @@ def config_write():
     new_config['General']['highcount'] = HIGHCOUNT
     new_config['General']['read2filename'] = int(READ2FILENAME)
     new_config['General']['send2read'] = int(SEND2READ)
+    new_config['General']['maintainseriesfolder'] = int(MAINTAINSERIESFOLDER)
     new_config['General']['tab_enable'] = int(TAB_ENABLE)
     new_config['General']['tab_host'] = TAB_HOST
     new_config['General']['tab_user'] = TAB_USER

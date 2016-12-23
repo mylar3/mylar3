@@ -4311,8 +4311,9 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     comic_config.exposed = True
 
-    def readlistOptions(self, send2read=0, tab_enable=0, tab_host=None, tab_user=None, tab_pass=None, tab_directory=None):
+    def readlistOptions(self, send2read=0, tab_enable=0, tab_host=None, tab_user=None, tab_pass=None, tab_directory=None, maintainseriesfolder=0):
         mylar.SEND2READ = int(send2read)
+        mylar.MAINTAINSERIESFOLDER = int(maintainseriesfolder)
         mylar.TAB_ENABLE = int(tab_enable)
         mylar.TAB_HOST = tab_host
         mylar.TAB_USER = tab_user
