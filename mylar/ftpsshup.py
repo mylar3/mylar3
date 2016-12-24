@@ -130,6 +130,27 @@ def sendtohome(sftp, remotepath, filelist, transport):
 
         remdir = remotepath
 
+        if mylar.MAINTAINSERIESFOLDER == 1:
+            # Get folder path of issue
+            comicdir = os.path.split(files['filepath'])[0]
+            # Isolate comic folder name
+            comicdir = os.path.split(comicdir)[1]
+            logger.info('Checking for Comic Folder: ' + comicdir)
+            chkdir = os.path.join(remdir, comicdir)
+            try:
+                sftp.stat(chkdir)
+            except IOError, e:
+                logger.info('Comic Folder does not Exist, creating ' + chkdir )
+                try:
+                    sftp.mkdir(chkdir)
+                except :
+                    # Fallback to default behavior
+                    logger.info('Could not create Comic Folder, adding to device root')
+                else :
+                    remdir = chkdir
+            else :
+                remdir = chkdir
+
         localsend = files['filepath']
         logger.info('Sending : ' + localsend)
         remotesend = os.path.join(remdir, filename)
