@@ -1074,6 +1074,14 @@ def forceRescan(ComicID, archive=None, module=None):
             else:
                 reannuals = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                 ANNComicID = ComicID
+
+            if len(reannuals) == 0:
+                #it's possible if annual integration is enabled, and an annual series is added directly to the wachlist,
+                #not as part of a series, that the above won't work since it's looking in the wrong table.
+                reannuals = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
+                ANNComicID = None #need to set this to None so we write to the issues table and not the annuals
+
+
             # annual inclusion here.
             #logger.fdebug("checking " + str(temploc))
             fcnew = shlex.split(str(temploc))
