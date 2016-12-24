@@ -490,7 +490,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if mylar.COMIC_COVER_LOCAL:
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
-            shutil.copy(coverfile, comiclocal)
+            shutil.copyfile(coverfile, comiclocal)
             if mylar.ENFORCE_PERMS:
                 filechecker.setperms(comiclocal)
         except IOError as e:
