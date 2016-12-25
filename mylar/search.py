@@ -573,7 +573,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             torznab_fix = mylar.TORZNAB_HOST[:-1]
                         else:
                             torznab_fix = mylar.TORZNAB_HOST
-                        findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch) + "&o=xml&cat=" + str(mylar.TORZNAB_CATEGORY)
+                        findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch)
+                        if str(mylar.TORZNAB_CATEGORY): findurl += "&cat=" + str(mylar.TORZNAB_CATEGORY)
                         apikey = mylar.TORZNAB_APIKEY
                     else:
                         logger.warn('You have a blank newznab entry within your configuration. Remove it, save the config and restart mylar to fix things. Skipping this blank provider until fixed.')
