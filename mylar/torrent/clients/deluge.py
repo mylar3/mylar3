@@ -101,7 +101,7 @@ class TorrentClient(object):
             logger.debug('FileName (load_torrent): ' + str(os.path.basename(filepath)))
 
 
-                #Check if torrent already added 
+            #Check if torrent already added
             if self.find_torrent(str.lower(hash)):
                 logger.info('load_torrent: Torrent already exists!')
             else:
@@ -126,7 +126,7 @@ class TorrentClient(object):
                             self.client.call('label.add', mylar.DELUGE_LABEL)
                             self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
                         except:
-                            logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')            
+                            logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')
                             return False
                     logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
         try:
