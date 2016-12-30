@@ -25,7 +25,7 @@ import requests
 
 import mylar
 from mylar import logger, db, cv
-from mylar.helpers import multikeysort, replace_all, cleanName, listLibrary
+from mylar.helpers import multikeysort, replace_all, cleanName, listLibrary, listStoryArcs
 import httplib
 
 mb_lock = threading.Lock()
@@ -393,7 +393,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
 
 def storyarcinfo(xmlid):
 
-    comicLibrary = listLibrary()
+    comicLibrary = listStoryArcs()
 
     arcinfo = {}
 

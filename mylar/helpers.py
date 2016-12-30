@@ -1748,6 +1748,20 @@ def listLibrary():
             library[row['ReleaseComicId']] = row['ComicID']
     return library
 
+ def listStoryArcs():
+    import db
+    library = {}
+    myDB = db.DBConnection()
+    # Get Distinct Arc IDs
+    list = myDB.select("SELECT DISTINCT(StoryArcID) FROM readinglist");
+    for row in list:
+        library[row['StoryArcID']] = row['StoryArcID']
+    # Get Distinct CV Arc IDs
+    list = myDB.select("SELECT DISTINCT(CV_ArcID) FROM readinglist");
+    for row in list:
+        library[row['CV_ArcID']] = row['CV_ArcID']
+    return library
+
 def listIssues(weeknumber, year):
     import db
     library = []
