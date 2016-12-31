@@ -1748,7 +1748,7 @@ def listLibrary():
             library[row['ReleaseComicId']] = row['ComicID']
     return library
 
- def listStoryArcs():
+def listStoryArcs():
     import db
     library = {}
     myDB = db.DBConnection()
