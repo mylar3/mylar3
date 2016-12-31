@@ -520,6 +520,11 @@ class FileChecker(object):
                             volumeprior_label = sf
                             sep_volume = True
 
+                    elif any([sf == 'I', sf == 'II', sf == 'III', sf == 'IV']) and volumeprior:
+                        volumeprior = False
+                        volumeprior_label = None
+                        sep_volume = False
+                        continue
                 else:
                     #reset the sep_volume indicator here in case a false Volume detected above
                     sep_volume = False
