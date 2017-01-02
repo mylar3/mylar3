@@ -1579,8 +1579,17 @@ class WebInterface(object):
             year = todaydate.strftime("%Y")
 
         prev_week = int(weeknumber) - 1
-        next_week = int(weeknumber) + 1
+        prev_year = year
+        if prev_week == 0:
+            prev_week = 52
+            prev_year = int(year) - 1
 
+        next_week = int(weeknumber) + 1
+        next_year = year
+        if next_week == 53:
+            next_week = 1
+            next_year = int(year) + 1
+        
         date_fmt = "%B %d, %Y"
 
         weekinfo = {'weeknumber':         weeknumber,
@@ -1589,8 +1598,11 @@ class WebInterface(object):
                     'endweek':            u"" + endweek.strftime(date_fmt).decode('utf-8'),
                     'year':               year,
                     'prev_weeknumber':    prev_week,
+                    'prev_year':          prev_year,
                     'next_weeknumber':    next_week,
-                    'current_weeknumber': current_weeknumber}
+                    'next_year':          next_year,
+                    'current_weeknumber': current_weeknumber,
+                    'last_update':        mylar.PULL_REFRESH}
 
         if mylar.WEEKFOLDER_LOC is not None:
             weekdst = mylar.WEEKFOLDER_LOC
@@ -1604,19 +1616,19 @@ class WebInterface(object):
 
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
-            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
             if len(w_results) == 0:
                 logger.info('trying to repopulate to week: ' + str(weeknumber) + '-' + str(year))
                 repoll = self.manualpull(weeknumber=weeknumber,year=year)
                 if repoll['status'] == 'success':
-                    w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+                    w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
                 else:
                     logger.warn('Problem repopulating the pullist for week ' + str(weeknumber) + ', ' + str(year))
                     if mylar.ALT_PULL == 2:
                         logger.warn('Attempting to repoll against legacy pullist in order to have some kind of updated listing for the week.')
                         repoll = self.manualpull()
                         if repoll['status'] == 'success':
-                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=?", [str(weeknumber)])
+                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
                         else:
                             logger.warn('Unable to populate the pull-list. Not continuing at this time (will try again in abit)')
 
@@ -1632,8 +1644,9 @@ class WebInterface(object):
                 if weekly['ComicID'] in watchlibrary:
                     haveit = watchlibrary[weekly['ComicID']]
 
-                    if all([week >= weeknumber, mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
-                        tmp_status = 'Wanted'
+                    if weeknumber:
+                        if any([week >= int(weeknumber), week is None]) and all([mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                            tmp_status = 'Wanted'
 
                     for x in issueLibrary:
                         if weekly['IssueID'] == x['IssueID']:

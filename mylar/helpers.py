@@ -1767,7 +1767,7 @@ def listIssues(weeknumber, year):
     library = []
     myDB = db.DBConnection()
     # Get individual issues
-    list = myDB.select("SELECT issues.Status, issues.ComicID, issues.IssueID, issues.ComicName, weekly.publisher, issues.Issue_Number from weekly, issues where weekly.IssueID = issues.IssueID and weeknumber = ? and year = ?", [weeknumber, year])
+    list = myDB.select("SELECT issues.Status, issues.ComicID, issues.IssueID, issues.ComicName, weekly.publisher, issues.Issue_Number from weekly, issues where weekly.IssueID = issues.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
     for row in list:
         library.append({'ComicID': row['ComicID'],
                        'Status':  row['Status'],
@@ -1777,7 +1777,7 @@ def listIssues(weeknumber, year):
                        'Issue_Number': row['Issue_Number']})
     # Add the annuals
     if mylar.ANNUALS_ON:
-        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [weeknumber, year])
+        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
         for row in list:
             library.append({'ComicID': row['ComicID'],
                             'Status':  row['Status'],

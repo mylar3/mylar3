@@ -22,7 +22,7 @@ from mylar import logger, db
 
 def locg(pulldate=None,weeknumber=None,year=None):
 
-        todaydate = datetime.datetime.today()
+        todaydate = datetime.datetime.today().replace(second=0,microsecond=0)
         if pulldate:
             logger.info('pulldate is : ' + str(pulldate))
             if pulldate is None or pulldate == '00000000':

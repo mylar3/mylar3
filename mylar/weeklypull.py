@@ -928,7 +928,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
         if not comic1off_id:
             logger.fdebug("[WALKSOFTLY] You are watching for: " + str(len(weeklylist)) + " comics")
 
-        weekly = myDB.select('SELECT a.comicid, IFNULL(a.Comic,IFNULL(b.ComicName, c.ComicName)) as ComicName, a.rowid, a.issue, a.issueid, c.ComicPublisher, a.weeknumber, a.shipdate, a.dynamicname FROM weekly as a INNER JOIN annuals as b INNER JOIN comics as c ON b.releasecomicid = a.comicid OR c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname WHERE weeknumber = ? GROUP BY a.dynamicname', [weeknumber]) #comics INNER JOIN weekly ON comics.DynamicComicName = weekly.dynamicname OR comics.comicid = weekly.comicid INNER JOIN annuals ON annuals.comicid = weekly.comicid WHERE weeknumber = ? GROUP BY weekly.dynamicname', [weeknumber])
+        weekly = myDB.select('SELECT a.comicid, IFNULL(a.Comic,IFNULL(b.ComicName, c.ComicName)) as ComicName, a.rowid, a.issue, a.issueid, c.ComicPublisher, a.weeknumber, a.shipdate, a.dynamicname FROM weekly as a INNER JOIN annuals as b INNER JOIN comics as c ON b.releasecomicid = a.comicid OR c.comicid = a.comicid OR c.DynamicComicName = a.dynamicname WHERE weeknumber = ? AND year = ? GROUP BY a.dynamicname', [int(weeknumber),pullyear]) #comics INNER JOIN weekly ON comics.DynamicComicName = weekly.dynamicname OR comics.comicid = weekly.comicid INNER JOIN annuals ON annuals.comicid = weekly.comicid WHERE weeknumber = ? GROUP BY weekly.dynamicname', [weeknumber])
         for week in weekly:
             idmatch = None
             annualidmatch = None
@@ -1070,7 +1070,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
 
                     newValue['COMIC'] = comicname
                     newValue['ISSUE'] = week['issue']
-                    newValue['WEEKNUMBER'] = weeknumber
+                    newValue['WEEKNUMBER'] = int(weeknumber)
                     newValue['YEAR'] = pullyear
 
                     if issueid:
@@ -1080,7 +1080,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     newValue = {"ComicID":       comicid,
                                 "COMIC":         week['ComicName'],
                                 "ISSUE":         week['issue'],
-                                "WEEKNUMBER":    weeknumber,
+                                "WEEKNUMBER":    int(weeknumber),
                                 "YEAR":          pullyear}
 
                 logger.info('controlValue:' + str(controlValue))
