@@ -2781,12 +2781,15 @@ class WebInterface(object):
             logger.info('arcpub: ' + arcpub)
             dstloc = helpers.arcformat(arcdir, spanyears, arcpub)
 
-            #if not os.path.isdir(dstloc) and mylar.STORYARCDIR:
-            #    logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
-            #    checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
-            #    if not checkdirectory:
-            #        logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-            #        return
+            if not os.path.isdir(dstloc):
+                if mylar.STORYARCDIR:
+                    logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
+                else:
+                    logger.info('Story Arc Grab-Bag Directory [' + dstloc + '] does not exist! - attempting to create now.')
+                checkdirectory = filechecker.validateAndCreateDirectory(dstloc, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return
 
             if all([mylar.CVINFO, mylar.STORYARCDIR]):
                 if not os.path.isfile(os.path.join(dstloc, "cvinfo")) or mylar.CV_ONETIMER:
@@ -2973,7 +2976,7 @@ class WebInterface(object):
                                            if not fileoperation:
                                                raise OSError
                                         except (OSError, IOError):
-                                            logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
+                                            logger.error('Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
                                             continue
                                     else:
                                         logger.fdebug('Destination file exists: ' + dstloc)
