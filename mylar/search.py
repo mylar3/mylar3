@@ -843,6 +843,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             # convert it to a tuple
                             dateconv = email.utils.parsedate_tz(pubdate)
+                            dateconv2 = datetime.datetime(*dateconv[:6])
                             try:
                                 # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
                                 if dateconv[-1] is not None:
@@ -864,6 +865,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
                         #convert it to a tuple
                         econv = email.utils.parsedate_tz(issconv)
+                        econv2 = datetime.datetime(*econv[:6])
                         #convert it to a numeric and drop the GMT/Timezone
                         try:
                             issuedate_int = time.mktime(econv[:len(econv) -1])
@@ -876,12 +878,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 issuedate_int = int(time.mktime(tm.timetuple()))
                             else:
                                 continue
-                        if postdate_int < issuedate_int:
-                            logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
-                            continue
-                        else:
-                            logger.fdebug(str(pubdate) + ' is after store date of ' + str(stdate))
-
+                        try:
+                            #try new method to get around issues populating in a diff timezone thereby putting them in a different day.
+                            if dateconv2.date() < econv2.date():
+                                logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
+                                continue
+                            else:
+                                logger.fdebug(str(pubdate) + ' is after store date of ' + str(stdate))
+                        except:
+                            #if the above fails, drop down to the integer compare method as a failsafe.
+                            if postdate_int < issuedate_int:
+                                logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
+                                continue
+                            else:
+                                logger.fdebug(str(pubdate) + ' is after store date of ' + str(stdate))
 # -- end size constaints.
 
                     if '(digital first)' in ComicTitle.lower(): #entry['title'].lower():
