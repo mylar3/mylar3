@@ -1974,7 +1974,7 @@ def torrent_create(site, linkid, alt=None):
         else:
             url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
     elif site == 'DEM':
-        url = 'https://www.demonoid.cc/files/download/' + str(linkid) + '/'
+        url = 'https://www.dnoid.me/files/download/' + str(linkid) + '/'
     elif site == 'WWT':
         url = 'https://worldwidetorrents.eu/download.php'
 

@@ -110,10 +110,10 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 continue
             return
         elif pickfeed == "5" and srchterm is not None:  # demonoid search / non-RSS
-            feed = 'https://www.demonoid.cc/' + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
+            feed = 'https://www.dnoid.me/' + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
             verify = bool(mylar.TPSE_VERIFY)
         elif pickfeed == "6":    # demonoid rss feed 
-            feed = 'https://www.demonoid.cc/rss/10.xml'
+            feed = 'https://www.dnoid.me/rss/10.xml'
             feedtype = ' from the New Releases RSS Feed from Demonoid'
             verify = bool(mylar.TPSE_VERIFY)
         elif pickfeed == "999":    #WWT rss feed
@@ -853,9 +853,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         url = helpers.torrent_create('DEM', linkit)
 
         if url.startswith('https'):
-            dem_referrer = 'https://www.demonoid.cc/files/download/'
+            dem_referrer = 'https://www.dnoid.me/files/download/'
         else:
-            dem_referrer = 'http://www.demonoid.cc/files/download/'
+            dem_referrer = 'http://www.dnoid.me/files/download/'
 
         headers = {'Accept-encoding': 'gzip',
                    'User-Agent':      str(mylar.USER_AGENT),
