@@ -113,7 +113,6 @@ class TorrentClient(object):
                     return False
                 else:
                     logger.debug('TorrentID: ' + torrent_id)
-                    return True
 
                 # If label enabled put label on torrent in Deluge
                 if torrent_id and mylar.DELUGE_LABEL:
