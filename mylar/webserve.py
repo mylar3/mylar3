@@ -1227,28 +1227,28 @@ class WebInterface(object):
 
                 newznabinfo = None
 
-                if Provider == 'nzb.su':
+                if fullprov == 'nzb.su':
                     if not mylar.NZBSU:
                         logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
                     link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
                     logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
-                elif Provider == 'dognzb':
+                elif fullprov == 'dognzb':
                     if not mylar.DOGNZB:
                         logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
                     link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.DOGNZB_APIKEY)
                     logger.info('fetched via dognzb. Retrying the send : ' + str(link))
-                elif Provider == 'experimental':
+                elif fullprov == 'experimental':
                     if not mylar.EXPERIMENTAL:
                         logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # http://nzbindex.nl/download/110818178
                     link = 'http://nzbindex.nl/download/' + str(id)
                     logger.info('fetched via experimental. Retrying the send : ' + str(link))
-                elif 'newznab' in Provider:
+                elif 'newznab' in fullprov:
                     if not mylar.NEWZNAB:
                         logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
                         continue
