@@ -545,12 +545,12 @@ def weekly_update(ComicName, IssueNumber, CStatus, CID, weeknumber, year, altiss
     # added Issue to stop false hits on series' that have multiple releases in a week
     # added CStatus to update status flags on Pullist screen
     myDB = db.DBConnection()
-    issuecheck = myDB.selectone("SELECT * FROM weekly WHERE COMIC=? AND ISSUE=? and WEEKNUMBER=? AND YEAR=?", [ComicName, IssueNumber, weeknumber, year]).fetchone()
+    issuecheck = myDB.selectone("SELECT * FROM weekly WHERE COMIC=? AND ISSUE=? and WEEKNUMBER=? AND YEAR=?", [ComicName, IssueNumber, int(weeknumber), year]).fetchone()
 
     if issuecheck is not None:
         controlValue = {"COMIC":         str(ComicName),
                         "ISSUE":         str(IssueNumber),
-                        "WEEKNUMBER":    weeknumber,
+                        "WEEKNUMBER":    int(weeknumber),
                         "YEAR":          year}
 
         logger.info('controlValue:' + str(controlValue))
