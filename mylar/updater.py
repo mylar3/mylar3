@@ -643,7 +643,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     myDB.upsert("nzblog", newValue, controlValue)
 
 
-def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None):
+def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None, hash=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -681,6 +681,8 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         # update the status to Snatched (so it won't keep on re-downloading!)
         logger.info(module + ' Updating status to snatched')
         logger.fdebug(module + ' Provider is ' + provider)
+        if hash:
+            logger.fdebug(module + ' Hash set to : ' + hash)
         newValue = {"Status":    "Snatched"}
         if mode == 'story_arc':
             cValue = {"IssueArcID": IssueArcID}
@@ -712,7 +714,8 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "ComicID":         'None',
                                "Issue_Number":    IssueNum,
                                "DateAdded":       helpers.now(),
-                               "Status":          "Snatched"
+                               "Status":          "Snatched",
+                               "Hash":            hash
                                }
         else:
             if modcomicname:
@@ -727,7 +730,8 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "ComicID":         ComicID,
                                "Issue_Number":    IssueNum,
                                "DateAdded":       helpers.now(),
-                               "Status":          "Snatched"
+                               "Status":          "Snatched",
+                               "Hash":            hash
                                }
         myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
