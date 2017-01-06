@@ -789,7 +789,7 @@ class PostProcessor(object):
 
                             dfilename = ofilename
                         else:
-                            dfilename = ml['filename']
+                            dfilename = ml['Filename']
 
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
@@ -797,7 +797,6 @@ class PostProcessor(object):
                             self.valreturn.append({"self.log": self.log,
                                                    "mode": 'stop'})
                             return self.queue.put(self.valreturn)
-
 
                         #send to renamer here if valid.
                         if mylar.RENAME_FILES:
@@ -820,7 +819,7 @@ class PostProcessor(object):
                         logger.fdebug(module + ' Destination Path : ' + grab_dst)
                         if metaresponse:
                             src_location = odir
-                            grab_src = os.path.join(src_location,ofilename)
+                            grab_src = os.path.join(src_location, ofilename)
                         else:
                             src_location = ofilename
                             grab_src = ofilename
