@@ -1559,6 +1559,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 foundc = "no"
 
                     if downloadit:
+                        try:
+                            if entry['chkit']:
+                                helpers.checkthe_id(ComicID, entry['chkit'])
+
+                        except:
+                            pass
+
                         #generate nzbname
                         nzbname = nzbname_create(nzbprov, info=comicinfo, title=ComicTitle) #entry['title'])
 
@@ -2171,7 +2178,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         logger.fdebug("link:" + link)
         logger.fdebug("Torrent Provider:" + nzbprov)
         foundc = "yes"
-
 
         rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov)
         if rcheck == "fail":

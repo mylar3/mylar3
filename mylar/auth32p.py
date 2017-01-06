@@ -24,6 +24,10 @@ class info32p(object):
                         'Accept-Charset': 'utf-8',
                         'User-Agent': 'Mozilla/5.0'}
 
+        if test:
+            self.test = True
+        else:
+            self.test = False
         self.error = None
         self.method = None
         lses = self.LoginSession(mylar.USERNAME_32P, mylar.PASSWORD_32P)
@@ -286,10 +290,18 @@ class info32p(object):
                 logger.info(str(len(data)) + ' series match the title being search for')
                 dataset = data
                 searchid = data[0]['id']
+            else:
+                dataset = []
+                if len(data) > 0:
+                    dataset += data
+                if len(pdata) > 0:
+                    dataset += pdata
                 
-            if chk_id is None:
+            if chk_id is None and any([len(data) == 1, len(pdata) == 1]):
                 #update the 32p_reference so we avoid doing a url lookup next time
                 helpers.checkthe_id(comic_id, dataset)
+            else:
+                logger.warn('More than one result - will update the 32p reference point once the issue has been successfully matched against.')
 
             results32p = []
             resultlist = {}
@@ -337,6 +349,7 @@ class info32p(object):
                                            'seeders':   a['seeders'],
                                            'leechers':  a['leechers'],
                                            'scanner':   a['scanner'],
+                                           'chkit':     {'id': x['id'], 'series': x['series']},
                                            'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%c')})
 
 
@@ -517,7 +530,7 @@ class info32p(object):
                 self.ses.cookies.save(ignore_discard=True)
                 return True
 
-            self.ses.cookies.save(ignore_discard=true)
+            self.ses.cookies.save(ignore_discard=True)
             return False
 
         def test_login(self):
