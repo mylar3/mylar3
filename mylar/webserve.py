@@ -3287,7 +3287,7 @@ class WebInterface(object):
 
     downloadLocal.exposed = True
 
-    def MassWeeklyDownload(self, pulldate, weekfolder=0, filename=None):
+    def MassWeeklyDownload(self, weeknumber=None, year=None, midweek=None, weekfolder=0, filename=None):
         if filename is None:
             mylar.WEEKFOLDER = int(weekfolder)
             mylar.config_write()
@@ -3296,20 +3296,18 @@ class WebInterface(object):
         # this will download all downloaded comics from the weekly pull list and throw them
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
         myDB = db.DBConnection()
+
         if mylar.WEEKFOLDER:
             if mylar.WEEKFOLDER_LOC:
                 dstdir = mylar.WEEKFOLDER_LOC
             else:
                 dstdir = mylar.DESTINATION_DIR
-            import ast
-            pulldate = ast.literal_eval(pulldate)
-            logger.info('pulldate: ' + str(pulldate))
             if mylar.WEEKFOLDER_FORMAT == 0:
                 #0 = YYYY-mm
-                desdir = os.path.join(dstdir, str(pulldate['year']) + '-' + str(pulldate['weeknumber']))
+                desdir = os.path.join(dstdir, str(year) + '-' + str(weeknumber))
             elif mylar.WEEKFOLDER_FORMAT == 1:
                 #1 = YYYY-mm-dd (midweek)
-                desdir = os.path.join(dstdir, str(pulldate['midweek']))
+                desdir = os.path.join(dstdir, str(midweek))
 
             chkdir = filechecker.validateAndCreateDirectory(desdir, create=True, module='WEEKLY-FOLDER')
             if not chkdir:
@@ -3318,7 +3316,7 @@ class WebInterface(object):
         else:
             desdir = mylar.GRABBAG_DIR
 
-        issuelist = helpers.listIssues(pulldate['weeknumber'],pulldate['year'])
+        issuelist = helpers.listIssues(weeknumber,year)
         if issuelist is None:   # nothing on the list, just go go gone
             logger.info("There aren't any issues downloaded from this week yet.")
         else:
@@ -3331,8 +3329,8 @@ class WebInterface(object):
                     logger.info("Copied " + issue['ComicName'] + " #" + str(issue['Issue_Number']) + " to " + desdir.encode('utf-8').strip())
                     iscount+=1
 
-            logger.info('I have copied ' + str(iscount) + ' issues from week #' + str(pulldate['weeknumber']) + ' pullist as requested.')
-        raise cherrypy.HTTPRedirect("pullist?week=%s&year=%s" % (pulldate['weeknumber'], pulldate['year']))
+            logger.info('I have copied ' + str(iscount) + ' issues from week #' + str(weeknumber) + ' pullist as requested.')
+        raise cherrypy.HTTPRedirect("pullist?week=%s&year=%s" % (weeknumber, year))
     MassWeeklyDownload.exposed = True
 
     def idirectory(self):
