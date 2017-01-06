@@ -718,10 +718,11 @@ class PostProcessor(object):
                                                                 break
                                                         passit = True
                                                 if passit == False:
+                                                    tmpfilename = helpers.conversion(arcmatch['comicfilename'])
                                                     if arcmatch['sub']:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], helpers.conversion(arcmatch['comicfilename']))
+                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
                                                     else:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], helpers.conversion(arcmatch['comicfilename']))
+                                                        clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
                                                     logger.info('[' + k + ' #' + issuechk['IssueNumber'] + '] MATCH: ' + clocation + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
                                                     if v[i]['ArcValues']['Publisher'] is None:
                                                         arcpublisher = v[i]['ArcValues']['ComicPublisher']
@@ -729,6 +730,7 @@ class PostProcessor(object):
                                                         arcpublisher = v[i]['ArcValues']['Publisher']
 
                                                     manual_arclist.append({"ComicLocation":   clocation,
+                                                                           "Filename":        tmpfilename,
                                                                            "ComicID":         v[i]['WatchValues']['ComicID'],
                                                                            "IssueID":         v[i]['ArcValues']['IssueID'],
                                                                            "IssueNumber":     v[i]['ArcValues']['IssueNumber'],
@@ -785,6 +787,10 @@ class PostProcessor(object):
                                 logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                 self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
+                            dfilename = ofilename
+                        else:
+                            dfilename = ml['filename']
+
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
                             logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
@@ -793,11 +799,9 @@ class PostProcessor(object):
                             return self.queue.put(self.valreturn)
 
 
-                        dfilename = ofilename
-
                         #send to renamer here if valid.
                         if mylar.RENAME_FILES:
-                            renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], ofilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
+                            renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], dfilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
                             if renamed_file:
                                 dfilename = renamed_file['nfilename']
                                 logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
@@ -810,21 +814,20 @@ class PostProcessor(object):
                             elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                             else: readord = str(ml['ReadingOrder'])
                             dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
-                        else:
-                            dfilename = dfilename
 
                         grab_dst = os.path.join(grdst, dfilename)
 
                         logger.fdebug(module + ' Destination Path : ' + grab_dst)
                         if metaresponse:
                             src_location = odir
+                            grab_src = os.path.join(src_location,ofilename)
                         else:
-                            src_location = self.nzb_folder
+                            src_location = ofilename
+                            grab_src = ofilename
 
-                        grab_src = os.path.join(src_location, ofilename)
                         logger.fdebug(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
+                        logger.info(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] ' + grab_src + ' into directory : ' + grab_dst)
                         #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
 
                         try:
@@ -832,7 +835,7 @@ class PostProcessor(object):
                             if not fileoperation:
                                 raise OSError
                         except (OSError, IOError):
-                            logger.fdebug(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] Failure ' + src + ' - check directories and manually re-run.')
+                            logger.fdebug(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] Failure ' + grab_src + ' - check directories and manually re-run.')
                             return
 
                         #tidyup old path
@@ -1832,7 +1835,6 @@ class PostProcessor(object):
                         logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
                     else:
 
-                        logger.info('here')
                         if arcinfo['Publisher'] is None:
                             arcpub = arcinfo['IssuePublisher']
                         else:
@@ -1840,7 +1842,6 @@ class PostProcessor(object):
 
                         grdst = helpers.arcformat(arcinfo['StoryArc'], helpers.spantheyears(arcinfo['StoryArcID']), arcpub)
                         logger.info('grdst:' + grdst)
-                        logger.info('there')
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
                             logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
