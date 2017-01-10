@@ -1389,7 +1389,7 @@ def IssueDetails(filelocation, IssueID=None):
 
     try:
         with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
-            for infile in inzipfile.namelist():
+            for infile in sorted(inzipfile.namelist()):
                 tmp_infile = re.sub("[^0-9]","", infile).strip()
                 if tmp_infile == '':
                     pass
