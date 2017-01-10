@@ -162,7 +162,7 @@ def human2bytes(s):
     """
     symbols = ('B', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
     letter = s[-1:].strip().upper()
-    num = s[:-1]
+    num = re.sub(',', '', s[:-1])
     #assert num.isdigit() and letter in symbols
     #use below assert statement to handle sizes with decimal places
     assert float(num) and letter in symbols
