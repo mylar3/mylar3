@@ -180,7 +180,7 @@ class Api(object):
         self.data = self._dic_from_query(
             "SELECT w.COMIC AS ComicName, w.ISSUE AS IssueNumber, w.ComicID, w.IssueID, w.SHIPDATE AS IssueDate, w.STATUS AS Status, c.ComicName AS DisplayComicName \
             FROM weekly w JOIN comics c ON w.ComicID = c.ComicID WHERE w.COMIC IS NOT NULL AND w.ISSUE IS NOT NULL AND \
-            w.weeknumber = strftime('%W', 'now') AND w.year = strftime('%Y', 'now') AND " + select_status_clause + " ORDER BY c.ComicSortName")
+            substr('0' || w.weeknumber, -2) = strftime('%W', 'now') AND w.year = strftime('%Y', 'now') AND " + select_status_clause + " ORDER BY c.ComicSortName")
         return
 
     def _getWanted(self, **kwargs):
