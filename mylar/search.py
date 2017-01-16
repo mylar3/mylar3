@@ -329,6 +329,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         if name_newznab[-7:] == '[local]':
             name_newznab = name_newznab[:-7].strip()
             newznab_local = True
+        elif name_newznab[-10:] == '[nzbhydra]':
+            name_newznab = name_newznab[:-10].strip()
+            newznab_local = False
         apikey = newznab_host[3].rstrip()
         verify = bool(newznab_host[2].rstrip())
         if '#' in newznab_host[4].rstrip():
