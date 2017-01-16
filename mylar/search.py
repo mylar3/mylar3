@@ -615,7 +615,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             else:
                                 hnc = host_newznab_fix
 
-                            if any([hnc[:3] == '10.', hnc[:4] == '172.', hnc[:4] == '192.', hnc.startswith('localhost'), newznab_local]):
+                            if any([hnc[:3] == '10.', hnc[:4] == '172.', hnc[:4] == '192.', hnc.startswith('localhost'), newznab_local is True]) and newznab_local != False:
                                 logger.info('local domain bypass for ' + name_newznab + ' is active.')
                                 localbypass = True
 
