@@ -257,7 +257,7 @@ class FileChecker(object):
                             elif rp.lower() in m[cnt].lower():
                                 scangroup = re.sub('[\(\)]', '', m[cnt]).strip()
                                 logger.fdebug('Scanner group tag discovered: ' + scangroup)
-                                modfilename = re.sub(m[cnt],'', modfilename).strip()
+                                modfilename = modfilename.replace(m[cnt],'').strip()
                                 break
                             cnt +=1
 
