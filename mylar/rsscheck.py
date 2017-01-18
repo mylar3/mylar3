@@ -117,7 +117,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             feedtype = ' from the New Releases RSS Feed from Demonoid'
             verify = bool(mylar.TPSE_VERIFY)
         elif pickfeed == "999":    #WWT rss feed
-            feed = 'https://www.worldwidetorrents.eu/rss.php?cat=50'
+            feed = 'https://www.worldwidetorrents.eu/rss.php?cat=132,50'
             feedtype = ' from the New Releases RSS Feed from WorldWideTorrents'
         elif int(pickfeed) >= 7 and feedinfo is not None:
             #personal 32P notification feeds.
