@@ -452,7 +452,7 @@ def pullit(forcecheck=None):
                                 'STATUS': row[5],
                                 'COMICID': None,
                                 'DYNAMICNAME': dynamic_name,
-                                'WEEKNUMBER': weeknumber,
+                                'WEEKNUMBER': int(weeknumber),
                                 'YEAR': mylar.CURRENT_YEAR}
                 myDB.upsert("weekly", newValueDict, controlValueDict)
             except Exception, e:
