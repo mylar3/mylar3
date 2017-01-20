@@ -50,6 +50,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
     comic_list = []
     failure_list = []
+    utter_failure_list = []
     comiccnt = 0
     extensions = ('cbr','cbz')
     cv_location = []
@@ -70,75 +71,92 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 comicsize = os.path.getsize(comicpath)
                 logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
 
-                t = filechecker.FileChecker(dir=r, file=comic)
-                results = t.listFiles()
-                #logger.info(results)
-                #'type':           re.sub('\.','', filetype).strip(),
-                #'sub':            path_list,
-                #'volume':         volume,
-                #'match_type':     match_type,
-                #'comicfilename':  filename,
-                #'comiclocation':  clocation,
-                #'series_name':    series_name,
-                #'series_volume':  issue_volume,
-                #'series_year':    issue_year,
-                #'justthedigits':  issue_number,
-                #'annualcomicid':  annual_comicid,
-                #'scangroup':      scangroup}
+                try:
+                    t = filechecker.FileChecker(dir=r, file=comic)
+                    results = t.listFiles()
+
+                    #logger.info(results)
+                    #'type':           re.sub('\.','', filetype).strip(),
+                    #'sub':            path_list,
+                    #'volume':         volume,
+                    #'match_type':     match_type,
+                    #'comicfilename':  filename,
+                    #'comiclocation':  clocation,
+                    #'series_name':    series_name,
+                    #'series_volume':  issue_volume,
+                    #'series_year':    issue_year,
+                    #'justthedigits':  issue_number,
+                    #'annualcomicid':  annual_comicid,
+                    #'scangroup':      scangroup}
 
 
-                if results:
-                    resultline = '[PARSE-' + results['parse_status'].upper() + ']'
-                    resultline += '[SERIES: ' + results['series_name'] + ']'
-                    if results['series_volume'] is not None:
-                        resultline += '[VOLUME: ' + results['series_volume'] + ']'
-                    if results['issue_year'] is not None:
-                        resultline += '[ISSUE YEAR: ' + str(results['issue_year']) + ']'
-                    if results['issue_number'] is not None:
-                        resultline += '[ISSUE #: ' + results['issue_number'] + ']'
-                    logger.fdebug(resultline)
-                else:
-                    logger.fdebug('[PARSED] FAILURE.')
-                    continue
+                    if results:
+                        resultline = '[PARSE-' + results['parse_status'].upper() + ']'
+                        resultline += '[SERIES: ' + results['series_name'] + ']'
+                        if results['series_volume'] is not None:
+                            resultline += '[VOLUME: ' + results['series_volume'] + ']'
+                        if results['issue_year'] is not None:
+                            resultline += '[ISSUE YEAR: ' + str(results['issue_year']) + ']'
+                        if results['issue_number'] is not None:
+                            resultline += '[ISSUE #: ' + results['issue_number'] + ']'
+                        logger.fdebug(resultline)
+                    else:
+                        logger.fdebug('[PARSED] FAILURE.')
+                        continue
 
-                # We need the unicode path to use for logging, inserting into database
-                unicode_comic_path = comicpath.decode(mylar.SYS_ENCODING, 'replace')
+                    # We need the unicode path to use for logging, inserting into database
+                    unicode_comic_path = comicpath.decode(mylar.SYS_ENCODING, 'replace')
 
-                if results['parse_status'] == 'success':
-                    comic_list.append({'ComicFilename':           comic,
-                                       'ComicLocation':           comicpath,
-                                       'ComicSize':               comicsize,
-                                       'Unicode_ComicLocation':   unicode_comic_path,
-                                       'parsedinfo':              {'series_name':    results['series_name'],
-                                                                   'series_volume':  results['series_volume'],
-                                                                   'issue_year':     results['issue_year'],
-                                                                   'issue_number':   results['issue_number']}
-                                       })
-                    comiccnt +=1
-                    mylar.IMPORT_PARSED_COUNT +=1
-                else:
-                    failure_list.append({'ComicFilename':           comic,
-                                         'ComicLocation':           comicpath,
-                                         'ComicSize':               comicsize,
-                                         'Unicode_ComicLocation':   unicode_comic_path,
-                                         'parsedinfo':              {'series_name':    results['series_name'],
-                                                                     'series_volume':  results['series_volume'],
-                                                                     'issue_year':     results['issue_year'],
-                                                                     'issue_number':   results['issue_number']}
-                                       })
+                    if results['parse_status'] == 'success':
+                        comic_list.append({'ComicFilename':           comic,
+                                           'ComicLocation':           comicpath,
+                                           'ComicSize':               comicsize,
+                                           'Unicode_ComicLocation':   unicode_comic_path,
+                                           'parsedinfo':              {'series_name':    results['series_name'],
+                                                                       'series_volume':  results['series_volume'],
+                                                                       'issue_year':     results['issue_year'],
+                                                                       'issue_number':   results['issue_number']}
+                                           })
+                        comiccnt +=1
+                        mylar.IMPORT_PARSED_COUNT +=1
+                    else:
+                        failure_list.append({'ComicFilename':           comic,
+                                             'ComicLocation':           comicpath,
+                                             'ComicSize':               comicsize,
+                                             'Unicode_ComicLocation':   unicode_comic_path,
+                                             'parsedinfo':              {'series_name':    results['series_name'],
+                                                                         'series_volume':  results['series_volume'],
+                                                                         'issue_year':     results['issue_year'],
+                                                                         'issue_number':   results['issue_number']}
+                                           })
+                        mylar.IMPORT_FAILURE_COUNT +=1
+                        if comic.endswith('.cbz'):
+                            cbz_retry +=1
+
+                except Exception, e:
+                    logger.info('bang')
+                    utter_failure_list.append({'ComicFilename':           comic,
+                                               'ComicLocation':           comicpath,
+                                               'ComicSize':               comicsize,
+                                               'Unicode_ComicLocation':   unicode_comic_path,
+                                               'parsedinfo':              None,
+                                               'error':                   e
+                                             })
+                    logger.info('[' + str(e) + '] FAILURE encountered. Logging the error for ' + comic + ' and continuing...')
                     mylar.IMPORT_FAILURE_COUNT +=1
                     if comic.endswith('.cbz'):
                         cbz_retry +=1
-
+                    continue
 
     mylar.IMPORT_TOTALFILES = comiccnt
     logger.info('I have successfully discovered & parsed a total of ' + str(comiccnt) + ' files....analyzing now')
     logger.info('I have not been able to determine what ' + str(len(failure_list)) + ' files are')
-    logger.info('However, ' + str(cbz_retry) + ' files are in a cbz format, which may contain metadata.')
-
+    logger.info('However, ' + str(cbz_retry) + ' out of the ' + str(len(failure_list)) + ' files are in a cbz format, which may contain metadata.')
+    logger.info('[ERRORS] I have encountered ' + str(len(utter_failure_list)) + ' file-scanning errors during the scan, but have recorded the necessary information.')
     mylar.IMPORT_STATUS = 'Successfully parsed ' + str(comiccnt) + ' files'
     #return queue.put(valreturn)
 
+    logger.fdebug(utter_failure_list)
     myDB = db.DBConnection()
 
     #let's load in the watchlist to see if we have any matches.
@@ -577,7 +595,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
             'CV_import_comicids':  cvimport_comicids,
             'import_cv_ids':       import_cv_ids,
             'issueid_list':        issueid_list,
-            'failure_list':        failure_list}
+            'failure_list':        failure_list,
+            'utter_failure_list':  utter_failure_list}
 
 
 def scanLibrary(scan=None, queue=None):
@@ -605,7 +624,8 @@ def scanLibrary(scan=None, queue=None):
             logger.info('[IMPORT-BREAKDOWN] Files with ComicIDs successfully extracted: ' + str(soma['import_cv_ids']))
             logger.info('[IMPORT-BREAKDOWN] Files that had to be parsed: ' + str(soma['import_count']))
             logger.info('[IMPORT-BREAKDOWN] Files that were unable to be parsed: ' + str(len(soma['failure_list'])))
-            logger.info('[IMPORT-BREAKDOWN] Failure Files: ' + str(soma['failure_list']))
+            logger.info('[IMPORT-BREAKDOWN] Files that caused errors during the import: ' + str(len(soma['utter_failure_list'])))
+            #logger.info('[IMPORT-BREAKDOWN] Failure Files: ' + str(soma['failure_list']))
       
             myDB = db.DBConnection()
 
