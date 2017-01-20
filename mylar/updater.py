@@ -295,7 +295,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
 
 def latest_update(ComicID, LatestIssue, LatestDate):
     # here we add to comics.latest
-    #logger.info(str(ComicID) + ' - updating latest_date to : ' + str(LatestDate))
+    logger.fdebug(str(ComicID) + ' - updating latest_date to : ' + str(LatestDate))
     myDB = db.DBConnection()
     latestCTRLValueDict = {"ComicID":      ComicID}
     newlatestDict = {"LatestIssue":      str(LatestIssue),
@@ -612,12 +612,13 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
        #give it a generic ID above the last one so it doesn't throw an error later.
-       if mylar.HIGHCOUNT == 0:
+       if any([mylar.HIGHCOUNT == 0, mylar.HIGHCOUNT is None]):
            mylar.HIGHCOUNT = 900000
-           IssueID = mylar.HIGHCOUNT
-           mylar.config_write()
        else:
-           IssueID = int(mylar.HIGHCOUNT) + 1
+           mylar.HIGHCOUNT+=1
+
+       IssueID = mylar.HIGHCOUNT
+       mylar.config_write()
 
     controlValue = {"IssueID":  IssueID,
                     "Provider": prov}

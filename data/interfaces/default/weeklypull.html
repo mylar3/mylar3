@@ -110,7 +110,7 @@
                                                     %endif
                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist"><span class="ui-icon ui-icon-plus"></span>Search</a>
                                                 %endif
-                                                <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
+                                                <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
                                             %endif
                                         %endif
                                         </td>

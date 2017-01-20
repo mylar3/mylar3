@@ -24,12 +24,14 @@ class info32p(object):
                         'Accept-Charset': 'utf-8',
                         'User-Agent': 'Mozilla/5.0'}
 
-        if test:
+        if test is True:
             self.test = True
         else:
             self.test = False
+
         self.error = None
         self.method = None
+
         lses = self.LoginSession(mylar.USERNAME_32P, mylar.PASSWORD_32P)
 
         if not lses.login():
@@ -42,17 +44,19 @@ class info32p(object):
                 else:
                     return self.method
         else:
-            logger.info(self.module + '[LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...')
+            logger.fdebug(self.module + '[LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...')
             self.authkey = lses.authkey
             self.passkey = lses.passkey
             self.uid = lses.uid
          
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
-        self.test = test
         self.publisher_list = {'Entertainment', 'Press', 'Comics', 'Publishing', 'Comix', 'Studios!'}
 
     def authenticate(self):
+
+        if self.test:
+            return True
 
         feedinfo = []
 
@@ -321,7 +325,7 @@ class info32p(object):
                 time.sleep(1)  #just to make sure we don't hammer, 1s pause.
                 try:
                     d = s.post(url, params=payload, verify=True, allow_redirects=True)
-                    logger.debug(self.module + ' Reply from AJAX: \n %s', d.text)
+                    #logger.debug(self.module + ' Reply from AJAX: \n %s', d.text)
                 except Exception as e:
                     logger.info(self.module + ' Could not POST URL %s', url)
                 
@@ -334,7 +338,7 @@ class info32p(object):
                     logger.debug(self.module + ' Search Result did not return valid JSON, falling back on text: %s', searchResults.text)
                     return False
 
-                logger.debug(self.module + " Search Result: %s", searchResults)
+                #logger.debug(self.module + " Search Result: %s", searchResults)
                     
                 if searchResults['status'] == 'success' and searchResults['count'] > 0:
                     logger.info('successfully retrieved ' + str(searchResults['count']) + ' search results.')
@@ -578,11 +582,11 @@ class info32p(object):
 
             if (self.test_login()):
                 logger.fdebug(self.module + ' Credential-based login was good.')
-                self.method = 'Session Cookie retrieved OK.'
+                self.method = 'Credential-based login OK.'
                 return True
 
             logger.warn(self.module + ' Both session key and credential-based logins failed.')
-            self.method = 'Failed to retrieve Session Cookie.'
+            self.method = 'Both session key & credential login failed.'
             return False
 
 
