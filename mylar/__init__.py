@@ -2266,8 +2266,8 @@ def dbcheck():
     conn.commit()
     c.close()
 
-    logger.info('Making sure the latest dates are all correctly pointing to the correct issue numbers & dates')
-    helpers.latestdate_update()
+    #logger.info('Making sure the latest dates are all correctly pointing to the correct issue numbers & dates')
+    #helpers.latestdate_update()
 
     if dynamic_upgrade:
         logger.info('Updating db to include some important changes.')
