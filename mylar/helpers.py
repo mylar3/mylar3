@@ -360,6 +360,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                                 'INH',
                                 'NOW',
                                 'AI',
+                                'MU',
                                 'A',
                                 'B',
                                 'C',
@@ -922,6 +923,12 @@ def issuedigits(issnum):
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('n') + ord('o') + ord('w')
                 else:
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+            elif 'mu' in issnum.lower():
+                remdec = issnum.find('.')
+                if remdec == -1:
+                    int_issnum = (int(issnum[:-2]) * 1000) + ord('m') + ord('u')
+                else:
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
 
         except ValueError as e:
             logger.error('[' + issnum + '] Unable to properly determine the issue number. Error: %s', e)

@@ -1260,6 +1260,8 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('i') + ord('n') + ord('h')
                 elif 'now' in issnum.lower():
                     int_issnum = (int(issnum[:-4]) * 1000) + ord('n') + ord('o') + ord('w')
+                elif 'mu' in issuenum.lower():
+                    int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
                 elif u'\xbd' in issnum:
                     int_issnum = .5 * 1000
                     logger.info('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
