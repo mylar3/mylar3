@@ -159,7 +159,8 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     r = scraper.get(feed, verify=verify)#requests.get(feed, params=payload, verify=verify)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
-                return
+                lp+=1
+                continue
 
             feedme = feedparser.parse(r.content)
             #logger.info(feedme)   #<-- uncomment this to see what Mylar is retrieving from the feed
@@ -191,12 +192,12 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             #DEMONOID SEARCH RESULT (parse)
             pass
         elif pickfeed == "999":
-            logger.info('FEED: ' + feed)
             try:
                 feedme = feedparser.parse(feed)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
-                return
+                lp+=1
+                continue
 
             #WWT / FEED
             for entry in feedme.entries:
