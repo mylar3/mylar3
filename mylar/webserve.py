@@ -4736,12 +4736,9 @@ class WebInterface(object):
                 return 'Unable to reach SABnzbd'
 
             try:
-                if dom.getElementsByTagName('status')[0].firstChild.wholeText == 'True':
-                    q_sabhost = dom.getElementsByTagName('host')[0].firstChild.wholeText
-                    q_nzbkey = dom.getElementsByTagName('nzb_key')[0].firstChild.wholeText
-                    q_apikey = dom.getElementsByTagName('api_key')[0].firstChild.wholeText
-                else:
-                    raise ValueError
+                q_sabhost = dom.getElementsByTagName('host')[0].firstChild.wholeText
+                q_nzbkey = dom.getElementsByTagName('nzb_key')[0].firstChild.wholeText
+                q_apikey = dom.getElementsByTagName('api_key')[0].firstChild.wholeText
             except:
                 errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
                 logger.error(u"Error detected attempting to retrieve SAB data using FULL APIKey: " + errorm)
