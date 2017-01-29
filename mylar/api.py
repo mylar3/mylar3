@@ -174,18 +174,19 @@ class Api(object):
 
     def _getUpcoming(self, **kwargs):
         if 'include_downloaded_issues' in kwargs and kwargs['include_downloaded_issues'].upper() == 'Y':
-            select_status_clause = "w.STATUS IN ('Wanted', 'Downloaded')"
+            select_status_clause = "w.STATUS IN ('Wanted', 'Snatched', 'Downloaded')"
         else:
             select_status_clause = "w.STATUS = 'Wanted'"
 
-        # Days in a new year that precede the first Monday will look to the previous Monday for week and year.
+        # Days in a new year that precede the first Sunday will look to the previous Sunday for week and year.
         today = datetime.date.today()
-        if today.strftime('%W') == '00':
-            monday = today - datetime.timedelta(days=today.weekday())
-            week = monday.strftime('%W')
-            year = monday.strftime('%Y')
+        if today.strftime('%U') == '00':
+            weekday = 0 if today.isoweekday() == 7 else today.isoweekday()
+            sunday = today - datetime.timedelta(days=weekday)
+            week = sunday.strftime('%U')
+            year = sunday.strftime('%Y')
         else:
-            week = today.strftime('%W')
+            week = today.strftime('%U')
             year = today.strftime('%Y')
 
         self.data = self._dic_from_query(
