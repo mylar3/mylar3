@@ -345,7 +345,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if comversion == 'None':
             chunk_f_f = re.sub('\$VolumeN', '', mylar.FOLDER_FORMAT)
             chunk_f = re.compile(r'\s+')
-            mylar.FOLDER_FORMAT = chunk_f.sub(' ', chunk_f_f)
+            chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
+            logger.fdebug('No version # found for series, removing from folder format')
+            logger.fdebug("new folder format: " + str(chunk_folder_format))
+        else:
+            chunk_folder_format = mylar.FOLDER_FORMAT
 
         #do work to generate folder path
 
@@ -362,7 +366,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if mylar.FOLDER_FORMAT == '':
             comlocation = os.path.join(mylar.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
         else:
-            comlocation = os.path.join(mylar.DESTINATION_DIR, helpers.replace_all(mylar.FOLDER_FORMAT, values))
+            comlocation = os.path.join(mylar.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
 
 
         #comlocation = mylar.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
