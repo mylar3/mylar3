@@ -2284,7 +2284,7 @@ class WebInterface(object):
             comyr = k.find('[')
             ComicYear = re.sub('[\[\]]', '', k[comyr:]).strip()
             ComicName = k[:comyr].strip()
-            if len(v) > 1:
+            if isinstance(v, list):
                 #because multiple items can have the same comicname & year, we need to make sure they're all unique entries
                 for x in v:
                     clist.append({'ComicName':  ComicName,
