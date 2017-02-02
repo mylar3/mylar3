@@ -78,15 +78,19 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     else:
         cbr2cbzoptions = ["-e"]
 
-    if mylar.CMTAG_START_YEAR_AS_VOLUME:
-        comversion = 'V' + str(comversion)
+    tagoptions = ["-s"]
+    if mylar.CMTAG_VOLUME:
+        if mylar.CMTAG_START_YEAR_AS_VOLUME:
+            comversion = 'V' + str(comversion)
+        else:
+            if any([comversion is None, comversion == '', comversion == 'None']):
+                comversion = '1'
+            comversion = re.sub('[^0-9]', '', comversion).strip()
+        cvers = 'volume=' + str(comversion)
     else:
-        if any([comversion is None, comversion == '', comversion == 'None']):
-            comversion = '1'
-        comversion = re.sub('[^0-9]', '', comversion).strip()
+        cvers = "volume="
 
-    cvers = 'volume=' + str(comversion)
-    tagoptions = ["-s", "-m", cvers] #"--verbose"
+    tagoptions.extend(["-m", cvers])
 
     try:
         ctversion = subprocess.check_output([sys.executable, comictagger_cmd, "--version"], stderr=subprocess.STDOUT)
