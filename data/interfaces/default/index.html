@@ -71,6 +71,7 @@
 </%def>
 
 <%def name="headIncludes()">
+    <link rel="stylesheet" href="interfaces/default/css/data_table.dist.css">
 	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
 </%def>
 
@@ -100,8 +101,10 @@
                                 "bStateSave": true,
                                 "iDisplayLength": 25,
                                 "sPaginationType": "full_numbers",
-                                "aaSorting": [[7,'asc'],[1,'asc']]
+                                "aaSorting": [[7,'asc'],[1,'asc']],
+                    
 		        });
+        
 		        resetFilters("comic");
 	}
 	

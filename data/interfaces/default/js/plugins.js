@@ -34,6 +34,7 @@ jQuery.fn.dataTableExt.oSort['title-numeric-desc'] = function(a,b) {
 	return ((x < y) ?  1 : ((x > y) ? -1 : 0));
 };
 
+
 function toggle(source) {
   checkboxes = document.getElementsByClassName('checkbox');
   for(var i in checkboxes)
