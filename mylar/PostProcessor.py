@@ -211,34 +211,44 @@ class PostProcessor(object):
                 else:
                     tmp_folder = orig_folder
 
-                if all([os.path.isdir(odir), self.nzb_folder != tmp_folder]) or del_nzbdir is True:
+                #if all([os.path.isdir(odir), self.nzb_folder != tmp_folder]) or any([odir.startswith('mylar_'),del_nzbdir is True]):
                     # check to see if the directory is empty or not.
-                    if mylar.FILE_OPTS == 'move' and any([del_nzbdir is True, tmp_folder != self.nzb_folder]):
-                        if not os.listdir(tmp_folder):
-                            logger.fdebug(self.module + ' Tidying up. Deleting original folder location : ' + tmp_folder)
-                            shutil.rmtree(tmp_folder)
-                            self._log("Removed temporary directory : " + tmp_folder)
-                        else:
-                            self._log('Failed to remove temporary directory: ' + tmp_folder)
-                            raise OSError(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
 
-                    if mylar.ENABLE_META:
-                        #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
-                        #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
-                        for filename in os.listdir(odir):
-                            filepath = os.path.join(odir, filename)
-                            try:
-                                os.remove(filepath)
-                            except OSError:
-                                pass
+                if all([mylar.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', tmp_folder != self.nzb_folder]):
+                    if not os.listdir(tmp_folder):
+                        logger.fdebug(self.module + ' Tidying up. Deleting sub-folder location : ' + tmp_folder)
+                        shutil.rmtree(tmp_folder)
+                        self._log("Removed temporary directory : " + tmp_folder)
+                    else:
+                        self._log('Failed to remove temporary directory: ' + tmp_folder)
+                        logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
 
-                        if not os.listdir(odir):
-                            logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
-                            shutil.rmtree(odir)
-                            self._log("Removed temporary directory : " + odir)
-                        else:
-                            self._log('Failed to remove temporary directory: ' + odir)
-                            raise OSError(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
+                elif mylar.FILE_OPTS == 'move' and all([del_nzbdir is True, self.nzb_name != 'Manual Run']): #tmp_folder != self.nzb_folder]):
+                    if not os.listdir(tmp_folder):
+                        logger.fdebug(self.module + ' Tidying up. Deleting original folder location : ' + tmp_folder)
+                        shutil.rmtree(tmp_folder)
+                        self._log("Removed temporary directory : " + tmp_folder)
+                    else:
+                        self._log('Failed to remove temporary directory: ' + tmp_folder)
+                        logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+
+                if mylar.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
+                    #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
+                    #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
+                    for filename in os.listdir(odir):
+                        filepath = os.path.join(odir, filename)
+                        try:
+                            os.remove(filepath)
+                        except OSError:
+                            pass
+
+                    if not os.listdir(odir):
+                        logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
+                        shutil.rmtree(odir)
+                        self._log("Removed temporary directory : " + odir)
+                    else:
+                        self._log('Failed to remove temporary directory: ' + odir)
+                        logger.error(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
 
             except (OSError, IOError):
                 logger.fdebug(self.module + ' Failed to remove directory - Processing will continue, but manual removal is necessary')
@@ -747,7 +757,7 @@ class PostProcessor(object):
 
                             i+=1
 
-                    logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything.')
+                logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything.')
 
                 delete_arc = []
                 if len(manual_arclist) > 0:
@@ -898,9 +908,9 @@ class PostProcessor(object):
                     logger.fdebug(module + ' Trying to locate nzbfile again with nzbname of : ' + str(nzbname))
                     nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
                     if nzbiss is None:
-                        logger.error(module + ' Unable to locate downloaded file to rename within items I have snatched. Attempting to parse the filename directly and process.')
+                        logger.error(module + ' Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
                         #set it up to run manual post-processing on self.nzb_folder
-                        self._log('Unable to locate downloaded file to rename within items I have snatched. Attempting to parse the filename directly and process.')
+                        self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'outside'})
                         return self.queue.put(self.valreturn)
@@ -912,6 +922,12 @@ class PostProcessor(object):
                     issueid = nzbiss['IssueID']
                     logger.fdebug(module + ' Issueid: ' + str(issueid))
                     sarc = nzbiss['SARC']
+                    tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
+                    if tmpiss is not None:
+                        comicid = nzbiss['ComicID']
+                        comicname = nzbiss['ComicName']
+                        issuenumber = nzbiss['IssueNumber']           
+
                     #use issueid to get publisher, series, year, issue number
 
                 annchk = "no"
@@ -934,14 +950,15 @@ class PostProcessor(object):
                             sandwich = issueid
                         elif 'G' in issueid or '-' in issueid:
                             sandwich = 1
-                        elif issueid == '1':
+                        elif issueid >= '90000' or issueid == '1':
                             logger.info(module + ' [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.')
                             sandwich = None #arbitrarily set it to None just to force one-off downloading below.
                         else:
-                            logger.error(module + ' Download not detected as being initiated via Mylar. Unable to continue post-processing said item. Either download the issue with Mylar, or use manual post-processing to post-process.')
+                            logger.error(module + ' Unable to locate downloaded file as being initiated via Mylar. Attempting to parse the filename directly and process.')
+                            self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
                             self.valreturn.append({"self.log": self.log,
-                                                   "mode": 'stop'})
-                            return self.queue.put(self.valreturn)                            
+                                                   "mode": 'outside'})
+                            return self.queue.put(self.valreturn)
                     else:
                         logger.info(module + ' Successfully located issue as an annual. Continuing.')
                         annchk = "yes"
@@ -1010,9 +1027,13 @@ class PostProcessor(object):
                             arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
 
                             issueid = arcdata['IssueID']
+
                         #tag the meta.
                         metaresponse = None
-                        if mylar.ENABLE_META:
+
+                        #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
+                        #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
+                        if all([mylar.ENABLE_META, sandwich is not None, 'S' in sandwich]):
                             self._log("Metatagging enabled - proceeding...")
                             try:
                                 import cmtagmylar
@@ -1037,6 +1058,8 @@ class PostProcessor(object):
                                 logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
                                 self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
 
+                        dfilename = ofilename
+
                         if sandwich is not None and 'S' in sandwich:
                             if mylar.STORYARCDIR:
                                 grdst = storyarcd
@@ -1055,6 +1078,14 @@ class PostProcessor(object):
                                                    "mode": 'stop'})
                             return self.queue.put(self.valreturn)
 
+                        #send to renamer here if valid.
+                        if mylar.RENAME_FILES:
+                            renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
+                            if renamed_file:
+                                dfilename = renamed_file['nfilename']
+                                logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
+
+
                         if sandwich is not None and 'S' in sandwich:
                             #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                             if mylar.READ2FILENAME:
@@ -1062,7 +1093,7 @@ class PostProcessor(object):
                                 if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                                 elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
                                 else: readord = str(arcdata['ReadingOrder'])
-                                dfilename = str(readord) + "-" + ofilename
+                                dfilename = str(readord) + "-" + dfilename
                             else:
                                 dfilename = ofilename
                             grab_dst = os.path.join(grdst, dfilename)
