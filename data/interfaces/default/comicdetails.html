@@ -816,7 +816,7 @@
 
         $('#menu_link_addalltoRL').click(function(){
           $('#issue_table tbody tr').each(function(){
-            $(this).find('a[title="Add to Reading List"]').click();            
+            $(this).find('a[title="Add to Reading List"]').click();
           });
         });
 
@@ -846,7 +846,7 @@
                                     { 'bSortable': false, 'aTargets': [ 0, 3 ] },
                                     { 'bVisible': false, 'aTargets': [1] },
                                     { 'sType': 'numeric', 'aTargets': [1] },
-                                    { 'iDataSort': [1], 'aTargets': [2] }
+                                    { 'columns.orderData': [1], 'aTargets': [2] }
                                ],
                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
                                "oLanguage": {
@@ -859,7 +859,7 @@
                                "bStateSave": true,
                                "iDisplayLength": 25,
                                "sPaginationType": "full_numbers",
-                               "aaSorting": [[2, 'desc'],[4,'desc']]
+                               "aaSorting": [[1, 'desc'],[4,'desc']]
                         });
                 $('#annual_table').dataTable(
                         {
@@ -868,7 +868,7 @@
                                     { 'bSortable': false, 'aTargets': [ 0, 3 ] },
                                     { 'bVisible': false, 'aTargets': [1] },
                                     { 'sType': 'numeric', 'aTargets': [1] },
-                                    { 'iDataSort': [1], 'aTargets': [2] }
+                                    { 'columns.orderData': [1], 'aTargets': [2] }
                                ],
                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
                                "oLanguage": {
