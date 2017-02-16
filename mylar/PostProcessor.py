@@ -924,9 +924,9 @@ class PostProcessor(object):
                     sarc = nzbiss['SARC']
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
                     if tmpiss is not None:
-                        comicid = nzbiss['ComicID']
-                        comicname = nzbiss['ComicName']
-                        issuenumber = nzbiss['IssueNumber']           
+                        comicid = tmpiss['ComicID']
+                        comicname = tmpiss['ComicName']
+                        issuenumber = tmpiss['Issue_Number']
 
                     #use issueid to get publisher, series, year, issue number
 
