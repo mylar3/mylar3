@@ -16,9 +16,9 @@
 import re
 import os
 import requests
-from bencode import bencode, bdecode
-from hashlib import sha1
-from cStringIO import StringIO
+import bencode
+import hashlib
+import StringIO
 
 import mylar
 from mylar import logger
@@ -101,16 +101,16 @@ class utorrentclient(object):
             logger.info('Unable to label torrent')
         return
 
-    def calculate_torrent_hash(link=None, filepath=None, data=None):
+    def calculate_torrent_hash(self, link=None, filepath=None, data=None):
         thehash = None
-        if not link:
+        if link is None:
             if filepath:
                 torrent_file = open(filepath, "rb")
-                metainfo = bdecode(torrent_file.read())
+                metainfo = bencode.decode(torrent_file.read())
             else:
-                metainfo = bdecode(data)
+                metainfo = bencode.decode(data)
             info = metainfo['info']
-            thehash = hashlib.sha1(bencode(info)).hexdigest().upper()
+            thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
             logger.info('Hash: ' + thehash)
         else:
             if link.startswith("magnet:"):

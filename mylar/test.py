@@ -21,6 +21,8 @@ import shutil
 import traceback
 from base64 import b16encode, b32decode
 
+import hashlib, StringIO
+import bencode
 from torrent.helpers.variable import link, symlink, is_rarfile
 
 import requests
@@ -89,9 +91,6 @@ class RTorrent(object):
         return torrent_info           
 
     def get_the_hash(self, filepath):
-        import hashlib, StringIO
-        import rtorrent.lib.bencode as bencode
-
         # Open torrent file
         torrent_file = open(filepath, "rb")
         metainfo = bencode.decode(torrent_file.read())
