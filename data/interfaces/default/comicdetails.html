@@ -70,8 +70,7 @@
 	<div id="tabs">
 		<ul>
 			<li><a href="#tabs-1">Comic Details</a></li>
-			<li><a href="#tabs-2">Download settings</a></li>
-                        <li><a href="#tabs-3">Edit Settings</a></li>
+                        <li><a href="#tabs-2">Edit Settings</a></li>
                 </ul>
 
        <div id="tabs-1">
@@ -193,85 +192,7 @@
             </tr>
         </table>
 	</div>
-	<div id="tabs-2">
-        <table class="comictable" summary="Download Settings">
-	    <tr>
-                <td id="mainimg">
-                   <fieldset>
-                       <div id="artistImg">
-                          <img src="${comic['ComicImage']}" alt="" height="400" width="263" />
-                       </div>
-                   </fieldset>
-                  </td>
-                  <td width="100%" padding="10">
-                      %if comic['ComicPublisher'] == 'DC Comics':
-                        <img src="interfaces/default/images/publisherlogos/logo-dccomics.png" align="right" alt="DC" height="50" width="50">
-                       %elif comic['ComicPublisher'] == 'Marvel':
-                        <img src="interfaces/default/images/publisherlogos/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100">
-                       %elif comic['ComicPublisher'] == 'Image':
-                       <img src="interfaces/default/images/publisherlogos/logo-imagecomics.png" align="right" alt="Image" height="100" width="50"/>
-                       %elif comic['ComicPublisher'] == 'Dark Horse Comics':
-                       <img src="interfaces/default/images/publisherlogos/logo-darkhorse.png" align="right" alt="Darkhorse" height="75" width="50"/>
-                       %elif comic['ComicPublisher'] == 'IDW Publishing':
-                       <img src="interfaces/default/images/publisherlogos/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
-                       %endif
-                	<fieldset>
-	                	<div>
-		                    <label><big>Alternate versions :</big><norm>${comic['ComicVersion']}</norm></label>
-	                        </div>
-	                   	<div>
-		                    <label><big>Scanner :</big><norm>${comic['QUALscanner']}</norm></label>
-	                        </div>
-	                	<div>
-		                    <label><big>Type :</big><norm>${comic['QUALtype']}</norm></label>
-	                        </div>
-	                    	<div>
-		                    <label><big>Quality :</big><norm>${comic['QUALquality']}</norm></label>
-                                </div>
-                                <div>
-                                    <label><big>Alternate Search Names :</big>
-                                <%
-                                    import re
-                                    AS_Alternate = []
-                                    if comic['AlternateSearch'] is None:
-                                        AS_Alternate.append("None")
-                                    else:
-                                        chkthealt = comic['AlternateSearch'].split('##')
-                                        if chkthealt == 0:
-                                            AS_Alternate.append(comic['AlternateSearch'])
-                                        for calt in chkthealt:
-                                            AS_Alternate.append(re.sub('##','',calt))
-                                %>
-                                <UL><UL>
-                                  %for AS in AS_Alternate:
-                                     <LI><norm>${AS}</norm>
-                                  %endfor
-                                </UL></UL>
-                                </label>
-                                </div>
-                                <%
-                                    if comic['UseFuzzy'] == "0" or comic['UseFuzzy'] is None:
-                                        fuzzy = "None"
-                                        fuzzy_year = "0"
-                                    elif comic['UseFuzzy'] == "1":
-                                        fuzzy = "Remove Year"
-                                        fuzzy_year = "1"
-                                    elif comic['UseFuzzy'] == "2":
-                                        fuzzy = "Fuzzy Year"
-                                        fuzzy_year = "2"
-
-                                %>
-
-                                <div>
-                                    <label><big>Fuzzy Year logic : </big><norm>${fuzzy} </norm></label>
-                                </div>
-
-                    </fieldset>
-                </td>
-            </tr>
-	    </table>
-	</div>
-       <div id="tabs-3">
+        <div id="tabs-2">
         <table class="comictable" summary="Edit Settings">
             <tr>
                 <td id="mainimg">
@@ -530,7 +451,7 @@
         </div>
 
 
-              <table class="display_no_select" id="annual_table">
+              <table class="display" id="annual_table">
 
                    <thead>
                         <tr>
@@ -841,49 +762,50 @@
                 initActions();
                 $('#issue_table').dataTable(
                         {
-                               "bDestroy": true,
-                               "aoColumnDefs": [
-                                    { 'bSortable': false, 'aTargets': [ 0, 3 ] },
-                                    { 'bVisible': false, 'aTargets': [1] },
-                                    { 'sType': 'numeric', 'aTargets': [1] },
-                                    { 'columns.orderData': [1], 'aTargets': [2] }
+                               "destroy": true,
+                               "columnDefs": [
+                                    { "orderable": false, "targets": [0, 6] },
+                                    { "visible": false, "targets": 1 },
+                                    { "orderData": 1, "targets": 2 },
+                                    { "type": 'num', "targets": 1 },
+                                    { "order": [[1, 'desc']] }
                                ],
-                               "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
-                               "oLanguage": {
-                                       "sLengthMenu":"Show _MENU_ issues per page",
-                                       "sEmptyTable": "No issue information available",
-                                       "sInfo":"Showing _TOTAL_ issues",
-                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
-                                       "sInfoFiltered":"(filtered from _MAX_ total issues)",
-                                       "sSearch": ""},
-                               "bStateSave": true,
-                               "iDisplayLength": 25,
-                               "sPaginationType": "full_numbers",
-                               "aaSorting": [[1, 'desc'],[4,'desc']]
+                               "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                               "language": {
+                                       "lengthMenu":"Show _MENU_ issues per page",
+                                       "emptyTable": "No issue information available",
+                                       "info":"Showing _TOTAL_ issues",
+                                       "infoEmpty":"Showing 0 to 0 of 0 issues",
+                                       "infoFiltered":"(filtered from _MAX_ total issues)",
+                                       "search": ""},
+                               "stateSave": true,
+                               "searching": true,
+                               "pageLength": 25,
+                               "pagingType": "full_numbers"
                         });
                 $('#annual_table').dataTable(
                         {
-                               "bDestroy": true,
-                               "aoColumnDefs": [
-                                    { 'bSortable': false, 'aTargets': [ 0, 3 ] },
-                                    { 'bVisible': false, 'aTargets': [1] },
-                                    { 'sType': 'numeric', 'aTargets': [1] },
-                                    { 'columns.orderData': [1], 'aTargets': [2] }
+                               "destroy": true,
+                               "columnDefs": [
+                                    { "orderable": false, "targets": [0, 6] },
+                                    { "visible": false, "targets": 1 },
+                                    { "orderData": 1, "targets": 2 },
+                                    { "type": 'num', "targets": 1 },
+                                    { "order": [[1, 'desc']] }
                                ],
-                               "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
-                               "oLanguage": {
-                                       "sLengthMenu":"",
-                                       "sEmptyTable": "No issue information available",
-                                       "sInfo":"Showing _TOTAL_ issues",
-                                       "sInfoEmpty":"Showing 0 to 0 of 0 issues",
-                                       "sInfoFiltered":"",
-                                       "sSearch": ""},
-                               "bStateSave": true,
-                               "bFilter": false,
-                               "sPaginationType": "full_numbers",
-                               "iDisplayLength": 10
+                               "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                               "language": {
+                                       "lengthMenu":"Show _MENU_ annuals per page",
+                                       "emptyTable": "No annual information available",
+                                       "info":"Showing _TOTAL_ annuals",
+                                       "infoEmpty":"Showing 0 to 0 of 0 annuals",
+                                       "infoFiltered":"(filtered from _MAX_ total annuals)",
+                                       "search": ""},
+                               "stateSave": true,
+                               "searching": false,
+                               "pageLength": 10,
+                               "pagingType": "full_numbers"
                         });
-
                 resetFilters("issue", "annual");
                 setTimeout(function(){
                     initFancybox();
@@ -891,8 +813,7 @@
         }
 
         $(document).ready(function() {
-                $("issue_table").dataTable();
-                $("annual_table").dataTable();
+                $('table.display').DataTable();
                 initThisPage();
         });
       </script>

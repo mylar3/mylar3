@@ -32,6 +32,12 @@
                                 if comic['percent'] < 100:
                                         css = '<div class=\"progress-container missing\">'
 
+                                if any([comic['haveissues'] == 'None', comic['haveissues'] is None]):
+                                    hissues = 0
+                                else:
+                                    hissues = comic['haveissues'] 
+                                comic_percent = comic['percent'] + hissues
+
 				if comic['Status'] == 'Paused':
 					grade = 'X'
 				elif comic['Status'] == 'Loading':
@@ -48,7 +54,7 @@
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>
-                                <td class="hidden" id="have_percent">${comic['percent']}</td>
+                                <td class="hidden" id="have_percent">${comic_percent}</td>
 				<td id="have"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><span class="progressbar-front-text">${comic['haveissues']}/${comic['totalissues']}</span></div></td>
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
@@ -82,26 +88,26 @@
 	function initThisPage() {
 		$('#series_table').dataTable(
                         {
-			        "bDestroy": true,
-                                "aoColumnDefs": [
-                                     { 'bSortable': false, 'aTargets': [5, 9] },
-                                     { 'bVisible': false, 'aTargets': [5, 9] },
-                                     { 'sType': 'numeric', 'aTargets': [5] },
-                                     { 'columns.orderData': [5], 'aTargets': [6] },
-                                     { 'columns.orderData': [9], 'aTargets': [8] }
+			        "destroy": true,
+                                "columnDefs": [
+                                     { "orderable": false, "targets": [5, 9] },
+                                     { "visible": false, "targets": [5, 9] },
+                                     { "type": 'num', "targets": 5 },
+                                     { "orderData": 5, "targets": 6 },
+                                     { "orderData": 9, "targets": 8 },
+                                     { "order": [[7, 'asc'],[1, 'asc']] }
                                 ],
-                                "aLengthMenu": [[10, 15, 25, 50, -1], [10, 15, 25, 50, 'All' ]],
-			        "oLanguage": {
-                                        "sLengthMenu":"Show _MENU_ results per page",
-                                        "sEmptyTable": "No results",
-                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
-                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
-                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
-                                        "sSearch" : ""},
-                                "bStateSave": true,
-                                "iDisplayLength": 25,
-                                "sPaginationType": "full_numbers",
-                                "aaSorting": [[7,'asc'],[1,'asc']],
+                                "lengthMenu": [[10, 15, 25, 50, -1], [10, 15, 25, 50, 'All' ]],
+			        "language": {
+                                        "lengthMenu":"Show _MENU_ results per page",
+                                        "emptyTable": "No results",
+                                        "info":"Showing _START_ to _END_ of _TOTAL_ results",
+                                        "infoEmpty":"Showing 0 to 0 of 0 results",
+                                        "infoFiltered":"(filtered from _MAX_ total results)",
+                                        "search" : ""},
+                                "stateSave": true,
+                                "pageLength": 25,
+                                "pagingType": "full_numbers",
                     
 		        });
         

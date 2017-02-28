@@ -307,7 +307,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
     if any([allow_packs is None, allow_packs == 'None', allow_packs == 0]) and all([mylar.ENABLE_TORRENT_SEARCH, mylar.ENABLE_32P]):
         allow_packs = False
-    logger.info('allow_packs set to :' + str(allow_packs))
 
     newznab_local = False
 
@@ -1232,19 +1231,16 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             nzbprov = 'DEM'
 
-                    logger.info(nzbprov)
-                    logger.info('rss:' + RSS)
-                    logger.info('allow_packs:' + str(allow_packs))
                     if nzbprov == '32P' and allow_packs and RSS == 'no':
-                        logger.info('pack:' + entry['pack'])
+                        logger.fdebug('pack:' + entry['pack'])
                     if all([nzbprov == '32P', RSS == 'no', allow_packs]) and any([entry['pack'] == '1', entry['pack'] == '2']):
                         if nzbprov == '32P':
                             if entry['pack'] == '2':
-                                logger.info('[PACK-QUEUE] Diamond FreeLeech Pack detected.')
+                                logger.fdebug('[PACK-QUEUE] Diamond FreeLeech Pack detected.')
                             elif entry['pack'] == '1':
-                                logger.info('[PACK-QUEUE] Normal Pack detected. Checking available inkdrops prior to downloading.')
+                                logger.fdebug('[PACK-QUEUE] Normal Pack detected. Checking available inkdrops prior to downloading.')
                             else:
-                                logger.info('[PACK-QUEUE] Invalid Pack.')
+                                logger.fdebug('[PACK-QUEUE] Invalid Pack.')
 
                             #find the pack range.
                             pack_issuelist = entry['issues']
@@ -1253,7 +1249,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             if issueid_info['valid'] == True:
                                 logger.info('Issue Number ' + IssueNumber + ' exists within pack. Continuing.')
                             else:
-                                logger.info('Issue Number ' + IssueNumber + ' does NOT exist within this pack. Skipping')
+                                logger.fdebug('Issue Number ' + IssueNumber + ' does NOT exist within this pack. Skipping')
                                 continue
 
                         #pack support.
@@ -1571,7 +1567,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         #generate nzbname
                         nzbname = nzbname_create(nzbprov, info=comicinfo, title=ComicTitle) #entry['title'])
-
+                        if nzbname is None:
+                            logger.error('[NZBPROVIDER = NONE] Encountered an error using given provider with requested information: ' + comicinfo + '. You have a blank entry most likely in your newznabs, fix it & restart Mylar')
+                            continue
                         #generate the send-to and actually send the nzb / torrent.
                         searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov, newznab=newznab_host)
 
@@ -1878,7 +1876,7 @@ def nzbname_create(provider, title=None, info=None):
     # it searches nzblog which contains the nzbname to pull out the IssueID and start the post-processing
     # it is also used to keep the hashinfo for the nzbname in case it fails downloading, it will get put into the failed db for future exclusions
 
-    if mylar.USE_BLACKHOLE and provider != '32P' and provider != 'TPSE':
+    if mylar.USE_BLACKHOLE and any([provider != '32P', provider != 'TPSE', provider != 'WWT', provider != 'DEM']):
         if os.path.exists(mylar.BLACKHOLE_DIR):
             #load in the required info to generate the nzb names when required (blackhole only)
             ComicName = info[0]['ComicName']
@@ -1933,8 +1931,11 @@ def nzbname_create(provider, title=None, info=None):
             nzbname = re.sub(match.group(), '', nzbname).strip()
         logger.fdebug('[SEARCHER] end nzbname: ' + nzbname)
 
-    logger.fdebug("nzbname used for post-processing:" + nzbname)
-    return nzbname
+    if nzbname is None:
+        return None
+    else:
+        logger.fdebug("nzbname used for post-processing:" + nzbname)
+        return nzbname
 
 def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, directsend=None, newznab=None):
     alt_nzbname = None
