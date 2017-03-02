@@ -1875,6 +1875,7 @@ def nzbname_create(provider, title=None, info=None):
     #the nzbname here is used when post-processing
     # it searches nzblog which contains the nzbname to pull out the IssueID and start the post-processing
     # it is also used to keep the hashinfo for the nzbname in case it fails downloading, it will get put into the failed db for future exclusions
+    nzbname = None
 
     if mylar.USE_BLACKHOLE and all([provider != '32P', provider != 'TPSE', provider != 'WWT', provider != 'DEM']):
         if os.path.exists(mylar.BLACKHOLE_DIR):
