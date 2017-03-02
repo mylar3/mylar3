@@ -2,6 +2,7 @@
 <%!
 	from mylar import helpers, db
         import datetime
+        import decimal
 %>
 
 <%def name="body()">
@@ -36,7 +37,13 @@
                                     hissues = 0
                                 else:
                                     hissues = comic['haveissues'] 
-                                comic_percent = comic['percent'] + hissues
+
+                                if any([comic['totalissues'] == 'None', comic['totalissues'] is None]):
+                                    tissues = 0
+                                else:
+                                    tissues = comic['totalissues']
+
+                                comic_percent = int(hissues) + decimal.Decimal(tissues) / decimal.Decimal('1000')
 
 				if comic['Status'] == 'Paused':
 					grade = 'X'
