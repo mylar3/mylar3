@@ -1594,10 +1594,17 @@ class WebInterface(object):
         
         date_fmt = "%B %d, %Y"
 
+        try:
+            con_startweek = u"" + startweek.strftime(date_fmt).decode('utf-8')
+            con_endweek = u"" + endweek.strftime(date_fmt).decode('utf-8')
+        except:
+            con_startweek = u"" + startweek.strftime(date_fmt).decode('cp1252')
+            con_endweek = u"" + endweek.strftime(date_fmt).decode('cp1252')
+
         weekinfo = {'weeknumber':         weeknumber,
-                    'startweek':          u"" + startweek.strftime(date_fmt).decode('utf-8'),
+                    'startweek':          con_startweek,
                     'midweek':            midweek.strftime('%Y-%m-%d'),
-                    'endweek':            u"" + endweek.strftime(date_fmt).decode('utf-8'),
+                    'endweek':            con_endweek,
                     'year':               year,
                     'prev_weeknumber':    prev_week,
                     'prev_year':          prev_year,
