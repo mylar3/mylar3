@@ -158,13 +158,13 @@ class TorrentClient(object):
 
     def get_the_hash(self, filepath):
         import hashlib, StringIO
-        from mylar import bencode
+        import bencode
 
         # Open torrent file
         torrent_file = open(filepath, "rb")
-        metainfo = bencode.bdecode(torrent_file.read())
+        metainfo = bencode.decode(torrent_file.read())
         info = metainfo['info']
-        thehash = hashlib.sha1(bencode.bencode(info)).hexdigest().upper()
+        thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
         logger.debug('Hash: ' + thehash)
         return thehash
 
