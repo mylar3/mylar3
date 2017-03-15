@@ -10,6 +10,7 @@ import ftpsshup
 import datetime
 import gzip
 import time
+import random
 from StringIO import StringIO
 
 import mylar
@@ -144,6 +145,9 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
 
         if all([pickfeed != '4', pickfeed != '3', pickfeed != '5', pickfeed != '999']):
             payload = None
+            
+            ddos_protection = round(random.uniform(0,15),2)           
+            time.sleep(ddos_protection)
             
             try:
                 cf_cookievalue = None
