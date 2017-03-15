@@ -145,10 +145,10 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
 
         if all([pickfeed != '4', pickfeed != '3', pickfeed != '5', pickfeed != '999']):
             payload = None
-            
-            ddos_protection = round(random.uniform(0,15),2)           
+
+            ddos_protection = round(random.uniform(0,15),2)
             time.sleep(ddos_protection)
-            
+
             try:
                 cf_cookievalue = None
                 scraper = cfscrape.create_scraper()
