@@ -247,7 +247,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             import db, logger
             myDB = db.DBConnection()
             logger.fdebug('comicid: ' + str(comicid))
-            logger.fdebug('issue#: ' + str(issue))
+            logger.fdebug('issue#: ' + issue)
             # the issue here is a non-decimalized version, we need to see if it's got a decimal and if not, add '.00'
 #            iss_find = issue.find('.')
 #            if iss_find < 0:
@@ -422,7 +422,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             else:
                 iss = issuenum
                 issueno = str(iss)
-            logger.fdebug('iss:' + str(iss))
+            logger.fdebug('iss:' + iss)
             logger.fdebug('issueno:' + str(issueno))
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0":
@@ -507,10 +507,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             if month_name is None:
                 month_name = 'None'
             logger.fdebug('Issue Year : ' + str(issueyear))
-            logger.fdebug('Publisher: ' + str(publisher))
-            logger.fdebug('Series: ' + str(series))
+            logger.fdebug('Publisher: ' + publisher)
+            logger.fdebug('Series: ' + series)
             logger.fdebug('Year: '  + str(seriesyear))
-            logger.fdebug('Comic Location: ' + str(comlocation))
+            logger.fdebug('Comic Location: ' + comlocation)
             if comversion is None:
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
@@ -626,15 +626,15 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
 
             nfilename = re.sub('[\,\:]', '', nfilename) + ext.lower()
-            logger.fdebug('New Filename: ' + str(nfilename))
+            logger.fdebug('New Filename: ' + nfilename)
 
             if mylar.LOWERCASE_FILENAMES:
                 dst = os.path.join(comlocation, nfilename.lower())
             else:
                 dst = os.path.join(comlocation, nfilename)
 
-            logger.fdebug('Source: ' + str(ofilename))
-            logger.fdebug('Destination: ' + str(dst))
+            logger.fdebug('Source: ' + ofilename)
+            logger.fdebug('Destination: ' + dst)
 
             rename_this = {"destination_dir": dst,
                             "nfilename": nfilename,
