@@ -151,7 +151,8 @@ class FileChecker(object):
                                     'series_volume':       runresults['series_volume'],
                                     'issue_year':          runresults['issue_year'],
                                     'issue_number':        runresults['issue_number'],
-                                    'scangroup':           runresults['scangroup']
+                                    'scangroup':           runresults['scangroup'],
+                                    'reading_order':       runresults['reading_order']
                                     })
                         else:
                             comiclist.append({
@@ -230,6 +231,7 @@ class FileChecker(object):
             #split the file and then get all the relevant numbers that could possibly be an issue number.
             #remove the extension.
             modfilename = re.sub(filetype, '', filename).strip()
+            reading_order = None
 
             #if it's a story-arc, make sure to remove any leading reading order #'s
             if self.sarc and mylar.READ2FILENAME:
@@ -237,6 +239,8 @@ class FileChecker(object):
                 if mylar.FOLDER_SCAN_LOG_VERBOSE:
                    logger.fdebug('[SARC] Checking filename for Reading Order sequence - Reading Sequence Order found #: ' + str(modfilename[:removest]))
                 if modfilename[:removest].isdigit() and removest <= 3:
+                    reading_order = {'reading_sequence': str(modfilename[:removest]),
+                                     'filename':         filename[removest+1:]}
                     modfilename = modfilename[removest+1:]
                     if mylar.FOLDER_SCAN_LOG_VERBOSE:
                         logger.fdebug('[SARC] Removed Reading Order sequence from subname. Now set to : ' + modfilename)
@@ -260,6 +264,8 @@ class FileChecker(object):
                                 modfilename = modfilename.replace(m[cnt],'').strip()
                                 break
                             cnt +=1
+
+                    modfilename = modfilename.replace('()','').strip()
 
             #here we take a snapshot of the current modfilename, the intent is that we will remove characters that match
             #as we discover them - namely volume, issue #, years, etc
@@ -489,12 +495,12 @@ class FileChecker(object):
 
                 #now we try to find the series title &/or volume lablel.
                 if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
-                    if sf[1:].isdigit() or sf[3:].isdigit():# or volumeprior == True:
+                    if any([ split_file[split_file.index(sf)].isdigit(), split_file[split_file.index(sf)][3:].isdigit(), split_file[split_file.index(sf)][1:].isdigit() ]):
                         volume = re.sub("[^0-9]", "", sf)
                         if volumeprior:
                             try:
-                                volumetmp = split_file.index(volumeprior_label, current_pos -1) #if this passes, then we're ok, otherwise will try exception
-                                volume_found['position'] = split_file.index(sf, current_pos)
+                                volume_found['position'] = split_file.index(volumeprior_label, current_pos -1) #if this passes, then we're ok, otherwise will try exception
+                                logger.fdebug('volume_found: ' + str(volume_found['position']))
                             except:
                                 sep_volume = False
                                 continue
@@ -502,6 +508,7 @@ class FileChecker(object):
                             volume_found['position'] = split_file.index(sf, current_pos)
 
                         volume_found['volume'] = volume
+                        logger.fdebug('volume label detected as : Volume ' + str(volume) + ' @ position: ' + str(split_file.index(sf)))
                         volumeprior = False
                         volumeprior_label = None
                     elif 'vol' in sf.lower() and len(sf) == 3:
@@ -509,7 +516,7 @@ class FileChecker(object):
                         volumeprior = True
                         volumeprior_label = sf
                         sep_volume = True
-                        #logger.fdebug('volume label detected, but vol. number is not adjacent, adjusting scope to include number.')
+                        logger.fdebug('volume label detected, but vol. number is not adjacent, adjusting scope to include number.')
                     elif 'volume' in sf.lower():
                         volume = re.sub("[^0-9]", "", sf)
                         if volume.isdigit():
@@ -819,7 +826,8 @@ class FileChecker(object):
                         'series_volume':          issue_volume,
                         'issue_year':             issue_year,
                         'issue_number':           issue_number,
-                        'scangroup':              scangroup}
+                        'scangroup':              scangroup,
+                        'reading_order':          reading_order}
 
             series_info = {}
             series_info = {'sub':                   path_list,
