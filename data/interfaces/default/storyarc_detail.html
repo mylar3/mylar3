@@ -75,8 +75,8 @@
         <th id="comicname">ComicName</th>
         <th id="issue">Issue</th>
         <th id="issuedate">Pub Date</th>
-				<th id="status">Status</th>
-				<th id="action">Options</th>
+        <th id="status">Status</th>
+        <th id="action">Options</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -131,7 +131,7 @@
                             issuedate = item['IssueDate']
                         else:
                             if item['StoreDate'] != '0000-00-00' and item['StoreDate'] is not None:
-                                issuedate = item['IssueDate']
+                                issuedate = item['StoreDate']
                             else:
                                 # this is needed for imported cbl's
                                 try:

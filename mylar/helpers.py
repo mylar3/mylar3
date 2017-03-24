@@ -370,7 +370,9 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             for issexcept in issue_exceptions:
                 if issexcept.lower() in issuenum.lower():
                     logger.fdebug('ALPHANUMERIC EXCEPTION : [' + issexcept + ']')
-                    if any(v in issuenum for v in valid_spaces):
+                    v_chk = [v in issuenum for v in valid_spaces]
+                    if v_chk:
+                        iss_space = v_chk[0]
                         logger.fdebug('character space denoted as : ' + iss_space)
                     else:
                         logger.fdebug('character space not denoted.')
@@ -2343,7 +2345,7 @@ def spantheyears(storyarcid):
     lowyear = 9999
     maxyear = 0
     for la in totalcnt:
-        if la['IssueDate'] is None:
+        if la['IssueDate'] is None or la['IssueDate'] == '0000-00-00':
             continue
         else:
             if int(la['IssueDate'][:4]) > maxyear:

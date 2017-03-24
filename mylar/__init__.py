@@ -327,6 +327,7 @@ ARC_FOLDERFORMAT = None
 ARC_FILEOPS = 'copy'
 
 CVURL = None
+CV_VERIFY = 0
 CURRENT_WEEKNUMBER = None
 CURRENT_YEAR = None
 PULL_REFRESH = None
@@ -501,7 +502,7 @@ def initialize():
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, \
                 FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, \
                 FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, MAINTAINSERIESFOLDER, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, \
-                STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
+                STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CV_VERIFY, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
                 SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, WEEKFOLDER_FORMAT, UMASK, \
                 TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID
@@ -548,6 +549,7 @@ def initialize():
         if not COMICVINE_API:
             COMICVINE_API = None
         CVAPI_RATE = check_setting_int(CFG, 'General', 'cvapi_rate', 2)
+        CV_VERIFY = bool(check_setting_int(CFG, 'General', 'cv_verify', 0))
         HTTP_HOST = check_setting_str(CFG, 'General', 'http_host', '0.0.0.0')
         HTTP_USERNAME = check_setting_str(CFG, 'General', 'http_username', '')
         HTTP_PASSWORD = check_setting_str(CFG, 'General', 'http_password', '')
@@ -1210,7 +1212,7 @@ def initialize():
                 logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
         #set the default URL for ComicVine API here.
-        CVURL = 'http://comicvine.gamespot.com/api/'
+        CVURL = 'https://comicvine.gamespot.com/api/'
 
         #comictagger - force to use included version if option is enabled.
         if ENABLE_META:
@@ -1374,6 +1376,7 @@ def config_write():
         new_config['General']['comicvine_api'] = COMICVINE_API.strip()
 
     new_config['General']['cvapi_rate'] = CVAPI_RATE
+    new_config['General']['cv_verify'] = int(CV_VERIFY)
     new_config['General']['http_port'] = HTTP_PORT
     new_config['General']['http_host'] = HTTP_HOST
     new_config['General']['http_username'] = HTTP_USERNAME

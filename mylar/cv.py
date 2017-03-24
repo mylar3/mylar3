@@ -88,10 +88,9 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     #download the file:
     #set payload to None for now...
     payload = None
-    verify = False
 
     try:
-        r = requests.get(PULLURL, params=payload, verify=verify, headers=mylar.CV_HEADERS)
+        r = requests.get(PULLURL, params=payload, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return

@@ -425,7 +425,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     logger.info('Attempting to retrieve the comic image for series')
     try:
-        r = requests.get(comic['ComicImage'], params=None, stream=True, headers=mylar.CV_HEADERS)
+        r = requests.get(comic['ComicImage'], params=None, stream=True, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
 
     except Exception, e:
         logger.warn('Unable to download image from CV URL link: ' + comic['ComicImage'] + ' [Status Code returned: ' + str(r.status_code) + ']')
@@ -462,7 +462,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                        
         logger.info('Attempting to retrieve alternate comic image for the series.')
         try:
-            r = requests.get(comic['ComicImageALT'], params=None, stream=True, headers=mylar.CV_HEADERS)
+            r = requests.get(comic['ComicImageALT'], params=None, stream=True, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
 
         except Exception, e:
             logger.warn('Unable to download image from CV URL link: ' + comic['ComicImageALT'] + ' [Status Code returned: ' + str(r.status_code) + ']')
