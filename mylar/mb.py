@@ -70,7 +70,7 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
     payload = None
 
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CV_VERIYF, headers=mylar.CV_HEADERS)
+        r = requests.get(PULLURL, params=payload, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
