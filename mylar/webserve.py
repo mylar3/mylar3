@@ -1558,95 +1558,31 @@ class WebInterface(object):
         weeklyresults = []
         wantedcount = 0
 
-        #find the current week and save it as a reference point.
-        todaydate = datetime.datetime.today()
-        current_weeknumber = todaydate.strftime("%U")
-
-        if week:
-            weeknumber = int(week)
-            year = int(year)
-            #view specific week (prev_week, next_week)
-            startofyear = date(year,1,1)
-            week0 = startofyear - timedelta(days=startofyear.isoweekday())
-            stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
-            startweek = stweek + timedelta(weeks = weeknumber)
-            midweek = startweek + timedelta(days = 3)
-            endweek = startweek + timedelta(days = 6)
-        else:
-            #find the given week number for the current day
-            weeknumber = current_weeknumber
-            stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
-            startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
-            midweek = startweek + timedelta(days = 3)
-            endweek = startweek + timedelta(days = 6)
-            year = todaydate.strftime("%Y")
-
-        prev_week = int(weeknumber) - 1
-        prev_year = year
-        if prev_week == 0:
-            prev_week = 52
-            prev_year = int(year) - 1
-
-        next_week = int(weeknumber) + 1
-        next_year = year
-        if next_week == 53:
-            next_week = 1
-            next_year = int(year) + 1
-        
-        date_fmt = "%B %d, %Y"
-
-        try:
-            con_startweek = u"" + startweek.strftime(date_fmt).decode('utf-8')
-            con_endweek = u"" + endweek.strftime(date_fmt).decode('utf-8')
-        except:
-            con_startweek = u"" + startweek.strftime(date_fmt).decode('cp1252')
-            con_endweek = u"" + endweek.strftime(date_fmt).decode('cp1252')
-
-        weekinfo = {'weeknumber':         weeknumber,
-                    'startweek':          con_startweek,
-                    'midweek':            midweek.strftime('%Y-%m-%d'),
-                    'endweek':            con_endweek,
-                    'year':               year,
-                    'prev_weeknumber':    prev_week,
-                    'prev_year':          prev_year,
-                    'next_weeknumber':    next_week,
-                    'next_year':          next_year,
-                    'current_weeknumber': current_weeknumber,
-                    'last_update':        mylar.PULL_REFRESH}
-
-        if mylar.WEEKFOLDER_LOC is not None:
-            weekdst = mylar.WEEKFOLDER_LOC
-        else:
-            weekdst = mylar.DESTINATION_DIR
-
-        if mylar.WEEKFOLDER_FORMAT == 0:
-            weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
-        else:
-            weekfold = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
+        weekinfo = helpers.weekly_info(week, year)
 
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
-            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
+            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
             if len(w_results) == 0:
-                logger.info('trying to repopulate to week: ' + str(weeknumber) + '-' + str(year))
-                repoll = self.manualpull(weeknumber=weeknumber,year=year)
+                logger.info('trying to repopulate to week: ' + str(weekinfo['weeknumber']) + '-' + str(weekinfo['year']))
+                repoll = self.manualpull(weeknumber=weekinfo['weeknumber'],year=weekinfo['year'])
                 if repoll['status'] == 'success':
-                    w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
+                    w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
                 else:
-                    logger.warn('Problem repopulating the pullist for week ' + str(weeknumber) + ', ' + str(year))
+                    logger.warn('Problem repopulating the pullist for week ' + str(weekinfo['weeknumber']) + ', ' + str(weekinfo['year']))
                     if mylar.ALT_PULL == 2:
                         logger.warn('Attempting to repoll against legacy pullist in order to have some kind of updated listing for the week.')
                         repoll = self.manualpull()
                         if repoll['status'] == 'success':
-                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weeknumber),year])
+                            w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
                         else:
                             logger.warn('Unable to populate the pull-list. Not continuing at this time (will try again in abit)')
 
             if w_results is None:
-                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=0, weekinfo=weekinfo)
+                return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=0, weekinfo=weekinfo)
 
             watchlibrary = helpers.listLibrary()
-            issueLibrary = helpers.listIssues(weeknumber, year)
+            issueLibrary = helpers.listIssues(weekinfo['weeknumber'], weekinfo['year'])
 
             for weekly in w_results:
                 xfound = False
@@ -1654,8 +1590,8 @@ class WebInterface(object):
                 if weekly['ComicID'] in watchlibrary:
                     haveit = watchlibrary[weekly['ComicID']]
 
-                    if weeknumber:
-                        if any([week >= int(weeknumber), week is None]) and all([mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                    if weekinfo['weeknumber']:
+                        if any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
 
                     for x in issueLibrary:
@@ -1725,9 +1661,9 @@ class WebInterface(object):
             self.manualpull()
 
         if week:
-            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=wantedcount, weekinfo=weekinfo)
+            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
         else:
-            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekfold, wantedcount=wantedcount, weekinfo=weekinfo)
+            return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
     pullist.exposed = True
 
     def removeautowant(self, comicname, release):

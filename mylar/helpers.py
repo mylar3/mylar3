@@ -16,6 +16,7 @@
 import time
 from operator import itemgetter
 import datetime
+from datetime import timedelta
 import re
 import platform
 import itertools
@@ -2403,6 +2404,77 @@ def arcformat(arc, spanyears, publisher):
         dstloc = None
 
     return dstloc
+
+def weekly_info(week=None, year=None):
+    #find the current week and save it as a reference point.
+    todaydate = datetime.datetime.today()
+    current_weeknumber = todaydate.strftime("%U")
+
+
+    if week:
+        weeknumber = int(week)
+        year = int(year)
+        #view specific week (prev_week, next_week)
+        startofyear = date(year,1,1)
+        week0 = startofyear - timedelta(days=startofyear.isoweekday())
+        stweek = datetime.datetime.strptime(week0.strftime('%Y-%m-%d'), '%Y-%m-%d')
+        startweek = stweek + timedelta(weeks = weeknumber)
+        midweek = startweek + timedelta(days = 3)
+        endweek = startweek + timedelta(days = 6)
+    else:
+        #find the given week number for the current day
+        weeknumber = current_weeknumber
+        stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
+        startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
+        midweek = startweek + timedelta(days = 3)
+        endweek = startweek + timedelta(days = 6)
+        year = todaydate.strftime("%Y")
+
+    prev_week = int(weeknumber) - 1
+    prev_year = year
+    if prev_week == 0:
+        prev_week = 52
+        prev_year = int(year) - 1
+
+    next_week = int(weeknumber) + 1
+    next_year = year
+    if next_week == 53:
+        next_week = 1
+        next_year = int(year) + 1
+
+    date_fmt = "%B %d, %Y"
+    try:
+        con_startweek = u"" + startweek.strftime(date_fmt).decode('utf-8')
+        con_endweek = u"" + endweek.strftime(date_fmt).decode('utf-8')
+    except:
+        con_startweek = u"" + startweek.strftime(date_fmt).decode('cp1252')
+        con_endweek = u"" + endweek.strftime(date_fmt).decode('cp1252')
+
+    if mylar.WEEKFOLDER_LOC is not None:
+        weekdst = mylar.WEEKFOLDER_LOC
+    else:
+        weekdst = mylar.DESTINATION_DIR
+
+    weekinfo = {'weeknumber':         weeknumber,
+                'startweek':          con_startweek,
+                'midweek':            midweek.strftime('%Y-%m-%d'),
+                'endweek':            con_endweek,
+                'year':               year,
+                'prev_weeknumber':    prev_week,
+                'prev_year':          prev_year,
+                'next_weeknumber':    next_week,
+                'next_year':          next_year,
+                'current_weeknumber': current_weeknumber,
+                'last_update':        mylar.PULL_REFRESH}
+
+    if mylar.WEEKFOLDER_FORMAT == 0:
+        weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+    else:
+        weekfold = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
+
+    weekinfo['week_folder'] = weekfold
+
+    return weekinfo
 
 def latestdate_update():
     import db

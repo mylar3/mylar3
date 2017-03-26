@@ -1257,18 +1257,6 @@ def weekly_check(comicid, issuenum, file=None, path=None, module=None, issueid=N
         module = ''
     module += '[WEEKLY-PULL]'
     myDB = db.DBConnection()
-    try:
-        pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
-        if (pull_date is None):
-            pulldate = '00000000'
-        else:
-            pulldate = pull_date['SHIPDATE']
-
-        logger.fdebug(module + ' Weekly pull list detected as : ' + str(pulldate))
-
-    except (sqlite3.OperationalError, TypeError), msg:
-        logger.info(module + ' Error determining current weekly pull-list date - you should refresh the pull-list manually probably.')
-        return
 
     if issueid is None:
        chkit = myDB.selectone('SELECT * FROM weekly WHERE ComicID=? AND ISSUE=?', [comicid, issuenum]).fetchone()
@@ -1280,20 +1268,29 @@ def weekly_check(comicid, issuenum, file=None, path=None, module=None, issueid=N
         return
 
     logger.info(module + ' Issue found on weekly pull-list.')
+
+    weekinfo = helpers.weekly_info(chkit['weeknumber'],chkit['year'])
+
     if mylar.WEEKFOLDER:
-        weekly_singlecopy(comicid, issuenum, file, path, pulldate)
+        weekly_singlecopy(comicid, issuenum, file, path, weekinfo)
     if mylar.SEND2READ:
         send2read(comicid, issueid, issuenum)
     return
 
-def weekly_singlecopy(comicid, issuenum, file, path, pulldate):
+def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
 
     module = '[WEEKLY-PULL COPY]'
     if mylar.WEEKFOLDER:
         if mylar.WEEKFOLDER_LOC:
-            desdir = os.path.join(mylar.WEEKFOLDER_LOC, pulldate)
+            weekdst = mylar.WEEKFOLDER_LOC
         else:
-            desdir = os.path.join(mylar.DESTINATION_DIR, pulldate)
+            weekdst = mylar.DESTINATION_DIR
+
+        if mylar.WEEKFOLDER_FORMAT == 0:
+            desdir = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weekinfo['weeknumber']) ))
+        else:
+            desdir = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
+
         dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True, module=module)
         if dircheck:
             pass
