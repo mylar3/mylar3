@@ -16,7 +16,7 @@
 import time
 from operator import itemgetter
 import datetime
-from datetime import timedelta
+from datetime import timedelta, date
 import re
 import platform
 import itertools
