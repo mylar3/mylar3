@@ -937,7 +937,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 break
             #logger.info('looking for ' + week['ComicName'] + ' [' + week['comicid'] + ']')
             idmatch = [x for x in weeklylist if week['comicid'] is not None and int(x['ComicID']) == int(week['comicid'])]
-            annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
+            if mylar.ANNUALS_ON:
+                annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
             #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
             namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
             #logger.fdebug('rowid: ' + str(week['rowid']))
@@ -949,7 +950,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     comicname = idmatch[0]['ComicName'].strip()
                     latestiss = idmatch[0]['latestIssue'].strip()
                     comicid = idmatch[0]['ComicID'].strip()
-                    logger.fdebug('[WEEKLY-PULL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
+                    logger.fdebug('[WEEKLY-PULL-ID] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                 elif annualidmatch:
                     comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
                     latestiss = annualidmatch[0]['latestIssue'].strip()
@@ -957,7 +958,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         comicid = annualidmatch[0]['ComicID'].strip()
                     else:
                         comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
-                    logger.fdebug('[WEEKLY-PULL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
+                    logger.fdebug('[WEEKLY-PULL-ANNUAL] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                 else:
                     #if it's a name metch, it means that CV hasn't been populated yet with the necessary data
                     #do a quick issue check to see if the next issue number is in sequence and not a #1, or like #900
@@ -970,7 +971,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     if diff >= 0 and diff < 3:
                         comicname = namematch[0]['ComicName'].strip()
                         comicid = namematch[0]['ComicID'].strip()
-                        logger.fdebug('[WEEKLY-PULL] Series Match to Name --- ' + comicname + ' [' + comicid + ']')
+                        logger.fdebug('[WEEKLY-PULL-NAME] Series Match to Name --- ' + comicname + ' [' + comicid + ']')
                     else:
                         logger.fdebug('[WEEKLY-PULL] Series ID:' + namematch[0]['ComicID'] + ' not a match based on issue number comparison [LatestIssue:' + latestiss + '][MatchIssue:' + week['Issue'] + ']')
                         continue
@@ -1124,7 +1125,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     if isschk is None:
                         isschk = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
                         if isschk is None:
-                            logger.fdebug('[WEEKLY-PULL] Forcing a refresh of the series to ensure it is current.')
+                            logger.fdebug('[WEEKLY-PULL] Forcing a refresh of the series to ensure it is current [' + str(comicid) +'].')
                             cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck')
                             #refresh series.
                         else:
