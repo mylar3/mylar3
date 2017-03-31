@@ -925,16 +925,18 @@ div#artistheader h2 a {
   text-align: left;
 }
 #read_detail th#comicname {
-  min-width: 300px;
+  min-width: 290px;
   text-align: left;
 }
 #read_detail th#issue {
-  max-width: 25px;
+  max-width: 20px;
   text-align: center;
 }
-#read_detail th#issuedate,
-#read_detail th#status,
-#read_detail th#statuschange {
+#read_detail th#status {
+  max-width: 80px;
+  text-align: center;
+}
+#read_detail th#issuedate {
   max-width: 50px;
   text-align: center;
 }
@@ -944,19 +946,22 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #read_detail td#comicname {
-  min-width: 300px;
+  min-width: 290px;
   text-align: left;
   vertical-align: middle;
   font-size: 12px;
 }
 #read_detail td#issue {
-  max-width: 25px;
+  max-width: 20px;
   text-align: left;
   vertical-align: middle;
 }
-#read_detail td#issuedate,
-#read_detail td#status,
-#read_detail td#statuschange {
+#read_detail td#status {
+  max-width: 80px;
+  text-align: center;
+  vertical-align: middle;
+}
+#read_detail td#issuedate {
   max-width: 50px;
   text-align: center;
   vertical-align: middle;
@@ -1238,27 +1243,38 @@ div#artistheader h2 a {
   text-align: left;
 }
 #series_table th#name {
-  min-width: 275px;
+  min-width: 300px;
   text-align: left;
 }
 #series_table th#year {
   max-width: 25px;
   text-align: left;
 }
-#series_table th#have_percent,
-#series_table th#active_status {
-  max-width: 25px;
+#series_table th#havepercent,
+#series_table th#totalcount {
+  max-width: 1px;
+  text-align: left;
+  display: none;
+}
+#series_table th#activestatus {
+  max-width: 1px;
   text-align: left;
   display: none;
 }
 #series_table th#active {
-  max-width: 40px;
+  max-width: 25px;
   text-align: left;
 }
-#series_table th#status,
-#series_table th#issue,
+#series_table th#issue{
+  min-width: 30px;
+  text-align: left;
+}
+#series_table th#status {
+  max-width: 50px;
+  text-align: left;
+}
 #series_table th#published {
-  min-width: 50px;
+  max-width: 50px;
   text-align: left;
 }
 #series_table th#have {
@@ -1271,32 +1287,46 @@ div#artistheader h2 a {
   font-size: 12px;
 }
 #series_table td#name {
-  min-width: 275px;
+  min-width: 300px;
   text-align: left;
   vertical-align: middle;
 }
-#series_table td#year,
+#series_table td#year {
   max-width: 25px;
   text-align: left;
   vertical-align: middle;
 }
-#series_table td#have_percent,
-#series_table td#active_status {
-  max-width: 25px;
+#series_table td#havepercent,
+#series_table td#totalcount {
+  max-width: 1px;
+  text-align: left;
+  vertical-align: middle;
+  display: none;
+}
+#series_table td#activestatus {
+  max-width: 1px;
   text-align: left;
   vertical-align: middle;
   display: none;
 }
 #series_table td#active {
-  max-width: 40px;
+  max-width: 25px;
+  text-align: center;
+  vertical-align: middle;
+}
+#series_table td#issue {
+  max-width: 30px;
   text-align: left;
   vertical-align: middle;
 }
-#series_table td#status,
-#series_table td#issue,
+#series_table td#status {
+  max-width: 50px;
+  text-align: center;
+  vertical-align: middle;
+}
 #series_table td#published {
   max-width: 50px;
-  text-align: left;
+  text-align: center;
   vertical-align: middle;
 }
 #manageheader {

@@ -16,11 +16,12 @@
                                 <th id="year">Year</th>
 				<th id="issue">Last Issue</th>
                                 <th id="published">Published</th>
-                                <th class="hidden" id="have_percent">Have %</th>
+                                <th class="hidden" id="havepercent">Have %</th>
 				<th id="have">Have</th>
+                                <th class="hidden" id="totalcount">Total</th>
                                 <th id="status">Status</th>
                                 <th id="active">Active</th>
-                                <th class="hidden" id="active_state">ActiveSt</th>
+                                <th class="hidden" id="activestatus">ActiveSt</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -43,7 +44,7 @@
                                 else:
                                     tissues = comic['totalissues']
 
-                                comic_percent = int(hissues) + decimal.Decimal(tissues) / decimal.Decimal('1000')
+                                comic_percent = comic['percent']
 
 				if comic['Status'] == 'Paused':
 					grade = 'X'
@@ -54,15 +55,30 @@
                                 else:
                                         grade = 'A'
 
+                                comicpub = comic['ComicPublisher']
+                                try:
+                                    if len(comic['ComicPublisher']) > 15:
+                                        comicpub = comic['ComicPublisher'][:15] + '...'
+                                except:
+                                    pass
+
+                                comicname = comic['ComicSortName']
+                                try:
+                                    if len(comic['ComicSortName']) > 55:
+                                        comicname = comic['ComicSortName'][:55] + '...'
+                                except:
+                                    pass
+
 			%>
 			<tr class="grade${grade}">
-				<td id="publisher">${comic['ComicPublisher']}</td>
-                                <td id="name"><span title="${comic['ComicSortName']}"></span><a href="comicDetails?ComicID=${comic['ComicID']}">${comic['ComicName']}</a></td>
+				<td id="publisher"><span title="${comicpub}"></span>${comicpub}</td>
+                                <td id="name"><span title="${comicname}"></span><a title="${comic['ComicName']}" href="comicDetails?ComicID=${comic['ComicID']}">${comicname}</a></td>
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>
-                                <td class="hidden" id="have_percent">${comic_percent}</td>
+                                <td class="hidden" id="havepercent">${comic_percent}</td>
 				<td id="have"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><span class="progressbar-front-text">${comic['haveissues']}/${comic['totalissues']}</span></div></td>
+                                <td class="hidden" id="totalcount">${comic['totalissues']}</td>
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="active" align="center">
                                 %if comic['Status'] == "Active":
@@ -75,7 +91,7 @@
                                     <img src="interfaces/default/images/cross.png" alt="N" width="16" height="16" />
                                 %endif
                                 </td>
-                                <td class="hidden" id="active_state">${comic['Status']}</td>
+                                <td class="hidden" id="activestatus">${comic['Status']}</td>
                          </tr>
 		%endfor
 		</tbody>
@@ -97,11 +113,12 @@
                         {
 			        "destroy": true,
                                 "columnDefs": [
-                                     { "orderable": false, "targets": [5, 9] },
-                                     { "visible": false, "targets": [5, 9] },
+                                     { "orderable": false, "targets": [5, 7, 10] },
+                                     { "visible": false, "targets": [5, 7, 10] },
                                      { "type": 'num', "targets": 5 },
-                                     { "orderData": 5, "targets": 6 },
-                                     { "orderData": 9, "targets": 8 },
+                                     { "type": 'num', "targets": 7 },
+                                     { "orderData": [ 5, 7 ], "targets": 6 },
+                                     { "orderData": 10, "targets": 9 },
                                      { "order": [[7, 'asc'],[1, 'asc']] }
                                 ],
                                 "lengthMenu": [[10, 15, 25, 50, -1], [10, 15, 25, 50, 'All' ]],
@@ -115,7 +132,6 @@
                                 "stateSave": true,
                                 "pageLength": 25,
                                 "pagingType": "full_numbers",
-                    
 		        });
         
 		        resetFilters("comic");
