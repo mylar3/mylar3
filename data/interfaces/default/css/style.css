@@ -921,7 +921,7 @@ div#artistheader h2 a {
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
 }
 #read_detail th#options {
-  max-width: 150px;
+  min-width: 150px;
   text-align: left;
 }
 #read_detail th#comicname {
@@ -933,7 +933,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #read_detail th#status {
-  max-width: 80px;
+  max-width: 90px;
   text-align: center;
 }
 #read_detail th#issuedate {
@@ -957,7 +957,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #read_detail td#status {
-  max-width: 80px;
+  max-width: 90px;
   text-align: center;
   vertical-align: middle;
 }
@@ -967,7 +967,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #read_detail td#options {
-  max-width: 150px;
+  min-width: 150px;
   text-align: left;
   vertical-align: middle;
 }
@@ -1011,6 +1011,62 @@ div#artistheader h2 a {
 #storyarcs td#have {
   max-width: 80px;
   text-align: center;
+  vertical-align: middle;
+}
+#arc_detail th#options {
+  min-width: 150px;
+  text-align: left;
+}
+#arc_detail th#comicname {
+  min-width: 290px;
+  text-align: left;
+}
+#arc_detail th#issue {
+  max-width: 15px;
+  text-align: center;
+}
+#arc_detail th#status {
+  max-width: 75px;
+  text-align: center;
+}
+#arc_detail th#issuedate {
+  max-width: 40px;
+  text-align: center;
+}
+#arc_detail th#readingorder {
+  max-width: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+#arc_detail td#comicname {
+  min-width: 290px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#arc_detail td#issue {
+  max-width: 15px;
+  text-align: left;
+  vertical-align: middle;
+}
+#arc_detail td#status {
+  max-width: 75px;
+  text-align: center;
+  vertical-align: middle;
+}
+#arc_detail td#issuedate {
+  max-width: 40px;
+  text-align: center;
+  vertical-align: middle;
+}
+#arc_detail td#options {
+  min-width: 150px;
+  text-align: left;
+  vertical-align: middle;
+}
+#arc_detail td#readingorder {
+  max-width: 10px;
+  text-align: left;
   vertical-align: middle;
 }
 #weekly_pull th#publisher {

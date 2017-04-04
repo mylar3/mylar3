@@ -269,7 +269,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     issue = feedme.entries[i].title[iss_st +3:].strip()
                     #logger.fdebug('issue # : ' + str(issue))
 
-                    justdigits = feedme.entries[i].torrent_contentlength
+                    try:
+                        justdigits = feedme.entries[i].torrent_contentlength
+                    except:
+                        justdigits = '0'
+
                     seeddigits = 0
 
                     if int(mylar.MINSEEDS) >= int(seeddigits):

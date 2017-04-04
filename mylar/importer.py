@@ -177,157 +177,28 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     #since the weekly issue check could return either annuals or issues, let's initialize it here so it carries through properly.
     weeklyissue_check = []
 
-#    #let's do the Annual check here.
-#    if mylar.ANNUALS_ON:
-#        #we need to check first to see if there are pre-existing annuals that have been manually added, or else they'll get
-#        #wiped out.
-#        annualids = []   #to be used to make sure an ID isn't double-loaded
-#
-#        if annload is None:
-#            pass
-#        else:
-#            for manchk in annload:
-#                if manchk['ReleaseComicID'] is not None or manchk['ReleaseComicID'] is not None:  #if it exists, then it's a pre-existing add.
-#                    #print str(manchk['ReleaseComicID']), comic['ComicName'], str(SeriesYear), str(comicid)
-#                    manualAnnual(manchk['ReleaseComicID'], comic['ComicName'], SeriesYear, comicid)
-#                annualids.append(manchk['ReleaseComicID'])
-#
-#        annualcomicname = re.sub('[\,\:]', '', comic['ComicName'])
-#
-##----- CBDB (outdated)
-##        annuals = comicbookdb.cbdb(annualcomicname, SeriesYear)
-##        print ("Number of Annuals returned: " + str(annuals['totalissues']))
-##        nb = 0
-##        while (nb <= int(annuals['totalissues'])):
-##            try:
-##                annualval = annuals['annualslist'][nb]
-##            except IndexError:
-##                break
-##----
-#            #this issueid doesn't exist at this point since we got the data from cbdb...let's try and figure out
-#            #the issueID for CV based on what we know so we can use that ID (and thereby the metadata too)
-#
-#            #other inherit issue - results below will return the ID for the Series of Annuals, not the series itself.
-#            #sr['comicid'] not the same as comicid for series.
-#        annComicName = annualcomicname + ' annual'
-#        mode = 'series'
-#            #if annuals['totalissues'] is None:
-#            #    annissues = 0
-#            #else:
-#            #    annissues = annuals['totalissues']
-#            #print "annissues :" + str(annissues)
-#
-#            # annuals happen once / year. determine how many.
-#        annualyear = SeriesYear  # no matter what, the year won't be less than this.
-#            #if annualval['AnnualYear'] is None:
-#            #    sresults = mb.findComic(annComicName, mode, issue=annissues)
-#            #else:
-#            #sresults = mb.findComic(annComicName, mode, issue=annissues, limityear=annualval['AnnualYear'])
-#            #print "annualyear: " + str(annualval['AnnualYear'])
-#        annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected', 'print edition', 'tpb', 'available in print', 'collects'}
-#
-#        logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
-#        sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
-#        type='comic'
-#
-#        if len(sresults) == 1:
-#            logger.fdebug('[IMPORTER-ANNUAL] - 1 result')
-#        if len(sresults) > 0:
-#            logger.fdebug('[IMPORTER-ANNUAL] - there are ' + str(len(sresults)) + ' results.')
-#            num_res = 0
-#            while (num_res < len(sresults)):
-#                sr = sresults[num_res]
-#                #logger.fdebug("description:" + sr['description'])
-#                if any(x in sr['description'].lower() for x in annual_types_ignore):
-#                    logger.fdebug('[IMPORTER-ANNUAL] - tradeback/collected edition detected - skipping ' + str(sr['comicid']))
-#                else:
-#                    if comicid in sr['description']:
-#                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
-#                        issueid = sr['comicid']
-#                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' added to series list as an Annual')
-#                        if issueid in annualids:
-#                            logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' already exists & was refreshed.')
-#                            num_res+=1 # need to manually increment since not a for-next loop
-#                            continue
-#                        issued = cv.getComic(issueid, 'issue')
-#                        if len(issued) is None or len(issued) == 0:
-#                            logger.fdebug('[IMPORTER-ANNUAL] - Could not find any annual information...')
-#                            pass
-#                        else:
-#                            n = 0
-#                            if int(sr['issues']) == 0 and len(issued['issuechoice']) == 1:
-#                                sr_issues = 1
-#                            else:
-#                                sr_issues = sr['issues']
-#                            logger.fdebug('[IMPORTER-ANNUAL (MAIN)] - There are ' + str(sr_issues) + ' annuals in this series.')
-#                            while (n < int(sr_issues)):
-#                                try:
-#                                    firstval = issued['issuechoice'][n]
-#                                except IndexError:
-#                                    break
-#                                try:
-#                                    cleanname = helpers.cleanName(firstval['Issue_Name'])
-#                                except:
-#                                    cleanname = 'None'
-#                                issid = str(firstval['Issue_ID'])
-#                                issnum = str(firstval['Issue_Number'])
-#                                issname = cleanname
-#                                issdate = str(firstval['Issue_Date'])
-#                                stdate = str(firstval['Store_Date'])
-#                                int_issnum = helpers.issuedigits(issnum)
-#                                newCtrl = {"IssueID": issid}
-#                                newVals = {"Issue_Number":     issnum,
-#                                           "Int_IssueNumber":  int_issnum,
-#                                           "IssueDate":        issdate,
-#                                           "ReleaseDate":      stdate,
-#                                           "IssueName":        issname,
-#                                           "ComicID":          comicid,
-#                                           "ComicName":        comic['ComicName'],
-#                                           "ReleaseComicID":   re.sub('4050-', '', firstval['Comic_ID']).strip(),
-#                                           "ReleaseComicName": sr['name'],
-#                                           "Status":           "Skipped"}
-#                                myDB.upsert("annuals", newVals, newCtrl)
-#
-#                                if issuechk is not None and issuetype == 'annual':
-#                                    logger.fdebug('[IMPORTER-ANNUAL] - Comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
-#                                    if issuechk == int_issnum:
-#                                        weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
-#                                                                  "Issue_Number":       issnum,
-#                                                                  "IssueDate":          issdate,
-#                                                                  "ReleaseDate":        stdate})
-#
-#                                n+=1
-#                num_res+=1
-#
-#        elif len(sresults) == 0 or len(sresults) is None:
-#            logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
-#            sresults, explicit = mb.findComic(annComicName, mode, issue=None)#, explicit=True)
-#            if len(sresults) == 1:
-#                sr = sresults[0]
-#                logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
-#            else:
-#                resultset = 0
-#        else:
-#            logger.fdebug('[IMPORTER-ANNUAL] - Returning results to screen - more than one possibility')
-#            for sr in sresults:
-#                if annualyear < sr['comicyear']:
-#                    logger.fdebug('[IMPORTER-ANNUAL] - ' + str(annualyear) + ' is less than ' + str(sr['comicyear']))
-#                if int(sr['issues']) > (2013 - int(sr['comicyear'])):
-#                    logger.fdebug('[IMPORTER-ANNUAL] - Issue count is wrong')
-#
-#        #newCtrl = {"IssueID": issueid}
-#        #newVals = {"Issue_Number":  annualval['AnnualIssue'],
-#        #           "IssueDate":     annualval['AnnualDate'],
-#        #           "IssueName":    annualval['AnnualTitle'],
-#        #           "ComicID":       comicid,
-#        #           "Status":        "Skipped"}
-#        #myDB.upsert("annuals", newVals, newCtrl)
-#        #nb+=1
+    if any([oldcomversion is None, oldcomversion == "None"]):
+        logger.info('Previous version detected as None - seeing if update required')
+        if comic['ComicVersion'].isdigit():
+            comicVol = 'v' + comic['ComicVersion']
+            logger.info('Updated version to :' + str(comicVol))
+            if all([mylar.SETDEFAULTVOLUME is False, comicVol == 'v1']):
+                comicVol = None
+        else:
+            if mylar.SETDEFAULTVOLUME is True:
+                comicVol = 'v1'
+            else:
+                comicVol = None
+    else:
+        comicVol = oldcomversion
+        if all([mylar.SETDEFAULTVOLUME is True, comicVol is None]):
+            comicVol = 'v1'
+        else:
+            comicVol = None
 
-    #parseit.annualCheck(gcomicid=gcdinfo['GCDComicID'], comicid=comicid, comicname=comic['ComicName'], comicyear=SeriesYear)
-    #comic book location on machine
+
+
     # setup default location here
-
     u_comicnm = comic['ComicName']
     # let's remove the non-standard characters here that will break filenaming / searching.
     comicname_filesafe = helpers.filesafe(u_comicnm)
@@ -338,11 +209,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         publisher = re.sub('!', '', comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
         year = SeriesYear
-        comversion = comic['ComicVersion']
-        if comversion is None:
-            comversion = 'None'
+        if comicVol is None:
+            comicVol = 'None'
         #if comversion is None, remove it so it doesn't populate with 'None'
-        if comversion == 'None':
+        if comicVol == 'None':
             chunk_f_f = re.sub('\$VolumeN', '', mylar.FOLDER_FORMAT)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
@@ -359,7 +229,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                   '$series':        series.lower(),
                   '$publisher':     publisher.lower(),
                   '$VolumeY':       'V' + str(year),
-                  '$VolumeN':       comversion,
+                  '$VolumeN':       comicVol.upper(),
                   '$Annual':        'Annual'
                   }
 
@@ -426,7 +296,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     logger.info('Attempting to retrieve the comic image for series')
     try:
         r = requests.get(comic['ComicImage'], params=None, stream=True, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
-
     except Exception, e:
         logger.warn('Unable to download image from CV URL link: ' + comic['ComicImage'] + ' [Status Code returned: ' + str(r.status_code) + ']')
 
@@ -463,7 +332,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         logger.info('Attempting to retrieve alternate comic image for the series.')
         try:
             r = requests.get(comic['ComicImageALT'], params=None, stream=True, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
-
         except Exception, e:
             logger.warn('Unable to download image from CV URL link: ' + comic['ComicImageALT'] + ' [Status Code returned: ' + str(r.status_code) + ']')
 
@@ -499,16 +367,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 filechecker.setperms(comiclocal)
         except IOError as e:
             logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
-
-    if oldcomversion is None or oldcomversion == "None":
-        logger.info('previous version detected as None - seeing if update required')
-        if comic['ComicVersion'].isdigit():
-            comicVol = "v" + comic['ComicVersion']
-            logger.info('updated version to :' + str(comicVol))
-        else:
-            comicVol = None
-    else:
-        comicVol = oldcomversion
 
     #for description ...
     #Cdesc = helpers.cleanhtml(comic['ComicDescription'])

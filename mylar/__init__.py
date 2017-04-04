@@ -187,6 +187,7 @@ CORRECT_METADATA = False
 MOVE_FILES = False
 RENAME_FILES = False
 FOLDER_FORMAT = None
+SETDEFAULTVOLUME = False
 FILE_FORMAT = None
 REPLACE_SPACES = False
 REPLACE_CHAR = None
@@ -500,7 +501,7 @@ def initialize():
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, \
-                FOLDER_FORMAT, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, \
+                FOLDER_FORMAT, SETDEFAULTVOLUME, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, \
                 FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, MAINTAINSERIESFOLDER, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, \
                 STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CV_VERIFY, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
@@ -612,6 +613,7 @@ def initialize():
         MOVE_FILES = bool(check_setting_int(CFG, 'General', 'move_files', 0))
         RENAME_FILES = bool(check_setting_int(CFG, 'General', 'rename_files', 0))
         FOLDER_FORMAT = check_setting_str(CFG, 'General', 'folder_format', '$Series ($Year)')
+        SETDEFAULTVOLUME = bool(check_setting_int(CFG, 'General', 'setdefaultvolume', 0))
         FILE_FORMAT = check_setting_str(CFG, 'General', 'file_format', '$Series $Issue ($Year)')
         USE_BLACKHOLE = bool(check_setting_int(CFG, 'General', 'use_blackhole', 0))
         BLACKHOLE_DIR = check_setting_str(CFG, 'General', 'blackhole_dir', '')
@@ -1446,6 +1448,7 @@ def config_write():
     new_config['General']['move_files'] = int(MOVE_FILES)
     new_config['General']['rename_files'] = int(RENAME_FILES)
     new_config['General']['folder_format'] = FOLDER_FORMAT
+    new_config['General']['setdefaultvolume'] = int(SETDEFAULTVOLUME)
     new_config['General']['file_format'] = FILE_FORMAT
     #new_config['General']['use_blackhole'] = int(USE_BLACKHOLE)
     new_config['General']['blackhole_dir'] = BLACKHOLE_DIR
@@ -1756,7 +1759,7 @@ def dbcheck():
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS readinglist(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, StoreDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
@@ -2194,6 +2197,11 @@ def dbcheck():
         c.execute('SELECT Volume from readinglist')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE readinglist ADD COLUMN Volume TEXT')
+
+    try:
+        c.execute('SELECT Manual from readinglist')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE readinglist ADD COLUMN Manual TEXT')
 
     ## -- searchresults Table --
     try:

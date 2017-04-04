@@ -115,11 +115,14 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
             id = arcid
             #since the arclist holds the issueids, and the pertinent reading order - we need to strip out the reading order so this works.
             aclist = ''
-            for ac in arclist.split('|'):
-                aclist += ac[:ac.find(',')] + '|'
-            if aclist.endswith('|'):
-                aclist = aclist[:-1]
-            islist = aclist
+            if arclist.startswith('M'):
+                islist = arclist[1:]
+            else:
+                for ac in arclist.split('|'):
+                    aclist += ac[:ac.find(',')] + '|'
+                if aclist.endswith('|'):
+                    aclist = aclist[:-1]
+                islist = aclist
         else:
             id = comicid
             islist = None

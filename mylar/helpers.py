@@ -1792,6 +1792,142 @@ def listStoryArcs():
         library[row['CV_ArcID']] = row['CV_ArcID']
     return library
 
+def manualArc(issueid, reading_order, storyarcid):
+    import db
+    if issueid.startswith('4000-'):
+        issueid = issueid[5:]
+
+    myDB = db.DBConnection()
+
+    arc_chk = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND NOT Manual is 'deleted'", [storyarcid])
+    storyarcname = arc_chk[0]['StoryArc']
+    storyarcissues = arc_chk[0]['TotalIssues']
+
+    iss_arcids = []
+    for issarc in arc_chk:
+        iss_arcids.append({"IssueArcID":     issarc['IssueArcID'],
+                           "IssueID":        issarc['IssueID'],
+                           "Manual":         issarc['Manual'],
+                           "ReadingOrder":   issarc['ReadingOrder']})
+
+
+    arc_results = mylar.cv.getComic(comicid=None, type='issue', issueid=None, arcid=storyarcid, arclist='M' + str(issueid))
+    arcval = arc_results['issuechoice'][0]
+    comicname = arcval['ComicName']
+    st_d = mylar.filechecker.FileChecker(watchcomic=comicname)
+    st_dyninfo = st_d.dynamic_replace(comicname)
+    dynamic_name = re.sub('[\|\s]','', st_dyninfo['mod_seriesname'].lower()).strip()
+    issname = arcval['Issue_Name']
+    issid = str(arcval['IssueID'])
+    comicid = str(arcval['ComicID'])
+    cidlist = str(comicid)
+    st_issueid = None
+    manual_mod = 'added'
+    new_readorder = []
+    for aid in iss_arcids:
+        if aid['IssueID'] == issid:
+            logger.info('Issue already exists for storyarc [IssueArcID:' + aid['IssueArcID'] + '][Manual:' + aid['Manual'])
+            st_issueid = aid['IssueArcID']
+            manual_mod = aid['Manual']
+
+        if reading_order is None:
+            #if no reading order is given, drop in the last spot.
+            reading_order = len(iss_arcids) + 1
+        if int(aid['ReadingOrder']) >= int(reading_order):
+            reading_seq = int(aid['ReadingOrder']) + 1
+        else:
+            reading_seq = int(aid['ReadingOrder'])
+
+        new_readorder.append({'IssueArcID':   aid['IssueArcID'],
+                              'IssueID':      aid['IssueID'],
+                              'ReadingOrder': reading_seq})
+
+    import random
+    if st_issueid is None:
+        st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
+    issnum = arcval['Issue_Number']
+    issdate = str(arcval['Issue_Date'])
+    storedate = str(arcval['Store_Date'])
+    int_issnum = issuedigits(issnum)
+
+    comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
+    seriesYear = 'None'
+    issuePublisher = 'None'
+    seriesVolume = 'None'
+
+    if issname is None:
+        IssueName = 'None'
+    else:
+        IssueName = issname[:70]
+
+    for cid in comicid_results:
+        if cid['ComicID'] == comicid:
+            seriesYear = cid['SeriesYear']
+            issuePublisher = cid['Publisher']
+            seriesVolume = cid['Volume']
+            #assume that the arc is the same
+            storyarcpublisher = issuePublisher
+            break
+
+
+    newCtrl = {"IssueID":           issid,
+               "StoryArcID":        storyarcid}
+    newVals = {"ComicID":           comicid,
+               "IssueArcID":        st_issueid,
+               "StoryArc":          storyarcname,
+               "ComicName":         comicname,
+               "Volume":            seriesVolume,
+               "DynamicComicName":  dynamic_name,
+               "IssueName":         IssueName,
+               "IssueNumber":       issnum,
+               "Publisher":         storyarcpublisher,
+               "TotalIssues":       str(int(storyarcissues) +1),
+               "ReadingOrder":      int(reading_order),  #arbitrarily set it to the last reading order sequence # just to see if it works.
+               "IssueDate":         issdate,
+               "StoreDate":         storedate,
+               "SeriesYear":        seriesYear,
+               "IssuePublisher":    issuePublisher,
+               "CV_ArcID":          storyarcid,
+               "Int_IssueNumber":   int_issnum,
+               "Manual":            manual_mod}
+
+    myDB.upsert("readinglist", newVals, newCtrl)
+
+    #now we resequence the reading-order to accomdate the change.
+    logger.info('Adding the new issue into the reading order & resequencing the order to make sure there are no sequence drops...')
+    new_readorder.append({'IssueArcID':   st_issueid,
+                          'IssueID':      issid,
+                          'ReadingOrder': int(reading_order)})
+
+    newrl = 0
+    for rl in sorted(new_readorder, key=itemgetter('ReadingOrder'), reverse=False):
+        if rl['ReadingOrder'] - 1 != newrl:
+            rorder = newrl + 1
+            logger.fdebug(rl['IssueID'] + ' - changing reading order seq to : ' + str(rorder))
+        else:
+            rorder = rl['ReadingOrder']
+            logger.fdebug(rl['IssueID'] + ' - setting reading order seq to : ' + str(rorder))
+
+        rl_ctrl = {"IssueID":           rl['IssueID'],
+                   "IssueArcID":        rl['IssueArcID'],
+                   "StoryArcID":        storyarcid}
+        r1_new = {"ReadingOrder":       rorder}
+        newrl = rorder
+
+        myDB.upsert("readinglist", r1_new, rl_ctrl)
+
+    #check to see if the issue exists already so we can set the status right away.
+    iss_chk = myDB.selectone('SELECT * FROM issues where issueid = ?', [issueid]).fetchone()
+    if iss_chk is None:
+        logger.info('Issue is not currently in your watchlist. Setting status to Skipped')
+        status_change = 'Skipped'
+    else:
+        status_change = iss_chk['Status']
+        logger.info('Issue currently exists in your watchlist. Setting status to ' + status_change)
+        myDB.upsert("readinglist", {'Status': status_change}, newCtrl)
+
+    return
+
 def listIssues(weeknumber, year):
     import db
     library = []
@@ -2297,41 +2433,44 @@ def updatearc_locs(storyarcid, issues):
                     arcpub = arcinfo['Publisher']
 
                 grdst = arcformat(arcinfo['StoryArc'], spantheyears(arcinfo['StoryArcID']), arcpub)
-                logger.info('grdst:' + grdst)
+                if grdst is not None:
+                    logger.info('grdst:' + grdst)
+                    #send to renamer here if valid.
+                    dfilename = chk['Location']
+                    if mylar.RENAME_FILES:
+                        renamed_file = rename_param(arcinfo['ComicID'], arcinfo['ComicName'], arcinfo['IssueNumber'], chk['Location'], issueid=arcinfo['IssueID'], arc=arcinfo['StoryArc'])
+                        if renamed_file:
+                            dfilename = renamed_file['nfilename']
 
-                #send to renamer here if valid.
-                dfilename = chk['Location']
-                if mylar.RENAME_FILES:
-                    renamed_file = rename_param(arcinfo['ComicID'], arcinfo['ComicName'], arcinfo['IssueNumber'], chk['Location'], issueid=arcinfo['IssueID'], arc=arcinfo['StoryArc'])
-                    if renamed_file:
-                        dfilename = renamed_file['nfilename']
+                    if mylar.READ2FILENAME:
+                        #logger.fdebug('readingorder#: ' + str(arcinfo['ReadingOrder']))
+                        #if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
+                        #elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
+                        #else: readord = str(arcinfo['ReadingOrder'])
+                        readord = renamefile_readingorder(arcinfo['ReadingOrder'])
+                        dfilename = str(readord) + "-" + dfilename
 
-                if mylar.READ2FILENAME:
-                    #logger.fdebug('readingorder#: ' + str(arcinfo['ReadingOrder']))
-                    #if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
-                    #elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
-                    #else: readord = str(arcinfo['ReadingOrder'])
-                    readord = renamefile_readingorder(arcinfo['ReadingOrder'])
-                    dfilename = str(readord) + "-" + dfilename
+                    pathdst = os.path.join(grdst, dfilename)
 
-                pathdst = os.path.join(grdst, dfilename)
+                    logger.fdebug('Destination Path : ' + pathdst)
+                    logger.fdebug('Source Path : ' + pathsrc)
+                    if not os.path.isfile(pathdst):
+                        logger.info('[' + mylar.ARC_FILEOPS.upper() + '] ' + pathsrc + ' into directory : ' + pathdst)
 
-                logger.fdebug('Destination Path : ' + pathdst)
-                logger.fdebug('Source Path : ' + pathsrc)
-                if not os.path.isfile(pathdst):
-                    logger.info('[' + mylar.ARC_FILEOPS.upper() + '] ' + pathsrc + ' into directory : ' + pathdst)
-
-                    try:
-                        #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
-                        fileoperation = file_ops(pathsrc, pathdst, arc=True)
-                        if not fileoperation:
-                            raise OSError
-                    except (OSError, IOError):
-                        logger.fdebug('[' + mylar.ARC_FILEOPS.upper() + '] Failure ' + pathsrc + ' - check directories and manually re-run.')
-                        continue
+                        try:
+                            #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
+                            fileoperation = file_ops(pathsrc, pathdst, arc=True)
+                            if not fileoperation:
+                                raise OSError
+                        except (OSError, IOError):
+                            logger.fdebug('[' + mylar.ARC_FILEOPS.upper() + '] Failure ' + pathsrc + ' - check directories and manually re-run.')
+                            continue
+                    updateloc = pathdst
+                else:
+                    updateloc = pathsrc
 
                 update_iss.append({'IssueID':    chk['IssueID'],
-                                   'Location':   pathdst})
+                                   'Location':   updateloc})
 
     for ui in update_iss:
         logger.info(ui['IssueID'] + ' to update location to: ' + ui['Location'])

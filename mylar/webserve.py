@@ -419,7 +419,8 @@ class WebInterface(object):
                 iss_arcids = []
                 for issarc in arc_chk:
                     iss_arcids.append({"IssueArcID":  issarc['IssueArcID'],
-                                       "IssueID":     issarc['IssueID']})
+                                       "IssueID":     issarc['IssueID'],
+                                       "Manual":      issarc['Manual']})
                 arcinfo = mb.storyarcinfo(cvarcid)
                 if len(arcinfo) > 1:
                     arclist = arcinfo['arclist']
@@ -465,10 +466,14 @@ class WebInterface(object):
                         cidlist += '|' + str(comicid)
                 #don't recreate the st_issueid if it's a refresh and the issueid already exists (will create duplicates otherwise)
                 st_issueid = None
+                manual_mod = None
                 if arcrefresh:
                     for aid in iss_arcids:
                         if aid['IssueID'] == issid:
                             st_issueid = aid['IssueArcID']
+                            manual_mod = aid['Manual']
+                            break
+
                 if st_issueid is None:
                     st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
                 issnum = arcval['Issue_Number']
@@ -503,7 +508,8 @@ class WebInterface(object):
                                   "IssueDate":          issdate,
                                   "ReleaseDate":        storedate,
                                   "ReadingOrder":       readingorder, #n +1,
-                                  "Int_IssueNumber":    int_issnum})
+                                  "Int_IssueNumber":    int_issnum,
+                                  "Manual":             manual_mod})
                 n+=1
 
             comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
@@ -547,7 +553,8 @@ class WebInterface(object):
                            "SeriesYear":        seriesYear,
                            "IssuePublisher":    issuePublisher,
                            "CV_ArcID":          arcid,
-                           "Int_IssueNumber":   AD['Int_IssueNumber']}
+                           "Int_IssueNumber":   AD['Int_IssueNumber'],
+                           "Manual":            AD['Manual']}
 
                 myDB.upsert("readinglist", newVals, newCtrl)
 
@@ -2369,7 +2376,7 @@ class WebInterface(object):
         arclist = []
         alist = myDB.select("SELECT * from readinglist WHERE ComicName is not Null group by StoryArcID") #COLLATE NOCASE")
         for al in alist:
-            totalissues = myDB.select("SELECT COUNT(*) as count from readinglist WHERE StoryARcID=?", [al['StoryArcID']])
+            totalissues = myDB.select("SELECT COUNT(*) as count from readinglist WHERE StoryARcID=? AND NOT Manual is 'deleted'", [al['StoryArcID']])
 
             havecnt = myDB.select("SELECT COUNT(*) as count FROM readinglist WHERE StoryArcID=? AND (Status='Downloaded' or Status='Archived')", [al['StoryArcID']])
             havearc = havecnt[0][0]
@@ -2399,12 +2406,14 @@ class WebInterface(object):
         return serve_template(templatename="storyarc.html", title="Story Arcs", arclist=arclist, delete_type=0)
     storyarc_main.exposed = True
 
-    def detailStoryArc(self, StoryArcID, StoryArcName):
+    def detailStoryArc(self, StoryArcID, StoryArcName=None):
         myDB = db.DBConnection()
-        arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
+        arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? and NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
         try:
             cvarcid = arcinfo[0]['CV_ArcID']
             arcpub = arcinfo[0]['Publisher']
+            if StoryArcName is None:
+                StoryArcName = arcinfo[0]['StoryArc']
             lowyear = 9999
             maxyear = 0
             issref = []
@@ -2443,12 +2452,94 @@ class WebInterface(object):
             sdir = mylar.GRABBAG_DIR
 
         if len(issref) > 0:
-            logger.info(issref)
             helpers.updatearc_locs(StoryArcID, issref)
-            arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? order by ReadingOrder ASC", [StoryArcID])
+            arcinfo = myDB.select("SELECT * from readinglist WHERE StoryArcID=? AND NOT Manual IS 'deleted' order by ReadingOrder ASC", [StoryArcID])
 
         return serve_template(templatename="storyarc_detail.html", title="Detailed Arc list", readlist=arcinfo, storyarcname=StoryArcName, storyarcid=StoryArcID, cvarcid=cvarcid, sdir=sdir)
     detailStoryArc.exposed = True
+
+    def order_edit(self, id, value):
+        storyarcid = id[:id.find('.')]
+        issuearcid = id[id.find('.') +1:]
+        readingorder = value
+        #readingorder = value
+        valid_readingorder = None
+        #validate input here for reading order.
+        try:
+            if int(readingorder) > 0:
+                valid_readingorder = int(readingorder)
+        except ValueError:
+            logger.error('Non-Numeric/Negative readingorder submitted. Rejecting due to sequencing error.')
+            return
+        
+        if valid_readingorder is None:
+            logger.error('invalid readingorder supplied. Rejecting due to sequencing error')
+            return
+
+        myDB = db.DBConnection()
+        readchk = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND NOT Manual is 'deleted' ORDER BY ReadingOrder", [storyarcid])
+        if readchk is None:
+            logger.error('Cannot edit this for some reason (Cannot locate Storyarc) - something is wrong.')
+            return
+
+        new_readorder = []
+        for rc in readchk:
+            if issuearcid == rc['IssueArcID']:
+                oldreadorder = int(rc['ReadingOrder'])
+                new_readorder.append({'IssueArcID':   issuearcid,
+                                      'IssueID':      rc['IssueID'],
+                                      'ReadingOrder': valid_readingorder})
+            else:
+                if int(rc['ReadingOrder']) >= valid_readingorder:
+                    reading_seq = int(rc['ReadingOrder']) + 1
+                else:
+                    reading_seq = int(rc['ReadingOrder']) - 1
+                    if reading_seq == 0:
+                        reading_seq = 1
+
+                new_readorder.append({'IssueArcID':   rc['IssueArcID'],
+                                      'IssueID':      rc['IssueID'],
+                                      'ReadingOrder': reading_seq})
+
+        #we resequence in the following way: 
+        #  everything before the new reading number stays the same
+        #  everything after the new reading order gets incremented
+        #  add in the new reading order at the desired sequence
+        #  check for empty spaces (missing numbers in sequence) and fill them in.
+        logger.fdebug(new_readorder)
+        newrl = 0
+        for rl in sorted(new_readorder, key=itemgetter('ReadingOrder'), reverse=False):
+            if rl['ReadingOrder'] - 1 != newrl:
+                rorder = newrl + 1
+                logger.fdebug(rl['IssueID'] + ' - changing reading order seq to : ' + str(rorder))
+            else:
+                rorder = rl['ReadingOrder']
+                logger.fdebug(rl['IssueID'] + ' - setting reading order seq to : ' + str(rorder))
+
+            rl_ctrl = {"IssueID":           rl['IssueID'],
+                       "IssueArcID":        rl['IssueArcID'],
+                       "StoryArcID":        storyarcid}
+            r1_new = {"ReadingOrder":       rorder}
+            newrl = rorder
+
+            myDB.upsert("readinglist", r1_new, rl_ctrl)
+
+        logger.info('Updated Issue Date for issue #' + str(issuenumber))
+        return value
+
+    order_edit.exposed = True
+
+    def manual_arc_add(self, manual_issueid, manual_readingorder, storyarcid, x=None, y=None):
+
+        logger.fdebug('IssueID to be attached : ' + str(manual_issueid))
+        logger.fdebug('StoryArcID : ' + str(storyarcid))
+        logger.fdebug('Reading Order # : ' + str(manual_readingorder))
+
+        threading.Thread(target=helpers.manualArc, args=[manual_issueid, manual_readingorder, storyarcid]).start()
+
+        raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s" % storyarcid)
+    manual_arc_add.exposed = True
+
 
     def markreads(self, action=None, **args):
         sendtablet_queue = []
@@ -2488,7 +2579,7 @@ class WebInterface(object):
 
     markreads.exposed = True
 
-    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None, ArcName=None, delete_type=None):
+    def removefromreadlist(self, IssueID=None, StoryArcID=None, IssueArcID=None, AllRead=None, ArcName=None, delete_type=None, manual=None):
         myDB = db.DBConnection()
         if IssueID:
             myDB.action('DELETE from readlist WHERE IssueID=?', [IssueID])
@@ -2508,7 +2599,11 @@ class WebInterface(object):
             myDB.action('DELETE from nzblog WHERE IssueID LIKE ?', [stid])
             logger.info("[DELETE-ARC] Removed " + str(StoryArcID) + " from Story Arcs.")
         elif IssueArcID:
-            myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
+            if manual == 'added':
+                myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
+            else:
+                myDB.upsert("readinglist", {"Manual": 'deleted'}, {"IssueArcID": IssueArcID})
+            #myDB.action('DELETE from readinglist WHERE IssueArcID=?', [IssueArcID])
             logger.info("[DELETE-ARC] Removed " + str(IssueArcID) + " from the Story Arc.")
         elif AllRead:
             myDB.action("DELETE from readlist WHERE Status='Read'")
@@ -2780,6 +2875,9 @@ class WebInterface(object):
             sarc_title = None
             showonreadlist = 1 # 0 won't show storyarcissues on readinglist main page, 1 will show
             for arc in ArcWatch:
+                if arc['Manual'] == 'deleted':
+                    continue
+
                 sarc_title = arc['StoryArc']
                 logger.fdebug('[' + arc['StoryArc'] + '] ' + arc['ComicName'] + ' : ' + arc['IssueNumber'])
 

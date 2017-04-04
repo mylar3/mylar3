@@ -923,6 +923,11 @@ class PostProcessor(object):
                     logger.fdebug(module + ' Issueid: ' + str(issueid))
                     sarc = nzbiss['SARC']
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
+
+                    comicid = None
+                    comicname = None
+                    issuenumber = None
+
                     if tmpiss is not None:
                         comicid = tmpiss['ComicID']
                         comicname = tmpiss['ComicName']
@@ -986,17 +991,6 @@ class PostProcessor(object):
                         if sandwich is not None and 'S' in sandwich:
                             self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
                             logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
-                            arcdir = helpers.filesafe(sarc)
-                            if mylar.REPLACE_SPACES:
-                               arcdir = arcdir.replace(' ', mylar.REPLACE_CHAR)
-                            if mylar.STORYARCDIR:
-                                storyarcd = os.path.join(mylar.DESTINATION_DIR, "StoryArcs", arcdir)
-                                self._log("StoryArc Directory set to : " + storyarcd)
-                                logger.info(module + ' Story Arc Directory set to : ' + storyarcd)
-                            else:
-                                self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
-                                logger.info(module + ' Story Arc Directory set to : ' + mylar.GRABBAG_DIR)
-
                         else:
                             self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
                             logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
@@ -1025,7 +1019,26 @@ class PostProcessor(object):
                             issuearcid = re.sub('S', '', issueid)
                             logger.fdebug(module + ' issuearcid:' + str(issuearcid))
                             arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+                            if arcdata is None:
+                                logger.warn(module + ' Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary')
+                                self._log('Unable to locate issue within Story Arcs in orde to properly assign metadata. PostProcessing aborted.')
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop'})
+                                return self.queue.put(self.valreturn)
 
+                            if arcdata['Publisher'] is None:
+                                arcpub = arcdata['IssuePublisher']
+                            else:
+                                arcpub = arcdata['Publisher']
+
+                            grdst = helpers.arcformat(arc['StoryArc'], helpers.spantheyears(arcdata['StoryArcID']), arcpub)
+
+                            if comicid is None:
+                                comicid = arcdata['ComicID']
+                            if comicname is None:
+                                comicname = arcdata['ComicName']
+                            if issuenumber is None:
+                                issuenumber = arcdata['IssueNumber']
                             issueid = arcdata['IssueID']
 
                         #tag the meta.
@@ -1037,7 +1050,7 @@ class PostProcessor(object):
                             self._log("Metatagging enabled - proceeding...")
                             try:
                                 import cmtagmylar
-                                metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
+                                metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
                             except ImportError:
                                 logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
                                 metaresponse = "fail"
@@ -1060,16 +1073,16 @@ class PostProcessor(object):
 
                         dfilename = ofilename
 
-                        if sandwich is not None and 'S' in sandwich:
-                            if mylar.STORYARCDIR:
-                                grdst = storyarcd
-                            else:
-                                grdst = mylar.DESTINATION_DIR
-                        else:
-                            if mylar.GRABBAG_DIR:
-                                grdst = mylar.GRABBAG_DIR
-                            else:
-                                grdst = mylar.DESTINATION_DIR
+                        #if sandwich is not None and 'S' in sandwich:
+                        #    if mylar.STORYARCDIR:
+                        #        grdst = storyarcd
+                        #    else:
+                        #        grdst = mylar.DESTINATION_DIR
+                        #else:
+                        #    if mylar.GRABBAG_DIR:
+                        #        grdst = mylar.GRABBAG_DIR
+                        #    else:
+                        #        grdst = mylar.DESTINATION_DIR
 
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
