@@ -932,7 +932,7 @@ class PostProcessor(object):
                         comicid = tmpiss['ComicID']
                         comicname = tmpiss['ComicName']
                         issuenumber = tmpiss['Issue_Number']
-
+                        
                     #use issueid to get publisher, series, year, issue number
 
                 annchk = "no"
@@ -1031,7 +1031,7 @@ class PostProcessor(object):
                             else:
                                 arcpub = arcdata['Publisher']
 
-                            grdst = helpers.arcformat(arc['StoryArc'], helpers.spantheyears(arcdata['StoryArcID']), arcpub)
+                            grdst = helpers.arcformat(arcdata['StoryArc'], helpers.spantheyears(arcdata['StoryArcID']), arcpub)
 
                             if comicid is None:
                                 comicid = arcdata['ComicID']

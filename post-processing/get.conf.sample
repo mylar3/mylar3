@@ -1,0 +1,7 @@
+[rtorrent]
+HOST=hostname/ip
+PORT=port#
+USER=username
+PASSWD=password
+LOCALCD=local directory where torrents are to be saved to
+KEYFILE=if you use a keyfile for ssh access, enter full path here to public key file (password above can be left blank then)

@@ -17,6 +17,7 @@ import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
 import torrent.clients.transmission as transmission
 import torrent.clients.deluge as deluge
+import torrent.clients.qbittorrent as qbittorrent
 
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
@@ -226,7 +227,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             for entry in feedme['entries']:
                 #TP.SE RSS SEARCH RESULT
                 if pickfeed == "2":
-                    tmpenc = feedme.entries[i].enclosures[0]
+                    try:
+                        tmpenc = feedme.entries[i].enclosures[0]
+                    except AttributeError:
+                        logger.warn('Unable to retrieve results - probably just hitting it too fast...')
+                        continue
                     torthetpse.append({
                                     'site':     picksite,
                                     'title':    feedme.entries[i].title,
@@ -777,7 +782,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     if linkit[-7:] != "torrent":
         filename += ".torrent"
-    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION,mylar.USE_DELUGE]):
+    if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION, mylar.USE_DELUGE, mylar.USE_QBITTORRENT]):
         filepath = os.path.join(mylar.CACHE_DIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
         
@@ -921,7 +926,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             except ImportError:
                 logger.warn('[EPIC FAILURE] Cannot load the requests module')
                 return "fail"
-
     try:
         scraper = cfscrape.create_scraper()
         if cf_cookievalue:
@@ -1003,27 +1007,36 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
     logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
     if mylar.USE_UTORRENT:
         uTC = utorrent.utorrentclient()
-        resp = uTC.addfile(filepath, filename)
-        return resp   #resp = pass / fail
+        torrent_info = uTC.addfile(filepath, filename)
+        if torrent_info:
+            torrent_info['clientmode'] = 'utorrent'
+            torrent_info['link'] = linkit
+            return torrent_info
+        else:
+            return "fail"
 
     elif mylar.USE_RTORRENT:
         import test
         rp = test.RTorrent()
+
         torrent_info = rp.main(filepath=filepath)        
 
-        logger.info(torrent_info)
         if torrent_info:
-            return "pass"
+            torrent_info['clientmode'] = 'rtorrent'
+            torrent_info['link'] = linkit
+            return torrent_info
         else:
-            return "fail"
-
+            return 'fail'
     elif mylar.USE_TRANSMISSION:
         try:
             rpc = transmission.TorrentClient()
             if not rpc.connect(mylar.TRANSMISSION_HOST, mylar.TRANSMISSION_USERNAME, mylar.TRANSMISSION_PASSWORD):
                 return "fail"
-            if rpc.load_torrent(filepath):
-                return "pass"
+            torrent_info = rpc.load_torrent(filepath)
+            if torrent_info:
+                torrent_info['clientmode'] = 'transmission'
+                torrent_info['link'] = linkit
+                return torrent_info
             else:
                 return "fail"
         except Exception as e:
@@ -1035,18 +1048,42 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             dc = deluge.TorrentClient()
             if not dc.connect(mylar.DELUGE_HOST, mylar.DELUGE_USERNAME, mylar.DELUGE_PASSWORD):
                 return "fail"
-                logger.info('Not connected to Deluge! (rsscheck)')
+                logger.info('Not connected to Deluge!')
             else:
-                logger.info('Connected to Deluge! Will try to add torrent now! (rsscheck)')
-            if dc.load_torrent(filepath):
-                return "pass"
+                logger.info('Connected to Deluge! Will try to add torrent now!')
+            torrent_info = dc.load_torrent(filepath)
+
+            if torrent_info:
+                torrent_info['clientmode'] = 'deluge'
+                torrent_info['link'] = linkit
+                return torrent_info
             else:
                 return "fail"
-                logger.info('Unable to connect to Deluge (rsscheck)')
+                logger.info('Unable to connect to Deluge!')
         except Exception as e:
             logger.error(e)
             return "fail"
             
+    elif mylar.USE_QBITTORRENT:
+        try:
+            qc = qbittorrent.TorrentClient()
+            if not qc.connect(mylar.QBITTORRENT_HOST, mylar.QBITTORRENT_USERNAME, mylar.QBITTORRENT_PASSWORD):
+                logger.info('Not connected to qBittorrent - Make sure the Web UI is enabled and the port is correct!')
+                return "fail"
+            else:
+                logger.info('Connected to qBittorrent! Will try to add torrent now!')
+            torrent_info = qc.load_torrent(filepath)
+
+            if torrent_info:
+                torrent_info['clientmode'] = 'qbittorrent'
+                torrent_info['link'] = linkit
+                return torrent_info
+            else:
+                logger.info('Unable to add torrent to qBittorrent')
+                return "fail"
+        except Exception as e:
+            logger.error(e)
+            return "fail"
             
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:

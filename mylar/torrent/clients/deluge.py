@@ -44,14 +44,15 @@ class TorrentClient(object):
             return False
 
     def get_torrent(self, hash):
-        logger.debug('Getting Torrent info hash: ' + hash)
+        logger.debug('Getting Torrent info from hash: ' + hash)
         try:
             torrent_info = self.client.call('core.get_torrent_status', hash, '')
         except Exception as e:
             logger.error('Could not get torrent info for ' + hash)
             return False
         else:
-            logger.info('Getting Torrent Info!')
+            if torrent_info is None:
+                torrent_info = False
             return torrent_info
 
 
@@ -80,7 +81,7 @@ class TorrentClient(object):
                 self.client.call('core.pause_torrent', hash)
             except Exception as e:
                 logger.error('Torrent failed to be stopped: ' + e)
-                return false
+                return False
             else:
                 logger.info('Torrent ' + hash + ' was stopped')
                 return True
@@ -104,6 +105,8 @@ class TorrentClient(object):
             #Check if torrent already added
             if self.find_torrent(str.lower(hash)):
                 logger.info('load_torrent: Torrent already exists!')
+                #should set something here to denote that it's already loaded, and then the failed download checker not run so it doesn't download
+                #multiple copies of the same issues that's already downloaded
             else:
                 logger.info('Torrent not added yet, trying to add it now!')
                 try:
@@ -111,8 +114,6 @@ class TorrentClient(object):
                 except Exception as e:
                     logger.debug('Torrent not added')
                     return False
-                else:
-                    logger.debug('TorrentID: ' + torrent_id)
 
                 # If label enabled put label on torrent in Deluge
                 if torrent_id and mylar.DELUGE_LABEL:
@@ -126,17 +127,25 @@ class TorrentClient(object):
                             self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
                         except:
                             logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')
-                            return False
-                    logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
+                        else:
+                            logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
+
         try:
-            self.find_torrent(torrent_id)
-            logger.info('Double checking torrent was added.')
+            torrent_info = self.get_torrent(torrent_id)
+            logger.info('Double checking that the torrent was added.')
         except Exception as e:
             logger.warn('Torrent was not added! Please check logs')
             return False
         else:
             logger.info('Torrent successfully added!')
-            return True
+            return {'hash':             torrent_info['hash'],
+                    'label':            torrent_info['label'],
+                    'folder':           torrent_info['save_path'],
+                    'total_filesize':   torrent_info['total_size'],
+                    'name':             torrent_info['name'],
+                    'files':            torrent_info['files'],
+                    'time_started':     torrent_info['active_time'],
+                    'completed':        torrent_info['is_finished']}
 
 
     def delete_torrent(self, hash, removeData=False):

@@ -63,12 +63,8 @@
 				<td id="filename"><a href="comicDetails?ComicID=${item['ComicID']}">${item['ComicName']}</a></td>
                                 <td id="issue">${item['Issue_Number']}</td>
 				<td id="status">${item['Status']}
-                                %if item['Provider'] == '32P' or item['Provider'] == 'KAT' or item['Provider'] == 'CBT':
-                                    <img src="interfaces/default/images/torrent-icon.png" height="20" width="20" title="${item['Provider']}" />
-                                %else:
-                                    %if item['Status'] != 'Downloaded' and item['Status'] != 'Post-Processed':
-                                        (${item['Provider']})
-                                    %endif
+                                %if item['Status'] == 'Snatched':
+                                    (${item['Provider']})
                                 %endif
                                 </td>
 				<td id="action">[<a href="#" onclick="doAjaxCall('retryit?ComicName=${item['ComicName'] |u}&ComicID=${item['ComicID']}&IssueID=${item['IssueID']}&IssueNumber=${item['Issue_Number']}&redirect=history', $(this),'table')"  data-success="Successful re-download of '${item['ComicName']}' '${item['Issue_Number']}'">retry</a>]</td>

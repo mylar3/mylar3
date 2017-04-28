@@ -193,8 +193,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         comicVol = oldcomversion
         if all([mylar.SETDEFAULTVOLUME is True, comicVol is None]):
             comicVol = 'v1'
-        else:
-            comicVol = None
 
 
 
@@ -206,6 +204,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if comlocation is None:
         comicdir = comicname_filesafe
         series = comicdir
+        if series[-1:] == '.':
+            series[:-1]
+
         publisher = re.sub('!', '', comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
         year = SeriesYear
@@ -395,6 +396,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "ComicPublisher":     comic['ComicPublisher'],
 #                    "Description":       Cdesc, #.dencode('utf-8', 'replace'),
                     "DetailURL":          comic['ComicURL'],
+#                    "AlternateSearch":    comic['Aliases'],
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
                     "Type":               comic['Type'],

@@ -84,11 +84,13 @@ def locg(pulldate=None,weeknumber=None,year=None):
             shipdate = x['shipdate']
 
         myDB = db.DBConnection()
-        #myDB.action("drop table if exists weekly")
+
         myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
 
         #clear out the upcoming table here so they show the new values properly.
-        #myDB.action('DELETE FROM UPCOMING WHERE IssueDate=?',[shipdate])
+        if pulldate == '00000000':
+            logger.info('Re-creating pullist to ensure everything\'s fresh.')
+            myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[str(weeknumber), str(year)])
 
         for x in pull:
             comicid = None
