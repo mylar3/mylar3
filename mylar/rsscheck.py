@@ -1087,7 +1087,12 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:
-            return "pass"
+            #get the hash so it doesn't mess up...
+            torrent_info = helpers.get_the_hash(filepath)
+            torrent_info['clientmode'] = 'watchdir'
+            torrent_info['link'] = linkit
+            torrent_info['filepath'] = filepath
+            return torrent_info
         else:
             tssh = ftpsshup.putfile(filepath, filename)
             return tssh

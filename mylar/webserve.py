@@ -1452,7 +1452,7 @@ class WebInterface(object):
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
                 logger.info("passing to updater.")
-                return updater.foundsearch(ComicID, IssueID, mode=mode, provider=prov)
+                return updater.foundsearch(ComicID, IssueID, mode=mode, provider=prov, hash=foundcom['info']['t_hash'])
         if manualsearch:
             # if it's a manual search, return to null here so the thread will die and not cause http redirect errors.
             return

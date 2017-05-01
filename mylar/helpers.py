@@ -2615,7 +2615,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False):
 
             import shlex, subprocess
             logger.info('Torrent is completed and status is currently Snatched. Attempting to auto-retrieve.')
-            with open(mylar.SNATCH_SCRIPT, 'r') as f:
+            with open(mylar.AUTO_SNATCH_SCRIPT, 'r') as f:
                 first_line = f.readline()
 
             if mylar.SNATCH_SCRIPT.endswith('.sh'):
@@ -2625,7 +2625,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False):
             else:
                 shell_cmd = sys.executable
 
-            curScriptName = shell_cmd + ' ' + str(mylar.SNATCH_SCRIPT).decode("string_escape")
+            curScriptName = shell_cmd + ' ' + str(mylar.AUTO_SNATCH_SCRIPT).decode("string_escape")
             if torrent_files > 1:
                 downlocation = torrent_folder
             else:
@@ -2772,13 +2772,18 @@ def script_env(mode, vars):
             os.environ['mylar_release_hash'] = vars['torrentinfo']['hash'] 
             os.environ['mylar_release_name'] = vars['torrentinfo']['name']
             os.environ['mylar_release_folder'] = vars['torrentinfo']['folder']
-            os.environ['mylar_release_label'] = vars['torrentinfo']['label']
+            if 'label' in vars['torrentinfo']:
+                os.environ['mylar_release_label'] = vars['torrentinfo']['label']
             os.environ['mylar_release_filesize'] = str(vars['torrentinfo']['total_filesize'])
-            os.environ['mylar_release_start'] = str(vars['torrentinfo']['time_started'])
-            try:
-                os.environ['mylar_release_files'] = "|".join(vars['torrentinfo']['files'])
-            except TypeError:
-                os.environ['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
+            if 'time_started' in vars['torrentinfo']:
+                os.environ['mylar_release_start'] = str(vars['torrentinfo']['time_started'])
+            if 'filepath' in vars['torrentinfo']:
+                os.environ['mylar_torrent_file'] = str(vars['torrentinfo']['filepath'])
+            else:
+                try:
+                    os.environ['mylar_release_files'] = "|".join(vars['torrentinfo']['files'])
+                except TypeError:
+                    os.environ['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
         elif 'nzbinfo' in vars:
             os.environ['mylar_release_id'] = vars['nzbinfo']['id']
             os.environ['mylar_release_nzbname'] = vars['nzbinfo']['nzbname']
@@ -2842,6 +2847,18 @@ def script_env(mode, vars):
         return False
     else:
         return True
+
+def get_the_hash(filepath):
+    import hashlib, StringIO
+    import bencode
+    # Open torrent file
+    torrent_file = open(filepath, "rb")
+    metainfo = bencode.decode(torrent_file.read())
+    info = metainfo['info']
+    thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
+    logger.info('Hash of file : ' + thehash)
+    return {'hash':     thehash}
+
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
