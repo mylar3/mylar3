@@ -2618,7 +2618,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False):
             with open(mylar.AUTO_SNATCH_SCRIPT, 'r') as f:
                 first_line = f.readline()
 
-            if mylar.SNATCH_SCRIPT.endswith('.sh'):
+            if mylar.AUTO_SNATCH_SCRIPT.endswith('.sh'):
                 shell_cmd = re.sub('#!', '', first_line)
                 if shell_cmd == '' or shell_cmd is None:
                     shell_cmd = '/bin/bash'
