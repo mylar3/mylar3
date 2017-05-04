@@ -887,7 +887,6 @@ def forceRescan(ComicID, archive=None, module=None):
     issueexceptdupechk = []
     mc_issue = []
     mc_issuenumber = []
-    reissues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
     multiple_check = myDB.select('SELECT * FROM issues WHERE ComicID=? GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
 
     if len(multiple_check) == 0:
@@ -906,13 +905,38 @@ def forceRescan(ComicID, archive=None, module=None):
                                "IssueYear":         mck['IssueDate'][:4],
                                "IssueID":           mck['IssueID']})
 
+    mc_annual = []
+    mc_annualnumber = []
+
+    if mylar.ANNUALS_ON:
+        mult_ann_check = myDB.select('SELECT * FROM annuals WHERE ComicID=? GROUP BY Int_IssueNumber HAVING (COUNT(Int_IssueNumber) > 1)', [ComicID])
+
+        if len(mult_ann_check) == 0:
+            logger.fdebug('[ANNUAL-CHK] No annuals with identical issue numbering across annual volumes were detected for this series')
+            mc_annualnumber = None
+        else:
+            logger.fdebug('[ANNUAL-CHK] Multiple issues with identical numbering were detected across multiple annual volumes. Attempting to accomodate.')
+            for mc in mult_ann_check:
+                mc_annualnumber.append({"Int_IssueNumber": mc['Int_IssueNumber']})
+
+        if not mc_annualnumber is None:
+            for mcann in mc_annualnumber:
+                achk = myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Int_IssueNumber=?', [ComicID, mcann['Int_IssueNumber']])
+                for ack in achk:
+                    mc_annual.append({"Int_IssueNumber":   ack['Int_IssueNumber'],
+                                      "IssueYear":         ack['IssueDate'][:4],
+                                      "IssueID":           ack['IssueID'],
+                                      "ReleaseComicID":    ack['ReleaseComicID']})
 
     logger.fdebug('mc_issue:' + str(mc_issue))
+    logger.fdebug('mc_annual:' + str(mc_annual))
 
     issID_to_ignore = []
     issID_to_ignore.append(str(ComicID))
     issID_to_write = []
     ANNComicID = None
+
+    reissues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
 
     while (fn < fccnt):
         haveissue = "no"
@@ -1115,19 +1139,20 @@ def forceRescan(ComicID, archive=None, module=None):
                     foundchk = False
 
                     #check here if muliple identical numbering issues exist for the series
-                    if len(mc_issue) > 1:
-                        for mi in mc_issue:
-                            if mi['Int_IssueNumber'] == int_iss:
-                                if mi['IssueID'] == reann['IssueID']:
-                                    logger.fdebug(module + ' IssueID matches to multiple issues : ' + str(mi['IssueID']) + '. Checking dupe.')
-                                    logger.fdebug(module + ' miISSUEYEAR: ' + str(mi['IssueYear']) + ' -- issyear : ' + str(issyear))
-                                    if any(mi['IssueID'] == d['issueid'] for d in issuedupechk):
+                    if len(mc_annual) > 1:
+                        for ma in mc_annual:
+                            if ma['Int_IssueNumber'] == int_iss:
+                                if ma['IssueID'] == reann['IssueID']:
+                                    logger.fdebug(module + ' IssueID matches to multiple issues : ' + str(ma['IssueID']) + '. Checking dupe.')
+                                    logger.fdebug(module + ' maISSUEYEAR: ' + str(ma['IssueYear']) + ' -- issyear : ' + str(issyear))
+                                    if any(ma['IssueID'] == d['issueid'] for d in annualdupechk):
                                         logger.fdebug(module + ' IssueID already within dupe. Checking next if available.')
                                         multiplechk = True
                                         break
-                                    if (mi['IssueYear'] in tmpfc['ComicFilename']) and (issyear == mi['IssueYear']):
+                                    if (ma['IssueYear'] in tmpfc['ComicFilename']) and (issyear == ma['IssueYear']):
                                         logger.fdebug(module + ' Matched to year within filename : ' + str(issyear))
                                         multiplechk = False
+                                        ANNComicID = ack['ReleaseComicID']
                                         break
                                     else:
                                         logger.fdebug(module + ' Did not match to year within filename : ' + str(issyear))

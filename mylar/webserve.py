@@ -5209,6 +5209,10 @@ class WebInterface(object):
         else:
             download = False
 
+        if mylar.AUTO_SNATCH is False:
+            logger.warn('Auto-Snatch is not enabled - this will ONLY work with auto-snatch enabled and configured. Aborting request.')
+            return  'Unable to complete request - please enable auto-snatch if required'
+
         torrent_info = helpers.torrentinfo(issueid, torrent_hash, download)
 
         if torrent_info:
