@@ -1074,7 +1074,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                 logger.info('Connected to qBittorrent! Will try to add torrent now!')
             torrent_info = qc.load_torrent(filepath)
 
-            if torrent_info:
+            if torrent_info['status'] is True:
                 torrent_info['clientmode'] = 'qbittorrent'
                 torrent_info['link'] = linkit
                 return torrent_info

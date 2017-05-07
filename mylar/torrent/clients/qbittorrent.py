@@ -15,14 +15,14 @@ class TorrentClient(object):
             return self.connect
 	
         if not host:
-            return False
+            return {'status': False}
 
         try:
             logger.info(host)
             self.client = client.Client(host)
         except Exception as e:
             logger.error('Could not create qBittorrent Object' + str(e))
-            return False
+            return {'status': False}
         else:
             try:
                 self.client.login(username, password)
@@ -67,17 +67,17 @@ class TorrentClient(object):
             #Check if torrent already added
             if self.find_torrent(hash):
                 logger.info('load_torrent: Torrent already exists!')
-                return False
+                return {'status': False}
                 #should set something here to denote that it's already loaded, and then the failed download checker not run so it doesn't download
                 #multiple copies of the same issues that's already downloaded
             else:
                 logger.info('Torrent not added yet, trying to add it now!')
                 try:
                     torrent_content = open(filepath, 'rb')
-                    tid = self.client.download_from_file(torrent_content, label=mylar.QBITTORRENT_LABEL)
+                    tid = self.client.download_from_file(torrent_content, category=str(mylar.QBITTORRENT_LABEL))
                 except Exception as e:
                     logger.debug('Torrent not added')
-                    return False
+                    return {'status': False}
                 else:
                     logger.debug('Successfully submitted for add. Verifying item is now on client.')
 
@@ -98,21 +98,26 @@ class TorrentClient(object):
             tinfo = self.get_torrent(hash)
         except Exception as e:
             logger.warn('Torrent was not added! Please check logs')
-            return False
+            return {'status': False}
         else:
-            torrent_info = []
             logger.info('Torrent successfully added!')
-            torrent_info['hash'] = hash
             filelist = self.client.get_torrent_files(hash)
+            #logger.info(filelist)
             if len(filelist) == 1:
-                torrent_info['name'] = filelist['name']
+                to_name = filelist[0]['name']
             else:
-                torrent_info['name'] = tinfo['save_path']
-            torrent_info['total_filesize'] = tinfo['total_size']
-            torrent_info['folder'] = tinfo['save_path']
-            torrent_info['files'] = filelist
-            torrent_info['time_started'] = tinfo['addition_date']
-            torrent_info['label'] = mylar.QBITTORRENT_LABEL
+                to_name = tinfo['save_path']
+ 
+            torrent_info = {'hash':             hash,
+                            'files':            filelist,
+                            'name':             to_name,
+                            'total_filesize':   tinfo['total_size'],
+                            'folder':           tinfo['save_path'],
+                            'time_started':     tinfo['addition_date'],
+                            'label':            mylar.QBITTORRENT_LABEL,
+                            'status':           True}
+
+            #logger.info(torrent_info)
             return torrent_info
 
 

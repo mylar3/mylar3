@@ -2793,20 +2793,26 @@ def script_env(mode, vars):
                 os.environ['mylar_release_blackhole'] = vars['nzbinfo']['blackhole']
         os.environ['mylar_release_provider'] = vars['provider']
         if 'comicinfo' in vars:
-            os.environ['mylar_comicid'] = vars['comicinfo']['comicid']
-            os.environ['mylar_issueid'] = vars['comicinfo']['issueid']
+            try:
+                os.environ['mylar_comicid'] = vars['comicinfo']['comicid']  #comicid/issueid are unknown for one-offs (should be fixable tho)
+            except:
+                pass
+            try:
+                os.environ['mylar_issueid'] = vars['comicinfo']['issueid']
+            except:
+                pass
             os.environ['mylar_comicname'] = vars['comicinfo']['comicname']
-            os.environ['mylar_issuenumber'] = vars['comicinfo']['issuenumber']
+            os.environ['mylar_issuenumber'] = str(vars['comicinfo']['issuenumber'])
             try:
                 os.environ['mylar_comicvolume'] = str(vars['comicinfo']['volume'])
             except:
                 pass
             try:
-                os.environ['mylar_seriesyear'] = vars['comicinfo']['seriesyear']
+                os.environ['mylar_seriesyear'] = str(vars['comicinfo']['seriesyear'])
             except:
                 pass
             try:
-                os.environ['mylar_issuedate'] = vars['comicinfo']['issuedate']
+                os.environ['mylar_issuedate'] = str(vars['comicinfo']['issuedate'])
             except:
                 pass
 

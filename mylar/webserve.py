@@ -4156,7 +4156,7 @@ class WebInterface(object):
                     "qbittorrent_password": mylar.QBITTORRENT_PASSWORD,
                     "qbittorrent_label": mylar.QBITTORRENT_LABEL,
                     "qbittorrent_folder": mylar.QBITTORRENT_FOLDER,
-                    "qbittorrent_startonload": mylar.QBITTORRENT_STARTONLOAD,
+                    "qbittorrent_startonload": helpers.checked(mylar.QBITTORRENT_STARTONLOAD),
                     "blackhole_dir": mylar.BLACKHOLE_DIR,
                     "usenet_retention": mylar.USENET_RETENTION,
                     "use_nzbsu": helpers.checked(mylar.NZBSU),

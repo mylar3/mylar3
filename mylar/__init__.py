@@ -896,9 +896,9 @@ def initialize():
         QBITTORRENT_HOST = check_setting_str(CFG, 'qBittorrent', 'qbittorrent_host', '')
         QBITTORRENT_USERNAME = check_setting_str(CFG, 'qBittorrent', 'qbittorrent_username', '')
         QBITTORRENT_PASSWORD = check_setting_str(CFG, 'qBittorrent', 'qbittorrent_password', '')
-        QBITTORRENT_LABEL = check_setting_str(CFG, 'qBittorrent', 'qbitttorent_label', '')
-        QBITTORRENT_FOLDER = check_setting_str(CFG, 'qBittorrent', 'qbitttorent_folder', '')
-        QBITTORRENT_STARTONLOAD = bool(check_setting_int(CFG, 'qBittorrent', 'qbitttorent_startonload', 0))
+        QBITTORRENT_LABEL = check_setting_str(CFG, 'qBittorrent', 'qbittorrent_label', '')
+        QBITTORRENT_FOLDER = check_setting_str(CFG, 'qBittorrent', 'qbittorrent_folder', '')
+        QBITTORRENT_STARTONLOAD = bool(check_setting_int(CFG, 'qBittorrent', 'qbittorrent_startonload', 0))
         
         #add torrents to provider counter.
         if ENABLE_TORRENT_SEARCH:
