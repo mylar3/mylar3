@@ -1030,7 +1030,7 @@ div#artistheader h2 a {
   text-align: center;
 }
 #arc_detail th#issuedate {
-  max-width: 40px;
+  max-width: 45px;
   text-align: center;
 }
 #arc_detail th#readingorder {
@@ -1055,7 +1055,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #arc_detail td#issuedate {
-  max-width: 40px;
+  max-width: 45px;
   text-align: center;
   vertical-align: middle;
 }

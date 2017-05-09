@@ -459,11 +459,24 @@ class WebInterface(object):
                 issname = arcval['Issue_Name']
                 issid = str(arcval['IssueID'])
                 comicid = str(arcval['ComicID'])
-                if comicid not in cidlist:
-                    if n == 0:
-                        cidlist += str(comicid)
-                    else:
-                        cidlist += '|' + str(comicid)
+                #--- this needs to get changed so comicid within a comicid doesn't exist (ie. 3092 is IN 33092)
+                cid_count = cidlist.count(comicid) +1
+                a_end = 0
+                i = 0
+                while i < cid_count:
+                    a = cidlist.find(comicid, a_end)
+                    a_end = cidlist.find('|',a)
+                    if a_end == -1: a_end = len(cidlist)
+                    a_length = cidlist[a:a_end-1]
+
+                    if a == -1 and len(a_length) != len(comicid):
+                        if n == 0:
+                            cidlist += str(comicid)
+                        else:
+                            cidlist += '|' + str(comicid)
+                        break
+                    i+=1
+
                 #don't recreate the st_issueid if it's a refresh and the issueid already exists (will create duplicates otherwise)
                 st_issueid = None
                 manual_mod = None
@@ -511,7 +524,6 @@ class WebInterface(object):
                                   "Int_IssueNumber":    int_issnum,
                                   "Manual":             manual_mod})
                 n+=1
-
             comicid_results = mylar.cv.getComic(comicid=None, type='comicyears', comicidlist=cidlist)
             logger.fdebug(module + ' Initiating issue updating - just the info')
 
@@ -557,8 +569,6 @@ class WebInterface(object):
                            "Manual":            AD['Manual']}
 
                 myDB.upsert("readinglist", newVals, newCtrl)
-
-                #logger.info(newVals)
 
         #run the Search for Watchlist matches now.
         logger.fdebug(module + ' Now searching your watchlist for matches belonging to this story arc.')
