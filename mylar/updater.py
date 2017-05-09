@@ -644,7 +644,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     myDB.upsert("nzblog", newValue, controlValue)
 
 
-def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None, hash=None):
+def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None, hash=None, crc=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -774,7 +774,8 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                            "ComicID":         ComicID,
                            "Issue_Number":    IssueNum,
                            "DateAdded":       helpers.now(),
-                           "Status":          downstatus
+                           "Status":          downstatus,
+                           "crc":             crc
                            }
         myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
