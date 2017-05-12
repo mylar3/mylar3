@@ -5153,13 +5153,14 @@ class WebInterface(object):
         return mylar.rsscheck.torrents(pickfeed='4', seriesname=search)
     search_32p.exposed = True
 
-    def testNMA(self):
-        nma = notifiers.NMA()
+    def testNMA(self, apikey):
+        nma = notifiers.NMA(test_apikey=apikey)
         result = nma.test_notify()
-        if result == True:
-            return "Successfully sent NMA test -  check to make sure it worked"
+        if result['status'] == True:
+            return result['message']
         else:
-            return "Error sending test message to NMA"
+            logger.warn('APIKEY used for test was : %s' % apikey)
+            return result['message']
     testNMA.exposed = True
 
     def testprowl(self):
@@ -5189,13 +5190,14 @@ class WebInterface(object):
             return "Error sending test message to Pushover"
     testpushover.exposed = True
 
-    def testpushbullet(self):
-        pushbullet = notifiers.PUSHBULLET()
+    def testpushbullet(self, apikey):
+        pushbullet = notifiers.PUSHBULLET(test_apikey=apikey)
         result = pushbullet.test_notify()
-        if result == True:
-            return "Successfully sent Pushbullet test -  check to make sure it worked"
+        if result['status'] == True:
+            return result['message']
         else:
-            return "Error sending test message to Pushbullet"
+            logger.warn('APIKEY used for test was : %s' % apikey)
+            return result['message']
     testpushbullet.exposed = True
 
     def testtelegram(self):

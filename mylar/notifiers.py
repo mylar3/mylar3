@@ -82,10 +82,14 @@ class PROWL:
 
 class NMA:
 
-    def __init__(self):
+    def __init__(self, test_apikey=None):
 
         self.NMA_URL = "https://www.notifymyandroid.com/publicapi/notify"
-        self.apikey = mylar.NMA_APIKEY
+        self.TEST_NMA_URL = "https://www.notifymyandroid.com/publicapi/verify"
+        if test_apikey is None:
+            self.apikey = mylar.NMA_APIKEY
+        else:
+            self.apikey = test_apikey
         self.priority = mylar.NMA_PRIORITY
 
         self._session = requests.Session()
@@ -95,18 +99,36 @@ class NMA:
             r = self._session.post(self.NMA_URL, data=data, verify=True)
         except requests.exceptions.RequestException as e:                
             logger.error(module + '[' + str(e) + '] Unable to send via NMA. Aborting notification for this item.')
-            return False
+            return {'status':  False,
+                    'message': str(e)}
 
         logger.fdebug('[NMA] Status code returned: ' + str(r.status_code))
         if r.status_code == 200:
-            logger.info(module + ' NotifyMyAndroid notifications sent.')
-            return True
+            from xml.dom.minidom import parseString
+            dom = parseString(r.content)
+            try:
+                success_info = dom.getElementsByTagName('success')
+                success_code = success_info[0].getAttribute('code')
+            except:
+                error_info = dom.getElementsByTagName('error')
+                error_code = error_info[0].getAttribute('code')
+                error_message = error_info[0].childNodes[0].nodeValue
+                logger.info(module + '[' + str(error_code) + '] ' + error_message)
+                return {'status':  False,
+                        'message': '[' + str(error_code) + '] ' + error_message}
+
+            else:
+                logger.info(module + '[' + str(success_code) + '] NotifyMyAndroid apikey valid. Test notification sent successfully.')
+                return {'status':  True,
+                        'message': 'APIKEY verified OK / notification sent'}
         elif r.status_code >= 400 and r.status_code < 500:
             logger.error(module + ' NotifyMyAndroid request failed: %s' % r.content)
-            return False
+            return {'status':  False,
+                    'message': 'APIKEY verified OK / failure to send notification'}
         else:
-            logger.error(module + ' NotifyMyAndroid  notification failed serverside.')
-            return False
+            logger.error(module + ' NotifyMyAndroid notification failed serverside.')
+            return {'status':  False,
+                    'message': 'APIKEY verified OK / failure to send notification'}
 
     def notify(self, snline=None, prline=None, prline2=None, snatched_nzb=None, sent_to=None, prov=None, module=None):
 
@@ -134,6 +156,40 @@ class NMA:
             logger.warn(module + ' Error sending notification request to NotifyMyAndroid')
 
     def test_notify(self):
+        module = '[TEST-NOTIFIER]'
+        try:
+            r = self._session.get(self.TEST_NMA_URL, params={'apikey': self.apikey}, verify=True)
+        except requests.exceptions.RequestException as e:
+            logger.error(module + '[' + str(e) + '] Unable to send via NMA. Aborting test notification - something is probably wrong...')
+            return {'status':  False,
+                    'message': str(e)}
+
+        logger.fdebug('[NMA] Status code returned: ' + str(r.status_code))
+        if r.status_code == 200:
+            from xml.dom.minidom import parseString
+            dom = parseString(r.content)
+            try:
+                success_info = dom.getElementsByTagName('success')
+                success_code = success_info[0].getAttribute('code')
+            except:
+                error_info = dom.getElementsByTagName('error')
+                error_code = error_info[0].getAttribute('code')
+                error_message = error_info[0].childNodes[0].nodeValue
+                logger.info(module + '[' + str(error_code) + '] ' + error_message)
+                return {'status':  False,
+                        'message': '[' + str(error_code) + '] ' + error_message}
+
+            else:
+                logger.info(module + '[' + str(success_code) + '] NotifyMyAndroid apikey valid. Testing notification service with it.')
+        elif r.status_code >= 400 and r.status_code < 500:
+            logger.error(module + ' NotifyMyAndroid request failed: %s' % r.content)
+            return {'status':  False,
+                    'message': 'Unable to send request to NMA - check your connection.'}
+        else:
+            logger.error(module + ' NotifyMyAndroid notification failed serverside.')
+            return {'status':  False,
+                    'message': 'Internal Server Error. Try again later.'}
+
         event = 'Test Message'
         description = 'ZOMG Lazors PewPewPew!'
         data = {'apikey': self.apikey, 'application': 'Mylar', 'event': event.encode('utf-8'), 'description': description.encode('utf-8'), 'priority': 2}
@@ -271,12 +327,15 @@ class BOXCAR:
 
 class PUSHBULLET:
 
-    def __init__(self):
+    def __init__(self, test_apikey=None):
         self.PUSH_URL = "https://api.pushbullet.com/v2/pushes"
-        self.apikey = mylar.PUSHBULLET_APIKEY
+        if test_apikey is None:
+            self.apikey = mylar.PUSHBULLET_APIKEY
+        else:
+            self.apikey = test_apikey
         self.deviceid = mylar.PUSHBULLET_DEVICEID
         self._json_header = {'Content-Type': 'application/json',
-                             'Authorization': 'Basic %s' % base64.b64encode(mylar.PUSHBULLET_APIKEY + ":")}
+                             'Authorization': 'Basic %s' % base64.b64encode(self.apikey + ":")}
         self._session = requests.Session()
         self._session.headers.update(self._json_header)
 
@@ -284,8 +343,6 @@ class PUSHBULLET:
         return self.notify(method="GET")
 
     def notify(self, snline=None, prline=None, prline2=None, snatched=None, sent_to=None, prov=None, module=None, method=None):
-        if not mylar.PUSHBULLET_ENABLED:
-            return
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -317,19 +374,22 @@ class PUSHBULLET:
                     'body': message.encode('utf-8')}
 
         r = self._session.post(self.PUSH_URL, data=json.dumps(data))
-        
+        dt = r.json()
         if r.status_code == 200:
             if method == 'GET':
-                return r.json()
+                return dt
             else:
                 logger.info(module + ' PushBullet notifications sent.')
-                return True
+                return {'status':  True,
+                        'message': 'APIKEY verified OK / notification sent'}
         elif r.status_code >= 400 and r.status_code < 500:
             logger.error(module + ' PushBullet request failed: %s' % r.content)
-            return False
+            return {'status':  False,
+                    'message': '[' + str(r.status_code) + '] ' + dt['error']['message']}
         else:
-            logger.error(module + ' PushBullet notification failed serverside.')
-            return False
+            logger.error(module + ' PushBullet notification failed serverside: %s' % r.content)
+            return {'status':  False,
+                    'message': '[' + str(r.status_code) + '] ' + dt['error']['message']}
 
     def test_notify(self):
         return self.notify(prline='Test Message', prline2='Release the Ninjas!')
