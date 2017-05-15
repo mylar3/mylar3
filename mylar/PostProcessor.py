@@ -341,7 +341,7 @@ class PostProcessor(object):
                 for fl in filelist['comiclist']:
                     if mylar.ENABLE_TORRENTS:
                         crcchk = None
-                        tcrc = helpers.crc(os.path.join(fl['comiclocation'], fl['comicfilename']))
+                        tcrc = helpers.crc(os.path.join(fl['comiclocation'], fl['comicfilename'].decode(mylar.SYS_ENCODING)))
                         crcchk = [x for x in pp_crclist if tcrc == x['crc']]
                         if crcchk:
                            logger.fdebug('Already post-processed this item %s - Ignoring' % crcchk)
