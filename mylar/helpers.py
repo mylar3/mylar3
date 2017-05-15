@@ -2273,7 +2273,7 @@ def crc(filename):
 
     #speed in lieu of memory (file into memory entirely)
     #return "%X" % (zlib.crc32(open(filename, "rb").read()) & 0xFFFFFFFF)
-
+    filename = filename.encode(mylar.SYS_ENCODING)
     return hashlib.md5(filename).hexdigest()
 
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
