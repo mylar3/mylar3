@@ -409,14 +409,14 @@ class TELEGRAM:
 
         # Send message to user using Telegram's Bot API
         try:
-            response = requests.post(self.TELEGRAM_API % (self.token, "sendMessage"), data=payload)
+            response = requests.post(self.TELEGRAM_API % (self.token, "sendMessage"), json=payload, verify=True)
         except Exception, e:
             logger.info(u'Telegram notify failed: ' + str(e))
 
         # Error logging
         sent_successfuly = True
         if not response.status_code == 200:
-            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]', (self.token, response.text))
+            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
             sent_successfuly = False
 
         logger.info(u"Telegram notifications sent.")
