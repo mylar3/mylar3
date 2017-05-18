@@ -1222,14 +1222,20 @@ def upgrade_dynamic():
     mylar.config_write()
     return
 
-def checkFolder():
+def checkFolder(folderpath=None):
     from mylar import PostProcessor, logger
     import Queue
 
     queue = Queue.Queue()
     #monitor a selected folder for 'snatched' files that haven't been processed
-    logger.info('Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
-    PostProcess = PostProcessor.PostProcessor('Manual Run', mylar.CHECK_FOLDER, queue=queue)
+    if folderpath is None:
+        logger.info('Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
+        path = mylar.CHECK_FOLDER
+    else:
+        logger.info('Submitted folder ' + folderpath + ' for direct folder post-processing')
+        path = folderpath
+
+    PostProcess = PostProcessor.PostProcessor('Manual Run', path, queue=queue)
     vals = PostProcess.Process()
     return
 
@@ -2395,12 +2401,27 @@ def checkthe_id(comicid=None, up_vals=None):
         if chk is None:
            return None
         else:
-           return {'id':     chk['ID'],
-                   'series': chk['Series']}
+           #if updated time hasn't been set or it's > 24 hrs, blank the entry so we can make sure we pull an updated groupid from 32p
+           if chk['Updated'] is None:
+               logger.fdebug('Reference found for 32p - but the id has never been verified after populating. Verifying it is still the right id before proceeding.')
+               return None
+           else:
+               c_obj_date = datetime.datetime.strptime(chk['Updated'], "%Y-%m-%d %H:%M:%S")
+               n_date = datetime.datetime.now()
+               absdiff = abs(n_date - c_obj_date)
+               hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
+               if hours >= 24:
+                   logger.fdebug('Reference found for 32p - but older than 24hours since last checked. Verifying it is still the right id before proceeding.')
+                   return None
+               else:
+                   return {'id':     chk['ID'],
+                           'series': chk['Series']}
+
     else:
         ctrlVal = {'ComicID':     comicid}
         newVal =  {'Series':      up_vals[0]['series'],
-                   'ID':          up_vals[0]['id']}
+                   'ID':          up_vals[0]['id'],
+                   'Updated':     now()}
         myDB.upsert("ref32p", newVal, ctrlVal)
 
 def updatearc_locs(storyarcid, issues):
@@ -2553,7 +2574,7 @@ def arcformat(arc, spanyears, publisher):
 
     return dstloc
 
-def torrentinfo(issueid=None, torrent_hash=None, download=False):
+def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
     import db
     from base64 import b16encode, b32decode
 
@@ -2595,14 +2616,21 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False):
             snatch_status = 'ERROR'
             return
 
+    logger.info('torrent_info: %s' % torrent_info)
+
     if torrent_info is False or len(torrent_info) == 0:
         logger.warn('torrent returned no information. Check logs - aborting auto-snatch at this time.')
         snatch_status = 'ERROR'
     else:
         if mylar.USE_DELUGE:
             torrent_status = torrent_info['is_finished']
-            torrent_files = torrent_info['num_files']        
+            torrent_files = torrent_info['num_files']
             torrent_folder = torrent_info['save_path']
+            torrent_info['total_filesize'] = torrent_info['total_size']
+            torrent_info['upload_total'] = torrent_info['total_uploaded']
+            torrent_info['download_total'] = torrent_info['total_payload_download']
+            torrent_info['time_started'] = torrent_info['time_added']
+
         elif mylar.USE_RTORRENT:
             torrent_status = torrent_info['completed']
             torrent_files = len(torrent_info['files'])
@@ -2648,9 +2676,34 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False):
                     snatch_status = 'IN PROGRESS'
                 else:
                     snatch_status = 'COMPLETED'
+                torrent_info['completed'] = torrent_status
+                torrent_info['files'] = torrent_files
+                torrent_info['folder'] = torrent_folder
+
         else:
             if download is True:
                 snatch_status = 'IN PROGRESS'
+            elif monitor is True:
+                #pause the torrent, copy it to the cache folder, unpause the torrent and return the complete path to the cache location
+                if mylar.USE_DELUGE:
+                    pauseit = dp.stop_torrent(torrent_hash)
+                    if pauseit is False:
+                        logger.warn('Unable to pause torrent - cannot run post-process on item at this time.')
+                        snatch_status = 'MONITOR FAIL'
+                    else:
+                        try:
+                            new_filepath = os.path.join(torrent_path, '.copy')
+                            logger.info('New_Filepath: %s' % new_filepath)
+                            shutil.copy(torrent_path, new_filepath)
+                            torrent_info['copied_filepath'] = new_filepath
+                        except:
+                            logger.warn('Unexpected Error: %s' % sys.exc_info()[0])
+                            logger.warn('Unable to create temporary directory to perform meta-tagging. Processing cannot continue with given item at this time.')
+                            torrent_info['copied_filepath'] = torrent_path
+                            SNATCH_STATUS = 'MONITOR FAIL'
+                        else:
+                            startit = dp.start_torrent(torrent_hash)
+                            SNATCH_STATUS = 'MONITOR COMPLETE'
             else:
                 snatch_status = 'NOT SNATCHED'
 
@@ -2760,9 +2813,12 @@ def worker_main(queue):
         snstat = torrentinfo(torrent_hash=item, download=True)
         if snstat['snatch_status'] == 'IN PROGRESS':
             logger.info('Still downloading in client....let us try again momentarily.')
-            time.sleep(15)
+            time.sleep(30)
             mylar.SNATCHED_QUEUE.put(item)
-        
+        elif any([snstat['snatch_status'] == 'MONITOR FAIL', snstat['snatch_status'] == 'MONITOR COMPLETE']):
+            logger.info('File copied for post-processing - submitting as a direct pp.')
+            threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()           
+
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
     #var = dictionary containing variables to pass

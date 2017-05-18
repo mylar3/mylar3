@@ -48,7 +48,7 @@ class info32p(object):
             self.authkey = lses.authkey
             self.passkey = lses.passkey
             self.uid = lses.uid
-         
+
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
         self.publisher_list = {'Entertainment', 'Press', 'Comics', 'Publishing', 'Comix', 'Studios!'}
@@ -165,8 +165,6 @@ class info32p(object):
         #self.searchterm is a tuple containing series name, issue number, volume and publisher.
         series_search = self.searchterm['series']
         comic_id = self.searchterm['id']
-        if comic_id:
-            chk_id = helpers.checkthe_id(comic_id)
 
         annualize = False
         if 'Annual' in series_search:
@@ -300,18 +298,18 @@ class info32p(object):
                     dataset += data
                 if len(pdata) > 0:
                     dataset += pdata
-                
+
             if chk_id is None and any([len(data) == 1, len(pdata) == 1]):
                 #update the 32p_reference so we avoid doing a url lookup next time
                 helpers.checkthe_id(comic_id, dataset)
             else:
-                logger.warn('More than one result - will update the 32p reference point once the issue has been successfully matched against.')
+                logger.warn('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
 
             results32p = []
             resultlist = {}
 
             for x in dataset:
-
+                #for 0-day packs, issue=week#, volume=month, id=0-day year pack
                 payload = {'action': 'groupsearch',
                            'id':     x['id'], #searchid,
                            'issue':  issue_search}
