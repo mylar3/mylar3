@@ -1674,6 +1674,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     return foundc
 
 def searchforissue(issueid=None, new=False, rsscheck=None):
+
     myDB = db.DBConnection()
 
     if not issueid or rsscheck:
@@ -1723,7 +1724,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
         #to-do: re-order the results list so it's most recent to least recent.
 
-        for result in results:
+        for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             if comic is None:
                 logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
@@ -2266,6 +2267,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             t_hash = rcheck['hash']
 
             if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.AUTO_SNATCH:
+                mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+            elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.LOCAL_TORRENT_PP:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
             else:
                 if mylar.ENABLE_SNATCH_SCRIPT:

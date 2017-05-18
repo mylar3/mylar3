@@ -11,6 +11,7 @@
                         <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullist?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Refresh submitted.">Refresh Pull-list</a>
                         <a id="menu_link_retry" href="pullrecreate">Recreate Pull-list</a>
                         <a id="menu_link_scan" class="button">Download</a>
+                        <a href="#" id="menu_link_refresh" onclick="doAjaxCall('pullSearch?week=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="Submitted background search request for new pull issues">Manually check for issues</a>
 		</div>
 	</div>
 	<a href="home" class="back">&laquo; Back to overview</a>

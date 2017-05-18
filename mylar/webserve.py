@@ -1585,6 +1585,25 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     archiveissue.exposed = True
 
+    def pullSearch(self, week, year):
+        myDB = db.DBConnection()
+        #retrieve a list of all the issues that are in a Wanted state from the pull that we can search for.
+        ps = myDB.select("SELECT * from weekly WHERE Status='Wanted' AND weeknumber=? AND year=?", [int(week), year])
+        if ps is None:
+            logger.info('No items are marked as Wanted on the pullist to be searched for at this time')
+            return
+        issuesToSearch = []
+        for p in ps:
+            if p['IssueID'] is not None:
+                issuesToSearch.append(p['IssueID'])
+
+        if len(issuesToSearch) > 0:
+            logger.info('Now force searching for ' + str(len(issuesToSearch)) + ' issues from the pullist for week ' + str(week))
+            threading.Thread(target=search.searchIssueIDList, args=[issuesToSearch]).start()
+        else:
+            logger.info('Issues are marked as Wanted, but no issue information is available yet so I cannot search for anything. Try Recreating the pullist if you think this is error.')
+            return
+    pullSearch.exposed = True
 
     def pullist(self, week=None, year=None):
         myDB = db.DBConnection()
@@ -1997,6 +2016,9 @@ class WebInterface(object):
 #           ann_cnt = anncnt[0][0]
             ann_list += annuals_list
             issues += annuals_list
+
+        issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
+        issues = sorted(issues_tmp, key=itemgetter('Status'), reverse=True)
 
         for curResult in issues:
             baseissues = {'wanted': 1, 'snatched': 2, 'failed': 3}
@@ -4189,7 +4211,7 @@ class WebInterface(object):
                     "newznab_api": mylar.NEWZNAB_APIKEY,
                     "newznab_uid": mylar.NEWZNAB_UID,
                     "newznab_enabled": helpers.checked(mylar.NEWZNAB_ENABLED),
-                    "extra_newznabs": mylar.EXTRA_NEWZNABS,
+                    "extra_newznabs": sorted(mylar.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_rss": helpers.checked(mylar.ENABLE_RSS),
                     "rss_checkinterval": mylar.RSS_CHECKINTERVAL,
                     "provider_order": mylar.PROVIDER_ORDER,
