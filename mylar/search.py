@@ -34,6 +34,7 @@ import urllib2
 import email.utils
 import datetime
 import shutil
+from operator import itemgetter
 from wsgiref.handlers import format_date_time
 
 def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None):
@@ -1724,7 +1725,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
         #to-do: re-order the results list so it's most recent to least recent.
 
-        for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
+        for result in sorted(results, key=itemgetter('ReleaseDate'), reverse=True):
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             if comic is None:
                 logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
