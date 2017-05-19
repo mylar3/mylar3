@@ -1725,7 +1725,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
         #to-do: re-order the results list so it's most recent to least recent.
 
-        for result in sorted(results, key=itemgetter('ReleaseDate'), reverse=True):
+        for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
             if comic is None:
                 logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
