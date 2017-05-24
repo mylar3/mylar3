@@ -488,7 +488,7 @@ class info32p(object):
 
             if r.status_code != 200:
                 logger.warn(self.module + " Got bad status code from login POST: %d\n%s\n%s", r.status_code, r.text, r.headers)
-                logger.debug(self.module + " Request URL: %s \n Content: %s \n History: %s \n Json: %s", r.url ,r.text, r.history, d)
+                logger.debug(self.module + " Request URL: %s \n Content: %s \n History: %s", r.url ,r.text, r.history)
                 self.error = {'status':'Bad Status code', 'message':(r.status_code, r.text, r.headers)}
                 return False
 
@@ -496,7 +496,7 @@ class info32p(object):
                 logger.debug(self.module + ' Trying to analyze login JSON reply from 32P: %s', r.text)
                 d = r.json()
             except:
-                logger.debug(self.module + " Request URL: %s \n Content: %s \n History: %s \n Json: %s", r.url ,r.text, r.history, d)
+                logger.debug(self.module + " Request URL: %s \n Content: %s \n History: %s", r.url ,r.text, r.history)
                 logger.error(self.module + " The data returned by the login page was not JSON: %s", r.text)
                 self.error = {'status':'JSON not returned', 'message':r.text}
                 return False
