@@ -1,5 +1,6 @@
 <%inherit file="base.html" />
 <%!
+	import datetime
         import mylar
         from mylar.helpers import checked
 
@@ -66,7 +67,8 @@
 			%if searchresults:
 				%for result in searchresults:
 				<%
-					if result['comicyear'] == '2016':
+					now = datetime.datetime.now()
+					if result['comicyear'] == now.year:
 					    grade = 'A'
 					else:
 					    grade = 'Z'
