@@ -77,7 +77,7 @@ class TorrentClient(object):
             down_dir = mylar.CHECK_FOLDER
         else:
             down_dir = mylar.TRANSMISSION_DIRECTORY
-        torrent = self.conn.add_torrent(filepath,
+        torrent = self.conn.add_torrent('file://%s' % filepath,
                                         download_dir=down_dir)
 
         torrent.start()
