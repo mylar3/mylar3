@@ -599,7 +599,7 @@ def no_searchresults(ComicID):
                 "LatestIssue":  "Error"}
     myDB.upsert("comics", newValue, controlValue)
 
-def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, prov=None, alt_nzbname=None):
+def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, prov=None, alt_nzbname=None, oneoff=False):
     myDB = db.DBConnection()
 
     newValue = {'NZBName':  NZBName}
@@ -608,6 +608,10 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
        logger.fdebug("Story Arc (SARC) detected as: " + str(SARC))
        IssueID = 'S' + str(IssueArcID)
        newValue['SARC'] = SARC
+
+    if oneoff is True:
+       logger.fdebug('One-Off download detected when updating - crossing the t\'s and dotting the i\'s so things work...')
+       newValue['OneOff'] = True
 
     if IssueID is None or IssueID == 'None':
        #if IssueID is None, it's a one-off download from the pull-list.
@@ -644,7 +648,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     myDB.upsert("nzblog", newValue, controlValue)
 
 
-def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None, hash=None, crc=None):
+def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None, IssueArcID=None, module=None, hash=None, crc=None, comicname=None, issuenumber=None, pullinfo=None):
     # When doing a Force Search (Wanted tab), the resulting search calls this to update.
 
     # this is all redudant code that forceRescan already does.
@@ -661,22 +665,35 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
 
     logger.fdebug(module + ' comicid: ' + str(ComicID))
     logger.fdebug(module + ' issueid: ' + str(IssueID))
-    if mode != 'story_arc':
-        comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
-        ComicName = comic['ComicName']
-        if mode == 'want_ann':
-            issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
-            if ComicName != issue['ReleaseComicName'] + ' Annual':
-                ComicName = issue['ReleaseComicName']
-                modcomicname = True
-        else:
-            issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
-        CYear = issue['IssueDate'][:4]
+    if mode != 'pullwant':
+        if mode != 'story_arc':
+            comic = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+            ComicName = comic['ComicName']
+            if mode == 'want_ann':
+                issue = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
+                if ComicName != issue['ReleaseComicName'] + ' Annual':
+                    ComicName = issue['ReleaseComicName']
+                    modcomicname = True
+            else:
+                issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
+            CYear = issue['IssueDate'][:4]
+            IssueNum = issue['Issue_Number']
 
+        else:
+            issue = myDB.selectone('SELECT * FROM readinglist WHERE IssueArcID=?', [IssueArcID]).fetchone()
+            ComicName = issue['ComicName']
+            CYear = issue['IssueYEAR']
+            IssueNum = issue['IssueNumber']
     else:
-        issue = myDB.selectone('SELECT * FROM readinglist WHERE IssueArcID=?', [IssueArcID]).fetchone()
-        ComicName = issue['ComicName']
-        CYear = issue['IssueYEAR']
+        oneinfo = myDB.selectone('SELECT * FROM weekly WHERE IssueID=?', [IssueID]).fetchone()
+        if oneinfo is None:
+            ComicName = comicname
+            IssueNum = issuenumber
+            onefail = True
+        else:
+            ComicName = oneinfo['COMIC']
+            IssueNum = oneinfo['ISSUE']
+            onefail = False
 
     if down is None:
         # update the status to Snatched (so it won't keep on re-downloading!)
@@ -701,7 +718,8 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                 myDB.upsert("annuals", newValue, controlValue)
             else:
                 controlValue = {"IssueID":   IssueID}
-                myDB.upsert("issues", newValue, controlValue)
+                if mode != 'pullwant':
+                    myDB.upsert("issues", newValue, controlValue)
 
             # update the snatched DB
             snatchedupdate = {"IssueID":     IssueID,
@@ -718,7 +736,10 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "Status":          "Snatched",
                                "Hash":            hash
                                }
-        else:
+
+            myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+
+        elif mode != 'pullwant':         
             if modcomicname:
                 IssueNum = issue['Issue_Number']
             else:
@@ -734,18 +755,43 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                                "Status":          "Snatched",
                                "Hash":            hash
                                }
-        myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
-        #this will update the weeklypull list immediately after sntaching to reflect the new status.
+            myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+
+        else:
+             #updating snatched table with one-off is abit difficult due to lack of complete information in some instances
+             #ie. alt_pull 2 not populated yet, alt_pull 0 method in general doesn't have enough info....
+
+            newsnatchValues = {"ComicName":       ComicName,
+                               "ComicID":         ComicID,
+                               "IssueID":        IssueID,
+                               "Issue_Number":    IssueNum,
+                               "DateAdded":       helpers.now(),
+                               "Status":          "Snatched",
+                               "Hash":            hash
+                               }
+
+            myDB.upsert("snatched", newsnatchValues, snatchedupdate)
+
+        #this will update the weeklypull list immediately after snatching to reflect the new status.
         #-is ugly, should be linked directly to other table (IssueID should be populated in weekly pull at this point hopefully).
         chkit = myDB.selectone("SELECT * FROM weekly WHERE ComicID=? AND IssueID=?", [ComicID, IssueID]).fetchone()
 
         if chkit is not None:
+            comicname = chkit['COMIC']
+            issue = chkit['ISSUE']
 
             ctlVal = {"ComicID":  ComicID,
                       "IssueID":  IssueID}
-            newVal = {"Status":   "Snatched"}
-            myDB.upsert("weekly", newVal, ctlVal)
+            myDB.upsert("weekly", newValue, ctlVal)
+
+            newValue['IssueNumber'] =  issue
+            newValue['ComicName'] = comicname
+            newValue['Status'] = "Snatched"
+            if pullinfo is not None:
+                newValue['weeknumber'] = pullinfo['weeknumber']
+                newValue['year'] = pullinfo['year']
+            myDB.upsert("oneoffhistory", newValue, ctlVal)
 
         logger.info(module + ' Updated the status (Snatched) complete for ' + ComicName + ' Issue: ' + str(IssueNum))
     else:
@@ -756,15 +802,10 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
             logger.info(module + ' Setting status to Downloaded in history.')
             downstatus = 'Downloaded'
         if mode == 'want_ann':
-            if modcomicname:
-                IssueNum = issue['Issue_Number']
-            else:
-                IssueNum = "Annual " + issue['Issue_Number']
+            if not modcomicname:
+                IssueNum = "Annual " + IssueNum
         elif mode == 'story_arc':
-            IssueNum = issue['IssueNumber']
             IssueID = IssueArcID
-        else:
-            IssueNum = issue['Issue_Number']
 
         snatchedupdate = {"IssueID":     IssueID,
                           "Status":      downstatus,
@@ -784,7 +825,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
             nValue = {"Status":       "Downloaded"}
             myDB.upsert("readinglist", nValue, cValue)
 
-        else:
+        elif mode != 'pullwant':
             controlValue = {"IssueID":   IssueID}
             newValue = {"Status":    "Downloaded"}
             if mode == 'want_ann':
@@ -796,11 +837,21 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         chkit = myDB.selectone("SELECT * FROM weekly WHERE ComicID=? AND IssueID=? AND Status='Snatched'", [ComicID, IssueID]).fetchone()
 
         if chkit is not None:
+            comicname = chkit['COMIC']
+            issue = chkit['ISSUE']
 
             ctlVal = {"ComicID":  ComicID,
                       "IssueID":  IssueID}
             newVal = {"Status":   "Downloaded"}
             myDB.upsert("weekly", newVal, ctlVal)
+
+            newVal['IssueNumber'] =  issue
+            newVal['ComicName'] = comicname
+            newVal['Status'] = "Downloaded"
+            if pullinfo is not None:
+                newVal['weeknumber'] = pullinfo['weeknumber']
+                newVal['year'] = pullinfo['year']
+            myDB.upsert("oneoffhistory", newVal, ctlVal)
 
         logger.info(module + ' Updating Status (' + downstatus + ') now complete for ' + ComicName + ' issue: ' + IssueNum)
     return

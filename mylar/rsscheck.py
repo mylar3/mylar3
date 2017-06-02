@@ -281,6 +281,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
 
                     seeddigits = 0
 
+                    #if '0-Day Comics Pack' in series:
+                    #    logger.info('Comic Pack detected : ' + series)
+                    #    itd = True
+
+
                     if int(mylar.MINSEEDS) >= int(seeddigits):
                         #new releases has it as '&id', notification feeds have it as %ampid (possibly even &amp;id
                         link = feedme.entries[i].link
@@ -462,10 +467,10 @@ def rssdbupdate(feeddata, i, type):
     return
 
 
-def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
+def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
     myDB = db.DBConnection()
     seriesname_alt = None
-    if comicid is None or comicid == 'None':
+    if any([comicid is None, comicid == 'None', oneoff is True]):
         pass
     else:
         logger.fdebug('ComicID: ' + str(comicid))
@@ -658,10 +663,10 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None):
 
     return torinfo
 
-def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None):
+def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, ComicVersion=None, oneoff=False):
     myDB = db.DBConnection()
     seriesname_alt = None
-    if comicid is None or comicid == 'None':
+    if any([comicid is None, comicid == 'None', oneoff is True]):
         pass
     else:
         snm = myDB.selectone("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
@@ -1007,13 +1012,16 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
     logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
     if mylar.USE_UTORRENT:
         uTC = utorrent.utorrentclient()
-        torrent_info = uTC.addfile(filepath, filename)
-        if torrent_info:
+        ti = uTC.addfile(filepath, filename)
+        if ti == 'fail':
+            return ti
+        else:
+            #if ti is value, it will return the hash
+            torrent_info = []
+            torrent_info['hash'] = ti
             torrent_info['clientmode'] = 'utorrent'
             torrent_info['link'] = linkit
             return torrent_info
-        else:
-            return "fail"
 
     elif mylar.USE_RTORRENT:
         import test

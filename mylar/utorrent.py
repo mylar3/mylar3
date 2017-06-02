@@ -81,14 +81,13 @@ class utorrentclient(object):
         # (to-do) verify the hash in order to ensure it's loaded here
         if str(r.status_code) == '200':
             logger.info('Successfully added torrent to uTorrent client.')
+            hash = self.calculate_torrent_hash(data=tordata)
             if mylar.UTORRENT_LABEL:
                 try:
-                    hash = self.calculate_torrent_hash(data=tordata)
                     self.setlabel(hash)
                 except:
                     logger.warn('Unable to set label for torrent.')
-
-            return 'pass'
+            return hash
         else:
             return 'fail'
 

@@ -520,7 +520,7 @@ def initialize():
                 STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CV_VERIFY, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_SNATCH_SCRIPT, SNATCH_SCRIPT, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
                 SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, WEEKFOLDER_FORMAT, UMASK, \
-                TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID
+                TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID, TELEGRAM_ONSNATCH
 
         if __INITIALIZED__:
             return False
@@ -1802,7 +1802,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT, ImageURL TEXT, ImageURL_ALT TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT, Hash TEXT, crc TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT, OneOff TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, rowid INTEGER PRIMARY KEY)')
 #    c.execute('CREATE TABLE IF NOT EXISTS sablog (nzo_id TEXT, ComicName TEXT, ComicYEAR TEXT, ComicIssue TEXT, name TEXT, nzo_complete TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
@@ -1814,6 +1814,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS ref32p (ComicID TEXT UNIQUE, ID TEXT, Series TEXT, Updated TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS oneoffhistory (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, Status TEXT, weeknumber TEXT, year TEXT)')
     conn.commit
     c.close
     #new
@@ -2120,6 +2121,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE nzblog ADD COLUMN AltNZBName TEXT')
 
+    try:
+        c.execute('SELECT OneOff from nzblog')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE nzblog ADD COLUMN OneOff TEXT')
     ## -- Annuals Table --
 
     try:

@@ -316,7 +316,7 @@ class PostProcessor(object):
                     return                    
                 logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
 
-                #load the hashes for torrents so continual post-processing of same isseus doesn't occur.
+                #load the hashes for torrents so continual post-processing of same issues don't occur.
                 pp_crclist = []
                 if mylar.ENABLE_TORRENTS:
                     pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE a.Status='Post-Processed' and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived ORDER BY b.IssueDate')")
@@ -921,6 +921,7 @@ class PostProcessor(object):
 
                 nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
 
+                self.oneoff = False
                 if nzbiss is None:
                     self._log("Failure - could not initially locate nzbfile in my database to rename.")
                     logger.fdebug(module + ' Failure - could not locate nzbfile initially')
@@ -939,23 +940,31 @@ class PostProcessor(object):
                     else:
                         self._log("I corrected and found the nzb as : " + str(nzbname))
                         logger.fdebug(module + ' Auto-corrected and found the nzb as : ' + str(nzbname))
-                        issueid = nzbiss['IssueID']
-                else:
-                    issueid = nzbiss['IssueID']
-                    logger.fdebug(module + ' Issueid: ' + str(issueid))
-                    sarc = nzbiss['SARC']
-                    tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
+                        #issueid = nzbiss['IssueID']
 
-                    comicid = None
-                    comicname = None
-                    issuenumber = None
+                issueid = nzbiss['IssueID']
+                logger.fdebug(module + ' Issueid: ' + str(issueid))
+                sarc = nzbiss['SARC']
+                self.oneoff = nzbiss['OneOff']
+                tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
 
-                    if tmpiss is not None:
-                        comicid = tmpiss['ComicID']
-                        comicname = tmpiss['ComicName']
-                        issuenumber = tmpiss['Issue_Number']
-                        
-                    #use issueid to get publisher, series, year, issue number
+                comicid = None
+                comicname = None
+                issuenumber = None
+                if tmpiss is not None:
+                    comicid = tmpiss['ComicID']
+                    comicname = tmpiss['ComicName']
+                    issuenumber = tmpiss['Issue_Number']
+                elif all([self.oneoff is not None, mylar.ALT_PULL == 2]):
+                    oneinfo = myDB.selectone('SELECT * FROM weekly WHERE IssueID=?', [issueid]).fetchone()
+                    if oneinfo is not None:
+                        comicid = oneinfo['ComicID']
+                        comicname = oneinfo['COMIC']
+                        issuenumber = oneinfo['ISSUE']
+                        publisher = oneinfo['PUBLISHER']
+                        self.oneoff = True
+                        logger.info(module + ' Discovered %s # %s by %s [comicid:%s][issueid:%s]' % (comicname, issuenumber, publisher, comicid, issueid))
+                #use issueid to get publisher, series, year, issue number
 
                 annchk = "no"
 #                if 'annual' in nzbname.lower():
@@ -977,7 +986,7 @@ class PostProcessor(object):
                             sandwich = issueid
                         elif 'G' in issueid or '-' in issueid:
                             sandwich = 1
-                        elif issueid >= '90000' or issueid == '1':
+                        elif any([self.oneoff is True, issueid >= '900000', issueid == '1']):
                             logger.info(module + ' [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.')
                             sandwich = None #arbitrarily set it to None just to force one-off downloading below.
                         else:
@@ -1007,7 +1016,7 @@ class PostProcessor(object):
                         # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
                         pass
                 else:
-                    if issuenzb is None or 'S' in sandwich or int(sandwich) >= 900000:
+                    if any([self.oneoff is True, issuenzb is None]) or all([sandwich is not None, 'S' in sandwich]) or int(sandwich) >= 900000:
                         # this has no issueID, therefore it's a one-off or a manual post-proc.
                         # At this point, let's just drop it into the Comic Location folder and forget about it..
                         if sandwich is not None and 'S' in sandwich:
@@ -1017,6 +1026,7 @@ class PostProcessor(object):
                             self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
                             logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
                             self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
+                            grdst = mylar.GRABBAG_DIR
 
                         odir = None
                         ofilename = None
@@ -1070,7 +1080,7 @@ class PostProcessor(object):
 
                         #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
                         #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-                        if all([mylar.ENABLE_META, sandwich is not None, 'S' in sandwich]):
+                        if all([mylar.ENABLE_META, issueid is not None]):
                             self._log("Metatagging enabled - proceeding...")
                             try:
                                 import cmtagmylar
@@ -1163,13 +1173,27 @@ class PostProcessor(object):
                             ctrlVal = {"IssueArcID":  issuearcid}
                             newVal = {"Status":       "Downloaded",
                                       "Location":     grab_dst}
-                            logger.info('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
                             myDB.upsert("readinglist", newVal, ctrlVal)
-                            logger.info('wrote.')
                             logger.info(module + ' Updated status to Downloaded')
 
                             logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
                             self._log(u"Post Processing SUCCESSFUL! ")
+                        elif self.oneoff is True:
+                            logger.info(module + ' IssueID is : ' + str(issueid))
+                            ctrlVal = {"IssueID":  issueid}
+                            newVal = {"Status":       "Downloaded"}
+                            logger.info(module + ' Writing to db: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                            myDB.upsert("weekly", newVal, ctrlVal)
+                            logger.info(module + ' Updated status to Downloaded')
+                            myDB.upsert("oneoffhistory", newVal, ctrlVal)
+                            logger.info(module + ' Updated history for one-off\'s for tracking purposes')
+                            logger.info(module + ' Post-Processing completed for: [ %s #%s ] %s' % (comicname, issuenumber, grab_dst))
+                            self._log(u"Post Processing SUCCESSFUL! ")
+
+                        try:
+                            self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module)
+                        except:
+                            pass
 
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
@@ -1994,40 +2018,7 @@ class PostProcessor(object):
 
                     return self.queue.put(self.valreturn)
 
-            if annchk == "no":
-                prline = series + '(' + issueyear + ') - issue #' + issuenumOG
-            else:
-                if 'annual' not in series.lower():
-                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
-                else:
-                    prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
-
-            prline2 = 'Mylar has downloaded and post-processed: ' + prline
-
-            if mylar.PROWL_ENABLED:
-                pushmessage = prline
-                prowl = notifiers.PROWL()
-                prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
-
-            if mylar.NMA_ENABLED:
-                nma = notifiers.NMA()
-                nma.notify(prline=prline, prline2=prline2, module=module)
-
-            if mylar.PUSHOVER_ENABLED:
-                pushover = notifiers.PUSHOVER()
-                pushover.notify(prline, prline2, module=module)
-
-            if mylar.BOXCAR_ENABLED:
-                boxcar = notifiers.BOXCAR()
-                boxcar.notify(prline=prline, prline2=prline2, module=module)
-
-            if mylar.PUSHBULLET_ENABLED:
-                pushbullet = notifiers.PUSHBULLET()
-                pushbullet.notify(prline=prline, prline2=prline2, module=module)
-
-            if mylar.TELEGRAM_ENABLED:
-                telegram = notifiers.TELEGRAM()
-                telegram.notify(prline, prline2)
+            self.sendnotify(series, issueyear, issuenumOG, annchk, module)
 
             logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
             self._log(u"Post Processing SUCCESSFUL! ")
@@ -2040,6 +2031,53 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module):
+   
+        if annchk == "no":
+            if issueyear is None:
+                prline = series + ' - issue #' + issuenumOG
+            else:
+                prline = series + '(' + issueyear + ') - issue #' + issuenumOG
+        else:
+            if issueyear is None:
+                if 'annual' not in series.lower():
+                    prline = series + ' Annual - issue #' + issuenumOG
+                else:
+                    prline = series + ' - issue #' + issuenumOG
+            else:
+                if 'annual' not in series.lower():
+                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
+                else:
+                    prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
+
+        prline2 = 'Mylar has downloaded and post-processed: ' + prline
+
+        if mylar.PROWL_ENABLED:
+            pushmessage = prline
+            prowl = notifiers.PROWL()
+            prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
+
+        if mylar.NMA_ENABLED:
+            nma = notifiers.NMA()
+            nma.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.PUSHOVER_ENABLED:
+            pushover = notifiers.PUSHOVER()
+            pushover.notify(prline, prline2, module=module)
+
+        if mylar.BOXCAR_ENABLED:
+            boxcar = notifiers.BOXCAR()
+            boxcar.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.PUSHBULLET_ENABLED:
+            pushbullet = notifiers.PUSHBULLET()
+            pushbullet.notify(prline=prline, prline2=prline2, module=module)
+
+        if mylar.TELEGRAM_ENABLED:
+            telegram = notifiers.TELEGRAM()
+            telegram.notify(prline, prline2)
+
+        return
 
 class FolderCheck():
 

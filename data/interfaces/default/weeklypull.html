@@ -78,6 +78,9 @@
                                 if weekly['AUTOWANT'] == True:
                                         grade = 'H'
 
+                                if weekly['HAVEIT'] == 'OneOff':
+                                        grade = 'H'
+
                                 #if the comicid is present, but issue isn't marked as wanted.
                                 if weekly['HAVEIT'] == 'Yes' and weekly['STATUS'] == 'Skipped':
                                         grade = 'E'
@@ -93,6 +96,8 @@
                                              %else:
                                                  ${weekly['COMIC']}
                                              %endif
+                                        %elif weekly['HAVEIT'] == 'OneOff':
+                                             <a href="#">${weekly['COMIC']}</a>
                                         %else:
                                              <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
                                         %endif
@@ -102,7 +107,11 @@
              	                             <td class="status">Auto-Want
                                         %else:
               	                            <td class="status">${weekly['STATUS']}
-                                            %if weekly['STATUS'] == 'Skipped':
+                                            %if weekly['HAVEIT'] == 'OneOff':
+                                                %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
+                                                    <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                                                %endif
+                                            %elif weekly['STATUS'] == 'Skipped':
                                                 %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
                                                     <a href="#" title="auto-add by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><span class="ui-icon ui-icon-plus"></span>Add</a>
                                                 %else:
@@ -111,7 +120,7 @@
                                                     %endif
                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist"><span class="ui-icon ui-icon-plus"></span>Search</a>
                                                 %endif
-                                                <a href="queueissue?ComicName=${weekly['COMIC'] | u}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
+                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
                                             %endif
                                         %endif
                                         </td>

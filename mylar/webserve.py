@@ -1074,6 +1074,9 @@ class WebInterface(object):
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
+                    if mi['Status'] == 'Wanted':
+                        logger.fdebug('Issue already set to Wanted status - no need to change it again.')
+                        continue
                     if action == 'Retry': newaction = 'Wanted'
                     logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     issuesToAdd.append(IssueID)
@@ -1329,7 +1332,7 @@ class WebInterface(object):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
     queueit.exposed = True
 
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None):
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None, pullweek=None, pullyear=None):
         logger.fdebug('ComicID:' + str(ComicID))
         logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
@@ -1383,25 +1386,26 @@ class WebInterface(object):
                 controlValueDict = {"IssueArcID": IssueArcID}
                 newStatus = {"Status": "Snatched"}
             myDB.upsert("readinglist", newStatus, controlValueDict)
-            #raise cherrypy.HTTPRedirect("readlist")
             return foundcom
 
-        elif ComicID is None and mode == 'pullwant':
+        elif mode == 'pullwant':  #and ComicID is None
             #this is for marking individual comics from the pullist to be downloaded.
+            #--comicid & issueid may both be known (or either) at any given point if alt_pull = 2
             #because ComicID and IssueID will both be None due to pullist, it's probably
             #better to set both to some generic #, and then filter out later...
             IssueDate = pullinfo
             try:
-                ComicYear = str(pullinfo)[:4]
+                ComicYear = IssueDate[:4]
             except:
                 ComicYear == now.year
             if Publisher == 'COMICS': Publisher = None
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=IssueDate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, allow_packs=False)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=IssueDate, IssueID=IssueID, ComicID=ComicID, AlternateSearch=None, mode=mode, UseFuzzy=None, ComicVersion=None, allow_packs=False)
             if foundcom['status'] is True:
-                logger.info(u"Downloaded " + ComicName + " " + ComicIssue)
-            raise cherrypy.HTTPRedirect("pullist")
-            #return
+                logger.info('[ONE-OFF MODE] Successfully Downloaded ' + ComicName + ' ' + ComicIssue)
+                return updater.foundsearch(ComicID, IssueID, mode=mode, provider=prov, hash=foundcom['info']['t_hash'], pullinfo={'weeknumber': pullweek, 'year': pullyear})
+            return
+
         elif mode == 'want' or mode == 'want_ann' or manualsearch:
             cdname = myDB.selectone("SELECT * from comics where ComicID=?", [ComicID]).fetchone()
             ComicName_Filesafe = cdname['ComicName_Filesafe']
@@ -1644,6 +1648,7 @@ class WebInterface(object):
 
             watchlibrary = helpers.listLibrary()
             issueLibrary = helpers.listIssues(weekinfo['weeknumber'], weekinfo['year'])
+            oneofflist = helpers.listoneoffs(weekinfo['weeknumber'], weekinfo['year'])
 
             for weekly in w_results:
                 xfound = False
@@ -1662,7 +1667,12 @@ class WebInterface(object):
                             break
 
                 else:
-                    haveit = "No"
+                    xlist = [x['Status'] for x in oneofflist if x['IssueID'] == weekly['IssueID']]
+                    if xlist:
+                        haveit = 'OneOff'
+                        tmp_status = xlist[0]
+                    else:
+                        haveit = "No"
 
                 linkit = None
                 if all([weekly['ComicID'] is not None, weekly['ComicID'] != '']) and haveit == 'No':
@@ -1720,7 +1730,6 @@ class WebInterface(object):
             weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER', 'COMIC'), reverse=False)
         else:
             self.manualpull()
-
         if week:
             return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
         else:

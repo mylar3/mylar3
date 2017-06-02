@@ -1807,6 +1807,22 @@ def listStoryArcs():
         library[row['CV_ArcID']] = row['CV_ArcID']
     return library
 
+def listoneoffs(weeknumber, year):
+    import db
+    library = []
+    myDB = db.DBConnection()
+    # Get Distinct one-off issues from the pullist that have already been downloaded / snatched
+    list = myDB.select("SELECT DISTINCT(IssueID), Status, ComicID, ComicName, Status, IssueNumber FROM oneoffhistory WHERE weeknumber=? and year=? AND Status='Downloaded' OR Status='Snatched'", [weeknumber, year])
+    for row in list:
+        library.append({'IssueID':     row['IssueID'],
+                        'ComicID':     row['ComicID'],
+                        'ComicName':   row['ComicName'],
+                        'IssueNumber': row['IssueNumber'],
+                        'Status':      row['Status'],
+                        'weeknumber':  weeknumber,
+                        'year':        year})
+    return library
+
 def manualArc(issueid, reading_order, storyarcid):
     import db
     if issueid.startswith('4000-'):
@@ -2660,6 +2676,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
                 downlocation = os.path.join(torrent_folder, torrent_info['name'])
 
             downlocation = re.sub("'", "\\'", downlocation)
+            downlocation = re.sub("&", "\\&", downlocation)
 
             script_cmd = shlex.split(curScriptName, posix=False) + [downlocation]
             logger.fdebug(u"Executing command " +str(script_cmd))
@@ -2825,12 +2842,16 @@ def script_env(mode, vars):
     if mode == 'on-snatch':
         runscript = mylar.SNATCH_SCRIPT
         if 'torrentinfo' in vars:
-            os.environ['mylar_release_hash'] = vars['torrentinfo']['hash'] 
-            os.environ['mylar_release_name'] = vars['torrentinfo']['name']
-            os.environ['mylar_release_folder'] = vars['torrentinfo']['folder']
+            if 'hash' in vars['torrentinfo']:
+                os.environ['mylar_release_hash'] = vars['torrentinfo']['hash'] 
+            if 'name' in vars['torrentinfo']:
+                os.environ['mylar_release_name'] = vars['torrentinfo']['name']
+            if 'folder' in vars['torrentinfo']:
+                os.environ['mylar_release_folder'] = vars['torrentinfo']['folder']
             if 'label' in vars['torrentinfo']:
                 os.environ['mylar_release_label'] = vars['torrentinfo']['label']
-            os.environ['mylar_release_filesize'] = str(vars['torrentinfo']['total_filesize'])
+            if 'total_filesize' in vars['torrentinfo']:
+                os.environ['mylar_release_filesize'] = str(vars['torrentinfo']['total_filesize'])
             if 'time_started' in vars['torrentinfo']:
                 os.environ['mylar_release_start'] = str(vars['torrentinfo']['time_started'])
             if 'filepath' in vars['torrentinfo']:

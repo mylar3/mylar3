@@ -74,6 +74,7 @@ class TorrentClient(object):
                     file_path = f.path
 
                 torrent_files.append(file_path)
+
             torrent_info = {
                 'hash': torrent.info_hash,
                 'name': torrent.name,
@@ -101,6 +102,14 @@ class TorrentClient(object):
         torrent = self.conn.load_torrent(filepath, verify_load=True)
         if not torrent:
             return False
+
+        #we can cherrypick the torrents here if required and if it's a pack (0day instance)
+        #torrent.get_files() will return list of files in torrent
+        #f.set_priority(0,1,2)
+        for f in torrent.get_files():
+            logger.info('torrent_get_files: %s' % f)
+        #    f.set_priority(0)  #set them to not download just to see if this works...
+        #torrent.updated_priorities()
 
         if mylar.RTORRENT_LABEL:
             torrent.set_custom(1, mylar.RTORRENT_LABEL)

@@ -88,8 +88,10 @@ class NMA:
         self.TEST_NMA_URL = "https://www.notifymyandroid.com/publicapi/verify"
         if test_apikey is None:
             self.apikey = mylar.NMA_APIKEY
+            self.test = False
         else:
             self.apikey = test_apikey
+            self.test = True
         self.priority = mylar.NMA_PRIORITY
 
         self._session = requests.Session()
@@ -118,7 +120,10 @@ class NMA:
                         'message': '[' + str(error_code) + '] ' + error_message}
 
             else:
-                logger.info(module + '[' + str(success_code) + '] NotifyMyAndroid apikey valid. Test notification sent successfully.')
+                if self.test is True:
+                    logger.info(module + '[' + str(success_code) + '] NotifyMyAndroid apikey valid. Test notification sent successfully.')
+                else:
+                    logger.info(module + '[' + str(success_code) + '] NotifyMyAndroid notification sent successfully.')
                 return {'status':  True,
                         'message': 'APIKEY verified OK / notification sent'}
         elif r.status_code >= 400 and r.status_code < 500:
