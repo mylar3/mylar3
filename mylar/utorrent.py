@@ -91,6 +91,29 @@ class utorrentclient(object):
         else:
             return 'fail'
 
+    def addurl(self, url):
+        params = {'action': 'add-url', 'token': self.token, 's': url}
+        try:
+            r = requests.post(url=self.utorrent_url, auth=self.auth, cookies=self.cookies, params=params)
+        except requests.exceptions.RequestException as err:
+            logger.debug('URL: ' + str(self.utorrent_url))
+            logger.debug('Error sending to uTorrent Client. uTorrent responded with error: ' + str(err))
+            return 'fail'
+
+        # (to-do) verify the hash in order to ensure it's loaded here
+        if str(r.status_code) == '200':
+            logger.info('Successfully added torrent to uTorrent client.')
+            hash = self.calculate_torrent_hash(link=url)
+            if mylar.UTORRENT_LABEL:
+                try:
+                    self.setlabel(hash)
+                except:
+                    logger.warn('Unable to set label for torrent.')
+            return hash
+        else:
+            return 'fail'
+
+
     def setlabel(self, hash):
         params = {'token': self.token, 'action': 'setprops', 'hash': hash, 's': 'label', 'v': str(mylar.UTORRENT_LABEL)}
         r = requests.post(url=self.utorrent_url, auth=self.auth, cookies=self.cookies, params=params)

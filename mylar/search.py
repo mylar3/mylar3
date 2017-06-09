@@ -34,6 +34,7 @@ import urllib2
 import email.utils
 import datetime
 import shutil
+from base64 import b16encode, b32decode
 from operator import itemgetter
 from wsgiref.handlers import format_date_time
 
@@ -848,9 +849,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             stdate = StoreDate
 
+                        postdate_int = None
                         if nzbprov == '32P' and rss == 'no':
                             postdate_int = pubdate
-                        else:
+                        if any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', rss == 'no']):
                             # convert it to a tuple
                             dateconv = email.utils.parsedate_tz(pubdate)
                             dateconv2 = datetime.datetime(*dateconv[:6])
@@ -1214,7 +1216,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             F_ComicVersion = '1'
                             if postdate_int is not None:
                                 if postdate_int >= issuedate_int and nzbprov == '32P':
-                                    logger.fdebug('32P torrent discovery. Store date (' + str(stdate) + ') is before posting date (' + str(pubdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
+                                    logger.fdebug('32P torrent discovery. Posting date (' + str(pubdate) + ') is after store date (' + str(stdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
                                     F_ComicVersion = D_ComicVersion
 
                         logger.fdebug("FCVersion: " + str(F_ComicVersion))
@@ -1613,6 +1615,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.error('[NZBPROVIDER = NONE] Encountered an error using given provider with requested information: ' + comicinfo + '. You have a blank entry most likely in your newznabs, fix it & restart Mylar')
                             continue
                         #generate the send-to and actually send the nzb / torrent.
+                        logger.info('entry: %s' % entry)
                         searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov, newznab=newznab_host)
 
                         if searchresult == 'downloadchk-fail':
@@ -2741,14 +2744,21 @@ def generate_id(nzbprov, link):
         #32P just has the torrent id stored.
         nzbid = link
     elif any([nzbprov == 'TPSE', nzbprov == 'WWT', nzbprov == 'DEM']):
-        if 'http' not in link and any([nzbprov == 'WWT', nzbprov == 'DEM']):
-            nzbid = link
+        if nzbprov == 'TPSE':
+            #TPSE is magnet links only.
+            info_hash = re.findall("urn:btih:([\w]{32,40})", link)[0]
+            if len(info_hash) == 32:
+                info_hash = b16encode(b32decode(info_hash))
+            nzbid = info_hash.upper()
         else:
-            #for users that already have the cache in place.
-            url_parts = urlparse.urlparse(link)
-            path_parts = url_parts[2].rpartition('/')
-            nzbtempid = path_parts[2]
-            nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
+            if 'http' not in link and any([nzbprov == 'WWT', nzbprov == 'DEM']):
+                nzbid = link
+            else:
+                #for users that already have the cache in place.
+                url_parts = urlparse.urlparse(link)
+                path_parts = url_parts[2].rpartition('/')
+                nzbtempid = path_parts[2]
+                nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
     elif nzbprov == 'nzb.su':
         nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
     elif nzbprov == 'dognzb':

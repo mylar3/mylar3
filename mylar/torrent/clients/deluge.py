@@ -95,40 +95,47 @@ class TorrentClient(object):
         if self.client.connected is True:
             logger.info('Checking if Torrent Exists!')
             
-            torrentcontent = open(filepath, 'rb').read()
-            hash = str.lower(self.get_the_hash(filepath)) # Deluge expects a lower case hash
+            if not filepath.startswith('magnet'):
+                torrentcontent = open(filepath, 'rb').read()
+                hash = str.lower(self.get_the_hash(filepath)) # Deluge expects a lower case hash
 
-            logger.debug('Torrent Hash (load_torrent): "' + hash + '"')
-            logger.debug('FileName (load_torrent): ' + str(os.path.basename(filepath)))
+                logger.debug('Torrent Hash (load_torrent): "' + hash + '"')
+                logger.debug('FileName (load_torrent): ' + str(os.path.basename(filepath)))
 
 
-            #Check if torrent already added
-            if self.find_torrent(str.lower(hash)):
-                logger.info('load_torrent: Torrent already exists!')
-                #should set something here to denote that it's already loaded, and then the failed download checker not run so it doesn't download
-                #multiple copies of the same issues that's already downloaded
+                #Check if torrent already added
+                if self.find_torrent(str.lower(hash)):
+                    logger.info('load_torrent: Torrent already exists!')
+                    #should set something here to denote that it's already loaded, and then the failed download checker not run so it doesn't download
+                    #multiple copies of the same issues that's already downloaded
+                else:
+                    logger.info('Torrent not added yet, trying to add it now!')
+                    try:
+                        torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), '')
+                    except Exception as e:
+                        logger.debug('Torrent not added')
+                        return False
             else:
-                logger.info('Torrent not added yet, trying to add it now!')
                 try:
-                    torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), '')
+                    torrent_id = self.client.call('core.add_torrent_magnet', str(filepath), {})
                 except Exception as e:
                     logger.debug('Torrent not added')
                     return False
 
-                # If label enabled put label on torrent in Deluge
-                if torrent_id and mylar.DELUGE_LABEL:
-                    logger.info ('Setting label to ' + mylar.DELUGE_LABEL)
+            # If label enabled put label on torrent in Deluge
+            if torrent_id and mylar.DELUGE_LABEL:
+                logger.info ('Setting label to ' + mylar.DELUGE_LABEL)
+                try:
+                    self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                except:
+                 #if label isn't set, let's try and create one.
                     try:
+                        self.client.call('label.add', mylar.DELUGE_LABEL)
                         self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
                     except:
-                        #if label isn't set, let's try and create one.
-                        try:
-                            self.client.call('label.add', mylar.DELUGE_LABEL)
-                            self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
-                        except:
-                            logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')
-                        else:
-                            logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
+                        logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')
+                    else:
+                        logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
 
         try:
             torrent_info = self.get_torrent(torrent_id)

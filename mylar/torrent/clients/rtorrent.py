@@ -1,4 +1,5 @@
 import os
+import re
 from urlparse import urlparse
 
 from lib.rtorrent import RTorrent
@@ -97,17 +98,37 @@ class TorrentClient(object):
     def load_torrent(self, filepath):
         start = bool(mylar.RTORRENT_STARTONLOAD)
 
-        logger.info('filepath to torrent file set to : ' + filepath)
-
-        torrent = self.conn.load_torrent(filepath, verify_load=True)
-        if not torrent:
-            return False
+        if filepath.startswith('magnet'):
+            logger.info('torrent magnet link set to : ' + filepath)
+            torrent_hash = re.findall('urn:btih:([\w]{32,40})', filepath)[0].upper()
+            # Send request to rTorrent
+            try:
+                #cannot verify_load magnet as it might take a very very long time for it to retrieve metadata
+                torrent = self.conn.load_magnet(filepath, torrent_hash, verify_load=True)
+                if not torrent:
+                    logger.error('Unable to find the torrent, did it fail to load?')
+                    return False
+            except Exception as err:
+                logger.error('Failed to send magnet to rTorrent: %s', err)
+                return False
+            else:
+                logger.info('Torrent successfully loaded into rtorrent using magnet link as source.')
+        else:
+            logger.info('filepath to torrent file set to : ' + filepath)
+            try:
+                torrent = self.conn.load_torrent(filepath, verify_load=True)
+                if not torrent:
+                    logger.error('Unable to find the torrent, did it fail to load?')
+                    return False
+            except Exception as err:
+                logger.error('Failed to send torrent to rTorrent: %s', err)
+                return False
 
         #we can cherrypick the torrents here if required and if it's a pack (0day instance)
         #torrent.get_files() will return list of files in torrent
         #f.set_priority(0,1,2)
-        for f in torrent.get_files():
-            logger.info('torrent_get_files: %s' % f)
+        #for f in torrent.get_files():
+        #    logger.info('torrent_get_files: %s' % f)
         #    f.set_priority(0)  #set them to not download just to see if this works...
         #torrent.updated_priorities()
 

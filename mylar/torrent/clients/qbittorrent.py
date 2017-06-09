@@ -1,6 +1,7 @@
 import os
 import mylar
-import base64
+from base64 import b16encode, b32decode
+import re
 import time
 from mylar import logger, helpers
 
@@ -53,15 +54,23 @@ class TorrentClient(object):
 
     def load_torrent(self, filepath):
         
-        logger.info('filepath to torrent file set to : ' + filepath)
+        if not filepath.startswith('magnet'):
+            logger.info('filepath to torrent file set to : ' + filepath)
                 
         if self.client._is_authenticated is True:
             logger.info('Checking if Torrent Exists!')
-            
-            hash = self.get_the_hash(filepath)
+
+            if filepath.startswith('magnet'):
+                torrent_hash = re.findall("urn:btih:([\w]{32,40})", filepath)[0]
+                if len(torrent_hash) == 32:
+                    torrent_hash = b16encode(b32decode(torrent_hash)).lower()
+                hash = torrent_hash.upper()
+                logger.debug('Magnet (load_torrent) initiating')
+            else:
+                hash = self.get_the_hash(filepath)
+                logger.debug('FileName (load_torrent): ' + str(os.path.basename(filepath)))
 
             logger.debug('Torrent Hash (load_torrent): "' + hash + '"')
-            logger.debug('FileName (load_torrent): ' + str(os.path.basename(filepath)))
 
 
             #Check if torrent already added
@@ -72,14 +81,23 @@ class TorrentClient(object):
                 #multiple copies of the same issues that's already downloaded
             else:
                 logger.info('Torrent not added yet, trying to add it now!')
-                try:
-                    torrent_content = open(filepath, 'rb')
-                    tid = self.client.download_from_file(torrent_content, category=str(mylar.QBITTORRENT_LABEL))
-                except Exception as e:
-                    logger.debug('Torrent not added')
-                    return {'status': False}
+                if filepath.startswith('magnet'):
+                    try:
+                        tid = self.client.download_from_link(filepath, category=str(mylar.QBITTORRENT_LABEL))
+                    except Exception as e:
+                        logger.debug('Torrent not added')
+                        return {'status': False}
+                    else:
+                        logger.debug('Successfully submitted for add as a magnet. Verifying item is now on client.')   
                 else:
-                    logger.debug('Successfully submitted for add. Verifying item is now on client.')
+                    try:
+                        torrent_content = open(filepath, 'rb')
+                        tid = self.client.download_from_file(torrent_content, category=str(mylar.QBITTORRENT_LABEL))
+                    except Exception as e:
+                        logger.debug('Torrent not added')
+                        return {'status': False}
+                    else:
+                        logger.debug('Successfully submitted for add via file. Verifying item is now on client.')
 
             if mylar.QBITTORRENT_STARTONLOAD:
                 logger.info('attempting to start')

@@ -4827,35 +4827,40 @@ class WebInterface(object):
 
     configUpdate.exposed = True
 
-    def SABtest(self):
-        sab_host = mylar.SAB_HOST
-        sab_username = mylar.SAB_USERNAME
-        sab_password = mylar.SAB_PASSWORD
-        sab_apikey = mylar.SAB_APIKEY
+    def SABtest(self, sabhost=None, sabusername=None, sabpassword=None, sabapikey=None):
+        logger.info('here')
+        if sabhost is None:
+            sabhost = mylar.SAB_HOST
+        if sabusername is None:
+            sabusername = mylar.SAB_USERNAME
+        if sabpassword is None:
+            sabpassword = mylar.SAB_PASSWORD
+        if sabapikey is None:
+            sabapikey = mylar.SAB_APIKEY
         logger.fdebug('testing SABnzbd connection')
-        logger.fdebug('sabhost: ' + str(sab_host))
-        logger.fdebug('sab_username: ' + str(sab_username))
-        logger.fdebug('sab_password: ' + str(sab_password))
-        logger.fdebug('sab_apikey: ' + str(sab_apikey))
+        logger.fdebug('sabhost: ' + str(sabhost))
+        logger.fdebug('sabusername: ' + str(sabusername))
+        logger.fdebug('sabpassword: ' + str(sabpassword))
+        logger.fdebug('sabapikey: ' + str(sabapikey))
         if mylar.USE_SABNZBD:
             import requests
             from xml.dom.minidom import parseString, Element
 
             #if user/pass given, we can auto-fill the API ;)
-            if sab_username is None or sab_password is None:
+            if sabusername is None or sabpassword is None:
                 logger.error('No Username / Password provided for SABnzbd credentials. Unable to test API key')
                 return "Invalid Username/Password provided"
-            logger.fdebug('testing connection to SABnzbd @ ' + sab_host)
-            if sab_host.endswith('/'):
-                sabhost = sab_host
+            logger.fdebug('testing connection to SABnzbd @ ' + sabhost)
+            if sabhost.endswith('/'):
+                sabhost = sabhost
             else:
-                sabhost = sab_host + '/'
+                sabhost = sabhost + '/'
 
             querysab = sabhost + 'api'
             payload = {'mode':    'get_config',
                        'section': 'misc',
                        'output':  'xml',
-                       'apikey':   sab_apikey}
+                       'apikey':   sabapikey}
 
             if sabhost.startswith('https'):
                 verify = True
@@ -4865,7 +4870,7 @@ class WebInterface(object):
             try:
                 r = requests.get(querysab, params=payload, verify=verify)
             except Exception, e:
-                logger.warn('Error fetching data from %s: %s' % (sab_host, e))
+                logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                 if requests.exceptions.SSLError:
                     logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
                     try:
@@ -4879,7 +4884,7 @@ class WebInterface(object):
                     try:
                         r = requests.get(querysab, params=payload, verify=verify)
                     except Exception, e:
-                        logger.warn('Error fetching data from %s: %s' % (sab_host, e))
+                        logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                         return 'Unable to retrieve data from SABnzbd'
                 else:
                     return 'Unable to retrieve data from SABnzbd'
@@ -4912,11 +4917,11 @@ class WebInterface(object):
                                'name':    'http://www.example.com/example.nzb',
                                'nzbname': 'NiceName',
                                'output':  'xml',
-                               'apikey':   sab_apikey}
+                               'apikey':   sabapikey}
                     try:
                         r = requests.get(querysab, params=payload, verify=verify)
                     except Exception, e:
-                        logger.warn('Error fetching data from %s: %s' % (sab_host, e))
+                        logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                         return 'Unable to retrieve data from SABnzbd'
 
                     dom = parseString(r.content)
@@ -4934,8 +4939,8 @@ class WebInterface(object):
                 if qd == False: return "Invalid APIKey provided."
 
             #test which apikey provided
-            if q_nzbkey != sab_apikey:
-                if q_apikey != sab_apikey:
+            if q_nzbkey != sabapikey:
+                if q_apikey != sabapikey:
                     logger.error('APIKey provided does not match with SABnzbd')
                     return "Invalid APIKey provided"
                 else:
@@ -4990,9 +4995,9 @@ class WebInterface(object):
 
     getComicArtwork.exposed = True
 
-    def findsabAPI(self):
+    def findsabAPI(self, sabhost=None, sabusername=None, sabpassword=None):
         import sabparse
-        sabapi = sabparse.sabnzbd()
+        sabapi = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
         logger.info('SAB NZBKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
         mylar.SAB_APIKEY = sabapi
         return sabapi
@@ -5212,12 +5217,13 @@ class WebInterface(object):
             return "Error sending test message to Boxcar"
     testboxcar.exposed = True
 
-    def testpushover(self):
-        pushover = notifiers.PUSHOVER()
+    def testpushover(self, apikey, userkey):
+        pushover = notifiers.PUSHOVER(test_apikey=apikey, test_userkey=userkey)
         result = pushover.test_notify()
         if result == True:
             return "Successfully sent PushOver test -  check to make sure it worked"
         else:
+            logger.warn('Test variables used [APIKEY: %s][USERKEY: %s]' % (apikey, userkey))
             return "Error sending test message to Pushover"
     testpushover.exposed = True
 
@@ -5231,12 +5237,13 @@ class WebInterface(object):
             return result['message']
     testpushbullet.exposed = True
 
-    def testtelegram(self):
-        telegram = notifiers.TELEGRAM()
+    def testtelegram(self, userid, token):
+        telegram = notifiers.TELEGRAM(test_userid=userid, test_token=token)
         result = telegram.test_notify()
         if result == True:
             return "Successfully sent Telegram test -  check to make sure it worked"
         else:
+            logger.warn('Test variables used [USERID: %s][TOKEN: %s]' % (userid, token))
             return "Error sending test message to Telegram"
     testtelegram.exposed = True
 

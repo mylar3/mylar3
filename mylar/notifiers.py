@@ -205,14 +205,22 @@ class NMA:
 # No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
 class PUSHOVER:
 
-    def __init__(self):
+    def __init__(self, test_apikey=None, test_userkey=None):
         self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
         self.enabled = mylar.PUSHOVER_ENABLED
-        if mylar.PUSHOVER_APIKEY is None or mylar.PUSHOVER_APIKEY == 'None':
-            self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
+        if test_apikey is None:
+            if mylar.PUSHOVER_APIKEY is None or mylar.PUSHOVER_APIKEY == 'None':
+                self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
+            else:
+                self.apikey = mylar.PUSHOVER_APIKEY
         else:
-            self.apikey = mylar.PUSHOVER_APIKEY
-        self.userkey = mylar.PUSHOVER_USERKEY
+            self.apikey = test_apikey
+
+        if test_userkey is None:
+            self.userkey = mylar.PUSHOVER_USERKEY
+        else:
+            self.userkey = test_userkey
+
         self.priority = mylar.PUSHOVER_PRIORITY
 
         self._session = requests.Session()
@@ -400,10 +408,16 @@ class PUSHBULLET:
         return self.notify(prline='Test Message', prline2='Release the Ninjas!')
 
 class TELEGRAM:
-    def __init__(self):
-        self.token = mylar.TELEGRAM_TOKEN
-        self.userid = mylar.TELEGRAM_USERID
+    def __init__(self, test_userid=None, test_token=None):
         self.TELEGRAM_API = "https://api.telegram.org/bot%s/%s"
+        if test_userid is None:
+            self.userid = mylar.TELEGRAM_USERID
+        else:
+            self.userid = test_userid
+        if test_token is None:
+            self.token = mylar.TELEGRAM_TOKEN
+        else:
+            self.token = test_token
 
     def notify(self, message, status):
         if not mylar.TELEGRAM_ENABLED:

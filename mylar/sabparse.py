@@ -10,22 +10,22 @@ from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
 
-def sabnzbd():
-       SAB_USERNAME = mylar.SAB_USERNAME
-       SAB_PASSWORD = mylar.SAB_PASSWORD
-       SAB_HOST = mylar.SAB_HOST   #'http://localhost:8085/'
-       if SAB_USERNAME is None or SAB_PASSWORD is None:
+def sabnzbd(sabhost=mylar.SAB_HOST, sabusername=mylar.SAB_USERNAME, sabpassword=mylar.SAB_PASSWORD):
+       #SAB_USERNAME = mylar.SAB_USERNAME
+       #SAB_PASSWORD = mylar.SAB_PASSWORD
+       #SAB_HOST = mylar.SAB_HOST   #'http://localhost:8085/'
+       if sabusername is None or sabpassword is None:
            logger.fdebug('No Username / Password specified for SABnzbd. Unable to auto-retrieve SAB API')
-       if 'https' not in SAB_HOST:
-           sabhost = re.sub('http://', '', SAB_HOST)
+       if 'https' not in sabhost:
+           sabhost = re.sub('http://', '', sabhost)
            sabhttp = 'http://'
        else:
-           sabhost = re.sub('https://', '', SAB_HOST)
+           sabhost = re.sub('https://', '', sabhost)
            sabhttp = 'https://'
        if not sabhost.endswith('/'):
            #sabhost = sabhost[:len(sabhost)-1].rstrip()
            sabhost = sabhost + '/'
-       sabline = sabhttp + SAB_USERNAME + ':' + SAB_PASSWORD + '@' + sabhost
+       sabline = sabhttp + sabusername + ':' + sabpassword + '@' + sabhost
        r = requests.get(sabline + 'config/general/')
        soup = BeautifulSoup(r.content)
        #lenlinks = len(cntlinks)

@@ -60,7 +60,13 @@ class RTorrent(object):
         if filepath:
             loadit = self.client.load_torrent(filepath)
             if loadit:
-                torrent_hash = self.get_the_hash(filepath)
+                if filepath.startswith('magnet'):
+                    torrent_hash = re.findall("urn:btih:([\w]{32,40})", filepath)[0]
+                    if len(torrent_hash) == 32:
+                        torrent_hash = b16encode(b32decode(torrent_hash)).lower()
+                    torrent_hash = torrent_hash.upper()
+                else:
+                    torrent_hash = self.get_the_hash(filepath)
             else:
                 return
 

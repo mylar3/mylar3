@@ -2673,7 +2673,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             if torrent_files > 1:
                 downlocation = torrent_folder
             else:
-                downlocation = os.path.join(torrent_folder, torrent_info['name'])
+                downlocation = torrent_info['files'][0] #os.path.join(torrent_folder, torrent_info['name'])
 
             downlocation = re.sub("'", "\\'", downlocation)
             downlocation = re.sub("&", "\\&", downlocation)
