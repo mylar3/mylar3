@@ -2602,6 +2602,10 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
         logger.info(u"Sending Telegram notification")
         telegram = notifiers.TELEGRAM()
         telegram.notify(snline, nzbname)
+    if mylar.SLACK_ENABLED and mylar.SLACK_ONSNATCH:
+        logger.info(u"Sending Slack notification")
+        slack = notifiers.SLACK()
+        slack.notify("Snatched", snline)
 
     return
 

@@ -4302,6 +4302,9 @@ class WebInterface(object):
                     "telegram_onsnatch": helpers.checked(mylar.TELEGRAM_ONSNATCH),
                     "telegram_token": mylar.TELEGRAM_TOKEN,
                     "telegram_userid": mylar.TELEGRAM_USERID,
+                    "slack_enabled": helpers.checked(mylar.SLACK_ENABLED),
+                    "slack_webhook_url": mylar.SLACK_WEBHOOK_URL,
+                    "slack_onsnatch": helpers.checked(mylar.SLACK_ONSNATCH),
                     "enable_extra_scripts": helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts": mylar.EXTRA_SCRIPTS,
                     "enable_snatch_script": helpers.checked(mylar.ENABLE_SNATCH_SCRIPT),
@@ -4547,7 +4550,7 @@ class WebInterface(object):
         rtorrent_host=None, rtorrent_ssl=0, rtorrent_verify=0, rtorrent_authentication='basic', rtorrent_rpc_url=None, rtorrent_username=None, rtorrent_password=None, rtorrent_directory=None, rtorrent_label=None, rtorrent_startonload=0, transmission_host=None, transmission_username=None, transmission_password=None, transmission_directory=None,deluge_host=None, deluge_username=None, deluge_password=None, deluge_label=None,
         qbittorrent_host=None, qbittorrent_username=None, qbittorrent_password=None, qbittorrent_label=None, qbittorrent_folder=None, qbittorrent_startonload=0,
         preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_snatch_script=0, snatch_script=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, enforce_perms=0, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
-        tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, **kwargs):
+        tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, slack_enabled=0, slack_webhook_url=None, slack_onsnatch=0, **kwargs):
         mylar.COMICVINE_API = comicvine_api
         mylar.HTTP_HOST = http_host
         mylar.HTTP_PORT = http_port
@@ -4691,6 +4694,9 @@ class WebInterface(object):
         mylar.TELEGRAM_TOKEN = telegram_token
         mylar.TELEGRAM_USERID = telegram_userid
         mylar.TELEGRAM_ONSNATCH = telegram_onsnatch
+        mylar.SLACK_ENABLED = slack_enabled
+        mylar.SLACK_WEBHOOK_URL = slack_webhook_url
+        mylar.SLACK_ONSNATCH = slack_onsnatch
         mylar.USE_MINSIZE = use_minsize
         mylar.MINSIZE = minsize
         mylar.USE_MAXSIZE = use_maxsize
@@ -5247,6 +5253,17 @@ class WebInterface(object):
             logger.warn('Test variables used [USERID: %s][TOKEN: %s]' % (userid, token))
             return "Error sending test message to Telegram"
     testtelegram.exposed = True
+
+    def testslack(self, webhook_url):
+        slack = notifiers.SLACK(test_webhook_url=webhook_url)
+        result = slack.test_notify()
+
+        if result == True:
+            return "Successfully sent Slack test -  check to make sure it worked"
+        else:
+            logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
+            return "Error sending test message to Slack"
+    testslack.exposed = True
 
     def orderThis(self, **kwargs):
         logger.info('here')

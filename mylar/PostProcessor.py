@@ -2076,6 +2076,10 @@ class PostProcessor(object):
         if mylar.TELEGRAM_ENABLED:
             telegram = notifiers.TELEGRAM()
             telegram.notify(prline, prline2)
+            
+        if mylar.SLACK_ENABLED:
+            slack = notifiers.SLACK()
+            slack.notify("Download and Postprocessing completed", prline, module=module)
 
         return
 
@@ -2098,4 +2102,3 @@ class FolderCheck():
         PostProcess = PostProcessor('Manual Run', mylar.CHECK_FOLDER, queue=self.queue)
         result = PostProcess.Process()
         logger.info(self.module + ' Finished checking for newly snatched downloads')
-

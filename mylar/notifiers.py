@@ -443,3 +443,39 @@ class TELEGRAM:
 
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
+
+class SLACK:
+    def __init__(self, test_webhook_url=None):
+        self.webhook_url = mylar.SLACK_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
+        
+    def notify(self, text, attachment_text, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+        
+        payload = {
+            "text": text,
+            "attachments": [
+                {
+                    "color": "#36a64f",
+                    "text": attachment_text
+                }
+            ]
+        }
+
+        try:
+            response = requests.post(self.webhook_url, json=payload, verify=True)
+        except Exception, e:
+            logger.info(module + u'Slack notify failed: ' + str(e))
+
+        # Error logging
+        sent_successfuly = True
+        if not response.status_code == 200:
+            logger.info(module + u'Could not send notification to Slack (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            sent_successfuly = False
+
+        logger.info(module + u"Slack notifications sent.")
+        return sent_successfuly
+        
+    def test_notify(self):
+        return self.notify('Test Message', 'Release the Ninjas!')

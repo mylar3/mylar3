@@ -228,6 +228,9 @@ TELEGRAM_ENABLED = False
 TELEGRAM_TOKEN = None
 TELEGRAM_USERID = None
 TELEGRAM_ONSNATCH = False
+SLACK_ENABLED = False
+SLACK_WEBHOOK_URL = None
+SLACK_ONSNATCH = False
 
 SKIPPED2WANTED = False
 CVINFO = False
@@ -520,7 +523,7 @@ def initialize():
                 STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CV_VERIFY, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_SNATCH_SCRIPT, SNATCH_SCRIPT, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
                 SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, WEEKFOLDER_FORMAT, UMASK, \
-                TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID, TELEGRAM_ONSNATCH
+                TELEGRAM_ENABLED, TELEGRAM_TOKEN, TELEGRAM_USERID, TELEGRAM_ONSNATCH, SLACK_ENABLED, SLACK_ONSNATCH, SLACK_WEBHOOK_URL
 
         if __INITIALIZED__:
             return False
@@ -700,6 +703,10 @@ def initialize():
         TELEGRAM_TOKEN = check_setting_str(CFG, 'TELEGRAM', 'telegram_token', '')
         TELEGRAM_USERID = check_setting_str(CFG, 'TELEGRAM', 'telegram_userid', '')
         TELEGRAM_ONSNATCH = bool(check_setting_int(CFG, 'TELEGRAM', 'telegram_onsnatch', 0))
+        
+        SLACK_ENABLED = bool(check_setting_int(CFG, 'SLACK', 'slack_enabled', 0))
+        SLACK_WEBHOOK_URL = check_setting_str(CFG, 'SLACK', 'slack_webhook_url', '')
+        SLACK_ONSNATCH = bool(check_setting_int(CFG, 'SLACK', 'slack_onsnatch', 0))
 
         USE_MINSIZE = bool(check_setting_int(CFG, 'General', 'use_minsize', 0))
         MINSIZE = check_setting_str(CFG, 'General', 'minsize', '')
@@ -1716,6 +1723,11 @@ def config_write():
     new_config['TELEGRAM']['telegram_token'] = TELEGRAM_TOKEN
     new_config['TELEGRAM']['telegram_userid'] = TELEGRAM_USERID
     new_config['TELEGRAM']['telegram_onsnatch'] = int(TELEGRAM_ONSNATCH)
+    
+    new_config['SLACK'] = {}
+    new_config['SLACK']['slack_enabled'] = int(SLACK_ENABLED)
+    new_config['SLACK']['slack_webhook_url'] = SLACK_WEBHOOK_URL
+    new_config['SLACK']['slack_onsnatch'] = int(SLACK_ONSNATCH)
 
     new_config.write()
 

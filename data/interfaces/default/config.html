@@ -1288,6 +1288,25 @@
                         </div>
                      </fieldset>
 
+                    <fieldset>
+                        <h3><img src="interfaces/default/images/slack.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>slack</h3>
+                        <div class="row checkbox">
+                            <input type="checkbox" name="slack_enabled" id="slack" value="1" ${config['slack_enabled']} /><label>Enable Slack Notifications</label>
+                        </div>
+                        <div id="slackoptions">
+                            <div class="row">
+                                <label>Webhook URL</label><input type="text" name="slack_webhook_url" id="slack_webhook_url" value="${config['slack_webhook_url']}" size="50">
+                            </div>
+                            <div class="row checkbox">
+                                <input type="checkbox" name="slack_onsnatch" value="1" ${config['slack_onsnatch']} /><label>Notify on snatch?</label>
+                            </div>
+                            <div align="center" class="row">
+                                <input type="button" value="Test Slack" id="slack_test" style="float:center" /></br>
+                                <input type="text" name="slackstatus" style="text-align:center; font-size:11px;" id="slackstatus" size="55" DISABLED />
+                            </div>
+                        </div>
+                    </fieldset>
+
 	       </td>
              </tr>
         </table>
@@ -1444,6 +1463,26 @@
                         {
                                 $("#telegramoptions").slideUp();
                         }
+                });
+
+                if ($("#slack").is(":checked"))
+                {
+                    $("#slackoptions").show();
+                }
+                else
+                {
+                    $("#slackoptions").hide();
+                }
+
+                $("#slack").click(function(){
+                    if ($("#slack").is(":checked"))
+                    {
+                        $("#slackoptions").slideDown();
+                    }
+                    else
+                    {
+                        $("#slackoptions").slideUp();
+                    }
                 });
 
                 if ($("#boxcar").is(":checked"))
@@ -1822,6 +1861,21 @@
                             $('#telegramstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                     });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#slack_test').click(function () {
+                    var webhook_url = document.getElementById('slack_webhook_url').value;
+                    $.get("testslack",
+                        { webhook_url: webhook_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#slackstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                        });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
