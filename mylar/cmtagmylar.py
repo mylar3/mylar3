@@ -91,7 +91,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     tagoptions = ["-s"]
     if mylar.CMTAG_VOLUME:
         if mylar.CMTAG_START_YEAR_AS_VOLUME:
-            comversion = 'V' + str(comversion)
+            comversion = str(comversion)
         else:
             if any([comversion is None, comversion == '', comversion == 'None']):
                 comversion = '1'
