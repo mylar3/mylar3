@@ -7,7 +7,7 @@ import requests
 import cfscrape
 import urlparse
 import ftpsshup
-import datetime
+from datetime import datetime, timedelta
 import gzip
 import time
 import random
@@ -245,19 +245,57 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 #DEMONOID / FEED
                 elif pickfeed == "6":
                     tmpsz = feedme.entries[i].description
-                    tmpsz_st = tmpsz.find('Size:') + 6
-                    if 'GB' in tmpsz[tmpsz_st:]:
+                    tmpsz_st = tmpsz.find('Size')
+                    if tmpsz_st != -1:
+                        tmpsize = tmpsz[tmpsz_st:tmpsz_st+14]
+                        if any(['GB' in tmpsize, 'MB' in tmpsize]):
+                            tmp1 = tmpsz.find('MB', tmpsz_st)
+                            if tmp1 == -1:
+                                tmp1 = tmpsz.find('GB', tmpsz_st)
+                                if tmp1 == -1:
+                                    tmp1 = tmpsz.find('TB', tmpsz_st)
+                            tmpsz_end = tmp1 + 2
+                            tmpsz_st += 7
+                    else:
+                        tmpsz_st = tmpsz.rfind('|')
+                        if tmpsz_st != -1:
+                            tmpsize = tmpsz[tmpsz_st:tmpsz_st+14]
+                            if any(['GB' in tmpsize, 'MB' in tmpsize]):
+                                tmp1 = tmpsz.find('MB', tmpsz_st)
+                                if tmp1 == -1:
+                                    tmp1 = tmpsz.find('GB', tmpsz_st)
+                                    if tmp1 == -1:
+                                        tmp1 = tmpsz.find('TB', tmpsz_st)
+                            tmpsz_end = tmp1 + 2
+                            tmpsz_st += 2
+
+                    if 'GB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'GB'
                         sz = 'G'
-                    elif 'MB' in tmpsz[tmpsz_st:]:
+                    elif 'MB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'MB'
                         sz = 'M'
+
+                    tsize = helpers.human2bytes(str(tmpsz[tmpsz_st:tmpsz.find(szform, tmpsz_st) -1]) + str(sz))
+
+                    #timestamp is in YYYY-MM-DDTHH:MM:SS+TZ :/
+                    dt = feedme.entries[i].updated
+                    try:
+                        pd = datetime.strptime(dt[0:19], '%Y-%m-%dT%H:%M:%S')
+                        pdate = pd.strftime('%a, %d %b %Y %H:%M:%S') + ' ' + re.sub(':', '', dt[19:]).strip()
+                        #if dt[19]=='+':
+                        #    pdate+=timedelta(hours=int(dt[20:22]), minutes=int(dt[23:]))
+                        #elif dt[19]=='-':
+                        #    pdate-=timedelta(hours=int(dt[20:22]), minutes=int(dt[23:]))
+                    except:
+                        pdate = feedme.entries[i].updated
+
                     feeddata.append({
                                     'site':     picksite,
                                     'title':    feedme.entries[i].title,
-                                    'link':     str(urlparse.urlparse(feedme.entries[i].link)[2].rpartition('/')[0].rsplit('/',2)[1]),
-                                    'pubdate':  feedme.entries[i].updated,
-                                    'size':     helpers.human2bytes(str(tmpsz[tmpsz_st:tmpsz.find(szform, tmpsz_st) -1]) + str(sz)),
+                                    'link':     str(urlparse.urlparse(feedme.entries[i].link)[2].rpartition('/')[0].rsplit('/',2)[2]),
+                                    'pubdate':  pdate,
+                                    'size':     tsize,
                                     })
 
                 #32p / FEEDS
