@@ -248,24 +248,29 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     tmpsz_st = tmpsz.find('Size')
                     if tmpsz_st != -1:
                         tmpsize = tmpsz[tmpsz_st:tmpsz_st+14]
-                        if any(['GB' in tmpsize, 'MB' in tmpsize]):
+                        if any(['GB' in tmpsize, 'MB' in tmpsize, 'KB' in tmpsize, 'TB' in tmpsize]):
                             tmp1 = tmpsz.find('MB', tmpsz_st)
                             if tmp1 == -1:
                                 tmp1 = tmpsz.find('GB', tmpsz_st)
                                 if tmp1 == -1:
                                     tmp1 = tmpsz.find('TB', tmpsz_st)
+                                    if tmp1 == -1:
+                                        tmp1 = tmpsz.find('KB', tmpsz_st)
                             tmpsz_end = tmp1 + 2
                             tmpsz_st += 7
                     else:
                         tmpsz_st = tmpsz.rfind('|')
                         if tmpsz_st != -1:
                             tmpsize = tmpsz[tmpsz_st:tmpsz_st+14]
-                            if any(['GB' in tmpsize, 'MB' in tmpsize]):
+                            if any(['GB' in tmpsize, 'MB' in tmpsize, 'KB' in tmpsize, 'TB' in tmpsize]):
                                 tmp1 = tmpsz.find('MB', tmpsz_st)
                                 if tmp1 == -1:
                                     tmp1 = tmpsz.find('GB', tmpsz_st)
                                     if tmp1 == -1:
                                         tmp1 = tmpsz.find('TB', tmpsz_st)
+                                        if tmp1 == -1:
+                                            tmp1 = tmpsz.find('KB', tmpsz_st)
+
                             tmpsz_end = tmp1 + 2
                             tmpsz_st += 2
 
@@ -275,6 +280,12 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     elif 'MB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'MB'
                         sz = 'M'
+                    elif 'KB' in tmpsz[tmpsz_st:tmpsz_end]:
+                        szform = 'KB'
+                        sz = 'K'
+                    elif 'TB' in tmpsz[tmpsz_st:tmpsz_end]:
+                        szform = 'TB'
+                        sz = 'T'
 
                     tsize = helpers.human2bytes(str(tmpsz[tmpsz_st:tmpsz.find(szform, tmpsz_st) -1]) + str(sz))
 

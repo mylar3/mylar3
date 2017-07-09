@@ -352,7 +352,7 @@ class info32p(object):
                                            'leechers':  a['leechers'],
                                            'scanner':   a['scanner'],
                                            'chkit':     {'id': x['id'], 'series': x['series']},
-                                           'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%c')})
+                                           'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%a, %d %b %Y %H:%M:%S')})
 
 
             if len(results32p) > 0:
