@@ -371,6 +371,7 @@ class WebInterface(object):
                         return serve_template(templatename="searchfix-2.html", title="In-Depth Results", sresults=sresults)
         #print ("imported is: " + str(imported))
         threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
+        time.sleep(5) #wait 5s so the db can be populated enough to display the page - otherwise will return to home page if not enough info is loaded.
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
 

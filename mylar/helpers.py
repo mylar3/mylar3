@@ -1358,6 +1358,11 @@ def havetotals(refreshit=None):
             else:
                 recentstatus = 'Ended'
 
+            if recentstatus == 'Loading':
+                cpub = comic['ComicPublished']
+            else:
+                cpub = re.sub('(N)', '', comic['ComicPublished']).strip()
+
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
                            "ComicSortName":   comic['ComicSortName'],
@@ -1366,7 +1371,7 @@ def havetotals(refreshit=None):
                            "ComicImage":      comic['ComicImage'],
                            "LatestIssue":     comic['LatestIssue'],
                            "LatestDate":      comic['LatestDate'],
-                           "ComicPublished":  re.sub('(N)', '', comic['ComicPublished']).strip(),
+                           "ComicPublished":  cpub,
                            "Status":          comic['Status'],
                            "recentstatus":    recentstatus,
                            "percent":         percent,
