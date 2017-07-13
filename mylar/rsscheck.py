@@ -274,15 +274,15 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                             tmpsz_end = tmp1 + 2
                             tmpsz_st += 2
 
-                    if 'GB' in tmpsz[tmpsz_st:tmpsz_end]:
+                    if 'KB' in tmpsz[tmpsz_st:tmpsz_end]:
+                        szform = 'KB'
+                        sz = 'K'
+                    elif 'GB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'GB'
                         sz = 'G'
                     elif 'MB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'MB'
                         sz = 'M'
-                    elif 'KB' in tmpsz[tmpsz_st:tmpsz_end]:
-                        szform = 'KB'
-                        sz = 'K'
                     elif 'TB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'TB'
                         sz = 'T'

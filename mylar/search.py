@@ -820,7 +820,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
 #---- date constaints.
                     # if the posting date is prior to the publication date, dump it and save the time.
-                    #logger.info('entry' + str(entry))
+                    #logger.fdebug('entry: %s' % entry)
                     if nzbprov == 'experimental' or nzbprov =='32P':
                         pubdate = entry['pubdate']
                     else:
@@ -855,7 +855,20 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', rss == 'no']):
                             # convert it to a tuple
                             dateconv = email.utils.parsedate_tz(pubdate)
-                            dateconv2 = datetime.datetime(*dateconv[:6])
+                            if all([nzbprov == '32P', dateconv is None, rss == 'no']):
+                                try:
+                                    pubdate = email.utils.formatdate(entry['int_pubdate'], localtime=True, usegmt=False)
+                                except:
+                                    logger.warn('Unable to parsedate to a long-date that I can undestand : %s' % entry['int_pubdate'])
+                                else:
+                                    logger.fdebug('Successfully converted to : %s' % pubdate)
+                                    dateconv = email.utils.parsedate_tz(pubdate)
+
+                            try:
+                                dateconv2 = datetime.datetime(*dateconv[:6])
+                            except TypeError as e:
+                                logger.warn('Unable to convert timestamp from : %s [%s]' % ((dateconv,), e))
+
                             try:
                                 # convert it to a numeric time, then subtract the timezone difference (+/- GMT)
                                 if dateconv[-1] is not None:
