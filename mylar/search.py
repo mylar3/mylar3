@@ -531,7 +531,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + ComicName + " : " + str(mod_isssearch))
                     bb = rsscheck.torrentdbsearch(ComicName, mod_isssearch, ComicID, nzbprov, oneoff)
-                    rss = "yes"
                 else:
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch) + " (" + str(ComicYear) + ")")
@@ -539,7 +538,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         nzbprov_fix = name_newznab
                     else: nzbprov_fix = nzbprov
                     bb = rsscheck.nzbdbsearch(findcomic, mod_isssearch, ComicID, nzbprov_fix, ComicYear, ComicVersion, oneoff)
-                    rss = "yes"
                 if bb is None:
                     bb = 'no results'
             #this is the API calls
@@ -548,7 +546,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 # - just getting it ready for when it's not redudant :)
                 if nzbprov == '':
                     bb = "no results"
-                    rss = "no"
                 if nzbprov == '32P':
                     if all([mylar.MODE_32P == 1,mylar.ENABLE_32P]):
                         searchterm = {'series': ComicName, 'id': ComicID, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
@@ -556,17 +553,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #then we call the ajax against the id and issue# and volume (if exists)
                         a = auth32p.info32p(searchterm=searchterm)
                         bb = a.searchit()
-                        rss = "no"
                         if bb is None:
                             bb = 'no results'
                     else:
                         bb = "no results"
-                        rss = "no"
                 elif nzbprov == 'TPSE':
                     cmname = re.sub("%20", " ", str(comsrc))
                     logger.fdebug("Sending request to [TPSE] for " + str(cmname) + " : " + str(mod_isssearch))
                     bb = rsscheck.torrents(pickfeed='TPSE-SEARCH', seriesname=cmname, issue=mod_isssearch)#cmname,issue=mod_isssearch)
-                    rss = "no"
                     if bb is None:
                         bb = 'no results'
                 elif nzbprov != 'experimental':
@@ -850,12 +844,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             stdate = StoreDate
 
                         postdate_int = None
-                        if nzbprov == '32P' and rss == 'no':
+                        if nzbprov == '32P' and RSS == 'no':
                             postdate_int = pubdate
-                        if any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', rss == 'no']):
+                        if any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', RSS == 'no']):
                             # convert it to a tuple
                             dateconv = email.utils.parsedate_tz(pubdate)
-                            if all([nzbprov == '32P', dateconv is None, rss == 'no']):
+                            if all([nzbprov == '32P', dateconv is None, RSS == 'no']):
                                 try:
                                     pubdate = email.utils.formatdate(entry['int_pubdate'], localtime=True, usegmt=False)
                                 except:
