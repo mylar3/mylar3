@@ -21,7 +21,7 @@ import threading
 import platform
 import mylar
 
-from logging import getLogger, INFO, DEBUG, StreamHandler, Formatter, Handler
+from logging import getLogger, WARN, ERROR, INFO, DEBUG, StreamHandler, Formatter, Handler
 
 from mylar import helpers
 
@@ -88,7 +88,14 @@ def initLogger(console=False, log_dir=False, verbose=False):
 
     # Configure the logger to accept all messages
     logger.propagate = False
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    
+    #1 is WARN level, 2 is ERROR
+    if mylar.LOG_LEVEL == '1':
+        logger.setLevel(logging.DEBUG if verbose else logging.WARN)
+    elif mylar.LOG_LEVEL == '2':
+        logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
+    else:
+        logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
     # Add list logger
     loglist_handler = LogListHandler()
