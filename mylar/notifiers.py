@@ -347,6 +347,7 @@ class PUSHBULLET:
         else:
             self.apikey = test_apikey
         self.deviceid = mylar.PUSHBULLET_DEVICEID
+        self.channel_tag = mylar.PUSHBULLET_CHANNEL_TAG
         self._json_header = {'Content-Type': 'application/json',
                              'Authorization': 'Basic %s' % base64.b64encode(self.apikey + ":")}
         self._session = requests.Session()
@@ -385,6 +386,9 @@ class PUSHBULLET:
             data = {'type': "note", #'device_iden': self.deviceid,
                     'title': event.encode('utf-8'), #"mylar",
                     'body': message.encode('utf-8')}
+
+            if self.channel_tag:
+                data['channel_tag'] = self.channel_tag
 
         r = self._session.post(self.PUSH_URL, data=json.dumps(data))
         dt = r.json()

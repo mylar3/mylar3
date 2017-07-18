@@ -1259,6 +1259,10 @@
                                         <input type="button" class="btn" value="Update device list" id="getPushbulletDevices" />
 -->
                                     </div>
+                                    <div class="row">
+                                        <label>Channel Tag</label><input type="text" name="pushbullet_channel_tag" id="pushbullet_channel_tag" value="${config['pushbullet_channel_tag']}" size="50">
+                                        <small>Send to all subscribers of the channel with this tag (Optional)</small>
+                                    </div>
                                     <div align="center" class="row">
                                         <input type="button" value="Test Pushbullet" id="pushbullet_test" style="float:center" /></br>
                                         <input type="text" name="pbstatus" style="text-align:center; font-size:11px;" id="pbstatus" size="55" DISABLED />
