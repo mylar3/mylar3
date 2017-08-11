@@ -270,6 +270,10 @@ def GetComicInfo(comicid, dom, safechk=None):
     except:
         comic['ComicYear'] = '0000'
 
+    #safety check, cause you known, dufus'...
+    if comic['ComicYear'][-1:] == '-':
+        comic['ComicYear'] = comic['ComicYear'][:-1]
+
     try:
         comic['ComicURL'] = dom.getElementsByTagName('site_detail_url')[trackcnt].firstChild.wholeText
     except:
@@ -300,6 +304,9 @@ def GetComicInfo(comicid, dom, safechk=None):
 
     try:
         comic['Aliases'] = dom.getElementsByTagName('aliases')[0].firstChild.wholeText
+        comic['Aliases'] = re.sub('\n', '##', comic['Aliases']).strip()
+        if comic['Aliases'][-2:] == '##':
+            comic['Aliases'] = comic['Aliases'][:-2]
         #logger.fdebug('Aliases: ' + str(aliases))
     except:
         comic['Aliases'] = 'None'
@@ -585,6 +592,10 @@ def GetSeriesYears(dom):
         except:
             logger.warn('There was a problem retrieving the start year for a particular series within the story arc.')
             tempseries['SeriesYear'] = '0000'
+
+        #cause you know, dufus'...
+        if tempseries['SeriesYear'][-1:] == '-':
+            tempseries['SeriesYear'] = tempseries['SeriesYear'][:-1]
 
         desdeck = 0
         tempseries['Volume'] = 'None'

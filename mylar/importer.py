@@ -152,7 +152,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     CV_NoYearGiven = "no"
     #if the SeriesYear returned by CV is blank or none (0000), let's use the gcd one.
-    if comic['ComicYear'] is None or comic['ComicYear'] == '0000':
+    if any([comic['ComicYear'] is None, comic['ComicYear'] == '0000', comic['ComicYear'][-1:] == '-']):
         if mylar.CV_ONLY:
             #we'll defer this until later when we grab all the issues and then figure it out
             logger.info('Uh-oh. I cannot find a Series Year for this series. I am going to try analyzing deeper.')
