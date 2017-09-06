@@ -2172,13 +2172,13 @@ def torrent_create(site, linkid, alt=None):
         pass
     elif site == 'TPSE':
         if alt is None:
-            url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
+            url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
         else:
-            url = 'http://torrentproject.se/torrent/' + str(linkid) + '.torrent'
+            url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
     elif site == 'DEM':
-        url = 'https://www.dnoid.me/files/download/' + str(linkid) + '/'
+        url = mylar.DEMURL + 'files/download/' + str(linkid) + '/'
     elif site == 'WWT':
-        url = 'https://worldwidetorrents.eu/download.php'
+        url = mylar.WWTURL + 'download.php'
 
     return url
 

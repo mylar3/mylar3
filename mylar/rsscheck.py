@@ -53,7 +53,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             tpse_url = mylar.TPSE_PROXY + '/'
     else:
         #switched to https.
-        tpse_url = 'https://torrentproject.se/'
+        tpse_url = mylar.TPSEURL
 
     #this is for the public trackers included thus far in order to properly cycle throught the correct ones depending on the search request
     # TPSE = search only
@@ -87,7 +87,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             pickfeed = '6'  #DEM RSS
         elif lp == 1 and loopit == 2:
             pickfeed = '999'  #WWT RSS
-           
+
         feedtype = None
 
         if pickfeed == "1" and mylar.ENABLE_32P:  # 32pages new releases feed.
@@ -112,14 +112,14 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 continue
             return
         elif pickfeed == "5" and srchterm is not None:  # demonoid search / non-RSS
-            feed = 'https://www.dnoid.me/' + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
+            feed = mylar.DEMURL + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
             verify = bool(mylar.TPSE_VERIFY)
         elif pickfeed == "6":    # demonoid rss feed 
-            feed = 'https://www.dnoid.me/rss/10.xml'
+            feed = mylar.DEMURL + 'rss/10.xml'
             feedtype = ' from the New Releases RSS Feed from Demonoid'
             verify = bool(mylar.TPSE_VERIFY)
         elif pickfeed == "999":    #WWT rss feed
-            feed = 'https://www.worldwidetorrents.eu/rss.php?cat=132,50'
+            feed = mylar.WWTURL + 'rss.php?cat=132,50'
             feedtype = ' from the New Releases RSS Feed from WorldWideTorrents'
         elif int(pickfeed) >= 7 and feedinfo is not None:
             #personal 32P notification feeds.
@@ -134,7 +134,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         if pickfeed == '2' or pickfeed == '3':
             picksite = 'TPSE'
             #if pickfeed == '2':
-            #    feedme = tpse.            
+            #    feedme = tpse.
         elif pickfeed == '5' or pickfeed == '6':
             picksite = 'DEM'
             #if pickfeed == '5':
@@ -233,7 +233,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                         logger.warn('Unable to retrieve results - probably just hitting it too fast...')
                         continue
                     id = urlparse.urlparse(feedme.entries[i].link).path.rpartition('/')[0]
-                    
+
                     torthetpse.append({
                                     'site':     picksite,
                                     'title':    feedme.entries[i].title,
@@ -842,7 +842,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
     if any([mylar.USE_UTORRENT, mylar.USE_RTORRENT, mylar.USE_TRANSMISSION, mylar.USE_DELUGE, mylar.USE_QBITTORRENT]):
         filepath = os.path.join(mylar.CACHE_DIR, filename)
         logger.fdebug('filename for torrent set to : ' + filepath)
-        
+
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL and mylar.LOCAL_WATCHDIR is not None:
             filepath = os.path.join(mylar.LOCAL_WATCHDIR, filename)
@@ -932,9 +932,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         url = helpers.torrent_create('DEM', linkit)
 
         if url.startswith('https'):
-            dem_referrer = 'https://www.dnoid.me/files/download/'
+            dem_referrer = mylar.DEMURL + 'files/download/'
         else:
-            dem_referrer = 'http://www.dnoid.me/files/download/'
+            dem_referrer = 'http' + mylar.DEMURL[5:] + 'files/download/'
 
         headers = {'Accept-encoding': 'gzip',
                    'User-Agent':      str(mylar.USER_AGENT),
@@ -949,9 +949,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         url = helpers.torrent_create('WWT', linkit)
 
         if url.startswith('https'):
-            wwt_referrer = 'https://worldwidetorrents.eu'
+            wwt_referrer = mylar.WWTURL
         else:
-            wwt_referrer = 'http://worldwidetorrent.eu'
+            wwt_referrer = 'http' + mylar.WWTURL[5:]
 
         headers = {'Accept-encoding': 'gzip',
                    'User-Agent':      str(mylar.USER_AGENT),
@@ -1001,7 +1001,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
             if site == '32P':
                 logger.info('[TOR2CLIENT-32P] Retrying with 32P')
                 if mylar.MODE_32P == 1:
-                
+
                     logger.info('[TOR2CLIENT-32P] Attempting to re-authenticate against 32P and poll new keys as required.')
                     feed32p = auth32p.info32p(reauthenticate=True)
                     feedinfo = feed32p.authenticate()
@@ -1010,12 +1010,12 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                         mylar.ENABLE_32P = 0
                         mylar.config_write()
                         return "fail"
-                
+
                     logger.debug('[TOR2CLIENT-32P] Creating CF Scraper')
                     scraper = cfscrape.create_scraper()
 
                     logger.debug('[TOR2CLIENT-32P] payload: %s \n verify %s \n headers %s \n', payload, verify, headers)
-                
+
                     try:
                         r = scraper.get(url, params=payload, verify=verify, allow_redirects=True)
                     except Exception, e:
@@ -1046,7 +1046,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
                     cf_cookievalue, cf_user_agent = cfscrape.get_cookie_string(url)
                     headers = {'Accept-encoding': 'gzip',
                                'User-Agent':       cf_user_agent}
-                
+
                     r = scraper.get(url, verify=verify, cookies=cf_cookievalue, stream=True, headers=headers)
                 except Exception, e:
                     return "fail"
@@ -1091,7 +1091,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         import test
         rp = test.RTorrent()
 
-        torrent_info = rp.main(filepath=filepath)        
+        torrent_info = rp.main(filepath=filepath)
 
         if torrent_info:
             torrent_info['clientmode'] = 'rtorrent'
@@ -1135,7 +1135,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         except Exception as e:
             logger.error(e)
             return "fail"
-            
+
     elif mylar.USE_QBITTORRENT:
         try:
             qc = qbittorrent.TorrentClient()
@@ -1156,7 +1156,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         except Exception as e:
             logger.error(e)
             return "fail"
-            
+
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:
             #get the hash so it doesn't mess up...
