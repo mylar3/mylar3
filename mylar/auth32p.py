@@ -300,7 +300,7 @@ class info32p(object):
                 #update the 32p_reference so we avoid doing a url lookup next time
                 helpers.checkthe_id(comic_id, dataset)
             else:
-                logger.warn('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
+                logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
 
             results32p = []
             resultlist = {}
