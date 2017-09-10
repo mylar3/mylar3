@@ -3,7 +3,7 @@
 ##-- start configuration
 
 #this needs to be edited to the full path to the get.conf file containing the torrent client information
-configfile='/home/hero/mylar/post-processing/torrent-auto-snatch/get.conf'
+configfile='/opt/mylar/post-processing/torrent-auto-snatch/get.conf'
 
 #this is the temporary location where it will make sure the conf is safe for use (by default this should be fine if left alone)
 configfile_secured='/tmp/get.conf'
