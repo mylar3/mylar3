@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 import feedparser
 import re
 import logger
@@ -54,9 +55,13 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         max_age = "&age=" + str(mylar.USENET_RETENTION)
 
     feeds = []
+    feed1 = "http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch
     feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
+    time.sleep(3)
     if mylar.ALTEXPERIMENTAL:
+        feed2 = "http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch
         feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
+        time.sleep(3)
 
     entries = []
     mres = {}

@@ -24,54 +24,51 @@ rss_lock = threading.Lock()
 
 
 class tehMain():
-    def __init__(self, forcerss=None):
+    def __init__(self):
+        pass 
 
-        self.forcerss = forcerss
-
-    def run(self):
-
+    def run(self, forcerss=None):
+        logger.info('forcerss is : %s' % forcerss)
         with rss_lock:
 
-            logger.info('RSS Feed Check was last run at : ' + str(mylar.RSS_LASTRUN))
+            logger.info('[RSS-FEEDS] RSS Feed Check was last run at : ' + str(mylar.SCHED_RSS_LAST))
             firstrun = "no"
             #check the last run of rss to make sure it's not hammering.
-            if mylar.RSS_LASTRUN is None or mylar.RSS_LASTRUN == '' or mylar.RSS_LASTRUN == '0' or self.forcerss == True:
-                logger.info('RSS Feed Check First Ever Run.')
+            if mylar.SCHED_RSS_LAST is None or mylar.SCHED_RSS_LAST == '' or mylar.SCHED_RSS_LAST == '0' or forcerss == True:
+                logger.info('[RSS-FEEDS] RSS Feed Check Initalizing....')
                 firstrun = "yes"
-                mins = 0
+                duration_diff = 0
             else:
-                c_obj_date = datetime.datetime.strptime(mylar.RSS_LASTRUN, "%Y-%m-%d %H:%M:%S")
-                n_date = datetime.datetime.now()
-                absdiff = abs(n_date - c_obj_date)
-                mins = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 60.0  #3600 is for hours.
-
-            if firstrun == "no" and mins < int(mylar.RSS_CHECKINTERVAL):
-                logger.fdebug('RSS Check has taken place less than the threshold - not initiating at this time.')
+                tstamp = float(mylar.SCHED_RSS_LAST)
+                duration_diff = abs(helpers.utctimestamp() - tstamp)/60
+            logger.fdebug('[RSS-FEEDS] Duration diff: %s' % duration_diff)
+            if firstrun == "no" and duration_diff < int(mylar.RSS_CHECKINTERVAL):
+                logger.fdebug('[RSS-FEEDS] RSS Check has taken place less than the threshold - not initiating at this time.')
                 return
 
-            mylar.RSS_LASTRUN = helpers.now()
-            logger.fdebug('Updating RSS Run time to : ' + str(mylar.RSS_LASTRUN))
-            mylar.config_write()
+            helpers.job_management(write=True, job='RSS Feeds', current_run=helpers.utctimestamp(), status='Running')
+            mylar.RSS_STATUS = 'Running'
+            logger.fdebug('[RSS-FEEDS] Updated RSS Run time to : ' + str(mylar.SCHED_RSS_LAST))
 
             #function for looping through nzbs/torrent feeds
             if mylar.ENABLE_TORRENT_SEARCH:
-                logger.info('[RSS] Initiating Torrent RSS Check.')
+                logger.info('[RSS-FEEDS] Initiating Torrent RSS Check.')
                 if mylar.ENABLE_TPSE:
-                    logger.info('[RSS] Initiating Torrent RSS Feed Check on TorrentProject.')
+                    logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on TorrentProject.')
                     #rsscheck.torrents(pickfeed='3')   #TP.SE RSS Check (has to be page-parsed)
                     rsscheck.torrents(pickfeed='TPSE')    #TPSE = DEM RSS Check + WWT RSS Check
                 if mylar.ENABLE_32P:
-                    logger.info('[RSS] Initiating Torrent RSS Feed Check on 32P.')
+                    logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on 32P.')
                     if mylar.MODE_32P == 0:
-                        logger.fdebug('[RSS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
+                        logger.fdebug('[RSS-FEEDS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
                         if any([mylar.PASSKEY_32P is None, mylar.PASSKEY_32P == '', mylar.RSSFEED_32P is None, mylar.RSSFEED_32P == '']):
-                            logger.error('[RSS] Unable to validate information from provided RSS Feed. Verify that the feed provided is a current one.')
+                            logger.error('[RSS-FEEDS] Unable to validate information from provided RSS Feed. Verify that the feed provided is a current one.')
                         else:
                             rsscheck.torrents(pickfeed='1', feedinfo=mylar.KEYS_32P)
                     else:
-                        logger.fdebug('[RSS] 32P mode set to Auth mode. Monitoring all personal notification feeds & New Releases feed')
+                        logger.fdebug('[RSS-FEEDS] 32P mode set to Auth mode. Monitoring all personal notification feeds & New Releases feed')
                         if any([mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None]):
-                            logger.error('[RSS] Unable to sign-on to 32P to validate settings. Please enter/check your username password in the configuration.')
+                            logger.error('[RSS-FEEDS] Unable to sign-on to 32P to validate settings. Please enter/check your username password in the configuration.')
                         else:
                             if mylar.KEYS_32P is None:
                                 feed32p = auth32p.info32p()
@@ -83,7 +80,7 @@ class tehMain():
                                 feedinfo = mylar.FEEDINFO_32P
 
                             if feedinfo is None or len(feedinfo) == 0 or feedinfo == "disable":
-                                logger.error('[RSS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
+                                logger.error('[RSS-FEEDS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
                             else:
                                 rsscheck.torrents(pickfeed='1', feedinfo=feedinfo[0])
                                 x = 0
@@ -93,12 +90,14 @@ class tehMain():
                                     pfeed_32p = str(7 + x)
                                     rsscheck.torrents(pickfeed=pfeed_32p, feedinfo=fi)
 
-            logger.info('[RSS] Initiating RSS Feed Check for NZB Providers.')
-            rsscheck.nzbs(forcerss=self.forcerss)
-            logger.info('[RSS] RSS Feed Check/Update Complete')
-            logger.info('[RSS] Watchlist Check for new Releases')
+            logger.info('[RSS-FEEDS] Initiating RSS Feed Check for NZB Providers.')
+            rsscheck.nzbs(forcerss=forcerss)
+            logger.info('[RSS-FEEDS] RSS Feed Check/Update Complete')
+            logger.info('[RSS-FEEDS] Watchlist Check for new Releases')
             mylar.search.searchforissue(rsscheck='yes')
-            logger.info('[RSS] Watchlist Check complete.')
-            if self.forcerss:
-                logger.info('[RSS] Successfully ran a forced RSS Check.')
-            return
+            logger.info('[RSS-FEEDS] Watchlist Check complete.')
+            if forcerss:
+                logger.info('[RSS-FEEDS] Successfully ran a forced RSS Check.')
+            helpers.job_management(write=True, job='RSS Feeds', last_run_completed=helpers.utctimestamp(), status='Waiting')
+            mylar.RSS_STATUS = 'Waiting'
+            return True

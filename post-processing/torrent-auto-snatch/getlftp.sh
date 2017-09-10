@@ -25,12 +25,12 @@ fi
 source "$configfile"
 
 cd $LOCALCD
-filename="$1"
+filename="$downlocation"
 
 if [[ "${filename##*.}" == "cbr" || "${filename##*.}" == "cbz" ]]; then
-    LCMD="pget -n 6 '$1'"
+    LCMD="pget -n 6 '$filename'"
 else
-    LCMD="mirror -P 2 --use-pget-n=6 '$1'"
+    LCMD="mirror -P 2 --use-pget-n=6 '$filename'"
 fi
 
 if [[ -z $KEYFILE ]]; then

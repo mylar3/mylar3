@@ -17,9 +17,7 @@ from __future__ import with_statement
 
 import mylar
 
-from mylar import logger
-
-#import threading
+from mylar import logger, helpers, weeklypull
 
 class Weekly():
     def __init__(self):
@@ -27,6 +25,10 @@ class Weekly():
 
     def run(self):
         logger.info('[WEEKLY] Checking Weekly Pull-list for new releases/updates')
-        mylar.weeklypull.pullit()
-        mylar.weeklypull.future_check()
-        return
+        helpers.job_management(write=True, job='Weekly Pullist', current_run=helpers.utctimestamp(), status='Running')
+        mylar.WEEKLY_STATUS = 'Running'
+        weeklypull.pullit()
+        weeklypull.future_check()
+        helpers.job_management(write=True, job='Weekly Pullist', last_run_completed=helpers.utctimestamp(), status='Waiting')
+        mylar.WEEKLY_STATUS = 'Waiting'
+

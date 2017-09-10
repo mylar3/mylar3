@@ -398,7 +398,7 @@
 					<input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
 				</div>
 				<div class="config">
-                                        <div class="row">
+                                       <div class="row">
                                            <label>Minimum # of seeders</label>
                                            <input type="text" name="minseeds" value="${config['minseeds']}" size="10">
                                        </div>
@@ -410,8 +410,7 @@
                                             <input type="radio" name="torrent_downloader" id="torrent_downloader_deluge" value="4" ${config['torrent_downloader_deluge']}> Deluge&nbsp;&nbsp;
                                             <input type="radio" name="torrent_downloader" id="torrent_downloader_qbittorrent" value="5" ${config['torrent_downloader_qbittorrent']}> qBittorrent
                                           </center>
-                                </div>
-			</fieldset>
+                                
 			<fieldset id="watchlist_options">
                                 <div class="row checkbox left clearfix">
                                         <input id="local_watchdir" type="checkbox" name="torrent_local" value="1" ${config['torrent_local']} /><label>Local Watch dir</label>
@@ -547,6 +546,7 @@
 				<div class="row">
 					<label>Deluge Host:Port </label>
 					<input type="text" name="deluge_host" value="${config['deluge_host']}" size="30">
+                                        <small>port uses the deluge daemon port (remote connection to daemon has to be enabled)</small>
 				</div>
 				<div class="row">
 					<label>Deluge Username</label>
@@ -591,7 +591,7 @@
                                         <small>Automatically start torrent on successful loading within qBittorrent client</small>
                                 </div>
                         </fieldset>
-
+                     </div>
                 </td>
             </tr>
 
@@ -609,7 +609,7 @@
                             <label>RSS Interval Feed Check</label>
                             <input type="text" name="rss_checkinterval" value="${config['rss_checkinterval']}" size="6" /><small>(Mins)</small>
                             <a href="#" style="float:right" type="button" onclick="doAjaxCall('force_rss',$(this))" data-success="RSS Force now running" data-error="Error trying to retrieve RSS Feeds"><span class="ui-icon ui-icon-extlink"></span>Force RSS</a>
-                            </br><small><% rss_last=mylar.RSS_LASTRUN %>last run: ${rss_last}</small>
+                            </br><small>last run: ${config['rss_last']}</small>
                           </div>
                         </fieldset>
                 	<fieldset>
@@ -708,6 +708,15 @@
                                                 <div align="center" class="row">
                                                     <input type="button" value="Test Connection" id="test_32p" style="float:center" /></br>
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
+                                                </div>
+                                                <div name="inkdrops32p" id="inkdrops32p" style="font-size:11px;" align="center">
+                                                <%
+                                                    if mylar.INKDROPS_32P is None:
+                                                        inkdrops = ''
+                                                    else:
+                                                        inkdrops = 'Inkdrops Available: ' + '{:06,}'.format(float(mylar.INKDROPS_32P))
+                                                %>
+                                                    <span>${inkdrops}</span>
                                                 </div>
                                              </fieldset>
                                          </div>
@@ -1696,6 +1705,10 @@
                     });
                 });
 
+                function numberWithCommas(x) {
+                        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                };
+
                 $("#test_32p").click(function(){
                     $.get('test_32p',
                         function(data){
@@ -1703,7 +1716,11 @@
                                 alert(data.error);
                                 return;
                             }
-                            $('#status32p').val(data);
+                            var obj = JSON.parse(data);
+                            var inkd = parseInt(obj['inkdrops']);
+                            inkd = numberWithCommas(inkd);
+                            $('#status32p').val(obj['status']);
+                            $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
                     });
                 });
 

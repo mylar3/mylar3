@@ -1,6 +1,4 @@
-"""
-This module contains the expressions applicable for CronTrigger's fields.
-"""
+"""This module contains the expressions applicable for CronTrigger's fields."""
 
 from calendar import monthrange
 import re
@@ -8,7 +6,7 @@ import re
 from apscheduler.util import asint
 
 __all__ = ('AllExpression', 'RangeExpression', 'WeekdayRangeExpression',
-           'WeekdayPositionExpression')
+           'WeekdayPositionExpression', 'LastDayOfMonthExpression')
 
 
 WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -37,6 +35,9 @@ class AllExpression(object):
         if next <= maxval:
             return next
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.step == other.step
+
     def __str__(self):
         if self.step:
             return '*/%d' % self.step
@@ -57,30 +58,30 @@ class RangeExpression(AllExpression):
         if last is None and step is None:
             last = first
         if last is not None and first > last:
-            raise ValueError('The minimum value in a range must not be '
-                             'higher than the maximum')
+            raise ValueError('The minimum value in a range must not be higher than the maximum')
         self.first = first
         self.last = last
 
     def get_next_value(self, date, field):
-        start = field.get_value(date)
+        startval = field.get_value(date)
         minval = field.get_min(date)
         maxval = field.get_max(date)
 
         # Apply range limits
         minval = max(minval, self.first)
-        if self.last is not None:
-            maxval = min(maxval, self.last)
-        start = max(start, minval)
+        maxval = min(maxval, self.last) if self.last is not None else maxval
+        nextval = max(minval, startval)
 
-        if not self.step:
-            next = start
-        else:
-            distance_to_next = (self.step - (start - minval)) % self.step
-            next = start + distance_to_next
+        # Apply the step if defined
+        if self.step:
+            distance_to_next = (self.step - (nextval - minval)) % self.step
+            nextval += distance_to_next
 
-        if next <= maxval:
-            return next
+        return nextval if nextval <= maxval else None
+
+    def __eq__(self, other):
+        return (isinstance(other, self.__class__) and self.first == other.first and
+                self.last == other.last)
 
     def __str__(self):
         if self.last != self.first and self.last is not None:
@@ -102,8 +103,7 @@ class RangeExpression(AllExpression):
 
 
 class WeekdayRangeExpression(RangeExpression):
-    value_re = re.compile(r'(?P<first>[a-z]+)(?:-(?P<last>[a-z]+))?',
-                          re.IGNORECASE)
+    value_re = re.compile(r'(?P<first>[a-z]+)(?:-(?P<last>[a-z]+))?', re.IGNORECASE)
 
     def __init__(self, first, last=None):
         try:
@@ -135,8 +135,8 @@ class WeekdayRangeExpression(RangeExpression):
 
 class WeekdayPositionExpression(AllExpression):
     options = ['1st', '2nd', '3rd', '4th', '5th', 'last']
-    value_re = re.compile(r'(?P<option_name>%s) +(?P<weekday_name>(?:\d+|\w+))'
-                          % '|'.join(options), re.IGNORECASE)
+    value_re = re.compile(r'(?P<option_name>%s) +(?P<weekday_name>(?:\d+|\w+))' %
+                          '|'.join(options), re.IGNORECASE)
 
     def __init__(self, option_name, weekday_name):
         try:
@@ -150,8 +150,7 @@ class WeekdayPositionExpression(AllExpression):
             raise ValueError('Invalid weekday name "%s"' % weekday_name)
 
     def get_next_value(self, date, field):
-        # Figure out the weekday of the month's first day and the number
-        # of days in that month
+        # Figure out the weekday of the month's first day and the number of days in that month
         first_day_wday, last_day = monthrange(date.year, date.month)
 
         # Calculate which day of the month is the first of the target weekdays
@@ -163,16 +162,34 @@ class WeekdayPositionExpression(AllExpression):
         if self.option_num < 5:
             target_day = first_hit_day + self.option_num * 7
         else:
-            target_day = first_hit_day + ((last_day - first_hit_day) / 7) * 7
+            target_day = first_hit_day + ((last_day - first_hit_day) // 7) * 7
 
         if target_day <= last_day and target_day >= date.day:
             return target_day
 
+    def __eq__(self, other):
+        return (super(WeekdayPositionExpression, self).__eq__(other) and
+                self.option_num == other.option_num and self.weekday == other.weekday)
+
     def __str__(self):
-        return '%s %s' % (self.options[self.option_num],
-                          WEEKDAYS[self.weekday])
+        return '%s %s' % (self.options[self.option_num], WEEKDAYS[self.weekday])
 
     def __repr__(self):
-        return "%s('%s', '%s')" % (self.__class__.__name__,
-                                   self.options[self.option_num],
+        return "%s('%s', '%s')" % (self.__class__.__name__, self.options[self.option_num],
                                    WEEKDAYS[self.weekday])
+
+
+class LastDayOfMonthExpression(AllExpression):
+    value_re = re.compile(r'last', re.IGNORECASE)
+
+    def __init__(self):
+        pass
+
+    def get_next_value(self, date, field):
+        return monthrange(date.year, date.month)[1]
+
+    def __str__(self):
+        return 'last'
+
+    def __repr__(self):
+        return "%s()" % self.__class__.__name__

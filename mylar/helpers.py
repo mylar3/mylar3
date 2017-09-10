@@ -24,9 +24,11 @@ import json
 import re
 import sys
 import platform
+import calendar
 import itertools
 import shutil
 import os, errno
+from apscheduler.triggers.interval import IntervalTrigger
 import mylar
 import logger
 
@@ -127,6 +129,9 @@ def today():
 def now():
     now = datetime.datetime.now()
     return now.strftime("%Y-%m-%d %H:%M:%S")
+
+def utctimestamp():
+    return time.time()
 
 def bytes_to_mb(bytes):
 
@@ -649,9 +654,9 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('Destination: ' + dst)
 
             rename_this = {"destination_dir": dst,
-                            "nfilename": nfilename,
-                            "issueid": issueid,
-                            "comicid": comicid}
+                           "nfilename": nfilename,
+                           "issueid": issueid,
+                           "comicid": comicid}
 
             return rename_this
 
@@ -1383,6 +1388,8 @@ def havetotals(refreshit=None):
 
 def filesafe(comic):
     import unicodedata
+    if u'\u2014' in comic:
+        comic = re.sub(u'\u2014', ' - ', comic)
     try:
         u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
     except TypeError:
@@ -1969,25 +1976,44 @@ def listIssues(weeknumber, year):
     library = []
     myDB = db.DBConnection()
     # Get individual issues
-    list = myDB.select("SELECT issues.Status, issues.ComicID, issues.IssueID, issues.ComicName, weekly.publisher, issues.Issue_Number from weekly, issues where weekly.IssueID = issues.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
+    list = myDB.select("SELECT issues.Status, issues.ComicID, issues.IssueID, issues.ComicName, issues.IssueDate, issues.ReleaseDate, weekly.publisher, issues.Issue_Number from weekly, issues where weekly.IssueID = issues.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
     for row in list:
+        if row['ReleaseDate'] is None:
+            tmpdate = row['IssueDate']
+        else:
+            tmpdate = row['ReleaseDate']
         library.append({'ComicID': row['ComicID'],
-                       'Status':  row['Status'],
-                       'IssueID': row['IssueID'],
-                       'ComicName': row['ComicName'],
-                       'Publisher': row['publisher'],
-                       'Issue_Number': row['Issue_Number']})
+                        'Status':  row['Status'],
+                        'IssueID': row['IssueID'],
+                        'ComicName': row['ComicName'],
+                        'Publisher': row['publisher'],
+                        'Issue_Number': row['Issue_Number'],
+                        'IssueYear': tmpdate})
+
     # Add the annuals
     if mylar.ANNUALS_ON:
-        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
+        list = myDB.select("SELECT annuals.Status, annuals.ComicID, annuals.ReleaseComicID, annuals.IssueID, annuals.ComicName, annuals.ReleaseDate, annuals.IssueDate, weekly.publisher, annuals.Issue_Number from weekly, annuals where weekly.IssueID = annuals.IssueID and weeknumber = ? and year = ?", [int(weeknumber), year])
         for row in list:
+            if row['ReleaseDate'] is None:
+                tmpdate = row['IssueDate']
+            else:
+                tmpdate = row['ReleaseDate']
             library.append({'ComicID': row['ComicID'],
                             'Status':  row['Status'],
                             'IssueID': row['IssueID'],
                             'ComicName': row['ComicName'],
                             'Publisher': row['publisher'],
-                            'Issue_Number': row['Issue_Number']})
+                            'Issue_Number': row['Issue_Number'],
+                            'IssueYear': tmpdate})
 
+    #tmplist = library
+    #librarylist = []
+    #for liblist in tmplist:
+    #    lb = myDB.select('SELECT ComicVersion, Type, ComicYear, ComicID from comics WHERE ComicID=?', [liblist['ComicID']])
+    #    librarylist.append(liblist)
+    #    librarylist.update({'Comic_Volume': lb['ComicVersion'],
+    #                        'ComicYear': lb['ComicYear'],
+    #                        'ComicType': lb['Type']})
     return library
 
 def incr_snatched(ComicID):
@@ -2027,13 +2053,13 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
     #'write' - write new file
     #'dupe_file' - do not write new file as existing file is better quality
     #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-    rtnval = []
+
     if dupchk['Status'] == 'Downloaded' or dupchk['Status'] == 'Archived':
         try:
             dupsize = dupchk['ComicSize']
         except:
             logger.info('[DUPECHECK] Duplication detection returned no hits as this is a new Snatch. This is not a duplicate.')
-            rtnval.append({'action':  "write"})
+            rtnval = {'action':  "write"}
 
         logger.info('[DUPECHECK] Existing Status already set to ' + dupchk['Status'])
         cid = []
@@ -2051,11 +2077,11 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                 else:
                     #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
                     logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
-                    rtnval.append({'action':  "dont_dupe"})
+                    rtnval = {'action':  "dont_dupe"}
 
             else:
-                rtnval.append({'action':  "dupe_file",
-                               'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                rtnval = {'action':  "dupe_file",
+                          'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
         else:
             logger.info('[DUPECHECK] Existing file within db :' + dupchk['Location'] + ' has a filesize of : ' + str(dupsize) + ' bytes.')
 
@@ -2066,8 +2092,8 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                 logger.info('[DUPECHECK] Existing filesize is 0 as I cannot locate the original entry.')
                 if dupchk['Status'] == 'Archived':
                     logger.info('[DUPECHECK] Assuming issue is Archived.')
-                    rtnval.append({'action':  "dupe_file",
-                                   'to_dupe': filename})
+                    rtnval = {'action':  "dupe_file",
+                              'to_dupe': filename}
                     return rtnval
                 else:
                     logger.info('[DUPECHECK] Assuming 0-byte file - this one is gonna get hammered.')
@@ -2086,8 +2112,8 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                         else:
                             #keep filename
                             logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + filename)
-                            rtnval.append({'action':  "dupe_src",
-                                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                            rtnval = {'action':  "dupe_src",
+                                      'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
                     else:
                         if dupchk['Location'].endswith('.cbz'):
                             logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbz format. Retaining the larger filesize of the two.')
@@ -2095,8 +2121,8 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                         else:
                             #keep filename
                             logger.info('[DUPECHECK-CBR PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in file : ' + dupchk['Location'])
-                            rtnval.append({'action':  "dupe_file",
-                                           'to_dupe': filename})
+                            rtnval = {'action':  "dupe_file",
+                                      'to_dupe': filename}
 
                 elif 'cbz' in mylar.DUPECONSTRAINT:
                     if filename.endswith('.cbr'):
@@ -2106,8 +2132,8 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                         else:
                             #keep filename
                             logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                            rtnval.append({'action':  "dupe_file",
-                                           'to_dupe': filename})
+                            rtnval = {'action':  "dupe_file",
+                                      'to_dupe': filename}
                     else:
                         if dupchk['Location'].endswith('.cbz'):
                             logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] BOTH files are in cbz format. Retaining the larger filesize of the two.')
@@ -2115,22 +2141,22 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                         else:
                             #keep filename
                             logger.info('[DUPECHECK-CBZ PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                            rtnval.append({'action':  "dupe_src",
-                                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                            rtnval = {'action':  "dupe_src",
+                                      'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
 
             if mylar.DUPECONSTRAINT == 'filesize' or tmp_dupeconstraint == 'filesize':
                 if filesz <= int(dupsize) and int(dupsize) != 0:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining currently scanned in filename : ' + dupchk['Location'])
-                    rtnval.append({'action':  "dupe_file",
-                                   'to_dupe': filename}) 
+                    rtnval = {'action':  "dupe_file",
+                              'to_dupe': filename}
                 else:
                     logger.info('[DUPECHECK-FILESIZE PRIORITY] [#' + dupchk['Issue_Number'] + '] Retaining newly scanned in filename : ' + filename)
-                    rtnval.append({'action':  "dupe_src",
-                                   'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])})
+                    rtnval = {'action':  "dupe_src",
+                              'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
 
     else:
         logger.info('[DUPECHECK] Duplication detection returned no hits. This is not a duplicate of anything that I have scanned in as of yet.')
-        rtnval.append({'action':  "write"})
+        rtnval = {'action':  "write"}
     return rtnval
 
 def create_https_certificates(ssl_cert, ssl_key):
@@ -2676,17 +2702,21 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
 
             curScriptName = shell_cmd + ' ' + str(mylar.AUTO_SNATCH_SCRIPT).decode("string_escape")
             if torrent_files > 1:
-                downlocation = torrent_folder
+                downlocation = torrent_folder.encode('utf-8')
             else:
-                downlocation = torrent_info['files'][0] #os.path.join(torrent_folder, torrent_info['name'])
+                if mylar.USE_DELUGE:
+                    downlocation = os.path.join(torrent_folder, torrent_info['files'][0]['path'])
+                else:
+                    downlocation = torrent_info['files'][0].encode('utf-8')
 
-            downlocation = re.sub("'", "\\'", downlocation)
-            downlocation = re.sub("&", "\\&", downlocation)
+            os.environ['downlocation'] = re.sub("'", "\\'",downlocation)
+            #downlocation = re.sub("\'", "\\'", downlocation)
+            #downlocation = re.sub("&", "\&", downlocation)
 
-            script_cmd = shlex.split(curScriptName, posix=False) + [downlocation]
+            script_cmd = shlex.split(curScriptName, posix=False) # + [downlocation]
             logger.fdebug(u"Executing command " +str(script_cmd))
             try:
-                p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
+                p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
                 out, err = p.communicate()
                 logger.fdebug(u"Script result: " + out)
             except OSError, e:
@@ -2947,6 +2977,169 @@ def get_the_hash(filepath):
     logger.info('Hash of file : ' + thehash)
     return {'hash':     thehash}
 
+def date_conversion(originaldate):
+    c_obj_date = datetime.datetime.strptime(originaldate, "%Y-%m-%d %H:%M:%S")
+    n_date = datetime.datetime.now()
+    absdiff = abs(n_date - c_obj_date)
+    hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
+    return hours
+
+def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None):
+        jobresults = []
+
+        import db
+        myDB = db.DBConnection()
+
+        if job is None:
+            dbupdate_newstatus = 'Waiting'
+            dbupdate_nextrun = None
+            rss_newstatus = 'Waiting'
+            rss_nextrun = None
+            weekly_newstatus = 'Waiting'
+            weekly_nextrun = None
+            search_newstatus = 'Waiting'
+            search_nextrun = None
+            version_newstatus = 'Waiting'
+            version_nextrun = None
+            monitor_newstatus = 'Waiting'
+            monitor_nextrun = None
+
+            job_info = myDB.select('select * from jobhistory')
+            #set default values if nothing has been ran yet
+            for ji in job_info:
+                if 'update' in ji['JobName'].lower():
+                    if mylar.SCHED_DBUPDATE_LAST is None:
+                        mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
+                    dbupdate_newstatus = ji['status']
+                    dbupdate_nextrun = ji['next_run_timestamp']
+                elif 'search' in ji['JobName'].lower():
+                    if mylar.SCHED_SEARCH_LAST is None:
+                        mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
+                    search_newstatus = ji['status']
+                    search_nextrun = ji['next_run_timestamp']
+                elif 'rss' in ji['JobName'].lower():
+                    if mylar.SCHED_RSS_LAST is None:
+                        mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
+                    rss_newstatus = ji['status']
+                    rss_nextrun = ji['next_run_timestamp']
+                elif 'weekly' in ji['JobName'].lower():
+                    if mylar.SCHED_WEEKLY_LAST is None:
+                        mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
+                    weekly_newstatus = ji['status']
+                    weekly_nextrun = ji['next_run_timestamp']
+                elif 'version' in ji['JobName'].lower():
+                    if mylar.SCHED_VERSION_LAST is None:
+                        mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
+                    version_newstatus = ji['status']
+                    version_nextrun = ji['next_run_timestamp']
+                elif 'monitor' in ji['JobName'].lower():
+                    if mylar.SCHED_MONITOR_LAST is None:
+                        mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
+                    monitor_newstatus = ji['status']
+                    monitor_nextrun = ji['next_run_timestamp']
+
+            #this is for initial startup
+            for jb in mylar.SCHED.get_jobs():
+                #logger.fdebug('jb: %s' % jb)
+                jobinfo = str(jb)
+                if 'update' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
+                    newstatus = dbupdate_newstatus
+                elif 'search' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_SEARCH_LAST
+                    newstatus = search_newstatus
+                elif 'rss' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_RSS_LAST
+                    newstatus = rss_newstatus
+                elif 'weekly' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
+                    newstatus = weekly_newstatus
+                elif 'version' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_VERSION_LAST
+                    newstatus = version_newstatus
+                elif 'monitor' in jobinfo.lower():
+                    prev_run_timestamp = mylar.SCHED_MONITOR_LAST
+                    newstatus = monitor_newstatus
+                jobname = jobinfo[:jobinfo.find('(')-1].strip()
+                #logger.fdebug('jobinfo: %s' % jobinfo)
+                jobtimetmp = jobinfo.split('at: ')[1].split('.')[0].strip()
+                #logger.fdebug('jobtimetmp: %s' % jobtimetmp)
+                jobtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
+                #logger.fdebug('jobtime: %s' % jobtime)
+
+                if prev_run_timestamp is not None:
+                    prev_run_time_utc = datetime.datetime.utcfromtimestamp(float(prev_run_timestamp))
+                else:
+                    prev_run_time_utc = None
+                #logger.fdebug('prev_run_time: %s' % prev_run_timestamp)
+                #logger.fdebug('prev_run_time type: %s' % type(prev_run_timestamp))
+                jobresults.append({'jobname': jobname,
+                                   'next_run_datetime': datetime.datetime.utcfromtimestamp(jobtime),
+                                   'prev_run_datetime': prev_run_time_utc,
+                                   'next_run_timestamp': jobtime,
+                                   'prev_run_timestamp': prev_run_timestamp,
+                                   'status': newstatus})
+
+        if not write:
+            #logger.info('jobresults: %s' % jobresults)
+            return jobresults
+        else:
+            if job is None:
+                for x in jobresults:
+                    updateCtrl = {'JobName':  x['jobname']}
+                    updateVals = {'next_run_timestamp': x['next_run_timestamp'],
+                                  'prev_run_timestamp': x['prev_run_timestamp'],
+                                  'next_run_datetime': x['next_run_datetime'],
+                                  'prev_run_datetime': x['prev_run_datetime'],
+                                  'status': x['status']}
+
+                    myDB.upsert('jobhistory', updateVals, updateCtrl)
+            else:
+                #logger.fdebug('Updating info - job: %s' % job)
+                #logger.fdebug('Updating info - last run: %s' % last_run_completed)
+                #logger.fdebug('Updating info - status: %s' % status)
+                updateCtrl = {'JobName':  job}
+                if current_run is not None:
+                    updateVals = {'prev_run_timestamp': current_run,
+                                  'prev_run_datetime': datetime.datetime.utcfromtimestamp(current_run),
+                                  'status':  status}
+                    #logger.info('updateVals: %s' % updateVals)
+                elif last_run_completed is not None:
+                    if job == 'DB Updater':
+                        mylar.SCHED.reschedule_job('dbupdater', trigger=IntervalTrigger(hours=0, minutes=5, timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (5 * 60)
+                    elif job == 'Auto-Search':
+                        mylar.SCHED.reschedule_job('search', trigger=IntervalTrigger(hours=0, minutes=mylar.SEARCH_INTERVAL, timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (mylar.SEARCH_INTERVAL * 60)
+                    elif job == 'RSS Feeds':
+                        mylar.SCHED.reschedule_job('rss', trigger=IntervalTrigger(hours=0, minutes=int(mylar.RSS_CHECKINTERVAL), timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (int(mylar.RSS_CHECKINTERVAL) * 60)
+                    elif job == 'Weekly Pullist':
+                        if mylar.ALT_PULL == 2:
+                            wkt = 4
+                        else:
+                            wkt = 24
+                        mylar.SCHED.reschedule_job('weekly', trigger=IntervalTrigger(hours=wkt, minutes=mylar.SEARCH_INTERVAL, timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
+                    elif job == 'Check Version':
+                        mylar.SCHED.reschedule_job('version', trigger=IntervalTrigger(hours=0, minutes=mylar.CHECK_GITHUB_INTERVAL, timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (mylar.CHECK_GITHUB_INTERVAL * 60)
+                    elif job == 'Folder Monitor':
+                        mylar.SCHED.reschedule_job('monitor', trigger=IntervalTrigger(hours=0, minutes=int(mylar.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
+                        nextrun_stamp = utctimestamp() + (int(mylar.DOWNLOAD_SCAN_INTERVAL) * 60)
+
+                    nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
+                    logger.fdebug('ReScheduled job: %s to %s' % (job, nextrun_date))
+                    #if it's completed, then update the last run time to the ending time of the job
+                    updateVals = {'prev_run_timestamp':   last_run_completed,
+                                  'prev_run_datetime':    datetime.datetime.utcfromtimestamp(last_run_completed),
+                                  'last_run_completed':   'True',
+                                  'next_run_timestamp':   nextrun_stamp,
+                                  'next_run_datetime':    nextrun_date,
+                                  'status':               status}
+
+                #logger.fdebug('Job update for %s: %s' % (updateCtrl, updateVals))
+                myDB.upsert('jobhistory', updateVals, updateCtrl)
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename

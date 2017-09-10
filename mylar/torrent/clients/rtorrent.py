@@ -45,18 +45,26 @@ class TorrentClient(object):
         logger.info(url)
 
         if username and password:
+            logger.info('username: %s / password: %s' % (username, 'redacted'))
             try:
                 self.conn = RTorrent(
                     url,(auth, username, password),
                     verify_server=True,
                     verify_ssl=self.getVerifySsl()
             )
-            except:
+            except Exception as err:
+                logger.error('Failed to connect to rTorrent: %s', err)
                 return False
         else:
+            logger.info('NO username %s / NO password %s' % (username, password))
             try:
-                self.conn = RTorrent(host)
-            except:
+                self.conn = RTorrent(
+                    url, (auth, username, password),
+                    verify_server=True,
+                    verify_ssl=self.getVerifySsl()
+            )
+            except Exception as err:
+                logger.error('Failed to connect to rTorrent: %s', err)
                 return False
 
         return self.conn

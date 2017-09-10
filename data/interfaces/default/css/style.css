@@ -920,6 +920,46 @@ div#artistheader h2 a {
   font-weight: bold;
   font-family: "Trebuchet MS", Helvetica, Arial, sans-serif;
 }
+#scheduler_detail th#job {
+  width: 50px;
+  text-align: center;
+}
+#scheduler_detail th#nextrun {
+  width: 100px;
+  text-align: center;
+}
+#scheduler_detail th#prevrun {
+  width: 100px;
+  text-align: center;
+}
+#scheduler_detail th#options {
+  width: 100px;
+  text-align: center;
+}
+#scheduler_detail td#job {
+  width: 50px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#scheduler_detail td#nextrun {
+  width: 100px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#scheduler_detail td#prevrun {
+  width: 100px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 12px;
+}
+#scheduler_detail td#options {
+  width: 100px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 12px;
+}
 #read_detail th#options {
   min-width: 150px;
   text-align: left;

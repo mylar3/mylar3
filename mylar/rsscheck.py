@@ -831,7 +831,7 @@ def nzbdbsearch(seriesname, issue, comicid=None, nzbprov=None, searchYear=None, 
     nzbinfo['entries'] = nzbtheinfo
     return nzbinfo
 
-def torsend2client(seriesname, issue, seriesyear, linkit, site):
+def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
     logger.info('matched on ' + seriesname)
     filename = helpers.filesafe(seriesname)
     filename = re.sub(' ', '_', filename)
@@ -1119,8 +1119,8 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
         try:
             dc = deluge.TorrentClient()
             if not dc.connect(mylar.DELUGE_HOST, mylar.DELUGE_USERNAME, mylar.DELUGE_PASSWORD):
-                return "fail"
                 logger.info('Not connected to Deluge!')
+                return "fail"
             else:
                 logger.info('Connected to Deluge! Will try to add torrent now!')
             torrent_info = dc.load_torrent(filepath)
@@ -1159,8 +1159,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site):
 
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:
-            #get the hash so it doesn't mess up...
-            torrent_info = helpers.get_the_hash(filepath)
+            if nzbprov == 'TPSE':
+                torrent_info = {'hash': pubhash}
+            else:
+                #get the hash so it doesn't mess up...
+                torrent_info = helpers.get_the_hash(filepath)
             torrent_info['clientmode'] = 'watchdir'
             torrent_info['link'] = linkit
             torrent_info['filepath'] = filepath

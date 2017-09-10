@@ -33,12 +33,14 @@ import locale
 import re
 from threading import Lock, Thread
 
-from apscheduler.scheduler import Scheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 from configobj import ConfigObj
 
 import cherrypy
 
-from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, dbupdater, PostProcessor, helpers, scheduler #versioncheck, rsscheck, search, PostProcessor, weeklypull, helpers, scheduler
+from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers
 
 FULL_PATH = None
 PROG_DIR = None
@@ -65,9 +67,15 @@ IMPORT_PARSED_COUNT = 0
 IMPORT_FAILURE_COUNT = 0
 CHECKENABLED = False
 
-SCHED = Scheduler()
+SCHED = BackgroundScheduler({
+                             'apscheduler.executors.default': {
+                                 'class':  'apscheduler.executors.pool:ThreadPoolExecutor',
+                                 'max_workers': '20'
+                             },
+                             'apscheduler.job_defaults.coalesce': 'false',
+                             'apscheduler.job_defaults.max_instances': '3',
+                             'apscheduler.timezone': 'UTC'})
 
-INIT_LOCK = threading.Lock()
 __INITIALIZED__ = False
 started = False
 WRITELOCK = False
@@ -76,6 +84,20 @@ IMPORTLOCK = False
 
 ## for use with updated scheduler (not working atm)
 INIT_LOCK = Lock()
+SCHED_DBUPDATE_LAST = None
+SCHED_RSS_LAST = None
+SCHED_SEARCH_LAST = None
+SCHED_WEEKLY_LAST = None
+SCHED_VERSION_LAST = None
+SCHED_MONITOR_LAST = None
+
+MONITOR_STATUS = 'Waiting'
+SEARCH_STATUS = 'Waiting'
+RSS_STATUS = 'Waiting'
+WEEKLY_STATUS = 'Waiting'
+VERSION_STATUS = 'Waiting'
+UPDATER_STATUS = 'Waiting'
+
 dbUpdateScheduler = None
 searchScheduler = None
 RSSScheduler = None
@@ -366,7 +388,6 @@ UPCOMING_SNATCHED = 1
 
 ENABLE_RSS = 0
 RSS_CHECKINTERVAL = 20
-RSS_LASTRUN = None
 
 #these are used to set the comparison against the post-processing scripts
 STATIC_COMICRN_VERSION = "1.01"
@@ -404,6 +425,7 @@ TPSE_VERIFY = True
 
 ENABLE_32P = 0
 SEARCH_32P = 0   #0 = use WS to grab torrent groupings, #1 = use 32P to grab torrent groupings
+DEEP_SEARCH_32P = 0  #0 = do not take multiple search series results & use ref32p if available, #1=  search each search series result for valid issue & posting date
 MODE_32P = None  #0 = legacymode, #1 = authmode
 KEYS_32P = None
 RSSFEED_32P = None
@@ -411,6 +433,7 @@ PASSKEY_32P = None
 USERNAME_32P = None
 PASSWORD_32P = None
 AUTHKEY_32P = None
+INKDROPS_32P = None
 FEEDINFO_32P = None
 VERIFY_32P = 1
 SNATCHEDTORRENT_NOTIFY = 0
@@ -516,9 +539,11 @@ def initialize():
                 USE_UTORRENT, UTORRENT_HOST, UTORRENT_USERNAME, UTORRENT_PASSWORD, UTORRENT_LABEL, USE_TRANSMISSION, TRANSMISSION_HOST, TRANSMISSION_USERNAME, TRANSMISSION_PASSWORD, TRANSMISSION_DIRECTORY, USE_DELUGE, DELUGE_HOST, DELUGE_USERNAME, DELUGE_PASSWORD, DELUGE_LABEL,  \
                 USE_QBITTORRENT, QBITTORRENT_HOST, QBITTORRENT_USERNAME, QBITTORRENT_PASSWORD, QBITTORRENT_LABEL, QBITTORRENT_FOLDER, QBITTORRENT_STARTONLOAD, \
                 ENABLE_META, CMTAGGER_PATH, CBR2CBZ_ONLY, CT_TAG_CR, CT_TAG_CBL, CT_CBZ_OVERWRITE, UNRAR_CMD, CT_SETTINGSPATH, CMTAG_VOLUME, CMTAG_START_YEAR_AS_VOLUME, UPDATE_ENDED, INDIE_PUB, BIGGIE_PUB, IGNORE_HAVETOTAL, SNATCHED_HAVETOTAL, PROVIDER_ORDER, TMP_PROV, \
-                dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
+                SCHED, dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, VersionScheduler, FolderMonitorScheduler, \
+                SCHED_DBUPDATE_LAST, SCHED_RSS_LAST, SCHED_SEARCH_LAST, SCHED_WEEKLY_LAST, SCHED_VERSION_LAST, SCHED_MONITOR_LAST, \
+                MONITOR_STATUS, SEARCH_STATUS, UPDATER_STATUS, VERSION_STATUS, WEEKLY_STATUS, RSS_STATUS, \
                 ALLOW_PACKS, ENABLE_TORRENTS, TORRENT_DOWNLOADER, MINSEEDS, USE_WATCHDIR, TORRENT_LOCAL, LOCAL_WATCHDIR, TORRENT_SEEDBOX, SEEDBOX_HOST, SEEDBOX_PORT, SEEDBOX_USER, SEEDBOX_PASS, SEEDBOX_WATCHDIR, \
-                ENABLE_RSS, RSS_CHECKINTERVAL, RSS_LASTRUN, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, WWTURL, DEMURL, TPSEURL, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, SEARCH_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
+                ENABLE_RSS, RSS_CHECKINTERVAL, FAILED_DOWNLOAD_HANDLING, FAILED_AUTO, ENABLE_TORRENT_SEARCH, ENABLE_TPSE, WWTURL, DEMURL, TPSEURL, TPSE_PROXY, TPSE_VERIFY, ENABLE_32P, SEARCH_32P, DEEP_SEARCH_32P, MODE_32P, KEYS_32P, RSSFEED_32P, USERNAME_32P, PASSWORD_32P, AUTHKEY_32P, INKDROPS_32P, PASSKEY_32P, FEEDINFO_32P, VERIFY_32P, SNATCHEDTORRENT_NOTIFY, \
                 PROWL_ENABLED, PROWL_PRIORITY, PROWL_KEYS, PROWL_ONSNATCH, NMA_ENABLED, NMA_APIKEY, NMA_PRIORITY, NMA_ONSNATCH, PUSHOVER_ENABLED, PUSHOVER_PRIORITY, PUSHOVER_APIKEY, PUSHOVER_USERKEY, PUSHOVER_ONSNATCH, BOXCAR_ENABLED, BOXCAR_ONSNATCH, BOXCAR_TOKEN, \
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_CHANNEL_TAG, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, \
@@ -764,7 +789,6 @@ def initialize():
 
         ENABLE_RSS = bool(check_setting_int(CFG, 'General', 'enable_rss', 1))
         RSS_CHECKINTERVAL = check_setting_str(CFG, 'General', 'rss_checkinterval', '20')
-        RSS_LASTRUN = check_setting_str(CFG, 'General', 'rss_lastrun', '')
 
         FAILED_DOWNLOAD_HANDLING = bool(check_setting_int(CFG, 'General', 'failed_download_handling', 0))
         FAILED_AUTO = bool(check_setting_int(CFG, 'General', 'failed_auto', 0))
@@ -794,6 +818,7 @@ def initialize():
         else:
             ENABLE_32P = bool(check_setting_int(CFG, 'Torrents', 'enable_32p', 0))
         SEARCH_32P = bool(check_setting_int(CFG, 'Torrents', 'search_32p', 0))
+        DEEP_SEARCH_32P = bool(check_setting_int(CFG, 'Torrents', 'deep_search_32p', 0))
 
         MODE_32P = check_setting_int(CFG, 'Torrents', 'mode_32p', 0)
         #legacy support of older config - reload into old values for consistency.
@@ -1291,49 +1316,49 @@ def initialize():
         COMICSORT = helpers.ComicSort(sequence='startup')
 
         #initialize the scheduler threads here.
-        dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
-                                                cycleTime=datetime.timedelta(hours=48),
-                                                runImmediately=False,
-                                                threadName="DBUPDATE")
+        #dbUpdateScheduler = scheduler.Scheduler(action=dbupdater.dbUpdate(),
+        #                                        cycleTime=datetime.timedelta(minutes=5),
+        #                                        runImmediately=False,
+        #                                        threadName="DBUPDATE")
 
-        if NZB_STARTUP_SEARCH:
-            searchrunmode = True
-        else:
-            searchrunmode = False
+        #if NZB_STARTUP_SEARCH:
+        #    searchrunmode = True
+        #else:
+        #    searchrunmode = False
 
-        searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
-                                              cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
-                                              threadName="SEARCH",
-                                              runImmediately=searchrunmode)
-
-        RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
-                                           cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
-                                           threadName="RSSCHECK",
-                                           runImmediately=True,
-                                           delay=30)
-
-        if ALT_PULL == 2:
-            weektimer = 4
-        else:
-            weektimer = 24
-
-        WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
-                                              cycleTime=datetime.timedelta(hours=weektimer),
-                                              threadName="WEEKLYCHECK",
-                                              runImmediately=True,
-                                              delay=10)
-
-        VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
-                                               cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
-                                               threadName="VERSIONCHECK",
-                                               runImmediately=False)
+        #searchScheduler = scheduler.Scheduler(searchit.CurrentSearcher(),
+        #                                      cycleTime=datetime.timedelta(minutes=SEARCH_INTERVAL),
+        #                                      threadName="SEARCH",
+        #                                      runImmediately=searchrunmode)
 
 
-        FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
-                                                     cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
-                                                     threadName="FOLDERMONITOR",
-                                                     runImmediately=True,
-                                                     delay=60)
+        #RSSScheduler = scheduler.Scheduler(rsscheckit.tehMain(),
+        #                                   cycleTime=datetime.timedelta(minutes=int(RSS_CHECKINTERVAL)),
+        #                                   threadName="RSSCHECK",
+        #                                   runImmediately=True,
+        #                                   delay=30)
+
+        #if ALT_PULL == 2:
+        #    weektimer = 4
+        #else:
+        #    weektimer = 24
+
+        #WeeklyScheduler = scheduler.Scheduler(weeklypullit.Weekly(),
+        #                                      cycleTime=datetime.timedelta(hours=weektimer),
+        #                                      threadName="WEEKLYCHECK",
+        #                                      runImmediately=True,
+        #                                      delay=10)
+
+        #VersionScheduler = scheduler.Scheduler(versioncheckit.CheckVersion(),
+        #                                       cycleTime=datetime.timedelta(minutes=CHECK_GITHUB_INTERVAL),
+        #                                       threadName="VERSIONCHECK",
+        #                                       runImmediately=False)
+
+        #FolderMonitorScheduler = scheduler.Scheduler(PostProcessor.FolderCheck(),
+        #                                             cycleTime=datetime.timedelta(minutes=int(DOWNLOAD_SCAN_INTERVAL)),
+        #                                             threadName="FOLDERMONITOR",
+        #                                             runImmediately=True,
+        #                                             delay=60)
 
         # Store the original umask
         UMASK = os.umask(0)
@@ -1558,7 +1583,6 @@ def config_write():
     new_config['General']['upcoming_snatched'] = int(UPCOMING_SNATCHED)
     new_config['General']['enable_rss'] = int(ENABLE_RSS)
     new_config['General']['rss_checkinterval'] = RSS_CHECKINTERVAL
-    new_config['General']['rss_lastrun'] = RSS_LASTRUN
     new_config['General']['failed_download_handling'] = int(FAILED_DOWNLOAD_HANDLING)
     new_config['General']['failed_auto'] = int(FAILED_AUTO)
 
@@ -1598,6 +1622,7 @@ def config_write():
     new_config['Torrents']['tpse_verify'] = TPSE_VERIFY
     new_config['Torrents']['enable_32p'] = int(ENABLE_32P)
     new_config['Torrents']['search_32p'] = int(SEARCH_32P)
+    new_config['Torrents']['deep_search_32p'] = int(DEEP_SEARCH_32P)
     new_config['Torrents']['mode_32p'] = int(MODE_32P)
     new_config['Torrents']['passkey_32p'] = PASSKEY_32P
     new_config['Torrents']['rssfeed_32p'] = RSSFEED_32P
@@ -1734,7 +1759,7 @@ def config_write():
     new_config['TELEGRAM']['telegram_token'] = TELEGRAM_TOKEN
     new_config['TELEGRAM']['telegram_userid'] = TELEGRAM_USERID
     new_config['TELEGRAM']['telegram_onsnatch'] = int(TELEGRAM_ONSNATCH)
-    
+
     new_config['SLACK'] = {}
     new_config['SLACK']['slack_enabled'] = int(SLACK_ENABLED)
     new_config['SLACK']['slack_webhook_url'] = SLACK_WEBHOOK_URL
@@ -1744,69 +1769,119 @@ def config_write():
 
 def start():
 
-    global __INITIALIZED__, started, \
-        dbUpdateScheduler, searchScheduler, RSSScheduler, \
-        WeeklyScheduler, VersionScheduler, FolderMonitorScheduler
+    global __INITIALIZED__, started
 
     with INIT_LOCK:
 
         if __INITIALIZED__:
 
+            #load up the previous runs from the job sql table so we know stuff...
+            helpers.job_management()
+
             # Start our scheduled background tasks
-            #from mylar import updater, search, PostProcessor
+            SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=0, minutes=5, timezone='UTC'))
 
+            #let's do a run at the Wanted issues here (on startup) if enabled.
+            ss = searchit.CurrentSearcher()
+            if NZB_STARTUP_SEARCH:
+                SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.now(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=SEARCH_INTERVAL, timezone='UTC'))
+            else:
+                if SCHED_SEARCH_LAST is not None:
+                    search_timestamp = float(SCHED_SEARCH_LAST)
+                    logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % datetime.datetime.utcfromtimestamp(search_timestamp))
+                else:
+                    search_timestamp = helpers.utctimestamp() + (int(SEARCH_INTERVAL) *60)
 
-            #SCHED.add_interval_job(updater.dbUpdate, hours=48)
-            #SCHED.add_interval_job(search.searchforissue, minutes=SEARCH_INTERVAL)
+                duration_diff = (helpers.utctimestamp() - search_timestamp)/60
+                logger.fdebug('[AUTO-SEARCH] duration_diff : %s' % duration_diff)
+                if duration_diff >= int(SEARCH_INTERVAL):
+                    logger.fdebug('[AUTO-SEARCH]Auto-Search set to a delay of one minute before initialization as it has been %s minutes since the last run' % duration_diff)
+                    SCHED.add_job(func=ss.run, id='search', name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=SEARCH_INTERVAL, timezone='UTC'))
+                else:
+                    search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
+                    logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s every %s minutes' % (search_diff, SEARCH_INTERVAL))
+                    SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=SEARCH_INTERVAL, timezone='UTC'))
 
             if all([ENABLE_TORRENTS, AUTO_SNATCH, OS_DETECT != 'Windows']) and any([TORRENT_DOWNLOADER == 2, TORRENT_DOWNLOADER == 4]):
-                logger.info('Auto-Snatch of comleted torrents enabled & attempting to backgroun load....')
+                logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to backgroun load....')
                 SNPOOL = threading.Thread(target=helpers.worker_main, args=(SNATCHED_QUEUE,), name="AUTO-SNATCHER")
                 SNPOOL.start()
-                logger.info('Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
-
-            #start the db updater scheduler
-            logger.info('Initializing the DB Updater.')
-            dbUpdateScheduler.thread.start()
-
-            #start the search scheduler
-            searchScheduler.thread.start()
+                logger.info('[AUTO-SNATCHER] Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
 
             helpers.latestdate_fix()
 
             #initiate startup rss feeds for torrents/nzbs here...
             if ENABLE_RSS:
-                #SCHED.add_interval_job(rsscheck.tehMain, minutes=int(RSS_CHECKINTERVAL))
-                RSSScheduler.thread.start()
-                logger.info('Initiating startup-RSS feed checks.')
-                #rsscheck.tehMain()
+                logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
+                if SCHED_RSS_LAST is not None:
+                    rss_timestamp = float(SCHED_RSS_LAST)
+                    logger.info('[RSS-FEEDS] RSS last run @ %s' % datetime.datetime.utcfromtimestamp(rss_timestamp))
+                else:
+                    rss_timestamp = helpers.utctimestamp() + (int(RSS_CHECKINTERVAL) *60)
+                rs = rsscheckit.tehMain()
+                logger.fdebug('[RSS-FEEDS] rss_timestamp: %s' % rss_timestamp)
+                logger.fdebug('[RSS-FEEDS] utcfromtimestamp: %s' % helpers.utctimestamp())
+                logger.fdebug('[RSS-FEEDS] rss_checkinterval: %s' % (int(RSS_CHECKINTERVAL) * 60))
+                logger.fdebug('[RSS-FEEDS] today: %s' % datetime.datetime.utcfromtimestamp(helpers.utctimestamp()))
+                duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
+                logger.fdebug('[RSS-FEEDS] duration_diff (mins): %s' % str(duration_diff))
+                if duration_diff >= int(RSS_CHECKINTERVAL):
+                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.now(), trigger=IntervalTrigger(hours=0, minutes=int(RSS_CHECKINTERVAL), timezone='UTC'))
+                else:
+                    rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
+                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, RSS_CHECKINTERVAL))
+                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(RSS_CHECKINTERVAL), timezone='UTC'))
+
+            if ALT_PULL == 2:
+                weektimer = 4
+            else:
+                weektimer = 24
 
             #weekly pull list gets messed up if it's not populated first, so let's populate it then set the scheduler.
-            logger.info('Checking for existance of Weekly Comic listing...')
-            #PULLNEW = 'no'  #reset the indicator here.
-            #threading.Thread(target=weeklypull.pullit).start()
-            #now the scheduler (check every 24 hours)
-            #SCHED.add_interval_job(weeklypull.pullit, hours=24)
-            if not NOWEEKLY:
-                WeeklyScheduler.thread.start()
+            logger.info('[WEEKLY] Checking for existance of Weekly Comic listing...')
 
-            #let's do a run at the Wanted issues here (on startup) if enabled.
-            #if NZB_STARTUP_SEARCH:
-            #    threading.Thread(target=search.searchforissue).start()
+            #now the scheduler (check every 24 hours)
+            weekly_interval = weektimer * 60 * 60
+            if SCHED_WEEKLY_LAST is not None:
+                weekly_timestamp = float(SCHED_WEEKLY_LAST)
+            else:
+                weekly_timestamp = helpers.utctimestamp() + weekly_interval
+
+            ws = weeklypullit.Weekly()
+            duration_diff = (helpers.utctimestamp() - weekly_timestamp)/60
+
+            if duration_diff >= weekly_interval/60:
+                logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % (duration_diff/60))
+                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.now(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+            else:
+                weekly_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (weekly_interval - (duration_diff * 60)))
+                logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
+                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
 
             if CHECK_GITHUB:
-                VersionScheduler.thread.start()
-                #SCHED.add_interval_job(versioncheck.checkGithub, minutes=CHECK_GITHUB_INTERVAL)
+                vs = versioncheckit.CheckVersion()
+                SCHED.add_job(func=vs.run, id='version', name='Check Version', trigger=IntervalTrigger(hours=0, minutes=CHECK_GITHUB_INTERVAL, timezone='UTC'))
 
-            #run checkFolder every X minutes (basically Manual Run Post-Processing)
+            ##run checkFolder every X minutes (basically Manual Run Post-Processing)
             if ENABLE_CHECK_FOLDER:
                 if DOWNLOAD_SCAN_INTERVAL >0:
-                    logger.info('Enabling folder monitor for : ' + str(CHECK_FOLDER) + ' every ' + str(DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
-                    FolderMonitorScheduler.thread.start()
-                    #SCHED.add_interval_job(helpers.checkFolder, minutes=int(DOWNLOAD_SCAN_INTERVAL))
+                    logger.info('[FOLDER MONITOR] Enabling folder monitor for : ' + str(CHECK_FOLDER) + ' every ' + str(DOWNLOAD_SCAN_INTERVAL) + ' minutes.')
+                    fm = PostProcessor.FolderCheck()
+                    SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
                 else:
-                    logger.error('You need to specify a monitoring time for the check folder option to work')
-            SCHED.start()
+                    logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+
+            logger.info('Firing up the Background Schedulers now....')
+            try:
+                SCHED.print_jobs()
+                SCHED.start()
+                #update the job db here
+                logger.info('Background Schedulers successfully started...')
+                helpers.job_management(write=True) #, status='Waiting')
+            except Exception as e:
+                logger.info(e)
+                # Debug
+                SCHED.print_jobs()
 
         started = True
 
@@ -1838,6 +1913,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS searchresults (SRID TEXT, results Numeric, Series TEXT, publisher TEXT, haveit TEXT, name TEXT, deck TEXT, url TEXT, description TEXT, comicid TEXT, comicimage TEXT, issues TEXT, comicyear TEXT, ogcname TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS ref32p (ComicID TEXT UNIQUE, ID TEXT, Series TEXT, Updated TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS oneoffhistory (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, Status TEXT, weeknumber TEXT, year TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT)')
     conn.commit
     c.close
     #new
@@ -2322,12 +2398,18 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE Failed ADD COLUMN DateFailed TEXT')
 
-    ## -- Failed Table --
+    ## -- Ref32p Table --
     try:
         c.execute('SELECT Updated from ref32p')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ref32p ADD COLUMN Updated TEXT')
 
+
+    ## -- Jobhistory Table --
+    try:
+        c.execute('SELECT status from jobhistory')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE jobhistory ADD COLUMN status TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
@@ -2365,6 +2447,12 @@ def dbcheck():
     logger.info('Correcting Null entries that make the main page break on startup.')
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
 
+    job_listing = c.execute('SELECT * FROM jobhistory')
+    job_history = []
+    for jh in job_listing:
+        job_history.append(jh)
+
+    logger.info('job_history loaded: %s' % job_history)
     conn.commit()
     c.close()
 
@@ -2438,51 +2526,55 @@ def halt():
 
         if __INITIALIZED__:
 
-            logger.info(u"Aborting all threads")
+            logger.info(u"Trying to gracefully shutdown the background schedulers...")
+            try:
+                SCHED.shutdown()
+            except:
+                SCHED.shutdown(wait=False)
 
             # abort all the threads
 
-            dbUpdateScheduler.abort = True
-            logger.info(u"Waiting for the DB UPDATE thread to exit")
-            try:
-                dbUpdateScheduler.thread.join(10)
-            except:
-                pass
+            #dbUpdateScheduler.abort = True
+            #logger.info(u"Waiting for the DB UPDATE thread to exit")
+            #try:
+            #    dbUpdateScheduler.thread.join(10)
+            #except:
+            #    pass
 
-            searchScheduler.abort = True
-            logger.info(u"Waiting for the SEARCH thread to exit")
-            try:
-                searchScheduler.thread.join(10)
-            except:
-                pass
+            #searchScheduler.abort = True
+            #logger.info(u"Waiting for the SEARCH thread to exit")
+            #try:
+            #    searchScheduler.thread.join(10)
+            #except:
+            #    pass
 
-            RSSScheduler.abort = True
-            logger.info(u"Waiting for the RSS CHECK thread to exit")
-            try:
-                RSSScheduler.thread.join(10)
-            except:
-                pass
+            #RSSScheduler.abort = True
+            #logger.info(u"Waiting for the RSS CHECK thread to exit")
+            #try:
+            #    RSSScheduler.thread.join(10)
+            #except:
+            #    pass
 
-            WeeklyScheduler.abort = True
-            logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
-            try:
-                WeeklyScheduler.thread.join(10)
-            except:
-                pass
+            #WeeklyScheduler.abort = True
+            #logger.info(u"Waiting for the WEEKLY CHECK thread to exit")
+            #try:
+            #    WeeklyScheduler.thread.join(10)
+            #except:
+            #    pass
 
-            VersionScheduler.abort = True
-            logger.info(u"Waiting for the VERSION CHECK thread to exit")
-            try:
-                VersionScheduler.thread.join(10)
-            except:
-                pass
+            #VersionScheduler.abort = True
+            #logger.info(u"Waiting for the VERSION CHECK thread to exit")
+            #try:
+            #    VersionScheduler.thread.join(10)
+            #except:
+            #    pass
 
-            FolderMonitorScheduler.abort = True
-            logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
-            try:
-                FolderMonitorScheduler.thread.join(10)
-            except:
-                pass
+            #FolderMonitorScheduler.abort = True
+            #logger.info(u"Waiting for the FOLDER MONITOR thread to exit")
+            #try:
+            #    FolderMonitorScheduler.thread.join(10)
+            #except:
+            #    pass
 
             if SNPOOL is not None:
                 logger.info('Terminating the auto-snatch thread.')
@@ -2503,7 +2595,7 @@ def shutdown(restart=False, update=False):
 
     cherrypy.engine.exit()
 
-    SCHED.shutdown(wait=False)
+    #SCHED.shutdown(wait=False)
 
     config_write()
 

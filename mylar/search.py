@@ -2263,7 +2263,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         logger.fdebug("link:" + link)
         logger.fdebug("Torrent Provider:" + nzbprov)
 
-        rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov)
+        rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov, nzbid)  #nzbid = hash for usage with public torrents
         if rcheck == "fail":
             if mylar.FAILED_DOWNLOAD_HANDLING:
                 logger.error('Unable to send torrent to client. Assuming incomplete link - sending to Failed Handler and continuing search.')

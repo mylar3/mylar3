@@ -17,6 +17,7 @@ import datetime
 from xml.dom.minidom import parseString
 import urllib2
 import shlex
+import operator
 import re
 import os
 import itertools
@@ -24,17 +25,16 @@ import itertools
 import mylar
 from mylar import db, logger, helpers, filechecker
 
-def dbUpdate(ComicIDList=None, calledfrom=None):
+def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     if mylar.IMPORTLOCK:
         logger.info('Import is currently running - deferring this until the next scheduled run sequence.')
         return
     myDB = db.DBConnection()
-    #print "comicidlist:" + str(ComicIDList)
     if ComicIDList is None:
         if mylar.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -66,19 +66,22 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                                       "Corrected_SeriesYear":  comlist['Corrected_SeriesYear']})
 
         else:
-            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LatestDate DESC, LastUpdated ASC')
+            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
     else:
         comiclist = []
         comiclisting = ComicIDList
         for cl in comiclisting:
-            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE ComicID=?', [cl])
+            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear, LastUpdated from comics WHERE ComicID=? order by LastUpdated DESC, LatestDate ASC', [cl])
 
-    if calledfrom is None:
+    if all([sched is False, calledfrom is None]):
         logger.info('Starting update for %i active comics' % len(comiclist))
 
     cnt = 1
 
-    for comic in comiclist:
+    for comic in sorted(comiclist, key=operator.itemgetter('LastUpdated'), reverse=True):
+        if sched is True:
+            # since this runs every 5 minutes, take the 1st entry only...
+            logger.info('[UPDATER] Starting update for %s [%s] - last updated: %s' % (comiclist[0]['ComicName'], comiclist[0]['ComicYear'], comiclist[0]['LastUpdated']))
         dspyear = comic['ComicYear']
         csyear = None
 
@@ -100,14 +103,14 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                 absdiff = abs(n_date - c_obj_date)
                 hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
                 if hours < 5:
-                    logger.info(ComicName + '[' + str(ComicID) + '] Was refreshed less than 5 hours ago. Skipping Refresh at this time.')
+                    logger.fdebug(ComicName + '[' + str(ComicID) + '] Was refreshed less than 5 hours ago. Skipping Refresh at this time.')
                     cnt +=1
                     continue
             logger.info('[' + str(cnt) + '/' + str(len(comiclist)) + '] Refreshing :' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
         else:
             ComicID = comic['ComicID']
             ComicName = comic['ComicName']
-           
+
             logger.fdebug('Refreshing: ' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
 
         mismatch = "no"
@@ -124,6 +127,9 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                 cchk = importer.addComictoDB(ComicID, mismatch)
         else:
             if mylar.CV_ONETIMER == 1:
+                if sched is True:
+                    helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
+                    mylar.UPDATER_STATUS = 'Running'
                 logger.fdebug("CV_OneTimer option enabled...")
                 #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clea$
                 logger.fdebug("Gathering the status of all issues for the series.")
@@ -289,7 +295,12 @@ def dbUpdate(ComicIDList=None, calledfrom=None):
                 cchk = mylar.importer.addComictoDB(ComicID, mismatch)
 
         cnt +=1
-        time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
+        if sched is False:
+            time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
+        else:
+            helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
+            mylar.UPDATER_STATUS = 'Waiting'
+            break
     logger.info('Update complete')
 
 
@@ -363,7 +374,6 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             return
     else:
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
-
     if issuechk is None and altissuenumber is not None:
         logger.info('altissuenumber is : ' + str(altissuenumber))
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(altissuenumber)]).fetchone()
@@ -396,17 +406,16 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                         cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck')#mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
                 else:
                     logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
-        
             else:
                 logger.fdebug('[WEEKLY-PULL] Walksoftly has been enabled. ComicID/IssueID control given to the ninja to monitor.')
-                #logger.fdebug('hours: ' + str(hours) + ' -- forcecheck: ' + str(forcecheck))
+                logger.fdebug('hours: ' + str(hours) + ' -- forcecheck: ' + str(forcecheck))
                 if hours > 2 or forcecheck == 'yes':
                     logger.fdebug('weekinfo:' + str(weekinfo))
                     mylar.PULL_REFRESH = datetime.datetime.today()
                     #update the PULL_REFRESH
                     mylar.config_write()
                     chkitout = mylar.locg.locg(weeknumber=str(weekinfo['weeknumber']),year=str(weekinfo['year']))
-                                    
+
             logger.fdebug('linking ComicID to Pull-list to reflect status.')
             downstats = {"ComicID": ComicID,
                          "IssueID": None,
@@ -424,7 +433,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         if issuechk['Issue_Number'] == IssueNumber or issuechk['Issue_Number'] == altissuenumber:
             og_status = issuechk['Status']
             #check for 'out-of-whack' series here.
-            whackness = dbUpdate([ComicID], calledfrom='weekly')
+            whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
             if whackness == True:
                 if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
                     logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
@@ -473,7 +482,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 newValue['Status'] = "Skipped"
             #was in wrong place :(
         else:
-            logger.fdebug('Issues do not match for some reason...weekly new issue: ' + str(IssueNumber))
+            logger.fdebug('Issues do not match for some reason...weekly new issue: %s' % IssueNumber)
             return
 
     if mylar.AUTOWANT_UPCOMING:

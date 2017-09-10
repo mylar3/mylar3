@@ -47,6 +47,7 @@ class FileChecker(object):
             #watchcomic = unicode name of series that is being searched against
             self.og_watchcomic = watchcomic
             self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? sepearte since it affects the regex.
+            self.watchcomic = re.sub(u'\u2014', ' - ', watchcomic).strip()  #replace the \u2014 with a normal - because this world is f'd up enough to have something like that.
             self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
         else:
             self.watchcomic = None
@@ -91,7 +92,7 @@ class FileChecker(object):
 
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':','\'',',','&','?','!','+','(',')']
+        self.dynamic_handlers = ['/','-',':','\'',',','&','?','!','+','(',')','\u2014']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp']
 
@@ -502,6 +503,8 @@ class FileChecker(object):
                                 volume_found['position'] = split_file.index(volumeprior_label, current_pos -1) #if this passes, then we're ok, otherwise will try exception
                                 logger.fdebug('volume_found: ' + str(volume_found['position']))
                             except:
+                                volumeprior = False
+                                volumeprior_label = None
                                 sep_volume = False
                                 continue
                         else:
@@ -577,6 +580,9 @@ class FileChecker(object):
                             else:
                                 raise ValueError
                         except ValueError, e:
+                            volumeprior = False
+                            volumeprior_label = None
+                            sep_volume = False
                             pass
                             #logger.fdebug('Error detecting issue # - ignoring this result : '  + str(sf))
 
@@ -855,7 +861,7 @@ class FileChecker(object):
             mod_series_decoded = self.dynamic_replace(series_info['series_name_decoded'])
             mod_seriesname_decoded = mod_dynamicinfo['mod_seriesname']
             mod_watch_decoded = self.dynamic_replace(self.og_watchcomic)
-            mod_watchname_decoded = mod_dynamicinfo['mod_seriesname']
+            mod_watchname_decoded = mod_dynamicinfo['mod_watchcomic']
 
             #remove the spaces...
             nspace_seriesname = re.sub(' ', '', mod_seriesname)
@@ -1037,6 +1043,7 @@ class FileChecker(object):
                                 spacer+='|'
                             mod_watchcomic = mod_watchcomic[:wd] + spacer + mod_watchcomic[wd+len(wdrm):]
 
+        series_name = re.sub(u'\u2014', ' - ', series_name)
         seriesdynamic_handlers_match = [x for x in self.dynamic_handlers if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
         seriesdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in series_name.lower()]

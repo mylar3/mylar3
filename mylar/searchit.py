@@ -17,7 +17,7 @@ from __future__ import with_statement
 
 import mylar
 
-from mylar import logger
+from mylar import logger, helpers
 
 class CurrentSearcher():
     def __init__(self, **kwargs):
@@ -26,4 +26,9 @@ class CurrentSearcher():
     def run(self):
 
         logger.info('[SEARCH] Running Search for Wanted.')
+        helpers.job_management(write=True, job='Auto-Search', current_run=helpers.utctimestamp(), status='Running')
+        mylar.SEARCH_STATUS = 'Running'
         mylar.search.searchforissue()
+        helpers.job_management(write=True, job='Auto-Search', last_run_completed=helpers.utctimestamp(), status='Waiting')
+        mylar.SEARCH_STATUS = 'Waiting'
+        #mylar.SCHED_SEARCH_LAST = helpers.now()

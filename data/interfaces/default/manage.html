@@ -22,6 +22,7 @@
 			<li><a href="#tabs-1">Scan Comic Library</a></li>
                         <li><a href="#tabs-2">Manual Post-Processing</a></li>
                         <li><a href="#tabs-3">Advanced Options</a></li>
+                        <li><a href="#tabs-4" title="jobs">Activity / Jobs</a></li>
 		</ul>
 		<div id="tabs-1" class="configtable">
                                <div style="float:right;position:absolute;right:0;top;0;margin-right:50px;">
@@ -139,19 +140,8 @@
 
         <div id="tabs-3">
            <table summary="Advanced Options" class="configtable">
-
-               <tr>
-                 <td>
-                    <fieldset>
-                        <div class="links">
-                          <legend>Force Options</legend>
-                           <a href="#" onclick="doAjaxCall('forceSearch',$(this))" data-success="Checking for wanted issues successful" data-error="Error checking wanted issues"><span class="ui-icon ui-icon-search"></span>Force Check for Wanted Issues</a>
-                           <a href="#" onclick="doAjaxCall('forceUpdate',$(this))" data-success="Update active comics successful" data-error="Error forcing update Comics"><span class="ui-icon ui-icon-heart"></span>Force Update Active Comics</a>
-                           <a href="#" onclick="doAjaxCall('checkGithub',$(this))" data-success="Checking for update successful" data-error="Error checking for update"><span class="ui-icon ui-icon-refresh"></span>Check for Mylar Updates</a>
-                        </div>
-                    </fieldset>
-                  </td>
-                  <td>
+              <tr>
+                <td>
                     <fieldset>
                         <legend>Export</legend>
                         <div class="links">
@@ -159,25 +149,100 @@
                           <a href="#" onclick="doAjaxCall('wanted_Export?mode=Downloaded',$(this))" data-sucess="Exported to Downloaded list." data-error="Failed to export. Check logs"><span class="ui-icon ui-icon-refresh"></span>Export Downloaded to CSV</a>
                         </div>
                     </fieldset>
-                    </br>
+                </td>
+                <td>
                     <fieldset>
                         <legend>Additional Options</legend>
-                        <div classs="links">
+                        <div class="links">
                           <a href="readlist">Reading List Management</a><br/>
                           <a href="storyarc_main">Story Arc Management</a><br/>
                           <a href="importResults">Import Results Management</a>
                         </div>
                     </fieldset>
-                 </td>
-               </tr>
+                </td>
+              </tr>
            </table>
         </div>
+
+        <div id="tabs-4">
+          <div id="curtime" style="float:right;"></div>
+           <table summary="Activity / Jobs" width="100%" cellpadding="6px" cellspacing="2px">
+                      <legend><center><h1>Schedulers<h1><center></legend>
+                      <br />
+                        <thead>
+                           <tr border="1">
+                                <th id="job" style="width: 50px;text-align: center;">Name</th>
+                                <th id="nextrun" style="width: 90px;text-align: center;">Next</th>
+                                <th id="interval" style="width: 20px;text-align: center;">Interval</th>
+                                <th id="prevrun" style="width: 90px;text-align: center;">Prev</th>
+                                <th id="status" style="width: 50px;text-align: center;">Status</th>
+                                <th id="options" style="width: 50px;;text-align: center;">Options</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           %for j in jobs:
+                              <%
+                                    if j['status'] == 'Paused':
+                                        grade = '#D9150F'
+                                    elif j['status'] == 'Waiting':
+                                        grade = '#0F49D9'
+                                    elif j['status'] == 'Running':
+                                        grade = '#55D90F'
+                               %>
+                              <tr>
+                                <td id="job" style="width: 50px;text-align: center;">${j['jobname']}</td>
+                                <td id="nextrun" style="width: 90px;text-align: center;">${j['next_run_datetime']}</td>
+                                <td id="interval" style="width: 20px;text-align: center;">${j['interval']}</td>
+                                <td id="prevrun" style="width: 90px;text-align: center;">${j['prev_run_datetime']}</td>
+                                <td id="status" style="width: 50px;text-align: center;color: ${grade};">${j['status']}</td>
+                                <td id="options" style="width: 50px;text-align: center;">
+                                %if any([j['status'] == 'Running', j['status'] == 'Waiting']):
+                                    <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=pause',$(this),'tabs',true);return true;" data-success="Successfully paused ${j['jobname']}" data-error="Error Pausing ${j['jobname']}."><span class="ui-icon ui-icon-stop"></span>Pause</a>
+                                %elif j['status'] == 'Paused':
+                                    <a href="#" onclick="doAjaxCall('jobmanage?job=${j['jobname']}&mode=resume',$(this),'tabs',true);return true;" data-success="Successfully resumed ${j['jobname']}" data-error="Error Pausing ${j['jobname']}."><span class="ui-icon ui-icon-play"></span>Resume</a>
+                                %endif
+                                %if j['jobname'] == 'Auto-Search':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=search',$(this),'tabs',true);return true;" data-success="Force Search successfully submitted" data-error="Error checking wanted issues"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'DB Updater':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=updater',$(this),'tabs',true);return true;" data-success="Update active series now running" data-error="Error forcing update Comics"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Weekly Pullist':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=weekly',$(this),'tabs',true);return true;" data-success="Now updating Weekly Pullist" data-error="Error forcing update to Weekly Pullist"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Folder Monitor':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=monitor',$(this),'tabs',true);return true;" data-success="Folder Monitor now running" data-error="Error forcing Folder Monitor to run"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'RSS Feeds':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=rss',$(this),'tabs',true);return true;" data-success="Force RSS Check now running" data-error="Error forcing update Comics"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %elif j['jobname'] == 'Check Version':
+                                    <a href="#" onclick="doAjaxCall('schedulerForceCheck?jobid=version',$(this),'tabs',true);return true;" data-success="Version check successfully submitted" data-error="Error checking for update"><span class="ui-icon ui-icon-star"></span>Force</a>
+                                %endif
+                                </td>                                    
+                              </tr>
+                           %endfor
+                        </tbody>
+           </table>
+           </br><small><center>There could be up to a 60s delay in a given scheduler running due to other processes currently running</center></small>
+        </div>
+
 
 </div>
 </%def>
 <%def name="javascriptIncludes()">
         <script>
         var CheckEnabled = true;
+        function startTime() {
+                var today = new Date();
+                var h = today.getHours();
+                var m = today.getMinutes();
+                var s = today.getSeconds();
+                h = checkTime(h);
+                m = checkTime(m);
+                s = checkTime(s);
+                document.getElementById('curtime').innerHTML = h + ":" + m + ":" + s;
+                var t = setTimeout(startTime, 500);
+        };
+        function checkTime(i) {
+                if (i < 10) {i = "0" + i}; // add zero in front of numbers if < 10
+                return i;
+        };
         function addScanAction() {
                 $('#autoadd').append('<input type="hidden" name="scan" value=1 />');
                 CheckEnabled = true;
@@ -216,7 +281,7 @@
                 jQuery( "#tabs" ).tabs();
 		initActions();
                 initConfigCheckbox("#imp_move");
-
+                startTime();
 	};
 	$(document).ready(function() {
 		initThisPage();

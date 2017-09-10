@@ -146,7 +146,7 @@ class TorrentClient(object):
         else:
             logger.info('Torrent successfully added!')
             return {'hash':             torrent_info['hash'],
-                    'label':            torrent_info['label'],
+                    'label':            mylar.DELUGE_LABEL,
                     'folder':           torrent_info['save_path'],
                     'total_filesize':   torrent_info['total_size'],
                     'name':             torrent_info['name'],

@@ -158,6 +158,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     original_tagoptions = tagoptions
     og_tagtype = None
     initial_ctrun = True
+    error_remove = False
 
     while (i <= tagcnt):
         if initial_ctrun:
@@ -207,7 +208,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             if initial_ctrun and 'exported successfully' in out:
                 logger.fdebug(module + '[COMIC-TAGGER] : ' +str(out))
                 #Archive exported successfully to: X-Men v4 008 (2014) (Digital) (Nahga-Empire).cbz (Original deleted)
-                tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
+                if 'Error deleting' in filepath:
+                    tf1 = out.find('exported successfully to: ')
+                    tmpfilename = out[tf1 + len('exported successfully to: '):].strip()
+                    error_remove = True
+                else:
+                    tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
                 if mylar.FILE_OPTS == 'move':
                     tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
                 tmpf = tmpfilename.decode('utf-8')
@@ -232,7 +238,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 if 'file is not expected size' in out:
                     logger.fdebug('%s Output: %s' % (module,out))
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
-                    return 'fail' #'corrupt'
+                    return 'corrupt'
                 else:
                     logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
