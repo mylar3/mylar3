@@ -2218,7 +2218,7 @@ class WebInterface(object):
                     prev_run = datetime.datetime.fromtimestamp(pr)
                 else:
                     prev_run = None
-                if jb['prev_run_datetime'] is not None:
+                if jb['next_run_datetime'] is not None:
                     try:
                         nr = (datetime.datetime.strptime(jb['next_run_datetime'][:19], '%Y-%m-%d %H:%M:%S') - datetime.datetime.utcfromtimestamp(0)).total_seconds()
                     except ValueError:
@@ -2299,7 +2299,7 @@ class WebInterface(object):
                 elif jobid == 'version':
                     mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
                 elif jobid == 'updater':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, args=[None,None,True], trigger=DateTrigger(run_date=datetime.datetime.now()))
                 elif jobid == 'monitor':
                     mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
                 break

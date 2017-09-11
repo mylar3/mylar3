@@ -23,11 +23,10 @@ from mylar import logger, helpers
 
 class dbUpdate():
     def __init__(self, sched):
-        self.sched = sched
         pass
 
-    def run(self):
+    def run(self, sched):
         logger.info('[DBUpdate] Updating Database.')
         helpers.job_management(write=True, job='DB Updater', current_run=helpers.utctimestamp(), status='Running')
-        mylar.updater.dbUpdate(sched=self.sched)
+        mylar.updater.dbUpdate(sched=sched)
         helpers.job_management(write=True, job='DB Updater', last_run_completed=helpers.utctimestamp(), status='Waiting')
