@@ -4258,6 +4258,12 @@ class WebInterface(object):
                       "COUNT_HAVES": COUNT_HAVES,
                       "COUNT_ISSUES": COUNT_ISSUES,
                       "COUNT_SIZE": COUNT_SIZE}
+
+        if mylar.SCHED_RSS_LAST is None:
+            rss_sclast = 'Unknown'
+        else:
+            rss_sclast = datetime.datetime.fromtimestamp(mylar.SCHED_RSS_LAST).replace(microsecond=0)
+
         config = {
                     "comicvine_api": mylar.COMICVINE_API,
                     "http_host": mylar.HTTP_HOST,
@@ -4356,7 +4362,7 @@ class WebInterface(object):
                     "extra_newznabs": sorted(mylar.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_rss": helpers.checked(mylar.ENABLE_RSS),
                     "rss_checkinterval": mylar.RSS_CHECKINTERVAL,
-                    "rss_last": datetime.datetime.fromtimestamp(mylar.SCHED_RSS_LAST).replace(microsecond=0),
+                    "rss_last": rss_sclast,
                     "provider_order": mylar.PROVIDER_ORDER,
                     "enable_torrents": helpers.checked(mylar.ENABLE_TORRENTS),
                     "minseeds": mylar.MINSEEDS,
