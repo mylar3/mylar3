@@ -1159,7 +1159,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
     elif mylar.USE_WATCHDIR:
         if mylar.TORRENT_LOCAL:
-            if nzbprov == 'TPSE':
+            if site == 'TPSE':
                 torrent_info = {'hash': pubhash}
             else:
                 #get the hash so it doesn't mess up...
