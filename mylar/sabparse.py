@@ -27,7 +27,7 @@ def sabnzbd(sabhost=mylar.SAB_HOST, sabusername=mylar.SAB_USERNAME, sabpassword=
            sabhost = sabhost + '/'
        sabline = sabhttp + sabusername + ':' + sabpassword + '@' + sabhost
        r = requests.get(sabline + 'config/general/')
-       soup = BeautifulSoup(r.content)
+       soup = BeautifulSoup(r.content, "html.parser")
        #lenlinks = len(cntlinks)
        cnt1 = len(soup.findAll("div", {"class": "field-pair alt"}))
        cnt2 = len(soup.findAll("div", {"class": "field-pair"}))

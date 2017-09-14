@@ -429,7 +429,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if not os.path.exists(os.path.join(comlocation, "cvinfo")) or mylar.CV_ONETIMER:
             with open(os.path.join(comlocation, "cvinfo"), "w") as text_file:
                 text_file.write(str(comic['ComicURL']))
-                
+
     logger.info('Updating complete for: ' + comic['ComicName'])
 
     if calledfrom == 'weekly':
@@ -439,7 +439,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     elif calledfrom == 'dbupdate':
         logger.info('returning to dbupdate module')
-        return #issuedata # this should be the issuedata data from updateissuedata function
+        return issuedata # this should be the issuedata data from updateissuedata function
 
     elif calledfrom == 'weeklycheck':
         logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue update.')
@@ -1275,7 +1275,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             issue_collection(issuedata, nostatus='False')
         else:
             logger.fdebug('initiating issue updating - just the info')
-            issue_collection(issuedata, nostatus='True')
+            #issue_collection(issuedata, nostatus='True')
 
         styear = str(SeriesYear)
 

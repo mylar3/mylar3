@@ -881,7 +881,7 @@ def cleanhtml(raw_html):
 
     VALID_TAGS = ['div', 'p']
 
-    soup = BeautifulSoup(raw_html)
+    soup = BeautifulSoup(raw_html, "html.parser")
 
     for tag in soup.findAll('p'):
         if tag.name not in VALID_TAGS:
@@ -2705,7 +2705,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
                 downlocation = torrent_folder.encode('utf-8')
             else:
                 if mylar.USE_DELUGE:
-                    downlocation = os.path.join(torrent_folder, torrent_info['files'][0]['path'])
+                    downlocation = os.path.join(torrent_folder.encode('utf-8'), torrent_info['files'][0]['path'])
                 else:
                     downlocation = torrent_info['files'][0].encode('utf-8')
 
@@ -2745,7 +2745,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
                     else:
                         try:
                             new_filepath = os.path.join(torrent_path, '.copy')
-                            logger.info('New_Filepath: %s' % new_filepath)
+                            logger.fdebug('New_Filepath: %s' % new_filepath)
                             shutil.copy(torrent_path, new_filepath)
                             torrent_info['copied_filepath'] = new_filepath
                         except:

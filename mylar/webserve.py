@@ -1231,7 +1231,9 @@ class WebInterface(object):
                    logger.error("Unable to send torrent - check logs and settings.")
                    continue
                 else:
-                    if mylar.ENABLE_SNATCH_SCRIPT:
+                    if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.AUTO_SNATCH:
+                        mylar.SNATCHED_QUEUE.put(rcheck['hash'])
+                    elif mylar.ENABLE_SNATCH_SCRIPT:
                         #packs not supported on retry atm - Volume and Issuedate also not included due to limitations...
                         snatch_vars = {'comicinfo':       {'comicname':        ComicName,
                                                            'issuenumber':      IssueNumber,
@@ -1255,22 +1257,38 @@ class WebInterface(object):
                 logger.info('Successfully retried issue.')
                 break
             else:
+                oneoff = False
                 chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN annuals as b ON a.ComicID = b.ComicID WHERE IssueID=?', [IssueID]).fetchone()
                 if chkthis is None:
                     chkthis = myDB.selectone('SELECT a.ComicID, a.ComicName, a.ComicVersion, a.ComicYear, b.IssueID, b.Issue_Number, b.IssueDate FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID WHERE IssueID=?', [IssueID]).fetchone()
+                    if chkthis is None:
+                        chkthis = myDB.selectone('SELECT ComicID, ComicName, year as ComicYear, IssueID, IssueNumber as Issue_number, weeknumber, year from oneoffhistory WHERE IssueID=?', [IssueID]).fetchone()
+                        if chkthis is None:
+                            logger.warn('Unable to locate previous snatch details (checked issues/annuals/one-offs). Retrying the snatch for this issue is unavailable.')
+                            continue
+                        else:
+                            logger.fdebug('Successfully located issue as a one-off download initiated via pull-list. Let\'s do this....')
+                            oneoff = True
                     modcomicname = chkthis['ComicName']
                 else:
                     modcomicname = chkthis['ComicName'] + ' Annual'
 
+                if oneoff is True:
+                    weekchk = helpers.weekly_info(chkthis['weeknumber'], chkthis['year'])
+                    IssueDate = weekchk['midweek']
+                    ComicVersion = None
+                else:
+                    IssueDate = chkthis['IssueDate']
+                    ComicVersion = chkthis['ComicVersion']
                 comicinfo = []
                 comicinfo.append({"ComicName":     chkthis['ComicName'],
-                                  "ComicVolume":   chkthis['ComicVersion'],
+                                  "ComicVolume":   ComicVersion,
                                   "IssueNumber":   chkthis['Issue_Number'],
                                   "comyear":       chkthis['ComicYear'],
-                                  "IssueDate":     chkthis['IssueDate'],
+                                  "IssueDate":     IssueDate,
                                   "pack":          False,
                                   "modcomicname":  modcomicname,
-                                  "oneoff":        False})
+                                  "oneoff":        oneoff})
 
                 newznabinfo = None
 

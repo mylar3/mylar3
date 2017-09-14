@@ -806,7 +806,7 @@ def GetImportList(results):
 
 def drophtml(html):
     from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, "html.parser")
 
     text_parts = soup.findAll(text=True)
     #print ''.join(text_parts)

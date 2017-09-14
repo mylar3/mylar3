@@ -1026,27 +1026,45 @@ class PostProcessor(object):
                     comicname = None
                     issuenumber = None
                     if tmpiss is not None:
-                        ppinfo.append({'comicid':     tmpiss['ComicID'],
-                                       'issueid':     issueid,
-                                       'comicname':   tmpiss['ComicName'],
-                                       'issuenumber': tmpiss['Issue_Number'],
-                                       'publisher':   None,
-                                       'sarc':        sarc,
-                                       'oneoff':      self.oneoff})
+                        ppinfo.append({'comicid':       tmpiss['ComicID'],
+                                       'issueid':       issueid,
+                                       'comicname':     tmpiss['ComicName'],
+                                       'issuenumber':   tmpiss['Issue_Number'],
+                                       'comiclocation': None,
+                                       'publisher':     None,
+                                       'sarc':          sarc,
+                                       'oneoff':        self.oneoff})
 
                     elif all([self.oneoff is not None, mylar.ALT_PULL == 2]):
                         oneinfo = myDB.selectone('SELECT * FROM weekly WHERE IssueID=?', [issueid]).fetchone()
-                        if oneinfo is not None:
-                            ppinfo.append({'comicid':     oneinfo['ComicID'],
-                                           'comicname':   oneinfo['COMIC'],
-                                           'issuenumber': oneinfo['ISSUE'],
-                                           'publisher':   oneinfo['PUBLISHER'],
-                                           'issueid':     issueid,
-                                           'sarc':        None,
-                                           'oneoff':      True})
+                        if oneinfo is None:
+                            oneinfo = myDB.selectone('SELECT * FROM oneoffhistory WHERE IssueID=?', [issueid]).fetchone()
+                            if oneinfo is None:
+                                logger.warn('Unable to locate issue as previously snatched one-off')
+                                self._log('Unable to locate issue as previously snatched one-off')
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop'})
+                                return self.queue.put(self.valreturn)
+                            else:
+                                OComicname = oneinfo['ComicName']
+                                OIssue = oneinfo['IssueNumber']
+                                OPublisher = None
+                        else:
+                            OComicname = oneinfo['COMIC']
+                            OIssue = oneinfo['ISSUE']
+                            OPublisher = oneinfo['PUBLISHER']
 
-                            self.oneoff = True
-                            #logger.info(module + ' Discovered %s # %s by %s [comicid:%s][issueid:%s]' % (comicname, issuenumber, publisher, comicid, issueid))
+                        ppinfo.append({'comicid':       oneinfo['ComicID'],
+                                       'comicname':     OComicname,
+                                       'issuenumber':   OIssue,
+                                       'publisher':     OPublisher,
+                                       'comiclocation': None,
+                                       'issueid':       issueid,
+                                       'sarc':          None,
+                                       'oneoff':        True})
+
+                        self.oneoff = True
+                        #logger.info(module + ' Discovered %s # %s by %s [comicid:%s][issueid:%s]' % (comicname, issuenumber, publisher, comicid, issueid))
                     #use issueid to get publisher, series, year, issue number
                 else:
                     for x in oneoff_issuelist:
@@ -1386,7 +1404,7 @@ class PostProcessor(object):
             publisher = tinfo['publisher']
             sarc = tinfo['sarc']
             oneoff = tinfo['oneoff']
-            if oneoff is True:
+            if all([oneoff is True, tinfo['comiclocation'] is not None]):
                 location = os.path.abspath(os.path.join(tinfo['comiclocation'], os.pardir))
             else:
                 location = self.nzb_folder
@@ -1438,18 +1456,30 @@ class PostProcessor(object):
                         grdst = mylar.GRABBAG_DIR
 
                     odir = location
+
+                    if odir is None:
+                        odir = self.nzb_folder
+
                     ofilename = tinfo['comiclocation']
-                    path, ext = os.path.splitext(ofilename)
+
+                    if ofilename is not None:
+                        path, ext = os.path.splitext(ofilename)
+                    else:
+                        #os.walk the location to get the filename...(coming from sab kinda thing) where it just passes the path.
+                        for root, dirnames, filenames in os.walk(odir, followlinks=True):
+                            for filename in filenames:
+                                if filename.lower().endswith(self.extensions):
+                                    ofilename = filename
+                                    logger.fdebug(module + ' Valid filename located as : ' + ofilename)
+                                    path, ext = os.path.splitext(ofilename)
+                                    break
 
                     if ofilename is None:
-                        logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format. PostProcessing aborted.')
+                        logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format or cannot be located in path. PostProcessing aborted.')
                         self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
                         return self.queue.put(self.valreturn)
-
-                    if odir is None:
-                        odir = self.nzb_folder
 
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)

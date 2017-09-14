@@ -171,18 +171,28 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                             #print 'added annual'
                     issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                 #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
-                logger.fdebug("Deleting all issue data.")
-                myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
-                myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
+                #logger.fdebug("Deleting all issue data.")
+                #myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                #myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
                 if whack == False:
                     cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
-                    #reload the annuals here.
+
+                    if cchk:
+                        #delete the data here if it's all valid.
+                        logger.fdebug("Deleting all old issue data to make sure new data is clean...")
+                        myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                        myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
+                        mylar.importer.issue_collection(cchk, nostatus='True')
+                    else:
+                        logger.warn('There was an error when refreshing this series - Make sure directories are writable/exist, etc')
+                        return
 
                     issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
                     annuals = []
                     ann_list = []
+                    #reload the annuals here.
                     if mylar.ANNUALS_ON:
                         annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
                         ann_list += annuals_list
