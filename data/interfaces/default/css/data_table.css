@@ -550,6 +550,14 @@ table.display tr.odd.row_selected td {
 	background-color: #9FAFD1;
 }
 
+table.display_no_select tr.even.row_selected td {
+        background-color: #B0BED9;
+}
+
+table.display_no_select tr.odd.row_selected td {
+        background-color: #9FAFD1;
+}
+
 div.box {
 	height: 100px;
 	padding: 10px;

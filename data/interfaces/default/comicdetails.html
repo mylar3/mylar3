@@ -437,7 +437,7 @@
 
         <form action="markannuals" method="get" id="markannuals">
         <div id="markannuals">Mark selected annuals as
-                <select name="ann_action" onChange="doAjaxCall('markannuals',$(this),'table',true);" data-success="selected annuals marked">
+                <select name="ann_action" onChange="doAjaxCall('markannuals',$(this),'table',true)" data-success="selected annuals marked">
                         <option disabled="disabled" selected="selected">Choose...</option>
                         <option value="Wanted">Wanted</option>
                         <option value="Skipped">Skipped</option>
@@ -522,7 +522,11 @@
                                               if annual['Location'] is not None:
                                                   linky = os.path.join(comic['ComicLocation'],annual['Location'])
                                                   if not os.path.isfile(linky):
-                                                      linky = None
+                                                      if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                                                          pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                          linky = os.path.join(pathdir,issue['Location'])
+                                                      else:
+                                                          linky = None
                                               else:
                                                   linky = None
                                         %>

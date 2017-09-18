@@ -177,14 +177,16 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
                 if whack == False:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
-
+                    cchk, annchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
                     if cchk:
                         #delete the data here if it's all valid.
                         logger.fdebug("Deleting all old issue data to make sure new data is clean...")
                         myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
                         myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
                         mylar.importer.issue_collection(cchk, nostatus='True')
+                        #need to update annuals at this point too....
+                        if annchk:
+                            mylar.importer.manualAnnual(annchk=annchk)
                     else:
                         logger.warn('There was an error when refreshing this series - Make sure directories are writable/exist, etc')
                         return

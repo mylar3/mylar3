@@ -847,149 +847,6 @@ class WebInterface(object):
         threading.Thread(target=updater.dbUpdate, args=[comicsToAdd]).start()
     refreshSeries.exposed = True
 
-    def refreshArtist(self, ComicID):
-        myDB = db.DBConnection()
-        mismatch = "no"
-        logger.fdebug('Refreshing comicid: ' + str(ComicID))
-        if not mylar.CV_ONLY or ComicID[:1] == "G":
-
-            CV_EXcomicid = myDB.selectone("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
-            if CV_EXcomicid is None: pass
-            else:
-                if CV_EXcomicid['variloop'] == '99':
-                    mismatch = "yes"
-            if ComicID[:1] == "G": threading.Thread(target=importer.GCDimport, args=[ComicID]).start()
-            else: threading.Thread(target=importer.addComictoDB, args=[ComicID, mismatch]).start()
-        else:
-            if mylar.CV_ONETIMER == 1:
-                logger.fdebug("CV_OneTimer option enabled...")
-                #in order to update to JUST CV_ONLY, we need to delete the issues for a given series so it's a clean grab.
-                logger.fdebug("Gathering the status of all issues for the series.")
-
-                issues = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
-
-                if not issues:
-                    #if issues are None it's probably a bad refresh/maxed out API that resulted in the issue data
-                    #getting wiped out and not refreshed. Setting whack=True will force a complete refresh.
-                    logger.info('No issue data available. This is Whack.')
-                    whack = True
-                else:
-                    #check for series that are numerically out of whack (ie. 5/4)
-                    logger.info('Checking how out of whack the series is.')
-                    whack = helpers.havetotals(refreshit=ComicID)
-
-
-                annload = []  #initiate the list here so we don't error out below.
-
-                if mylar.ANNUALS_ON:
-                    #now we load the annuals into memory to pass through to importer when refreshing so that it can
-                    #refresh even the manually added annuals.
-                    annual_load = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
-                    logger.fdebug('checking annual db')
-                    for annthis in annual_load:
-                        if not any(d['ReleaseComicID'] == annthis['ReleaseComicID'] for d in annload):
-                            annload.append({
-                                  'ReleaseComicID':   annthis['ReleaseComicID'],
-                                  'ReleaseComicName': annthis['ReleaseComicName'],
-                                  'ComicID':          annthis['ComicID'],
-                                  'ComicName':        annthis['ComicName']
-                                  })
-                    issues += annual_load #myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
-                #store the issues' status for a given comicid, after deleting and readding, flip the status back to$
-                logger.fdebug("Deleting all issue data.")
-                myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
-                myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
-                logger.fdebug("Refreshing the series and pulling in new data using only CV.")
-                if whack == False:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload)
-                    #reload the annuals here.
-
-                    issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=?', [ComicID])
-                    annuals = []
-                    ann_list = []
-                    if mylar.ANNUALS_ON:
-                        annuals_list = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
-                        ann_list += annuals_list
-                        issues_new += annuals_list
-
-                    logger.fdebug("Attempting to put the Status' back how they were.")
-                    icount = 0
-                    #the problem - the loop below will not match on NEW issues that have been refreshed that weren't present in the
-                    #db before (ie. you left Mylar off for abit, and when you started it up it pulled down new issue information)
-                    #need to test if issuenew['Status'] is None, but in a seperate loop below.
-                    fndissue = []
-                    for issue in issues:
-                        for issuenew in issues_new:
-                            #logger.fdebug(str(issue['Issue_Number']) + ' - issuenew:' + str(issuenew['IssueID']) + ' : ' + str(issuenew['Status']))
-                            #logger.fdebug(str(issue['Issue_Number']) + ' - issue:' + str(issue['IssueID']) + ' : ' + str(issue['Status']))
-                            if issuenew['IssueID'] == issue['IssueID'] and issuenew['Status'] != issue['Status']:
-                                ctrlVAL = {"IssueID":      issue['IssueID']}
-                                #if the status is None and the original status is either Downloaded / Archived, keep status & stats
-                                if issuenew['Status'] == None and (issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived'):
-                                    newVAL = {"Location":     issue['Location'],
-                                              "ComicSize":    issue['ComicSize'],
-                                              "Status":       issue['Status']}
-                                #if the status is now Downloaded/Snatched, keep status & stats (downloaded only)
-                                elif issuenew['Status'] == 'Downloaded' or issue['Status'] == 'Snatched':
-                                    newVAL = {"Location":      issue['Location'],
-                                              "ComicSize":     issue['ComicSize']}
-                                    if issuenew['Status'] == 'Downloaded':
-                                        newVAL['Status'] = issuenew['Status']
-                                    else:
-                                        newVAL['Status'] = issue['Status']
-
-                                elif issue['Status'] == 'Archived':
-                                    newVAL = {"Status":        issue['Status'],
-                                              "Location":      issue['Location'],
-                                              "ComicSize":     issue['ComicSize']}
-                                else:
-                                    #change the status to the previous status
-                                    newVAL = {"Status":        issue['Status']}
-
-                                if newVAL['Status'] == None:
-                                    newVAL = {"Status":        "Skipped"}
-
-                                if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):
-                                    logger.fdebug("annual detected for " + str(issue['IssueID']) + " #: " + str(issue['Issue_Number']))
-                                    myDB.upsert("Annuals", newVAL, ctrlVAL)
-                                else:
-                                    #logger.fdebug('#' + str(issue['Issue_Number']) + ' writing issuedata: ' + str(newVAL))
-                                    myDB.upsert("Issues", newVAL, ctrlVAL)
-                                fndissue.append({"IssueID":      issue['IssueID']})
-                                icount+=1
-                                break
-                    logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
-
-                    issues_new = myDB.select('SELECT * FROM issues WHERE ComicID=? AND Status is NULL', [ComicID])
-                    if mylar.ANNUALS_ON:
-                        issues_new += myDB.select('SELECT * FROM annuals WHERE ComicID=? AND Status is NULL', [ComicID])
-
-                    newiss = []
-                    if mylar.AUTOWANT_UPCOMING:
-                        #only mark store date >= current date as Wanted.
-                        newstatus = "Wanted"
-                    else:
-                        newstatus = "Skipped"
-                    for iss in issues_new:
-                         newiss.append({"IssueID":      iss['IssueID'],
-                                        "Status":       newstatus})
-                    if len(newiss) > 0:
-                         for newi in newiss:
-                             ctrlVAL = {"IssueID":   newi['IssueID']}
-                             newVAL = {"Status":     newi['Status']}
-                             #logger.info('writing issuedata: ' + str(newVAL))
-                             myDB.upsert("Issues", newVAL, ctrlVAL)
-
-                    logger.info('I have added ' + str(len(newiss)) + ' new issues for this series that were not present before.')
-                else:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload)
-
-            else:
-                cchk = mylar.importer.addComictoDB(ComicID, mismatch)
-
-        raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
-    refreshArtist.exposed=True
-
     def issue_edit(self, id, value):
         logger.fdebug('id: ' + str(id))
         logger.fdebug('value: ' + str(value))
@@ -1051,7 +908,7 @@ class WebInterface(object):
             newaction = action
 
         for IssueID in args:
-            if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID, 'issues' in IssueID, 'annuals' in IssueID]):
+            if any([IssueID is None, 'issue_table' in IssueID, 'history_table' in IssueID, 'manage_issues' in IssueID, 'issue_table_length' in IssueID, 'issues' in IssueID, 'annuals' in IssueID, 'annual_table_length' in IssueID]):
                 continue
             else:
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
@@ -2164,21 +2021,22 @@ class WebInterface(object):
             logger.error("Cannot rename files.")
             return
 
-        if len(comicid) > 1:
+        if type(comicid) is not unicode:
             comiclist = comicid
         else:
             comiclist = []
             comiclist.append(comicid)
         myDB = db.DBConnection()
         filefind = 0
-        for comicid in comiclist:
-            comic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
+        for cid in comiclist:
+            comic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [cid]).fetchone()
             comicdir = comic['ComicLocation']
             comicname = comic['ComicName']
+            comicyear = comic['ComicYear']
             extensions = ('.cbr', '.cbz', '.cb7')
-            issues = myDB.select("SELECT * FROM issues WHERE ComicID=?", [comicid])
+            issues = myDB.select("SELECT * FROM issues WHERE ComicID=?", [cid])
             if mylar.ANNUALS_ON:
-                issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [comicid])
+                issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [cid])
             if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
                 logger.fdebug('multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
                 logger.fdebug('dir: ' + comicdir)
@@ -2196,7 +2054,7 @@ class WebInterface(object):
                                     annualize = 'yes'
                                 else:
                                     annualize = None
-                                renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], filename, comicyear=None, issueid=issue['IssueID'], annualize=annualize)
+                                renameiss = helpers.rename_param(cid, comicname, issue['Issue_Number'], filename, comicyear=comicyear, issueid=issue['IssueID'], annualize=annualize)
                                 nfilename = renameiss['nfilename']
                                 srciss = os.path.join(comicdir, filename)
                                 if filename != nfilename:

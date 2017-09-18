@@ -420,7 +420,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
-    issuedata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo)
+    issuedata, anndata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo)
     if issuedata is None:
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
         return
@@ -439,7 +439,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     elif calledfrom == 'dbupdate':
         logger.info('returning to dbupdate module')
-        return issuedata # this should be the issuedata data from updateissuedata function
+        return issuedata, anndata # this should be the issuedata data from updateissuedata function
 
     elif calledfrom == 'weeklycheck':
         logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue update.')
@@ -985,66 +985,72 @@ def issue_collection(issuedata, nostatus):
                 return
 
 
-def manualAnnual(manual_comicid, comicname, comicyear, comicid):
+def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False):
         #called when importing/refreshing an annual that was manually added.
         myDB = db.DBConnection()
-        issueid = manual_comicid
-        logger.fdebug(str(issueid) + ' added to series list as an Annual')
-        sr = cv.getComic(manual_comicid, 'comic')
-        logger.info('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
-        if len(sr) is None or len(sr) == 0:
-            logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
-            return
-        else:
-            n = 0
-            issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
-            if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
-                noissues = 1
+        if annchk is None:
+            annchk = []
+            issueid = manual_comicid
+            logger.fdebug(str(issueid) + ' added to series list as an Annual')
+            sr = cv.getComic(manual_comicid, 'comic')
+            logger.fdebug('Attempting to integrate ' + sr['ComicName'] + ' (' + str(issueid) + ') to the existing series of ' + comicname + '(' + str(comicyear) + ')')
+            if len(sr) is None or len(sr) == 0:
+                logger.fdebug('Could not find any information on the series indicated : ' + str(manual_comicid))
+                return
             else:
-                noissues = sr['ComicIssues']
-            logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
-            while (n < int(noissues)):
-                try:
-                    firstval = issued['issuechoice'][n]
-                except IndexError:
-                    break
-                try:
-                    cleanname = helpers.cleanName(firstval['Issue_Name'])
-                except:
-                    cleanname = 'None'
-                issid = str(firstval['Issue_ID'])
-                issnum = str(firstval['Issue_Number'])
-                issname = cleanname
-                issdate = str(firstval['Issue_Date'])
-                stdate = str(firstval['Store_Date'])
-                logger.fdebug('comicname:' + str(comicname))
-                logger.fdebug('comicid:' + str(comicid))
-                logger.fdebug('issid:' + str(issid))
-                logger.fdebug('cleanname:' + str(cleanname))
-                logger.fdebug('issnum:' + str(issnum))
-                logger.fdebug('issdate:' + str(issdate))
-                logger.fdebug('stdate:' + str(stdate))
-                newCtrl = {"IssueID": issid}
-                newVals = {"Issue_Number":     issnum,
-                           "Int_IssueNumber":  helpers.issuedigits(issnum),
-                           "IssueDate":        issdate,
-                           "ReleaseDate":      stdate,
-                           "IssueName":        issname,
-                           "ComicID":          comicid,   #this is the series ID
-                           "ReleaseComicID":   re.sub('4050-', '', manual_comicid).strip(),  #this is the series ID for the annual(s)
-                           "ComicName":        comicname, #series ComicName
-                           "ReleaseComicName": sr['ComicName'], #series ComicName for the manual_comicid
-                           "Status":          "Skipped"}
-                           #need to add in the values for the new series to be added.
-                           #"M_ComicName":    sr['ComicName'],
-                           #"M_ComicID":      manual_comicid}
-                myDB.upsert("annuals", newVals, newCtrl)
-                n+=1
-        logger.info('Successfully integrated ' + str(n) + ' issues of ' + sr['ComicName'] + ' to the series: ' + comicname)
+                n = 0
+                issued = cv.getComic(re.sub('4050-', '', manual_comicid).strip(), 'issue')
+                if int(sr['ComicIssues']) == 0 and len(issued['issuechoice']) == 1:
+                    noissues = 1
+                else:
+                    noissues = sr['ComicIssues']
+                logger.fdebug('there are ' + str(noissues) + ' annuals within this series.')
+                while (n < int(noissues)):
+                    try:
+                        firstval = issued['issuechoice'][n]
+                    except IndexError:
+                        break
+                    try:
+                        cleanname = helpers.cleanName(firstval['Issue_Name'])
+                    except:
+                        cleanname = 'None'
+                    annchk.append({'IssueID':          str(firstval['Issue_ID']),
+                                   'ComicID':          comicid,
+                                   'ReleaseComicID':   re.sub('4050-', '', manual_comicid).strip(),
+                                   'ComicName':        comicname,
+                                   'Issue_Number':     str(firstval['Issue_Number']),
+                                   'IssueName':        cleanname,
+                                   'IssueDate':        str(firstval['Issue_Date']),
+                                   'ReleaseDate':      str(firstval['Store_Date']),
+                                   'Status':           'Skipped',
+                                   'ReleaseComicName': sr['ComicName']})
+                    n+=1
+
+            if manualupd is True:
+                return annchk
+
+        for ann in annchk:
+            newCtrl = {"IssueID": ann['IssueID']}
+            newVals = {"Issue_Number":     ann['Issue_Number'],
+                       "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
+                       "IssueDate":        ann['IssueDate'],
+                       "ReleaseDate":      ann['ReleaseDate'],
+                       "IssueName":        ann['IssueName'],
+                       "ComicID":          ann['ComicID'],   #this is the series ID
+                       "ReleaseComicID":   ann['ReleaseComicID'],  #this is the series ID for the annual(s)
+                       "ComicName":        ann['ComicName'], #series ComicName
+                       "ReleaseComicName": ann['ReleaseComicName'], #series ComicName for the manual_comicid
+                       "Status":           ann['Status']}
+                       #need to add in the values for the new series to be added.
+                       #"M_ComicName":    sr['ComicName'],
+                       #"M_ComicID":      manual_comicid}
+            myDB.upsert("annuals", newVals, newCtrl)
+        logger.info('Successfully integrated ' + str(len(annchk)) + ' annuals into the series: ' + annchk[0]['ComicName'])
         return
 
 
 def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, calledfrom=None, issuechk=None, issuetype=None, SeriesYear=None, latestissueinfo=None):
+    annualchk = []
     weeklyissue_check = []
     logger.fdebug('issuedata call references...')
     logger.fdebug('comicid:' + str(comicid))
@@ -1074,9 +1080,9 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             return
 
     # poll against annuals here - to make sure annuals are uptodate.
-    weeklyissue_check = annual_check(comicname, SeriesYear, comicid, issuetype, issuechk, weeklyissue_check)
-    if weeklyissue_check is None:
-        weeklyissue_check = []
+    annualchk = annual_check(comicname, SeriesYear, comicid, issuetype, issuechk, annualchk)
+    if annualchk is None:
+        annualchk = []
     logger.fdebug('Finshed Annual checking.')
 
     n = 0
@@ -1349,11 +1355,11 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         return weeklyissue_check
 
     elif calledfrom == 'dbupdate':
-        return issuedata
+        return issuedata, annualchk
 
     return importantdates
 
-def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissue_check):
+def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslist):
         annualids = []   #to be used to make sure an ID isn't double-loaded
         annload = []
         anncnt = 0
@@ -1381,7 +1387,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
             for manchk in annload:
                 if manchk['ReleaseComicID'] is not None or manchk['ReleaseComicID'] is not None:  #if it exists, then it's a pre-existing add
                     #print str(manchk['ReleaseComicID']), comic['ComicName'], str(SeriesYear), str(comicid)
-                    manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid)
+                    annualslist += manualAnnual(manchk['ReleaseComicID'], ComicName, SeriesYear, comicid, manualupd=True)
                 annualids.append(manchk['ReleaseComicID'])
 
         annualcomicname = re.sub('[\,\:]', '', ComicName)
@@ -1419,7 +1425,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                     issueid = sr['comicid']
                     logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' added to series list as an Annual')
                     if issueid in annualids:
-                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' already exists & was refreshed.')
+                        logger.fdebug('[IMPORTER-ANNUAL] - ' + str(issueid) + ' already exists within current annual list for series.')
                         num_res+=1 # need to manually increment since not a for-next loop
                         continue
                     issued = cv.getComic(issueid, 'issue')
@@ -1452,41 +1458,44 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                             stdate = str(firstval['Store_Date'])
                             int_issnum = helpers.issuedigits(issnum)
 
-                            newVals = {"Issue_Number":     issnum,
-                                       "Int_IssueNumber":  int_issnum,
-                                       "IssueDate":        issdate,
-                                       "ReleaseDate":      stdate,
-                                       "IssueName":        issname,
-                                       "ComicID":          comicid,
-                                       "ComicName":        ComicName,
-                                       "ReleaseComicID":   re.sub('4050-', '', firstval['Comic_ID']).strip(),
-                                       "ReleaseComicName": sr['name']}
-
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
                                 datechk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
                                 if mylar.AUTOWANT_ALL:
-                                    newVals['Status'] = "Wanted"
+                                    astatus = "Wanted"
                                 elif int(datechk) >= int(nowtime) and mylar.AUTOWANT_UPCOMING:
-                                    newVals['Status'] = "Wanted"
+                                    astatus = "Wanted"
                                 else:
-                                    newVals['Status'] = "Skipped"
+                                    astatus = "Skipped"
                             else:
-                                newVals['Status'] = iss_exists['Status']
+                                astatus = iss_exists['Status']
 
-                            newCtrl = {"IssueID": issid}
-                            myDB.upsert("annuals", newVals, newCtrl)
+                            annualslist.append({"Issue_Number":     issnum,
+                                                "Int_IssueNumber":  int_issnum,
+                                                "IssueDate":        issdate,
+                                                "ReleaseDate":      stdate,
+                                                "IssueName":        issname,
+                                                "ComicID":          comicid,
+                                                "IssueID":          issid,
+                                                "ComicName":        ComicName,
+                                                "ReleaseComicID":   re.sub('4050-', '', firstval['Comic_ID']).strip(),
+                                                "ReleaseComicName": sr['name'],
+                                                "Status":           astatus})
 
-                            if issuechk is not None and issuetype == 'annual':
-                                #logger.fdebug('[IMPORTER-ANNUAL] - Comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
-                                if issuechk == int_issnum:
-                                    weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
-                                                              "Issue_Number":       issnum,
-                                                              "IssueDate":          issdate,
-                                                              "ReleaseDate":        stdate})
+                            #myDB.upsert("annuals", newVals, newCtrl)
+
+                            # --- don't think this does anything since the value isn't returned in this module
+                            #if issuechk is not None and issuetype == 'annual':
+                            #    #logger.fdebug('[IMPORTER-ANNUAL] - Comparing annual ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
+                            #    if issuechk == int_issnum:
+                            #        weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
+                            #                                  "Issue_Number":       issnum,
+                            #                                  "IssueDate":          issdate,
+                            #                                  "ReleaseDate":        stdate})
 
                             n+=1
                 num_res+=1
+            return annualslist
 
         elif len(sresults) == 0 or len(sresults) is None:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
@@ -1505,4 +1514,3 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, weeklyissu
                     logger.fdebug('[IMPORTER-ANNUAL] - Issue count is wrong')
 
          #if this is called from the importer module, return the weeklyissue_check
-         #return weeklyissue_check
