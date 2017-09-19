@@ -751,7 +751,10 @@ class FileChecker(object):
                     if sep_volume:
                         highest_series_pos = issue_number_position -2
                     else:
-                        highest_series_pos = issue_number_position -1
+                        if split_file[issue_number_position -1].lower() == 'annual':
+                            highest_series_pos = issue_number_position
+                        else:
+                            highest_series_pos = issue_number_position - 1
 
             #make sure if we have multiple years detected, that the right one gets picked for the actual year vs. series title
             if len(possible_years) > 1:

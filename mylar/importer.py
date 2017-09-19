@@ -420,37 +420,50 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #move to own function so can call independently to only refresh issue data
     #issued is from cv.getComic, comic['ComicName'] & comicid would both be already known to do independent call.
-    issuedata, anndata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo)
+    updateddata = updateissuedata(comicid, comic['ComicName'], issued, comicIssues, calledfrom, SeriesYear=SeriesYear, latestissueinfo=latestissueinfo)
+    issuedata = updateddata['issuedata']
+    anndata = updateddata['annualchk']
+    nostatus = updateddata['nostatus']
+    importantdates = updateddata['importantdates']
     if issuedata is None:
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
-        return
+        return {'status': 'incomplete'}
+
+    if calledfrom is None:
+        issue_collection(issuedata, nostatus='True')
+        #need to update annuals at this point too....
+        if anndata:
+            manualAnnual(annchk=anndata)
 
     if mylar.CVINFO or (mylar.CV_ONLY and mylar.CVINFO):
         if not os.path.exists(os.path.join(comlocation, "cvinfo")) or mylar.CV_ONETIMER:
             with open(os.path.join(comlocation, "cvinfo"), "w") as text_file:
                 text_file.write(str(comic['ComicURL']))
 
-    logger.info('Updating complete for: ' + comic['ComicName'])
 
     if calledfrom == 'weekly':
         logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue comparison.')
         logger.info('Update issuedata for ' + str(issuechk) + ' of : ' + str(weeklyissue_check))
-        return issuedata # this should be the weeklyissue_check data from updateissuedata function
+        return {'status': 'complete',
+                'issuedata': issuedata} # this should be the weeklyissue_check data from updateissuedata function
 
     elif calledfrom == 'dbupdate':
         logger.info('returning to dbupdate module')
-        return issuedata, anndata # this should be the issuedata data from updateissuedata function
+        return {'status': 'complete',
+                'issuedata': issuedata,
+                'anndata': anndata } # this should be the issuedata data from updateissuedata function
 
     elif calledfrom == 'weeklycheck':
         logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue update.')
         return  #no need to return any data here.
 
+    logger.info('Updating complete for: ' + comic['ComicName'])
 
     #if it made it here, then the issuedata contains dates, let's pull the data now.
-    latestiss = issuedata['LatestIssue']
-    latestdate = issuedata['LatestDate']
-    lastpubdate = issuedata['LastPubDate']
-    series_status = issuedata['SeriesStatus']
+    latestiss = importantdates['LatestIssue']
+    latestdate = importantdates['LatestDate']
+    lastpubdate = importantdates['LastPubDate']
+    series_status = importantdates['SeriesStatus']
     #move the files...if imported is not empty & not futurecheck (meaning it's not from the mass importer.)
     #logger.info('imported is : ' + str(imported))
     if imported is None or imported == 'None' or imported == 'futurecheck':
@@ -546,13 +559,17 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if imported == 'futurecheck':
         logger.info('Returning to Future-Check module to complete the add & remove entry.')
         return
+    elif imported:
+        logger.info('Successfully imported : ' + comic['ComicName'])
+        return
+
 
     if calledfrom == 'addbyid':
         logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
-        return
+        return {'status': 'complete'}
+    else:
+        return {'status': 'complete'}
 
-    if imported:
-        logger.info('Successfully imported : ' + comic['ComicName'])
 #        if imported['Volume'] is None or imported['Volume'] == 'None':
 #            results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[imported['DynamicName']])
 #        else:
@@ -1276,12 +1293,12 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         lastpubdate = 'Present'
         publishfigure = str(SeriesYear) + ' - ' + str(lastpubdate)
     else:
-        if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
-            logger.fdebug('initiating issue updating - info & status')
-            issue_collection(issuedata, nostatus='False')
-        else:
-            logger.fdebug('initiating issue updating - just the info')
-            #issue_collection(issuedata, nostatus='True')
+        #if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
+        #    logger.fdebug('initiating issue updating - info & status')
+        #    #issue_collection(issuedata, nostatus='False')
+        #else:
+        #    logger.fdebug('initiating issue updating - just the info')
+        #    #issue_collection(issuedata, nostatus='True')
 
         styear = str(SeriesYear)
 
@@ -1354,10 +1371,20 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     if calledfrom == 'weekly':
         return weeklyissue_check
 
-    elif calledfrom == 'dbupdate':
-        return issuedata, annualchk
+    elif len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
+        return {'issuedata': issuedata, 
+                'annualchk': annualchk,
+                'importantdates': importantdates,
+                'nostatus':  False}
 
-    return importantdates
+    elif calledfrom == 'dbupdate':
+        return {'issuedata': issuedata,
+                'annualchk': annualchk,
+                'importantdates': importantdates,
+                'nostatus':  True}
+
+    else:
+        return importantdates
 
 def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslist):
         annualids = []   #to be used to make sure an ID isn't double-loaded

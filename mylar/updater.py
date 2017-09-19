@@ -177,16 +177,16 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
                 if whack == False:
-                    cchk, annchk = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
-                    if cchk:
+                    chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
+                    if chkstatus['status'] == 'complete':
                         #delete the data here if it's all valid.
                         logger.fdebug("Deleting all old issue data to make sure new data is clean...")
                         myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
                         myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
-                        mylar.importer.issue_collection(cchk, nostatus='True')
+                        mylar.importer.issue_collection(chkstatus['issuedata'], nostatus='True')
                         #need to update annuals at this point too....
-                        if annchk:
-                            mylar.importer.manualAnnual(annchk=annchk)
+                        if chkstatus['anndata'] is not None:
+                            mylar.importer.manualAnnual(annchk=chkstatus['anndata'])
                     else:
                         logger.warn('There was an error when refreshing this series - Make sure directories are writable/exist, etc')
                         return
@@ -301,10 +301,19 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     forceRescan(ComicID)
 
                 else:
-                    cchk = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
+                    chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, annload=annload, csyear=csyear)
+                    #if cchk:
+                    #    #delete the data here if it's all valid.
+                    #    #logger.fdebug("Deleting all old issue data to make sure new data is clean...")
+                    #    myDB.action('DELETE FROM issues WHERE ComicID=?', [ComicID])
+                    #    myDB.action('DELETE FROM annuals WHERE ComicID=?', [ComicID])
+                    #    mylar.importer.issue_collection(cchk, nostatus='True')
+                    #    #need to update annuals at this point too....
+                    #    if annchk:
+                    #        mylar.importer.manualAnnual(annchk=annchk)
 
             else:
-                cchk = mylar.importer.addComictoDB(ComicID, mismatch)
+                chkstatus = mylar.importer.addComictoDB(ComicID, mismatch)
 
         cnt +=1
         if sched is False:
@@ -368,7 +377,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             #update the PULL_REFRESH 
             mylar.config_write()
         logger.fdebug('pull_refresh: ' + str(mylar.PULL_REFRESH))
-        c_obj_date = mylar.PULL_REFRESH
+        c_obj_date = datetime.datetime.strptime(str(mylar.PULL_REFRESH),"%Y-%m-%d %H:%M:%S")
         #logger.fdebug('c_obj_date: ' + str(c_obj_date))
         n_date = datetime.datetime.now()
         #logger.fdebug('n_date: ' + str(n_date))
@@ -1196,14 +1205,14 @@ def forceRescan(ComicID, archive=None, module=None):
                 except IndexError:
                     break
                 int_iss = helpers.issuedigits(reann['Issue_Number'])
-                logger.fdebug(module + ' int_iss:' + str(int_iss))
+                #logger.fdebug(module + ' int_iss:' + str(int_iss))
 
                 issyear = reann['IssueDate'][:4]
                 old_status = reann['Status']
 
                 fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
 
-                if int(fcdigit) == int_iss:
+                if int(fcdigit) == int_iss and ANNComicID is not None:
                     logger.fdebug(module + ' [' + str(ANNComicID) + '] Annual match - issue : ' + str(int_iss))
 
                     #baseline these to default to normal scanning
@@ -1436,8 +1445,9 @@ def forceRescan(ComicID, archive=None, module=None):
             logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many archive files already in Archive status :' + str(arcfiles))
     else:
         #if files exist in the given directory, but are in an archived state - the numbers will get botched up here.
-        logger.fdebug(module + ' ' + str(int(arcfiles + arcanns)) + ' issue(s) are in an Archive status already. Increasing Have total from ' + str(havefiles) + ' to include these archives.') 
-        havefiles = havefiles + (arcfiles + arcanns)
+        if (arcfiles + arcanns) > 0:
+            logger.fdebug(module + ' ' + str(int(arcfiles + arcanns)) + ' issue(s) are in an Archive status already. Increasing Have total from ' + str(havefiles) + ' to include these archives.') 
+            havefiles = havefiles + (arcfiles + arcanns)
 
     ignorecount = 0
     if mylar.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
@@ -1493,7 +1503,8 @@ def forceRescan(ComicID, archive=None, module=None):
                     newValue = {"Status":    "Archived"}
                     myDB.upsert("issues", newValue, controlValue)
                     archivedissues+=1
-        logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
+        if archivedissues > 0:
+            logger.fdebug(module + ' I have changed the status of ' + str(archivedissues) + ' issues to a status of Archived, as I now cannot locate them in the series directory.')
 
         totalarc = arcfiles + archivedissues
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
