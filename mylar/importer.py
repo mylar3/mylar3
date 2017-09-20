@@ -987,7 +987,11 @@ def issue_collection(issuedata, nostatus):
                     #logger.fdebug('status is : ' + str(newValueDict))
                 else:
                     #logger.fdebug('Existing status for issue #' + str(issue['Issue_Number']) + ' : ' + str(iss_exists['Status']))
-                    newValueDict['Status'] = iss_exists['Status']
+                    if any([iss_exists['Status'] is None, iss_exists['Status'] == 'None']):
+                        is_status = 'Skipped'
+                    else:
+                        is_status = iss_exists['Status']
+                    newValueDict['Status'] = is_status
 
             else:
                 #logger.fdebug("Not changing the status at this time - reverting to previous module after to re-append existing status")

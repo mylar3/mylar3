@@ -1984,7 +1984,7 @@ class PostProcessor(object):
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 self._log("No version # found for series - tag will not be available for renaming.")
                 logger.fdebug(module + ' No version # found for series, removing from filename')
-                logger.fdebug(module + ' New format is now: ' + str(chunk_file_format))
+                logger.fdebug('%s New format is now: %s' % (module, chunk_file_format))
             else:
                 chunk_file_format = mylar.FILE_FORMAT
 
@@ -1993,15 +1993,15 @@ class PostProcessor(object):
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 logger.fdebug(module + ' Not an annual - removing from filename parameters')
-                logger.fdebug(module + ' New format: ' + str(chunk_file_format))
+                logger.fdebug('%s New format: %s' % (module, chunk_file_format))
 
             else:
-                logger.fdebug(module + ' Chunk_file_format is: ' + str(chunk_file_format))
+                logger.fdebug('%s Chunk_file_format is: %s' % (module, chunk_file_format))
                 if '$Annual' not in chunk_file_format:
                 #if it's an annual, but $Annual isn't specified in file_format, we need to
                 #force it in there, by default in the format of $Annual $Issue
-                    prettycomiss = "Annual " + str(prettycomiss)
-                    logger.fdebug(module + ' prettycomiss: ' + str(prettycomiss))
+                    prettycomiss = "Annual %s" % prettycomiss
+                    logger.fdebug('%s prettycomiss: %s' % (module, prettycomiss))
 
 
             ofilename = None

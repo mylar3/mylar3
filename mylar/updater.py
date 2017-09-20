@@ -424,7 +424,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                     if ComicID[:1] == "G": 
                         mylar.importer.GCDimport(ComicID, pullupd)
                     else: 
-                        cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck')#mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
+                        cchk = mylar.importer.updateissuedata(ComicID, ComicName, calledfrom='weeklycheck') #mylar.importer.addComictoDB(ComicID,mismatch,pullupd)
                 else:
                     logger.fdebug('It has not been longer than 5 hours since we last did this...we will wait so we do not hammer things.')
             else:
