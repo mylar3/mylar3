@@ -261,6 +261,7 @@ LOG_LEVEL = None
 POST_PROCESSING = 1
 POST_PROCESSING_SCRIPT = None
 FILE_OPTS = None
+UNICODE_ISSUENUMBER = False
 
 NZB_DOWNLOADER = None  #0 = sabnzbd, #1 = nzbget, #2 = blackhole
 
@@ -548,7 +549,7 @@ def initialize():
                 PUSHBULLET_ENABLED, PUSHBULLET_APIKEY, PUSHBULLET_DEVICEID, PUSHBULLET_CHANNEL_TAG, PUSHBULLET_ONSNATCH, LOCMOVE, NEWCOM_DIR, FFTONEWCOM_DIR, \
                 PREFERRED_QUALITY, MOVE_FILES, RENAME_FILES, LOWERCASE_FILENAMES, USE_MINSIZE, MINSIZE, USE_MAXSIZE, MAXSIZE, CORRECT_METADATA, \
                 FOLDER_FORMAT, SETDEFAULTVOLUME, FILE_FORMAT, REPLACE_CHAR, REPLACE_SPACES, ADD_TO_CSV, CVINFO, LOG_LEVEL, POST_PROCESSING, POST_PROCESSING_SCRIPT, \
-                FILE_OPTS, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, MAINTAINSERIESFOLDER, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, \
+                FILE_OPTS, UNICODE_ISSUENUMBER, SEARCH_DELAY, GRABBAG_DIR, READ2FILENAME, SEND2READ, MAINTAINSERIESFOLDER, TAB_ENABLE, TAB_HOST, TAB_USER, TAB_PASS, TAB_DIRECTORY, \
                 STORYARCDIR, COPY2ARCDIR, ARC_FOLDERFORMAT, ARC_FILEOPS, CVURL, CV_VERIFY, CHECK_FOLDER, ENABLE_CHECK_FOLDER, \
                 COMIC_LOCATION, QUAL_ALTVERS, QUAL_SCANNER, QUAL_TYPE, QUAL_QUALITY, ENABLE_EXTRA_SCRIPTS, EXTRA_SCRIPTS, ENABLE_SNATCH_SCRIPT, SNATCH_SCRIPT, ENABLE_PRE_SCRIPTS, PRE_SCRIPTS, PULLNEW, ALT_PULL, PULLBYFILE, COUNT_ISSUES, COUNT_HAVES, COUNT_COMICS, \
                 SYNO_FIX, ENFORCE_PERMS, CHMOD_FILE, CHMOD_DIR, CHOWNER, CHGROUP, ANNUALS_ON, CV_ONLY, CV_ONETIMER, CURRENT_WEEKNUMBER, CURRENT_YEAR, PULL_REFRESH, WEEKFOLDER, WEEKFOLDER_LOC, WEEKFOLDER_FORMAT, UMASK, \
@@ -770,6 +771,7 @@ def initialize():
             ENABLE_META = 0
         else:
             ENABLE_META = bool(check_setting_int(CFG, 'General', 'enable_meta', 0))      
+        UNICODE_ISSUENUMBER = bool(check_setting_int(CFG, 'General', 'unicode_issuenumber', 0))
         CBR2CBZ_ONLY = bool(check_setting_int(CFG, 'General', 'cbr2cbz_only', 0))
         CT_TAG_CR = bool(check_setting_int(CFG, 'General', 'ct_tag_cr', 1))
         CT_TAG_CBL = bool(check_setting_int(CFG, 'General', 'ct_tag_cbl', 1))
@@ -1563,6 +1565,7 @@ def config_write():
     new_config['General']['post_processing'] = int(POST_PROCESSING)
     new_config['General']['post_processing_script'] = POST_PROCESSING_SCRIPT
     new_config['General']['file_opts'] = FILE_OPTS
+    new_config['General']['unicode_issuenumber'] = int(UNICODE_ISSUENUMBER)
     new_config['General']['weekfolder'] = int(WEEKFOLDER)
     new_config['General']['weekfolder_loc'] = WEEKFOLDER_LOC
     new_config['General']['weekfolder_format'] = int(WEEKFOLDER_FORMAT)

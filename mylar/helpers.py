@@ -261,9 +261,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             logger.fdebug(type(comicid))
             logger.fdebug(type(issueid))
-            logger.fdebug(type(issue))
-            logger.fdebug('comicid: ' + comicid)
-            logger.fdebug('issue#: ' + issue)
+            logger.fdebug('comicid: %s' % comicid)
+            logger.fdebug('issue# as per cv: %s' % issue)
             # the issue here is a non-decimalized version, we need to see if it's got a decimal and if not, add '.00'
 #            iss_find = issue.find('.')
 #            if iss_find < 0:
@@ -368,6 +367,17 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 comlocation = comicnzb['ComicLocation']
                 comversion = comicnzb['ComicVersion']
 
+            unicodeissue = issuenum
+
+            if type(issuenum) == unicode:
+               vals = {u'\xbd':'.5',u'\xbc':'.25',u'\xbe':'.75',u'\u221e':'9999999999',u'\xe2':'9999999999'}
+            else:
+               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
+            x = [vals[key] for key in vals if key in issuenum]
+            if x:
+                issuenum = x[0]
+                logger.fdebug('issue number formatted: %s' % issuenum)
+
             #comicid = issuenzb['ComicID']
             #issueno = str(issuenum).split('.')[0]
             issue_except = 'None'
@@ -415,18 +425,18 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 #                if '!' in issuenum: issuenum = re.sub('\!', '', issuenum)
 #                issuenum = re.sub("[^0-9]", "", issuenum)
 #                issue_except = '.NOW'
-
             if '.' in issuenum:
                 iss_find = issuenum.find('.')
                 iss_b4dec = issuenum[:iss_find]
+                if iss_find == 0:
+                    iss_b4dec = '0'
                 iss_decval = issuenum[iss_find +1:]
                 if iss_decval.endswith('.'):
                     iss_decval = iss_decval[:-1]
                 if int(iss_decval) == 0:
                     iss = iss_b4dec
                     issdec = int(iss_decval)
-                    issueno = str(iss)
-                    logger.fdebug('Issue Number: ' + str(issueno))
+                    issueno = iss
                 else:
                     if len(iss_decval) == 1:
                         iss = iss_b4dec + "." + iss_decval
@@ -435,12 +445,9 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         iss = iss_b4dec + "." + iss_decval.rstrip('0')
                         issdec = int(iss_decval.rstrip('0')) * 10
                     issueno = iss_b4dec
-                    logger.fdebug('Issue Number: ' + str(iss))
             else:
                 iss = issuenum
-                issueno = str(iss)
-            logger.fdebug('iss:' + iss)
-            logger.fdebug('issueno:' + str(issueno))
+                issueno = iss
             # issue zero-suppression here
             if mylar.ZERO_LEVEL == "0":
                 zeroadd = ""
@@ -457,17 +464,20 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 prettycomiss = str(issueno)
             else:
                 try:
-                    x = float(issueno)
+                    x = float(issuenum)
                     #validity check
                     if x < 0:
-                        logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
+                        logger.info('I\'ve encountered a negative issue #: %s. Trying to accomodate.' % issuenumeric)
                         prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
+                    elif x == 9999999999:
+                        logger.fdebug('Infinity issue found.')
+                        issuenum = 'infinity'
                     elif x >= 0:
                         pass
                     else:
                         raise ValueError
                 except ValueError, e:
-                    logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
+                    logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
             if prettycomiss is None and len(str(issueno)) > 0:
@@ -506,10 +516,13 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
                 else:
                     logger.fdebug('issue detected greater than 100')
-                    if '.' in iss:
-                        if int(iss_decval) > 0:
-                            issueno = str(iss)
-                    prettycomiss = str(issueno)
+                    if issuenum == 'infinity':
+                        prettycomiss = 'infinity'
+                    else:
+                        if '.' in iss:
+                            if int(iss_decval) > 0:
+                                issueno = str(iss)
+                        prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
                     logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
@@ -518,6 +531,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
 
             logger.fdebug('Pretty Comic Issue is : ' + str(prettycomiss))
+            if mylar.UNICODE_ISSUENUMBER:
+                logger.fdebug('Setting this to Unicode format as requested: %s' % prettycomiss)
+                prettycomiss = unicodeissue
+
             issueyear = issuedate[:4]
             month = issuedate[5:7].replace('-', '').strip()
             month_name = fullmonth(month)
@@ -555,21 +572,21 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             #prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
                             chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
                     else:
                         if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
-                            prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            prettycomiss = "Annual %s" % prettycomiss
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
                         else:
-                            logger.fdebug('[' + series + '][ANNUALS-ON][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
 
                 else:
                     #if annuals aren't enabled, then annuals are being tracked as independent series.
@@ -579,21 +596,21 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             #prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: %s' (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
                             chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
                     else:
                         if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
                             #if it's an annual, but $annual isn't specified in file_format, we need to
                             #force it in there, by default in the format of $Annual $Issue
-                            prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            prettycomiss = "Annual %s" % prettycomiss
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
                         else:
-                            logger.fdebug('[' + series + '][ANNUALS-OFF][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: ' + str(prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
 
 
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')

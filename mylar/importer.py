@@ -1062,7 +1062,8 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                        #"M_ComicName":    sr['ComicName'],
                        #"M_ComicID":      manual_comicid}
             myDB.upsert("annuals", newVals, newCtrl)
-        logger.info('Successfully integrated ' + str(len(annchk)) + ' annuals into the series: ' + annchk[0]['ComicName'])
+        if len(annchk) > 0:
+            logger.info('Successfully integrated ' + str(len(annchk)) + ' annuals into the series: ' + annchk[0]['ComicName'])
         return
 
 
@@ -1100,7 +1101,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     annualchk = annual_check(comicname, SeriesYear, comicid, issuetype, issuechk, annualchk)
     if annualchk is None:
         annualchk = []
-    logger.fdebug('Finshed Annual checking.')
+    logger.fdebug('Finished Annual checking.')
 
     n = 0
     iscnt = int(comicIssues)
@@ -1264,7 +1265,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 firstdate = str(firstval['Issue_Date'])
 
             if issuechk is not None and issuetype == 'series':
-                #logger.fdebug('comparing ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
+                logger.fdebug('comparing ' + str(issuechk) + ' .. to .. ' + str(int_issnum))
                 if issuechk == int_issnum:
                     weeklyissue_check.append({"Int_IssueNumber":    int_issnum,
                                               "Issue_Number":       issnum,
@@ -1293,12 +1294,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         lastpubdate = 'Present'
         publishfigure = str(SeriesYear) + ' - ' + str(lastpubdate)
     else:
-        #if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
-        #    logger.fdebug('initiating issue updating - info & status')
-        #    #issue_collection(issuedata, nostatus='False')
-        #else:
-        #    logger.fdebug('initiating issue updating - just the info')
-        #    #issue_collection(issuedata, nostatus='True')
+        if calledfrom == 'weeklycheck':
+            if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
+                logger.fdebug('initiating issue updating - info & status')
+                issue_collection(issuedata, nostatus='False')
+            else:
+                logger.fdebug('initiating issue updating - just the info')
+                issue_collection(issuedata, nostatus='True')
 
         styear = str(SeriesYear)
 
@@ -1368,7 +1370,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     importantdates['LastPubDate'] = lastpubdate
     importantdates['SeriesStatus'] = 'Active'
 
-    if calledfrom == 'weekly':
+    if calledfrom == 'weeklycheck':
         return weeklyissue_check
 
     elif len(issuedata) >= 1 and not calledfrom  == 'dbupdate':

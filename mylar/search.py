@@ -1838,7 +1838,7 @@ def searchIssueIDList(issuelist):
             issue = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
             mode = 'want_ann'
             if issue is None:
-                logger.warn('unable to determine IssueID - perhaps you need to delete/refresh series? Skipping this entry: ' + issue['IssueID'])
+                logger.warn('unable to determine IssueID - perhaps you need to delete/refresh series? Skipping this entry: ' + issueid)
                 continue
 
         if any([issue['Status'] == 'Downloaded', issue['Status'] == 'Snatched']):
