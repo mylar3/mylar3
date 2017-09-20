@@ -3367,7 +3367,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         if type == 'all':
             logger.info(u"Clearing all history")
-            myDB.action('DELETE * from snatched')
+            myDB.action('DELETE from snatched')
         else:
             logger.info(u"Clearing history where status is %s" % type)
             myDB.action('DELETE from snatched WHERE Status=?', [type])
