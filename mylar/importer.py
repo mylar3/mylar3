@@ -99,7 +99,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     # we need to lookup the info for the requested ComicID in full now
     comic = cv.getComic(comicid, 'comic')
-    logger.fdebug(comic)
 
     if not comic:
         logger.warn('Error fetching comic. ID for : ' + comicid)
@@ -986,7 +985,7 @@ def issue_collection(issuedata, nostatus):
                         newValueDict['Status'] = "Skipped"
                     #logger.fdebug('status is : ' + str(newValueDict))
                 else:
-                    #logger.fdebug('Existing status for issue #' + str(issue['Issue_Number']) + ' : ' + str(iss_exists['Status']))
+                    logger.fdebug('Existing status for issue #%s : %s' % (issue['Issue_Number'], iss_exists['Status']))
                     if any([iss_exists['Status'] is None, iss_exists['Status'] == 'None']):
                         is_status = 'Skipped'
                     else:

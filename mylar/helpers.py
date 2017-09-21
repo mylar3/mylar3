@@ -3059,7 +3059,9 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             for jb in mylar.SCHED.get_jobs():
                 #logger.fdebug('jb: %s' % jb)
                 jobinfo = str(jb)
-                if 'update' in jobinfo.lower():
+                if 'Status Updater' in jobinfo.lower():
+                    continue
+                elif 'update' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
                     newstatus = dbupdate_newstatus
                 elif 'search' in jobinfo.lower():
@@ -3077,9 +3079,13 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                 elif 'monitor' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_MONITOR_LAST
                     newstatus = monitor_newstatus
+
                 jobname = jobinfo[:jobinfo.find('(')-1].strip()
                 #logger.fdebug('jobinfo: %s' % jobinfo)
-                jobtimetmp = jobinfo.split('at: ')[1].split('.')[0].strip()
+                try:
+                    jobtimetmp = jobinfo.split('at: ')[1].split('.')[0].strip()
+                except:
+                    continue
                 #logger.fdebug('jobtimetmp: %s' % jobtimetmp)
                 jobtime = float(calendar.timegm(datetime.datetime.strptime(jobtimetmp[:-1], '%Y-%m-%d %H:%M:%S %Z').timetuple()))
                 #logger.fdebug('jobtime: %s' % jobtime)

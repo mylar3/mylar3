@@ -35,6 +35,7 @@ from threading import Lock, Thread
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.date import DateTrigger
 
 from configobj import ConfigObj
 
@@ -2448,6 +2449,14 @@ def dbcheck():
     logger.info('Ensuring DB integrity - Removing all Erroneous Comics (ie. named None)')
 
     logger.info('Correcting Null entries that make the main page break on startup.')
+    isschk = c.execute("SELECT ComicID FROM issues WHERE Status is NULL GROUP BY ComicID")
+    if isschk is not None:
+        issupdatelist = []
+        for i in isschk:
+            if i[0] is not None:
+                issupdatelist.append(i[0])
+        logger.info('Background queuing up a refresh of %s series\' that contain issues that have a None status and shouldn\'t' % len(issupdatelist))
+        SCHED.add_job(func=updater.dbUpdate, id='statusupdater', name='Status Updater', args=[issupdatelist], trigger=DateTrigger(run_date=datetime.datetime.now()))
     c.execute("UPDATE Comics SET LatestDate='Unknown' WHERE LatestDate='None' or LatestDate is NULL")
 
     job_listing = c.execute('SELECT * FROM jobhistory')
