@@ -455,7 +455,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             og_status = issuechk['Status']
             #check for 'out-of-whack' series here.
             whackness = dbUpdate([ComicID], calledfrom='weekly', sched=False)
-            if whackness == True:
+            if any([whackness == True, og_status is None]):
                 if any([issuechk['Status'] == 'Downloaded', issuechk['Status'] == 'Archived', issuechk['Status'] == 'Snatched']):
                     logger.fdebug('Forcibly maintaining status of : ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to ensure integrity.')
                 logger.fdebug('Comic series has an incorrect total count. Forcily refreshing series to ensure data is current.')
