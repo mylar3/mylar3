@@ -462,9 +462,9 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 dbUpdate([ComicID])
                 issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?", [ComicID, helpers.issuedigits(IssueNumber)]).fetchone()
                 if issuechk['Status'] != og_status and (issuechk['Status'] != 'Downloaded' or issuechk['Status'] != 'Archived' or issuechk['Status'] != 'Snatched'):
-                    logger.fdebug('Forcibly changing status of ' + issuechk['Status'] + ' back to ' + og_status + ' for #' + issuechk['Issue_Number'] + ' to stop repeated downloads.')
+                    logger.fdebug('Forcibly changing status of %s back to %s for #%s to stop repeated downloads.' % (issuechk['Status'], og_status, issuechk['Issue_Number']))
                 else:
-                    logger.fdebug('[' + issuechk['Status'] + '] / [' + og_status + '] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.')
+                    logger.fdebug('[%s] / [%s] Status has not changed during refresh or is marked as being Wanted/Skipped correctly.' % (issuechk['Status'], og_status))
                     og_status = issuechk['Status']
             else:
                 logger.fdebug('Comic series already up-to-date ... no need to refresh at this time.')
