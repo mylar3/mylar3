@@ -3523,9 +3523,10 @@ class WebInterface(object):
 
         #save the values so they stick.
         mylar.ADD_COMICS = autoadd
-        if 'windows' in mylar.OS_DETECT.lower() and '\\\\?\\' not in path:
-            #to handle long paths, let's append the '\\?\' to the path to allow for unicode windows api access
-            path = "\\\\?\\" + path
+        #too many problems for windows users, have to rethink this....
+        #if 'windows' in mylar.OS_DETECT.lower() and '\\\\?\\' not in path:
+        #    #to handle long paths, let's append the '\\?\' to the path to allow for unicode windows api access
+        #    path = "\\\\?\\" + path
         mylar.COMIC_DIR = path
         mylar.IMP_MOVE = imp_move
         mylar.IMP_RENAME = imp_rename
