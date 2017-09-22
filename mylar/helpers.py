@@ -467,7 +467,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     x = float(issuenum)
                     #validity check
                     if x < 0:
-                        logger.info('I\'ve encountered a negative issue #: %s. Trying to accomodate.' % issuenumeric)
+                        logger.info('I\'ve encountered a negative issue #: %s. Trying to accomodate.' % issueno)
                         prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
                     elif x == 9999999999:
                         logger.fdebug('Infinity issue found.')
