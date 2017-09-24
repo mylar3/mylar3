@@ -83,7 +83,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     for comic in sorted(comiclist, key=operator.itemgetter('LastUpdated'), reverse=True):
         if sched is True:
             # since this runs every 5 minutes, take the 1st entry only...
-            logger.info('[UPDATER] Starting update for %s [%s] - last updated: %s' % (comiclist[0]['ComicName'], comiclist[0]['ComicYear'], comiclist[0]['LastUpdated']))
+            logger.fdebug('[UPDATER] Starting update for %s [%s] - last updated: %s' % (comic['ComicName'], comic['ComicYear'], comic['LastUpdated']))
         dspyear = comic['ComicYear']
         csyear = None
 
@@ -239,7 +239,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                             #change the status to the previous status
                                             newVAL = {"Status":        issue['Status']}
 
-                                    if issuenew['Status'] is None:
+                                    if all([issuenew['Status'] == None, issue['Status'] == 'Skipped']):
                                         dk = re.sub('-', '', issuenew['ReleaseDate']).strip() # converts date to 20140718 format
                                         datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                         nowdate = datetime.datetime.now()
