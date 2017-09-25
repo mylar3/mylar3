@@ -1022,7 +1022,7 @@ class FileChecker(object):
             #logger.fdebug('watch dynamic handlers recognized : ' + str(watchdynamic_handlers_match))
             watchdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in self.watchcomic.lower()]
             #logger.fdebug('watch dynamic replacements recognized : ' + str(watchdynamic_replacements_match))
-            mod_watchcomic = re.sub('[\s\_\.\s+]', '', self.watchcomic)
+            mod_watchcomic = re.sub('[\s\_\.\s+\#]', '', self.watchcomic)
             mod_find = []
             wdrm_find = []
             if any([watchdynamic_handlers_match, watchdynamic_replacements_match]):
@@ -1051,7 +1051,7 @@ class FileChecker(object):
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
         seriesdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic replacements recognized : ' + str(seriesdynamic_replacements_match))
-        mod_seriesname = re.sub('[\s\_\.\s+]', '', series_name)
+        mod_seriesname = re.sub('[\s\_\.\s+\#]', '', series_name)
         ser_find = []
         sdrm_find = []
         if any([seriesdynamic_handlers_match, seriesdynamic_replacements_match]):

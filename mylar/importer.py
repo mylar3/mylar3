@@ -166,7 +166,6 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         SeriesYear = comic['ComicYear']
 
-    logger.info(SeriesYear)
     if any([int(SeriesYear) > int(datetime.datetime.now().year) + 1, int(SeriesYear) == 2099]) and csyear is not None:
         logger.info('Corrected year of ' + str(SeriesYear) + ' to corrected year for series that was manually entered previously of ' + str(csyear))
         SeriesYear = csyear
@@ -558,15 +557,15 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if imported == 'futurecheck':
         logger.info('Returning to Future-Check module to complete the add & remove entry.')
         return
-    elif imported:
+    elif all([imported is not None, imported != 'None']):
         logger.info('Successfully imported : ' + comic['ComicName'])
         return
 
-
     if calledfrom == 'addbyid':
-        logger.info('Sucessfully added ' + comic['ComicName'] + ' (' + str(SeriesYear) + ') by directly using the ComicVine ID')
+        logger.info('Sucessfully added %s (%s) to the watchlist by directly using the ComicVine ID' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}
     else:
+        logger.info('Sucessfully added %s (%s) to the watchlist' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}
 
 #        if imported['Volume'] is None or imported['Volume'] == 'None':
