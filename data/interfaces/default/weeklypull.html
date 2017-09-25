@@ -93,8 +93,8 @@
                                 %if pullfilter is True:
                                         <td class="publisher">${weekly['PUBLISHER']}</td>
                                         <td class="comicname">
-                                        %if weekly['HAVEIT'] != 'Yes':
-                                             %if weekly['HAVEIT'] == 'No' and all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
+                                        %if weekly['HAVEIT'] == 'No':
+                                             %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
                                                  <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
                                              %else:
                                                  ${weekly['COMIC']}
