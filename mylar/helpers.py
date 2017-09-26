@@ -572,21 +572,21 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             #prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
                             chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                     else:
                         if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             prettycomiss = "Annual %s" % prettycomiss
-                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
-                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-ON][ANNUAL NOT IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
 
                 else:
                     #if annuals aren't enabled, then annuals are being tracked as independent series.
@@ -596,21 +596,21 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             #prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NOT $ANNUAL] prettycomiss: %s' (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
                             chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
                             chunk_f = re.compile(r'\s+')
                             chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                     else:
                         if '$Annual' not in chunk_file_format: # and 'annual' not in ofilename.lower():
                             #if it's an annual, but $annual isn't specified in file_format, we need to
                             #force it in there, by default in the format of $Annual $Issue
                             prettycomiss = "Annual %s" % prettycomiss
-                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][NOT $ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
-                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][$ANNUAL] prettycomiss: %s' % (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL NOT IN SERIES][ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
 
 
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')

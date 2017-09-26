@@ -327,7 +327,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
         if os.path.exists(coverfile):
             os.remove(coverfile)
-                       
+
         logger.info('Attempting to retrieve alternate comic image for the series.')
         try:
             r = requests.get(comic['ComicImageALT'], params=None, stream=True, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
@@ -428,7 +428,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         return {'status': 'incomplete'}
 
     if calledfrom is None:
-        issue_collection(issuedata, nostatus='True')
+        issue_collection(issuedata, nostatus='False')
         #need to update annuals at this point too....
         if anndata:
             manualAnnual(annchk=anndata)
@@ -937,9 +937,8 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
 def issue_collection(issuedata, nostatus):
     myDB = db.DBConnection()
-
     nowdate = datetime.datetime.now()
-    nowtime = nowdate.strftime("%Y%m%d")
+    now_week = datetime.datetime.strftime(nowdate, "%Y%U")
 
     if issuedata:
         for issue in issuedata:
@@ -972,12 +971,13 @@ def issue_collection(issuedata, nostatus):
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
                     newValueDict['DateAdded'] = helpers.today()
-                    datechk = re.sub('-', '', issue['ReleaseDate']).strip() # converts date to 20140718 format
-                    #logger.fdebug('issue #' + str(issue['Issue_Number']) + 'does not exist in db.')
+                    dk = re.sub('-', '', issue['ReleaseDate']).strip() # converts date to 20140718 format
+                    datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                    issue_week = datetime.datetime.strftime(datechk, "%Y%U")
                     if mylar.AUTOWANT_ALL:
                         newValueDict['Status'] = "Wanted"
                         #logger.fdebug('autowant all')
-                    elif int(datechk) >= int(nowtime) and mylar.AUTOWANT_UPCOMING:
+                    elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
                         #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
                         newValueDict['Status'] = "Wanted"
                     else:
@@ -1396,7 +1396,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
         anncnt = 0
 
         nowdate = datetime.datetime.now()
-        nowtime = nowdate.strftime("%Y%m%d")
+        now_week = datetime.datetime.strftime(nowdate, "%Y%U")
 
         myDB = db.DBConnection()
 
@@ -1491,10 +1491,13 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
-                                datechk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
+                                dk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
+                                datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                                issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+
                                 if mylar.AUTOWANT_ALL:
                                     astatus = "Wanted"
-                                elif int(datechk) >= int(nowtime) and mylar.AUTOWANT_UPCOMING:
+                                elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
                                     astatus = "Wanted"
                                 else:
                                     astatus = "Skipped"
