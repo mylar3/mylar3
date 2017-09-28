@@ -1035,7 +1035,25 @@ class PostProcessor(object):
                                        'sarc':          sarc,
                                        'oneoff':        self.oneoff})
 
-                    elif all([self.oneoff is not None, mylar.ALT_PULL == 2]):
+                    elif all([self.oneoff is not None, issueid[0] == 'S']):
+                        issuearcid = re.sub('S', '', issueid).strip()
+                        oneinfo = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+                        if oneinfo is None:
+                            logger.warn('Unable to locate issue as previously snatched arc issue - it might be something else...')
+                            self._log('Unable to locate issue as previously snatched arc issue - it might be something else...')
+                        else:
+                            ppinfo.append({'comicid':       oneinfo['ComicID'],
+                                           'comicname':     oneinfo['ComicName'],
+                                           'issuenumber':   oneinfo['IssueNumber'],
+                                           'publisher':     oneinfo['IssuePublisher'],
+                                           'comiclocation': None,
+                                           'issueid':       issueid, #need to keep it so the 'S' is present to denote arc.
+                                           'sarc':          sarc,
+                                           'oneoff':        True})
+                            self.oneoff = True
+
+
+                    if all([len(ppinfo) == 0, self.oneoff is not None, mylar.ALT_PULL == 2]):
                         oneinfo = myDB.selectone('SELECT * FROM weekly WHERE IssueID=?', [issueid]).fetchone()
                         if oneinfo is None:
                             oneinfo = myDB.selectone('SELECT * FROM oneoffhistory WHERE IssueID=?', [issueid]).fetchone()

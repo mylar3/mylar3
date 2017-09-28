@@ -156,7 +156,7 @@
                  %if any([item['Status'] is None, item['Status'] == None, item['Status'] == 'Skipped']):
                      <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Now searching for ${item['ComicName']} #${item['IssueNumber']}"><span class="ui-icon ui-icon-plus"></span>Grab</a>
                  %elif item['Status'] == 'Snatched':
-                     <a href="#" onclick="doAjaxCall('queueissue?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to Retry"><span class="ui-icon ui-icon-plus"></span>Retry</a>
+                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${item['ComicName'] | u}&ComicIssue=${item['IssueNumber']}&ComicYear=${issuedate}&mode=readlist&SARC=${item['StoryArc']}&IssueArcID=${item['IssueArcID']}&SeriesYear=${item['SeriesYear']}',$(this),'table')" data-success="Trying to search again for issue"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                  %elif item['Status'] == 'Downloaded' and item['Location'] is not None:
                      <a href="downloadthis?pathfile=${item['Location'] |u}"><span class="ui-icon ui-icon-plus"></span>Download</a>
                  %endif
