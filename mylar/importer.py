@@ -1498,15 +1498,14 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
-                                if firstval['ReleaseDate'] == '00000000':
-                                    dk = re.sub('-', '', firstval['IssueDate']).strip()
+                                if stdate == '00000000':
+                                    dk = re.sub('-', '', issdate).strip()
                                 else:
-                                    dk = re.sub('-', '', firstval['ReleaseDate']).strip() # converts date to 20140718 format
+                                    dk = re.sub('-', '', stdate).strip() # converts date to 20140718 format
                                 if dk == '00000000':
                                      logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % firstval['Issue_Number'])
                                      astatus = "Skipped"
                                 else:
-                                    dk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
                                     datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                     issue_week = datetime.datetime.strftime(datechk, "%Y%U")
 
