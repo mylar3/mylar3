@@ -971,18 +971,25 @@ def issue_collection(issuedata, nostatus):
                 # Only change the status & add DateAdded if the issue is already in the database
                 if iss_exists is None:
                     newValueDict['DateAdded'] = helpers.today()
-                    dk = re.sub('-', '', issue['ReleaseDate']).strip() # converts date to 20140718 format
-                    datechk = datetime.datetime.strptime(dk, "%Y%m%d")
-                    issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                    if mylar.AUTOWANT_ALL:
-                        newValueDict['Status'] = "Wanted"
-                        #logger.fdebug('autowant all')
-                    elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
-                        #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
-                        newValueDict['Status'] = "Wanted"
+                    if issue['ReleaseDate'] == '00000000':
+                        dk = re.sub('-', '', issue['IssueDate']).strip()
                     else:
+                        dk = re.sub('-', '', issue['ReleaseDate']).strip() # converts date to 20140718 format
+                    if dk == '00000000':
+                        logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % issue['Issue_Number'])
                         newValueDict['Status'] = "Skipped"
-                    #logger.fdebug('status is : ' + str(newValueDict))
+                    else:
+                        datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                        issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+                        if mylar.AUTOWANT_ALL:
+                            newValueDict['Status'] = "Wanted"
+                            #logger.fdebug('autowant all')
+                        elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
+                            #logger.fdebug(str(datechk) + ' >= ' + str(nowtime))
+                            newValueDict['Status'] = "Wanted"
+                        else:
+                            newValueDict['Status'] = "Skipped"
+                        #logger.fdebug('status is : ' + str(newValueDict))
                 else:
                     logger.fdebug('Existing status for issue #%s : %s' % (issue['Issue_Number'], iss_exists['Status']))
                     if any([iss_exists['Status'] is None, iss_exists['Status'] == 'None']):
@@ -1491,16 +1498,24 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
-                                dk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
-                                datechk = datetime.datetime.strptime(dk, "%Y%m%d")
-                                issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-
-                                if mylar.AUTOWANT_ALL:
-                                    astatus = "Wanted"
-                                elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
-                                    astatus = "Wanted"
+                                if firstval['ReleaseDate'] == '00000000':
+                                    dk = re.sub('-', '', firstval['IssueDate']).strip()
                                 else:
-                                    astatus = "Skipped"
+                                    dk = re.sub('-', '', firstval['ReleaseDate']).strip() # converts date to 20140718 format
+                                if dk == '00000000':
+                                     logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % firstval['Issue_Number'])
+                                     astatus = "Skipped"
+                                else:
+                                    dk = re.sub('-', '', issdate).strip() # converts date to 20140718 format
+                                    datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                                    issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+
+                                    if mylar.AUTOWANT_ALL:
+                                        astatus = "Wanted"
+                                    elif issue_week >= now_week and mylar.AUTOWANT_UPCOMING:
+                                        astatus = "Wanted"
+                                    else:
+                                        astatus = "Skipped"
                             else:
                                 astatus = iss_exists['Status']
 
