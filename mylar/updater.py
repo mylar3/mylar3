@@ -81,9 +81,6 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     cnt = 1
 
     for comic in sorted(comiclist, key=operator.itemgetter('LastUpdated'), reverse=True):
-        if sched is True:
-            # since this runs every 5 minutes, take the 1st entry only...
-            logger.fdebug('[UPDATER] Starting update for %s [%s] - last updated: %s' % (comic['ComicName'], comic['ComicYear'], comic['LastUpdated']))
         dspyear = comic['ComicYear']
         csyear = None
 
@@ -240,21 +237,25 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                             newVAL = {"Status":        issue['Status']}
 
                                     if all([issuenew['Status'] == None, issue['Status'] == 'Skipped']):
-                                        dk = re.sub('-', '', issuenew['ReleaseDate']).strip() # converts date to 20140718 format
-                                        datechk = datetime.datetime.strptime(dk, "%Y%m%d")
-                                        nowdate = datetime.datetime.now()
-                                        #ddiff = datechk - nowdate
-                                        #logger.info('Status currently at None - checking date for currency & Wanted status [datechk: %s][nowtime: %s] - diff of %s' % (datechk, nowdate, ddiff))
-                                        now_week = datetime.datetime.strftime(nowdate, "%Y%U")
-                                        issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-                                        if mylar.AUTOWANT_ALL:
-                                            newVAL = {"Status": "Wanted"}
-                                        elif issue_week >= now_week:
-                                            logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % (datechk))
-                                        #elif ddiff.days >= 0 and mylar.AUTOWANT_UPCOMING:
-                                            newVAL = {"Status": "Wanted"}
+                                        if issuenew['ReleaseDate'] == '00000000':
+                                            dk = re.sub('-', '', issue['IssueDate']).strip()
                                         else:
+                                            dk = re.sub('-', '', issuenew['ReleaseDate']).strip() # converts date to 20140718 format
+                                        if dk == '00000000':
+                                            logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % issue['Issue_Number'])
                                             newVAL = {"Status":  "Skipped"}
+                                        else:
+                                            datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                                            nowdate = datetime.datetime.now()
+                                            now_week = datetime.datetime.strftime(nowdate, "%Y%U")
+                                            issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+                                            if mylar.AUTOWANT_ALL:
+                                                newVAL = {"Status": "Wanted"}
+                                            elif issue_week >= now_week:
+                                                logger.fdebug('Issue date [%s] is in/beyond current week - marking as Wanted.' % dk)
+                                                newVAL = {"Status": "Wanted"}
+                                            else:
+                                                newVAL = {"Status":  "Skipped"}
 
                                     if newVAL is not None:
                                         if issue['IssueDate_Edit']:
@@ -272,9 +273,12 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                         fndissue.append({"IssueID": issue['IssueID']})
                                         icount+=1
                                         break
-                            except:
-                                logger.warn('Something is out of whack somewhere with the series')
+                            except (RuntimeError, TypeError, ValueError, OSError) as e:
+                                logger.warn('Something is out of whack somewhere with the series: %s' % e)
                                 #if it's an annual (ie. deadpool-2011 ) on a refresh will throw index errors for some reason.
+                            except:
+                                logger.warn('Unexpected Error: %s' % sys.exc_info()[0])
+                                raise
 
                     logger.info("In the process of converting the data to CV, I changed the status of " + str(icount) + " issues.")
 
