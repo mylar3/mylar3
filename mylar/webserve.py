@@ -2987,11 +2987,11 @@ class WebInterface(object):
                             if int(comic['ComicYear']) != int(arc['SeriesYear']):
                                 logger.fdebug("Series years are different - discarding match. " + str(comic['ComicYear']) + " != " + str(arc['SeriesYear']))
                             else:
-                                logger.fdebug("issue #: " + str(arc['IssueNumber']) + " is present!")
-                                logger.fdebug('isschk: ' + str(isschk))
+                                logger.fdebug("issue #: %s is present!" % arc['IssueNumber'])
+                                logger.fdebug('isschk: %s' % isschk)
                                 logger.fdebug("Comicname: " + arc['ComicName'])
                                 logger.fdebug("ComicID: " + str(isschk['ComicID']))
-                                logger.fdebug("Issue: " + str(arc['IssueNumber']))
+                                logger.fdebug("Issue: %s" % arc['IssueNumber'])
                                 logger.fdebug("IssueArcID: " + str(arc['IssueArcID']))
                                 #gather the matches now.
                                 arc_match.append({
