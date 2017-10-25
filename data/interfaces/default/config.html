@@ -1,6 +1,7 @@
 <%inherit file="base.html"/>
 <%!
 	import mylar
+        from operator import itemgetter
 %>
 
 <%def name="headerIncludes()">
@@ -189,23 +190,25 @@
                                    <small>specify your own CV API key here </small>
                                 </div>
 
-                                <div class="row checkbox">
-                                    <input id="api_enabled" type="checkbox" onclick="initConfigCheckbox($(this));" name="api_enabled" value="1" ${config['api_enabled']} /><label>Enable API</label>
-                                </div>
-                                <div class="apioptions">
-                                  <div class="row">
-                                    <label>Mylar API key</label>
-                                    <input type="text" name="api_key" id="api_key" value="${config['api_key']}" size="20">
-                                    <input type="button" value="Generate" id="generate_api">
-                                    <small>Current API key: <strong>${config['api_key']}</strong></small>
-                                  </div>
+                                <div class="row">
+                                    <div class="row checkbox">
+                                        <input id="api_enabled" type="checkbox" name="api_enabled" value="1" ${config['api_enabled']} /><label>Enable API</label>
+                                    </div>
+                                    <div id="apioptions">
+                                       <div class="row">
+                                          <label>Mylar API key</label>
+                                          <input type="text" name="api_key" id="api_key" value="${config['api_key']}" size="20">
+                                          <input type="button" value="Generate" id="generate_api">
+                                          <small>Current API key: <strong>${config['api_key']}</strong></small>
+                                      </div>
+                                    </div>
                                 </div>
                          </fieldset>
                         <fieldset>
                     	<legend>Interval</legend>
 	                    <div class="row">
 	                    	<label>NZB Search Interval</label>
-	                    	<input type="text" name="nzb_search_interval" value="${config['nzb_search_interval']}" size="4">mins
+	                    	<input type="text" name="search_interval" value="${config['search_interval']}" size="4">mins
                                   <div class="row checkbox">
                                     <input type="checkbox" name="nzb_startup_search" value="1" ${config['nzb_startup_search']} /><label>NZB Search on startup</label>
                                   </div>
@@ -594,7 +597,6 @@
                      </div>
                 </td>
             </tr>
-
 	    </table>
 	</div>
 	<div id="tabs-4">
@@ -614,7 +616,7 @@
                         </fieldset>
                 	<fieldset>
                 		<div class="row checkbox left clearfix">
-                                    <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['use_nzbsu']} /><legend>NZB.SU</legend>
+                                    <input id="usenzbsu" type="checkbox" onclick="initConfigCheckbox($(this));" name="nzbsu" value="1" ${config['nzbsu']} /><legend>NZB.SU</legend>
                 		</div>
                 		<div class="config">
                                         <div class="row checkbox">
@@ -634,7 +636,7 @@
 
                         <fieldset>
                                 <div class="row checkbox left clearfix">
-                                     <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['use_dognzb']} /><legend>DOGNZB</legend>
+                                     <input id="usedognzb" type="checkbox" onclick="initConfigCheckbox($(this));" name="dognzb" value="1" ${config['dognzb']} /><legend>DOGNZB</legend>
                                 </div>
                                 <div class="config">
                                         <div class="row checkbox">
@@ -649,7 +651,7 @@
 
                         <fieldset>
                                 <div class="row checkbox left clearfix">
-                                   <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['use_experimental']} /><legend>Use Experimental Search</legend>
+                                   <input id="useexperimental" type="checkbox" onclick="initConfigCheckbox($(this));" name="experimental" value="1" ${config['experimental']} /><legend>Use Experimental Search</legend>
                                 </div>
                                 <div>
                                    <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Note: this is an experimental search - results may be better/worse.</small>
@@ -750,7 +752,7 @@
                         <fieldset>
                                 <legend>Newznab</legend>
                                 <div class="row checkbox">
-                                    <input id="usenewznab" type="checkbox" name="newznab" onclick="initConfigCheckbox($(this));" value="1" ${config['use_newznab']} /><label>Use Newznab</label>
+                                    <input id="usenewznab" type="checkbox" name="newznab" onclick="initConfigCheckbox($(this));" value="1" ${config['newznab']} /><label>Use Newznab</label>
                                 </div>
                                 <div id="newznab_providers">
                                     <%
@@ -804,31 +806,19 @@
                                 </div>
                         </fieldset>
 
-<!--
-                        <fieldset>
-                                 <div id="newznab providers">
-                                    <%
-                                        order_number = 1
-                                    %>
-
-                                     %for p_order in config['provider_order']:
-                                        <div class="config" id="p_order${order_number}">
-                                            <div class="row">
-                                               <label>${p_order[0]}</label>
-                                               <label>${p_order[1]}</label>
-                                            </div>
-                                        <div>                                        
-                                       <%
-                                            order_number += 1
-                                       %>
-    
-                                     %endfor
-                               </div>
-                        </fieldset>
--->
                 </td>
 
             </tr>
+             <tr>
+                      <%
+                           porder = []
+                           for k,v in sorted(mylar.CONFIG.PROVIDER_ORDER.iteritems(), key=itemgetter(0), reverse=False):
+                               porder.append(v)
+                           porder = ', '.join(porder)
+                       %>
+                       <legend><center>Search Order: ${porder}</center></legend>
+             </tr>
+
         </table>
 	</div>
 	<div id="tabs-5">
@@ -886,7 +876,7 @@
                         <fieldset>
                             <legend>Duplicate Dump Folder</legend>
                              <div class="row checkbox left clearfix">
-                                 <input type="checkbox" id="enable_ddump" onclick="initConfigCheckbox($this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
+                                 <input type="checkbox" id="ddump" onclick="initConfigCheckbox($this));" name="ddump" value="1" ${config['ddump']} /><label>Enable Duplicate Dump Folder</label>
                              </div>
                                 <div class="config">
                                     <div class="row"">
@@ -1102,7 +1092,7 @@
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="cvinfo" value="1" ${config['cvinfo']} /><label>Write cvinfo into each comic directory</label>
-                                                   %if mylar.ENABLE_TORRENTS:
+                                                   %if mylar.CONFIG.ENABLE_TORRENTS:
                                                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="snatchedtorrent_notify" value="1" ${config['snatchedtorrent_notify']} /><label>Manual Post-Processing - Notify on Completed Torrents</label>
                                                    %endif
 
@@ -1115,7 +1105,7 @@
 							<select name="interface"><h3>
 							%for interface in config['interface_list']:
 								<%
-									if interface == mylar.INTERFACE:
+									if interface == mylar.CONFIG.INTERFACE:
 										selected = 'selected="selected"'
 									else:
 										selected = ''
@@ -1924,7 +1914,7 @@
                 initConfigCheckbox("#replace_spaces");
                 initConfigCheckbox("#use_minsize");
                 initConfigCheckbox("#use_maxsize");
-                initConfigCheckbox("#enable_ddump");
+                initConfigCheckbox("#ddump");
                 initConfigCheckbox("#enable_failed");
                 initConfigCheckbox("#enable_meta");
                 initConfigCheckbox("#zero_level");

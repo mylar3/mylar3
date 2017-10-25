@@ -54,14 +54,14 @@ def pullit(forcecheck=None):
     if pulldate is None: pulldate = '00000000'
 
     #only for pw-file or ALT_PULL = 1
-    newrl = os.path.join(mylar.CACHE_DIR, 'newreleases.txt')
+    newrl = os.path.join(mylar.CONFIG.CACHE_DIR, 'newreleases.txt')
     mylar.PULLBYFILE = False
 
-    if mylar.ALT_PULL == 1:
+    if mylar.CONFIG.ALT_PULL == 1:
         #logger.info('[PULL-LIST] The Alt-Pull method is currently broken. Defaulting back to the normal method of grabbing the pull-list.')
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from webpage')
         newpull.newpull()
-    elif mylar.ALT_PULL == 2:
+    elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
         chk_locg = locg.locg('00000000')  #setting this to 00000000 will do a Recreate on every call instead of a Refresh
         if chk_locg['status'] == 'up2date':
@@ -85,8 +85,8 @@ def pullit(forcecheck=None):
     #newtxtfile header info ("SHIPDATE\tPUBLISHER\tISSUE\tCOMIC\tEXTRA\tSTATUS\n")
     #STATUS denotes default status to be applied to pulllist in Mylar (default = Skipped)
 
-    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
-        newfl = os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt')
+    if mylar.CONFIG.ALT_PULL != 2 or mylar.PULLBYFILE is True:
+        newfl = os.path.join(mylar.CONFIG.CACHE_DIR, 'Clean-newreleases.txt')
 
         newtxtfile = open(newfl, 'wb')
 
@@ -381,7 +381,7 @@ def pullit(forcecheck=None):
                             dupefound = "no"
 
                     #-- remove html tags when alt_pull is enabled
-                    if mylar.ALT_PULL == 1:
+                    if mylar.CONFIG.ALT_PULL == 1:
                         if '&amp;' in comicnm:
                             comicnm = re.sub('&amp;', '&', comicnm).strip()
                         if '&amp;' in pub:
@@ -418,7 +418,7 @@ def pullit(forcecheck=None):
 
         newtxtfile.close()
 
-        if all([pulldate == '00000000', mylar.ALT_PULL != 2]) or mylar.PULLBYFILE is True:
+        if all([pulldate == '00000000', mylar.CONFIG.ALT_PULL != 2]) or mylar.PULLBYFILE is True:
             pulldate = shipdate
 
         try:
@@ -461,12 +461,12 @@ def pullit(forcecheck=None):
             t+=1
         csvfile.close()
         #let's delete the files
-        os.remove(os.path.join(mylar.CACHE_DIR, 'Clean-newreleases.txt'))
-        os.remove(os.path.join(mylar.CACHE_DIR, 'newreleases.txt'))
+        os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'Clean-newreleases.txt'))
+        os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'newreleases.txt'))
 
         logger.info(u"Weekly Pull List successfully loaded.")
 
-    if mylar.ALT_PULL != 2 or mylar.PULLBYFILE is True:
+    if mylar.CONFIG.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         pullitcheck(forcecheck=forcecheck)
 
 def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):
@@ -626,7 +626,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
         if w > 0:
             while (cnt > -1):
                 latestiss = latestissue[cnt]
-                if mylar.ALT_PULL != 2:
+                if mylar.CONFIG.ALT_PULL != 2:
                     lines[cnt] = lines[cnt].upper()
                 #llen[cnt] = str(llen[cnt])
                 logger.fdebug("looking for : " + lines[cnt])
@@ -665,7 +665,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                     logger.fdebug("comicnm : " + comicnm) # / mod :" + str(modcomicnm))
 
                     if dyn_comicnm == dyn_watchnm:
-                        if mylar.ANNUALS_ON:
+                        if mylar.CONFIG.ANNUALS_ON:
                             if 'annual' in watchcomic.lower() and 'annual' not in comicnm.lower():
                                 logger.fdebug('Annual detected in issue, but annuals are not enabled and no series match in wachlist.')
                                 continue
@@ -781,7 +781,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                                 watchfnd.append(comicnm)
                                 watchfndiss.append(week['ISSUE'])
                                 ComicID = comicid[cnt]
-                                if not mylar.CV_ONLY:
+                                if not mylar.CONFIG.CV_ONLY:
                                     ComicIssue = str(watchfndiss[tot -1] + ".00")
                                 else:
                                     ComicIssue = str(watchfndiss[tot -1])
@@ -937,7 +937,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 break
             #logger.info('looking for ' + week['ComicName'] + ' [' + week['comicid'] + ']')
             idmatch = [x for x in weeklylist if week['comicid'] is not None and int(x['ComicID']) == int(week['comicid'])]
-            if mylar.ANNUALS_ON:
+            if mylar.CONFIG.ANNUALS_ON:
                 annualidmatch = [x for x in weeklylist if week['comicid'] is not None and ([xa for xa in x['AnnualIDs'] if int(xa['ComicID']) == int(week['comicid'])])]
             #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
             namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
@@ -954,7 +954,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 elif annualidmatch:
                     comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
                     latestiss = annualidmatch[0]['latestIssue'].strip()
-                    if mylar.ANNUALS_ON:
+                    if mylar.CONFIG.ANNUALS_ON:
                         comicid = annualidmatch[0]['ComicID'].strip()
                     else:
                         comicid = annualidmatch[0]['AnnualIDs'][0]['ComicID'].strip()
@@ -1104,7 +1104,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         cst = cstatus
                     newValue['Status'] = cst
                 else:
-                    if mylar.AUTOWANT_UPCOMING:
+                    if mylar.CONFIG.AUTOWANT_UPCOMING:
                         newValue['Status'] = 'Wanted'
                     else:
                         newValue['Status'] = 'Skipped'
@@ -1141,7 +1141,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             #make sure the status is Wanted and that the issue status is identical if not.
                                 newStat = {'Status': 'Wanted'}
                                 ctrlStat = {'IssueID': issueid}
-                                if all([annualidmatch, mylar.ANNUALS_ON]):
+                                if all([annualidmatch, mylar.CONFIG.ANNUALS_ON]):
                                     myDB.upsert("annuals", newStat, ctrlStat)
                                 else:
                                     myDB.upsert("issues", newStat, ctrlStat)
@@ -1272,22 +1272,22 @@ def weekly_check(comicid, issuenum, file=None, path=None, module=None, issueid=N
 
     weekinfo = helpers.weekly_info(chkit['weeknumber'],chkit['year'])
 
-    if mylar.WEEKFOLDER:
+    if mylar.CONFIG.WEEKFOLDER:
         weekly_singlecopy(comicid, issuenum, file, path, weekinfo)
-    if mylar.SEND2READ:
+    if mylar.CONFIG.SEND2READ:
         send2read(comicid, issueid, issuenum)
     return
 
 def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
 
     module = '[WEEKLY-PULL COPY]'
-    if mylar.WEEKFOLDER:
-        if mylar.WEEKFOLDER_LOC:
-            weekdst = mylar.WEEKFOLDER_LOC
+    if mylar.CONFIG.WEEKFOLDER:
+        if mylar.CONFIG.WEEKFOLDER_LOC:
+            weekdst = mylar.CONFIG.WEEKFOLDER_LOC
         else:
-            weekdst = mylar.DESTINATION_DIR
+            weekdst = mylar.CONFIG.DESTINATION_DIR
 
-        if mylar.WEEKFOLDER_FORMAT == 0:
+        if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
             desdir = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weekinfo['weeknumber']) ))
         else:
             desdir = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
@@ -1296,10 +1296,10 @@ def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
         if dircheck:
             pass
         else:
-            desdir = mylar.DESTINATION_DIR
+            desdir = mylar.CONFIG.DESTINATION_DIR
 
     else:
-        desdir = mylar.GRABBAG_DIR
+        desdir = mylar.CONFIG.GRABBAG_DIR
 
     desfile = os.path.join(desdir, file)
     srcfile = os.path.join(path)
@@ -1316,7 +1316,7 @@ def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
 def send2read(comicid, issueid, issuenum):
 
     module = '[READLIST]'
-    if mylar.SEND2READ:
+    if mylar.CONFIG.SEND2READ:
         logger.info(module + " Send to Reading List enabled for new pulls. Adding to your readlist in the status of 'Added'")
         if issueid is None:
             chkthis = myDB.selectone('SELECT * FROM issues WHERE ComicID=? AND Int_IssueNumber=?', [comicid, helpers.issuedigits(issuenum)]).fetchone()

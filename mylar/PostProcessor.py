@@ -62,7 +62,7 @@ class PostProcessor(object):
         if queue: 
             self.queue = queue
 
-        if mylar.FILE_OPTS == 'copy':
+        if mylar.CONFIG.FILE_OPTS == 'copy':
             self.fileop = shutil.copy
         else:
             self.fileop = shutil.move
@@ -90,13 +90,13 @@ class PostProcessor(object):
         """
         logger.fdebug("initiating pre script detection.")
         self._log("initiating pre script detection.")
-        logger.fdebug("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS)
-        self._log("mylar.PRE_SCRIPTS : " + mylar.PRE_SCRIPTS)
-#        for currentScriptName in mylar.PRE_SCRIPTS:
-        with open(mylar.PRE_SCRIPTS, 'r') as f:
+        logger.fdebug("mylar.PRE_SCRIPTS : " + mylar.CONFIG.PRE_SCRIPTS)
+        self._log("mylar.PRE_SCRIPTS : " + mylar.CONFIG.PRE_SCRIPTS)
+#        for currentScriptName in mylar.CONFIG.PRE_SCRIPTS:
+        with open(mylar.CONFIG.PRE_SCRIPTS, 'r') as f:
             first_line = f.readline()
 
-        if mylar.PRE_SCRIPTS.endswith('.sh'):
+        if mylar.CONFIG.PRE_SCRIPTS.endswith('.sh'):
             shell_cmd = re.sub('#!', '', first_line).strip()
             if shell_cmd == '' or shell_cmd is None:
                 shell_cmd = '/bin/bash'
@@ -104,7 +104,7 @@ class PostProcessor(object):
             #forces mylar to use the executable that it was run with to run the extra script.
             shell_cmd = sys.executable
 
-        currentScriptName = shell_cmd + ' ' + str(mylar.PRE_SCRIPTS).decode("string_escape")
+        currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS).decode("string_escape")
         logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
@@ -131,13 +131,13 @@ class PostProcessor(object):
         """
         logger.fdebug("initiating extra script detection.")
         self._log("initiating extra script detection.")
-        logger.fdebug("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS)
-        self._log("mylar.EXTRA_SCRIPTS : " + mylar.EXTRA_SCRIPTS)
-#        for curScriptName in mylar.EXTRA_SCRIPTS:
-        with open(mylar.EXTRA_SCRIPTS, 'r') as f:
+        logger.fdebug("mylar.EXTRA_SCRIPTS : " + mylar.CONFIG.EXTRA_SCRIPTS)
+        self._log("mylar.EXTRA_SCRIPTS : " + mylar.CONFIG.EXTRA_SCRIPTS)
+#        for curScriptName in mylar.CONFIG.EXTRA_SCRIPTS:
+        with open(mylar.CONFIG.EXTRA_SCRIPTS, 'r') as f:
             first_line = f.readline()
 
-        if mylar.EXTRA_SCRIPTS.endswith('.sh'):
+        if mylar.CONFIG.EXTRA_SCRIPTS.endswith('.sh'):
             shell_cmd = re.sub('#!', '', first_line)
             if shell_cmd == '' or shell_cmd is None:
                 shell_cmd = '/bin/bash'
@@ -145,7 +145,7 @@ class PostProcessor(object):
             #forces mylar to use the executable that it was run with to run the extra script.
             shell_cmd = sys.executable
 
-        curScriptName = shell_cmd + ' ' + str(mylar.EXTRA_SCRIPTS).decode("string_escape")
+        curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS).decode("string_escape")
         logger.fdebug("extra script detected...enabling: " + str(curScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
@@ -170,26 +170,26 @@ class PostProcessor(object):
             path_to_move = dupeinfo['to_dupe']
             file_to_move = os.path.split(path_to_move)[1]
 
-            if dupeinfo['action'] == 'dupe_src' and mylar.FILE_OPTS == 'move':
+            if dupeinfo['action'] == 'dupe_src' and mylar.CONFIG.FILE_OPTS == 'move':
                 logger.info('[DUPLICATE-CLEANUP] New File will be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
             else:
-                if mylar.FILE_OPTS == 'move':
+                if mylar.CONFIG.FILE_OPTS == 'move':
                     logger.info('[DUPLICATE-CLEANUP][MOVE-MODE] New File will not be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
                 else:
                     logger.info('[DUPLICATE-CLEANUP][COPY-MODE] NEW File will not be post-processed. Retaining file in original location [' + path_to_move + ']')
                     return True
 
             #this gets tricky depending on if it's the new filename or the existing filename, and whether or not 'copy' or 'move' has been selected.
-            if mylar.FILE_OPTS == 'move':
+            if mylar.CONFIG.FILE_OPTS == 'move':
                 #check to make sure duplicate_dump directory exists:
-                checkdirectory = filechecker.validateAndCreateDirectory(mylar.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
+                checkdirectory = filechecker.validateAndCreateDirectory(mylar.CONFIG.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
                 try:
-                    shutil.move(path_to_move, os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                    shutil.move(path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 except (OSError, IOError):
-                    logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                    logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                     return False
 
-                logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.DUPLICATE_DUMP, file_to_move))
+                logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 return True
 
     def tidyup(self, odir=None, del_nzbdir=False, sub_path=None):
@@ -198,7 +198,7 @@ class PostProcessor(object):
             # copy = cleanup/delete cache location (odir) only if enabled.
             #tidyup old path
             try:
-                logger.fdebug('File Option: ' + mylar.FILE_OPTS + ' [META-ENABLED: ' + str(mylar.ENABLE_META) + ']')
+                logger.fdebug('File Option: ' + mylar.CONFIG.FILE_OPTS + ' [META-ENABLED: ' + str(mylar.CONFIG.ENABLE_META) + ']')
                 logger.fdebug('odir: ' + odir + ' [self.nzb_folder: ' + self.nzb_folder + ']')
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
                 if all([sub_path is not None, sub_path != self.nzb_folder]):
@@ -216,7 +216,7 @@ class PostProcessor(object):
                 #if all([os.path.isdir(odir), self.nzb_folder != tmp_folder]) or any([odir.startswith('mylar_'),del_nzbdir is True]):
                     # check to see if the directory is empty or not.
 
-                if all([mylar.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', tmp_folder != self.nzb_folder]):
+                if all([mylar.CONFIG.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', tmp_folder != self.nzb_folder]):
                     if not os.listdir(tmp_folder):
                         logger.fdebug(self.module + ' Tidying up. Deleting sub-folder location : ' + tmp_folder)
                         shutil.rmtree(tmp_folder)
@@ -225,7 +225,7 @@ class PostProcessor(object):
                         self._log('Failed to remove temporary directory: ' + tmp_folder)
                         logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
 
-                elif mylar.FILE_OPTS == 'move' and all([del_nzbdir is True, self.nzb_name != 'Manual Run']): #tmp_folder != self.nzb_folder]):
+                elif mylar.CONFIG.FILE_OPTS == 'move' and all([del_nzbdir is True, self.nzb_name != 'Manual Run']): #tmp_folder != self.nzb_folder]):
                     if not os.listdir(tmp_folder):
                         logger.fdebug(self.module + ' Tidying up. Deleting original folder location : ' + tmp_folder)
                         shutil.rmtree(tmp_folder)
@@ -234,7 +234,7 @@ class PostProcessor(object):
                         self._log('Failed to remove temporary directory: ' + tmp_folder)
                         logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
 
-                if mylar.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
+                if mylar.CONFIG.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
                     #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
                     #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
                     for filename in os.listdir(odir):
@@ -269,14 +269,14 @@ class PostProcessor(object):
                 logger.fdebug(module + ' Not using SABnzbd : Manual Run')
             else:
                 # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
-                if all([mylar.SAB_TO_MYLAR, mylar.SAB_DIRECTORY is not None, mylar.SAB_DIRECTORY != 'None', len(mylar.SAB_DIRECTORY) > 4]):
-                    self.nzb_folder = os.path.join(mylar.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
+                    self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
 
       # -- start. not used.
                 #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
                 #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
-                #querysab = str(mylar.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.SAB_APIKEY)
+                #querysab = str(mylar.CONFIG.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.CONFIG.SAB_APIKEY)
                 #logger.info("querysab_string:" + str(querysab))
                 #file = urllib2.urlopen(querysab)
                 #data = file.read()
@@ -301,9 +301,9 @@ class PostProcessor(object):
                 # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
                 if self.nzb_name == 'Manual Run':
                     logger.fdebug(module + ' Manual Run Post-Processing enabled.')
-                elif mylar.NZBGET_DIRECTORY is not None and mylar.NZBGET_DIRECTORY is not 'None' and len(mylar.NZBGET_DIRECTORY) > 4:
+                elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
                     logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
-                    self.nzb_folder = os.path.join(mylar.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                    self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
             myDB = db.DBConnection()
 
@@ -322,7 +322,7 @@ class PostProcessor(object):
 
                 #load the hashes for torrents so continual post-processing of same issues don't occur.
                 pp_crclist = []
-                if mylar.ENABLE_TORRENTS:
+                if mylar.CONFIG.ENABLE_TORRENTS:
                     pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE a.Status='Post-Processed' and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived ORDER BY b.IssueDate')")
                     for pp in pp_crc:
                         pp_crclist.append({'IssueID':   pp['IssueID'],
@@ -343,7 +343,7 @@ class PostProcessor(object):
                 manual_arclist = []
 
                 for fl in filelist['comiclist']:
-                    if mylar.ENABLE_TORRENTS:
+                    if mylar.CONFIG.ENABLE_TORRENTS:
                         crcchk = None
                         tcrc = helpers.crc(os.path.join(fl['comiclocation'], fl['comicfilename'].decode(mylar.SYS_ENCODING)))
                         crcchk = [x for x in pp_crclist if tcrc == x['crc']]
@@ -364,7 +364,7 @@ class PostProcessor(object):
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
-                    if all([mylar.ANNUALS_ON, 'annual' in mod_seriesname.lower()]):
+                    if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]):
                         mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
 
                     #make sure we add back in the original parsed filename here.
@@ -394,7 +394,7 @@ class PostProcessor(object):
                             wv_comicversion = wv['ComicVersion']
                             wv_publisher = wv['ComicPublisher']
                             wv_total = wv['Total']
-                            if mylar.FOLDER_SCAN_LOG_VERBOSE:
+                            if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                                 logger.fdebug('Queuing to Check: ' + wv['ComicName'] + ' [' + str(wv['ComicYear']) + '] -- ' + str(wv['ComicID']))
 
                             #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
@@ -658,21 +658,22 @@ class PostProcessor(object):
                         i = 0
                         #k is ComicName
                         #v is ArcValues and WatchValues
+                        if len(v) > 0:
+                            logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(v)))
                         while i < len(v):
                             if k is None or k == 'None':
                                 pass
                             else:
-                                logger.fdebug(module + ' Now Checking if the issue also resides in one of the storyarc\'s that I am watching.')
                                 arcm = filechecker.FileChecker(watchcomic=k, Publisher=v[i]['ArcValues']['ComicPublisher'], manual=v[i]['WatchValues'])
                                 arcmatch = arcm.matchIT(fl)
-                                logger.info('arcmatch: ' + str(arcmatch))
+                                #logger.fdebug('arcmatch: ' + str(arcmatch))
                                 if arcmatch['process_status'] == 'fail':
                                     nm+=1
                                 else:
                                     temploc= arcmatch['justthedigits'].replace('_', ' ')
                                     temploc = re.sub('[\#\']', '', temploc)
                                     if helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
-                                        logger.info('issues dont match. Skipping')
+                                        #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
                                     if 'annual' in temploc.lower():
@@ -702,8 +703,8 @@ class PostProcessor(object):
                                             logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
                                             logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
 
-                                            logger.info('StoreDate ' + str(issuechk['StoreDate']))
-                                            logger.info('IssueDate: ' + str(issuechk['IssueDate']))
+                                            logger.fdebug('StoreDate ' + str(issuechk['StoreDate']))
+                                            logger.fdebug('IssueDate: ' + str(issuechk['IssueDate']))
                                             if all([issuechk['StoreDate'] is not None, issuechk['StoreDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
                                                 if issuechk['StoreDate'] == '0000-00-00':
                                                     datevalue = issuechk['IssueDate']
@@ -734,9 +735,9 @@ class PostProcessor(object):
                                             else:
                                                 logger.info(module + ' Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(v[i]['WatchValues']['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
 
-                                            logger.info('datematch: ' + str(datematch))
-                                            logger.info('temploc: ' + str(helpers.issuedigits(temploc)))
-                                            logger.info('arcissue: ' + str(helpers.issuedigits(v[i]['ArcValues']['IssueNumber'])))
+                                            logger.fdebug('datematch: ' + str(datematch))
+                                            logger.fdebug('temploc: ' + str(helpers.issuedigits(temploc)))
+                                            logger.fdebug('arcissue: ' + str(helpers.issuedigits(v[i]['ArcValues']['IssueNumber'])))
                                             if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                                 passit = False
                                                 if len(manual_list) > 0:
@@ -771,7 +772,7 @@ class PostProcessor(object):
                                                                            "Publisher":       arcpublisher,
                                                                            "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                            "ComicName":       k})
-                                                    logger.fdebug(module + '[SUCCESSFUL MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Match verified for ' + arcmatch['comicfilename'])
+                                                    logger.info(module + '[SUCCESSFUL MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Match verified for ' + arcmatch['comicfilename'])
                                                     break
                                             else:
                                                 logger.fdebug(module + '[NON-MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
@@ -795,7 +796,7 @@ class PostProcessor(object):
 
                         crcvalue = helpers.crc(ofilename)
 
-                        if mylar.ENABLE_META:
+                        if mylar.CONFIG.ENABLE_META:
                             logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                             try:
                                 import cmtagmylar
@@ -843,14 +844,14 @@ class PostProcessor(object):
                             return self.queue.put(self.valreturn)
 
                         #send to renamer here if valid.
-                        if mylar.RENAME_FILES:
+                        if mylar.CONFIG.RENAME_FILES:
                             renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], dfilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
                             if renamed_file:
                                 dfilename = renamed_file['nfilename']
                                 logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
 
                         #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
-                        if mylar.READ2FILENAME:
+                        if mylar.CONFIG.READ2FILENAME:
 
                             logger.fdebug(module + ' readingorder#: ' + str(ml['ReadingOrder']))
                             if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
@@ -863,7 +864,7 @@ class PostProcessor(object):
                         logger.fdebug(module + ' Destination Path : ' + grab_dst)
                         logger.fdebug(module + ' Source Path : ' + grab_src)
 
-                        logger.info(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] ' + grab_src + ' into directory : ' + grab_dst)
+                        logger.info(module + '[ONE-OFF MODE][' + mylar.CONFIG.ARC_FILEOPS.upper() + '] ' + grab_src + ' into directory : ' + grab_dst)
                         #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
 
                         try:
@@ -871,11 +872,11 @@ class PostProcessor(object):
                             if not fileoperation:
                                 raise OSError
                         except (OSError, IOError):
-                            logger.fdebug(module + '[ONE-OFF MODE][' + mylar.ARC_FILEOPS.upper() + '] Failure ' + grab_src + ' - check directories and manually re-run.')
+                            logger.fdebug(module + '[ONE-OFF MODE][' + mylar.CONFIG.ARC_FILEOPS.upper() + '] Failure ' + grab_src + ' - check directories and manually re-run.')
                             return
 
                         #tidyup old path
-                        if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                        if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
                             self.tidyup(src_location, True)
 
                         #delete entry from nzblog table
@@ -898,7 +899,7 @@ class PostProcessor(object):
                     #one-off manual pp'd of torrents
                     oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE (s.Provider ='32P' or s.Provider='TPSE' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff == 1;")
                     if oneofflist is None:
-                        logger.fdebug(module + ' No one-off\'s have ever been snatched using Mylar.')
+                        logger.fdebug(module + ' No one-off\'s have ever been snatched using mylar.')
                     else:
                         oneoffvals = []
                         oneoff_issuelist = []
@@ -1026,6 +1027,7 @@ class PostProcessor(object):
                     comicname = None
                     issuenumber = None
                     if tmpiss is not None:
+                        logger.info('shouldnt be here')
                         ppinfo.append({'comicid':       tmpiss['ComicID'],
                                        'issueid':       issueid,
                                        'comicname':     tmpiss['ComicName'],
@@ -1036,12 +1038,14 @@ class PostProcessor(object):
                                        'oneoff':        self.oneoff})
 
                     elif all([self.oneoff is not None, issueid[0] == 'S']):
+                        logger.info('should be here')
                         issuearcid = re.sub('S', '', issueid).strip()
                         oneinfo = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if oneinfo is None:
                             logger.warn('Unable to locate issue as previously snatched arc issue - it might be something else...')
                             self._log('Unable to locate issue as previously snatched arc issue - it might be something else...')
                         else:
+                            logger.info('adding stuff')
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
                                            'issuenumber':   oneinfo['IssueNumber'],
@@ -1053,7 +1057,7 @@ class PostProcessor(object):
                             self.oneoff = True
 
 
-                    if all([len(ppinfo) == 0, self.oneoff is not None, mylar.ALT_PULL == 2]):
+                    if all([len(ppinfo) == 0, self.oneoff is not None, mylar.CONFIG.ALT_PULL == 2]):
                         oneinfo = myDB.selectone('SELECT * FROM weekly WHERE IssueID=?', [issueid]).fetchone()
                         if oneinfo is None:
                             oneinfo = myDB.selectone('SELECT * FROM oneoffhistory WHERE IssueID=?', [issueid]).fetchone()
@@ -1153,8 +1157,8 @@ class PostProcessor(object):
 #                        else:
 #                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
 #                            logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
-#                            self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
-#                            grdst = mylar.GRABBAG_DIR
+#                            self._log("Grab-Bag Directory set to : " + mylar.CONFIG.GRABBAG_DIR)
+#                            grdst = mylar.CONFIG.GRABBAG_DIR
 #
 #                        odir = None
 #                        ofilename = None
@@ -1208,7 +1212,7 @@ class PostProcessor(object):
 #
 #                        #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
 #                        #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-#                        if all([mylar.ENABLE_META, issueid is not None]):
+#                        if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
 #                            self._log("Metatagging enabled - proceeding...")
 #                            try:
 #                                import cmtagmylar
@@ -1252,7 +1256,7 @@ class PostProcessor(object):
 #                            return self.queue.put(self.valreturn)
 #
 #                        #send to renamer here if valid.
-#                        if mylar.RENAME_FILES:
+#                        if mylar.CONFIG.RENAME_FILES:
 #                            renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
 #                            if renamed_file:
 #                                dfilename = renamed_file['nfilename']
@@ -1261,7 +1265,7 @@ class PostProcessor(object):
 #
 #                        if sandwich is not None and 'S' in sandwich:
 #                            #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
-#                            if mylar.READ2FILENAME:
+#                            if mylar.CONFIG.READ2FILENAME:
 #                                logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
 #                                if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
 #                                elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
@@ -1277,19 +1281,19 @@ class PostProcessor(object):
 #
 #                        logger.info(module + ' Destination Path : ' + grab_dst)
 #
-#                        logger.info(module + '[' + mylar.FILE_OPTS + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
+#                        logger.info(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
 #
 #                        try:
 #                            fileoperation = helpers.file_ops(grab_src, grab_dst)
 #                            if not fileoperation:
 #                                raise OSError
 #                        except (OSError, IOError):
-#                            logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-#                            self._log("Failed to " + mylar.FILE_OPTS + " " + src + " - check directories and manually re-run.")
+#                            logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
+#                            self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src + " - check directories and manually re-run.")
 #                            return
 #
 #                        #tidyup old path
-#                        if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+#                        if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
 #                            self.tidyup(src_location, True)
 #
 #                        #delete entry from nzblog table
@@ -1365,7 +1369,7 @@ class PostProcessor(object):
                         #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
                         #'dupe_file' - do not write new file as existing file is better quality
                         #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-                        if mylar.DDUMP and not all([mylar.DUPLICATE_DUMP is None, mylar.DUPLICATE_DUMP == '']): #DUPLICATE_DUMP
+                        if mylar.CONFIG.DDUMP and not all([mylar.CONFIG.DUPLICATE_DUMP is None, mylar.CONFIG.DUPLICATE_DUMP == '']): #DUPLICATE_DUMP
                             dupchkit = self.duplicate_process(dupthis)
                             if dupchkit == False:
                                 logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
@@ -1391,8 +1395,8 @@ class PostProcessor(object):
             #        #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
             #        #'dupe_file' - do not write new file as existing file is better quality
             #        #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-            #        if mylar.DUPLICATE_DUMP:
-            #            if mylar.DDUMP and not all([mylar.DUPLICATE_DUMP is None, mylar.DUPLICATE_DUMP == '']):
+            #        if mylar.CONFIG.DUPLICATE_DUMP:
+            #            if mylar.CONFIG.DDUMP and not all([mylar.CONFIG.DUPLICATE_DUMP is None, mylar.CONFIG.DUPLICATE_DUMP == '']):
             #                dupchkit = self.duplicate_process(dupthis)
             #                if dupchkit == False:
             #                    logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
@@ -1415,6 +1419,7 @@ class PostProcessor(object):
         module = self.module
         myDB = db.DBConnection()
         if manual is None:
+            sandwich = None
             issueid = tinfo['issueid']
             comicid = tinfo['comicid']
             comicname = tinfo['comicname']
@@ -1470,8 +1475,8 @@ class PostProcessor(object):
                     else:
                         self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
                         logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
-                        self._log("Grab-Bag Directory set to : " + mylar.GRABBAG_DIR)
-                        grdst = mylar.GRABBAG_DIR
+                        self._log("Grab-Bag Directory set to : " + mylar.CONFIG.GRABBAG_DIR)
+                        grdst = mylar.CONFIG.GRABBAG_DIR
 
                     odir = location
 
@@ -1531,7 +1536,7 @@ class PostProcessor(object):
 
                     #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
                     #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-                    if all([mylar.ENABLE_META, issueid is not None]):
+                    if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
                         self._log("Metatagging enabled - proceeding...")
                         try:
                             import cmtagmylar
@@ -1574,7 +1579,7 @@ class PostProcessor(object):
                         return self.queue.put(self.valreturn)
 
                     #send to renamer here if valid.
-                    if mylar.RENAME_FILES:
+                    if mylar.CONFIG.RENAME_FILES:
                         renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
                         if renamed_file:
                             dfilename = renamed_file['nfilename']
@@ -1582,7 +1587,7 @@ class PostProcessor(object):
 
                     if sandwich is not None and 'S' in sandwich:
                         #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
-                        if mylar.READ2FILENAME:
+                        if mylar.CONFIG.READ2FILENAME:
                             logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
                             if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                             elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
@@ -1597,19 +1602,19 @@ class PostProcessor(object):
                     self._log("Destination Path : " + grab_dst)
 
                     logger.info(module + ' Destination Path : ' + grab_dst)
-                    logger.info(module + '[' + mylar.FILE_OPTS + '] ' + ofilename + ' into directory : ' + grab_dst)
+                    logger.info(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + ofilename + ' into directory : ' + grab_dst)
 
                     try:
                         fileoperation = helpers.file_ops(grab_src, grab_dst)
                         if not fileoperation:
                             raise OSError
                     except (OSError, IOError):
-                        logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-                        self._log("Failed to " + mylar.FILE_OPTS + " " + src + " - check directories and manually re-run.")
+                        logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
+                        self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src + " - check directories and manually re-run.")
                         return
 
                     #tidyup old path
-                    if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                    if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
                         self.tidyup(src_location, True)
 
                     #delete entry from nzblog table
@@ -1688,7 +1693,7 @@ class PostProcessor(object):
                     #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
                     #'dupe_file' - do not write new file as existing file is better quality
                     #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-                    if mylar.DDUMP and not all([mylar.DUPLICATE_DUMP is None, mylar.DUPLICATE_DUMP == '']): #DUPLICATE_DUMP
+                    if mylar.CONFIG.DDUMP and not all([mylar.CONFIG.DUPLICATE_DUMP is None, mylar.CONFIG.DUPLICATE_DUMP == '']): #DUPLICATE_DUMP
                         dupchkit = self.duplicate_process(dupthis)
                         if dupchkit == False:
                             logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
@@ -1714,8 +1719,8 @@ class PostProcessor(object):
                 #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
                 #'dupe_file' - do not write new file as existing file is better quality
                 #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-                if mylar.DUPLICATE_DUMP:
-                    if mylar.DDUMP and not all([mylar.DUPLICATE_DUMP is None, mylar.DUPLICATE_DUMP == '']):
+                if mylar.CONFIG.DUPLICATE_DUMP:
+                    if mylar.CONFIG.DDUMP and not all([mylar.CONFIG.DUPLICATE_DUMP is None, mylar.CONFIG.DUPLICATE_DUMP == '']):
                         dupchkit = self.duplicate_process(dupthis)
                         if dupchkit == False:
                             logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
@@ -1743,7 +1748,7 @@ class PostProcessor(object):
             myDB = db.DBConnection()
             comicnzb = myDB.selectone("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             issuenzb = myDB.selectone("SELECT * from issues WHERE issueid=? AND comicid=? AND ComicName NOT NULL", [issueid, comicid]).fetchone()
-            if ml is not None and mylar.SNATCHEDTORRENT_NOTIFY:
+            if ml is not None and mylar.CONFIG.SNATCHEDTORRENT_NOTIFY:
                 snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=? OR provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'TPSE', 'DEM', 'WWT', '32P']).fetchone()
                 if snatchnzb is None:
                     logger.fdebug(module + ' Was not downloaded with Mylar and the usage of torrents. Disabling torrent manual post-processing completion notification.')
@@ -1831,14 +1836,14 @@ class PostProcessor(object):
                 issueno = iss
 
             # issue zero-suppression here
-            if mylar.ZERO_LEVEL == "0":
+            if mylar.CONFIG.ZERO_LEVEL == "0":
                 zeroadd = ""
             else:
-                if mylar.ZERO_LEVEL_N  == "none": zeroadd = ""
-                elif mylar.ZERO_LEVEL_N == "0x": zeroadd = "0"
-                elif mylar.ZERO_LEVEL_N == "00x": zeroadd = "00"
+                if mylar.CONFIG.ZERO_LEVEL_N  == "none": zeroadd = ""
+                elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
+                elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
-            logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.ZERO_LEVEL_N))
+            logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.CONFIG.ZERO_LEVEL_N))
 
             prettycomiss = None
 
@@ -1876,10 +1881,10 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
-                    if mylar.ZERO_LEVEL_N == "none":
+                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
                         zeroadd = ""
                     else:
                         zeroadd = "0"
@@ -1893,7 +1898,7 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
                 else:
                     logger.fdebug('issue detected greater than 100')
                     if '.' in iss:
@@ -1902,7 +1907,7 @@ class PostProcessor(object):
                     prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
 
             elif len(str(issueno)) == 0:
                 prettycomiss = str(issueno)
@@ -1929,10 +1934,10 @@ class PostProcessor(object):
 #                        prettycomiss = str(zeroadd) + str(iss)
 #                    if issue_except != 'None':
 #                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
 #                elif int(issueno) >= 10 and int(issueno) < 100:
 #                    self._log("issue detected greater than 10, but less than 100")
-#                    if mylar.ZERO_LEVEL_N == "none":
+#                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
 #                        zeroadd = ""
 #                    else:
 #                        zeroadd = "0"
@@ -1946,7 +1951,7 @@ class PostProcessor(object):
 #                        prettycomiss = str(zeroadd) + str(iss)
 #                    if issue_except != 'None':
 #                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
+#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
 #                else:
 #                    self._log("issue detected greater than 100")
 #                    if '.' in iss:
@@ -1955,7 +1960,7 @@ class PostProcessor(object):
 #                    prettycomiss = str(issueno)
 #                    if issue_except != 'None':
 #                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
+#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
 #            else:
 #                prettycomiss = str(issueno)
 #                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
@@ -1997,14 +2002,14 @@ class PostProcessor(object):
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
             if comversion == 'None':
-                chunk_f_f = re.sub('\$VolumeN', '', mylar.FILE_FORMAT)
+                chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FILE_FORMAT)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 self._log("No version # found for series - tag will not be available for renaming.")
                 logger.fdebug(module + ' No version # found for series, removing from filename')
                 logger.fdebug('%s New format is now: %s' % (module, chunk_file_format))
             else:
-                chunk_file_format = mylar.FILE_FORMAT
+                chunk_file_format = mylar.CONFIG.FILE_FORMAT
 
             if annchk == "no":
                 chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
@@ -2069,12 +2074,12 @@ class PostProcessor(object):
 
 
             #tag the meta.
-            if mylar.ENABLE_META:
+            if mylar.CONFIG.ENABLE_META:
 
                 self._log("Metatagging enabled - proceeding...")
                 logger.fdebug(module + ' Metatagging enabled - proceeding...')
                 pcheck = "pass"
-                if mylar.CMTAG_START_YEAR_AS_VOLUME:
+                if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                     vol_label = seriesyear
                 else:
                     vol_label = comversion
@@ -2136,7 +2141,7 @@ class PostProcessor(object):
                     #self.fileop = shutil.move
             #Run Pre-script
 
-            if mylar.ENABLE_PRE_SCRIPTS:
+            if mylar.CONFIG.ENABLE_PRE_SCRIPTS:
                 nzbn = self.nzb_name #original nzb name
                 nzbf = self.nzb_folder #original nzb folder
                 #name, comicyear, comicid , issueid, issueyear, issue, publisher
@@ -2234,7 +2239,7 @@ class PostProcessor(object):
             logger.fdebug(module + ' Original Filename: ' + ofilename)
             logger.fdebug(module + ' Original Extension: ' + ext)
 
-            if mylar.FILE_FORMAT == '' or not mylar.RENAME_FILES:
+            if mylar.CONFIG.FILE_FORMAT == '' or not mylar.CONFIG.RENAME_FILES:
                 self._log("Rename Files isn't enabled...keeping original filename.")
                 logger.fdebug(module + ' Rename Files is not enabled - keeping original filename.')
                 #check if extension is in nzb_name - will screw up otherwise
@@ -2244,9 +2249,9 @@ class PostProcessor(object):
                     nfilename = ofilename
             else:
                 nfilename = helpers.replace_all(chunk_file_format, file_values)
-                if mylar.REPLACE_SPACES:
-                    #mylar.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-                    nfilename = nfilename.replace(' ', mylar.REPLACE_CHAR)
+                if mylar.CONFIG.REPLACE_SPACES:
+                    #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
+                    nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?\"\']', '', nfilename)
             nfilename = re.sub('[\/\*]', '-', nfilename)
             self._log("New Filename: " + nfilename)
@@ -2263,7 +2268,7 @@ class PostProcessor(object):
                 return self.queue.put(self.valreturn)
 
 
-            if mylar.LOWERCASE_FILENAMES:
+            if mylar.CONFIG.LOWERCASE_FILENAMES:
                 dst = os.path.join(comlocation, (nfilename + ext).lower())
             else:
                 dst = os.path.join(comlocation, (nfilename + ext.lower()))
@@ -2280,10 +2285,10 @@ class PostProcessor(object):
                 logger.fdebug(module + ' odir: ' + odir)
                 logger.fdebug(module + ' ofilename:' + ofilename)
                 logger.fdebug(module + ' nfilename:' + nfilename + ext)
-                if mylar.RENAME_FILES:
+                if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir, nfilename + ext))
-                        #if mylar.FILE_OPTS == 'move':
+                        #if mylar.CONFIG.FILE_OPTS == 'move':
                         #    os.rename(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
                         # else:
                         #    self.fileop(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
@@ -2293,21 +2298,21 @@ class PostProcessor(object):
                 #src = os.path.join(self.nzb_folder, str(nfilename + ext))
                 src = os.path.join(odir, ofilename)
                 try:
-                    self._log("[" + mylar.FILE_OPTS + "] " + src + " - to - " + dst)
+                    self._log("[" + mylar.CONFIG.FILE_OPTS + "] " + src + " - to - " + dst)
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
                 except (OSError, IOError):
-                    self._log("Failed to " + mylar.FILE_OPTS + " " + src  + " - check directories and manually re-run.")
+                    self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src  + " - check directories and manually re-run.")
                     self._log("Post-Processing ABORTED.")
-                    logger.warn(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
+                    logger.warn(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
                     logger.warn(module + ' Post-Processing ABORTED')
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
 
                 #tidyup old path
-                if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
                     self.tidyup(odir, True)
 
             else:
@@ -2315,7 +2320,7 @@ class PostProcessor(object):
                 downtype = 'PP'
                 #Manual Run, this is the portion.
                 src = os.path.join(odir, ofilename)
-                if mylar.RENAME_FILES:
+                if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename)) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
                         #os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir, str(nfilename + ext)))
@@ -2324,30 +2329,30 @@ class PostProcessor(object):
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
                 logger.fdebug(module + ' odir src : ' + src)
-                logger.fdebug(module + '[' + mylar.FILE_OPTS + '] ' + src + ' ... to ... ' + dst)
+                logger.fdebug(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + src + ' ... to ... ' + dst)
                 try:
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
                 except (OSError, IOError):
-                    logger.fdebug(module + ' Failed to ' + mylar.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
+                    logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
                     logger.fdebug(module + ' Post-Processing ABORTED.')
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                logger.info(module + ' ' + mylar.FILE_OPTS + ' successful to : ' + dst)
+                logger.info(module + ' ' + mylar.CONFIG.FILE_OPTS + ' successful to : ' + dst)
 
-                if any([mylar.FILE_OPTS == 'move', mylar.FILE_OPTS == 'copy']):
+                if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
                     self.tidyup(odir, False, subpath)
 
             #Hopefully set permissions on downloaded file
-            if mylar.ENFORCE_PERMS:
+            if mylar.CONFIG.ENFORCE_PERMS:
                 if mylar.OS_DETECT != 'windows':
                     filechecker.setperms(dst.rstrip())
                 else:
                     try:
-                        permission = int(mylar.CHMOD_FILE, 8)
+                        permission = int(mylar.CONFIG.CHMOD_FILE, 8)
                         os.umask(0)
                         os.chmod(dst.rstrip(), permission)
                     except OSError:
@@ -2355,7 +2360,7 @@ class PostProcessor(object):
                         logger.fdebug(module + ' Continuing post-processing but unable to change file permissions in ' + dst)
 
             #let's reset the fileop to the original setting just in case it's a manual pp run
-            if mylar.FILE_OPTS == 'copy':
+            if mylar.CONFIG.FILE_OPTS == 'copy':
                 self.fileop = shutil.copy
             else:
                 self.fileop = shutil.move
@@ -2400,7 +2405,7 @@ class PostProcessor(object):
                                                    "mode": 'stop'})
                             return self.queue.put(self.valreturn)
 
-                        if mylar.READ2FILENAME:
+                        if mylar.CONFIG.READ2FILENAME:
                             logger.fdebug(module + ' readingorder#: ' + str(arcinfo['ReadingOrder']))
                             if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
                             elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
@@ -2414,7 +2419,7 @@ class PostProcessor(object):
                         logger.fdebug(module + ' Destination Path : ' + grab_dst)
                         grab_src = dst
                         logger.fdebug(module + ' Source Path : ' + grab_src)
-                        logger.info(module + '[' + mylar.ARC_FILEOPS.upper() + '] ' + str(dst) + ' into directory : ' + str(grab_dst))
+                        logger.info(module + '[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] ' + str(dst) + ' into directory : ' + str(grab_dst))
 
                         try:
                             #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
@@ -2423,7 +2428,7 @@ class PostProcessor(object):
                                 raise OSError
                             #shutil.copy(grab_src, grab_dst)
                         except (OSError, IOError):
-                            logger.fdebug(module + '[' + mylar.ARC_FILEOPS.upper() + '] Failure ' + src + ' - check directories and manually re-run.')
+                            logger.fdebug(module + '[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] Failure ' + src + ' - check directories and manually re-run.')
                             return
 
                         #delete entry from nzblog table in case it was forced via the Story Arc Page
@@ -2441,13 +2446,13 @@ class PostProcessor(object):
             except:
                 pass
 
-            if mylar.WEEKFOLDER or mylar.SEND2READ:
-                #mylar.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
-                #mylar.SEND2READ = will add the post-processed file to the readinglits
+            if mylar.CONFIG.WEEKFOLDER or mylar.CONFIG.SEND2READ:
+                #mylar.CONFIG.WEEKFOLDER = will *copy* the post-processed file to the weeklypull list folder for the given week.
+                #mylar.CONFIG.SEND2READ = will add the post-processed file to the readinglits
                 weeklypull.weekly_check(comicid, issuenum, file=(nfilename +ext), path=dst, module=module, issueid=issueid)
 
             # retrieve/create the corresponding comic objects
-            if mylar.ENABLE_EXTRA_SCRIPTS:
+            if mylar.CONFIG.ENABLE_EXTRA_SCRIPTS:
                 folderp = dst #folder location after move/rename
                 nzbn = self.nzb_name #original nzb name
                 filen = nfilename + ext #new filename
@@ -2517,32 +2522,32 @@ class PostProcessor(object):
 
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
-        if mylar.PROWL_ENABLED:
+        if mylar.CONFIG.PROWL_ENABLED:
             pushmessage = prline
             prowl = notifiers.PROWL()
             prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
 
-        if mylar.NMA_ENABLED:
+        if mylar.CONFIG.NMA_ENABLED:
             nma = notifiers.NMA()
             nma.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.PUSHOVER_ENABLED:
+        if mylar.CONFIG.PUSHOVER_ENABLED:
             pushover = notifiers.PUSHOVER()
             pushover.notify(prline, prline2, module=module)
 
-        if mylar.BOXCAR_ENABLED:
+        if mylar.CONFIG.BOXCAR_ENABLED:
             boxcar = notifiers.BOXCAR()
             boxcar.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.PUSHBULLET_ENABLED:
+        if mylar.CONFIG.PUSHBULLET_ENABLED:
             pushbullet = notifiers.PUSHBULLET()
             pushbullet.notify(prline=prline, prline2=prline2, module=module)
 
-        if mylar.TELEGRAM_ENABLED:
+        if mylar.CONFIG.TELEGRAM_ENABLED:
             telegram = notifiers.TELEGRAM()
             telegram.notify(prline, prline2)
 
-        if mylar.SLACK_ENABLED:
+        if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
             slack.notify("Download and Postprocessing completed", prline, module=module)
 
@@ -2565,8 +2570,8 @@ class FolderCheck():
         #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
         helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
         mylar.MONITOR_STATUS = 'Running'
-        logger.info(self.module + ' Checking folder ' + mylar.CHECK_FOLDER + ' for newly snatched downloads')
-        PostProcess = PostProcessor('Manual Run', mylar.CHECK_FOLDER, queue=self.queue)
+        logger.info(self.module + ' Checking folder ' + mylar.CONFIG.CHECK_FOLDER + ' for newly snatched downloads')
+        PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
         result = PostProcess.Process()
         logger.info(self.module + ' Finished checking for newly snatched downloads')
         helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')

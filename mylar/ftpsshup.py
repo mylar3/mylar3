@@ -17,15 +17,15 @@ def putfile(localpath, file):    #localpath=full path to .torrent (including fil
         logger.fdebug('aborting send.')
         return "fail"
 
-    host = mylar.SEEDBOX_HOST
-    port = int(mylar.SEEDBOX_PORT)   #this is usually 22
+    host = mylar.CONFIG.SEEDBOX_HOST
+    port = int(mylar.CONFIG.SEEDBOX_PORT)   #this is usually 22
     transport = paramiko.Transport((host, port))
 
     logger.fdebug('Sending file: ' + str(file))
     logger.fdebug('destination: ' + str(host))
     logger.fdebug('Using SSH port : ' + str(port))
-    password = mylar.SEEDBOX_PASS
-    username = mylar.SEEDBOX_USER
+    password = mylar.CONFIG.SEEDBOX_PASS
+    username = mylar.CONFIG.SEEDBOX_USER
     transport.connect(username = username, password = password)
 
     sftp = paramiko.SFTPClient.from_transport(transport)
@@ -33,7 +33,7 @@ def putfile(localpath, file):    #localpath=full path to .torrent (including fil
     import sys
     if file[-7:] != "torrent":
         file += ".torrent"
-    rempath = os.path.join(mylar.SEEDBOX_WATCHDIR, file) #this will default to the OS running mylar for slashes.
+    rempath = os.path.join(mylar.CONFIG.SEEDBOX_WATCHDIR, file) #this will default to the OS running mylar for slashes.
     logger.fdebug('remote path set to ' + str(rempath))
     logger.fdebug('local path set to ' + str(localpath))
 
@@ -78,22 +78,22 @@ def sendfiles(filelist):
         logger.fdebug('aborting send.')
         return
 
-    fhost = mylar.TAB_HOST.find(':')
-    host = mylar.TAB_HOST[:fhost]
-    port = int(mylar.TAB_HOST[fhost +1:])
+    fhost = mylar.CONFIG.TAB_HOST.find(':')
+    host = mylar.CONFIG.TAB_HOST[:fhost]
+    port = int(mylar.CONFIG.TAB_HOST[fhost +1:])
 
     logger.fdebug('Destination: ' + host)
     logger.fdebug('Using SSH port : ' + str(port))
 
     transport = paramiko.Transport((host, port))
 
-    password = mylar.TAB_PASS
-    username = mylar.TAB_USER
+    password = mylar.CONFIG.TAB_PASS
+    username = mylar.CONFIG.TAB_USER
     transport.connect(username = username, password = password)
 
     sftp = paramiko.SFTPClient.from_transport(transport)
 
-    remotepath = mylar.TAB_DIRECTORY
+    remotepath = mylar.CONFIG.TAB_DIRECTORY
     logger.fdebug('remote path set to ' + remotepath)
 
     if len(filelist) > 0:
@@ -102,9 +102,9 @@ def sendfiles(filelist):
 
 
 def sendtohome(sftp, remotepath, filelist, transport):
-    fhost = mylar.TAB_HOST.find(':')
-    host = mylar.TAB_HOST[:fhost]
-    port = int(mylar.TAB_HOST[fhost +1:])
+    fhost = mylar.CONFIG.TAB_HOST.find(':')
+    host = mylar.CONFIG.TAB_HOST[:fhost]
+    port = int(mylar.CONFIG.TAB_HOST[fhost +1:])
 
     successlist = []
     filestotal = len(filelist)
@@ -130,7 +130,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
 
         remdir = remotepath
 
-        if mylar.MAINTAINSERIESFOLDER == 1:
+        if mylar.CONFIG.MAINTAINSERIESFOLDER == 1:
             # Get folder path of issue
             comicdir = os.path.split(files['filepath'])[0]
             # Isolate comic folder name
@@ -179,7 +179,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                     transport.close()
                     #reload the transport here cause it locked up previously.
                     transport = paramiko.Transport((host, port))
-                    transport.connect(username=mylar.TAB_USER, password=mylar.TAB_PASS)
+                    transport.connect(username=mylar.CONFIG.TAB_USER, password=mylar.CONFIG.TAB_PASS)
                     sftp = paramiko.SFTPClient.from_transport(transport)
                     count+=1
                     if count > 5:
@@ -208,7 +208,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                         transport.close()
                         #reload the transport here cause it locked up previously.
                         transport = paramiko.Transport((host, port))
-                        transport.connect(username=mylar.TAB_USER, password=mylar.TAB_PASS)
+                        transport.connect(username=mylar.CONFIG.TAB_USER, password=mylar.CONFIG.TAB_PASS)
                         sftp = paramiko.SFTPClient.from_transport(transport)
                         count+=1
                         if count > 5:

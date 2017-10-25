@@ -73,10 +73,10 @@ class TorrentClient(object):
         return torrent.stop()
 
     def load_torrent(self, filepath):
-        if any([mylar.TRANSMISSION_DIRECTORY is None, mylar.TRANSMISSION_DIRECTORY == '', mylar.TRANSMISSION_DIRECTORY == 'None']):
-            down_dir = mylar.CHECK_FOLDER
+        if any([mylar.CONFIG.TRANSMISSION_DIRECTORY is None, mylar.CONFIG.TRANSMISSION_DIRECTORY == '', mylar.CONFIG.TRANSMISSION_DIRECTORY == 'None']):
+            down_dir = mylar.CONFIG.CHECK_FOLDER
         else:
-            down_dir = mylar.TRANSMISSION_DIRECTORY
+            down_dir = mylar.CONFIG.TRANSMISSION_DIRECTORY
         if filepath.startswith('magnet'):
             torrent = self.conn.add_torrent('%s' % filepath,
                                             download_dir=down_dir)

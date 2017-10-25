@@ -49,15 +49,15 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         import tempfile
         logger.info('Filepath: %s' %filepath)
         logger.info('Filename: %s' %filename)
-        new_folder = tempfile.mkdtemp(prefix='mylar_', dir=mylar.CACHE_DIR) #prefix, suffix, dir
+        new_folder = tempfile.mkdtemp(prefix='mylar_', dir=mylar.CONFIG.CACHE_DIR) #prefix, suffix, dir
         logger.info('New_Folder: %s' % new_folder)
         new_filepath = os.path.join(new_folder, filename)
         logger.info('New_Filepath: %s' % new_filepath)
-        if mylar.FILE_OPTS == 'copy' and manualmeta == False:
-            logger.info('Attempting to copy: %s' % mylar.FILE_OPTS)
+        if mylar.CONFIG.FILE_OPTS == 'copy' and manualmeta == False:
+            logger.info('Attempting to copy: %s' % mylar.CONFIG.FILE_OPTS)
             shutil.copy(filepath, new_filepath)
         else:
-            logger.info('Attempting to move: %s' % mylar.FILE_OPTS)
+            logger.info('Attempting to move: %s' % mylar.CONFIG.FILE_OPTS)
             shutil.move(filepath, new_filepath)
         filepath = new_filepath  
     except:
@@ -83,14 +83,14 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     ##set up default comictagger options here.
     #used for cbr - to - cbz conversion
     #depending on copy/move - eitehr we retain the rar or we don't.
-    if mylar.FILE_OPTS == 'move':
+    if mylar.CONFIG.FILE_OPTS == 'move':
         cbr2cbzoptions = ["-e", "--delete-rar"]
     else:
         cbr2cbzoptions = ["-e"]
 
     tagoptions = ["-s"]
-    if mylar.CMTAG_VOLUME:
-        if mylar.CMTAG_START_YEAR_AS_VOLUME:
+    if mylar.CONFIG.CMTAG_VOLUME:
+        if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
             comversion = str(comversion)
         else:
             if any([comversion is None, comversion == '', comversion == 'None']):
@@ -114,13 +114,13 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     ctcheck = re.sub("[^0-9]", "", ctversion[:ctend])
     ctcheck = re.sub('\.', '', ctcheck).strip()
     if int(ctcheck) >= int('1115'):  # (v1.1.15)
-        if mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
+        if any([mylar.CONFIG.COMICVINE_API == 'None', mylar.CONFIG.COMICVINE_API is None]):
             logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - no personal ComicVine API Key supplied. Take your chances.')
             use_cvapi = "False"
         else:
             logger.fdebug(module + ' ' + ctversion[:ctend] + ' being used - using personal ComicVine API key supplied via mylar.')
             use_cvapi = "True"
-            tagoptions.extend(["--cv-api-key", mylar.COMICVINE_API])
+            tagoptions.extend(["--cv-api-key", mylar.CONFIG.COMICVINE_API])
     else:
         logger.fdebug(module + ' ' + ctversion[:ctend+1] + ' being used - personal ComicVine API key not supported in this version. Good luck.')
         use_cvapi = "False"
@@ -128,12 +128,12 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     i = 1
     tagcnt = 0
 
-    if mylar.CT_TAG_CR:
+    if mylar.CONFIG.CT_TAG_CR:
         tagcnt = 1
         logger.fdebug(module + ' CR Tagging enabled.')
 
-    if mylar.CT_TAG_CBL:
-        if not mylar.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
+    if mylar.CONFIG.CT_TAG_CBL:
+        if not mylar.CONFIG.CT_TAG_CR: i = 2  #set the tag to start at cbl and end without doing another tagging.
         tagcnt = 2
         logger.fdebug(module + ' CBL Tagging enabled.')
 
@@ -144,7 +144,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
     #if it's a cbz file - check if no-overwrite existing tags is enabled / disabled in config.
     if filename.endswith('.cbz'):
-        if mylar.CT_CBZ_OVERWRITE:
+        if mylar.CONFIG.CT_CBZ_OVERWRITE:
             logger.fdebug(module + ' Will modify existing tag blocks even if it exists.')
         else:
             logger.fdebug(module + ' Will NOT modify existing tag blocks even if they exist already.')
@@ -193,9 +193,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
             script_cmdlog = script_cmd
 
         else:
-            logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(f_tagoptions)))
+            logger.fdebug(module + ' Enabling ComicTagger script: ' + str(currentScriptName) + ' with options: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(f_tagoptions)))
             # generate a safe command line string to execute the script and provide all the parameters
-            script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(script_cmd))
+            script_cmdlog = re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd))
         
         logger.fdebug(module + ' Executing command: ' +str(script_cmdlog))
         logger.fdebug(module + ' Absolute path to script: ' +script_cmd[0])
@@ -214,7 +214,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     error_remove = True
                 else:
                     tmpfilename = re.sub('Archive exported successfully to: ', '', out.rstrip())
-                if mylar.FILE_OPTS == 'move':
+                if mylar.CONFIG.FILE_OPTS == 'move':
                     tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
                 tmpf = tmpfilename.decode('utf-8')
                 filepath = os.path.join(comicpath, tmpf)
@@ -240,7 +240,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'corrupt'
                 else:
-                    logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
+                    logger.warn(module + '[COMIC-TAGGER][CBR-TO-CBZ] Failed to convert cbr to cbz - check permissions on folder : ' + mylar.CONFIG.CACHE_DIR + ' and/or the location where Mylar is trying to tag the files from.')
                     tidyup(og_filepath, new_filepath, new_folder, manualmeta)
                     return 'fail'
             elif 'Cannot find' in out:
@@ -257,11 +257,11 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                 logger.info(module + '[COMIC-TAGGER] Successfully wrote ' + tagdisp + ' [' + filepath + ']')
                 i+=1
         except OSError, e:
-            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.COMICVINE_API)], 'REDACTED', str(script_cmd)))
+            logger.warn(module + '[COMIC-TAGGER] Unable to run comictagger with the options provided: ' + re.sub(f_tagoptions[f_tagoptions.index(mylar.CONFIG.COMICVINE_API)], 'REDACTED', str(script_cmd)))
             tidyup(filepath, new_filepath, new_folder, manualmeta)
             return "fail"
 
-        if mylar.CBR2CBZ_ONLY and initial_ctrun == False:
+        if mylar.CONFIG.CBR2CBZ_ONLY and initial_ctrun == False:
             break
 
     return filepath
@@ -269,7 +269,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
 
 def tidyup(filepath, new_filepath, new_folder, manualmeta):
    if all([new_filepath is not None, new_folder is not None]):
-        if mylar.FILE_OPTS == 'copy' and manualmeta == False:
+        if mylar.CONFIG.FILE_OPTS == 'copy' and manualmeta == False:
             if all([os.path.exists(new_folder), os.path.isfile(filepath)]):
                 shutil.rmtree(new_folder)
             elif os.path.exists(new_filepath) and not os.path.exists(filepath):

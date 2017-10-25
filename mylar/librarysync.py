@@ -32,7 +32,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         return
 
     if not dir:
-        dir = mylar.COMIC_DIR
+        dir = mylar.CONFIG.COMIC_DIR
 
     # If we're appending a dir, it's coming from the post processor which is
     # already bytestring
@@ -266,7 +266,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         #    don't scan in it again if it's already been done initially
         #    continue
 
-        if mylar.IMP_METADATA:
+        if mylar.CONFIG.IMP_METADATA:
             #if read tags is enabled during import, check here.
             if i['ComicLocation'].endswith('.cbz'):
                 logger.fdebug('[IMPORT-CBZ] Metatagging checking enabled.')
@@ -517,7 +517,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         comicids = []
 
         if watchfound > 0:
-            if mylar.IMP_MOVE:
+            if mylar.CONFIG.IMP_MOVE:
                 logger.info('You checked off Move Files...so that\'s what I am going to do') 
                 #check to see if Move Files is enabled.
                 #if not being moved, set the archive bit.
@@ -535,8 +535,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                     logger.fdebug('Orig. Location: ' + orig_comlocation)
                     logger.fdebug('Orig. Filename: ' + orig_filename)
                     #before moving check to see if Rename to Mylar structure is enabled.
-                    if mylar.IMP_RENAME:
-                        logger.fdebug('Renaming files according to configuration details : ' + str(mylar.FILE_FORMAT))
+                    if mylar.CONFIG.IMP_RENAME:
+                        logger.fdebug('Renaming files according to configuration details : ' + str(mylar.CONFIG.FILE_FORMAT))
                         renameit = helpers.rename_param(watch_comicid, watch_comicname, watch_comicyear, watch_comiciss)
                         nfilename = renameit['nfilename']
 

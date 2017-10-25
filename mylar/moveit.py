@@ -25,8 +25,8 @@ def movefiles(comicid, comlocation, imported):
             srcimp = impr['comiclocation']
             orig_filename = impr['comicfilename']
             #before moving check to see if Rename to Mylar structure is enabled.
-            if mylar.IMP_RENAME and mylar.FILE_FORMAT != '':
-                logger.fdebug("Renaming files according to configuration details : " + str(mylar.FILE_FORMAT))
+            if mylar.CONFIG.IMP_RENAME and mylar.CONFIG.FILE_FORMAT != '':
+                logger.fdebug("Renaming files according to configuration details : " + str(mylar.CONFIG.FILE_FORMAT))
                 renameit = helpers.rename_param(comicid, imported['ComicName'], impr['issuenumber'], orig_filename)
                 nfilename = renameit['nfilename']
                 dstimp = os.path.join(comlocation, nfilename)

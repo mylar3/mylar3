@@ -46,17 +46,17 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
 
-    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API is None or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
-        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
-        comicapi = mylar.DEFAULT_CVAPI
+    if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API is None:
+        logger.warn('You have not specified your own ComicVine API key - it\'s a requirement. Get your own @ http://api.comicvine.com.')
+        return
     else:
-        comicapi = mylar.COMICVINE_API
+        comicapi = mylar.CONFIG.COMICVINE_API
 
     if type == 'comic':
         if not comicid.startswith('4050-'): comicid = '4050-' + comicid
         PULLURL = mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
     elif type == 'issue':
-        if mylar.CV_ONLY:
+        if mylar.CONFIG.CV_ONLY:
             cv_type = 'issues'
             if arclist is None:
                 searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
@@ -80,17 +80,17 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
 
     #logger.info('CV.PULLURL: ' + PULLURL)
     #new CV API restriction - one api request / second.
-    if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
         time.sleep(2)
     else:
-        time.sleep(mylar.CVAPI_RATE)
+        time.sleep(mylar.CONFIG.CVAPI_RATE)
 
     #download the file:
     #set payload to None for now...
     payload = None
 
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
@@ -429,7 +429,7 @@ def GetComicInfo(comicid, dom, safechk=None):
 
 def GetIssuesInfo(comicid, dom, arcid=None):
     subtracks = dom.getElementsByTagName('issue')
-    if not mylar.CV_ONLY:
+    if not mylar.CONFIG.CV_ONLY:
         cntiss = dom.getElementsByTagName('count_of_issues')[0].firstChild.wholeText
         logger.fdebug("issues I've counted: " + str(len(subtracks)))
         logger.fdebug("issues CV says it has: " + str(int(cntiss)))
@@ -445,7 +445,7 @@ def GetIssuesInfo(comicid, dom, arcid=None):
     issuech = []
     firstdate = '2099-00-00'
     for subtrack in subtracks:
-        if not mylar.CV_ONLY:
+        if not mylar.CONFIG.CV_ONLY:
             if (dom.getElementsByTagName('name')[n].firstChild) is not None:
                 issue['Issue_Name'] = dom.getElementsByTagName('name')[n].firstChild.wholeText
             else:

@@ -36,11 +36,11 @@ from mylar import logger, helpers
 class RTorrent(object):
     def __init__(self):
         self.client = TorClient.TorrentClient()
-        if not self.client.connect(mylar.RTORRENT_HOST,
-                                   mylar.RTORRENT_USERNAME,
-                                   mylar.RTORRENT_PASSWORD,
-                                   mylar.RTORRENT_AUTHENTICATION):
-            logger.error('could not connect to %s, exiting', mylar.RTORRENT_HOST)
+        if not self.client.connect(mylar.CONFIG.RTORRENT_HOST,
+                                   mylar.CONFIG.RTORRENT_USERNAME,
+                                   mylar.CONFIG.RTORRENT_PASSWORD,
+                                   mylar.CONFIG.RTORRENT_AUTHENTICATION):
+            logger.error('could not connect to %s, exiting', mylar.CONFIG.RTORRENT_HOST)
             sys.exit(-1)
 
     def main(self, torrent_hash=None, filepath=None, check=False):

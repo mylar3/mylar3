@@ -36,16 +36,16 @@ class PROWL:
     priority = []
 
     def __init__(self):
-        self.enabled = mylar.PROWL_ENABLED
-        self.keys = mylar.PROWL_KEYS
-        self.priority = mylar.PROWL_PRIORITY
+        self.enabled = mylar.CONFIG.PROWL_ENABLED
+        self.keys = mylar.CONFIG.PROWL_KEYS
+        self.priority = mylar.CONFIG.PROWL_PRIORITY
         pass
 
     def conf(self, options):
         return cherrypy.config['config'].get('Prowl', options)
 
     def notify(self, message, event, module=None):
-        if not mylar.PROWL_ENABLED:
+        if not mylar.CONFIG.PROWL_ENABLED:
             return
 
         if module is None:
@@ -54,11 +54,11 @@ class PROWL:
 
         http_handler = HTTPSConnection("api.prowlapp.com")
 
-        data = {'apikey': mylar.PROWL_KEYS,
+        data = {'apikey': mylar.CONFIG.PROWL_KEYS,
                 'application': 'Mylar',
                 'event': event,
                 'description': message.encode("utf-8"),
-                'priority': mylar.PROWL_PRIORITY}
+                'priority': mylar.CONFIG.PROWL_PRIORITY}
 
         http_handler.request("POST",
                                 "/publicapi/add",
@@ -87,12 +87,12 @@ class NMA:
         self.NMA_URL = "https://www.notifymyandroid.com/publicapi/notify"
         self.TEST_NMA_URL = "https://www.notifymyandroid.com/publicapi/verify"
         if test_apikey is None:
-            self.apikey = mylar.NMA_APIKEY
+            self.apikey = mylar.CONFIG.NMA_APIKEY
             self.test = False
         else:
             self.apikey = test_apikey
             self.test = True
-        self.priority = mylar.NMA_PRIORITY
+        self.priority = mylar.CONFIG.NMA_PRIORITY
 
         self._session = requests.Session()
 
@@ -207,27 +207,27 @@ class PUSHOVER:
 
     def __init__(self, test_apikey=None, test_userkey=None):
         self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
-        self.enabled = mylar.PUSHOVER_ENABLED
+        self.enabled = mylar.CONFIG.PUSHOVER_ENABLED
         if test_apikey is None:
-            if mylar.PUSHOVER_APIKEY is None or mylar.PUSHOVER_APIKEY == 'None':
+            if mylar.CONFIG.PUSHOVER_APIKEY is None or mylar.CONFIG.PUSHOVER_APIKEY == 'None':
                 self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
             else:
-                self.apikey = mylar.PUSHOVER_APIKEY
+                self.apikey = mylar.CONFIG.PUSHOVER_APIKEY
         else:
             self.apikey = test_apikey
 
         if test_userkey is None:
-            self.userkey = mylar.PUSHOVER_USERKEY
+            self.userkey = mylar.CONFIG.PUSHOVER_USERKEY
         else:
             self.userkey = test_userkey
 
-        self.priority = mylar.PUSHOVER_PRIORITY
+        self.priority = mylar.CONFIG.PUSHOVER_PRIORITY
 
         self._session = requests.Session()
         self._session.headers = {'Content-type': "application/x-www-form-urlencoded"}
 
     def notify(self, event, message=None, snatched_nzb=None, prov=None, sent_to=None, module=None):
-        if not mylar.PUSHOVER_ENABLED:
+        if not mylar.CONFIG.PUSHOVER_ENABLED:
             return
         if module is None:
             module = ''
@@ -238,11 +238,11 @@ class PUSHOVER:
                 snatched_nzb = snatched_nzb[:-1]
             message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and has sent it to " + sent_to
 
-        data = {'token': mylar.PUSHOVER_APIKEY,
-                'user': mylar.PUSHOVER_USERKEY,
+        data = {'token': mylar.CONFIG.PUSHOVER_APIKEY,
+                'user': mylar.CONFIG.PUSHOVER_USERKEY,
                 'message': message.encode("utf-8"),
                 'title': event,
-                'priority': mylar.PUSHOVER_PRIORITY}
+                'priority': mylar.CONFIG.PUSHOVER_PRIORITY}
 
         r = self._session.post(self.PUSHOVER_URL, data=data, verify=True)
 
@@ -280,7 +280,7 @@ class BOXCAR:
         try:
 
             data = urllib.urlencode({
-                'user_credentials': mylar.BOXCAR_TOKEN,
+                'user_credentials': mylar.CONFIG.BOXCAR_TOKEN,
                 'notification[title]': title.encode('utf-8').strip(),
                 'notification[long_message]': msg.encode('utf-8'),
                 'notification[sound]': "done"
@@ -318,7 +318,7 @@ class BOXCAR:
             module = ''
         module += '[NOTIFIER]'
 
-        if not mylar.BOXCAR_ENABLED and not force:
+        if not mylar.CONFIG.BOXCAR_ENABLED and not force:
             logger.fdebug(module + ' Notification for Boxcar not enabled, skipping this notification.')
             return False
 
@@ -343,11 +343,11 @@ class PUSHBULLET:
     def __init__(self, test_apikey=None):
         self.PUSH_URL = "https://api.pushbullet.com/v2/pushes"
         if test_apikey is None:
-            self.apikey = mylar.PUSHBULLET_APIKEY
+            self.apikey = mylar.CONFIG.PUSHBULLET_APIKEY
         else:
             self.apikey = test_apikey
-        self.deviceid = mylar.PUSHBULLET_DEVICEID
-        self.channel_tag = mylar.PUSHBULLET_CHANNEL_TAG
+        self.deviceid = mylar.CONFIG.PUSHBULLET_DEVICEID
+        self.channel_tag = mylar.CONFIG.PUSHBULLET_CHANNEL_TAG
         self._json_header = {'Content-Type': 'application/json',
                              'Authorization': 'Basic %s' % base64.b64encode(self.apikey + ":")}
         self._session = requests.Session()
@@ -415,16 +415,16 @@ class TELEGRAM:
     def __init__(self, test_userid=None, test_token=None):
         self.TELEGRAM_API = "https://api.telegram.org/bot%s/%s"
         if test_userid is None:
-            self.userid = mylar.TELEGRAM_USERID
+            self.userid = mylar.CONFIG.TELEGRAM_USERID
         else:
             self.userid = test_userid
         if test_token is None:
-            self.token = mylar.TELEGRAM_TOKEN
+            self.token = mylar.CONFIG.TELEGRAM_TOKEN
         else:
             self.token = test_token
 
     def notify(self, message, status):
-        if not mylar.TELEGRAM_ENABLED:
+        if not mylar.CONFIG.TELEGRAM_ENABLED:
             return
 
         # Construct message
@@ -450,7 +450,7 @@ class TELEGRAM:
 
 class SLACK:
     def __init__(self, test_webhook_url=None):
-        self.webhook_url = mylar.SLACK_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
+        self.webhook_url = mylar.CONFIG.SLACK_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
         
     def notify(self, text, attachment_text, module=None):
         if module is None:

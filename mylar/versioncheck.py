@@ -26,8 +26,8 @@ import re
 
 def runGit(args):
 
-    if mylar.GIT_PATH:
-        git_locations = ['"' +mylar.GIT_PATH +'"']
+    if mylar.CONFIG.GIT_PATH:
+        git_locations = ['"' +mylar.CONFIG.GIT_PATH +'"']
     else:
         git_locations = ['git']
 
@@ -42,10 +42,10 @@ def runGit(args):
         cmd = cur_git +' ' +args
 
         try:
-            logger.debug('Trying to execute: "' + cmd + '" with shell in ' + mylar.PROG_DIR)
+            #logger.debug('Trying to execute: "' + cmd + '" with shell in ' + mylar.PROG_DIR)
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=mylar.PROG_DIR)
             output, err = p.communicate()
-            logger.debug('Git output: ' + output)
+            #logger.debug('Git output: ' + output)
         except OSError:
             logger.debug('Command ' + cmd + ' didn\'t work, couldn\'t find git')
             continue
@@ -63,7 +63,7 @@ def runGit(args):
 
 def getVersion():
 
-    if mylar.GIT_BRANCH is not None and mylar.GIT_BRANCH.startswith('win32build'):
+    if mylar.CONFIG.GIT_BRANCH is not None and mylar.CONFIG.GIT_BRANCH.startswith('win32build'):
 
         mylar.INSTALL_TYPE = 'win'
 
@@ -91,8 +91,8 @@ def getVersion():
             logger.error('Output does not look like a hash, not using it')
             cur_commit_hash = None
 
-        if mylar.GIT_BRANCH:
-            branch = mylar.GIT_BRANCH
+        if mylar.CONFIG.GIT_BRANCH:
+            branch = mylar.CONFIG.GIT_BRANCH
 
         else:
             branch = None
@@ -102,11 +102,10 @@ def getVersion():
                 if '*' in line:
                     branch = re.sub('[\*\n]','',line).strip()
                     break
-            
 
-            if not branch and mylar.GIT_BRANCH:
-                logger.warn('Unable to retrieve branch name [' + branch + '] from git. Setting branch to configuration value of : ' + mylar.GIT_BRANCH)
-                branch = mylar.GIT_BRANCH
+            if not branch and mylar.CONFIG.GIT_BRANCH:
+                logger.warn('Unable to retrieve branch name [' + branch + '] from git. Setting branch to configuration value of : ' + mylar.CONFIG.GIT_BRANCH)
+                branch = mylar.CONFIG.GIT_BRANCH
             if not branch:
                 logger.warn('Could not retrieve branch name [' + branch + '] form git. Defaulting to Master.')
                 branch = 'master'
@@ -128,9 +127,9 @@ def getVersion():
                 current_version = f.read().strip(' \n\r')
 
         if current_version:
-            if mylar.GIT_BRANCH:
-                logger.info('Branch detected & set to : ' + mylar.GIT_BRANCH)
-                return current_version, mylar.GIT_BRANCH
+            if mylar.CONFIG.GIT_BRANCH:
+                logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
+                return current_version, mylar.CONFIG.GIT_BRANCH
             else:
                 logger.warn('No branch specified within config - will attempt to poll version from mylar')
                 try:
@@ -141,9 +140,9 @@ def getVersion():
                     logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
                 return current_version, branch
         else:
-            if mylar.GIT_BRANCH:
-                logger.info('Branch detected & set to : ' + mylar.GIT_BRANCH)
-                return current_version, mylar.GIT_BRANCH
+            if mylar.CONFIG.GIT_BRANCH:
+                logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
+                return current_version, mylar.CONFIG.GIT_BRANCH
             else:
                 logger.warn('No branch specified within config - will attempt to poll version from mylar')
                 try:
@@ -159,7 +158,7 @@ def getVersion():
 def checkGithub():
 
     # Get the latest commit available from github
-    url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (mylar.GIT_USER, mylar.GIT_BRANCH)
+    url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
     logger.info ('Retrieving latest version information from github')
     try:
         response = requests.get(url, verify=True)
@@ -173,7 +172,7 @@ def checkGithub():
     # See how many commits behind we are
     if mylar.CURRENT_VERSION:
         logger.fdebug('Comparing currently installed version [' + mylar.CURRENT_VERSION + '] with latest github version [' + mylar.LATEST_VERSION +']')
-        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.GIT_USER, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
+        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.CONFIG.GIT_USER, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
 
         try:
             response = requests.get(url, verify=True)
@@ -207,23 +206,23 @@ def update():
 
     elif mylar.INSTALL_TYPE == 'git':
 
-        output, err = runGit('pull origin ' + mylar.GIT_BRANCH)
+        output, err = runGit('pull origin ' + mylar.CONFIG.GIT_BRANCH)
 
         if not output:
             logger.error('Couldn\'t download latest version')
 
         for line in output.split('\n'):
-           
+
             if 'Already up-to-date.' in line:
                 logger.info('No update available, not updating')
                 logger.info('Output: ' + str(output))
             elif line.endswith('Aborting.'):
                 logger.error('Unable to update from git: ' +line)
                 logger.info('Output: ' + str(output))
-        
+
     else:
 
-        tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (mylar.GIT_USER, mylar.GIT_BRANCH)
+        tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
         update_dir = os.path.join(mylar.PROG_DIR, 'update')
         version_path = os.path.join(mylar.PROG_DIR, 'version.txt')
 
@@ -235,7 +234,7 @@ def update():
             return
 
         #try sanitizing the name here...
-        download_name = mylar.GIT_BRANCH + '-github' #data.geturl().split('/')[-1].split('?')[0]
+        download_name = mylar.CONFIG.GIT_BRANCH + '-github' #data.geturl().split('/')[-1].split('?')[0]
         tar_download_path = os.path.join(mylar.PROG_DIR, download_name)
 
         # Save tar to disk

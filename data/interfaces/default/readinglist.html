@@ -9,7 +9,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-                        %if mylar.TAB_ENABLE:
+                        %if mylar.CONFIG.TAB_ENABLE:
    			    <a id="menu_link_delete" href="#" onclick="doAjaxCall('syncfiles',$(this),'table')" data-success="Syncing complete.">Sync</a>
                         %endif
 			<a id="menu_link_delete" href="#" onclick="doAjaxCall('removefromreadlist?AllRead=1',$(this),'table')" data-success="All Read Records Removed">Remove Read</a>
@@ -69,7 +69,7 @@
                    <fieldset>
                      <legend>ReadList Options</legend>
                      <div class="row checkbox left clearfix">
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="send2read" id="send2read" value="1" ${checked(mylar.SEND2READ)} /><label>Automatically send new pulls to Readlist (Added)</label></br>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="send2read" id="send2read" value="1" ${checked(mylar.CONFIG.SEND2READ)} /><label>Automatically send new pulls to Readlist (Added)</label></br>
                      </div>
                    </fieldset>
                </td>
@@ -81,27 +81,27 @@
                               <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Requires SFTP Server running on tablet</small>
                            </div>
                                 <div class="row checkbox left clearfix">
-                                    <input id="tabenable" type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="initConfigCheckbox($this);" name="tab_enable" id="tab_enable" value="1" ${checked(mylar.TAB_ENABLE)} /><label>Enable Tablet (Android)</label>
+                                    <input id="tabenable" type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" onclick="initConfigCheckbox($this);" name="tab_enable" id="tab_enable" value="1" ${checked(mylar.CONFIG.TAB_ENABLE)} /><label>Enable Tablet (Android)</label>
                                 </div>
                                 <div class="config">
                                     <div class="row">
                                         <label>IP:PORT</label>
-                                        <input type="text" placeholder="IP Address of tablet" name="tab_host" value="${mylar.TAB_HOST}" size="30">
+                                        <input type="text" placeholder="IP Address of tablet" name="tab_host" value="${mylar.CONFIG.TAB_HOST}" size="30">
                                     </div>
                                     <div class="row">
                                         <label>Username</label>
-                                        <input type="text" name="tab_user" value="${mylar.TAB_USER}" size="20">
+                                        <input type="text" name="tab_user" value="${mylar.CONFIG.TAB_USER}" size="20">
                                     </div>
                                     <div class="row">
                                         <label>Password:</label>
-                                        <input type="password" name="tab_pass" value="${mylar.TAB_PASS}" size="20">
+                                        <input type="password" name="tab_pass" value="${mylar.CONFIG.TAB_PASS}" size="20">
                                     </div>
                                     <div class="row">
                                         <label>Download Location:</label>
-                                        <input type="text" placeholder="Full path (or jailed path)" name="tab_directory" value="${mylar.TAB_DIRECTORY}" size="36" /></br>
+                                        <input type="text" placeholder="Full path (or jailed path)" name="tab_directory" value="${mylar.CONFIG.TAB_DIRECTORY}" size="36" /></br>
                                     </div>
                                     <div class="row checkbox left clearfix">
-                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="maintainseriesfolder" id="maintainseriesfolder" value="1" ${checked(mylar.MAINTAINSERIESFOLDER)} /><label for="maintainseriesfolder">Maintain Comic Folder Structure when Syncing to Tablet</label></br>
+                                      <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="maintainseriesfolder" id="maintainseriesfolder" value="1" ${checked(mylar.CONFIG.MAINTAINSERIESFOLDER)} /><label for="maintainseriesfolder">Maintain Comic Folder Structure when Syncing to Tablet</label></br>
                                     </div>
                                 </div>
                    </fieldset>

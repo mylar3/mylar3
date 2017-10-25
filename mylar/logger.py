@@ -27,6 +27,7 @@ from mylar import helpers
 
 # These settings are for file logging only
 FILENAME = 'mylar.log'
+MAX_LOGSIZE = 1000000
 MAX_FILES = 5
 
 # Mylar logger
@@ -42,7 +43,7 @@ class LogListHandler(logging.Handler):
         message = message.replace("\n", "<br />")
         mylar.LOG_LIST.insert(0, (helpers.now(), message, record.levelname, record.threadName))
 
-def initLogger(console=False, log_dir=False, verbose=False):
+def initLogger(console=False, log_dir=False, init=False, verbose=False):
     #concurrentLogHandler/0.8.7 (to deal with windows locks)
     #since this only happens on windows boxes, if it's nix/mac use the default logger.
     if platform.system() == 'Windows':
@@ -60,11 +61,13 @@ def initLogger(console=False, log_dir=False, verbose=False):
         mylar.LOGTYPE = 'log'
         from logging.handlers import RotatingFileHandler as RFHandler
 
-
-    if mylar.MAX_LOGSIZE:
-        MAX_SIZE = mylar.MAX_LOGSIZE
+    if init is True:
+        max_size = 1000000 #1 MB
     else:
-        MAX_SIZE = 1000000 # 1 MB
+        if mylar.CONFIG.MAX_LOGSIZE:
+            max_size = mylar.CONFIG.MAX_LOGSIZE
+        else:
+            max_size = 1000000 # 1 MB
 
     """
     Setup logging for Mylar. It uses the logger instance with the name
@@ -74,6 +77,12 @@ def initLogger(console=False, log_dir=False, verbose=False):
     * LogListHandler: for Web UI
     * StreamHandler: for console
     """
+
+    logging.getLogger('apscheduler.scheduler').setLevel(logging.WARN)
+    logging.getLogger('apscheduler.threadpool').setLevel(logging.WARN)
+    logging.getLogger('apscheduler.scheduler').propagate = False
+    logging.getLogger('apscheduler.threadpool').propagate = False
+
 
     # Close and remove old handlers. This is required to reinit the loggers
     # at runtime
@@ -88,14 +97,17 @@ def initLogger(console=False, log_dir=False, verbose=False):
 
     # Configure the logger to accept all messages
     logger.propagate = False
-    
+
     #1 is WARN level, 2 is ERROR
-    if mylar.LOG_LEVEL == '1':
-        logger.setLevel(logging.DEBUG if verbose else logging.WARN)
-    elif mylar.LOG_LEVEL == '2':
-        logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
-    else:
+    if init is True:
         logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+    else:
+        if mylar.CONFIG.LOG_LEVEL == '1':
+            logger.setLevel(logging.DEBUG if verbose else logging.WARN)
+        elif mylar.CONFIG.LOG_LEVEL == '2':
+            logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
+        else:
+            logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
     # Add list logger
     loglist_handler = LogListHandler()
@@ -104,9 +116,9 @@ def initLogger(console=False, log_dir=False, verbose=False):
 
     # Setup file logger
     if log_dir:
-        filename = os.path.join(mylar.LOG_DIR, FILENAME)
+        filename = os.path.join(log_dir, FILENAME)
         file_formatter = Formatter('%(asctime)s - %(levelname)-7s :: %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-        file_handler = RFHandler(filename, "a", maxBytes=MAX_SIZE, backupCount=MAX_FILES)
+        file_handler = RFHandler(filename, "a", maxBytes=max_size, backupCount=MAX_FILES)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_formatter)
 

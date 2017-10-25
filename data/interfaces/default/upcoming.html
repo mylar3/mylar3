@@ -21,12 +21,12 @@
         <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
           <div style="padding-bottom: 5px;">
             <label for="Wanted" class="checkbox inline Wanted"><input type="checkbox" id="Wanted" checked="checked" /> Wanted: <b>${isCounts['Wanted']}</b></label>
-            %if mylar.UPCOMING_SNATCHED:
+            %if mylar.CONFIG.UPCOMING_SNATCHED:
                 %if int(isCounts['Snatched']) > 0:
                     <label for="Snatched" class="checkbox inline Snatched"><input type="checkbox" id="Snatched" checked="checked" /> Snatched: <b>${isCounts['Snatched']}</b></label>
                 %endif
             %endif
-            %if int(isCounts['Failed']) > 0 and mylar.FAILED_DOWNLOAD_HANDLING:
+            %if int(isCounts['Failed']) > 0 and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
             %endif
         </div>

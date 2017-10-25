@@ -30,20 +30,20 @@
                            <img src="interfaces/default/images/ultron.png" style="float:right" height="125" width="125" />                     
                            <fieldset>
                               <div class="row checkbox">
-                                   <input type="checkbox" name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.ADD_COMICS)}><label>Auto-add new series</label>
+                                   <input type="checkbox" name="autoadd" style="vertical-align: middle; margin: 3px; margin-top: -1px;" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)}><label>Auto-add new series</label>
                               </div>
                               <div class="row checkbox">
-                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imp_move" value="1" ${checked(mylar.IMP_MOVE)}><label>Move files</label>
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imp_move" value="1" ${checked(mylar.CONFIG.IMP_MOVE)}><label>Move files</label>
                               </div>
-                              %if mylar.RENAME_FILES:
+                              %if mylar.CONFIG.RENAME_FILES:
                                    <div class="row checkbox">
-                                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.IMP_RENAME)}><label>Rename Files </label>
+                                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.CONFIG.IMP_RENAME)}><label>Rename Files </label>
                                          <small>(After importing, Rename the files to configuration settings)</small>
-                                         <label>${mylar.FOLDER_FORMAT}/${mylar.FILE_FORMAT}</label>
+                                         <label>${mylar.CONFIG.FOLDER_FORMAT}/${mylar.CONFIG.FILE_FORMAT}</label>
                                    </div>
                               %endif
                               <div class="row checkbox">
-                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.IMP_METADATA)}><label>Use Existing Metadata</label>
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.CONFIG.IMP_METADATA)}><label>Use Existing Metadata</label>
                                    <small>(Use existing Metadata to better locate series for import)</small>
                               </div>
                               %if mylar.IMPORTLOCK:

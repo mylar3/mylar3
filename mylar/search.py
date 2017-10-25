@@ -38,7 +38,7 @@ from base64 import b16encode, b32decode
 from operator import itemgetter
 from wsgiref.handlers import format_date_time
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None, oneoff=False):
     unaltered_ComicName = None
     if filesafe:
         if filesafe != ComicName and mode != 'want_ann':
@@ -76,7 +76,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             ComicName = ComicName + " annual"
         if AlternateSearch is not None and AlternateSearch != "None":
             AlternateSearch = AlternateSearch + " annual"
-    oneoff = False
 
     if mode == 'pullwant' or IssueID is None:
         #one-off the download.
@@ -94,31 +93,31 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     torprovider = []
     torp = 0
     logger.fdebug("Checking for torrent enabled.")
-    if mylar.ENABLE_TORRENT_SEARCH: #and mylar.ENABLE_TORRENTS:
-        if mylar.ENABLE_32P:
+    if mylar.CONFIG.ENABLE_TORRENT_SEARCH: #and mylar.CONFIG.ENABLE_TORRENTS:
+        if mylar.CONFIG.ENABLE_32P:
             torprovider.append('32p')
             torp+=1
             #print torprovider[0]
-        if mylar.ENABLE_TPSE:
+        if mylar.CONFIG.ENABLE_TPSE:
             torprovider.append('tpse')
             torp+=1
-        if mylar.ENABLE_TORZNAB:
+        if mylar.CONFIG.ENABLE_TORZNAB:
             torprovider.append('torznab')
             torp+=1
     ##nzb provider selection##
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
     nzbp = 0
-    if mylar.NZBSU == 1:
+    if mylar.CONFIG.NZBSU == True:
         nzbprovider.append('nzb.su')
         nzbp+=1
-    if mylar.DOGNZB == 1:
+    if mylar.CONFIG.DOGNZB == True:
         nzbprovider.append('dognzb')
         nzbp+=1
 
     # --------
     #  Xperimental
-    if mylar.EXPERIMENTAL == 1:
+    if mylar.CONFIG.EXPERIMENTAL == True:
         nzbprovider.append('experimental')
         nzbp+=1
 
@@ -126,9 +125,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     newznab_hosts = []
 
-    if mylar.NEWZNAB == 1:
-    #if len(mylar.EXTRA_NEWZNABS > 0):
-        for newznab_host in mylar.EXTRA_NEWZNABS:
+    if mylar.CONFIG.NEWZNAB is True:
+        for newznab_host in mylar.CONFIG.EXTRA_NEWZNABS:
+            logger.info(newznab_host)
             if newznab_host[5] == '1' or newznab_host[5] == 1:
                 newznab_hosts.append(newznab_host)
                 #if newznab_host[0] == newznab_host[1]:
@@ -138,7 +137,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 newznabs+=1
                 logger.fdebug("newznab name:" + str(newznab_host[0]) + " @ " + str(newznab_host[1]))
 
-    #logger.fdebug('newznab hosts: ' + str(newznab_hosts))
     logger.fdebug('nzbprovider(s): ' + str(nzbprovider))
     # --------
     logger.fdebug("there are : " + str(torp) + " torrent providers you have selected.")
@@ -147,7 +145,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         torpr = -1
     providercount = int(nzbp + newznabs)
     logger.fdebug("there are : " + str(providercount) + " nzb providers you have selected.")
-    logger.fdebug("Usenet Retention : " + str(mylar.USENET_RETENTION) + " days")
+    logger.fdebug("Usenet Retention : " + str(mylar.CONFIG.USENET_RETENTION) + " days")
     #nzbpr = providercount - 1
     #if nzbpr < 0:
     #    nzbpr == 0
@@ -177,12 +175,12 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     i = 1
 
     if rsscheck:
-        if mylar.ENABLE_RSS:
+        if mylar.CONFIG.ENABLE_RSS:
             searchcnt = 1  # rss-only
         else:
             searchcnt = 0  # if it's not enabled, don't even bother.
     else:
-        if mylar.ENABLE_RSS:
+        if mylar.CONFIG.ENABLE_RSS:
             searchcnt = 2 # rss first, then api on non-matches
         else:
             searchcnt = 2  #set the searchcnt to 2 (api)
@@ -234,7 +232,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 newznab_host = None
                 searchprov = prov_order[prov_count].lower()
 
-            if searchprov == 'dognzb' and mylar.DOGNZB == 0:
+            if searchprov == 'dognzb' and mylar.CONFIG.DOGNZB == 0:
                 #since dognzb could hit the 50 daily api limit during the middle of a search run, check here on each pass to make
                 #sure it's not disabled (it gets auto-disabled on maxing out the API hits)
                 prov_count+=1
@@ -288,7 +286,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if findit['status'] is True:
             #check for snatched_havetotal being enabled here and adjust counts now.
             #IssueID being the catch/check for one-offs as they won't exist on the watchlist and error out otherwise.
-            if mylar.SNATCHED_HAVETOTAL and any([oneoff is False, IssueID is not None]):
+            if mylar.CONFIG.SNATCHED_HAVETOTAL and any([oneoff is False, IssueID is not None]):
                 logger.fdebug('Adding this to the HAVE total for the series.')
                 helpers.incr_snatched(ComicID)
             if searchprov == 'TPSE' and mylar.TMP_PROV != searchprov:
@@ -302,9 +300,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             else:
                 logger.fdebug('Could not find issue doing a manual search via : ' + str(searchmode))
             if searchprov == '32P':
-                if mylar.MODE_32P == 0:
+                if mylar.CONFIG.MODE_32P == 0:
                     return findit, 'None'
-                elif mylar.MODE_32P == 1 and searchmode == 'api':
+                elif mylar.CONFIG.MODE_32P == 1 and searchmode == 'api':
                     return findit, 'None'
             i+=1
 
@@ -312,19 +310,19 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
 def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None, oneoff=False):
 
-    if any([allow_packs is None, allow_packs == 'None', allow_packs == 0, allow_packs == '0']) and all([mylar.ENABLE_TORRENT_SEARCH, mylar.ENABLE_32P]):
+    if any([allow_packs is None, allow_packs == 'None', allow_packs == 0, allow_packs == '0']) and all([mylar.CONFIG.ENABLE_TORRENT_SEARCH, mylar.CONFIG.ENABLE_32P]):
         allow_packs = False
-    elif any([allow_packs == 1, allow_packs == '1']) and all([mylar.ENABLE_TORRENT_SEARCH, mylar.ENABLE_32P]):
+    elif any([allow_packs == 1, allow_packs == '1']) and all([mylar.CONFIG.ENABLE_TORRENT_SEARCH, mylar.CONFIG.ENABLE_32P]):
         allow_packs = True
 
     newznab_local = False
 
     if nzbprov == 'nzb.su':
-        apikey = mylar.NZBSU_APIKEY
-        verify = bool(mylar.NZBSU_VERIFY)
+        apikey = mylar.CONFIG.NZBSU_APIKEY
+        verify = bool(mylar.CONFIG.NZBSU_VERIFY)
     elif nzbprov == 'dognzb':
-        apikey = mylar.DOGNZB_APIKEY
-        verify = bool(mylar.DOGNZB_VERIFY)
+        apikey = mylar.CONFIG.DOGNZB_APIKEY
+        verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
     elif nzbprov == 'experimental':
         apikey = 'none'
         verify = False
@@ -364,9 +362,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
 
     #this will completely render the api search results empty. Needs to get fixed.
-    if mylar.PREFERRED_QUALITY == 0: filetype = ""
-    elif mylar.PREFERRED_QUALITY == 1: filetype = ".cbr"
-    elif mylar.PREFERRED_QUALITY == 2: filetype = ".cbz"
+    if mylar.CONFIG.PREFERRED_QUALITY == 0: filetype = ""
+    elif mylar.CONFIG.PREFERRED_QUALITY == 1: filetype = ".cbr"
+    elif mylar.CONFIG.PREFERRED_QUALITY == 2: filetype = ".cbz"
 
     #UseFuzzy == 0: Normal
     #UseFuzzy == 1: Remove Year
@@ -491,7 +489,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     while (findloop < findcount):
         #logger.fdebug('findloop: ' + str(findloop) + ' / findcount: ' + str(findcount))
         comsrc = comsearch
-        if nzbprov == 'dognzb' and not mylar.DOGNZB:
+        if nzbprov == 'dognzb' and not mylar.CONFIG.DOGNZB:
             foundc['status'] = False
             done = True
             break
@@ -547,7 +545,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 if nzbprov == '':
                     bb = "no results"
                 if nzbprov == '32P':
-                    if all([mylar.MODE_32P == 1,mylar.ENABLE_32P]):
+                    if all([mylar.CONFIG.MODE_32P == 1,mylar.CONFIG.ENABLE_32P]):
                         searchterm = {'series': ComicName, 'id': ComicID, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher}
                         #first we find the id on the serieslist of 32P
                         #then we call the ajax against the id and issue# and volume (if exists)
@@ -575,14 +573,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else: host_newznab_fix = host_newznab
                         findurl = str(host_newznab_fix) + "api?t=search&q=" + str(comsearch) + "&o=xml&cat=" + str(category_newznab)
                     elif nzbprov == 'Torznab':
-                        if mylar.TORZNAB_HOST.endswith('/'):
+                        if mylar.CONFIG.TORZNAB_HOST.endswith('/'):
                             #http://localhost:9117/api/iptorrents
-                            torznab_fix = mylar.TORZNAB_HOST[:-1]
+                            torznab_fix = mylar.CONFIG.TORZNAB_HOST[:-1]
                         else:
-                            torznab_fix = mylar.TORZNAB_HOST
+                            torznab_fix = mylar.CONFIG.TORZNAB_HOST
                         findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch)
-                        if str(mylar.TORZNAB_CATEGORY): findurl += "&cat=" + str(mylar.TORZNAB_CATEGORY)
-                        apikey = mylar.TORZNAB_APIKEY
+                        if str(mylar.CONFIG.TORZNAB_CATEGORY): findurl += "&cat=" + str(mylar.CONFIG.TORZNAB_CATEGORY)
+                        apikey = mylar.CONFIG.TORZNAB_APIKEY
                     else:
                         logger.warn('You have a blank newznab entry within your configuration. Remove it, save the config and restart mylar to fix things. Skipping this blank provider until fixed.')
                         findurl = None
@@ -595,15 +593,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                         ### IF USENET_RETENTION is set, honour it
                         ### For newznab sites, that means appending "&maxage=<whatever>" on the URL
-                        if mylar.USENET_RETENTION != None and nzbprov != 'torznab':
-                            findurl = findurl + "&maxage=" + str(mylar.USENET_RETENTION)
+                        if mylar.CONFIG.USENET_RETENTION != None and nzbprov != 'torznab':
+                            findurl = findurl + "&maxage=" + str(mylar.CONFIG.USENET_RETENTION)
 
                         #set a delay between searches here. Default is for 60 seconds...
                         #changing this to lower could result in a ban from your nzb source due to hammering.
-                        if mylar.SEARCH_DELAY == 'None' or mylar.SEARCH_DELAY is None:
+                        if mylar.CONFIG.SEARCH_DELAY == 'None' or mylar.CONFIG.SEARCH_DELAY is None:
                             pause_the_search = 60   # (it's in seconds)
-                        elif str(mylar.SEARCH_DELAY).isdigit():
-                            pause_the_search = int(mylar.SEARCH_DELAY) * 60
+                        elif str(mylar.CONFIG.SEARCH_DELAY).isdigit():
+                            pause_the_search = int(mylar.CONFIG.SEARCH_DELAY) * 60
                         else:
                             logger.info("Check Search Delay - invalid numerical given. Force-setting to 1 minute.")
                             pause_the_search = 60
@@ -681,7 +679,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 logger.error('[ERROR CODE: ' + str(bb['feed']['error']['code']) + '] ' + str(bb['feed']['error']['description']))
                                 if bb['feed']['error']['code'] == '910':
                                     logger.warn('DAILY API limit reached. Disabling provider usage until 12:01am')
-                                    mylar.DOGNZB = 0
+                                    mylar.CONFIG.DOGNZB = 0
                                     foundc['status'] = False
                                     done = True
                                 else:
@@ -778,13 +776,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     format_type = 'cbz'
                                 else:
                                     format_type = 'unknown'
-                            if mylar.PREFERRED_QUALITY == 1:
+                            if mylar.CONFIG.PREFERRED_QUALITY == 1:
                                 if format_type == 'cbr':
                                     logger.fdebug('Quality restriction enforced [ .cbr only ]. Accepting result.')
                                 else:
                                     logger.fdebug('Quality restriction enforced [ .cbr only ]. Rejecting this result.')
                                     continue
-                            elif mylar.PREFERRED_QUALITY == 2:
+                            elif mylar.CONFIG.PREFERRED_QUALITY == 2:
                                 if format_type == 'cbz':
                                     logger.fdebug('Quality restriction enforced [ .cbz only ]. Accepting result.')
                                 else:
@@ -799,14 +797,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.fdebug("size given as: " + str(comsize_m))
                             #----size constraints.
                             #if it's not within size constaints - dump it now and save some time.
-                            if mylar.USE_MINSIZE:
-                                conv_minsize = helpers.human2bytes(mylar.MINSIZE + "M")
+                            if mylar.CONFIG.USE_MINSIZE:
+                                conv_minsize = helpers.human2bytes(mylar.CONFIG.MINSIZE + "M")
                                 logger.fdebug("comparing Min threshold " + str(conv_minsize) + " .. to .. nzb " + str(comsize_b))
                                 if int(conv_minsize) > int(comsize_b):
                                     logger.fdebug("Failure to meet the Minimum size threshold - skipping")
                                     continue
-                            if mylar.USE_MAXSIZE:
-                                conv_maxsize = helpers.human2bytes(mylar.MAXSIZE + "M")
+                            if mylar.CONFIG.USE_MAXSIZE:
+                                conv_maxsize = helpers.human2bytes(mylar.CONFIG.MAXSIZE + "M")
                                 logger.fdebug("comparing Max threshold " + str(conv_maxsize) + " .. to .. nzb " + str(comsize_b))
                                 if int(comsize_b) > int(conv_maxsize):
                                     logger.fdebug("Failure to meet the Maximium size threshold - skipping")
@@ -1700,20 +1698,20 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
     if not issueid or rsscheck:
 
         if rsscheck:
-            logger.info(u"Initiating RSS Search Scan at the scheduled interval of " + str(mylar.RSS_CHECKINTERVAL) + " minutes.")
+            logger.info(u"Initiating RSS Search Scan at the scheduled interval of " + str(mylar.CONFIG.RSS_CHECKINTERVAL) + " minutes.")
         else:
-            logger.info(u"Initiating Search scan at the scheduled interval of " + str(mylar.SEARCH_INTERVAL) + " minutes.")
+            logger.info(u"Initiating Search scan at the scheduled interval of " + str(mylar.CONFIG.SEARCH_INTERVAL) + " minutes.")
 
         myDB = db.DBConnection()
 
         stloop = 1
         results = []
 
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             stloop+=1
         while (stloop > 0):
             if stloop == 1:
-                if mylar.FAILED_DOWNLOAD_HANDLING and mylar.FAILED_AUTO:
+                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
                     issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
                 else:
                     issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
@@ -1726,7 +1724,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
                                     'mode':          'want'
                                    })
             elif stloop == 2:
-                if mylar.FAILED_DOWNLOAD_HANDLING and mylar.FAILED_AUTO:
+                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
                     issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
                 else:
                     issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
@@ -1781,7 +1779,10 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             else:
                 AllowPacks = False
             mode = result['mode']
-            if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.ENABLE_TPSE or mylar.ENABLE_32P or mylar.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
+            logger.info('preparing to fire..')
+
+            if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
+                    logger.info('fired off')
                     foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
                     if foundNZB['status'] is True:
                         logger.info(foundNZB)
@@ -1822,7 +1823,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
             AllowPacks = False
 
         foundNZB = "none"
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.ENABLE_TPSE or mylar.ENABLE_32P or mylar.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
+        if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
             foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
             if foundNZB['status'] is True:
                 logger.fdebug("I found " + comic['ComicName'] + ' #:' + str(result['Issue_Number']))
@@ -1861,7 +1862,7 @@ def searchIssueIDList(issuelist):
         else:
             AllowPacks = False
 
-        if (mylar.NZBSU or mylar.DOGNZB or mylar.EXPERIMENTAL or mylar.NEWZNAB or mylar.ENABLE_32P or mylar.ENABLE_TPSE or mylar.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
+        if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
                 foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
                 if foundNZB['status'] is True:
                     updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
@@ -1874,12 +1875,16 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts):
     prov_order = []
 
     nzbproviders_lower = [x.lower() for x in nzbprovider]
+    print nzbprovider
+    print mylar.CONFIG.PROVIDER_ORDER
 
-    if len(mylar.PROVIDER_ORDER) > 0:
-        for pr_order in mylar.PROVIDER_ORDER:
-            #logger.fdebug('looking for ' + str(pr_order[1]).lower())
-            #logger.fdebug('nzbproviders ' + str(nzbproviders_lower))
-            #logger.fdebug('torproviders ' + str(torprovider))
+    print len(mylar.CONFIG.PROVIDER_ORDER)
+    if len(mylar.CONFIG.PROVIDER_ORDER) > 0:
+        for pr_order in sorted(mylar.CONFIG.PROVIDER_ORDER.items(), key=itemgetter(0), reverse=False):
+            print pr_order
+            logger.fdebug('looking for ' + str(pr_order[1]).lower())
+            logger.fdebug('nzbproviders ' + str(nzbproviders_lower))
+            logger.fdebug('torproviders ' + str(torprovider))
             if (pr_order[1].lower() in torprovider) or any(pr_order[1].lower() in x for x in nzbproviders_lower):
                 logger.fdebug('found provider in existing enabled providers.')
                 if any(pr_order[1].lower() in x for x in nzbproviders_lower):
@@ -1925,7 +1930,7 @@ def nzbname_create(provider, title=None, info=None):
     nzbname = None
 
     if mylar.USE_BLACKHOLE and all([provider != '32P', provider != 'TPSE', provider != 'WWT', provider != 'DEM']):
-        if os.path.exists(mylar.BLACKHOLE_DIR):
+        if os.path.exists(mylar.CONFIG.BLACKHOLE_DIR):
             #load in the required info to generate the nzb names when required (blackhole only)
             ComicName = info[0]['ComicName']
             IssueNumber = info[0]['IssueNumber']
@@ -1996,23 +2001,23 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     oneoff = comicinfo[0]['oneoff']
 
     #setup the priorities.
-    if mylar.SAB_PRIORITY:
-        if mylar.SAB_PRIORITY == "Default": sabpriority = "-100"
-        elif mylar.SAB_PRIORITY == "Low": sabpriority = "-1"
-        elif mylar.SAB_PRIORITY == "Normal": sabpriority = "0"
-        elif mylar.SAB_PRIORITY == "High": sabpriority = "1"
-        elif mylar.SAB_PRIORITY == "Paused": sabpriority = "-2"
+    if mylar.CONFIG.SAB_PRIORITY:
+        if mylar.CONFIG.SAB_PRIORITY == "Default": sabpriority = "-100"
+        elif mylar.CONFIG.SAB_PRIORITY == "Low": sabpriority = "-1"
+        elif mylar.CONFIG.SAB_PRIORITY == "Normal": sabpriority = "0"
+        elif mylar.CONFIG.SAB_PRIORITY == "High": sabpriority = "1"
+        elif mylar.CONFIG.SAB_PRIORITY == "Paused": sabpriority = "-2"
     else:
         #if sab priority isn't selected, default to Normal (0)
         sabpriority = "0"
 
-    if mylar.NZBGET_PRIORITY:
-        if mylar.NZBGET_PRIORITY == "Default": nzbgetpriority = "0"
-        elif mylar.NZBGET_PRIORITY == "Low": nzbgetpriority = "-50"
-        elif mylar.NZBGET_PRIORITY == "Normal": nzbgetpriority = "0"
-        elif mylar.NZBGET_PRIORITY == "High": nzbgetpriority = "50"
+    if mylar.CONFIG.NZBGET_PRIORITY:
+        if mylar.CONFIG.NZBGET_PRIORITY == "Default": nzbgetpriority = "0"
+        elif mylar.CONFIG.NZBGET_PRIORITY == "Low": nzbgetpriority = "-50"
+        elif mylar.CONFIG.NZBGET_PRIORITY == "Normal": nzbgetpriority = "0"
+        elif mylar.CONFIG.NZBGET_PRIORITY == "High": nzbgetpriority = "50"
         #there's no priority for "paused", so set "Very Low" and deal with that later...
-        elif mylar.NZBGET_PRIORITY == "Paused": nzbgetpriority = "-100"
+        elif mylar.CONFIG.NZBGET_PRIORITY == "Paused": nzbgetpriority = "-100"
     else:
         #if sab priority isn't selected, default to Normal (0)
         nzbgetpriority = "0"
@@ -2036,7 +2041,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
     logger.fdebug("link given by: " + str(nzbprov))
 
-    if mylar.FAILED_DOWNLOAD_HANDLING:
+    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
         if all([nzbid is not None, IssueID is not None, oneoff is False]):
             # --- this causes any possible snatch to get marked as a Failed download when doing a one-off search...
             #try:
@@ -2090,8 +2095,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     verify = bool(newznab[2])
             else:
                 down_url = 'https://api.nzb.su/api'
-                apikey = mylar.NZBSU_APIKEY
-                verify = bool(mylar.NZBSU_VERIFY)
+                apikey = mylar.CONFIG.NZBSU_APIKEY
+                verify = bool(mylar.CONFIG.NZBSU_VERIFY)
 
             if nzbmega == True:
                 down_url = link
@@ -2103,8 +2108,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         elif nzbprov == 'dognzb':
             #dognzb - need to add back in the dog apikey
-            down_url = urljoin(link, str(mylar.DOGNZB_APIKEY))
-            verify = bool(mylar.DOGNZB_VERIFY)
+            down_url = urljoin(link, str(mylar.CONFIG.DOGNZB_APIKEY))
+            verify = bool(mylar.CONFIG.DOGNZB_VERIFY)
 
         else:
             #experimental - direct link.
@@ -2182,26 +2187,26 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 logger.info('filen: ' + filen + ' -- nzbname: ' + nzbname + ' are not identical. Storing extra value as : ' + alt_nzbname)
 
             #make sure the cache directory exists - if not, create it (used for storing nzbs).
-            if os.path.exists(mylar.CACHE_DIR):
-                if mylar.ENFORCE_PERMS:
-                    logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR + ". Ensuring proper permissions.")
+            if os.path.exists(mylar.CONFIG.CACHE_DIR):
+                if mylar.CONFIG.ENFORCE_PERMS:
+                    logger.fdebug("Cache Directory successfully found at : " + mylar.CONFIG.CACHE_DIR + ". Ensuring proper permissions.")
                     #enforce the permissions here to ensure the lower portion writes successfully
-                    filechecker.setperms(mylar.CACHE_DIR, True)
+                    filechecker.setperms(mylar.CONFIG.CACHE_DIR, True)
                 else:
-                    logger.fdebug("Cache Directory successfully found at : " + mylar.CACHE_DIR)
+                    logger.fdebug("Cache Directory successfully found at : " + mylar.CONFIG.CACHE_DIR)
             else:
                 #let's make the dir.
-                logger.fdebug("Could not locate Cache Directory, attempting to create at : " + mylar.CACHE_DIR)
+                logger.fdebug("Could not locate Cache Directory, attempting to create at : " + mylar.CONFIG.CACHE_DIR)
                 try:
-                    filechecker.validateAndCreateDirectory(mylar.CACHE_DIR, True)
-                    logger.info("Temporary NZB Download Directory successfully created at: " + mylar.CACHE_DIR)
+                    filechecker.validateAndCreateDirectory(mylar.CONFIG.CACHE_DIR, True)
+                    logger.info("Temporary NZB Download Directory successfully created at: " + mylar.CONFIG.CACHE_DIR)
                 except OSError:
                     raise
 
             #save the nzb grabbed, so we can bypass all the 'send-url' crap.
             if not nzbname.endswith('.nzb'):
                 nzbname = nzbname + '.nzb'
-            nzbpath = os.path.join(mylar.CACHE_DIR, nzbname)
+            nzbpath = os.path.join(mylar.CONFIG.CACHE_DIR, nzbname)
 
             with open(nzbpath, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
@@ -2213,19 +2218,19 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     sent_to = None
     t_hash = None
     if mylar.USE_BLACKHOLE and all([nzbprov != '32P', nzbprov != 'TPSE', nzbprov != 'WWT', nzbprov != 'DEM', nzbprov != 'Torznab']):
-        logger.fdebug("using blackhole directory at : " + str(mylar.BLACKHOLE_DIR))
-        if os.path.exists(mylar.BLACKHOLE_DIR):
+        logger.fdebug("using blackhole directory at : " + str(mylar.CONFIG.BLACKHOLE_DIR))
+        if os.path.exists(mylar.CONFIG.BLACKHOLE_DIR):
             #copy the nzb from nzbpath to blackhole dir.
             try:
-                shutil.move(nzbpath, os.path.join(mylar.BLACKHOLE_DIR, nzbname))
+                shutil.move(nzbpath, os.path.join(mylar.CONFIG.BLACKHOLE_DIR, nzbname))
             except (OSError, IOError):
                 logger.warn('Failed to move nzb into blackhole directory - check blackhole directory and/or permissions.')
                 return "blackhole-fail"
             logger.fdebug("filename saved to your blackhole as : " + nzbname)
-            logger.info(u"Successfully sent .nzb to your Blackhole directory : " + os.path.join(mylar.BLACKHOLE_DIR, nzbname))
+            logger.info(u"Successfully sent .nzb to your Blackhole directory : " + os.path.join(mylar.CONFIG.BLACKHOLE_DIR, nzbname))
             sent_to = "your Blackhole Directory"
 
-            if mylar.ENABLE_SNATCH_SCRIPT:
+            if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                 if comicinfo[0]['pack'] is False:
                     pnumbers = None
                     plist = None
@@ -2236,7 +2241,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                                                  'id':             nzbid,
                                                  'nzbname':        nzbname,
                                                  'nzbpath':        nzbpath,
-                                                 'blackhole':      mylar.BLACKHOLE_DIR},
+                                                 'blackhole':      mylar.CONFIG.BLACKHOLE_DIR},
                                'comicinfo':     {'comicname':      ComicName,
                                                 'volume':         comicinfo[0]['ComicVolume'],
                                                  'comicid':        ComicID,
@@ -2265,7 +2270,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov, nzbid)  #nzbid = hash for usage with public torrents
         if rcheck == "fail":
-            if mylar.FAILED_DOWNLOAD_HANDLING:
+            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 logger.error('Unable to send torrent to client. Assuming incomplete link - sending to Failed Handler and continuing search.')
                 if any([oneoff is True, IssueID is None]):
                     logger.fdebug('One-off mode was initiated - Failed Download handling for : ' + ComicName + ' #' + str(IssueNumber))
@@ -2287,12 +2292,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #torrent_info{'folder','name',['total_filesize','label','hash','files','time_started'}
             t_hash = rcheck['hash']
 
-            if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.AUTO_SNATCH:
+            if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
-            elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.LOCAL_TORRENT_PP:
+            elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.LOCAL_TORRENT_PP:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
             else:
-                if mylar.ENABLE_SNATCH_SCRIPT:
+                if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                     if comicinfo[0]['pack'] is False:
                         pnumbers = None
                         plist = None
@@ -2321,7 +2326,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                         logger.info('Could not Successfully submit on-grab script as requested. Please check logs...')
 
         if mylar.USE_WATCHDIR:
-            if mylar.TORRENT_LOCAL:
+            if mylar.CONFIG.TORRENT_LOCAL:
                 sent_to = "your local Watch folder"
             else:
                 sent_to = "your seedbox Watch folder"
@@ -2345,12 +2350,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #nzb.get
         if mylar.USE_NZBGET:
             from xmlrpclib import ServerProxy
-            if mylar.NZBGET_HOST[:5] == 'https':
+            if mylar.CONFIG.NZBGET_HOST[:5] == 'https':
                 tmpapi = "https://"
-                nzbget_host = mylar.NZBGET_HOST[8:]
-            elif mylar.NZBGET_HOST[:4] == 'http':
+                nzbget_host = mylar.CONFIG.NZBGET_HOST[8:]
+            elif mylar.CONFIG.NZBGET_HOST[:4] == 'http':
                 tmpapi = "http://"
-                nzbget_host = mylar.NZBGET_HOST[7:]
+                nzbget_host = mylar.CONFIG.NZBGET_HOST[7:]
             else:
                 logger.error("You have an invalid nzbget hostname specified. Exiting")
                 return "nzbget-fail"
@@ -2361,13 +2366,13 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             from base64 import standard_b64encode
             nzbcontent64 = standard_b64encode(nzbcontent)
 
-            tmpapi = str(tmpapi) + str(mylar.NZBGET_USERNAME) + ":" + str(mylar.NZBGET_PASSWORD)
+            tmpapi = str(tmpapi) + str(mylar.CONFIG.NZBGET_USERNAME) + ":" + str(mylar.CONFIG.NZBGET_PASSWORD)
             tmpapi = str(tmpapi) + "@" + str(nzbget_host)
-            if str(mylar.NZBGET_PORT).strip() != '':
-                tmpapi += ":" + str(mylar.NZBGET_PORT)
+            if str(mylar.CONFIG.NZBGET_PORT).strip() != '':
+                tmpapi += ":" + str(mylar.CONFIG.NZBGET_PORT)
             tmpapi += "/xmlrpc"
             server = ServerProxy(tmpapi)
-            send_to_nzbget = server.append(nzbpath, str(mylar.NZBGET_CATEGORY), int(nzbgetpriority), True, nzbcontent64)
+            send_to_nzbget = server.append(nzbpath, str(mylar.CONFIG.NZBGET_CATEGORY), int(nzbgetpriority), True, nzbcontent64)
             sent_to = "NZBGet"
             if send_to_nzbget is True:
                 logger.info("Successfully sent nzb to NZBGet!")
@@ -2379,7 +2384,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         elif mylar.USE_SABNZBD:
             # let's build the send-to-SAB string now:
             # changed to just work with direct links now...
-            tmpapi = mylar.SAB_HOST + "/api?apikey=" + mylar.SAB_APIKEY
+            tmpapi = mylar.CONFIG.SAB_HOST + "/api?apikey=" + mylar.CONFIG.SAB_APIKEY
 
             logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi, 'nzb')))
 
@@ -2390,20 +2395,20 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
 
             #generate the mylar host address if applicable.
-            if mylar.ENABLE_HTTPS:
+            if mylar.CONFIG.ENABLE_HTTPS:
                 proto = 'https://'
             else:
                 proto = 'http://'
 
-            if mylar.HTTP_ROOT is None:
+            if mylar.CONFIG.HTTP_ROOT is None:
                 hroot = '/'
-            elif mylar.HTTP_ROOT.endswith('/'):
-                hroot = mylar.HTTP_ROOT
+            elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
+                hroot = mylar.CONFIG.HTTP_ROOT
             else:
-                if mylar.HTTP_ROOT != '/':
-                    hroot = mylar.HTTP_ROOT + '/'
+                if mylar.CONFIG.HTTP_ROOT != '/':
+                    hroot = mylar.CONFIG.HTTP_ROOT + '/'
                 else:
-                    hroot = mylar.HTTP_ROOT
+                    hroot = mylar.CONFIG.HTTP_ROOT
 
             if mylar.LOCAL_IP is None:
                 #if mylar's local, get the local IP using socket.
@@ -2414,43 +2419,43 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     mylar.LOCAL_IP = s.getsockname()[0]
                     s.close()
                 except:
-                    logger.warn('Unable to determine local IP. Defaulting to host address for Mylar provided as : ' + str(mylar.HTTP_HOST))
+                    logger.warn('Unable to determine local IP. Defaulting to host address for Mylar provided as : ' + str(mylar.CONFIG.HTTP_HOST))
 
-            if mylar.HOST_RETURN:
+            if mylar.CONFIG.HOST_RETURN:
                 #mylar has the return value already provided (easier and will work if it's right)
-                if mylar.HOST_RETURN.endswith('/'):
-                    mylar_host = mylar.HOST_RETURN
+                if mylar.CONFIG.HOST_RETURN.endswith('/'):
+                    mylar_host = mylar.CONFIG.HOST_RETURN
                 else:
-                    mylar_host = mylar.HOST_RETURN + '/'
+                    mylar_host = mylar.CONFIG.HOST_RETURN + '/'
 
-            elif mylar.SAB_TO_MYLAR:
+            elif mylar.CONFIG.SAB_TO_MYLAR:
                 #if sab & mylar are on different machines, check to see if they are local or external IP's provided for host.
-                if mylar.HTTP_HOST == 'localhost' or mylar.HTTP_HOST == '0.0.0.0' or mylar.HTTP_HOST.startswith('10.') or mylar.HTTP_HOST.startswith('192.') or mylar.HTTP_HOST.startswith('172.'):
+                if mylar.CONFIG.HTTP_HOST == 'localhost' or mylar.CONFIG.HTTP_HOST == '0.0.0.0' or mylar.CONFIG.HTTP_HOST.startswith('10.') or mylar.CONFIG.HTTP_HOST.startswith('192.') or mylar.CONFIG.HTTP_HOST.startswith('172.'):
                     #if mylar's local, use the local IP already assigned to LOCAL_IP.
-                    mylar_host = proto + str(mylar.LOCAL_IP) + ':' + str(mylar.HTTP_PORT) + hroot
+                    mylar_host = proto + str(mylar.LOCAL_IP) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
                 else:
                     if mylar.EXT_IP is None:
                         #if mylar isn't local, get the external IP using pystun.
                         import stun
-                        sip = mylar.HTTP_HOST
-                        port = int(mylar.HTTP_PORT)
+                        sip = mylar.CONFIG.HTTP_HOST
+                        port = int(mylar.CONFIG.HTTP_PORT)
                         try:
                             nat_type, ext_ip, ext_port = stun.get_ip_info(sip,port)
-                            mylar_host = proto + str(ext_ip) + ':' + str(mylar.HTTP_PORT) + hroot
+                            mylar_host = proto + str(ext_ip) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
                             mylar.EXT_IP = ext_ip
                         except:
                             logger.warn('Unable to retrieve External IP - try using the host_return option in the config.ini.')
-                            mylar_host = proto + str(mylar.HTTP_HOST) + ':' + str(mylar.HTTP_PORT) + hroot
+                            mylar_host = proto + str(mylar.CONFIG.HTTP_HOST) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
                     else:
-                        mylar_host = proto + str(mylar.EXT_IP) + ':' + str(mylar.HTTP_PORT) + hroot
+                        mylar_host = proto + str(mylar.EXT_IP) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
 
             else:
                 #if all else fails, drop it back to the basic host:port and try that.
                 if mylar.LOCAL_IP is None:
-                    tmp_host = mylar.HTTP_HOST
+                    tmp_host = mylar.CONFIG.HTTP_HOST
                 else:
                     tmp_host = mylar.LOCAL_IP
-                mylar_host = proto + str(tmp_host) + ':' + str(mylar.HTTP_PORT) + hroot
+                mylar_host = proto + str(tmp_host) + ':' + str(mylar.CONFIG.HTTP_PORT) + hroot
 
 
             fileURL = mylar_host + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
@@ -2463,17 +2468,17 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             logger.fdebug("...attaching nzb via internal Mylar API: " + str(helpers.apiremove(tmpapi, '$')))
             # determine SAB priority
-            if mylar.SAB_PRIORITY:
+            if mylar.CONFIG.SAB_PRIORITY:
                 tmpapi = tmpapi + "&priority=" + sabpriority
                 logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi, '&')))
             # if category is blank, let's adjust
-            if mylar.SAB_CATEGORY:
-                tmpapi = tmpapi + "&cat=" + mylar.SAB_CATEGORY
+            if mylar.CONFIG.SAB_CATEGORY:
+                tmpapi = tmpapi + "&cat=" + mylar.CONFIG.SAB_CATEGORY
                 logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi, '&')))
-            if mylar.POST_PROCESSING: #or mylar.RENAME_FILES:
-                if mylar.POST_PROCESSING_SCRIPT:
+            if mylar.CONFIG.POST_PROCESSING: #or mylar.CONFIG.RENAME_FILES:
+                if mylar.CONFIG.POST_PROCESSING_SCRIPT:
                     #this is relative to the SABnzbd script directory (ie. no path)
-                    tmpapi = tmpapi + "&script=" + mylar.POST_PROCESSING_SCRIPT
+                    tmpapi = tmpapi + "&script=" + mylar.CONFIG.POST_PROCESSING_SCRIPT
                 else:
                     tmpapi = tmpapi + "&script=ComicRN.py"
                 logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi, '&')))
@@ -2502,7 +2507,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             sent_to = "SABnzbd+"
             logger.info(u"Successfully sent nzb file to SABnzbd")
-        if mylar.ENABLE_SNATCH_SCRIPT:
+        if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
                 clientmode = 'nzbget'
             elif mylar.USE_SABNZBD:
@@ -2572,31 +2577,31 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
 
     snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
 
-    if mylar.PROWL_ENABLED and mylar.PROWL_ONSNATCH:
+    if mylar.CONFIG.PROWL_ENABLED and mylar.CONFIG.PROWL_ONSNATCH:
         logger.info(u"Sending Prowl notification")
         prowl = notifiers.PROWL()
         prowl.notify(nzbname, "Download started using " + sent_to)
-    if mylar.NMA_ENABLED and mylar.NMA_ONSNATCH:
+    if mylar.CONFIG.NMA_ENABLED and mylar.CONFIG.NMA_ONSNATCH:
         logger.info(u"Sending NMA notification")
         nma = notifiers.NMA()
         nma.notify(snline=snline, snatched_nzb=nzbname, sent_to=sent_to, prov=nzbprov)
-    if mylar.PUSHOVER_ENABLED and mylar.PUSHOVER_ONSNATCH:
+    if mylar.CONFIG.PUSHOVER_ENABLED and mylar.CONFIG.PUSHOVER_ONSNATCH:
         logger.info(u"Sending Pushover notification")
         pushover = notifiers.PUSHOVER()
         pushover.notify(snline, snatched_nzb=nzbname, sent_to=sent_to, prov=nzbprov)
-    if mylar.BOXCAR_ENABLED and mylar.BOXCAR_ONSNATCH:
+    if mylar.CONFIG.BOXCAR_ENABLED and mylar.CONFIG.BOXCAR_ONSNATCH:
         logger.info(u"Sending Boxcar notification")
         boxcar = notifiers.BOXCAR()
         boxcar.notify(snatched_nzb=nzbname, sent_to=sent_to, snline=snline)
-    if mylar.PUSHBULLET_ENABLED and mylar.PUSHBULLET_ONSNATCH:
+    if mylar.CONFIG.PUSHBULLET_ENABLED and mylar.CONFIG.PUSHBULLET_ONSNATCH:
         logger.info(u"Sending Pushbullet notification")
         pushbullet = notifiers.PUSHBULLET()
         pushbullet.notify(snline=snline, snatched=nzbname, sent_to=sent_to, prov=nzbprov, method='POST')
-    if mylar.TELEGRAM_ENABLED and mylar.TELEGRAM_ONSNATCH:
+    if mylar.CONFIG.TELEGRAM_ENABLED and mylar.CONFIG.TELEGRAM_ONSNATCH:
         logger.info(u"Sending Telegram notification")
         telegram = notifiers.TELEGRAM()
         telegram.notify(snline, nzbname)
-    if mylar.SLACK_ENABLED and mylar.SLACK_ONSNATCH:
+    if mylar.CONFIG.SLACK_ENABLED and mylar.CONFIG.SLACK_ONSNATCH:
         logger.info(u"Sending Slack notification")
         slack = notifiers.SLACK()
         slack.notify("Snatched", snline)
@@ -2776,7 +2781,7 @@ def generate_id(nzbprov, link):
         url_parts = urlparse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
-    elif nzbprov == 'newznab':
+    elif 'newznab' in nzbprov:
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
         if 'warp' in urlparse.urlparse(link)[2] and 'x=' in tmpid:
@@ -2793,10 +2798,10 @@ def generate_id(nzbprov, link):
                 end = len(tmpid)
             nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
     elif nzbprov == 'Torznab':
-        if mylar.TORZNAB_HOST.endswith('/'):
-            tmphost = mylar.TORZNAB_HOST + 'download/'
+        if mylar.CONFIG.TORZNAB_HOST.endswith('/'):
+            tmphost = mylar.CONFIG.TORZNAB_HOST + 'download/'
         else:
-            tmphost = mylar.TORZNAB_HOST + '/download/'
+            tmphost = mylar.CONFIG.TORZNAB_HOST + '/download/'
         tmpline = re.sub(tmphost, '', tmphost).strip()
         tmpidend = tmpline.find('/')
         nzbid = tmpline[:tmpidend]

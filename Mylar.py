@@ -86,8 +86,7 @@ def main():
         mylar.QUIET = True
 
     # Do an intial setup of the logger.
-    logger.initLogger(console=not mylar.QUIET, log_dir=False,
-        verbose=mylar.VERBOSE)
+    logger.initLogger(console=not mylar.QUIET, log_dir=False, init=True, verbose=mylar.VERBOSE)
 
     #if args.update:
     #    print('Attempting to update Mylar so things can work again...')
@@ -175,7 +174,7 @@ def main():
                 back = os.path.join(backupdir, 'mylar.db')
                 back_1 = os.path.join(backupdir, 'mylar.db.1')
             else:
-                ogfile = mylar.CONFIG_FILE
+                ogfile = config_file
                 back = os.path.join(backupdir, 'config.ini')
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
@@ -196,14 +195,19 @@ def main():
 
             i += 1
 
-    from configobj import ConfigObj
-    mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
+    #from configobj import ConfigObj
+    #mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
+
+    # Read config and start logging
+    try:
+        logger.info('Initializing startup sequence....')
+        mylar.initialize(mylar.CONFIG_FILE)
+    except Exception as e:
+        print e
+        raise SystemExit('FATAL ERROR')
 
     # Rename the main thread
     threading.currentThread().name = "MAIN"
-
-    # Read config & start logging
-    mylar.initialize()
 
     if mylar.DAEMON:
         mylar.daemonize()
@@ -211,31 +215,31 @@ def main():
     # Force the http port if neccessary
     if args.port:
         http_port = args.port
-        logger.info('Starting Mylar on foced port: %i' % http_port)
+        logger.info('Starting Mylar on forced port: %i' % http_port)
     else:
-        http_port = int(mylar.HTTP_PORT)
+        http_port = int(mylar.CONFIG.HTTP_PORT)
 
     # Check if pyOpenSSL is installed. It is required for certificate generation
     # and for CherryPy.
-    if mylar.ENABLE_HTTPS:
+    if mylar.CONFIG.ENABLE_HTTPS:
         try:
             import OpenSSL
         except ImportError:
             logger.warn("The pyOpenSSL module is missing. Install this " \
                 "module to enable HTTPS. HTTPS will be disabled.")
-            mylar.ENABLE_HTTPS = False
+            mylar.CONFIG.ENABLE_HTTPS = False
 
     # Try to start the server. Will exit here is address is already in use.
     web_config = {
         'http_port': http_port,
-        'http_host': mylar.HTTP_HOST,
-        'http_root': mylar.HTTP_ROOT,
-        'enable_https': mylar.ENABLE_HTTPS,
-        'https_cert': mylar.HTTPS_CERT,
-        'https_key': mylar.HTTPS_KEY,
-        'https_chain': mylar.HTTPS_CHAIN,
-        'http_username': mylar.HTTP_USERNAME,
-        'http_password': mylar.HTTP_PASSWORD,
+        'http_host': mylar.CONFIG.HTTP_HOST,
+        'http_root': mylar.CONFIG.HTTP_ROOT,
+        'enable_https': mylar.CONFIG.ENABLE_HTTPS,
+        'https_cert': mylar.CONFIG.HTTPS_CERT,
+        'https_key': mylar.CONFIG.HTTPS_KEY,
+        'https_chain': mylar.CONFIG.HTTPS_CHAIN,
+        'http_username': mylar.CONFIG.HTTP_USERNAME,
+        'http_password': mylar.CONFIG.HTTP_PASSWORD,
     }
 
     # Try to start the server.
@@ -243,8 +247,8 @@ def main():
 
     #logger.info('Starting Mylar on port: %i' % http_port)
 
-    if mylar.LAUNCH_BROWSER and not args.nolaunch:
-        mylar.launch_browser(mylar.HTTP_HOST, http_port, mylar.HTTP_ROOT)
+    if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
+        mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)
 
     # Start the background threads
     mylar.start()

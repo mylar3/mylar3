@@ -61,16 +61,16 @@ def pullsearch(comicapi, comicquery, offset, explicit, type):
     #logger.info('MB.PULLURL:' + PULLURL)
 
     #new CV API restriction - one api request / second.
-    if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
         time.sleep(2)
     else:
-        time.sleep(mylar.CVAPI_RATE)
+        time.sleep(mylar.CONFIG.CVAPI_RATE)
 
     #download the file:
     payload = None
 
     try:
-        r = requests.get(PULLURL, params=payload, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
@@ -121,11 +121,11 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
         explicit = 'all'
 
 
-    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API is None or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
-        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
-        comicapi = mylar.DEFAULT_CVAPI
+    if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API is None:
+        logger.warn('You have not specified your own ComicVine API key - this is a requirement. Get your own @ http://api.comicvine.com.')
+        return
     else:
-        comicapi = mylar.COMICVINE_API
+        comicapi = mylar.CONFIG.COMICVINE_API
 
     if type is None:
         type = 'volume'
@@ -330,7 +330,7 @@ def findComic(name, mode, issue, limityear=None, explicit=None, type=None):
                                 xmlpub = "Unknown"
 
                             #ignore specific publishers on a global scale here.
-                            if mylar.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
+                            if mylar.CONFIG.BLACKLISTED_PUBLISHERS is not None and any([x for x in mylar.CONFIG.BLACKLISTED_PUBLISHERS if x.lower() == xmlpub.lower()]):
                             #    #'panini' in xmlpub.lower() or 'deagostini' in xmlpub.lower() or 'Editorial Televisa' in xmlpub.lower():
                                 logger.fdebug('Blacklisted publisher [' + xmlpub + ']. Ignoring this result.')
                                 continue
@@ -396,27 +396,27 @@ def storyarcinfo(xmlid):
 
     arcinfo = {}
 
-    if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API is None or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
-        logger.warn('You have not specified your own ComicVine API key - alot of things will be limited. Get your own @ http://api.comicvine.com.')
-        comicapi = mylar.DEFAULT_CVAPI
+    if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API is None:
+        logger.warn('You have not specified your own ComicVine API key - this is a requirement. Get your own @ http://api.comicvine.com.')
+        return
     else:
-        comicapi = mylar.COMICVINE_API
+        comicapi = mylar.CONFIG.COMICVINE_API
 
     #respawn to the exact id for the story arc and count the # of issues present.
     ARCPULL_URL = mylar.CVURL + 'story_arc/4045-' + str(xmlid) + '/?api_key=' + str(comicapi) + '&field_list=issues,publisher,name,first_appeared_in_issue,deck,image&format=xml&offset=0'
     #logger.fdebug('arcpull_url:' + str(ARCPULL_URL))
 
     #new CV API restriction - one api request / second.
-    if mylar.CVAPI_RATE is None or mylar.CVAPI_RATE < 2:
+    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
         time.sleep(2)
     else:
-        time.sleep(mylar.CVAPI_RATE)
+        time.sleep(mylar.CONFIG.CVAPI_RATE)
 
     #download the file:
     payload = None
 
     try:
-        r = requests.get(ARCPULL_URL, params=payload, verify=mylar.CV_VERIFY, headers=mylar.CV_HEADERS)
+        r = requests.get(ARCPULL_URL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception, e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return

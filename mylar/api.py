@@ -61,28 +61,28 @@ class Api(object):
             self.data = self._error_with_message('Missing parameter: cmd')
             return
 
-        if not mylar.API_ENABLED:
+        if not mylar.CONFIG.API_ENABLED:
             if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
                self.data = self._error_with_message('API not enabled')
                return
 
-        if kwargs['apikey'] != mylar.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
+        if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
             self.data = self._error_with_message('Incorrect API key')
             return
         else:
-            if kwargs['apikey'] == mylar.API_KEY:
+            if kwargs['apikey'] == mylar.CONFIG.API_KEY:
                 self.apitype = 'normal'
             elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
                 self.apitype = 'download'
             logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
             self.apikey = kwargs.pop('apikey')
 
-        if not([mylar.API_KEY, mylar.DOWNLOAD_APIKEY]):
+        if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
             self.data = self._error_with_message('API key not generated')
             return
 
         if self.apitype:
-            if self.apitype == 'normal' and len(mylar.API_KEY) != 32:
+            if self.apitype == 'normal' and len(mylar.CONFIG.API_KEY) != 32:
                 self.data = self._error_with_message('API key not generated correctly')
                 return
             if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
@@ -160,7 +160,7 @@ class Api(object):
 
         comic = self._dic_from_query('SELECT * from comics WHERE ComicID="' + self.id + '"')
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + self.id + '"order by Int_IssueNumber DESC')
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + self.id + '"')
         else:
             annuals = None
@@ -318,7 +318,7 @@ class Api(object):
 
     def _getVersion(self, **kwargs):
         self.data = {
-            'git_path': mylar.GIT_PATH,
+            'git_path': mylar.CONFIG.GIT_PATH,
             'install_type': mylar.INSTALL_TYPE,
             'current_version': mylar.CURRENT_VERSION,
             'latest_version': mylar.LATEST_VERSION,
@@ -382,7 +382,7 @@ class Api(object):
             self.id = kwargs['id']
 
         img = None
-        image_path = os.path.join(mylar.CACHE_DIR, str(self.id) + '.jpg')
+        image_path = os.path.join(mylar.CONFIG.CACHE_DIR, str(self.id) + '.jpg')
 
         # Checks if its a valid path and file
         if os.path.isfile(image_path):
@@ -464,8 +464,8 @@ class Api(object):
             comiclocation = comic.get('ComicLocation')
             f = os.path.join(comiclocation, issuelocation)
             if not os.path.isfile(f):
-                if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
-                    pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
                     f = os.path.join(pathdir, issuelocation)
                     self.file = f
                     self.filename = issuelocation
@@ -482,7 +482,7 @@ class Api(object):
             return
 
         self.nzbname = nzbname
-        f = os.path.join(mylar.CACHE_DIR, nzbname)
+        f = os.path.join(mylar.CONFIG.CACHE_DIR, nzbname)
         if os.path.isfile(f):
             self.file = f
             self.filename = nzbname

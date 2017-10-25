@@ -31,8 +31,8 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     searchIsOne = "0" +searchIssue
     searchIsTwo = "00" +searchIssue
 
-    if mylar.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
-    elif mylar.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
+    if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
+    elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
 
     if "-" in searchName:
         searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
@@ -43,22 +43,22 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     #logger.fdebug('searchName:' + searchName)
     #logger.fdebug('regexName:' + regexName)
 
-    if mylar.USE_MINSIZE:
-        size_constraints = "minsize=" + str(mylar.MINSIZE)
+    if mylar.CONFIG.USE_MINSIZE:
+        size_constraints = "minsize=" + str(mylar.CONFIG.MINSIZE)
     else:
         size_constraints = "minsize=10"
 
-    if mylar.USE_MAXSIZE:
-        size_constraints = size_constraints + "&maxsize=" + str(mylar.MAXSIZE)
+    if mylar.CONFIG.USE_MAXSIZE:
+        size_constraints = size_constraints + "&maxsize=" + str(mylar.CONFIG.MAXSIZE)
 
-    if mylar.USENET_RETENTION != None:
-        max_age = "&age=" + str(mylar.USENET_RETENTION)
+    if mylar.CONFIG.USENET_RETENTION != None:
+        max_age = "&age=" + str(mylar.CONFIG.USENET_RETENTION)
 
     feeds = []
     feed1 = "http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch
     feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
     time.sleep(3)
-    if mylar.ALTEXPERIMENTAL:
+    if mylar.CONFIG.ALTEXPERIMENTAL:
         feed2 = "http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch
         feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
         time.sleep(3)

@@ -28,7 +28,6 @@ class tehMain():
         pass 
 
     def run(self, forcerss=None):
-        logger.info('forcerss is : %s' % forcerss)
         with rss_lock:
 
             logger.info('[RSS-FEEDS] RSS Feed Check was last run at : ' + str(mylar.SCHED_RSS_LAST))
@@ -42,7 +41,7 @@ class tehMain():
                 tstamp = float(mylar.SCHED_RSS_LAST)
                 duration_diff = abs(helpers.utctimestamp() - tstamp)/60
             logger.fdebug('[RSS-FEEDS] Duration diff: %s' % duration_diff)
-            if firstrun == "no" and duration_diff < int(mylar.RSS_CHECKINTERVAL):
+            if firstrun == "no" and duration_diff < int(mylar.CONFIG.RSS_CHECKINTERVAL):
                 logger.fdebug('[RSS-FEEDS] RSS Check has taken place less than the threshold - not initiating at this time.')
                 return
 
@@ -51,31 +50,33 @@ class tehMain():
             logger.fdebug('[RSS-FEEDS] Updated RSS Run time to : ' + str(mylar.SCHED_RSS_LAST))
 
             #function for looping through nzbs/torrent feeds
-            if mylar.ENABLE_TORRENT_SEARCH:
+            if mylar.CONFIG.ENABLE_TORRENT_SEARCH:
                 logger.info('[RSS-FEEDS] Initiating Torrent RSS Check.')
-                if mylar.ENABLE_TPSE:
+                if mylar.CONFIG.ENABLE_TPSE:
                     logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on TorrentProject.')
                     #rsscheck.torrents(pickfeed='3')   #TP.SE RSS Check (has to be page-parsed)
                     rsscheck.torrents(pickfeed='TPSE')    #TPSE = DEM RSS Check + WWT RSS Check
-                if mylar.ENABLE_32P:
+                if mylar.CONFIG.ENABLE_32P:
                     logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on 32P.')
-                    if mylar.MODE_32P == 0:
+                    if mylar.CONFIG.MODE_32P == 0:
                         logger.fdebug('[RSS-FEEDS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
-                        if any([mylar.PASSKEY_32P is None, mylar.PASSKEY_32P == '', mylar.RSSFEED_32P is None, mylar.RSSFEED_32P == '']):
+                        if any([mylar.CONFIG.PASSKEY_32P is None, mylar.CONFIG.PASSKEY_32P == '', mylar.CONFIG.RSSFEED_32P is None, mylar.CONFIG.RSSFEED_32P == '']):
                             logger.error('[RSS-FEEDS] Unable to validate information from provided RSS Feed. Verify that the feed provided is a current one.')
                         else:
                             rsscheck.torrents(pickfeed='1', feedinfo=mylar.KEYS_32P)
                     else:
                         logger.fdebug('[RSS-FEEDS] 32P mode set to Auth mode. Monitoring all personal notification feeds & New Releases feed')
-                        if any([mylar.USERNAME_32P is None, mylar.USERNAME_32P == '', mylar.PASSWORD_32P is None]):
+                        if any([mylar.CONFIG.USERNAME_32P is None, mylar.CONFIG.USERNAME_32P == '', mylar.CONFIG.PASSWORD_32P is None]):
                             logger.error('[RSS-FEEDS] Unable to sign-on to 32P to validate settings. Please enter/check your username password in the configuration.')
                         else:
                             if mylar.KEYS_32P is None:
                                 feed32p = auth32p.info32p()
                                 feedinfo = feed32p.authenticate()
-                                if feedinfo == "disable":
-                                    mylar.ENABLE_32P = 0
-                                    mylar.config_write()
+                                if feedinfo != "disable":
+                                    pass
+                                else:
+                                    mylar.CONFIG.ENABLE_32P = 0
+                                    #mylar.config_write()
                             else:
                                 feedinfo = mylar.FEEDINFO_32P
 

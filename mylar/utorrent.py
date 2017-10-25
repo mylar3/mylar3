@@ -27,7 +27,7 @@ class utorrentclient(object):
 
     def __init__(self):
 
-        host = mylar.UTORRENT_HOST   #has to be in the format of URL:PORT
+        host = mylar.CONFIG.UTORRENT_HOST   #has to be in the format of URL:PORT
         if not host.startswith('http'):
             host = 'http://' + host
 
@@ -38,8 +38,8 @@ class utorrentclient(object):
             host = host[:-4]
 
         self.base_url = host
-        self.username = mylar.UTORRENT_USERNAME
-        self.password = mylar.UTORRENT_PASSWORD
+        self.username = mylar.CONFIG.UTORRENT_USERNAME
+        self.password = mylar.CONFIG.UTORRENT_PASSWORD
         self.utorrent_url = '%s/gui/' % (self.base_url)
         self.auth = requests.auth.HTTPBasicAuth(self.username, self.password)
         self.token, self.cookies = self._get_token()
@@ -82,7 +82,7 @@ class utorrentclient(object):
         if str(r.status_code) == '200':
             logger.info('Successfully added torrent to uTorrent client.')
             hash = self.calculate_torrent_hash(data=tordata)
-            if mylar.UTORRENT_LABEL:
+            if mylar.CONFIG.UTORRENT_LABEL:
                 try:
                     self.setlabel(hash)
                 except:
@@ -104,7 +104,7 @@ class utorrentclient(object):
         if str(r.status_code) == '200':
             logger.info('Successfully added torrent to uTorrent client.')
             hash = self.calculate_torrent_hash(link=url)
-            if mylar.UTORRENT_LABEL:
+            if mylar.CONFIG.UTORRENT_LABEL:
                 try:
                     self.setlabel(hash)
                 except:
@@ -115,10 +115,10 @@ class utorrentclient(object):
 
 
     def setlabel(self, hash):
-        params = {'token': self.token, 'action': 'setprops', 'hash': hash, 's': 'label', 'v': str(mylar.UTORRENT_LABEL)}
+        params = {'token': self.token, 'action': 'setprops', 'hash': hash, 's': 'label', 'v': str(mylar.CONFIG.UTORRENT_LABEL)}
         r = requests.post(url=self.utorrent_url, auth=self.auth, cookies=self.cookies, params=params)
         if str(r.status_code) == '200':
-            logger.info('label ' + str(mylar.UTORRENT_LABEL) + ' successfully applied')
+            logger.info('label ' + str(mylar.CONFIG.UTORRENT_LABEL) + ' successfully applied')
         else:
             logger.info('Unable to label torrent')
         return
@@ -148,7 +148,7 @@ class utorrentclient(object):
 
 # not implemented yet #
 #    def load_torrent(self, filepath):
-#        start = bool(mylar.UTORRENT_STARTONLOAD)
+#        start = bool(mylar.CONFIG.UTORRENT_STARTONLOAD)
 
 #        logger.info('filepath to torrent file set to : ' + filepath)
 #
@@ -157,9 +157,9 @@ class utorrentclient(object):
 #        if not torrent:
 #            return False
 
-#        if mylar.UTORRENT_LABEL:
+#        if mylar.CONFIG.UTORRENT_LABEL:
 #            self.setlabel(torrent)
-#            logger.info('Setting label for torrent to : ' + mylar.UTORRENT_LABEL)
+#            logger.info('Setting label for torrent to : ' + mylar.CONFIG.UTORRENT_LABEL)
 
 #        logger.info('Successfully loaded torrent.')
 

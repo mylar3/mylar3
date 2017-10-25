@@ -10,10 +10,10 @@ from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
 
-def sabnzbd(sabhost=mylar.SAB_HOST, sabusername=mylar.SAB_USERNAME, sabpassword=mylar.SAB_PASSWORD):
-       #SAB_USERNAME = mylar.SAB_USERNAME
-       #SAB_PASSWORD = mylar.SAB_PASSWORD
-       #SAB_HOST = mylar.SAB_HOST   #'http://localhost:8085/'
+def sabnzbd(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD):
+       #SAB_USERNAME = mylar.CONFIG.SAB_USERNAME
+       #SAB_PASSWORD = mylar.CONFIG.SAB_PASSWORD
+       #SAB_HOST = mylar.CONFIG.SAB_HOST   #'http://localhost:8085/'
        if sabusername is None or sabpassword is None:
            logger.fdebug('No Username / Password specified for SABnzbd. Unable to auto-retrieve SAB API')
        if 'https' not in sabhost:

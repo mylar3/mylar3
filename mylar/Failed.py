@@ -208,7 +208,7 @@ class FailedProcessor(object):
         logger.info(module + ' Successfully marked as Failed.')
         self._log('Successfully marked as Failed.')
 
-        if mylar.FAILED_AUTO:
+        if mylar.CONFIG.FAILED_AUTO:
             logger.info(module + ' Sending back to search to see if we can find something that will not fail.')
             self._log('Sending back to search to see if we can find something better that will not fail.')
             self.valreturn.append({"self.log":    self.log,

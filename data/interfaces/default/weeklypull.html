@@ -43,7 +43,7 @@
              <fieldset>
                   <div class="row checkbox left clearfix">
                        </br>
-                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
+                       <input type="checkbox" name="weekfolder" id="weekfolder" value="1" ${checked(mylar.CONFIG.WEEKFOLDER)} /><label>Store in Weekly Directory (${weekfold})</label> 
                  </div>
 
                <input type="hidden" name="year" value="${weekinfo['year']}">
@@ -101,6 +101,13 @@
                                              %endif
                                         %else:
                                              <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
+                                        %endif
+                                        %if weekly['VOLUME'] is not None:
+                                            &nbspV${weekly['VOLUME']}
+                                        %endif
+
+                                        %if weekly['SERIESYEAR'] is not None:
+                                            &nbsp(${weekly['SERIESYEAR']})
                                         %endif
                                         </td>
                                         <td class="comicnumber">${weekly['ISSUE']}</td>

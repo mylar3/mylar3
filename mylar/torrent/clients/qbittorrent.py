@@ -83,7 +83,7 @@ class TorrentClient(object):
                 logger.info('Torrent not added yet, trying to add it now!')
                 if filepath.startswith('magnet'):
                     try:
-                        tid = self.client.download_from_link(filepath, category=str(mylar.QBITTORRENT_LABEL))
+                        tid = self.client.download_from_link(filepath, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
                     except Exception as e:
                         logger.debug('Torrent not added')
                         return {'status': False}
@@ -92,14 +92,14 @@ class TorrentClient(object):
                 else:
                     try:
                         torrent_content = open(filepath, 'rb')
-                        tid = self.client.download_from_file(torrent_content, category=str(mylar.QBITTORRENT_LABEL))
+                        tid = self.client.download_from_file(torrent_content, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
                     except Exception as e:
                         logger.debug('Torrent not added')
                         return {'status': False}
                     else:
                         logger.debug('Successfully submitted for add via file. Verifying item is now on client.')
 
-            if mylar.QBITTORRENT_STARTONLOAD:
+            if mylar.CONFIG.QBITTORRENT_STARTONLOAD:
                 logger.info('attempting to start')
                 startit = self.client.force_start(hash)
                 logger.info('startit returned:' + str(startit))
@@ -132,7 +132,7 @@ class TorrentClient(object):
                             'total_filesize':   tinfo['total_size'],
                             'folder':           tinfo['save_path'],
                             'time_started':     tinfo['addition_date'],
-                            'label':            mylar.QBITTORRENT_LABEL,
+                            'label':            mylar.CONFIG.QBITTORRENT_LABEL,
                             'status':           True}
 
             #logger.info(torrent_info)

@@ -1,4 +1,3 @@
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -59,8 +58,8 @@ class Readinglist(object):
             logger.info(self.module + ' Issue not located on your current watchlist. I should probably check story-arcs but I do not have that capability just yet.')
         else:
             locpath = None
-            if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation'])) != comicinfo['ComicLocation']:
-                pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))
+            if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation'])) != comicinfo['ComicLocation']:
+                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicinfo['ComicLocation']))
                 if os.path.exists(os.path.join(pathdir, readlist['Location'])):
                     locpath = os.path.join(pathdir, readlist['Location'])
                 else:
@@ -75,7 +74,7 @@ class Readinglist(object):
                 comicname = comicinfo['ComicName']
                 dspinfo = comicname + ' #' + comicissue
                 if annualize:
-                    if mylar.ANNUALS_ON:
+                    if mylar.CONFIG.ANNUALS_ON:
                         comicissue = 'Annual ' + readlist['Issue_Number']
                         dspinfo = comicname + ' Annual #' + readlist['Issue_Number']
                     else:
@@ -169,11 +168,11 @@ class Readinglist(object):
 #                            comiclocation = cid['ComicLocation']
 #                            comicid = cid['ComicID']
 
-#                    if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation)) != comiclocation:
-#                        logger.fdebug(module + ' Multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
+#                    if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation)) != comiclocation:
+#                        logger.fdebug(module + ' Multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
 #                        logger.fdebug(module + ' Dir: ' + comiclocation)
 #                        logger.fdebug(module + ' Os.path.basename: ' + os.path.basename(comiclocation))
-#                        pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
+#                        pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comiclocation))
                      if os.path.exists(clist['filepath']):
                             sendlist.append({"issueid":  clist['issueid'],
                                              "filepath": clist['filepath'],
@@ -207,8 +206,8 @@ class Readinglist(object):
             import shlex
             import subprocess
 
-            #fhost = mylar.TAB_HOST.find(':')
-            host = mylar.TAB_HOST[:mylar.TAB_HOST.find(':')]
+            #fhost = mylar.CONFIG.TAB_HOST.find(':')
+            host = mylar.CONFIG.TAB_HOST[:mylar.CONFIG.TAB_HOST.find(':')]
 
             if 'windows' not in mylar.OS_DETECT.lower():
                 cmdstring = str('ping -c1 ' + str(host))

@@ -45,7 +45,7 @@ from operator import itemgetter
 
 def serve_template(templatename, **kwargs):
     interface_dir = os.path.join(str(mylar.PROG_DIR), 'data/interfaces/')
-    template_dir = os.path.join(str(interface_dir), mylar.INTERFACE)
+    template_dir = os.path.join(str(interface_dir), mylar.CONFIG.INTERFACE)
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
@@ -58,7 +58,7 @@ class WebInterface(object):
 #    def filter_request():
 #        request = cherrypy.request
 
-#        if mylar.HTTPS_FORCE_ON:
+#        if mylar.CONFIG.HTTPS_FORCE_ON:
 #            request.base = request.base.replace('http://', 'https://')
 
 #    cherrypy.tools.filter_request = cherrypy.Tool('before_request_body', filter_request)
@@ -154,8 +154,8 @@ class WebInterface(object):
         force_continuing = comic['ForceContinuing']
         if force_continuing is None:
             force_continuing = 0
-        if mylar.DELETE_REMOVE_DIR is None:
-            mylar.DELETE_REMOVE_DIR = 0
+        if mylar.CONFIG.DELETE_REMOVE_DIR is None:
+            mylar.CONFIG.DELETE_REMOVE_DIR = 0
         if allowpacks is None:
             allowpacks = "0"
         if all([comic['Corrected_SeriesYear'] is not None, comic['Corrected_SeriesYear'] != '', comic['Corrected_SeriesYear'] != 'None']):
@@ -163,17 +163,16 @@ class WebInterface(object):
                 comic['ComicYear'] = comic['Corrected_SeriesYear']
 
         comicConfig = {
-                    "comiclocation": mylar.COMIC_LOCATION,
                     "fuzzy_year0": helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1": helpers.radio(int(usethefuzzy), 1),
                     "fuzzy_year2": helpers.radio(int(usethefuzzy), 2),
                     "skipped2wanted": helpers.checked(skipped2wanted),
                     "force_continuing": helpers.checked(force_continuing),
-                    "delete_dir": helpers.checked(mylar.DELETE_REMOVE_DIR),
+                    "delete_dir": helpers.checked(mylar.CONFIG.DELETE_REMOVE_DIR),
                     "allow_packs": helpers.checked(int(allowpacks)),
                     "corrected_seriesyear": comic['ComicYear'],
                }
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             annuals = myDB.select("SELECT * FROM annuals WHERE ComicID=? ORDER BY ComicID, Int_IssueNumber DESC", [ComicID])
             #we need to load in the annual['ReleaseComicName'] and annual['ReleaseComicID']
             #then group by ReleaseComicID, in an attempt to create seperate tables for each different annual series.
@@ -301,7 +300,7 @@ class WebInterface(object):
         #print ("comicyear: " + str(comicyear))
         #print ("comicissues: " + str(comicissues))
         #print ("comicimage: " + str(comicimage))
-        if not mylar.CV_ONLY:
+        if not mylar.CONFIG.CV_ONLY:
         #here we test for exception matches (ie. comics spanning more than one volume, known mismatches, etc).
             CV_EXcomicid = myDB.selectone("SELECT * from exceptions WHERE ComicID=?", [comicid]).fetchone()
             if CV_EXcomicid is None: # pass #
@@ -733,7 +732,7 @@ class WebInterface(object):
                         break
 
         if failed:
-            if mylar.FAILED_DOWNLOAD_HANDLING:
+            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 #drop the if-else continuation so we can drop down to this from the above if statement.
                 logger.info('Initiating Failed Download handling for this download.')
                 FailProcess = Failed.FailedProcessor(nzb_name=nzb_name, nzb_folder=nzb_folder, queue=queue)
@@ -806,10 +805,10 @@ class WebInterface(object):
         logger.info(u"Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             myDB.action('DELETE from annuals WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from upcoming WHERE ComicID=?', [ComicID])
-        if delete_dir: #mylar.DELETE_REMOVE_DIR:
+        if delete_dir: #mylar.CONFIG.DELETE_REMOVE_DIR:
             logger.fdebug('Remove directory on series removal enabled.')
             if os.path.exists(seriesdir):
                 logger.fdebug('Attempting to remove the directory and contents of : ' + seriesdir)
@@ -914,7 +913,7 @@ class WebInterface(object):
                 mi = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
                 annchk = 'no'
                 if mi is None:
-                    if mylar.ANNUALS_ON:
+                    if mylar.CONFIG.ANNUALS_ON:
                         mi = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
                         comicname = mi['ReleaseComicName']
                         annchk = 'yes'
@@ -941,7 +940,7 @@ class WebInterface(object):
                     logger.fdebug(u"Marking " + str(IssueID) + " as Skipped")
                 elif action == 'Clear':
                     myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
-                elif action == 'Failed' and mylar.FAILED_DOWNLOAD_HANDLING:
+                elif action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                     logger.fdebug('Marking [' + comicname + '] : ' + str(IssueID) + ' as Failed. Sending to failed download handler.')
                     failedcomicid = mi['ComicID']
                     failedissueid = IssueID
@@ -953,7 +952,7 @@ class WebInterface(object):
                 else:
                     myDB.upsert("issues", newValueDict, controlValueDict)
                 logger.fdebug("updated...to " + str(newaction))
-        if action == 'Failed' and mylar.FAILED_DOWNLOAD_HANDLING:
+        if action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
             self.failed_handling(failedcomicid, failedissueid)
         if len(issuestoArchive) > 0:
             updater.forceRescan(mi['ComicID'])
@@ -1064,17 +1063,17 @@ class WebInterface(object):
             #now we break it down by provider to recreate the link.
             #torrents first.
             if any([fullprov == '32P', fullprov == 'TPSE', fullprov == 'WWT', fullprov == 'DEM']):
-                if not mylar.ENABLE_TORRENT_SEARCH:
+                if not mylar.CONFIG.ENABLE_TORRENT_SEARCH:
                    logger.error('Torrent Providers are not enabled - unable to process retry request until provider is re-enabled.')
                    continue
 
                 if fullprov == '32P':
-                    if not mylar.ENABLE_32P:
+                    if not mylar.CONFIG.ENABLE_32P:
                         logger.error('32P is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
 
                 elif any([fullprov == 'TPSE', fullprov == 'WWT', fullprov == 'DEM']):
-                    if not mylar.ENABLE_TPSE:
+                    if not mylar.CONFIG.ENABLE_TPSE:
                         logger.error('TPSE is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
 
@@ -1088,9 +1087,9 @@ class WebInterface(object):
                    logger.error("Unable to send torrent - check logs and settings.")
                    continue
                 else:
-                    if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.AUTO_SNATCH:
+                    if any([mylar.CONFIG.USE_RTORRENT, mylar.CONFIG.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
                         mylar.SNATCHED_QUEUE.put(rcheck['hash'])
-                    elif mylar.ENABLE_SNATCH_SCRIPT:
+                    elif mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                         #packs not supported on retry atm - Volume and Issuedate also not included due to limitations...
                         snatch_vars = {'comicinfo':       {'comicname':        ComicName,
                                                            'issuenumber':      IssueNumber,
@@ -1150,28 +1149,28 @@ class WebInterface(object):
                 newznabinfo = None
 
                 if fullprov == 'nzb.su':
-                    if not mylar.NZBSU:
+                    if not mylar.CONFIG.NZBSU:
                         logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # http://nzb.su/getnzb/ea1befdeee0affd663735b2b09010140.nzb&i=<uid>&r=<passkey>
-                    link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.NZBSU_UID) + '&r=' + str(mylar.NZBSU_APIKEY)
+                    link = 'http://nzb.su/getnzb/' + str(id) + '.nzb&i=' + str(mylar.CONFIG.NZBSU_UID) + '&r=' + str(mylar.CONFIG.NZBSU_APIKEY)
                     logger.info('fetched via nzb.su. Retrying the send : ' + str(link))
                 elif fullprov == 'dognzb':
-                    if not mylar.DOGNZB:
+                    if not mylar.CONFIG.DOGNZB:
                         logger.error('Dognzb is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # https://dognzb.cr/fetch/5931874bf7381b274f647712b796f0ac/<passkey>
-                    link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.DOGNZB_APIKEY)
+                    link = 'https://dognzb.cr/fetch/' + str(id) + '/' + str(mylar.CONFIG.DOGNZB_APIKEY)
                     logger.info('fetched via dognzb. Retrying the send : ' + str(link))
                 elif fullprov == 'experimental':
-                    if not mylar.EXPERIMENTAL:
+                    if not mylar.CONFIG.EXPERIMENTAL:
                         logger.error('Experimental is not enabled - unable to process retry request until provider is re-enabled.')
                         continue
                     # http://nzbindex.nl/download/110818178
                     link = 'http://nzbindex.nl/download/' + str(id)
                     logger.info('fetched via experimental. Retrying the send : ' + str(link))
                 elif 'newznab' in fullprov:
-                    if not mylar.NEWZNAB:
+                    if not mylar.CONFIG.NEWZNAB:
                         logger.error('Newznabs are not enabled - unable to process retry request until provider is re-enabled.')
                         continue
 
@@ -1181,7 +1180,7 @@ class WebInterface(object):
                     m = re.findall('[^()]+', fullprov)
                     tmpprov = m[0].strip()
 
-                    for newznab_info in mylar.EXTRA_NEWZNABS:
+                    for newznab_info in mylar.CONFIG.EXTRA_NEWZNABS:
                         if tmpprov.lower() in newznab_info[0].lower():
                             if (newznab_info[5] == '1' or newznab_info[5] == 1):
                                 if newznab_info[1].endswith('/'):
@@ -1361,7 +1360,7 @@ class WebInterface(object):
                 issue = None
             annchk = 'no'
             if issue is None:
-                if mylar.ANNUALS_ON:
+                if mylar.CONFIG.ANNUALS_ON:
                     if ReleaseComicID is None:
                         issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
                     else:
@@ -1376,7 +1375,7 @@ class WebInterface(object):
                 IssueNumber = issue['Issue_Number']
 
             controlValueDict = {"IssueID": IssueID}
-            if mode == 'failed' and mylar.FAILED_DOWNLOAD_HANDLING:
+            if mode == 'failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
                 newValueDict = {"Status": "Failed"}
                 myDB.upsert("failed", newValueDict, controlValueDict)
@@ -1446,7 +1445,7 @@ class WebInterface(object):
         issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
         annchk = 'no'
         if issue is None:
-            if mylar.ANNUALS_ON:
+            if mylar.CONFIG.ANNUALS_ON:
                 issann = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [IssueID]).fetchone()
                 comicname = issann['ReleaseComicName']
                 issue = issann['Issue_Number']
@@ -1512,7 +1511,7 @@ class WebInterface(object):
                     w_results = myDB.select("SELECT * from weekly WHERE weeknumber=? AND year=?", [int(weekinfo['weeknumber']),weekinfo['year']])
                 else:
                     logger.warn('Problem repopulating the pullist for week ' + str(weekinfo['weeknumber']) + ', ' + str(weekinfo['year']))
-                    if mylar.ALT_PULL == 2:
+                    if mylar.CONFIG.ALT_PULL == 2:
                         logger.warn('Attempting to repoll against legacy pullist in order to have some kind of updated listing for the week.')
                         repoll = self.manualpull()
                         if repoll['status'] == 'success':
@@ -1534,7 +1533,7 @@ class WebInterface(object):
                     haveit = watchlibrary[weekly['ComicID']]
 
                     if weekinfo['weeknumber']:
-                        if any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                        if any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
 
                     for x in issueLibrary:
@@ -1574,6 +1573,8 @@ class WebInterface(object):
                                            "STATUS":  tmp_status,
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "VOLUME":  weekly['volume'],
+                                           "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "AUTOWANT": False
@@ -1587,6 +1588,8 @@ class WebInterface(object):
                                            "STATUS":  tmp_status,
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "VOLUME":  weekly['volume'],
+                                           "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "AUTOWANT": True
@@ -1599,6 +1602,8 @@ class WebInterface(object):
                                            "STATUS":  tmp_status,
                                            "COMICID": weekly['ComicID'],
                                            "ISSUEID": weekly['IssueID'],
+                                           "VOLUME":  weekly['volume'],
+                                           "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "AUTOWANT": False
@@ -1752,8 +1757,8 @@ class WebInterface(object):
     filterpull.exposed = True
 
     def manualpull(self,weeknumber=None,year=None):
-        logger.info('ALT_PULL: ' + str(mylar.ALT_PULL) + ' PULLBYFILE: ' + str(mylar.PULLBYFILE) + ' week: ' + str(weeknumber) + ' year: ' + str(year))
-        if all([mylar.ALT_PULL == 2, mylar.PULLBYFILE is False]) and weeknumber:
+        logger.info('ALT_PULL: ' + str(mylar.CONFIG.ALT_PULL) + ' PULLBYFILE: ' + str(mylar.PULLBYFILE) + ' week: ' + str(weeknumber) + ' year: ' + str(year))
+        if all([mylar.CONFIG.ALT_PULL == 2, mylar.PULLBYFILE is False]) and weeknumber:
             return mylar.locg.locg(weeknumber=weeknumber,year=year)
             #raise cherrypy.HTTPRedirect("pullist?week=" + str(weeknumber) + "&year=" + str(year))
         else:
@@ -1882,9 +1887,9 @@ class WebInterface(object):
         futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate', 'ComicName', 'IssueNumber'), reverse=True)
 
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
-        if mylar.UPCOMING_SNATCHED:
+        if mylar.CONFIG.UPCOMING_SNATCHED:
             issues += myDB.select("SELECT * from issues WHERE Status='Snatched'")
-        if mylar.FAILED_DOWNLOAD_HANDLING:
+        if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
             issues += myDB.select("SELECT * from issues WHERE Status='Failed'")
 
 #       isscnt = myDB.select("SELECT COUNT(*) FROM issues WHERE Status='Wanted' OR Status='Snatched'")
@@ -1897,13 +1902,13 @@ class WebInterface(object):
 
         ann_cnt = 0
 
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             #let's add the annuals to the wanted table so people can see them
             #ComicName wasn't present in db initially - added on startup chk now.
             annuals_list = myDB.select("SELECT * FROM annuals WHERE Status='Wanted'")
-            if mylar.UPCOMING_SNATCHED:
+            if mylar.CONFIG.UPCOMING_SNATCHED:
                 annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Snatched'")
-            if mylar.FAILED_DOWNLOAD_HANDLING:
+            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                 annuals_list += myDB.select("SELECT * FROM annuals WHERE Status='Failed'")
 #           anncnt = myDB.select("SELECT COUNT(*) FROM annuals WHERE Status='Wanted' OR Status='Snatched'")
 #           ann_cnt = anncnt[0][0]
@@ -2016,7 +2021,7 @@ class WebInterface(object):
     previewRename.exposed = True
 
     def manualRename(self, comicid):
-        if mylar.FILE_FORMAT == '':
+        if mylar.CONFIG.FILE_FORMAT == '':
             logger.error("You haven't specified a File Format in Configuration/Advanced")
             logger.error("Cannot rename files.")
             return
@@ -2035,13 +2040,13 @@ class WebInterface(object):
             comicyear = comic['ComicYear']
             extensions = ('.cbr', '.cbz', '.cb7')
             issues = myDB.select("SELECT * FROM issues WHERE ComicID=?", [cid])
-            if mylar.ANNUALS_ON:
+            if mylar.CONFIG.ANNUALS_ON:
                 issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [cid])
-            if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
-                logger.fdebug('multiple_dest_dirs:' + mylar.MULTIPLE_DEST_DIRS)
+            if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
+                logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
                 logger.fdebug('dir: ' + comicdir)
                 logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
-                pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
 
             for root, dirnames, filenames in os.walk(comicdir):
                 for filename in filenames:
@@ -2079,7 +2084,7 @@ class WebInterface(object):
     searchScan.exposed = True
 
     def manage(self):
-        mylarRoot = mylar.DESTINATION_DIR
+        mylarRoot = mylar.CONFIG.DESTINATION_DIR
         import db
         myDB = db.DBConnection()
         jobresults = myDB.select('SELECT * FROM jobhistory')
@@ -2104,23 +2109,23 @@ class WebInterface(object):
                     next_run = None
                 if 'rss' in jb['JobName'].lower():
                     status = mylar.RSS_STATUS
-                    interval = str(mylar.RSS_CHECKINTERVAL) + ' mins'
+                    interval = str(mylar.CONFIG.RSS_CHECKINTERVAL) + ' mins'
                 if 'weekly' in jb['JobName'].lower():
                     status = mylar.WEEKLY_STATUS
-                    if mylar.ALT_PULL == 2: interval = '4 hrs'
+                    if mylar.CONFIG.ALT_PULL == 2: interval = '4 hrs'
                     else: interval = '24 hrs'
                 if 'search' in jb['JobName'].lower():
                     status = mylar.SEARCH_STATUS
-                    interval = str(mylar.SEARCH_INTERVAL) + ' mins'
+                    interval = str(mylar.CONFIG.SEARCH_INTERVAL) + ' mins'
                 if 'updater' in jb['JobName'].lower():
                     status = mylar.UPDATER_STATUS
-                    interval = '5 mins'
+                    interval = str(int(mylar.DBUPDATE_INTERVAL)) + ' mins'
                 if 'folder' in jb['JobName'].lower():
                     status = mylar.MONITOR_STATUS
-                    interval = str(mylar.DOWNLOAD_SCAN_INTERVAL) + ' mins'
+                    interval = str(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' mins'
                 if 'version' in jb['JobName'].lower():
                     status = mylar.VERSION_STATUS
-                    interval = str(mylar.CHECK_GITHUB_INTERVAL) + 'mins'
+                    interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + 'mins'
 
                 tmp.append({'prev_run_datetime':  prev_run,
                             'next_run_datetime': next_run,
@@ -2191,7 +2196,7 @@ class WebInterface(object):
         status = kwargs['status']
         results = []
         myDB = db.DBConnection()
-        if mylar.ANNUALS_ON:
+        if mylar.CONFIG.ANNUALS_ON:
             issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
             annuals = myDB.select("SELECT * from annuals WHERE Status=?", [status])
         else:
@@ -2321,7 +2326,7 @@ class WebInterface(object):
                 logger.info('[MANAGE COMICS][DELETION] Now deleting ' + cl['ComicName'] + ' (' + str(cl['ComicYear']) + ') [' + str(cl['ComicID']) + '] form the DB.')
                 myDB.action('DELETE from comics WHERE ComicID=?', [cl['ComicID']])
                 myDB.action('DELETE from issues WHERE ComicID=?', [cl['ComicID']])
-                if mylar.ANNUALS_ON:
+                if mylar.CONFIG.ANNUALS_ON:
                     myDB.action('DELETE from annuals WHERE ComicID=?', [cl['ComicID']])
                 logger.info('[MANAGE COMICS][DELETION] Successfully deleted ' + cl['ComicName'] + '(' + str(cl['ComicYear']) + ')')
             elif action == 'pause':
@@ -2522,7 +2527,7 @@ class WebInterface(object):
 
         except:
             cvarcid = None
-            sdir = mylar.GRABBAG_DIR
+            sdir = mylar.CONFIG.GRABBAG_DIR
 
         if len(issref) > 0:
             helpers.updatearc_locs(StoryArcID, issref)
@@ -2910,7 +2915,7 @@ class WebInterface(object):
 
             if dstloc is not None:
                 if not os.path.isdir(dstloc):
-                    if mylar.STORYARCDIR:
+                    if mylar.CONFIG.STORYARCDIR:
                         logger.info('Story Arc Directory [' + dstloc + '] does not exist! - attempting to create now.')
                     else:
                         logger.info('Story Arc Grab-Bag Directory [' + dstloc + '] does not exist! - attempting to create now.')
@@ -2919,8 +2924,8 @@ class WebInterface(object):
                         logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
                         return
 
-                if all([mylar.CVINFO, mylar.STORYARCDIR]):
-                    if not os.path.isfile(os.path.join(dstloc, "cvinfo")) or mylar.CV_ONETIMER:
+                if all([mylar.CONFIG.CVINFO, mylar.CONFIG.STORYARCDIR]):
+                    if not os.path.isfile(os.path.join(dstloc, "cvinfo")) or mylar.CONFIG.CV_ONETIMER:
                         logger.fdebug('Generating cvinfo file for story-arc.')
                         with open(os.path.join(dstloc, "cvinfo"), "w") as text_file:
                             if any([ArcWatch[0]['StoryArcID'] == ArcWatch[0]['CV_ArcID'], ArcWatch[0]['CV_ArcID'] is None]):
@@ -2929,11 +2934,11 @@ class WebInterface(object):
                                 cvinfo_arcid = ArcWatch[0]['CV_ArcID']
 
                             text_file.write('https://comicvine.gamespot.com/storyarc/4045-' + str(cvinfo_arcid))
-                        if mylar.ENFORCE_PERMS:
+                        if mylar.CONFIG.ENFORCE_PERMS:
                             filechecker.setperms(os.path.join(dstloc, 'cvinfo'))
 
                 #get the list of files within the storyarc directory, if any.
-                if mylar.STORYARCDIR:
+                if mylar.CONFIG.STORYARCDIR:
                     fchk = filechecker.FileChecker(dir=dstloc, watchcomic=None, Publisher=None, sarc='true', justparse=True)
                     filechk = fchk.listFiles()
                     fccnt = filechk['comiccount']
@@ -3013,7 +3018,7 @@ class WebInterface(object):
                          "IssueNumber":    arc['IssueNumber'],
                          "IssueYear":      arc['IssueYear']})
 
-                    if filelist is not None and mylar.STORYARCDIR:
+                    if filelist is not None and mylar.CONFIG.STORYARCDIR:
                         logger.fdebug("[NO WATCHLIST MATCH] Checking against lcoal Arc directory for given issue.")
                         fn = 0
                         valids = [x for x in filelist if re.sub('[\|\s]','', x['dynamic_name'].lower()).strip() == re.sub('[\|\s]','', arc['DynamicComicName'].lower()).strip()]
@@ -3029,7 +3034,7 @@ class WebInterface(object):
                                     logger.fdebug(arc['ComicName'] + ' Issue #' + arc['IssueNumber'] + ' already present in StoryArc directory.')
                                     #update readinglist db to reflect status.
                                     rr_rename = False
-                                    if mylar.READ2FILENAME:
+                                    if mylar.CONFIG.READ2FILENAME:
                                         readorder = helpers.renamefile_readingorder(arc['ReadingOrder'])
                                         if all([tmpfc['reading_order'] is not None, int(readorder) != int(tmpfc['reading_order']['reading_sequence'])]):
                                             logger.warn('reading order sequence has changed for this issue from ' + str(tmpfc['reading_order']['reading_sequence']) + ' to ' + str(readorder))
@@ -3095,15 +3100,15 @@ class WebInterface(object):
                             if issue['Status'] == 'Downloaded':
                                 #check multiple destination directory usage here.
                                 if not os.path.isfile(issloc):
-                                    if all([mylar.MULTIPLE_DEST_DIRS is not None, mylar.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
-                                        issloc = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
+                                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
+                                        issloc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
                                         if not os.path.isfile(issloc):
                                             logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
                                             continue
 
                                 logger.fdebug('source location set to  : ' + issloc)
 
-                                if all([mylar.STORYARCDIR, mylar.COPY2ARCDIR]):
+                                if all([mylar.CONFIG.STORYARCDIR, mylar.CONFIG.COPY2ARCDIR]):
                                     logger.fdebug('Destination location set to  : ' + m_arc['destination_location'])
                                     logger.fdebug('Attempting to copy into StoryArc directory')
                                     #copy into StoryArc directory...
@@ -3111,7 +3116,7 @@ class WebInterface(object):
                                  #need to make sure the file being copied over isn't already present in the directory either with a different filename, 
                                  #or different reading order.
                                     rr_rename = False
-                                    if mylar.READ2FILENAME:
+                                    if mylar.CONFIG.READ2FILENAME:
                                         readorder = helpers.renamefile_readingorder(m_arc['match_readingorder'])
                                         if all([m_arc['match_readingorder'] is not None, int(readorder) != int(m_arc['match_readingorder'])]):
                                             logger.warn('reading order sequence has changed for this issue from ' + str(m_arc['match_reading_order']) + ' to ' + str(readorder))
@@ -3142,7 +3147,7 @@ class WebInterface(object):
                                            if not fileoperation:
                                                raise OSError
                                         except (OSError, IOError):
-                                            logger.error('Failed to ' + mylar.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
+                                            logger.error('Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + issloc + ' - check directories and manually re-run.')
                                             continue
                                     else:
                                         logger.fdebug('Destination file exists: ' + dstloc)
@@ -3156,7 +3161,7 @@ class WebInterface(object):
                                       'Location': location_path}
 
                             myDB.upsert("readinglist",newVal,ctrlVal)
-               
+
                         else:
                             logger.fdebug("We don't have " + issue['ComicName'] + " :# " + issue['Issue_Number'])
                             ctrlVal = {"IssueArcID":  m_arc['match_issuearcid']}
@@ -3175,14 +3180,14 @@ class WebInterface(object):
 
     def ReadGetWanted(self, StoryArcID):
         # this will queue up (ie. make 'Wanted') issues in a given Story Arc that are 'Not Watched'
-        #print StoryArcID
+        print StoryArcID
         stupdate = []
         mode = 'story_arc'
         myDB = db.DBConnection()
-        wantedlist = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND Status is Null", [StoryArcID])
+        wantedlist = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND Status != 'Downloaded' AND Status !='Archived' AND Status !='Snatched'", [StoryArcID])
         if wantedlist is not None:
             for want in wantedlist:
-                #print want
+                print want
                 issuechk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [want['IssueArcID']]).fetchone()
                 SARC = want['StoryArc']
                 IssueArcID = want['IssueArcID']
@@ -3211,7 +3216,7 @@ class WebInterface(object):
                             issueyear = stdate[:4]
 
                     logger.fdebug('ComicYear: ' + str(want['SeriesYear']))
-                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=issueyear, SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=issueyear, SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID, oneoff=True)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
@@ -3271,7 +3276,7 @@ class WebInterface(object):
                     #logger.info('publisher : ' + watchchk['IssuePublisher']) <-- no publisher in table
                     logger.fdebug('SARC : ' + SARC)
                     logger.fdebug('IssueArcID : ' + IssueArcID)
-                    foundcom, prov = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=issueyear, SeriesYear=watchchk['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=watchchk['ComicName'], IssueNumber=watchchk['IssueNumber'], ComicYear=issueyear, SeriesYear=watchchk['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID, oneoff=True)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
@@ -3312,7 +3317,7 @@ class WebInterface(object):
             logger.fdebug("You don't have any issues from " + StoryArcName + ". Aborting Mass Copy.")
             return
         else:
-            dst = os.path.join(mylar.CACHE_DIR, StoryArcName)
+            dst = os.path.join(mylar.CONFIG.CACHE_DIR, StoryArcName)
             for files in copylist:
 
                 copyloc = files['Location']
@@ -3332,7 +3337,7 @@ class WebInterface(object):
     def toggleVerbose(self):
         mylar.VERBOSE = not mylar.VERBOSE
         logger.initLogger(console=not mylar.QUIET,
-            log_dir=mylar.LOG_DIR, verbose=mylar.VERBOSE)
+            log_dir=mylar.CONFIG.LOG_DIR, verbose=mylar.VERBOSE)
         logger.info("Verbose toggled, set to %s", mylar.VERBOSE)
         logger.debug("If you read this message, debug logging is available")
         raise cherrypy.HTTPRedirect("logs")
@@ -3400,30 +3405,30 @@ class WebInterface(object):
         if dir is not None:
             dstPATH = dir
         else:
-            dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
+            dstPATH = os.path.join(mylar.CONFIG.CACHE_DIR, issueFILE)
         #print ("dstPATH: " + str(dstPATH))
         if IssueID:
             ISnewValueDict = {'inCacheDIR':  'True',
                             'Location':    issueFILE}
 
         if IssueArcID:
-            if mylar.READ2FILENAME:
+            if mylar.CONFIG.READ2FILENAME:
                 #if it's coming from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                 ARCissueFILE = ReadOrder + "-" + issueFILE
-                dstPATH = os.path.join(mylar.CACHE_DIR, ARCissueFILE)
+                dstPATH = os.path.join(mylar.CONFIG.CACHE_DIR, ARCissueFILE)
                 ISnewValueDict = {'inCacheDIR': 'True',
                                 'Location':   issueFILE}
 
 #            issueDL = myDB.action("SELECT * FROM readinglist WHERE IssueArcID=?", [IssueArcID]).fetchone()
 #            storyarcid = issueDL['StoryArcID']
 #            #print ("comicid: " + str(comicid))
-#            issueLOC = mylar.DESTINATION_DIR
+#            issueLOC = mylar.CONFIG.DESTINATION_DIR
 #            #print ("IssueLOC: " + str(issueLOC))
 #            issueFILE = issueDL['Location']
 #            #print ("IssueFILE: "+ str(issueFILE))
 #            issuePATH = os.path.join(issueLOC,issueFILE)
 #            #print ("IssuePATH: " + str(issuePATH))
-#            dstPATH = os.path.join(mylar.CACHE_DIR, issueFILE)
+#            dstPATH = os.path.join(mylar.CONFIG.CACHE_DIR, issueFILE)
 #            #print ("dstPATH: " + str(dstPATH))
 
         try:
@@ -3456,7 +3461,7 @@ class WebInterface(object):
     def MassWeeklyDownload(self, weeknumber=None, year=None, midweek=None, weekfolder=0, filename=None):
         if filename is None:
             mylar.WEEKFOLDER = int(weekfolder)
-            mylar.config_write()
+            #mylar.config_write()
             raise cherrypy.HTTPRedirect("pullist")
 
         # this will download all downloaded comics from the weekly pull list and throw them
@@ -3464,14 +3469,14 @@ class WebInterface(object):
         myDB = db.DBConnection()
 
         if mylar.WEEKFOLDER:
-            if mylar.WEEKFOLDER_LOC:
-                dstdir = mylar.WEEKFOLDER_LOC
+            if mylar.CONFIG.WEEKFOLDER_LOC:
+                dstdir = mylar.CONFIG.WEEKFOLDER_LOC
             else:
-                dstdir = mylar.DESTINATION_DIR
-            if mylar.WEEKFOLDER_FORMAT == 0:
+                dstdir = mylar.CONFIG.DESTINATION_DIR
+            if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
                 #0 = YYYY-mm
                 desdir = os.path.join(dstdir, str(year) + '-' + str(weeknumber))
-            elif mylar.WEEKFOLDER_FORMAT == 1:
+            elif mylar.CONFIG.WEEKFOLDER_FORMAT == 1:
                 #1 = YYYY-mm-dd (midweek)
                 desdir = os.path.join(dstdir, str(midweek))
 
@@ -3480,7 +3485,7 @@ class WebInterface(object):
                 logger.warn('Unable to create weekly directory. Check location & permissions. Aborting Copy.')
                 return
         else:
-            desdir = mylar.GRABBAG_DIR
+            desdir = mylar.CONFIG.GRABBAG_DIR
 
         issuelist = helpers.listIssues(weeknumber,year)
         if issuelist is None:   # nothing on the list, just go go gone
@@ -3522,16 +3527,16 @@ class WebInterface(object):
         queue = Queue.Queue()
 
         #save the values so they stick.
-        mylar.ADD_COMICS = autoadd
+        mylar.CONFIG.ADD_COMICS = autoadd
         #too many problems for windows users, have to rethink this....
         #if 'windows' in mylar.OS_DETECT.lower() and '\\\\?\\' not in path:
         #    #to handle long paths, let's append the '\\?\' to the path to allow for unicode windows api access
         #    path = "\\\\?\\" + path
-        mylar.COMIC_DIR = path
-        mylar.IMP_MOVE = imp_move
-        mylar.IMP_RENAME = imp_rename
-        mylar.IMP_METADATA = imp_metadata
-        mylar.config_write()
+        mylar.CONFIG.COMIC_DIR = path
+        mylar.CONFIG.IMP_MOVE = imp_move
+        mylar.CONFIG.IMP_RENAME = imp_rename
+        mylar.CONFIG.IMP_METADATA = imp_metadata
+        #mylar.config_write()
 
         logger.info('forcescan is: ' +  str(forcescan))
         if mylar.IMPORTLOCK and forcescan == 1:
@@ -3755,7 +3760,7 @@ class WebInterface(object):
                         comicid = result['WatchMatch'][1:]
                         #since it's already in the watchlist, we just need to move the files and re-run the filechecker.
                         #self.refreshArtist(comicid=comicid,imported='yes')
-                        if mylar.IMP_MOVE:
+                        if mylar.CONFIG.IMP_MOVE:
                             comloc = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [comicid]).fetchone()
 
                             movedata_comicid = comicid
@@ -3794,7 +3799,7 @@ class WebInterface(object):
                                     startyear = result['ComicYear']
 
                 #taking this outside of the transaction in an attempt to stop db locking.
-                if mylar.IMP_MOVE and movealreadyonlist == "yes":
+                if mylar.CONFIG.IMP_MOVE and movealreadyonlist == "yes":
                      mylar.moveit.movefiles(movedata_comicid, movedata_comiclocation, movedata_comicname)
                      updater.forceRescan(comicid)
                      raise cherrypy.HTTPRedirect("importResults")
@@ -4142,214 +4147,208 @@ class WebInterface(object):
             rss_sclast = datetime.datetime.fromtimestamp(mylar.SCHED_RSS_LAST).replace(microsecond=0)
 
         config = {
-                    "comicvine_api": mylar.COMICVINE_API,
-                    "http_host": mylar.HTTP_HOST,
-                    "http_user": mylar.HTTP_USERNAME,
-                    "http_port": mylar.HTTP_PORT,
-                    "http_pass": mylar.HTTP_PASSWORD,
-                    "enable_https": helpers.checked(mylar.ENABLE_HTTPS),
-                    "https_cert": mylar.HTTPS_CERT,
-                    "https_key": mylar.HTTPS_KEY,
-                    "api_enabled": helpers.checked(mylar.API_ENABLED),
-                    "api_key": mylar.API_KEY,
-                    "launch_browser": helpers.checked(mylar.LAUNCH_BROWSER),
-                    "auto_update": helpers.checked(mylar.AUTO_UPDATE),
-                    "max_logsize": mylar.MAX_LOGSIZE,
-                    "annuals_on": helpers.checked(mylar.ANNUALS_ON),
-                    "enable_check_folder": helpers.checked(mylar.ENABLE_CHECK_FOLDER),
-                    "check_folder": mylar.CHECK_FOLDER,
-                    "download_scan_interval": mylar.DOWNLOAD_SCAN_INTERVAL,
-                    "nzb_search_interval": mylar.SEARCH_INTERVAL,
-                    "nzb_startup_search": helpers.checked(mylar.NZB_STARTUP_SEARCH),
-                    "search_delay": mylar.SEARCH_DELAY,
-                    "nzb_downloader_sabnzbd": helpers.radio(mylar.NZB_DOWNLOADER, 0),
-                    "nzb_downloader_nzbget": helpers.radio(mylar.NZB_DOWNLOADER, 1),
-                    "nzb_downloader_blackhole": helpers.radio(mylar.NZB_DOWNLOADER, 2),
-                    "sab_host": mylar.SAB_HOST,
-                    "sab_user": mylar.SAB_USERNAME,
-                    "sab_api": mylar.SAB_APIKEY,
-                    "sab_pass": mylar.SAB_PASSWORD,
-                    "sab_cat": mylar.SAB_CATEGORY,
-                    "sab_priority": mylar.SAB_PRIORITY,
-                    "sab_directory": mylar.SAB_DIRECTORY,
-                    "sab_to_mylar": helpers.checked(mylar.SAB_TO_MYLAR),
-                    "nzbget_host": mylar.NZBGET_HOST,
-                    "nzbget_port": mylar.NZBGET_PORT,
-                    "nzbget_user": mylar.NZBGET_USERNAME,
-                    "nzbget_pass": mylar.NZBGET_PASSWORD,
-                    "nzbget_cat": mylar.NZBGET_CATEGORY,
-                    "nzbget_priority": mylar.NZBGET_PRIORITY,
-                    "nzbget_directory": mylar.NZBGET_DIRECTORY,
-                    "torrent_downloader_watchlist": helpers.radio(mylar.TORRENT_DOWNLOADER, 0),
-                    "torrent_downloader_utorrent": helpers.radio(mylar.TORRENT_DOWNLOADER, 1),
-                    "torrent_downloader_rtorrent": helpers.radio(mylar.TORRENT_DOWNLOADER, 2),
-                    "torrent_downloader_transmission": helpers.radio(mylar.TORRENT_DOWNLOADER, 3),
-                    "torrent_downloader_deluge": helpers.radio(mylar.TORRENT_DOWNLOADER, 4),
-                    "torrent_downloader_qbittorrent": helpers.radio(mylar.TORRENT_DOWNLOADER, 5),
-                    "utorrent_host": mylar.UTORRENT_HOST,
-                    "utorrent_username": mylar.UTORRENT_USERNAME,
-                    "utorrent_password": mylar.UTORRENT_PASSWORD,
-                    "utorrent_label": mylar.UTORRENT_LABEL,
-                    "rtorrent_host": mylar.RTORRENT_HOST,
-                    "rtorrent_rpc_url": mylar.RTORRENT_RPC_URL,
-                    "rtorrent_authentication": mylar.RTORRENT_AUTHENTICATION,
-                    "rtorrent_ssl": helpers.checked(mylar.RTORRENT_SSL),
-                    "rtorrent_verify": helpers.checked(mylar.RTORRENT_VERIFY),
-                    "rtorrent_username": mylar.RTORRENT_USERNAME,
-                    "rtorrent_password": mylar.RTORRENT_PASSWORD,
-                    "rtorrent_directory": mylar.RTORRENT_DIRECTORY,
-                    "rtorrent_label": mylar.RTORRENT_LABEL,
-                    "rtorrent_startonload": helpers.checked(mylar.RTORRENT_STARTONLOAD),
-                    "transmission_host": mylar.TRANSMISSION_HOST,
-                    "transmission_username": mylar.TRANSMISSION_USERNAME,
-                    "transmission_password": mylar.TRANSMISSION_PASSWORD,
-                    "transmission_directory": mylar.TRANSMISSION_DIRECTORY,
-                    "deluge_host": mylar.DELUGE_HOST,
-                    "deluge_username": mylar.DELUGE_USERNAME,
-                    "deluge_password": mylar.DELUGE_PASSWORD,
-                    "deluge_label": mylar.DELUGE_LABEL,
-                    "qbittorrent_host": mylar.QBITTORRENT_HOST,
-                    "qbittorrent_username": mylar.QBITTORRENT_USERNAME,
-                    "qbittorrent_password": mylar.QBITTORRENT_PASSWORD,
-                    "qbittorrent_label": mylar.QBITTORRENT_LABEL,
-                    "qbittorrent_folder": mylar.QBITTORRENT_FOLDER,
-                    "qbittorrent_startonload": helpers.checked(mylar.QBITTORRENT_STARTONLOAD),
-                    "blackhole_dir": mylar.BLACKHOLE_DIR,
-                    "usenet_retention": mylar.USENET_RETENTION,
-                    "use_nzbsu": helpers.checked(mylar.NZBSU),
-                    "nzbsu_uid": mylar.NZBSU_UID,
-                    "nzbsu_api": mylar.NZBSU_APIKEY,
-                    "nzbsu_verify": helpers.checked(mylar.NZBSU_VERIFY),
-                    "use_dognzb": helpers.checked(mylar.DOGNZB),
-                    "dognzb_api": mylar.DOGNZB_APIKEY,
-                    "dognzb_verify": helpers.checked(mylar.DOGNZB_VERIFY),
-                    "use_experimental": helpers.checked(mylar.EXPERIMENTAL),
-                    "enable_torznab": helpers.checked(mylar.ENABLE_TORZNAB),
-                    "torznab_name": mylar.TORZNAB_NAME,
-                    "torznab_host": mylar.TORZNAB_HOST,
-                    "torznab_apikey": mylar.TORZNAB_APIKEY,
-                    "torznab_category": mylar.TORZNAB_CATEGORY,
-                    "use_newznab": helpers.checked(mylar.NEWZNAB),
-                    "newznab_host": mylar.NEWZNAB_HOST,
-                    "newznab_name": mylar.NEWZNAB_NAME,
-                    "newznab_verify": helpers.checked(mylar.NEWZNAB_VERIFY),
-                    "newznab_api": mylar.NEWZNAB_APIKEY,
-                    "newznab_uid": mylar.NEWZNAB_UID,
-                    "newznab_enabled": helpers.checked(mylar.NEWZNAB_ENABLED),
-                    "extra_newznabs": sorted(mylar.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
-                    "enable_rss": helpers.checked(mylar.ENABLE_RSS),
-                    "rss_checkinterval": mylar.RSS_CHECKINTERVAL,
+                    "comicvine_api": mylar.CONFIG.COMICVINE_API,
+                    "http_host": mylar.CONFIG.HTTP_HOST,
+                    "http_user": mylar.CONFIG.HTTP_USERNAME,
+                    "http_port": mylar.CONFIG.HTTP_PORT,
+                    "http_pass": mylar.CONFIG.HTTP_PASSWORD,
+                    "enable_https": helpers.checked(mylar.CONFIG.ENABLE_HTTPS),
+                    "https_cert": mylar.CONFIG.HTTPS_CERT,
+                    "https_key": mylar.CONFIG.HTTPS_KEY,
+                    "api_enabled": helpers.checked(mylar.CONFIG.API_ENABLED),
+                    "api_key": mylar.CONFIG.API_KEY,
+                    "launch_browser": helpers.checked(mylar.CONFIG.LAUNCH_BROWSER),
+                    "auto_update": helpers.checked(mylar.CONFIG.AUTO_UPDATE),
+                    "max_logsize": mylar.CONFIG.MAX_LOGSIZE,
+                    "annuals_on": helpers.checked(mylar.CONFIG.ANNUALS_ON),
+                    "enable_check_folder": helpers.checked(mylar.CONFIG.ENABLE_CHECK_FOLDER),
+                    "check_folder": mylar.CONFIG.CHECK_FOLDER,
+                    "download_scan_interval": mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL,
+                    "search_interval": mylar.CONFIG.SEARCH_INTERVAL,
+                    "nzb_startup_search": helpers.checked(mylar.CONFIG.NZB_STARTUP_SEARCH),
+                    "search_delay": mylar.CONFIG.SEARCH_DELAY,
+                    "nzb_downloader_sabnzbd": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 0),
+                    "nzb_downloader_nzbget": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 1),
+                    "nzb_downloader_blackhole": helpers.radio(mylar.CONFIG.NZB_DOWNLOADER, 2),
+                    "sab_host": mylar.CONFIG.SAB_HOST,
+                    "sab_user": mylar.CONFIG.SAB_USERNAME,
+                    "sab_api": mylar.CONFIG.SAB_APIKEY,
+                    "sab_pass": mylar.CONFIG.SAB_PASSWORD,
+                    "sab_cat": mylar.CONFIG.SAB_CATEGORY,
+                    "sab_priority": mylar.CONFIG.SAB_PRIORITY,
+                    "sab_directory": mylar.CONFIG.SAB_DIRECTORY,
+                    "sab_to_mylar": helpers.checked(mylar.CONFIG.SAB_TO_MYLAR),
+                    "nzbget_host": mylar.CONFIG.NZBGET_HOST,
+                    "nzbget_port": mylar.CONFIG.NZBGET_PORT,
+                    "nzbget_user": mylar.CONFIG.NZBGET_USERNAME,
+                    "nzbget_pass": mylar.CONFIG.NZBGET_PASSWORD,
+                    "nzbget_cat": mylar.CONFIG.NZBGET_CATEGORY,
+                    "nzbget_priority": mylar.CONFIG.NZBGET_PRIORITY,
+                    "nzbget_directory": mylar.CONFIG.NZBGET_DIRECTORY,
+                    "torrent_downloader_watchlist": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 0),
+                    "torrent_downloader_utorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 1),
+                    "torrent_downloader_rtorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 2),
+                    "torrent_downloader_transmission": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 3),
+                    "torrent_downloader_deluge": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 4),
+                    "torrent_downloader_qbittorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 5),
+                    "utorrent_host": mylar.CONFIG.UTORRENT_HOST,
+                    "utorrent_username": mylar.CONFIG.UTORRENT_USERNAME,
+                    "utorrent_password": mylar.CONFIG.UTORRENT_PASSWORD,
+                    "utorrent_label": mylar.CONFIG.UTORRENT_LABEL,
+                    "rtorrent_host": mylar.CONFIG.RTORRENT_HOST,
+                    "rtorrent_rpc_url": mylar.CONFIG.RTORRENT_RPC_URL,
+                    "rtorrent_authentication": mylar.CONFIG.RTORRENT_AUTHENTICATION,
+                    "rtorrent_ssl": helpers.checked(mylar.CONFIG.RTORRENT_SSL),
+                    "rtorrent_verify": helpers.checked(mylar.CONFIG.RTORRENT_VERIFY),
+                    "rtorrent_username": mylar.CONFIG.RTORRENT_USERNAME,
+                    "rtorrent_password": mylar.CONFIG.RTORRENT_PASSWORD,
+                    "rtorrent_directory": mylar.CONFIG.RTORRENT_DIRECTORY,
+                    "rtorrent_label": mylar.CONFIG.RTORRENT_LABEL,
+                    "rtorrent_startonload": helpers.checked(mylar.CONFIG.RTORRENT_STARTONLOAD),
+                    "transmission_host": mylar.CONFIG.TRANSMISSION_HOST,
+                    "transmission_username": mylar.CONFIG.TRANSMISSION_USERNAME,
+                    "transmission_password": mylar.CONFIG.TRANSMISSION_PASSWORD,
+                    "transmission_directory": mylar.CONFIG.TRANSMISSION_DIRECTORY,
+                    "deluge_host": mylar.CONFIG.DELUGE_HOST,
+                    "deluge_username": mylar.CONFIG.DELUGE_USERNAME,
+                    "deluge_password": mylar.CONFIG.DELUGE_PASSWORD,
+                    "deluge_label": mylar.CONFIG.DELUGE_LABEL,
+                    "qbittorrent_host": mylar.CONFIG.QBITTORRENT_HOST,
+                    "qbittorrent_username": mylar.CONFIG.QBITTORRENT_USERNAME,
+                    "qbittorrent_password": mylar.CONFIG.QBITTORRENT_PASSWORD,
+                    "qbittorrent_label": mylar.CONFIG.QBITTORRENT_LABEL,
+                    "qbittorrent_folder": mylar.CONFIG.QBITTORRENT_FOLDER,
+                    "qbittorrent_startonload": helpers.checked(mylar.CONFIG.QBITTORRENT_STARTONLOAD),
+                    "blackhole_dir": mylar.CONFIG.BLACKHOLE_DIR,
+                    "usenet_retention": mylar.CONFIG.USENET_RETENTION,
+                    "nzbsu": helpers.checked(mylar.CONFIG.NZBSU),
+                    "nzbsu_uid": mylar.CONFIG.NZBSU_UID,
+                    "nzbsu_api": mylar.CONFIG.NZBSU_APIKEY,
+                    "nzbsu_verify": helpers.checked(mylar.CONFIG.NZBSU_VERIFY),
+                    "dognzb": helpers.checked(mylar.CONFIG.DOGNZB),
+                    "dognzb_api": mylar.CONFIG.DOGNZB_APIKEY,
+                    "dognzb_verify": helpers.checked(mylar.CONFIG.DOGNZB_VERIFY),
+                    "experimental": helpers.checked(mylar.CONFIG.EXPERIMENTAL),
+                    "enable_torznab": helpers.checked(mylar.CONFIG.ENABLE_TORZNAB),
+                    "torznab_name": mylar.CONFIG.TORZNAB_NAME,
+                    "torznab_host": mylar.CONFIG.TORZNAB_HOST,
+                    "torznab_apikey": mylar.CONFIG.TORZNAB_APIKEY,
+                    "torznab_category": mylar.CONFIG.TORZNAB_CATEGORY,
+                    "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
+                    "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
+                    "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
+                    "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
-                    "provider_order": mylar.PROVIDER_ORDER,
-                    "enable_torrents": helpers.checked(mylar.ENABLE_TORRENTS),
-                    "minseeds": mylar.MINSEEDS,
-                    "torrent_local": helpers.checked(mylar.TORRENT_LOCAL),
-                    "local_watchdir": mylar.LOCAL_WATCHDIR,
-                    "torrent_seedbox": helpers.checked(mylar.TORRENT_SEEDBOX),
-                    "seedbox_watchdir": mylar.SEEDBOX_WATCHDIR,
-                    "seedbox_host": mylar.SEEDBOX_HOST,
-                    "seedbox_port": mylar.SEEDBOX_PORT,
-                    "seedbox_user": mylar.SEEDBOX_USER,
-                    "seedbox_pass": mylar.SEEDBOX_PASS,
-                    "enable_torrent_search": helpers.checked(mylar.ENABLE_TORRENT_SEARCH),
-                    "enable_tpse": helpers.checked(mylar.ENABLE_TPSE),
-                    "enable_32p": helpers.checked(mylar.ENABLE_32P),
-                    "legacymode_32p": helpers.radio(mylar.MODE_32P, 0),
-                    "authmode_32p": helpers.radio(mylar.MODE_32P, 1),
-                    "rssfeed_32p": mylar.RSSFEED_32P,
-                    "passkey_32p": mylar.PASSKEY_32P,
-                    "username_32p": mylar.USERNAME_32P,
-                    "password_32p": mylar.PASSWORD_32P,
-                    "snatchedtorrent_notify": helpers.checked(mylar.SNATCHEDTORRENT_NOTIFY),
-                    "destination_dir": mylar.DESTINATION_DIR,
-                    "create_folders": helpers.checked(mylar.CREATE_FOLDERS),
-                    "enforce_perms": helpers.checked(mylar.ENFORCE_PERMS),
-                    "chmod_dir": mylar.CHMOD_DIR,
-                    "chmod_file": mylar.CHMOD_FILE,
-                    "chowner": mylar.CHOWNER,
-                    "chgroup": mylar.CHGROUP,
-                    "replace_spaces": helpers.checked(mylar.REPLACE_SPACES),
-                    "replace_char": mylar.REPLACE_CHAR,
-                    "use_minsize": helpers.checked(mylar.USE_MINSIZE),
-                    "minsize": mylar.MINSIZE,
-                    "use_maxsize": helpers.checked(mylar.USE_MAXSIZE),
-                    "maxsize": mylar.MAXSIZE,
+                    "provider_order": mylar.CONFIG.PROVIDER_ORDER,
+                    "enable_torrents": helpers.checked(mylar.CONFIG.ENABLE_TORRENTS),
+                    "minseeds": mylar.CONFIG.MINSEEDS,
+                    "torrent_local": helpers.checked(mylar.CONFIG.TORRENT_LOCAL),
+                    "local_watchdir": mylar.CONFIG.LOCAL_WATCHDIR,
+                    "torrent_seedbox": helpers.checked(mylar.CONFIG.TORRENT_SEEDBOX),
+                    "seedbox_watchdir": mylar.CONFIG.SEEDBOX_WATCHDIR,
+                    "seedbox_host": mylar.CONFIG.SEEDBOX_HOST,
+                    "seedbox_port": mylar.CONFIG.SEEDBOX_PORT,
+                    "seedbox_user": mylar.CONFIG.SEEDBOX_USER,
+                    "seedbox_pass": mylar.CONFIG.SEEDBOX_PASS,
+                    "enable_torrent_search": helpers.checked(mylar.CONFIG.ENABLE_TORRENT_SEARCH),
+                    "enable_tpse": helpers.checked(mylar.CONFIG.ENABLE_TPSE),
+                    "enable_32p": helpers.checked(mylar.CONFIG.ENABLE_32P),
+                    "legacymode_32p": helpers.radio(mylar.CONFIG.MODE_32P, 0),
+                    "authmode_32p": helpers.radio(mylar.CONFIG.MODE_32P, 1),
+                    "rssfeed_32p": mylar.CONFIG.RSSFEED_32P,
+                    "passkey_32p": mylar.CONFIG.PASSKEY_32P,
+                    "username_32p": mylar.CONFIG.USERNAME_32P,
+                    "password_32p": mylar.CONFIG.PASSWORD_32P,
+                    "snatchedtorrent_notify": helpers.checked(mylar.CONFIG.SNATCHEDTORRENT_NOTIFY),
+                    "destination_dir": mylar.CONFIG.DESTINATION_DIR,
+                    "create_folders": helpers.checked(mylar.CONFIG.CREATE_FOLDERS),
+                    "enforce_perms": helpers.checked(mylar.CONFIG.ENFORCE_PERMS),
+                    "chmod_dir": mylar.CONFIG.CHMOD_DIR,
+                    "chmod_file": mylar.CONFIG.CHMOD_FILE,
+                    "chowner": mylar.CONFIG.CHOWNER,
+                    "chgroup": mylar.CONFIG.CHGROUP,
+                    "replace_spaces": helpers.checked(mylar.CONFIG.REPLACE_SPACES),
+                    "replace_char": mylar.CONFIG.REPLACE_CHAR,
+                    "use_minsize": helpers.checked(mylar.CONFIG.USE_MINSIZE),
+                    "minsize": mylar.CONFIG.MINSIZE,
+                    "use_maxsize": helpers.checked(mylar.CONFIG.USE_MAXSIZE),
+                    "maxsize": mylar.CONFIG.MAXSIZE,
                     "interface_list": interface_list,
-                    "dupeconstraint": mylar.DUPECONSTRAINT,
-                    "ddump": helpers.checked(mylar.DDUMP),
-                    "duplicate_dump": mylar.DUPLICATE_DUMP,
-                    "autowant_all": helpers.checked(mylar.AUTOWANT_ALL),
-                    "autowant_upcoming": helpers.checked(mylar.AUTOWANT_UPCOMING),
-                    "comic_cover_local": helpers.checked(mylar.COMIC_COVER_LOCAL),
-                    "pref_qual_0": helpers.radio(int(mylar.PREFERRED_QUALITY), 0),
-                    "pref_qual_1": helpers.radio(int(mylar.PREFERRED_QUALITY), 1),
-                    "pref_qual_2": helpers.radio(int(mylar.PREFERRED_QUALITY), 2),
-                    "move_files": helpers.checked(mylar.MOVE_FILES),
-                    "rename_files": helpers.checked(mylar.RENAME_FILES),
-                    "folder_format": mylar.FOLDER_FORMAT,
-                    "file_format": mylar.FILE_FORMAT,
-                    "zero_level": helpers.checked(mylar.ZERO_LEVEL),
-                    "zero_level_n": mylar.ZERO_LEVEL_N,
-                    "add_to_csv": helpers.checked(mylar.ADD_TO_CSV),
-                    "cvinfo": helpers.checked(mylar.CVINFO),
-                    "lowercase_filenames": helpers.checked(mylar.LOWERCASE_FILENAMES),
-                    "syno_fix": helpers.checked(mylar.SYNO_FIX),
-                    "prowl_enabled": helpers.checked(mylar.PROWL_ENABLED),
-                    "prowl_onsnatch": helpers.checked(mylar.PROWL_ONSNATCH),
-                    "prowl_keys": mylar.PROWL_KEYS,
-                    "prowl_priority": mylar.PROWL_PRIORITY,
-                    "nma_enabled": helpers.checked(mylar.NMA_ENABLED),
-                    "nma_apikey": mylar.NMA_APIKEY,
-                    "nma_priority": int(mylar.NMA_PRIORITY),
-                    "nma_onsnatch": helpers.checked(mylar.NMA_ONSNATCH),
-                    "pushover_enabled": helpers.checked(mylar.PUSHOVER_ENABLED),
-                    "pushover_onsnatch": helpers.checked(mylar.PUSHOVER_ONSNATCH),
-                    "pushover_apikey": mylar.PUSHOVER_APIKEY,
-                    "pushover_userkey": mylar.PUSHOVER_USERKEY,
-                    "pushover_priority": mylar.PUSHOVER_PRIORITY,
-                    "boxcar_enabled": helpers.checked(mylar.BOXCAR_ENABLED),
-                    "boxcar_onsnatch": helpers.checked(mylar.BOXCAR_ONSNATCH),
-                    "boxcar_token": mylar.BOXCAR_TOKEN,
-                    "pushbullet_enabled": helpers.checked(mylar.PUSHBULLET_ENABLED),
-                    "pushbullet_onsnatch": helpers.checked(mylar.PUSHBULLET_ONSNATCH),
-                    "pushbullet_apikey": mylar.PUSHBULLET_APIKEY,
-                    "pushbullet_deviceid": mylar.PUSHBULLET_DEVICEID,
-                    "pushbullet_channel_tag": mylar.PUSHBULLET_CHANNEL_TAG,
-                    "telegram_enabled": helpers.checked(mylar.TELEGRAM_ENABLED),
-                    "telegram_onsnatch": helpers.checked(mylar.TELEGRAM_ONSNATCH),
-                    "telegram_token": mylar.TELEGRAM_TOKEN,
-                    "telegram_userid": mylar.TELEGRAM_USERID,
-                    "slack_enabled": helpers.checked(mylar.SLACK_ENABLED),
-                    "slack_webhook_url": mylar.SLACK_WEBHOOK_URL,
-                    "slack_onsnatch": helpers.checked(mylar.SLACK_ONSNATCH),
-                    "enable_extra_scripts": helpers.checked(mylar.ENABLE_EXTRA_SCRIPTS),
-                    "extra_scripts": mylar.EXTRA_SCRIPTS,
-                    "enable_snatch_script": helpers.checked(mylar.ENABLE_SNATCH_SCRIPT),
-                    "snatch_script": mylar.SNATCH_SCRIPT,
-                    "enable_pre_scripts": helpers.checked(mylar.ENABLE_PRE_SCRIPTS),
-                    "pre_scripts": mylar.PRE_SCRIPTS,
-                    "post_processing": helpers.checked(mylar.POST_PROCESSING),
-                    "file_opts": mylar.FILE_OPTS,
-                    "enable_meta": helpers.checked(mylar.ENABLE_META),
-                    "cbr2cbz_only": helpers.checked(mylar.CBR2CBZ_ONLY),
-                    "cmtagger_path": mylar.CMTAGGER_PATH,
-                    "ct_tag_cr": helpers.checked(mylar.CT_TAG_CR),
-                    "ct_tag_cbl": helpers.checked(mylar.CT_TAG_CBL),
-                    "ct_cbz_overwrite": helpers.checked(mylar.CT_CBZ_OVERWRITE),
-                    "unrar_cmd": mylar.UNRAR_CMD,
-                    "failed_download_handling": helpers.checked(mylar.FAILED_DOWNLOAD_HANDLING),
-                    "failed_auto": helpers.checked(mylar.FAILED_AUTO),
-                    "branch": mylar.GIT_BRANCH,
+                    "dupeconstraint": mylar.CONFIG.DUPECONSTRAINT,
+                    "ddump": helpers.checked(mylar.CONFIG.DDUMP),
+                    "duplicate_dump": mylar.CONFIG.DUPLICATE_DUMP,
+                    "autowant_all": helpers.checked(mylar.CONFIG.AUTOWANT_ALL),
+                    "autowant_upcoming": helpers.checked(mylar.CONFIG.AUTOWANT_UPCOMING),
+                    "comic_cover_local": helpers.checked(mylar.CONFIG.COMIC_COVER_LOCAL),
+                    "pref_qual_0": helpers.radio(int(mylar.CONFIG.PREFERRED_QUALITY), 0),
+                    "pref_qual_1": helpers.radio(int(mylar.CONFIG.PREFERRED_QUALITY), 1),
+                    "pref_qual_2": helpers.radio(int(mylar.CONFIG.PREFERRED_QUALITY), 2),
+                    "move_files": helpers.checked(mylar.CONFIG.MOVE_FILES),
+                    "rename_files": helpers.checked(mylar.CONFIG.RENAME_FILES),
+                    "folder_format": mylar.CONFIG.FOLDER_FORMAT,
+                    "file_format": mylar.CONFIG.FILE_FORMAT,
+                    "zero_level": helpers.checked(mylar.CONFIG.ZERO_LEVEL),
+                    "zero_level_n": mylar.CONFIG.ZERO_LEVEL_N,
+                    "add_to_csv": helpers.checked(mylar.CONFIG.ADD_TO_CSV),
+                    "cvinfo": helpers.checked(mylar.CONFIG.CVINFO),
+                    "lowercase_filenames": helpers.checked(mylar.CONFIG.LOWERCASE_FILENAMES),
+                    "syno_fix": helpers.checked(mylar.CONFIG.SYNO_FIX),
+                    "prowl_enabled": helpers.checked(mylar.CONFIG.PROWL_ENABLED),
+                    "prowl_onsnatch": helpers.checked(mylar.CONFIG.PROWL_ONSNATCH),
+                    "prowl_keys": mylar.CONFIG.PROWL_KEYS,
+                    "prowl_priority": mylar.CONFIG.PROWL_PRIORITY,
+                    "nma_enabled": helpers.checked(mylar.CONFIG.NMA_ENABLED),
+                    "nma_apikey": mylar.CONFIG.NMA_APIKEY,
+                    "nma_priority": int(mylar.CONFIG.NMA_PRIORITY),
+                    "nma_onsnatch": helpers.checked(mylar.CONFIG.NMA_ONSNATCH),
+                    "pushover_enabled": helpers.checked(mylar.CONFIG.PUSHOVER_ENABLED),
+                    "pushover_onsnatch": helpers.checked(mylar.CONFIG.PUSHOVER_ONSNATCH),
+                    "pushover_apikey": mylar.CONFIG.PUSHOVER_APIKEY,
+                    "pushover_userkey": mylar.CONFIG.PUSHOVER_USERKEY,
+                    "pushover_priority": mylar.CONFIG.PUSHOVER_PRIORITY,
+                    "boxcar_enabled": helpers.checked(mylar.CONFIG.BOXCAR_ENABLED),
+                    "boxcar_onsnatch": helpers.checked(mylar.CONFIG.BOXCAR_ONSNATCH),
+                    "boxcar_token": mylar.CONFIG.BOXCAR_TOKEN,
+                    "pushbullet_enabled": helpers.checked(mylar.CONFIG.PUSHBULLET_ENABLED),
+                    "pushbullet_onsnatch": helpers.checked(mylar.CONFIG.PUSHBULLET_ONSNATCH),
+                    "pushbullet_apikey": mylar.CONFIG.PUSHBULLET_APIKEY,
+                    "pushbullet_deviceid": mylar.CONFIG.PUSHBULLET_DEVICEID,
+                    "pushbullet_channel_tag": mylar.CONFIG.PUSHBULLET_CHANNEL_TAG,
+                    "telegram_enabled": helpers.checked(mylar.CONFIG.TELEGRAM_ENABLED),
+                    "telegram_onsnatch": helpers.checked(mylar.CONFIG.TELEGRAM_ONSNATCH),
+                    "telegram_token": mylar.CONFIG.TELEGRAM_TOKEN,
+                    "telegram_userid": mylar.CONFIG.TELEGRAM_USERID,
+                    "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
+                    "slack_webhook_url": mylar.CONFIG.SLACK_WEBHOOK_URL,
+                    "slack_onsnatch": helpers.checked(mylar.CONFIG.SLACK_ONSNATCH),
+                    "enable_extra_scripts": helpers.checked(mylar.CONFIG.ENABLE_EXTRA_SCRIPTS),
+                    "extra_scripts": mylar.CONFIG.EXTRA_SCRIPTS,
+                    "enable_snatch_script": helpers.checked(mylar.CONFIG.ENABLE_SNATCH_SCRIPT),
+                    "snatch_script": mylar.CONFIG.SNATCH_SCRIPT,
+                    "enable_pre_scripts": helpers.checked(mylar.CONFIG.ENABLE_PRE_SCRIPTS),
+                    "pre_scripts": mylar.CONFIG.PRE_SCRIPTS,
+                    "post_processing": helpers.checked(mylar.CONFIG.POST_PROCESSING),
+                    "file_opts": mylar.CONFIG.FILE_OPTS,
+                    "enable_meta": helpers.checked(mylar.CONFIG.ENABLE_META),
+                    "cbr2cbz_only": helpers.checked(mylar.CONFIG.CBR2CBZ_ONLY),
+                    "cmtagger_path": mylar.CONFIG.CMTAGGER_PATH,
+                    "ct_tag_cr": helpers.checked(mylar.CONFIG.CT_TAG_CR),
+                    "ct_tag_cbl": helpers.checked(mylar.CONFIG.CT_TAG_CBL),
+                    "ct_cbz_overwrite": helpers.checked(mylar.CONFIG.CT_CBZ_OVERWRITE),
+                    "unrar_cmd": mylar.CONFIG.UNRAR_CMD,
+                    "failed_download_handling": helpers.checked(mylar.CONFIG.FAILED_DOWNLOAD_HANDLING),
+                    "failed_auto": helpers.checked(mylar.CONFIG.FAILED_AUTO),
+                    "branch": mylar.CONFIG.GIT_BRANCH,
                     "br_type": mylar.INSTALL_TYPE,
                     "br_version": mylar.versioncheck.getVersion()[0],
                     "py_version": platform.python_version(),
                     "data_dir": mylar.DATA_DIR,
                     "prog_dir": mylar.PROG_DIR,
-                    "cache_dir": mylar.CACHE_DIR,
+                    "cache_dir": mylar.CONFIG.CACHE_DIR,
                     "config_file": mylar.CONFIG_FILE,
                     "branch_history": 'None',
 #                    "branch_history" : br_hist,
-                    "log_dir": mylar.LOG_DIR
+                    "log_dir": mylar.CONFIG.LOG_DIR
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -4515,31 +4514,31 @@ class WebInterface(object):
     comic_config.exposed = True
 
     def readlistOptions(self, send2read=0, tab_enable=0, tab_host=None, tab_user=None, tab_pass=None, tab_directory=None, maintainseriesfolder=0):
-        mylar.SEND2READ = int(send2read)
-        mylar.MAINTAINSERIESFOLDER = int(maintainseriesfolder)
-        mylar.TAB_ENABLE = int(tab_enable)
-        mylar.TAB_HOST = tab_host
-        mylar.TAB_USER = tab_user
-        mylar.TAB_PASS = tab_pass
-        mylar.TAB_DIRECTORY = tab_directory
-        mylar.config_write()
+        mylar.CONFIG.SEND2READ = int(send2read)
+        mylar.CONFIG.MAINTAINSERIESFOLDER = int(maintainseriesfolder)
+        mylar.CONFIG.TAB_ENABLE = int(tab_enable)
+        mylar.CONFIG.TAB_HOST = tab_host
+        mylar.CONFIG.TAB_USER = tab_user
+        mylar.CONFIG.TAB_PASS = tab_pass
+        mylar.CONFIG.TAB_DIRECTORY = tab_directory
+        #mylar.config_write()
 
         raise cherrypy.HTTPRedirect("readlist")
 
     readlistOptions.exposed = True
 
     def arcOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, arc_folderformat=None, copy2arcdir=0, arc_fileops='copy'):
-        mylar.READ2FILENAME = int(read2filename)
-        mylar.STORYARCDIR = int(storyarcdir)
-        mylar.ARC_FOLDERFORMAT = arc_folderformat
-        mylar.COPY2ARCDIR = int(copy2arcdir)
-        mylar.ARC_FILEOPS = arc_fileops
-        mylar.config_write()
-        logger.info(mylar.ARC_FOLDERFORMAT)
+        mylar.CONFIG.READ2FILENAME = int(read2filename)
+        mylar.CONFIG.STORYARCDIR = int(storyarcdir)
+        mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
+        mylar.CONFIG.COPY2ARCDIR = int(copy2arcdir)
+        mylar.CONFIG.ARC_FILEOPS = arc_fileops
+        #mylar.config_write()
+        logger.info(mylar.CONFIG.ARC_FOLDERFORMAT)
 
         #force the check/creation of directory com_location here
-        #if mylar.STORYARCDIR:
-        #    arcdir = os.path.join(mylar.DESTINATION_DIR, 'StoryArcs')
+        #if mylar.CONFIG.STORYARCDIR:
+        #    arcdir = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
         #    if os.path.isdir(str(arcdir)):
         #        logger.info(u"Validating Directory (" + str(arcdir) + "). Already exists! Continuing...")
         #    else:
@@ -4555,223 +4554,38 @@ class WebInterface(object):
     arcOptions.exposed = True
 
 
-    def configUpdate(self, comicvine_api=None, http_host='0.0.0.0', http_username=None, http_port=8090, http_password=None, enable_https=0, https_cert=None, https_key=None, api_enabled=0, api_key=None, launch_browser=0, auto_update=0, annuals_on=0, max_logsize=None, download_scan_interval=None, nzb_search_interval=None, nzb_startup_search=0,
-        nzb_downloader=0, sab_host=None, sab_username=None, sab_apikey=None, sab_password=None, sab_category=None, sab_priority=None, sab_directory=None, sab_to_mylar=0, log_dir=None, log_level=0, blackhole_dir=None,
-        nzbget_host=None, nzbget_port=None, nzbget_username=None, nzbget_password=None, nzbget_category=None, nzbget_priority=None, nzbget_directory=None,
-        usenet_retention=None, nzbsu=0, nzbsu_uid=None, nzbsu_apikey=None, nzbsu_verify=0, dognzb=0, dognzb_apikey=None, dognzb_verify=0, newznab=0, newznab_host=None, newznab_name=None, newznab_verify=0, newznab_apikey=None, newznab_uid=None, newznab_enabled=0,
-        enable_torznab=0, torznab_name=None, torznab_host=None, torznab_apikey=None, torznab_category=None, experimental=0, check_folder=None, enable_check_folder=0,
-        enable_meta=0, cbr2cbz_only=0, cmtagger_path=None, ct_tag_cr=0, ct_tag_cbl=0, ct_cbz_overwrite=0, unrar_cmd=None, enable_rss=0, rss_checkinterval=None, failed_download_handling=0, failed_auto=0, enable_torrent_search=0, enable_tpse=0, enable_32p=0, mode_32p=0, rssfeed_32p=None, passkey_32p=None, username_32p=None, password_32p=None, snatchedtorrent_notify=0,
-        enable_torrents=0, minseeds=0, local_watchdir=None, seedbox_watchdir=None, seedbox_user=None, seedbox_pass=None, seedbox_host=None, seedbox_port=None,
-        prowl_enabled=0, prowl_onsnatch=0, prowl_keys=None, prowl_priority=None, nma_enabled=0, nma_apikey=None, nma_priority=0, nma_onsnatch=0, pushover_enabled=0, pushover_onsnatch=0, pushover_apikey=None, pushover_userkey=None, pushover_priority=None, boxcar_enabled=0, boxcar_onsnatch=0, boxcar_token=None,
-        pushbullet_enabled=0, pushbullet_apikey=None, pushbullet_deviceid=None, pushbullet_channel_tag=None, pushbullet_onsnatch=0, telegram_enabled=0, telegram_token=None, telegram_userid=None, telegram_onsnatch=0, torrent_downloader=0, torrent_local=0, torrent_seedbox=0, utorrent_host=None, utorrent_username=None, utorrent_password=None, utorrent_label=None,
-        rtorrent_host=None, rtorrent_ssl=0, rtorrent_verify=0, rtorrent_authentication='basic', rtorrent_rpc_url=None, rtorrent_username=None, rtorrent_password=None, rtorrent_directory=None, rtorrent_label=None, rtorrent_startonload=0, transmission_host=None, transmission_username=None, transmission_password=None, transmission_directory=None,deluge_host=None, deluge_username=None, deluge_password=None, deluge_label=None,
-        qbittorrent_host=None, qbittorrent_username=None, qbittorrent_password=None, qbittorrent_label=None, qbittorrent_folder=None, qbittorrent_startonload=0,
-        preferred_quality=0, move_files=0, rename_files=0, add_to_csv=1, cvinfo=0, lowercase_filenames=0, folder_format=None, file_format=None, enable_extra_scripts=0, extra_scripts=None, enable_snatch_script=0, snatch_script=None, enable_pre_scripts=0, pre_scripts=None, post_processing=0, file_opts=None, syno_fix=0, search_delay=None, enforce_perms=0, chmod_dir=0777, chmod_file=0660, chowner=None, chgroup=None,
-        tsab=None, destination_dir=None, create_folders=1, replace_spaces=0, replace_char=None, use_minsize=0, minsize=None, use_maxsize=0, maxsize=None, autowant_all=0, autowant_upcoming=0, comic_cover_local=0, zero_level=0, zero_level_n=None, interface=None, dupeconstraint=None, ddump=0, duplicate_dump=None, slack_enabled=0, slack_webhook_url=None, slack_onsnatch=0, **kwargs):
-        mylar.COMICVINE_API = comicvine_api
-        mylar.HTTP_HOST = http_host
-        mylar.HTTP_PORT = http_port
-        mylar.HTTP_USERNAME = http_username
-        mylar.HTTP_PASSWORD = http_password
-        mylar.ENABLE_HTTPS = enable_https
-        mylar.HTTPS_CERT = https_cert
-        mylar.HTTPS_KEY = https_key
-        mylar.API_ENABLED = api_enabled
-        mylar.API_KEY = api_key
-        mylar.LAUNCH_BROWSER = launch_browser
-        mylar.AUTO_UPDATE = auto_update
-        mylar.ANNUALS_ON = int(annuals_on)
-        mylar.MAX_LOGSIZE = max_logsize
-        mylar.ENABLE_CHECK_FOLDER = enable_check_folder
-        mylar.CHECK_FOLDER = check_folder
-        mylar.DOWNLOAD_SCAN_INTERVAL = download_scan_interval
-        mylar.SEARCH_INTERVAL = nzb_search_interval
-        mylar.NZB_STARTUP_SEARCH = nzb_startup_search
-        mylar.SEARCH_DELAY = search_delay
-        mylar.NZB_DOWNLOADER = int(nzb_downloader)
-        if tsab:
-            self.SABtest(sab_host, sab_username, sab_password, sab_apikey)
-        else:
-            mylar.SAB_HOST = sab_host
-            mylar.SAB_USERNAME = sab_username
-            mylar.SAB_PASSWORD = sab_password
-            mylar.SAB_APIKEY = sab_apikey
-        mylar.SAB_CATEGORY = sab_category
-        mylar.SAB_PRIORITY = sab_priority
-        mylar.SAB_TO_MYLAR = sab_to_mylar
-        mylar.SAB_DIRECTORY = sab_directory
-        mylar.NZBGET_HOST = nzbget_host
-        mylar.NZBGET_USERNAME = nzbget_username
-        mylar.NZBGET_PASSWORD = nzbget_password
-        mylar.NZBGET_PORT = nzbget_port
-        mylar.NZBGET_CATEGORY = nzbget_category
-        mylar.NZBGET_PRIORITY = nzbget_priority
-        mylar.NZBGET_DIRECTORY = nzbget_directory
-        mylar.BLACKHOLE_DIR = blackhole_dir
-        mylar.USENET_RETENTION = usenet_retention
-        mylar.NZBSU = nzbsu
-        mylar.NZBSU_UID = nzbsu_uid
-        mylar.NZBSU_APIKEY = nzbsu_apikey
-        mylar.NZBSU_VERIFY = nzbsu_verify
-        mylar.DOGNZB = dognzb
-        mylar.DOGNZB_APIKEY = dognzb_apikey
-        mylar.DOGNZB_VERIFYY = dognzb_verify
-        mylar.ENABLE_TORZNAB = enable_torznab
-        mylar.TORZNAB_NAME = torznab_name
-        mylar.TORZNAB_HOST = torznab_host
-        mylar.TORZNAB_APIKEY = torznab_apikey
-        mylar.TORZNAB_CATEGORY = torznab_category
-        mylar.EXPERIMENTAL = experimental
-        mylar.NEWZNAB = newznab
-        #mylar.NEWZNAB_HOST = newznab_host
-        #mylar.NEWZNAB_APIKEY = newznab_apikey
-        #mylar.NEWZNAB_ENABLED = newznab_enabled
-        mylar.ENABLE_RSS = int(enable_rss)
-        mylar.RSS_CHECKINTERVAL = rss_checkinterval
-        mylar.ENABLE_TORRENTS = int(enable_torrents)
-        mylar.MINSEEDS = int(minseeds)
-        mylar.TORRENT_DOWNLOADER = int(torrent_downloader)
-        mylar.TORRENT_LOCAL = int(torrent_local)
-        mylar.LOCAL_WATCHDIR = local_watchdir
-        mylar.TORRENT_SEEDBOX = int(torrent_seedbox)
-        mylar.SEEDBOX_WATCHDIR = seedbox_watchdir
-        mylar.SEEDBOX_HOST = seedbox_host
-        mylar.SEEDBOX_PORT = seedbox_port
-        mylar.SEEDBOX_USER = seedbox_user
-        mylar.SEEDBOX_PASS = seedbox_pass
-        mylar.UTORRENT_HOST = utorrent_host
-        mylar.UTORRENT_USERNAME = utorrent_username
-        mylar.UTORRENT_PASSWORD = utorrent_password
-        mylar.UTORRENT_LABEL = utorrent_label
-        mylar.RTORRENT_HOST = rtorrent_host
-        mylar.RTORRENT_AUTHENTICATION = rtorrent_authentication
-        mylar.RTORRENT_SSL = rtorrent_ssl
-        mylar.RTORRENT_VERIFY = rtorrent_verify
-        mylar.RTORRENT_RPC_URL = rtorrent_rpc_url
-        mylar.RTORRENT_USERNAME = rtorrent_username
-        mylar.RTORRENT_PASSWORD = rtorrent_password
-        mylar.RTORRENT_DIRECTORY = rtorrent_directory
-        mylar.RTORRENT_LABEL = rtorrent_label
-        mylar.RTORRENT_STARTONLOAD = int(rtorrent_startonload)
-        mylar.TRANSMISSION_HOST = transmission_host
-        mylar.TRANSMISSION_USERNAME = transmission_username
-        mylar.TRANSMISSION_PASSWORD = transmission_password
-        mylar.TRANSMISSION_DIRECTORY = transmission_directory
-        mylar.DELUGE_HOST = deluge_host
-        mylar.DELUGE_USERNAME = deluge_username
-        mylar.DELUGE_PASSWORD = deluge_password
-        mylar.DELUGE_LABEL = deluge_label
-        mylar.QBITTORRENT_HOST = qbittorrent_host
-        mylar.QBITTORRENT_USERNAME = qbittorrent_username
-        mylar.QBITTORRENT_PASSWORD = qbittorrent_password
-        mylar.QBITTORRENT_LABEL = qbittorrent_label
-        mylar.QBITTORRENT_FOLDER = qbittorrent_folder
-        mylar.QBITTORRENT_STARTONLOAD = int(qbittorrent_startonload)
-        mylar.ENABLE_TORRENT_SEARCH = int(enable_torrent_search)
-        mylar.ENABLE_TPSE = int(enable_tpse)
-        mylar.ENABLE_32P = int(enable_32p)
-        mylar.MODE_32P = int(mode_32p)
-        mylar.RSSFEED_32P = rssfeed_32p
-        mylar.PASSKEY_32P = passkey_32p
-        mylar.USERNAME_32P = username_32p
-        mylar.PASSWORD_32P = password_32p
-        mylar.SNATCHEDTORRENT_NOTIFY = int(snatchedtorrent_notify)
-        mylar.PREFERRED_QUALITY = int(preferred_quality)
-        mylar.MOVE_FILES = move_files
-        mylar.RENAME_FILES = rename_files
-        mylar.REPLACE_SPACES = replace_spaces
-        mylar.REPLACE_CHAR = replace_char
-        mylar.ZERO_LEVEL = zero_level
-        mylar.ZERO_LEVEL_N = zero_level_n
-        mylar.ADD_TO_CSV = add_to_csv
-        mylar.CVINFO = cvinfo
-        mylar.LOWERCASE_FILENAMES = lowercase_filenames
-        mylar.SYNO_FIX = syno_fix
-        mylar.PROWL_ENABLED = prowl_enabled
-        mylar.PROWL_ONSNATCH = prowl_onsnatch
-        mylar.PROWL_KEYS = prowl_keys
-        mylar.PROWL_PRIORITY = prowl_priority
-        mylar.NMA_ENABLED = nma_enabled
-        mylar.NMA_APIKEY = nma_apikey
-        mylar.NMA_PRIORITY = nma_priority
-        mylar.NMA_ONSNATCH = nma_onsnatch
-        mylar.PUSHOVER_ENABLED = pushover_enabled
-        mylar.PUSHOVER_APIKEY = pushover_apikey
-        mylar.PUSHOVER_USERKEY = pushover_userkey
-        mylar.PUSHOVER_PRIORITY = pushover_priority
-        mylar.PUSHOVER_ONSNATCH = pushover_onsnatch
-        mylar.BOXCAR_ENABLED = boxcar_enabled
-        mylar.BOXCAR_ONSNATCH = boxcar_onsnatch
-        mylar.BOXCAR_TOKEN = boxcar_token
-        mylar.PUSHBULLET_ENABLED = pushbullet_enabled
-        mylar.PUSHBULLET_APIKEY = pushbullet_apikey
-        mylar.PUSHBULLET_DEVICEID = pushbullet_deviceid
-        mylar.PUSHBULLET_CHANNEL_TAG = pushbullet_channel_tag
-        mylar.PUSHBULLET_ONSNATCH = pushbullet_onsnatch
-        mylar.TELEGRAM_ENABLED = telegram_enabled
-        mylar.TELEGRAM_TOKEN = telegram_token
-        mylar.TELEGRAM_USERID = telegram_userid
-        mylar.TELEGRAM_ONSNATCH = telegram_onsnatch
-        mylar.SLACK_ENABLED = slack_enabled
-        mylar.SLACK_WEBHOOK_URL = slack_webhook_url
-        mylar.SLACK_ONSNATCH = slack_onsnatch
-        mylar.USE_MINSIZE = use_minsize
-        mylar.MINSIZE = minsize
-        mylar.USE_MAXSIZE = use_maxsize
-        mylar.MAXSIZE = maxsize
-        if folder_format.startswith('/'):
-            folder_format = re.sub('/', '', folder_format).strip()
-        mylar.FOLDER_FORMAT = folder_format
-        mylar.FILE_FORMAT = file_format
-        mylar.DESTINATION_DIR = destination_dir
-        mylar.CREATE_FOLDERS = create_folders
-        mylar.AUTOWANT_ALL = autowant_all
-        mylar.AUTOWANT_UPCOMING = autowant_upcoming
-        mylar.COMIC_COVER_LOCAL = comic_cover_local
-        mylar.INTERFACE = interface
-        mylar.DUPECONSTRAINT = dupeconstraint
-        mylar.DDUMP = ddump
-        mylar.DUPLICATE_DUMP = duplicate_dump
-        mylar.ENABLE_EXTRA_SCRIPTS = enable_extra_scripts
-        mylar.EXTRA_SCRIPTS = extra_scripts
-        mylar.ENABLE_SNATCH_SCRIPT = enable_snatch_script
-        mylar.SNATCH_SCRIPT = snatch_script
-        mylar.ENABLE_PRE_SCRIPTS = enable_pre_scripts
-        mylar.PRE_SCRIPTS = pre_scripts
-        mylar.POST_PROCESSING = post_processing
-        mylar.FILE_OPTS = file_opts
-        mylar.ENABLE_META = enable_meta
-        mylar.CBR2CBZ_ONLY = cbr2cbz_only
-        mylar.CMTAGGER_PATH = cmtagger_path
-        mylar.CT_TAG_CR = ct_tag_cr
-        mylar.CT_TAG_CBL = ct_tag_cbl
-        mylar.CT_CBZ_OVERWRITE = ct_cbz_overwrite
-        mylar.UNRAR_CMD = unrar_cmd
-        mylar.FAILED_DOWNLOAD_HANDLING = failed_download_handling
-        mylar.FAILED_AUTO = failed_auto
-        mylar.LOG_DIR = log_dir
-        mylar.LOG_LEVEL = log_level
-        mylar.ENFORCE_PERMS = enforce_perms
-        mylar.CHMOD_DIR = chmod_dir
-        mylar.CHMOD_FILE = chmod_file
-        mylar.CHOWNER = chowner
-        mylar.CHGROUP = chgroup
-        # Handle the variable config options. Note - keys with False values aren't getting passed
+    def configUpdate(self, **kwargs):
 
-        mylar.EXTRA_NEWZNABS = []
-        #changing this for simplicty - adding all newznabs into extra_newznabs
-        if newznab_host is not None:
-            #this
-            mylar.EXTRA_NEWZNABS.append((newznab_name, helpers.clean_url(newznab_host), newznab_verify, newznab_apikey, newznab_uid, int(newznab_enabled)))
+        checked_configs = ['enable_https', 'launch_browser', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
+                           'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
+                           'enable_torrents', 'qbittorrent_startonload', 'enable_rss', 'nzbsu', 'nzbsu_verify',
+                           'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_tpse', 'enable_32p', 'enable_torznab',
+                           'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling',
+                           'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
+                           'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
+                           'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cvinfo', 'snatchedtorrent_notify',
+                           'prowl_enabled', 'prowl_onsnatch', 'nma_enabled', 'nma_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
+                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch' ]
 
-        for kwarg in kwargs:
+        for checked_config in checked_configs:
+            if checked_config not in kwargs:
+                kwargs[checked_config] = False
+
+        for k, v in kwargs.iteritems():
+            try:
+                _conf = mylar.CONFIG._define(k)
+            except KeyError:
+                continue
+
+        mylar.CONFIG.EXTRA_NEWZNABS = []
+
+        for kwarg in [x for x in kwargs if x.startswith('newznab_name')]:
             if kwarg.startswith('newznab_name'):
                 newznab_number = kwarg[12:]
                 newznab_name = kwargs['newznab_name' + newznab_number]
                 if newznab_name == "":
                     newznab_name = kwargs['newznab_host' + newznab_number]
                     if newznab_name == "":
-                        logger.fdebug('Blank newznab provider has been entered - removing.')
                         continue
                 newznab_host = helpers.clean_url(kwargs['newznab_host' + newznab_number])
                 try:
@@ -4785,89 +4599,79 @@ class WebInterface(object):
                 except KeyError:
                     newznab_enabled = 0
 
-                mylar.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
+                del kwargs[kwarg]
 
-        # Sanity checking
-        if mylar.COMICVINE_API == 'None' or mylar.COMICVINE_API == '' or mylar.COMICVINE_API == mylar.DEFAULT_CVAPI:
-            logger.info('Personal Comicvine API key not provided. This will severely impact the usage of Mylar - you have been warned.')
-            mylar.COMICVINE_API = None
+                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
-        if mylar.SEARCH_INTERVAL < 360:
-            logger.info("Search interval too low. Resetting to 6 hour minimum")
-            mylar.SEARCH_INTERVAL = 360
+        ## Sanity checking
+        #if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API == '':
+        #    logger.info('Personal Comicvine API key not provided. This will severely impact the usage of Mylar - you have been warned.')
+        #    mylar.CONFIG.COMICVINE_API = None
 
-        if mylar.SEARCH_DELAY < 1:
-            logger.info("Minimum search delay set for 1 minute to avoid hammering.")
-            mylar.SEARCH_DELAY = 1
+        #if mylar.CONFIG.SEARCH_INTERVAL < 360:
+        #    logger.info("Search interval too low. Resetting to 6 hour minimum") mylar.CONFIG.SEARCH_INTERVAL = 360
 
-        if mylar.RSS_CHECKINTERVAL < 20:
-            logger.info("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
-            mylar.RSS_CHECKINTERVAL = 20
+        #if mylar.CONFIG.SEARCH_DELAY < 1:
+        #    logger.info("Minimum search delay set for 1 minute to avoid hammering.")
+        #    mylar.CONFIG.SEARCH_DELAY = 1
 
-        if not helpers.is_number(mylar.CHMOD_DIR):
-            logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
-            mylar.CHMOD_DIR = '0777'
+        #if mylar.CONFIG.RSS_CHECKINTERVAL < 20:
+        #    logger.info("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
+        #    mylar.CONFIG.RSS_CHECKINTERVAL = 20
 
-        if not helpers.is_number(mylar.CHMOD_FILE):
-            logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
-            mylar.CHMOD_FILE = '0660'
+        #if not helpers.is_number(mylar.CONFIG.CHMOD_DIR):
+        #    logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
+        #    mylar.CONFIG.CHMOD_DIR = '0777'
 
-        if mylar.SAB_HOST.endswith('/'):
-            logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
-            mylar.SAB_HOST = mylar.SAB_HOST[:-1]
+        #if not helpers.is_number(mylar.CONFIG.CHMOD_FILE):
+        #    logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
+        #    mylar.CONFIG.CHMOD_FILE = '0660'
 
-        if mylar.FILE_OPTS is None:
-            mylar.FILE_OPTS = 'move'
+        #if mylar.CONFIG.SAB_HOST.endswith('/'):
+        #    logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
+        #    mylar.CONFIG.SAB_HOST = mylar.CONFIG.SAB_HOST[:-1]
 
-        if any([mylar.FILE_OPTS == 'hardlink', mylar.FILE_OPTS == 'softlink']):
-            #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
-            mylar.ENABLE_META = 0
+        #if mylar.CONFIG.FILE_OPTS is None:
+        #    mylar.CONFIG.FILE_OPTS = 'move'
 
-        if mylar.ENABLE_META:
-            #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.
-            logger.fdebug("ComicTagger Path enforced to use local library : " + mylar.PROG_DIR)
-            mylar.CMTAGGER_PATH = mylar.PROG_DIR
+        #if any([mylar.CONFIG.FILE_OPTS == 'hardlink', mylar.CONFIG.FILE_OPTS == 'softlink']):
+        #    #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
+        #    mylar.CONFIG.ENABLE_META = 0
 
-        #legacy support of older config - reload into old values for consistency.
-        if mylar.NZB_DOWNLOADER == 0: mylar.USE_SABNZBD = True
-        elif mylar.NZB_DOWNLOADER == 1: mylar.USE_NZBGET = True
-        elif mylar.NZB_DOWNLOADER == 2: mylar.USE_BLACKHOLE = True
+        #if mylar.CONFIG.ENABLE_META:
+        #    #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.
+        #    logger.fdebug("ComicTagger Path enforced to use local library : " + mylar.PROG_DIR)
+        #    mylar.CONFIG.CMTAGGER_PATH = mylar.PROG_DIR
 
-        if mylar.TORRENT_DOWNLOADER == 0:
-            mylar.USE_WATCHDIR = True
-        elif mylar.TORRENT_DOWNLOADER == 1:
-            mylar.USE_UTORRENT = True
-            mylar.USE_WATCHDIR = False
-        elif mylar.TORRENT_DOWNLOADER == 2:
-            mylar.USE_RTORRENT = True
-            mylar.USE_WATCHDIR = False
-        elif mylar.TORRENT_DOWNLOADER == 3:
-            mylar.USE_TRANSMISSION = True
-            mylar.USE_WATCHDIR = False
+        mylar.CONFIG.process_kwargs(kwargs)
+
+        #this makes sure things are set to the default values if they're not appropriately set.
+        mylar.CONFIG.configure(update=True)
 
         # Write the config
-        mylar.config_write()
+        logger.info('Now saving config...')
+        mylar.CONFIG.writeconfig()
 
-        #raise cherrypy.HTTPRedirect("config")
+        raise cherrypy.HTTPRedirect("config")
 
     configUpdate.exposed = True
 
     def SABtest(self, sabhost=None, sabusername=None, sabpassword=None, sabapikey=None):
         logger.info('here')
         if sabhost is None:
-            sabhost = mylar.SAB_HOST
+            sabhost = mylar.CONFIG.SAB_HOST
         if sabusername is None:
-            sabusername = mylar.SAB_USERNAME
+            sabusername = mylar.CONFIG.SAB_USERNAME
         if sabpassword is None:
-            sabpassword = mylar.SAB_PASSWORD
+            sabpassword = mylar.CONFIG.SAB_PASSWORD
         if sabapikey is None:
-            sabapikey = mylar.SAB_APIKEY
+            sabapikey = mylar.CONFIG.SAB_APIKEY
         logger.fdebug('testing SABnzbd connection')
         logger.fdebug('sabhost: ' + str(sabhost))
         logger.fdebug('sabusername: ' + str(sabusername))
         logger.fdebug('sabpassword: ' + str(sabpassword))
         logger.fdebug('sabapikey: ' + str(sabapikey))
-        if mylar.USE_SABNZBD:
+        if mylar.CONFIG.USE_SABNZBD:
             import requests
             from xml.dom.minidom import parseString, Element
 
@@ -4953,7 +4757,7 @@ class WebInterface(object):
                     qdata = dom.getElementsByTagName('status')[0].firstChild.wholeText
 
                     if str(qdata) == 'True':
-                        q_nzbkey = mylar.SAB_APIKEY
+                        q_nzbkey = mylar.CONFIG.SAB_APIKEY
                         q_apikey = None
                         qd = True
                     else:
@@ -4970,8 +4774,8 @@ class WebInterface(object):
                     return "Invalid APIKey provided"
                 else:
                     logger.info('APIKey provided is FULL APIKey which is too much power - changing to NZBKey')
-                    mylar.SAB_APIKEY = q_nzbkey
-                    mylar.config_write()
+                    mylar.CONFIG.SAB_APIKEY = q_nzbkey
+                    #mylar.config_write()
                     logger.info('Succcessfully changed to NZBKey. Thanks for shopping S-MART!')
             else:
                 logger.info('APIKey provided is NZBKey which is the correct key.')
@@ -5024,7 +4828,7 @@ class WebInterface(object):
         from mylar import sabparse
         sabapi = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
         logger.info('SAB NZBKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
-        mylar.SAB_APIKEY = sabapi
+        mylar.CONFIG.SAB_APIKEY = sabapi
         return sabapi
 
     findsabAPI.exposed = True
@@ -5035,7 +4839,7 @@ class WebInterface(object):
 
         apikey = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
         logger.info("New API generated")
-        mylar.API_KEY = apikey
+        mylar.CONFIG.API_KEY = apikey
         return apikey
 
     generateAPI.exposed = True
@@ -5132,7 +4936,7 @@ class WebInterface(object):
         module = '[MANUAL META-TAGGING]'
         try:
             import cmtagmylar
-            if mylar.CMTAG_START_YEAR_AS_VOLUME:
+            if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                 if all([seriesyear is not None, seriesyear != 'None']):
                     vol_label = seriesyear
                 else:
@@ -5189,8 +4993,8 @@ class WebInterface(object):
 
     def CreateFolders(self, createfolders=None):
         if createfolders:
-            mylar.CREATE_FOLDERS = int(createfolders)
-            mylar.config_write()
+            mylar.CONFIG.CREATE_FOLDERS = int(createfolders)
+            #mylar.config_write()
 
     CreateFolders.exposed = True
 
@@ -5297,7 +5101,7 @@ class WebInterface(object):
         else:
             download = False
 
-        if mylar.AUTO_SNATCH is False:
+        if mylar.CONFIG.AUTO_SNATCH is False:
             logger.warn('Auto-Snatch is not enabled - this will ONLY work with auto-snatch enabled and configured. Aborting request.')
             return  'Unable to complete request - please enable auto-snatch if required'
 
@@ -5310,7 +5114,7 @@ class WebInterface(object):
             torrent_info['upload'] = helpers.human_size(torrent_info['upload_total'])
             torrent_info['seedtime'] = helpers.humanize_time(amount=int(time.time()) - torrent_info['time_started'])
 
-            logger.info("Client: %s", mylar.RTORRENT_HOST)
+            logger.info("Client: %s", mylar.CONFIG.RTORRENT_HOST)
             logger.info("Directory: %s", torrent_info['folder'])
             logger.info("Name: %s", torrent_info['name'])
             logger.info("Hash: %s", torrent_info['hash'])
@@ -5397,7 +5201,7 @@ class WebInterface(object):
                 if weekly['ComicID'] in watchlibrary:
                     haveit = watchlibrary[weekly['ComicID']]
 
-                    if all([mylar.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                    if all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                         tmp_status = 'Wanted'
 
                     for x in issueLibrary:

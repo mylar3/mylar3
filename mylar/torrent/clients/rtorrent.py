@@ -13,12 +13,12 @@ class TorrentClient(object):
 
     def getVerifySsl(self):
         # Ensure verification has been enabled
-        if not mylar.RTORRENT_VERIFY:
+        if not mylar.CONFIG.RTORRENT_VERIFY:
             return False
 
         # Use ca bundle if defined
-        if mylar.RTORRENT_CA_BUNDLE and os.path.exists(ca_bundle):
-            return mylar.RTORRENT_CA_BUNDLE
+        if mylar.CONFIG.RTORRENT_CA_BUNDLE is not None and os.path.exists(mylar.CONFIG.RTORRENT_CA_BUNDLE):
+            return mylar.CONFIG.RTORRENT_CA_BUNDLE
 
         # Use default ssl verification
         return True
@@ -30,17 +30,17 @@ class TorrentClient(object):
         if not host:
             return False
 
-        url = helpers.cleanHost(host, protocol = True, ssl = mylar.RTORRENT_SSL)
+        url = helpers.cleanHost(host, protocol = True, ssl = mylar.CONFIG.RTORRENT_SSL)
 
         # Automatically add '+https' to 'httprpc' protocol if SSL is enabled
-        if mylar.RTORRENT_SSL and url.startswith('httprpc://'):
+        if mylar.CONFIG.RTORRENT_SSL and url.startswith('httprpc://'):
             url = url.replace('httprpc://', 'httprpc+https://')
 
         parsed = urlparse(url)
 
         # rpc_url is only used on http/https scgi pass-through
         if parsed.scheme in ['http', 'https']:
-            url += mylar.RTORRENT_RPC_URL
+            url += mylar.CONFIG.RTORRENT_RPC_URL
 
         #logger.fdebug(url)
 
@@ -103,7 +103,7 @@ class TorrentClient(object):
         return torrent_info if torrent_info else False
 
     def load_torrent(self, filepath):
-        start = bool(mylar.RTORRENT_STARTONLOAD)
+        start = bool(mylar.CONFIG.RTORRENT_STARTONLOAD)
 
         if filepath.startswith('magnet'):
             logger.fdebug('torrent magnet link set to : ' + filepath)
@@ -139,13 +139,13 @@ class TorrentClient(object):
         #    f.set_priority(0)  #set them to not download just to see if this works...
         #torrent.updated_priorities()
 
-        if mylar.RTORRENT_LABEL:
-            torrent.set_custom(1, mylar.RTORRENT_LABEL)
-            logger.fdebug('Setting label for torrent to : ' + mylar.RTORRENT_LABEL)
+        if mylar.CONFIG.RTORRENT_LABEL is not None:
+            torrent.set_custom(1, mylar.CONFIG.RTORRENT_LABEL)
+            logger.fdebug('Setting label for torrent to : ' + mylar.CONFIG.RTORRENT_LABEL)
 
-        if mylar.RTORRENT_DIRECTORY:
-            torrent.set_directory(mylar.RTORRENT_DIRECTORY)
-            logger.fdebug('Setting directory for torrent to : ' + mylar.RTORRENT_DIRECTORY)
+        if mylar.CONFIG.RTORRENT_DIRECTORY is not None:
+            torrent.set_directory(mylar.CONFIG.RTORRENT_DIRECTORY)
+            logger.fdebug('Setting directory for torrent to : ' + mylar.CONFIG.RTORRENT_DIRECTORY)
 
         logger.info('Successfully loaded torrent.')
 

@@ -80,12 +80,14 @@ def locg(pulldate=None,weeknumber=None,year=None):
                          'comicid':    x['comicid'],
                          'issueid':    x['issueid'],
                          'weeknumber': x['weeknumber'],
-                         'year':       x['year']})
+                         'year':       x['year'],
+                         'volume':     x['volume'],
+                         'seriesyear': x['seriesyear']})
             shipdate = x['shipdate']
 
         myDB = db.DBConnection()
 
-        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
+        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, rowid INTEGER PRIMARY KEY)")
 
         #clear out the upcoming table here so they show the new values properly.
         if pulldate == '00000000':
@@ -117,12 +119,14 @@ def locg(pulldate=None,weeknumber=None,year=None):
                             'COMICID':     comicid,
                             'ISSUEID':     issueid,
                             'WEEKNUMBER':  x['weeknumber'],
-                            'YEAR':        x['year']}
+                            'YEAR':        x['year'],
+                            'VOLUME':      x['volume'],
+                            'SERIESYEAR':  x['seriesyear']}
             myDB.upsert("weekly", newValueDict, controlValueDict)
 
         logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for the week of: ' + str(weeknumber))
         #set the last poll date/time here so that we don't start overwriting stuff too much...
-        mylar.PULL_REFRESH = todaydate
+        mylar.CONFIG.PULL_REFRESH = todaydate
 
         return {'status':     'success',
                 'count':      len(data),

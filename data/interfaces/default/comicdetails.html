@@ -21,11 +21,11 @@
                               </form>
                            </div>
 
-                        %if mylar.RENAME_FILES:
+                        %if mylar.CONFIG.RENAME_FILES:
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
                         %endif
                             <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this),true);return true;"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
-                        %if mylar.ENABLE_META:
+                        %if mylar.CONFIG.ENABLE_META:
                             <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table')" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
                         %if comic['Status'] == 'Paused':
@@ -163,10 +163,10 @@
                                    <label><big>Issues in Series: </big><norm>${comic['Total']} issues</norm></label>
                                 </div>
                                 <div>
-                                    %if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
+                                    %if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
                                        <%
                                            try:
-                                               archive_path = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                               archive_path = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
                                            except:
                                                archive_path = 'None'
                                         %>
@@ -261,7 +261,7 @@
                                         <input type="radio" name="fuzzy_year" value="0" ${comicConfig['fuzzy_year0']} /> Default&nbsp;<input type="radio" name="fuzzy_year" value="1" ${comicConfig['fuzzy_year1']} /> Year Removal&nbsp;<input type="radio" name="fuzzy_year" value="2" ${comicConfig['fuzzy_year2']} /> Fuzzy the Year
                                      </div>
 
-                                   %if mylar.ENABLE_32P and mylar.MODE_32P == 1:
+                                   %if mylar.CONFIG.ENABLE_32P and mylar.CONFIG.MODE_32P == 1:
                                    <div class="row">
                                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="allow_packs" value="1" ${comicConfig['allow_packs']} /><label>Enable Pack Downloads<a href="#" title="Will allow downloading of multiple issues in one file (packs), but will search individual issues first"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a></label>
                                    </div>
@@ -284,7 +284,7 @@
         <label for="Skipped" class="checkbox inline Skipped"><input type="checkbox" id="Skipped" checked="checked" /> Skipped: <b>${isCounts['Skipped']}</b></label>
         <label for="Ignored" class="checkbox inline Ignored"><input type="checkbox" id="Ignored" checked="checked" /> Ignored: <b>${isCounts['Ignored']}</b></label>
         <label for="Snatched" class="checkbox inline Snatched"><input type="checkbox" id="Snatched" checked="checked" /> Snatched: <b>${isCounts['Snatched']}</b></label>
-        %if mylar.FAILED_DOWNLOAD_HANDLING:
+        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
             <label for="Failed" class="checkbox inline Failed"><input type="checkbox" id="Failed" checked="checked" /> Failed: <b>${isCounts['Failed']}</b></label>
         %endif
     </div>
@@ -305,7 +305,7 @@
                         <option value="Skipped">Skipped</option>
                         <option value="Archived">Archived</option>
                         <option value="Ignored">Ignored</option>
-                        %if mylar.FAILED_DOWNLOAD_HANDLING:
+                        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                             <option value="Failed">Failed</option>
                         %endif
                 </select>
@@ -377,7 +377,7 @@
                                 %elif (issue['Status'] == 'Snatched'):
                                        <a href="#" onclick="doAjaxCall('retryit?ComicName=${issue['ComicName'] |u}&ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&IssueNumber=${issue['Issue_Number']}&ComicYear=${issue['IssueDate']}', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
-                                       %if mylar.FAILED_DOWNLOAD_HANDLING:
+                                       %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                                                <a href="#" title="Mark issue as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode=failed',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
                                        %endif
                                %elif (issue['Status'] == 'Downloaded'):
@@ -385,8 +385,8 @@
                                               if issue['Location'] is not None:
                                                   linky = os.path.join(comic['ComicLocation'],issue['Location'])
                                                   if not os.path.isfile(linky):
-                                                      if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
-                                                          pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                      if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                                                          pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
                                                           linky = os.path.join(pathdir,issue['Location'])
                                                       else:
                                                           linky = None
@@ -407,7 +407,7 @@
                                                    </div>
                                                 %endif
 
-                                                %if mylar.ENABLE_META:
+                                                %if mylar.CONFIG.ENABLE_META:
                                                     <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
                                                 %endif
                                         %endif
@@ -514,7 +514,7 @@
                                 %elif (annual['Status'] == 'Snatched'):
                                         <a href="#" onclick="doAjaxCall('retryit?ComicName=${annual['ComicName'] |u}&ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&IssueNumber=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&ReleaseComicID=${annual['ReleaseComicID']}', $(this),'table')" data-success="Retrying the same version of '${annual['ComicName']}' '${annual['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                         <a href="#" title="Mark annual as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}&ReleaseComicID=${annual['ReleaseComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
-                                        %if mylar.FAILED_DOWNLOAD_HANDLING:
+                                        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                                                <a href="#" title="Mark annual as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}&ReleaseComicID=${annual['ReleaseComicID']}&mode=failed',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
                                         %endif
                                 %elif (annual['Status'] == 'Downloaded'):
@@ -522,8 +522,8 @@
                                               if annual['Location'] is not None:
                                                   linky = os.path.join(comic['ComicLocation'],annual['Location'])
                                                   if not os.path.isfile(linky):
-                                                      if mylar.MULTIPLE_DEST_DIRS is not None and mylar.MULTIPLE_DEST_DIRS != 'None':
-                                                          pathdir = os.path.join(mylar.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
+                                                      if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None':
+                                                          pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comic['ComicLocation']))
                                                           linky = os.path.join(pathdir,issue['Location'])
                                                       else:
                                                           linky = None
@@ -544,7 +544,7 @@
                                                    </div>
                                                 %endif
 
-                                                %if mylar.ENABLE_META:
+                                                %if mylar.CONFIG.ENABLE_META:
                                                     <a href="#" title="Manually meta-tag annual" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${annual['IssueID']}&filename=${linky |u}&comicid=${annual['ComicID']}&comversion=${comic['ComicVersion']}',$(this),'table')" data-success="${annual['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
                                                 %endif
                                              %endif
@@ -569,7 +569,7 @@
                 </table>
                 </form>
             %endif
-            %if mylar.ANNUALS_ON:
+            %if mylar.CONFIG.ANNUALS_ON:
                         <div style="position:relative; width:960px; height:10px; margin:10px auto;">
                             <form action="manual_annual_add" method="GET">
                                  <input type="hidden" name="comicid" value=${comic['ComicID']}>

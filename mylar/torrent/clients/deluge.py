@@ -123,19 +123,19 @@ class TorrentClient(object):
                     return False
 
             # If label enabled put label on torrent in Deluge
-            if torrent_id and mylar.DELUGE_LABEL:
-                logger.info ('Setting label to ' + mylar.DELUGE_LABEL)
+            if torrent_id and mylar.CONFIG.DELUGE_LABEL:
+                logger.info ('Setting label to ' + mylar.CONFIG.DELUGE_LABEL)
                 try:
-                    self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                    self.client.call('label.set_torrent', torrent_id, mylar.CONFIG.DELUGE_LABEL)
                 except:
                  #if label isn't set, let's try and create one.
                     try:
-                        self.client.call('label.add', mylar.DELUGE_LABEL)
-                        self.client.call('label.set_torrent', torrent_id, mylar.DELUGE_LABEL)
+                        self.client.call('label.add', mylar.CONFIG.DELUGE_LABEL)
+                        self.client.call('label.set_torrent', torrent_id, mylar.CONFIG.DELUGE_LABEL)
                     except:
                         logger.warn('Unable to set label - Either try to create it manually within Deluge, and/or ensure there are no spaces, capitalization or special characters in label')
                     else:
-                        logger.info('Succesfully set label to ' + mylar.DELUGE_LABEL)
+                        logger.info('Succesfully set label to ' + mylar.CONFIG.DELUGE_LABEL)
 
         try:
             torrent_info = self.get_torrent(torrent_id)
@@ -146,7 +146,7 @@ class TorrentClient(object):
         else:
             logger.info('Torrent successfully added!')
             return {'hash':             torrent_info['hash'],
-                    'label':            mylar.DELUGE_LABEL,
+                    'label':            mylar.CONFIG.DELUGE_LABEL,
                     'folder':           torrent_info['save_path'],
                     'total_filesize':   torrent_info['total_size'],
                     'name':             torrent_info['name'],
