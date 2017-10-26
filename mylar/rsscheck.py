@@ -53,7 +53,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             tpse_url = mylar.CONFIG.TPSE_PROXY + '/'
     else:
         #switched to https.
-        tpse_url = mylar.CONFIG.TPSEURL
+        tpse_url = mylar.TPSEURL
 
     #this is for the public trackers included thus far in order to properly cycle throught the correct ones depending on the search request
     # TPSE = search only
