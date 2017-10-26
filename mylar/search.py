@@ -339,7 +339,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             name_newznab = name_newznab[:-10].strip()
             newznab_local = False
         apikey = newznab_host[3].rstrip()
-        verify = bool(newznab_host[2].rstrip())
+        verify = bool(newznab_host[2])
         if '#' in newznab_host[4].rstrip():
             catstart = newznab_host[4].find('#')
             category_newznab = newznab_host[4][catstart +1:]
