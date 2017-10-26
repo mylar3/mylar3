@@ -495,7 +495,7 @@ class info32p(object):
                 r = self.ses.post(u, data=postdata, timeout=60, allow_redirects=True)
                 logger.debug(self.module + ' Status Code: ' + str(r.status_code))
             except Exception as e:
-                logger.error(self.module + " Got an exception when trying to login to %s POST", u)
+                logger.error(self.module + " Got an exception when trying to login to %s POST [%s]", (u, e))
                 self.error = {'status':'exception', 'message':'Exception when trying to login'}
                 return False
 

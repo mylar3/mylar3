@@ -116,7 +116,7 @@ def initialize(options):
         }
     }
 
-    if options['http_password'] != "":
+    if options['http_password'] is not None:
         conf['/'].update({
             'tools.auth_basic.on': True,
             'tools.auth_basic.realm': 'Mylar',
