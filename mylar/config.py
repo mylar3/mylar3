@@ -580,8 +580,14 @@ class Config(object):
             logger.warn("Error writing configuration file: %s", e)
 
     def configure(self, update=False):
-        if all(['http://' not in self.SAB_HOST[:7], 'https://' not in self.SAB_HOST[:8], self.SAB_HOST != '', self.SAB_HOST is not None]):
-            self.SAB_HOST = 'http://' + self.SAB_HOST
+        try:
+            if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):
+                self.SAB_HOST = 'http://' + self.SAB_HOST
+            if self.SAB_HOST.endswith('/'):
+                logger.fdebug("Auto-correcting trailing slash in SABnzbd url (not required)")
+                self.SAB_HOST = self.SAB_HOST[:-1]
+        except:
+            pass
 
         if not update:
            logger.fdebug('Log dir: %s' % self.LOG_DIR)
@@ -593,7 +599,7 @@ class Config(object):
             try:
                 os.makedirs(self.LOG_DIR)
             except OSError:
-                if not QUIET:
+                if not mylar.QUIET:
                     logger.warn('Unable to create the log directory. Logging to screen only.')
 
         if not update:
@@ -614,7 +620,7 @@ class Config(object):
         ## Sanity checking
         if any([self.COMICVINE_API is None, self.COMICVINE_API == 'None', self.COMICVINE_API == '']):
             logger.error('No User Comicvine API key specified. I will not work very well due to api limits - http://api.comicvine.com/ and get your own free key.')
-            mylar.CONFIG.COMICVINE_API = None
+            self.COMICVINE_API = None
 
         if self.SEARCH_INTERVAL < 360:
             logger.fdebug('Search interval too low. Resetting to 6 hour minimum')
@@ -635,10 +641,6 @@ class Config(object):
         if not helpers.is_number(self.CHMOD_FILE):
             logger.fdebug("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
             self.CHMOD_FILE = '0660'
-
-        if self.SAB_HOST.endswith('/'):
-            logger.fdebug("Auto-correcting trailing slash in SABnzbd url (not required)")
-            self.SAB_HOST = self.SAB_HOST[:-1]
 
         if self.FILE_OPTS is None:
             self.FILE_OPTS = 'move'
@@ -745,6 +747,8 @@ class Config(object):
                         en_name = ens[1]
                     else:
                         en_name = ens[0]
+                    if en_name.endswith("\""):
+                        en_name = re.sub("\"", "", str(en_name)).strip()
                     PR.append(en_name)
                     PPR.append(en_name)
                     PR_NUM +=1
@@ -760,7 +764,7 @@ class Config(object):
                 POR = ', '.join(PO)
                 PRO_ORDER = zip(*[iter(POR.split(', '))]*2)
 
-            logger.info('provider_order: %s' % self.PROVIDER_ORDER)
+            logger.fdebug('Original provider_order sequence: %s' % self.PROVIDER_ORDER)
 
             #if provider order exists already, load it and then append to end any NEW entries.
             logger.fdebug('Provider sequence already pre-exists. Re-loading and adding/remove any new entries')
@@ -851,5 +855,9 @@ class Config(object):
         flattened_newznabs = []
         for item in self.EXTRA_NEWZNABS:
             for i in item:
-                flattened_newznabs.append(str(i))
+                if "\"" in i and " \"" in i:
+                    ib = i.replace("\"", "").strip()
+                else:
+                    ib = i
+                flattened_newznabs.append(str(ib))
         return flattened_newznabs
