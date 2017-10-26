@@ -4601,7 +4601,7 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name.strip(), newznab_host.strip(), newznab_verify, newznab_api.strip(), newznab_uid, newznab_enabled))
+                mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
         ## Sanity checking
         #if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API == '':

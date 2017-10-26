@@ -855,9 +855,12 @@ class Config(object):
         flattened_newznabs = []
         for item in self.EXTRA_NEWZNABS:
             for i in item:
-                if "\"" in i and " \"" in i:
-                    ib = i.replace("\"", "").strip()
-                else:
+                try:
+                    if "\"" in i and " \"" in i:
+                        ib = str(i).replace("\"", "").strip()
+                    else:
+                        ib = i
+                except:
                     ib = i
                 flattened_newznabs.append(str(ib))
         return flattened_newznabs
