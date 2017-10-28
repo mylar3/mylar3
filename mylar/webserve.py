@@ -2042,11 +2042,14 @@ class WebInterface(object):
             issues = myDB.select("SELECT * FROM issues WHERE ComicID=?", [cid])
             if mylar.CONFIG.ANNUALS_ON:
                 issues += myDB.select("SELECT * FROM annuals WHERE ComicID=?", [cid])
-            if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
-                logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
-                logger.fdebug('dir: ' + comicdir)
-                logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
-                pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+            try:
+                if mylar.CONFIG.MULTIPLE_DEST_DIRS is not None and mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None' and os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir)) != comicdir:
+                    logger.fdebug('multiple_dest_dirs:' + mylar.CONFIG.MULTIPLE_DEST_DIRS)
+                    logger.fdebug('dir: ' + comicdir)
+                    logger.fdebug('os.path.basename: ' + os.path.basename(comicdir))
+                    pathdir = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(comicdir))
+            except:
+                pass
 
             for root, dirnames, filenames in os.walk(comicdir):
                 for filename in filenames:
@@ -3100,12 +3103,14 @@ class WebInterface(object):
                             if issue['Status'] == 'Downloaded':
                                 #check multiple destination directory usage here.
                                 if not os.path.isfile(issloc):
-                                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
-                                        issloc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
-                                        if not os.path.isfile(issloc):
-                                            logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
-                                            continue
-
+                                    try:
+                                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])) != issloc, os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory'])))]):
+                                            issloc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(m_arc['match_filedirectory']), issue['Location'])
+                                            if not os.path.isfile(issloc):
+                                                logger.warn('Source file cannot be located. Please do a Recheck for the specific series to ensure everything is correct.')
+                                                continue
+                                    except:
+                                        pass
                                 logger.fdebug('source location set to  : ' + issloc)
 
                                 if all([mylar.CONFIG.STORYARCDIR, mylar.CONFIG.COPY2ARCDIR]):

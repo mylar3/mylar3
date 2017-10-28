@@ -132,8 +132,8 @@ COMMITS_BEHIND = None
 LOCAL_IP = None
 DOWNLOAD_APIKEY = None
 CMTAGGER_PATH = None
-STATIC_COMICRN_VERSION = None
-STATIC_APC_VERSION = None
+STATIC_COMICRN_VERSION = "1.01"
+STATIC_APC_VERSION = "1.0"
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
                                  'class':  'apscheduler.executors.pool:ThreadPoolExecutor',

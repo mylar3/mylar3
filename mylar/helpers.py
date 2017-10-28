@@ -2504,10 +2504,13 @@ def updatearc_locs(storyarcid, issues):
             if chk['Status'] == 'Downloaded':
                 pathsrc = os.path.join(chk['ComicLocation'], chk['Location'])
                 if not os.path.exists(pathsrc):
-                    if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])) != chk['ComicLocation'], os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])))]):
-                        pathsrc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']), chk['Location'])
-                    else:
-                        logger.fdebug(module + ' file does not exist in location: ' + pathdir + '. Cannot valid location - some options will not be available for this item.')
+                    try:
+                        if all([mylar.CONFIG.MULTIPLE_DEST_DIRS is not None, mylar.CONFIG.MULTIPLE_DEST_DIRS != 'None', os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])) != chk['ComicLocation'], os.path.exists(os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation'])))]):
+                            pathsrc = os.path.join(mylar.CONFIG.MULTIPLE_DEST_DIRS, os.path.basename(chk['ComicLocation']), chk['Location'])
+                        else:
+                            logger.fdebug(module + ' file does not exist in location: ' + pathdir + '. Cannot valid location - some options will not be available for this item.')
+                            continue
+                    except:
                         continue
 
 #                update_iss.append({'IssueID':    chk['IssueID'],
