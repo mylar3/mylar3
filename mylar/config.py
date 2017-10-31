@@ -40,7 +40,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NEWCOM_DIR': (str, 'General', None),
     'FFTONEWCOM_DIR': (bool, 'General', False),
     'FOLDER_SCAN_LOG_VERBOSE': (bool, 'General', False),
-    'INTERFACE': (str, 'General', None),
+    'INTERFACE': (str, 'General', 'default'),
     'CORRECT_METADATA': (bool, 'General', False),
     'MOVE_FILES': (bool, 'General', False),
     'RENAME_FILES': (bool, 'General', False),
@@ -84,10 +84,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'BIGGIE_PUB': (int, 'Weekly', 55),
 
     'HTTP_PORT' : (int, 'Interface', 8090),
-    'HTTP_HOST' : (str, 'Interface', None),
+    'HTTP_HOST' : (str, 'Interface', '0.0.0.0'),
     'HTTP_USERNAME' : (str, 'Interface', None),
     'HTTP_PASSWORD' : (str, 'Interface', None),
-    'HTTP_ROOT' : (str, 'Interface', None),
+    'HTTP_ROOT' : (str, 'Interface', '/'),
     'ENABLE_HTTPS' : (bool, 'Interface', False),
     'HTTPS_CERT' : (str, 'Interface', None),
     'HTTPS_KEY' : (str, 'Interface', None),
@@ -192,7 +192,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_PASSWORD': (str, 'SABnzbd', None),
     'SAB_APIKEY': (str, 'SABnzbd', None),
     'SAB_CATEGORY': (str, 'SABnzbd', None),
-    'SAB_PRIORITY': (str, 'SABnzbd', None),
+    'SAB_PRIORITY': (str, 'SABnzbd', "Default"),
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
 
@@ -220,7 +220,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DOGNZB_VERIFY': (bool, 'DOGnzb', True),
 
     'NEWZNAB': (bool, 'Newznab', False),
-    'EXTRA_NEWZNABS': (str, 'Newznab', None),
+    'EXTRA_NEWZNABS': (str, 'Newznab', ""),
 
     'ENABLE_TORZNAB': (bool, 'Torznab', False),
     'TORZNAB_NAME': (str, 'Torznab', None),
@@ -319,6 +319,11 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'QBITTORRENT_FOLDER': (str, 'qBittorrent', None),
     'QBITTORRENT_STARTONLOAD': (bool, 'qBittorrent', False),
 
+    'OPDS_ENABLE': (bool, 'OPDS', False),
+    'OPDS_READONLYUSER': (bool, 'OPDS', False),
+    'OPDS_READONLYUSERNAME': (str, 'OPDS', None),
+    'OPDS_READONLYPASSWORD': (str, 'OPDS', None),
+
 })
 
 class Config(object):
@@ -329,9 +334,12 @@ class Config(object):
 
     def config_vals(self, update=False):
         if update is False:
-            self.config = config.readfp(codecs.open(self._config_file, 'r', 'utf8')) #read(self._config_file)
-            #check for empty config / new config
-            count = sum(1 for line in open(self._config_file))
+            if os.path.isfile(self._config_file):
+                self.config = config.readfp(codecs.open(self._config_file, 'r', 'utf8')) #read(self._config_file)
+                #check for empty config / new config
+                count = sum(1 for line in open(self._config_file))
+            else:
+                count = 0
             self.newconfig = 7
             if count == 0:
                 CONFIG_VERSION = 0
@@ -373,6 +381,7 @@ class Config(object):
                 except:
                     value = self.argToBool(v[2])
                 try:
+
                     if all([v[0] == int, str(value).isdigit()]):
                         value = int(value)
                 except:
@@ -602,8 +611,8 @@ class Config(object):
                 if not mylar.QUIET:
                     logger.warn('Unable to create the log directory. Logging to screen only.')
 
-        if not update:
-            logger.fdebug('[Cache Check] Cache directory currently set to : ' + self.CACHE_DIR)
+        # if not update:
+        #     logger.fdebug('[Cache Check] Cache directory currently set to : ' + self.CACHE_DIR)
 
         # Put the cache dir in the data dir for now
         if not self.CACHE_DIR:
