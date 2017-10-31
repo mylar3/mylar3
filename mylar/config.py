@@ -117,8 +117,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CHECK_GITHUB_ON_STARTUP' : (bool, 'Git', False),
 
     'ENFORCE_PERMS': (bool, 'Perms', True),
-    'CHMOD_DIR': (str, 'Perms', 0777),
-    'CHMOD_FILE': (str, 'Perms', 0660),
+    'CHMOD_DIR': (str, 'Perms', '0777'),
+    'CHMOD_FILE': (str, 'Perms', '0660'),
     'CHOWNER': (str, 'Perms', None),
     'CHGROUP': (str, 'Perms', None),
 

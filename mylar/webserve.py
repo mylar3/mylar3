@@ -4863,6 +4863,21 @@ class WebInterface(object):
 
     api.exposed = True
 
+
+    def opds(self, *args, **kwargs):
+        from mylar.opds import OPDS
+
+        op = OPDS()
+
+        op.checkParams(*args, **kwargs)
+
+        data = op.fetchData()
+
+        return data
+
+
+    opds.exposed = True
+
     def downloadthis(self, pathfile=None):
         #pathfile should be escaped via the |u tag from within the html call already.
         logger.fdebug('filepath to retrieve file from is : ' + pathfile)

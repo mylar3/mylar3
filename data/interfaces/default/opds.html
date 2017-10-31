@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:xhtml="http://www.w3.org/1999/xhtml"
+      xmlns:opds="http://opds-spec.org/2010/catalog"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+      xmlns:dcterms="http://purl.org/dc/terms/">
+    <title>${opds['title']}</title>
+    <id>${opds['id']}</id>
+    <updated>${opds['updated']}</updated>
+    <author>
+        <name>Mylar Server</name>
+        <uri>https://github.com/evilhero/mylar</uri>
+    </author>
+    %for link in opds['links']:
+    <link rel="${link['rel']}" href="${link['href']}" type="${link['type']}"
+    %if 'title' in link:
+    title="${link['title']}"
+    %endif
+    />
+
+    %endfor
+    %for entry in opds['entries']:
+    <entry>
+        <title>${entry['title']}</title>
+        <id>${entry['id']}</id>
+        <updated>${entry['updated']}</updated>
+        <content type="text">${entry['content']}</content>
+        <link href="${entry['href']}" type="application/atom+xml;profile=opds-catalog;kind=${entry['kind']}"/>
+        %if 'thumbnail' in entry:
+        <link href="${entry['thumbnail']}" type="image/png" rel="http://opds-spec.org/image/thumbnail"/>
+        %endif
+    </entry>
+    %endfor
+</feed>
