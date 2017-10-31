@@ -4353,7 +4353,11 @@ class WebInterface(object):
                     "config_file": mylar.CONFIG_FILE,
                     "branch_history": 'None',
 #                    "branch_history" : br_hist,
-                    "log_dir": mylar.CONFIG.LOG_DIR
+                    "log_dir": mylar.CONFIG.LOG_DIR,
+                    "opds_enable": helpers.checked(mylar.CONFIG.OPDS_ENABLE),
+                    "opds_authentication": helpers.checked(mylar.CONFIG.OPDS_AUTHENTICATION),
+                    "opds_username": mylar.CONFIG.OPDS_USERNAME,
+                    "opds_password": mylar.CONFIG.OPDS_PASSWORD,
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -4570,7 +4574,8 @@ class WebInterface(object):
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'nma_enabled', 'nma_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
-                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch' ]
+                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
+                           'opds_enable', 'opds_authentication']
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:

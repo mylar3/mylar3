@@ -44,8 +44,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CORRECT_METADATA': (bool, 'General', False),
     'MOVE_FILES': (bool, 'General', False),
     'RENAME_FILES': (bool, 'General', False),
-    'FOLDER_FORMAT': (str, 'General', None),
-    'FILE_FORMAT': (str, 'General', None),
+    'FOLDER_FORMAT': (str, 'General', '$Series ($Year)'),
+    'FILE_FORMAT': (str, 'General', '$Series $Annual $Issue ($Year)'),
     'REPLACE_SPACES': (bool, 'General', False),
     'REPLACE_CHAR': (str, 'General', None),
     'ZERO_LEVEL': (bool, 'General', False),
@@ -104,7 +104,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
-    'CVINFO': (bool, 'CV', True),
+    'CVINFO': (bool, 'CV', False),
 
     'LOG_DIR' : (str, 'Logs', None),
     'MAX_LOGSIZE' : (int, 'Logs', 10000000),
@@ -320,9 +320,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'QBITTORRENT_STARTONLOAD': (bool, 'qBittorrent', False),
 
     'OPDS_ENABLE': (bool, 'OPDS', False),
-    'OPDS_READONLYUSER': (bool, 'OPDS', False),
-    'OPDS_READONLYUSERNAME': (str, 'OPDS', None),
-    'OPDS_READONLYPASSWORD': (str, 'OPDS', None),
+    'OPDS_AUTHENTICATION': (bool, 'OPDS', False),
+    'OPDS_USERNAME': (str, 'OPDS', None),
+    'OPDS_PASSWORD': (str, 'OPDS', None),
 
 })
 

@@ -20,7 +20,6 @@ import mylar
 from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
 import simplejson as simplejson
 import cherrypy
-from lxml import etree
 import os
 import urllib2
 import cache
@@ -81,12 +80,9 @@ class OPDS(object):
             return self.data
 
     def _error_with_message(self, message):
-        feed = etree.Element("feed")
-
-        error = etree.SubElement(feed,'error')
-        error.text = message
+        error = '<feed><error>%s</error></feed>' % message
         cherrypy.response.headers['Content-Type'] = "text/xml"
-        return etree.tostring(feed)
+        return error
 
     def _root(self, **kwargs):
         myDB = db.DBConnection()
@@ -96,23 +92,9 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append({
-                'href': '/opds',
-                'type': 'application/atom+xml;profile=opds-catalog;kind=navigation',
-                'rel': 'start',
-                'title': 'Home'
-            })
-        links.append({
-            'href': '/opds',
-            'type': 'application/atom+xml;profile=opds-catalog;kind=navigation',
-            'rel': 'self',
-        })
-        links.append({
-            'href': '/opds?cmd=search',
-            'type': 'application/opensearchdescription+xml',
-            'rel': 'search',
-            'title': 'Search',
-        })
+        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation',rel='self'))
+        links.append(getLink(href='/opds?cmd=search', type='application/opensearchdescription+xml',rel='search',title='Search'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         if len(publishers) > 0:
             count = len(publishers)
@@ -142,7 +124,33 @@ class OPDS(object):
                     'kind': 'navigation'
                 }
             )
+        storyArcs = mylar.helpers.listStoryArcs()
+        logger.debug(storyArcs)
+        if len(storyArcs) > 0:
+            entries.append(
+                {
+                    'title': 'Story Arcs (%s)' % len(storyArcs),
+                    'id': 'StoryArcs',
+                    'updated': mylar.helpers.now(),
+                    'content': 'List of Story Arcs',
+                    'href': '/opds?cmd=StoryArcs',
+                    'kind': 'navigation'
+                }
+            )
+
         feed['links'] = links
         feed['entries'] = entries
         self.data = feed
         return
+
+def getLink(href=None, type=None, rel=None, title=None):
+    link = {}
+    if href:
+        link['href'] = href
+    if type:
+        link['type'] = type
+    if rel:
+        link['rel'] = rel
+    if title:
+        link['title'] = title
+    return link

@@ -240,6 +240,10 @@ def main():
         'https_chain': mylar.CONFIG.HTTPS_CHAIN,
         'http_username': mylar.CONFIG.HTTP_USERNAME,
         'http_password': mylar.CONFIG.HTTP_PASSWORD,
+        'opds_enable': mylar.CONFIG.OPDS_ENABLE,
+        'opds_authentication': mylar.CONFIG.OPDS_AUTHENTICATION,
+        'opds_username': mylar.CONFIG.OPDS_USERNAME,
+        'opds_password': mylar.CONFIG.OPDS_PASSWORD,
     }
 
     # Try to start the server.

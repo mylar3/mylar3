@@ -205,6 +205,34 @@
                                 </div>
                          </fieldset>
                         <fieldset>
+                                <legend>OPDS</legend>
+                                <div class="row">
+                                    <div class="row_checkbox">
+                                        <input id="opds_enable" type="checkbox" name="opds_enable" value="1" ${config['opds_enable']} /><label>Enable OPDS</label>
+                                    </div>
+                                    <div id="opdsoptions">
+                                        <div class="row_checkbox">
+                                            <input id="opds_authentication" type="checkbox" name="opds_authentication" value="1" ${config['opds_authentication']} /><label>OPDS Requires Credentials</label>
+                                            <%
+                                                 opds_notes = "Require authentication for OPDS.  If checked\nyou will need to provide a username/password.\nThe service user name will work (if set).  Additionally,\nyou can provide a user with only OPDS access below.\nNOTE: If this is not checked, OPDS will be available\nwithout a password."
+                                            %>
+                                            <a href="#" title="${opds_notes}"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                            <div id="opdscredentials">
+                                                 <div class="row">
+                                                     <label>OPDS Username</label>
+                                                     <input type="text" name="opds_username" value="${config['opds_username']}" size="30">
+                                                 </div>
+
+                                                 <div class="row">
+                                                   <label>OPDS Password</label>
+                                                   <input type="password" name="opds_password" value="${config['opds_password']| h}" size="30">
+                                                 </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                        </fieldset>
+                        <fieldset>
                     	<legend>Interval</legend>
 	                    <div class="row">
 	                    	<label>NZB Search Interval</label>
@@ -1366,7 +1394,45 @@
                                 $("#apioptions").slideUp();
                         }
                 });
+                if ($("#opds_enable").is(":checked"))
+                        {
+                                $("#opdsoptions").show();
+                        }
+                        else
+                        {
+                                $("#opdsoptions").hide();
+                        }
+                        
+                $("#opds_enable").click(function(){
+                        if ($("#opds_enable").is(":checked"))
+                        {
+                                $("#opdsoptions").slideDown();
+                        }
+                        else
+                        {
+                                $("#opdsoptions").slideUp();
+                        }
+                });
 
+                if ($("#opds_authentication").is(":checked"))
+                        {
+                                $("#opdscredentials").show();
+                        }
+                        else
+                        {
+                                $("#opdscredentials").hide();
+                        }
+                        
+                $("#opds_authentication").click(function(){
+                        if ($("#opds_authentication").is(":checked"))
+                        {
+                                $("#opdscredentials").slideDown();
+                        }
+                        else
+                        {
+                                $("#opdscredentials").slideUp();
+                        }
+                });
 
                 if ($("#cbr2cbz").is(":checked"))
                         {
