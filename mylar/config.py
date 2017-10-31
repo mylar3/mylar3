@@ -102,9 +102,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'COMICVINE_API': (str, 'CV', None),
     'BLACKLISTED_PUBLISHERS' : (str, 'CV', None),
     'CV_VERIFY': (bool, 'CV', True),
-    'CV_ONLY': (bool, 'CV', False),
+    'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
-    'CVINFO': (bool, 'CV', False),
+    'CVINFO': (bool, 'CV', True),
 
     'LOG_DIR' : (str, 'Logs', None),
     'MAX_LOGSIZE' : (int, 'Logs', 10000000),
