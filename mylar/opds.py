@@ -106,7 +106,8 @@ class OPDS(object):
                     'updated': mylar.helpers.now(),
                     'content': 'List of Comic Publishers',
                     'href': '/opds?cmd=Publishers',
-                    'kind': 'navigation'
+                    'kind': 'navigation',
+                    'rel': 'subsection',
                 }
             )
         comics = mylar.helpers.havetotals()
@@ -122,8 +123,9 @@ class OPDS(object):
                     'updated': mylar.helpers.now(),
                     'content': 'List of All Comics',
                     'href': '/opds?cmd=AllTitles',
-                    'kind': 'navigation'
-                }
+                    'kind': 'navigation',
+                    'rel': 'subsection',
+            }
             )
         storyArcs = mylar.helpers.listStoryArcs()
         logger.debug(storyArcs)
@@ -135,8 +137,10 @@ class OPDS(object):
                     'updated': mylar.helpers.now(),
                     'content': 'List of Story Arcs',
                     'href': '/opds?cmd=StoryArcs',
-                    'kind': 'navigation'
-                }
+                    'kind': 'navigation',
+                    'rel': 'subsection',
+
+            }
             )
         readList = myDB.select("SELECT * from readlist")
         if len(readList) > 0:
@@ -147,8 +151,8 @@ class OPDS(object):
                     'updated': mylar.helpers.now(),
                     'content': 'Current Read List',
                     'href': '/opds?cmd=ReadList',
-                    'kind': 'navigation'
-
+                    'kind': 'navigation',
+                    'rel': 'subsection',
                 }
             )
 
@@ -168,8 +172,8 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml;profile=opds-catalog;kind=navigation',rel='self'))
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         comics = mylar.helpers.havetotals()
         for publisher in publishers:
@@ -186,14 +190,15 @@ class OPDS(object):
                         'content': publisher['ComicPublisher'],
                         'href': '/opds?cmd=Publisher&id=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
+                        'rel': 'subsection',
                     }
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publishers&index=%s' % (index+30), type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='next'))
+                getLink(href='/opds?cmd=Publishers&index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publishers&index=%s' % (index-30), type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='previous'))
+                getLink(href='/opds?cmd=Publishers&index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
