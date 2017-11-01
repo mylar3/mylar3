@@ -247,7 +247,6 @@ class OPDS(object):
                         'rel': 'subsection',
                     }
                 )
-
         feed = {}
         pubname = '%s (%s)' % (escape(kwargs['pubid']),len(entries))
         feed['title'] = 'Mylar OPDS - %s' % (pubname)
@@ -255,20 +254,6 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
         links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
-        allcomics = mylar.helpers.havetotals()
-        for comic in allcomics:
-            if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
-                entries.append(
-                    {
-                        'title': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
-                        'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
-                        'updated': comic['DateAdded'],
-                        'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
-                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
-                        'kind': 'navigation',
-                        'rel': 'subsection',
-                    }
-                )
         if len(entries) > (index + 30):
             links.append(
                 getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (quote_plus(kwargs['pubid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
@@ -307,12 +292,16 @@ class OPDS(object):
         if index <= len(issues):
             subset = issues[index:(index+30)]
             for issue in subset:
+                if issue['DateAdded']:
+                    updated = issue['DateAdded']
+                else:
+                    updated = issue['ReleaseDate']
                 entries.append(
                     {
-                        'title': escape('%s - %s' % (issue['Int_IssueNumber'], issue['IssueName'])),
+                        'title': escape('%s - %s' % (issue['IssueNumber'], issue['IssueName'])),
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Int_IssueNumber'])),
-                        'updated': issue['DateAdded'],
-                        'content': escape('%s - %s' % (issue['Int_IssueNumber'], issue['IssueName'])),
+                        'updated': updated,
+                        'content': escape('%s - %s' % (issue['IssueNumber'], issue['IssueName'])),
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
                         'rel': 'acquisition',
