@@ -298,10 +298,10 @@ class OPDS(object):
                     updated = issue['ReleaseDate']
                 entries.append(
                     {
-                        'title': escape('%s - %s' % (issue['IssueNumber'], issue['IssueName'])),
-                        'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Int_IssueNumber'])),
+                        'title': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
+                        'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
-                        'content': escape('%s - %s' % (issue['IssueNumber'], issue['IssueName'])),
+                        'content': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
                         'rel': 'acquisition',
