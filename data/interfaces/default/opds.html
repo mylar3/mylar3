@@ -25,7 +25,7 @@
         <id>${entry['id']}</id>
         <updated>${entry['updated']}</updated>
         <content type="text">${entry['content']}</content>
-        <link href="${entry['href']}" type="application/atom+xml;profile=opds-catalog;kind=${entry['kind']}"/>
+        <link href="${entry['href']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
         %if 'thumbnail' in entry:
         <link href="${entry['thumbnail']}" type="image/png" rel="http://opds-spec.org/image/thumbnail"/>
         %endif

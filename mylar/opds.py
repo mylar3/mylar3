@@ -93,8 +93,8 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation',rel='self'))
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         links.append(getLink(href='/opds?cmd=search', type='application/opensearchdescription+xml',rel='search',title='Search'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         if len(publishers) > 0:
