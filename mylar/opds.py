@@ -30,7 +30,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic']
 
 class OPDS(object):
 
@@ -184,7 +184,7 @@ class OPDS(object):
             if totaltitles > 0:
                 entries.append(
                     {
-                        'title': publisher['ComicPublisher'],
+                        'title': '%s (%s)' % (publisher['ComicPublisher'], totaltitles),
                         'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
                         'content': '%s (%s)' % (publisher['ComicPublisher'], totaltitles),
@@ -227,15 +227,26 @@ class OPDS(object):
             if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
-                        'title': '%s (%s) (%)',
-                        'id': 'publisher:%s' % publisher['ComicPublisher'],
+                        'title': '%s (%s) (%)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues']),
+                        'id': 'comic:%s (%s)' % (comic['ComicName'], comic['ComicYear']),
                         'updated': mylar.helpers.now(),
-                        'content': publisher['ComicPublisher'],
-                        'href': '/opds?cmd=Publisher&amp;pubid=%s' % quote_plus(publisher['ComicPublisher']),
+                        'content': '%s (%s) (%)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues']),
+                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
                         'kind': 'navigation',
                         'rel': 'subsection',
                     }
                 )
+        if len(entries) > (index + 30):
+            links.append(
+                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (kwargs['pubid'],index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (kwargs['pubid'],index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+        feed['links'] = links
+        feed['entries'] = entries[index:(index+30)]
+        self.data = feed
+        return
 
 
 def getLink(href=None, type=None, rel=None, title=None):
