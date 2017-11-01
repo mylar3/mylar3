@@ -249,7 +249,7 @@ class OPDS(object):
                 )
 
         feed = {}
-        pubname = '%s (%s)' % (escape(kwargs['pubid'],len(entries)))
+        pubname = '%s (%s)' % (escape(kwargs['pubid']),len(entries))
         feed['title'] = 'Mylar OPDS - %s' % (pubname)
         feed['id'] = 'publisher:%s' % escape(kwargs['pubid'])
         feed['updated'] = mylar.helpers.now()
