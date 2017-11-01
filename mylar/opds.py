@@ -158,6 +158,9 @@ class OPDS(object):
         return
 
     def _Publishers(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
         myDB = db.DBConnection()
         feed = {}
         feed['title'] = 'Mylar OPDS - Publishers'
@@ -167,7 +170,6 @@ class OPDS(object):
         entries=[]
         links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='start', title='Home'))
         links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml;profile=opds-catalog;kind=navigation',rel='self'))
-        links.append(getLink(href='/opds?cmd=search', type='application/opensearchdescription+xml',rel='search',title='Search'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         comics = mylar.helpers.havetotals()
         for publisher in publishers:
@@ -186,8 +188,15 @@ class OPDS(object):
                         'kind': 'navigation',
                     }
                 )
+        if len(entries) > (index + 30):
+            links.append(
+                getLink(href='/opds?cmd=Publishers&index=%s' % (index+30), type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='/opds?cmd=Publishers&index=%s' % (index-30), type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='previous'))
+
         feed['links'] = links
-        feed['entries'] = entries
+        feed['entries'] = entries[index:(index+30)]
         self.data = feed
         return
 
