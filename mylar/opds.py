@@ -179,10 +179,10 @@ class OPDS(object):
                 entries.append(
                     {
                         'title': publisher,
-                        'id': 'publisher:%s' % publisher,
+                        'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
-                        'content': publisher,
-                        'href': '/opds?cmd=Publisher&id=%s' %  quote_plus(publisher),
+                        'content': publisher['ComicPublisher'],
+                        'href': '/opds?cmd=Publisher&id=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
                     }
                 )
