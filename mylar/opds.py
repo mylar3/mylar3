@@ -319,10 +319,10 @@ class OPDS(object):
                 )
 
         feed = {}
-        pubname = '%s (%s)' % (escape(kwargs['pubid'],len(entries)))
-        feed['title'] = 'Mylar OPDS - %s' % (pubname)
-        feed['id'] = 'publisher:%s' % escape(kwargs['pubid'])
-        feed['updated'] = mylar.helpers.now()
+        comicname = '%s' % (escape(comic['ComicName']))
+        feed['title'] = 'Mylar OPDS - %s' % (comicname)
+        feed['id'] = escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear']))
+        feed['updated'] = comic['DateAdded']
         links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
         links.append(getLink(href='/opds?cmd=Comic&amp;comicid=%s' % quote_plus(kwargs[comicid]),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         if len(issues) > (index + 30):
