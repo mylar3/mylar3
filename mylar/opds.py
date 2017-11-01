@@ -325,7 +325,7 @@ class OPDS(object):
         feed['id'] = escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear']))
         feed['updated'] = comic['DateAdded']
         links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=Comic&amp;comicid=%s' % quote_plus(kwargs[comicid]),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href='/opds?cmd=Comic&amp;comicid=%s' % quote_plus(kwargs['comicid']),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         if len(issues) > (index + 30):
             links.append(
                 getLink(href='/opds?cmd=Comic&amp;comicid=%s&amp;index=%s' % (quote_plus(kwargs['comicid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
