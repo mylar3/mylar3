@@ -173,8 +173,7 @@ class OPDS(object):
         for publisher in publishers:
             totaltitles = 0
             for comic in comics:
-                logger.debug("%s - %s - %s - %s" % (comic['ComicPublisher'], publisher, comic['ComicName'], comic['haveissues']))
-                if comic['ComicPublisher'] == publisher and comic['haveissues'] > 0:
+                if comic['ComicPublisher'] == publisher['ComicPublisher'] and comic['haveissues'] > 0:
                     totaltitles += 1
             if totaltitles > 0:
                 entries.append(
