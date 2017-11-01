@@ -178,7 +178,7 @@ class OPDS(object):
             if totaltitles > 0:
                 entries.append(
                     {
-                        'title': publisher,
+                        'title': publisher['ComicPublisher'],
                         'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
                         'content': publisher['ComicPublisher'],
