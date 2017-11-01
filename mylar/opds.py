@@ -292,7 +292,7 @@ class OPDS(object):
         links = []
         entries=[]
         comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],))
-        if len(comic) == 0:
+        if len(list(comic)) == 0:
             self.data = _error_with_message('Comic Not Found')
             return
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
