@@ -307,7 +307,7 @@ class OPDS(object):
                         'content': escape('%s' % (metainfo[0]['summary'])),
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
-                        'rel': 'acquisition',
+                        'rel': 'file',
                         'author': metainfo[0]['writer'],
                     }
                 )
