@@ -297,6 +297,8 @@ class OPDS(object):
                     updated = issue['ReleaseDate']
                 fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
                 metainfo = mylar.helpers.IssueDetails(fileloc)
+                if not metainfo:
+                    metainfo = [{'writer': 'Unknown','summary': ''}]
                 entries.append(
                     {
                         'title': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
