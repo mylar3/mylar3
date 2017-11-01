@@ -331,6 +331,24 @@ class OPDS(object):
         self.data = feed
         return
 
+    def _Issue(self, **kwargs):
+        if 'issueid' not in kwargs:
+            self.data = _error_with_message('No ComicID Provided')
+            return
+        myDB = db.DBConnection()
+        issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
+        if len(issue) == 0:
+            issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
+            if len(issue) == 0:
+                self.data = _error_with_message('Issue Not Found')
+                return
+        comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
+        if len(comic) ==0:
+            self.data = _error_with_message('Comic Not Found')
+            return
+        self.file = os.path.join(comic['ComicLocation'],issue['Location'])
+        self.filename = issue['Location']
+        return
 
 
 def getLink(href=None, type=None, rel=None, title=None):
