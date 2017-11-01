@@ -12,11 +12,12 @@
         <uri>https://github.com/evilhero/mylar</uri>
     </author>
     %for link in opds['links']:
-    <link rel="${link['rel']}" href="${link['href']}" type="${link['type']}"
-    %if 'title' in link:
-    title="${link['title']}"
-    %endif
-    />
+    <%
+        linktitle = ''
+        if 'title' in link:
+            linktitle = ' title="%s"' % link['title']
+    %>
+    <link rel="${link['rel']}" href="${link['href']}" type="${link['type']}"${linktitle}/>
 
     %endfor
     %for entry in opds['entries']:
