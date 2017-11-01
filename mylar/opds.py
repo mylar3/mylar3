@@ -22,6 +22,7 @@ import simplejson as simplejson
 import cherrypy
 import os
 import urllib2
+from urllib import urlencode, quote_plus
 import cache
 import imghdr
 from operator import itemgetter
@@ -29,7 +30,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
 
-cmd_list = ['root', 'Publishers', 'AllTitles']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList']
 
 class OPDS(object):
 
@@ -137,11 +138,59 @@ class OPDS(object):
                     'kind': 'navigation'
                 }
             )
+        readList = myDB.select("SELECT * from readlist")
+        if len(readList) > 0:
+            entries.append(
+                {
+                    'title': 'Read List (%s)' % len(readList),
+                    'id': 'ReadList',
+                    'updated': mylar.helpers.now(),
+                    'content': 'Current Read List',
+                    'href': '/opds?cmd=ReadList',
+                    'kind': 'navigation'
+
+                }
+            )
 
         feed['links'] = links
         feed['entries'] = entries
         self.data = feed
         return
+
+    def _Publishers(self, **kwargs):
+        myDB = db.DBConnection()
+        feed = {}
+        feed['title'] = 'Mylar OPDS - Publishers'
+        feed['id'] = 'Publishers'
+        feed['updated'] = mylar.helpers.now()
+        links = []
+        entries=[]
+        links.append(getLink(href='/opds',type='application/atom+xml;profile=opds-catalog;kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml;profile=opds-catalog;kind=navigation',rel='self'))
+        links.append(getLink(href='/opds?cmd=search', type='application/opensearchdescription+xml',rel='search',title='Search'))
+        publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
+        comics = mylar.helpers.havetotals()
+        for publisher in publishers:
+            totaltitles = 0
+            for comic in comics:
+                if comic['ComicPublisher'] == publisher and comic['haveissues']>0:
+                    totaltitles += 1
+            if totaltitles > 0:
+                entries.append(
+                    {
+                        'title': publisher,
+                        'id': 'publisher:%s' % publisher,
+                        'updated': mylar.helpers.now(),
+                        'content': publisher,
+                        'href': '/opds?cmd=Publisher&id=%s' %  quote_plus(publisher),
+                        'kind': 'navigation',
+                    }
+                )
+        feed['links'] = links
+        feed['entries'] = entries
+        self.data = feed
+        return
+
 
 def getLink(href=None, type=None, rel=None, title=None):
     link = {}
