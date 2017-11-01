@@ -75,7 +75,7 @@ class OPDS(object):
             if isinstance(self.data, basestring):
                 return self.data
             else:
-                cherrypy.response.headers['Content-Type'] = "application/atom+xml"
+                cherrypy.response.headers['Content-Type'] = "text/xml"
                 return serve_template(templatename="opds.html", title=self.data['title'], opds=self.data)
         else:
             return self.data
