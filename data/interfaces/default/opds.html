@@ -22,6 +22,11 @@
     <entry>
         <title>${entry['title']}</title>
         <id>${entry['id']}</id>
+        %if entry['author']:
+        <author>
+            <name>${entry['author']}</name>
+        </author>
+        %endif
         <updated>${entry['updated']}</updated>
         <content type="text">${entry['content']}</content>
         <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>

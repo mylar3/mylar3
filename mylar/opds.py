@@ -280,7 +280,6 @@ class OPDS(object):
         if len(comic) == 0:
             self.data = _error_with_message('Comic Not Found')
             return
-        logger.info(comic)
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
         if mylar.CONFIG.ANNUALS_ON:
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + kwargs['comicid'] + '"')
@@ -296,15 +295,19 @@ class OPDS(object):
                     updated = issue['DateAdded']
                 else:
                     updated = issue['ReleaseDate']
+                fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
+                metainfo = mylar.helpers.IssueDetails(fileloc)
                 entries.append(
                     {
                         'title': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
-                        'content': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
+                        'content': escape('%s' % (metainfo['summary'])),
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
                         'rel': 'acquisition',
+                        'author': metainfo['writer']
+                        ''
                     }
                 )
 
