@@ -22,7 +22,7 @@
     <entry>
         <title>${entry['title']}</title>
         <id>${entry['id']}</id>
-        %if entry['author']:
+        %if 'author' in entry and entry['author']:
         <author>
             <name>${entry['author']}</name>
         </author>
