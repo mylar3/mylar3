@@ -20,6 +20,7 @@ import mylar
 from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
 import simplejson as simplejson
 import cherrypy
+import HTMLParser
 import os
 import urllib2
 from urllib import urlencode, quote_plus
@@ -162,6 +163,7 @@ class OPDS(object):
         return
 
     def _Publishers(self, **kwargs):
+        hp = HTMLParser.HTMLParser()
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
@@ -184,10 +186,10 @@ class OPDS(object):
             if totaltitles > 0:
                 entries.append(
                     {
-                        'title': '%s (%s)' % (publisher['ComicPublisher'], totaltitles),
-                        'id': 'publisher:%s' % publisher['ComicPublisher'],
+                        'title': hp.unescape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
+                        'id': hp.unescape('publisher:%s' % publisher['ComicPublisher']),
                         'updated': mylar.helpers.now(),
-                        'content': '%s (%s)' % (publisher['ComicPublisher'], totaltitles),
+                        'content': hp.unescape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
                         'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
                         'rel': 'subsection',
@@ -206,6 +208,7 @@ class OPDS(object):
         return
 
     def _Publisher(self, **kwargs):
+        hp = HTMLParser.HTMLParser()
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
@@ -226,10 +229,10 @@ class OPDS(object):
             if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
-                        'title': '%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues']),
-                        'id': 'comic:%s (%s)' % (comic['ComicName'], comic['ComicYear']),
+                        'title': hp.unescape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'id': hp.unescape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
                         'updated': mylar.helpers.now(),
-                        'content': '%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues']),
+                        'content': hp.unescape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
                         'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
                         'kind': 'navigation',
                         'rel': 'subsection',
@@ -237,10 +240,10 @@ class OPDS(object):
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (kwargs['pubid'],index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (quote_plus(kwargs['pubid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (kwargs['pubid'],index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (quote_plus(kwargs['pubid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
