@@ -20,7 +20,7 @@ import mylar
 from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
 import simplejson as simplejson
 import cherrypy
-import HTMLParser
+from xml.sax.saxutils import escape
 import os
 import urllib2
 from urllib import urlencode, quote_plus
@@ -186,10 +186,10 @@ class OPDS(object):
             if totaltitles > 0:
                 entries.append(
                     {
-                        'title': hp.unescape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
-                        'id': hp.unescape('publisher:%s' % publisher['ComicPublisher']),
+                        'title': escape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
+                        'id': escape('publisher:%s' % publisher['ComicPublisher']),
                         'updated': mylar.helpers.now(),
-                        'content': hp.unescape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
+                        'content': escape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
                         'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
                         'rel': 'subsection',
@@ -229,10 +229,10 @@ class OPDS(object):
             if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
-                        'title': hp.unescape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
-                        'id': hp.unescape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
+                        'title': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
                         'updated': mylar.helpers.now(),
-                        'content': hp.unescape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
                         'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
                         'kind': 'navigation',
                         'rel': 'subsection',
