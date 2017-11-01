@@ -224,7 +224,7 @@ class OPDS(object):
         allcomics = mylar.helpers.havetotals()
         comics =[]
         for comic in comics:
-            if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
+            if quote_plus(comic['ComicPublisher']) == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
                         'title': '%s (%s) (%)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues']),
