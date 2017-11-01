@@ -188,7 +188,7 @@ class OPDS(object):
                         'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
                         'content': publisher['ComicPublisher'],
-                        'href': '/opds?cmd=Publisher&pubid=%s' %  quote_plus(publisher['ComicPublisher']),
+                        'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
                         'rel': 'subsection',
                     }
