@@ -163,7 +163,6 @@ class OPDS(object):
         return
 
     def _Publishers(self, **kwargs):
-        hp = HTMLParser.HTMLParser()
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
@@ -208,7 +207,6 @@ class OPDS(object):
         return
 
     def _Publisher(self, **kwargs):
-        hp = HTMLParser.HTMLParser()
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
