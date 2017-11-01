@@ -291,7 +291,7 @@ class OPDS(object):
             return
         links = []
         entries=[]
-        comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],))
+        comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],)).fetchone()
         if len(list(comic)) == 0:
             self.data = _error_with_message('Comic Not Found')
             return
