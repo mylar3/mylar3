@@ -305,7 +305,7 @@ class OPDS(object):
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
-                        'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
+                        'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % quote_plus(issue['IssueID'],quote_plus(issue['Location'])),
                         'kind': 'acquisition',
                         'rel': 'file',
                         'author': metainfo[0]['writer'],
