@@ -86,6 +86,20 @@ class OPDS(object):
         cherrypy.response.headers['Content-Type'] = "text/xml"
         return error
 
+
+    def _dic_from_query(self, query):
+        myDB = db.DBConnection()
+        rows = myDB.select(query)
+
+        rows_as_dic = []
+
+        for row in rows:
+            row_as_dic = dict(zip(row.keys(), row))
+            rows_as_dic.append(row_as_dic)
+
+        return rows_as_dic
+
+
     def _root(self, **kwargs):
         myDB = db.DBConnection()
         feed = {}
@@ -178,16 +192,19 @@ class OPDS(object):
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         comics = mylar.helpers.havetotals()
         for publisher in publishers:
+            lastupdated = '0000-00-00'
             totaltitles = 0
             for comic in comics:
                 if comic['ComicPublisher'] == publisher['ComicPublisher'] and comic['haveissues'] > 0:
                     totaltitles += 1
+                    if comic['DateAdded'] > lastupdated:
+                        lastupdated = comic['DateAdded']
             if totaltitles > 0:
                 entries.append(
                     {
                         'title': escape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
                         'id': escape('publisher:%s' % publisher['ComicPublisher']),
-                        'updated': mylar.helpers.now(),
+                        'updated': lastupdated,
                         'content': escape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
                         'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
@@ -213,13 +230,29 @@ class OPDS(object):
         myDB = db.DBConnection()
         if 'pubid' not in kwargs:
             self.data = _error_with_message('No Publisher Provided')
-
-        feed = {}
-        feed['title'] = 'Mylar OPDS - Publishers'
-        feed['id'] = 'Publishers'
-        feed['updated'] = mylar.helpers.now()
+            return
         links = []
         entries=[]
+        allcomics = mylar.helpers.havetotals()
+        for comic in allcomics:
+            if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
+                entries.append(
+                    {
+                        'title': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
+                        'updated': comic['DateAdded'],
+                        'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
+                        'kind': 'navigation',
+                        'rel': 'subsection',
+                    }
+                )
+
+        feed = {}
+        pubname = '%s (%s)' % (escape(kwargs['pubid'],len(entries)))
+        feed['title'] = 'Mylar OPDS - %s' % (pubname)
+        feed['id'] = 'publisher:%s' % escape(kwargs['pubid'])
+        feed['updated'] = mylar.helpers.now()
         links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
         links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         allcomics = mylar.helpers.havetotals()
@@ -229,7 +262,7 @@ class OPDS(object):
                     {
                         'title': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
                         'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
-                        'updated': mylar.helpers.now(),
+                        'updated': comic['DateAdded'],
                         'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
                         'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
                         'kind': 'navigation',
@@ -247,6 +280,63 @@ class OPDS(object):
         feed['entries'] = entries[index:(index+30)]
         self.data = feed
         return
+
+    def _Comic(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        if 'comicid' not in kwargs:
+            self.data = _error_with_message('No ComicID Provided')
+            return
+        links = []
+        entries=[]
+        comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid']))
+        if len(comic) == 0:
+            self.data = _error_with_message('Comic Not Found')
+            return
+        issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
+        if mylar.CONFIG.ANNUALS_ON:
+            annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + kwargs['comicid'] + '"')
+        else:
+            annuals = None
+        for annual in annuals:
+            issues.append(annual)
+        issues = [x for x in issues if x['Location']]
+        if index <= len(issues):
+            subset = issues[index:(index+30)]
+            for issue in subset:
+                entries.append(
+                    {
+                        'title': escape('%s - %s' % (issue['Int_IssueNumber'], issue['IssueName'])),
+                        'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Int_IssueNumber'])),
+                        'updated': issue['DateAdded'],
+                        'content': escape('%s - %s' % (issue['Int_IssueNumber'], issue['IssueName'])),
+                        'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
+                        'kind': 'acquisition',
+                        'rel': 'acquisition',
+                    }
+                )
+
+        feed = {}
+        pubname = '%s (%s)' % (escape(kwargs['pubid'],len(entries)))
+        feed['title'] = 'Mylar OPDS - %s' % (pubname)
+        feed['id'] = 'publisher:%s' % escape(kwargs['pubid'])
+        feed['updated'] = mylar.helpers.now()
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=Comic&amp;comicid=%s' % quote_plus(kwargs[comicid]),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        if len(issues) > (index + 30):
+            links.append(
+                getLink(href='/opds?cmd=Comic&amp;comicid=%s&amp;index=%s' % (quote_plus(kwargs['comicid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='/opds?cmd=Comic&amp;comicid=%s&amp;index=%s' % (quote_plus(kwargs['comicid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+        feed['links'] = links
+        feed['entries'] = entries
+        self.data = feed
+        return
+
 
 
 def getLink(href=None, type=None, rel=None, title=None):
