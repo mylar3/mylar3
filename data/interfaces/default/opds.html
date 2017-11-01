@@ -29,8 +29,8 @@
         %endif
         <updated>${entry['updated']}</updated>
         <content type="text">${entry['content']}</content>
-        %if entry['rel'] == 'acquisition':
-        <link href="${entry['href']}" rel="${entry['rel']}" type="octet/stream"/>
+        %if entry['rel'] == 'file':
+        <link href="${entry['href']}" rel="acquisition" type="octet/stream"/>
         %else:
         <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
         %endif
