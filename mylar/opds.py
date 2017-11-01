@@ -227,7 +227,7 @@ class OPDS(object):
             if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
-                        'title': '%s (%s) (%)comic['ComicPublisher'],
+                        'title': '%s (%s) (%)',
                         'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
                         'content': publisher['ComicPublisher'],
