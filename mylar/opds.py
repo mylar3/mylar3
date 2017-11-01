@@ -187,7 +187,7 @@ class OPDS(object):
                         'title': publisher['ComicPublisher'],
                         'id': 'publisher:%s' % publisher['ComicPublisher'],
                         'updated': mylar.helpers.now(),
-                        'content': publisher['ComicPublisher'],
+                        'content': '%s (%s)' % (publisher['ComicPublisher'], totaltitles),
                         'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
                         'kind': 'navigation',
                         'rel': 'subsection',
@@ -195,15 +195,47 @@ class OPDS(object):
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publishers&index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publishers&index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
         self.data = feed
         return
+
+    def _Publisher(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        if 'pubid' not in kwargs:
+            self.data = _error_with_message('No Publisher Provided')
+
+        feed = {}
+        feed['title'] = 'Mylar OPDS - Publishers'
+        feed['id'] = 'Publishers'
+        feed['updated'] = mylar.helpers.now()
+        links = []
+        entries=[]
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        allcomics = mylar.helpers.havetotals()
+        comics =[]
+        for comic in comics:
+            if comic['ComicPublisher'] == kwargs['pubid'] and comic['haveissues'] > 0:
+                entries.append(
+                    {
+                        'title': '%s (%s) (%)comic['ComicPublisher'],
+                        'id': 'publisher:%s' % publisher['ComicPublisher'],
+                        'updated': mylar.helpers.now(),
+                        'content': publisher['ComicPublisher'],
+                        'href': '/opds?cmd=Publisher&amp;pubid=%s' % quote_plus(publisher['ComicPublisher']),
+                        'kind': 'navigation',
+                        'rel': 'subsection',
+                    }
+                )
 
 
 def getLink(href=None, type=None, rel=None, title=None):
