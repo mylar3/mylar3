@@ -306,8 +306,7 @@ class OPDS(object):
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
                         'rel': 'acquisition',
-                        'author': metainfo['writer']
-                        ''
+                        'author': metainfo['writer'],
                     }
                 )
 
