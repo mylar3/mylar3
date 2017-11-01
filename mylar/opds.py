@@ -222,8 +222,7 @@ class OPDS(object):
         links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
         links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         allcomics = mylar.helpers.havetotals()
-        comics =[]
-        for comic in comics:
+        for comic in allcomics:
             if quote_plus(comic['ComicPublisher']) == kwargs['pubid'] and comic['haveissues'] > 0:
                 entries.append(
                     {
