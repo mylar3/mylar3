@@ -292,10 +292,9 @@ class OPDS(object):
         links = []
         entries=[]
         comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],)).fetchone()
-        if len(list(comic)) == 0:
+        if len(comic) == 0:
             self.data = _error_with_message('Comic Not Found')
             return
-        comic = list(comic)
         logger.info(comic)
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
         if mylar.CONFIG.ANNUALS_ON:
