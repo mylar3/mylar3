@@ -31,7 +31,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue']
 
 class OPDS(object):
 
