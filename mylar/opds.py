@@ -243,7 +243,7 @@ class OPDS(object):
                         'updated': comic['DateAdded'],
                         'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
                         'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
-                        'kind': 'navigation',
+                        'kind': 'acquisition',
                         'rel': 'subsection',
                     }
                 )
