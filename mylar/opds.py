@@ -302,11 +302,11 @@ class OPDS(object):
                         'title': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
-                        'content': escape('%s' % (metainfo['summary'])),
+                        'content': escape('%s' % (metainfo[0]['summary'])),
                         'href': '/opds?cmd=Issue&amp;issueid=%s' % quote_plus(issue['IssueID']),
                         'kind': 'acquisition',
                         'rel': 'acquisition',
-                        'author': metainfo['writer'],
+                        'author': metainfo[0]['writer'],
                     }
                 )
 
