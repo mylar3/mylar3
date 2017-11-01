@@ -30,7 +30,7 @@
         <updated>${entry['updated']}</updated>
         <content type="text">${entry['content']}</content>
         %if entry['rel'] == 'file':
-        <link href="${entry['href']}" rel="acquisition" type="octet/stream"/>
+        <link href="${entry['href']}" rel="acquisition" type="application/octet-stream"/>
         %else:
         <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
         %endif
