@@ -323,6 +323,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_AUTHENTICATION': (bool, 'OPDS', False),
     'OPDS_USERNAME': (str, 'OPDS', None),
     'OPDS_PASSWORD': (str, 'OPDS', None),
+    'OPDS_METAINFO': (bool, 'OPDS', False),
 
 })
 

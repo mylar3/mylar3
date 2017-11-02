@@ -34,8 +34,11 @@
         %else:
         <link href="${entry['href']}" rel= "${entry['rel']}" type="application/atom+xml; profile=opds-catalog; kind=${entry['kind']}"/>
         %endif
-        %if 'thumbnail' in entry:
-        <link href="${entry['thumbnail']}" type="image/png" rel="http://opds-spec.org/image/thumbnail"/>
+        %if 'thumbnail' in entry and entry['thumbnail']:
+        <link href="${entry['thumbnail']}" type="image/jpeg" rel="http://opds-spec.org/image/thumbnail"/>
+        %endif
+        %if 'image' in entry and entry['image']:
+        <link href="${entry['image']}" type="image/jpeg" rel="http://opds-spec.org/image"/>
         %endif
     </entry>
     %endfor

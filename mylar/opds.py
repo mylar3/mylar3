@@ -223,13 +223,53 @@ class OPDS(object):
         self.data = feed
         return
 
+    def _AllTitles(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        feed = {}
+        feed['title'] = 'Mylar OPDS - All Titles'
+        feed['id'] = 'AllTitles'
+        feed['updated'] = mylar.helpers.now()
+        links = []
+        entries=[]
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=AllTitles',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        comics = mylar.helpers.havetotals()
+        for comic in comics:
+            if comic['haveissues'] > 0:
+                entries.append(
+                    {
+                        'title': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
+                        'updated': comic['DateAdded'],
+                        'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
+                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
+                        'kind': 'acquisition',
+                        'rel': 'subsection',
+                    }
+                )
+        if len(entries) > (index + 30):
+            links.append(
+                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+        feed['links'] = links
+        feed['entries'] = entries[index:(index+30)]
+        self.data = feed
+        return
+
+
     def _Publisher(self, **kwargs):
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
         myDB = db.DBConnection()
         if 'pubid' not in kwargs:
-            self.data = _error_with_message('No Publisher Provided')
+            self.data =self._error_with_message('No Publisher Provided')
             return
         links = []
         entries=[]
@@ -266,25 +306,26 @@ class OPDS(object):
         self.data = feed
         return
 
+
     def _Comic(self, **kwargs):
         index = 0
         if 'index' in kwargs:
             index = int(kwargs['index'])
         myDB = db.DBConnection()
         if 'comicid' not in kwargs:
-            self.data = _error_with_message('No ComicID Provided')
+            self.data =self._error_with_message('No ComicID Provided')
             return
         links = []
         entries=[]
         comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],)).fetchone()
         if len(comic) == 0:
-            self.data = _error_with_message('Comic Not Found')
+            self.data = self._error_with_message('Comic Not Found')
             return
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
         if mylar.CONFIG.ANNUALS_ON:
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + kwargs['comicid'] + '"')
         else:
-            annuals = None
+            annuals = []
         for annual in annuals:
             issues.append(annual)
         issues = [x for x in issues if x['Location']]
@@ -295,14 +336,21 @@ class OPDS(object):
                     updated = issue['DateAdded']
                 else:
                     updated = issue['ReleaseDate']
+                image = None
+                thumbnail = None
                 if 'DateAdded' in issue:
                     title = escape('%s - %s' % (issue['Issue_Number'], issue['IssueName']))
+                    image = issue['ImageURL_ALT']
+                    thumbnail = issue['ImageURL']
                 else:
-                    title = escape('Annual %s - %s' (issue['Issue_Number'], issue['IssueName']))
+                    title = escape('Annual %s - %s' % (issue['Issue_Number'], issue['IssueName']))
+
                 fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
-                metainfo = mylar.helpers.IssueDetails(fileloc)
+                metainfo = None
+                if mylar.CONFIG.OPDS_METAINFO:
+                    metainfo = mylar.helpers.IssueDetails(fileloc)
                 if not metainfo:
-                    metainfo = [{'writer': 'Unknown','summary': ''}]
+                    metainfo = [{'writer': None,'summary': ''}]
                 entries.append(
                     {
                         'title': title,
@@ -313,6 +361,8 @@ class OPDS(object):
                         'kind': 'acquisition',
                         'rel': 'file',
                         'author': metainfo[0]['writer'],
+                        'image': image,
+                        'thumbnail': thumbnail,
                     }
                 )
 
@@ -337,18 +387,18 @@ class OPDS(object):
 
     def _Issue(self, **kwargs):
         if 'issueid' not in kwargs:
-            self.data = _error_with_message('No ComicID Provided')
+            self.data = self._error_with_message('No ComicID Provided')
             return
         myDB = db.DBConnection()
         issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
         if len(issue) == 0:
             issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
             if len(issue) == 0:
-                self.data = _error_with_message('Issue Not Found')
+                self.data = self._error_with_message('Issue Not Found')
                 return
         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
         if len(comic) ==0:
-            self.data = _error_with_message('Comic Not Found')
+            self.data = self._error_with_message('Comic Not Found')
             return
         self.file = os.path.join(comic['ComicLocation'],issue['Location'])
         self.filename = issue['Location']
@@ -375,14 +425,15 @@ class OPDS(object):
                     if issue['IssueDate'] > updated:
                         updated = issue['IssueDate']
             if issuecount > 0:
-                arcs.append({'StoryArcName': arcname, 'StoryArcID': arc, 'IssueCount': issuecount})
-        subset = arcs[index:(index + 30)]
+                arcs.append({'StoryArcName': arcname, 'StoryArcID': arc, 'IssueCount': issuecount, 'updated': updated})
+        newlist = sorted(arcs, key=itemgetter('StoryArcName'))
+        subset = newlist[index:(index + 30)]
         for arc in subset:
             entries.append(
                 {
                     'title': '%s (%s)' % (arc['StoryArcName'],arc['IssueCount']),
                     'id': escape('storyarc:%s' % (arc['StoryArcID'])),
-                    'updated': updated,
+                    'updated': arc['updated'],
                     'content': '%s (%s)' % (arc['StoryArcName'],arc['IssueCount']),
                     'href': '/opds?cmd=StoryArc&amp;arcid=%s' % (quote_plus(arc['StoryArcID'])),
                     'kind': 'acquisition',
@@ -406,6 +457,185 @@ class OPDS(object):
         feed['entries'] = entries
         self.data = feed
         return
+
+    def _ReadList(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        links = []
+        entries = []
+        rlist = self._dic_from_query("SELECT * from readlist")
+        readlist = []
+        for book in rlist:
+            fileexists = False
+            issue = {}
+            issue['Title'] = '%s #%s' % (book['ComicName'], book['Issue_Number'])
+            issue['IssueID'] = book['IssueID']
+            comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (book['ComicID'],)).fetchone()
+            bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
+            if bookentry and len(bookentry) > 0:
+                if bookentry['Location']:
+                    fileexists = True
+                    issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
+                    issue['filename'] =  bookentry['Location']
+                    issue['image'] =  bookentry['ImageURL_ALT']
+                    issue['thumbnail'] =  bookentry['ImageURL']
+                if  bookentry['DateAdded']:
+                    issue['updated'] =  bookentry['DateAdded']
+                else:
+                    issue['updated'] =  bookentry['IssueDate']
+            else:
+                annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
+                if annualentry and len(annualentry) > 0:
+                    if annualentry['Location']:
+                        fileexists = True
+                        issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
+                        issue['filename'] =  annualentry['Location']
+                        issue['image'] = None
+                        issue['thumbnail'] = None
+                        issue['updated'] =  annualentry['IssueDate']
+            if fileexists:
+                readlist.append(issue)
+        if len(readlist) > 0:
+            if index <= len(readlist):
+                subset = readlist[index:(index + 30)]
+                for issue in subset:
+                    metainfo = None
+                    if mylar.CONFIG.OPDS_METAINFO:
+                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                    if not metainfo:
+                        metainfo = [{'writer': None,'summary': ''}]
+                    entries.append(
+                        {
+                            'title': escape(issue['Title']),
+                            'id': escape('comic:%s' % issue['IssueID']),
+                            'updated': issue['updated'],
+                            'content': escape('%s' % (metainfo[0]['summary'])),
+                            'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % (quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'kind': 'acquisition',
+                            'rel': 'file',
+                            'author': metainfo[0]['writer'],
+                            'image': issue['image'],
+                            'thumbnail': issue['thumbnail'],
+                        }
+                    )
+
+            feed = {}
+            feed['title'] = 'Mylar OPDS - ReadList'
+            feed['id'] = escape('ReadList')
+            feed['updated'] = mylar.helpers.now()
+            links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+            links.append(getLink(href='/opds?cmd=ReadList',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+            if len(readlist) > (index + 30):
+                links.append(
+                    getLink(href='/opds?cmd=ReadList&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+            if index >= 30:
+                links.append(
+                    getLink(href='/opds?cmd=Read&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+            feed['links'] = links
+            feed['entries'] = entries
+            self.data = feed
+            return
+
+
+    def _StoryArc(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        if 'arcid' not in kwargs:
+            self.data =self._error_with_message('No ArcID Provided')
+            return
+        links = []
+        entries=[]
+        arclist = self._dic_from_query("SELECT * from readinglist WHERE StoryArcID=" + kwargs['arcid'] + " ORDER BY ReadingOrder")
+        newarclist = []
+        arcname = ''
+        for book in arclist:
+            arcname = book['StoryArc']
+            fileexists = False
+            issue = {}
+            issue['ReadingOrder'] = book['ReadingOrder']
+            issue['Title'] = '%s #%s' % (book['ComicName'],book['IssueNumber'])
+            issue['IssueID'] = book['IssueID']
+            bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
+            if bookentry and len(bookentry) > 0:
+                if bookentry['Location']:
+                    comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( bookentry['ComicID'],)).fetchone()
+                    fileexists = True
+                    issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
+                    issue['filename'] =  bookentry['Location']
+                    issue['image'] =  bookentry['ImageURL_ALT']
+                    issue['thumbnail'] =  bookentry['ImageURL']
+                if  bookentry['DateAdded']:
+                    issue['updated'] =  bookentry['DateAdded']
+                else:
+                    issue['updated'] =  bookentry['IssueDate']
+            else:
+                annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
+                if annualentry and len(annualentry) > 0:
+                    if  annualentry['Location']:
+                        comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( annualentry['ComicID'],))
+                        fileexists = True
+                        issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
+                        issue['filename'] =  annualentry['Location']
+                        issue['image'] = None
+                        issue['thumbnail'] = None
+                        issue['updated'] =  annualentry['IssueDate']
+                    else:
+                        if book['Location']:
+                            fileexists = True
+                            issue['fileloc'] = book['Location']
+                            issue['filename'] = os.path.split(book['Location'])[1]
+                            issue['image'] = None
+                            issue['thumbnail'] = None
+                            issue['updated'] = book['IssueDate']
+            if fileexists:
+                newarclist.append(issue)
+        if len(newarclist) > 0:
+            if index <= len(newarclist):
+                subset = newarclist[index:(index + 30)]
+                for issue in subset:
+                    metainfo = None
+                    if mylar.CONFIG.OPDS_METAINFO:
+                        metainfo = mylar.helpers.IssueDetails(issue['fileloc'])
+                    if not metainfo:
+                        metainfo = [{'writer': None,'summary': ''}]
+                    entries.append(
+                        {
+                            'title': escape('%s - %s' % (issue['ReadingOrder'], issue['Title'])),
+                            'id': escape('comic:%s' % issue['IssueID']),
+                            'updated': issue['updated'],
+                            'content': escape('%s' % (metainfo[0]['summary'])),
+                            'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % (quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'kind': 'acquisition',
+                            'rel': 'file',
+                            'author': metainfo[0]['writer'],
+                            'image': issue['image'],
+                            'thumbnail': issue['thumbnail'],
+                        }
+                    )
+
+            feed = {}
+            feed['title'] = 'Mylar OPDS - %s' % escape(arcname)
+            feed['id'] = escape('storyarc:%s' % kwargs['arcid'])
+            feed['updated'] = mylar.helpers.now()
+            links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+            links.append(getLink(href='/opds?cmd=StoryArc&amp;arcid=%s' % quote_plus(kwargs['arcid']),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+            if len(newarclist) > (index + 30):
+                links.append(
+                    getLink(href='/opds?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (quote_plus(kwargs['arcid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+            if index >= 30:
+                links.append(
+                    getLink(href='/opds?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (quote_plus(kwargs['arcid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+            feed['links'] = links
+            feed['entries'] = entries
+            self.data = feed
+            return
+
 
 
 def getLink(href=None, type=None, rel=None, title=None):
