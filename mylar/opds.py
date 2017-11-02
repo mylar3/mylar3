@@ -31,7 +31,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue', 'StoryArc']
 
 class OPDS(object):
 
@@ -291,17 +291,21 @@ class OPDS(object):
         if index <= len(issues):
             subset = issues[index:(index+30)]
             for issue in subset:
-                if issue['DateAdded']:
+                if 'DateAdded' in issue and issue['DateAdded']:
                     updated = issue['DateAdded']
                 else:
                     updated = issue['ReleaseDate']
+                if 'DateAdded' in issue:
+                    title = escape('%s - %s' % (issue['Issue_Number'], issue['IssueName']))
+                else:
+                    title = escape('Annual %s - %s' (issue['Issue_Number'], issue['IssueName']))
                 fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
                 metainfo = mylar.helpers.IssueDetails(fileloc)
                 if not metainfo:
                     metainfo = [{'writer': 'Unknown','summary': ''}]
                 entries.append(
                     {
-                        'title': escape('%s - %s' % (issue['Issue_Number'], issue['IssueName'])),
+                        'title': title,
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
@@ -348,6 +352,59 @@ class OPDS(object):
             return
         self.file = os.path.join(comic['ComicLocation'],issue['Location'])
         self.filename = issue['Location']
+        return
+
+    def _StoryArcs(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        links = []
+        entries=[]
+        arcs = []
+        storyArcs = mylar.helpers.listStoryArcs()
+        for arc in storyArcs:
+            issuecount = 0
+            arcname = ''
+            updated = '0000-00-00'
+            arclist = myDB.select("SELECT * from readinglist WHERE StoryArcID=?", (arc,))
+            for issue in arclist:
+                if issue['Status'] == 'Downloaded':
+                    issuecount += 1
+                    arcname = issue['StoryArc']
+                    if issue['IssueDate'] > updated:
+                        updated = issue['IssueDate']
+            if issuecount > 0:
+                arcs.append({'StoryArcName': arcname, 'StoryArcID': arc, 'IssueCount': issuecount})
+        subset = arcs[index:(index + 30)]
+        for arc in subset:
+            entries.append(
+                {
+                    'title': '%s (%s)' % (arc['StoryArcName'],arc['IssueCount']),
+                    'id': escape('storyarc:%s' % (arc['StoryArcID'])),
+                    'updated': updated,
+                    'content': '%s (%s)' % (arc['StoryArcName'],arc['IssueCount']),
+                    'href': '/opds?cmd=StoryArc&amp;arcid=%s' % (quote_plus(arc['StoryArcID'])),
+                    'kind': 'acquisition',
+                    'rel': 'subsection',
+                }
+            )
+        feed = {}
+        feed['title'] = 'Mylar OPDS - Story Arcs'
+        feed['id'] = 'StoryArcs'
+        feed['updated'] = mylar.helpers.now()
+        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='/opds?cmd=StoryArcs',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        if len(arcs) > (index + 30):
+            links.append(
+                getLink(href='/opds?cmd=StoryArcs&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='/opds?cmd=StoryArcs&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+        feed['links'] = links
+        feed['entries'] = entries
+        self.data = feed
         return
 
 
