@@ -42,6 +42,15 @@ class OPDS(object):
         self.filename = None
         self.kwargs = None
         self.data = None
+        if mylar.CONFIG.HTTP_ROOT is None:
+            self.opdsroot = '/opds'
+        elif mylar.CONFIG.HTTP_ROOT.endswith('/'):
+            self.opdsroot = mylar.CONFIG.HTTP_ROOT + 'opds'
+        else:
+            if mylar.CONFIG.HTTP_ROOT != '/':
+                self.opdsroot = mylar.CONFIG.HTTP_ROOT + '/opds'
+            else:
+                self.opdsroot = mylar.CONFIG.HTTP_ROOT + 'opds'
 
     def checkParams(self, *args, **kwargs):
 
@@ -108,9 +117,9 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
-        links.append(getLink(href='/opds?cmd=search', type='application/opensearchdescription+xml',rel='search',title='Search'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href='%s?cmd=search' % self.opdsroot, type='application/opensearchdescription+xml',rel='search',title='Search'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         if len(publishers) > 0:
             count = len(publishers)
@@ -120,7 +129,7 @@ class OPDS(object):
                     'id': 'Publishers',
                     'updated': mylar.helpers.now(),
                     'content': 'List of Comic Publishers',
-                    'href': '/opds?cmd=Publishers',
+                    'href': '%s?cmd=Publishers' %self.opdsroot,
                     'kind': 'navigation',
                     'rel': 'subsection',
                 }
@@ -137,7 +146,7 @@ class OPDS(object):
                     'id': 'AllTitles',
                     'updated': mylar.helpers.now(),
                     'content': 'List of All Comics',
-                    'href': '/opds?cmd=AllTitles',
+                    'href': '%s?cmd=AllTitles' % self.opdsroot,
                     'kind': 'navigation',
                     'rel': 'subsection',
             }
@@ -151,7 +160,7 @@ class OPDS(object):
                     'id': 'StoryArcs',
                     'updated': mylar.helpers.now(),
                     'content': 'List of Story Arcs',
-                    'href': '/opds?cmd=StoryArcs',
+                    'href': '%s?cmd=StoryArcs' % self.opdsroot,
                     'kind': 'navigation',
                     'rel': 'subsection',
 
@@ -165,7 +174,7 @@ class OPDS(object):
                     'id': 'ReadList',
                     'updated': mylar.helpers.now(),
                     'content': 'Current Read List',
-                    'href': '/opds?cmd=ReadList',
+                    'href': '%s?cmd=ReadList' % self.opdsroot,
                     'kind': 'navigation',
                     'rel': 'subsection',
                 }
@@ -187,8 +196,8 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=Publishers' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
         comics = mylar.helpers.havetotals()
         for publisher in publishers:
@@ -206,17 +215,17 @@ class OPDS(object):
                         'id': escape('publisher:%s' % publisher['ComicPublisher']),
                         'updated': lastupdated,
                         'content': escape('%s (%s)' % (publisher['ComicPublisher'], totaltitles)),
-                        'href': '/opds?cmd=Publisher&amp;pubid=%s' %  quote_plus(publisher['ComicPublisher']),
+                        'href': '%s?cmd=Publisher&amp;pubid=%s' %  (self.opdsroot, quote_plus(publisher['ComicPublisher'])),
                         'kind': 'navigation',
                         'rel': 'subsection',
                     }
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
@@ -234,8 +243,8 @@ class OPDS(object):
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=AllTitles',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=AllTitles' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         comics = mylar.helpers.havetotals()
         for comic in comics:
             if comic['haveissues'] > 0:
@@ -245,17 +254,17 @@ class OPDS(object):
                         'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
                         'updated': comic['DateAdded'],
                         'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
-                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
+                        'href': '%s?cmd=Comic&amp;comicid=%s' % (self.opdsroot, quote_plus(comic['ComicID'])),
                         'kind': 'acquisition',
                         'rel': 'subsection',
                     }
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publishers&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
@@ -282,7 +291,7 @@ class OPDS(object):
                         'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
                         'updated': comic['DateAdded'],
                         'content': escape('%s (%s) (%s)' % (comic['ComicName'], comic['ComicYear'], comic['haveissues'])),
-                        'href': '/opds?cmd=Comic&amp;comicid=%s' % quote_plus(comic['ComicID']),
+                        'href': '%s?cmd=Comic&amp;comicid=%s' % (self.opdsroot, quote_plus(comic['ComicID'])),
                         'kind': 'acquisition',
                         'rel': 'subsection',
                     }
@@ -292,14 +301,14 @@ class OPDS(object):
         feed['title'] = 'Mylar OPDS - %s' % (pubname)
         feed['id'] = 'publisher:%s' % escape(kwargs['pubid'])
         feed['updated'] = mylar.helpers.now()
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=Publishers',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=Publishers' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (quote_plus(kwargs['pubid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['pubid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (quote_plus(kwargs['pubid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=Publisher&amp;pubid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['pubid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
@@ -357,7 +366,7 @@ class OPDS(object):
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
-                        'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % (quote_plus(issue['IssueID']),quote_plus(issue['Location'])),
+                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'])),
                         'kind': 'acquisition',
                         'rel': 'file',
                         'author': metainfo[0]['writer'],
@@ -371,14 +380,14 @@ class OPDS(object):
         feed['title'] = 'Mylar OPDS - %s' % (comicname)
         feed['id'] = escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear']))
         feed['updated'] = comic['DateAdded']
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=Comic&amp;comicid=%s' % quote_plus(kwargs['comicid']),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=Comic&amp;comicid=%s' % (self.opdsroot, quote_plus(kwargs['comicid'])),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         if len(issues) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=Comic&amp;comicid=%s&amp;index=%s' % (quote_plus(kwargs['comicid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=Comic&amp;comicid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['comicid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=Comic&amp;comicid=%s&amp;index=%s' % (quote_plus(kwargs['comicid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=Comic&amp;comicid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['comicid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries
@@ -435,7 +444,7 @@ class OPDS(object):
                     'id': escape('storyarc:%s' % (arc['StoryArcID'])),
                     'updated': arc['updated'],
                     'content': '%s (%s)' % (arc['StoryArcName'],arc['IssueCount']),
-                    'href': '/opds?cmd=StoryArc&amp;arcid=%s' % (quote_plus(arc['StoryArcID'])),
+                    'href': '%s?cmd=StoryArc&amp;arcid=%s' % (self.opdsroot, quote_plus(arc['StoryArcID'])),
                     'kind': 'acquisition',
                     'rel': 'subsection',
                 }
@@ -444,14 +453,14 @@ class OPDS(object):
         feed['title'] = 'Mylar OPDS - Story Arcs'
         feed['id'] = 'StoryArcs'
         feed['updated'] = mylar.helpers.now()
-        links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-        links.append(getLink(href='/opds?cmd=StoryArcs',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=StoryArcs' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         if len(arcs) > (index + 30):
             links.append(
-                getLink(href='/opds?cmd=StoryArcs&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=StoryArcs&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='/opds?cmd=StoryArcs&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=StoryArcs&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries
@@ -512,7 +521,7 @@ class OPDS(object):
                             'id': escape('comic:%s' % issue['IssueID']),
                             'updated': issue['updated'],
                             'content': escape('%s' % (metainfo[0]['summary'])),
-                            'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % (quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
                             'kind': 'acquisition',
                             'rel': 'file',
                             'author': metainfo[0]['writer'],
@@ -525,14 +534,14 @@ class OPDS(object):
             feed['title'] = 'Mylar OPDS - ReadList'
             feed['id'] = escape('ReadList')
             feed['updated'] = mylar.helpers.now()
-            links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-            links.append(getLink(href='/opds?cmd=ReadList',type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+            links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+            links.append(getLink(href='%s?cmd=ReadList' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
             if len(readlist) > (index + 30):
                 links.append(
-                    getLink(href='/opds?cmd=ReadList&amp;index=%s' % (index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                    getLink(href='%s?cmd=ReadList&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
             if index >= 30:
                 links.append(
-                    getLink(href='/opds?cmd=Read&amp;index=%s' % (index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                    getLink(href='%s?cmd=Read&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
             feed['links'] = links
             feed['entries'] = entries
@@ -609,7 +618,7 @@ class OPDS(object):
                             'id': escape('comic:%s' % issue['IssueID']),
                             'updated': issue['updated'],
                             'content': escape('%s' % (metainfo[0]['summary'])),
-                            'href': '/opds?cmd=Issue&amp;issueid=%s&amp;file=%s' % (quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
+                            'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['filename'])),
                             'kind': 'acquisition',
                             'rel': 'file',
                             'author': metainfo[0]['writer'],
@@ -622,14 +631,14 @@ class OPDS(object):
             feed['title'] = 'Mylar OPDS - %s' % escape(arcname)
             feed['id'] = escape('storyarc:%s' % kwargs['arcid'])
             feed['updated'] = mylar.helpers.now()
-            links.append(getLink(href='/opds',type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-            links.append(getLink(href='/opds?cmd=StoryArc&amp;arcid=%s' % quote_plus(kwargs['arcid']),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+            links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+            links.append(getLink(href='%s?cmd=StoryArc&amp;arcid=%s' % (self.opdsroot, quote_plus(kwargs['arcid'])),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
             if len(newarclist) > (index + 30):
                 links.append(
-                    getLink(href='/opds?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (quote_plus(kwargs['arcid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                    getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
             if index >= 30:
                 links.append(
-                    getLink(href='/opds?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (quote_plus(kwargs['arcid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                    getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
             feed['links'] = links
             feed['entries'] = entries
