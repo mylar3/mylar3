@@ -1,3 +1,19 @@
+#!/usr/bin/env python
+#  This file is part of Mylar.
+#
+#  Mylar is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Mylar is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
+
 import mylar
 from mylar import logger
 
@@ -10,52 +26,53 @@ from decimal import Decimal
 from HTMLParser import HTMLParseError
 from time import strptime
 
-def sabnzbd(sabhost=mylar.CONFIG.SAB_HOST, sabusername=mylar.CONFIG.SAB_USERNAME, sabpassword=mylar.CONFIG.SAB_PASSWORD):
-       #SAB_USERNAME = mylar.CONFIG.SAB_USERNAME
-       #SAB_PASSWORD = mylar.CONFIG.SAB_PASSWORD
-       #SAB_HOST = mylar.CONFIG.SAB_HOST   #'http://localhost:8085/'
-       if sabusername is None or sabpassword is None:
-           logger.fdebug('No Username / Password specified for SABnzbd. Unable to auto-retrieve SAB API')
-       if 'https' not in sabhost:
-           sabhost = re.sub('http://', '', sabhost)
-           sabhttp = 'http://'
-       else:
-           sabhost = re.sub('https://', '', sabhost)
-           sabhttp = 'https://'
-       if not sabhost.endswith('/'):
-           #sabhost = sabhost[:len(sabhost)-1].rstrip()
-           sabhost = sabhost + '/'
-       sabline = sabhttp + sabusername + ':' + sabpassword + '@' + sabhost
-       r = requests.get(sabline + 'config/general/')
-       soup = BeautifulSoup(r.content, "html.parser")
-       #lenlinks = len(cntlinks)
-       cnt1 = len(soup.findAll("div", {"class": "field-pair alt"}))
-       cnt2 = len(soup.findAll("div", {"class": "field-pair"}))
+class sabnzbd(object):
 
-       cnt = int(cnt1 + cnt2)
-       n = 0
-       n_even = -1
-       n_odd = -1
-       while (n < cnt):
-           if n%2==0:
-               n_even+=1
-               resultp = soup.findAll("div", {"class": "field-pair"})[n_even]
-           else:
-               n_odd+=1
-               resultp = soup.findAll("div", {"class": "field-pair alt"})[n_odd]
+    def __init__(self, sabhost, sabusername, sabpassword):
+        self.sabhost = sabhost
+        self.sabusername = sabusername
+        self.sabpassword = sabpassword
 
-           if resultp.find("label", {"for": "nzbkey"}):
-               #logger.fdebug resultp
-               try:
-                   result = resultp.find("input", {"type": "text"})
+    def sab_get(self):
+        if self.sabusername is None or self.sabpassword is None:
+            logger.fdebug('No Username / Password specified for SABnzbd. Unable to auto-retrieve SAB API')
+        if 'https' not in self.sabhost:
+            self.sabhost = re.sub('http://', '', self.sabhost)
+            sabhttp = 'http://'
+        else:
+            self.sabhost = re.sub('https://', '', self.sabhost)
+            sabhttp = 'https://'
+        if not self.sabhost.endswith('/'):
+            self.sabhost = self.sabhost + '/'
 
-               except:
-                   continue
-               if result['id'] == "nzbkey":
-                   nzbkey = result['value']
-                   logger.fdebug('found SABnzbd NZBKey: ' + str(nzbkey))
-                   return nzbkey
-           n+=1
+        sabline = sabhttp + str(self.sabhost)
+        with requests.Session() as s:
+            postdata = {'username': self.sabusername,
+                        'password': self.sabpassword,
+                        'remember_me': 0}
+            lo = s.post(sabline + 'login/', data=postdata, verify=False)
 
-#if __name__ == '__main__':
-#    sabnzbd()
+            if not lo.status_code == 200:
+                return
+
+            r = s.get(sabline + 'config/general', verify=False)
+
+            soup = BeautifulSoup(r.content, "html.parser")
+            resultp = soup.findAll("div", {"class": "field-pair"})
+
+            for res in resultp:
+                if res.find("label", {"for": "apikey"}):
+                    try:
+                        result = res.find("input", {"type": "text"})
+                    except:
+                        continue
+                    if result['id'] == "apikey":
+                        apikey = result['value']
+                        logger.fdebug('found SABnzbd APIKey: ' + str(apikey))
+                        return apikey
+
+if __name__ == '__main__':
+    test = sabnzbd()
+    test.sab_get()
+
+

@@ -164,7 +164,7 @@ class info32p(object):
             return
         else:
             mylar.FEEDINFO_32P = feedinfo
-            return
+            return feedinfo
 
     def searchit(self):
         #self.searchterm is a tuple containing series name, issue number, volume and publisher.

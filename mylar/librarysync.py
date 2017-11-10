@@ -610,6 +610,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
 
 def scanLibrary(scan=None, queue=None):
+    mylar.IMPORT_FILES = 0
     valreturn = []
     if scan:
         try:

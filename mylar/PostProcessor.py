@@ -1027,7 +1027,6 @@ class PostProcessor(object):
                     comicname = None
                     issuenumber = None
                     if tmpiss is not None:
-                        logger.info('shouldnt be here')
                         ppinfo.append({'comicid':       tmpiss['ComicID'],
                                        'issueid':       issueid,
                                        'comicname':     tmpiss['ComicName'],

@@ -29,8 +29,10 @@ import itertools
 import shutil
 import os, errno
 from apscheduler.triggers.interval import IntervalTrigger
+
 import mylar
 import logger
+from mylar import sabnzbd, nzbget, process
 
 def multikeysort(items, columns):
 
@@ -1807,6 +1809,16 @@ def int_num(s):
     except ValueError:
         return float(s)
 
+def listPull(weeknumber, year):
+    import db
+    library = {}
+    myDB = db.DBConnection()
+    # Get individual comics
+    list = myDB.select("SELECT ComicID FROM Weekly WHERE weeknumber=? AND year=?", [weeknumber,year])
+    for row in list:
+        library[row['ComicID']] = row['ComicID']
+    return library
+
 def listLibrary():
     import db
     library = {}
@@ -2730,6 +2742,16 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
                     downlocation = torrent_info['files'][0].encode('utf-8')
 
             os.environ['downlocation'] = re.sub("'", "\\'",downlocation)
+
+            #these are pulled from the config and are the ssh values to use to retrieve the data
+            os.environ['host'] = mylar.CONFIG.PP_SSHHOST
+            os.environ['port'] = mylar.CONFIG.PP_SSHPORT
+            os.environ['user'] = mylar.CONFIG.PP_SSHUSER
+            os.environ['passwd'] = mylar.CONFIG.PP_SSHPASSWD
+            os.environ['localcd'] = mylar.CONFIG.PP_SSHLOCALCD
+            if mylar.CONFIG.PP_SSHKEYFILE is not None:
+                os.environ['keyfile'] = mylar.CONFIG.PP_SSHKEYFILE
+
             #downlocation = re.sub("\'", "\\'", downlocation)
             #downlocation = re.sub("&", "\&", downlocation)
 
@@ -2875,7 +2897,7 @@ def latestdate_update():
         ctrlVal = {'ComicID':           a['ComicID']}
         logger.info('updating latest date for : ' + a['ComicID'] + ' to ' + a['LatestDate'] + ' #' + a['LatestIssue'])
         myDB.upsert("comics", newVal, ctrlVal)
-   
+
 def worker_main(queue):
     while True:
         item = queue.get(True)
@@ -2890,7 +2912,40 @@ def worker_main(queue):
             mylar.SNATCHED_QUEUE.put(item)
         elif any([snstat['snatch_status'] == 'MONITOR FAIL', snstat['snatch_status'] == 'MONITOR COMPLETE']):
             logger.info('File copied for post-processing - submitting as a direct pp.')
-            threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()           
+            threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
+
+def nzb_monitor(queue):
+    while True:
+        item = queue.get(True)
+        logger.info('Now loading from queue: %s' % item)
+        if item == 'exit':
+            logger.info('Cleaning up workers for shutdown')
+            break
+        if mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True:
+           nz = sabnzbd.SABnzbd(item)
+           nzstat = nz.processor()
+        elif mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True:
+           nz = nzbget.NZBGet()
+           nzstat = nz.processor(item)
+        else:
+           logger.warn('There are no NZB Completed Download handlers enabled. Not sending item to completed download handling...')
+           break
+
+        if nzstat['status'] is False:
+            logger.info('Something went wrong - maybe you should retry things. I will requeue up this item for post-processing...')
+            time.sleep(5)
+            mylar.NZB_QUEUE.put(item)
+        elif nzstat['status'] is True:
+            if nzstat['failed'] is False:
+                logger.info('File successfully downloaded - now initiating completed downloading handling.')
+            else:
+                logger.info('File failed either due to being corrupt or incomplete - now initiating completed failed downloading handling.')
+            try:
+                cc = process.Process(nzstat['name'], nzstat['location'], failed=nzstat['failed'])
+                nzpp = cc.post_process()
+            except Exception as e:
+                logger.info('process error: %s' % e)
+
 
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
@@ -3150,7 +3205,7 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                             wkt = 4
                         else:
                             wkt = 24
-                        mylar.SCHED.reschedule_job('weekly', trigger=IntervalTrigger(hours=wkt, minutes=mylar.CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                        mylar.SCHED.reschedule_job('weekly', trigger=IntervalTrigger(hours=wkt, minutes=0, timezone='UTC'))
                         nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
                         mylar.SCHED_WEEKLY_LAST = last_run_completed
                     elif job == 'Check Version':

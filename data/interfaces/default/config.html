@@ -362,6 +362,11 @@
                                     </div>
                                 </div>
 
+                                <div class="row checkbox left clearfix">
+                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling<label>
+                                    <small>The category label above is used to when completed download handling is enabled</small>
+                                </div>
+
                                 <div align="center" class="row">
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
                                      <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
@@ -409,7 +414,12 @@
                                                 %endfor
                                                 </select>
                                               </div>
-                         
+
+                            <div class="row checkbox left clearfix">
+                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling<label>
+                                <small>The category label above is used to when completed download handling is enabled</small>
+                            </div>
+
                          </fieldset>
                          <fieldset id="blackhole_options">
                                     <div class="row">
@@ -424,7 +434,6 @@
                                 <input type="text" name="usenet_retention" value="${config['usenet_retention']}" size="10">
                             </div>
                          </fieldset>
-
                    </td>
                    <td>
                       <legend>Torrents</legend>
@@ -928,7 +937,6 @@
                                     </div>
                                 </div>
                         </fieldset>
-
                	</td>
                 <td>
                         <fieldset>
@@ -1797,6 +1805,7 @@
                                 return;
                             }
                             $('#sabstatus').val(data);
+                            // $('#sab_apikey').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();

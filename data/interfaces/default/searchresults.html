@@ -6,20 +6,7 @@
 %>
 
 <%def name="headerIncludes()">
-        <div id="subhead_container">
-                <div id="subhead_menu">
-                    %if explicit == 'loose':
-                        <a id="menu_link_retry" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=loose">Search ALL terms</a>
-                        <a id="menu_link_retry" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
-                    %elif explicit == 'explicit':
-                        <a id="menu_link_retry" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
-                        <a id="menu_link_retry" title="This will search for ALL of the terms given : ${name}" href="searchit?name=${name |u}&explicit=all">Search ALL terms</a>
-                    %elif explicit == 'all':
-                        <a id="menu_link_retry" title="This will search EXPLICITLY for only the terms given : ${name}" href="searchit?name=${name |u}&explicit=explicit">Explicit Search</a>
-                        <a id="menu_link_retry" title="Warning: This will search for ANY of the terms given : ${name} (this could take awhile)" href="searchit?name=${name |u}&explicit=loose">Loose Search</a>
-                    %endif
-                </div>
-        </div>
+
 </%def>
 <%def name="body()">
 	<div id="paddingheader">
@@ -28,12 +15,7 @@
                           typesel = " Story Arc"
                       else:
                           typesel = ""
-                      if explicit == 'loose':
-                          searchtext = "Loose Search results for: </br><center> " + name + "</center>"
-                      elif explicit == 'explicit':
-                          searchtext = "Explicit " + typesel.rstrip() + " Search results for: </br><center> " + name + "</center>"
-                      else:
-                          searchtext = "Search results for : </br><center>" + name + "</center>"
+                      searchtext = "Search results for : </br><center>" + name + "</center>"
                  %>
 
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_search.png" alt="Search results"/>${searchtext}</h1>
@@ -66,17 +48,23 @@
 			%if searchresults:
 				%for result in searchresults:
 				<%
-					if result['comicyear'] == mylar.CURRENT_YEAR:
-					    grade = 'A'
-					else:
-					    grade = 'Z'
-					if result['haveit'] != "No":
-					    grade = 'H';
-
+					grade = 'Z'
                                         rtype = None
                                         if type != 'story_arc':
                                             if result['type'] == 'Digital':
                                                 rtype = '[Digital]'
+                                                grade = 'Z'
+                                            elif result['type'] == 'TPB':
+                                                rtype = '[TPB]'
+                                                grade = 'Z'
+                                            elif result['type'] == 'HC':
+                                                rtype = '[HC]'
+                                                grade = 'Z'
+                                            else:
+                                                grade = 'A'
+
+                                        if result['haveit'] != "No":
+                                            grade = 'H';
 				%>
 				<tr class="grade${grade}">
 					<td class="blank"></td>

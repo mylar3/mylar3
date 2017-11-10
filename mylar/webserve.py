@@ -37,7 +37,7 @@ import shutil
 
 import mylar
 
-from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers
+from mylar import logger, db, importer, mb, search, filechecker, helpers, updater, parseit, weeklypull, PostProcessor, librarysync, moveit, Failed, readinglist, notifiers, sabparse
 
 import simplejson as simplejson
 
@@ -211,7 +211,7 @@ class WebInterface(object):
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals_list, annualinfo=aName)
     comicDetails.exposed = True
 
-    def searchit(self, name, issue=None, mode=None, type=None, explicit=None, serinfo=None):
+    def searchit(self, name, issue=None, mode=None, type=None, serinfo=None):
         if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
         else: logger.fdebug(str(type) + " mode enabled.")
         #mode dictates type of search:
@@ -226,7 +226,7 @@ class WebInterface(object):
                 #if it's an issue 0, CV doesn't have any data populated yet - so bump it up one to at least get the current results.
                 issue = 1
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue=issue)
+                searchresults = mb.findComic(name, mode, issue=None) #issue=issue)
             except TypeError:
                 logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
@@ -238,26 +238,26 @@ class WebInterface(object):
                 threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None]).start()
                 raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue=None, explicit=explicit)
+                searchresults = mb.findComic(name, mode, issue=None)
             except TypeError:
-                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][mode: ' + mode + '][explicitsearch:' + str(explicit) + ']')
+                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][mode: ' + mode + ']')
                 return
         elif type == 'comic' and mode == 'want':
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue)
+                searchresults = mb.findComic(name, mode, issue)
             except TypeError:
                 logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
         elif type == 'story_arc':
             try:
-                searchresults, explicit = mb.findComic(name, mode=None, issue=None, explicit='explicit', type='story_arc')
+                searchresults = mb.findComic(name, mode=None, issue=None, type='story_arc')
             except TypeError:
-                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + '][explicitsearch: explicit]')
+                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
                 return
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         #print ("Results: " + str(searchresults))
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, explicit=explicit, serinfo=serinfo)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None, serinfo=None):
@@ -732,7 +732,7 @@ class WebInterface(object):
                         break
 
         if failed:
-            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
+            if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING is True:
                 #drop the if-else continuation so we can drop down to this from the above if statement.
                 logger.info('Initiating Failed Download handling for this download.')
                 FailProcess = Failed.FailedProcessor(nzb_name=nzb_name, nzb_folder=nzb_folder, queue=queue)
@@ -1147,7 +1147,7 @@ class WebInterface(object):
                                   "oneoff":        oneoff})
 
                 newznabinfo = None
-
+                link = None
                 if fullprov == 'nzb.su':
                     if not mylar.CONFIG.NZBSU:
                         logger.error('nzb.su is not enabled - unable to process retry request until provider is re-enabled.')
@@ -1189,17 +1189,18 @@ class WebInterface(object):
                                     newznab_host = newznab_info[1] + '/'
                                 newznab_api = newznab_info[3]
                                 newznab_uid = newznab_info[4]
-                                link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
+                                #link = str(newznab_host) + 'getnzb/' + str(id) + '.nzb&i=' + str(newznab_uid) + '&r=' + str(newznab_api)
+                                link = str(newznab_host) + '/api?apikey=' + str(newznab_api) + '&t=get&id=' + str(id)
                                 logger.info('newznab detected as : ' + str(newznab_info[0]) + ' @ ' + str(newznab_host))
                                 logger.info('link : ' + str(link))
                                 newznabinfo = (newznab_info[0], newznab_info[1], newznab_info[2], newznab_info[3], newznab_info[4])
-                                break
                             else:
                                 logger.error(str(newznab_info[0]) + ' is not enabled - unable to process retry request until provider is re-enabled.')
-                                continue
+                            break
 
-                sendit = search.searcher(fullprov, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
-                break
+                if link is not None:
+                    sendit = search.searcher(fullprov, nzbname, comicinfo, link=link, IssueID=IssueID, ComicID=ComicID, tmpprov=fullprov, directsend=True, newznab=newznabinfo)
+                    break
         return
     retryissue.exposed = True
 
@@ -1766,13 +1767,18 @@ class WebInterface(object):
             return {'status' : 'success'}
     manualpull.exposed = True
 
-    def pullrecreate(self):
+    def pullrecreate(self, weeknumber=None, year=None):
         myDB = db.DBConnection()
-        myDB.action("DROP TABLE weekly")
-        mylar.dbcheck()
-        logger.info("Deleted existed pull-list data. Recreating Pull-list...")
         forcecheck = 'yes'
-        weeklypull.pullit(forcecheck)
+        if weeknumber is None:
+            myDB.action("DROP TABLE weekly")
+            mylar.dbcheck()
+            logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+            weeklypull.pullit(forcecheck)
+        else:
+            myDB.action("DELETE FROM weekly WHERE weeknumber=? AND year=?", [weeknumber, year])
+            logger.info("Deleted existed pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
+            weeklypull.pullit(forcecheck, weeknumber, year)
         raise cherrypy.HTTPRedirect("pullist")
     pullrecreate.exposed = True
 
@@ -2175,17 +2181,17 @@ class WebInterface(object):
             if jobid.lower() in str(jb).lower():
                 logger.info('[%s] Now force submitting job.' % jb)
                 if jobid == 'rss':
-                    mylar.SCHED.add_job(func=jb.func, args=[True], trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, args=[True], trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 elif jobid == 'weekly':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 elif jobid == 'search':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 elif jobid == 'version':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 elif jobid == 'updater':
-                    mylar.SCHED.add_job(func=jb.func, args=[None,None,True], trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, args=[None,None,True], trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 elif jobid == 'monitor':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.utcnow()))
                 break
 
     schedulerForceCheck.exposed = True
@@ -2818,7 +2824,7 @@ class WebInterface(object):
 
         for duh in AMS:
             mode='series'
-            sresults, explicit = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'], explicit='all')
+            sresults = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'])
             type='comic'
 
             if len(sresults) == 1:
@@ -3516,10 +3522,10 @@ class WebInterface(object):
     def confirmResult(self, comicname, comicid):
         #print ("here.")
         mode='series'
-        sresults, explicit = mb.findComic(comicname, mode, None, explicit='all')
+        sresults = mb.findComic(comicname, mode, None)
         #print sresults
         type='comic'
-        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"', searchresults=sresults, type=type, imported='confirm', ogcname=comicid, explicit=explicit)
+        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"', searchresults=sresults, type=type, imported='confirm', ogcname=comicid)
     confirmResult.exposed = True
 
     def Check_ImportStatus(self):
@@ -3854,9 +3860,9 @@ class WebInterface(object):
                 searchterm = '"' + displaycomic + '"'
                 try:
                     if yearRANGE is None:
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues) #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
                     else:
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE) #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
                 except TypeError:
                     logger.warn('Comicvine API limit has been reached, and/or the comicvine website is not responding. Aborting process at this time, try again in an ~ hr when the api limit is reset.')
                     break
@@ -3905,7 +3911,7 @@ class WebInterface(object):
                 else:
                     if len(search_matches) == 0 or len(search_matches) is None:
                         logger.fdebug("no results, removing the year from the agenda and re-querying.")
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues) #ComicName, mode, issue=numissues)
                         logger.fdebug('[' + str(len(sresults)) + '] search results')
                         for results in sresults:
                             rsn = filechecker.FileChecker()
@@ -4183,6 +4189,7 @@ class WebInterface(object):
                     "sab_priority": mylar.CONFIG.SAB_PRIORITY,
                     "sab_directory": mylar.CONFIG.SAB_DIRECTORY,
                     "sab_to_mylar": helpers.checked(mylar.CONFIG.SAB_TO_MYLAR),
+                    "sab_client_post_processing": helpers.checked(mylar.CONFIG.SAB_CLIENT_POST_PROCESSING),
                     "nzbget_host": mylar.CONFIG.NZBGET_HOST,
                     "nzbget_port": mylar.CONFIG.NZBGET_PORT,
                     "nzbget_user": mylar.CONFIG.NZBGET_USERNAME,
@@ -4190,6 +4197,7 @@ class WebInterface(object):
                     "nzbget_cat": mylar.CONFIG.NZBGET_CATEGORY,
                     "nzbget_priority": mylar.CONFIG.NZBGET_PRIORITY,
                     "nzbget_directory": mylar.CONFIG.NZBGET_DIRECTORY,
+                    "nzbget_client_post_processing": helpers.checked(mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING),
                     "torrent_downloader_watchlist": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 0),
                     "torrent_downloader_utorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 1),
                     "torrent_downloader_rtorrent": helpers.radio(int(mylar.CONFIG.TORRENT_DOWNLOADER), 2),
@@ -4570,7 +4578,7 @@ class WebInterface(object):
                            'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
                            'enable_torrents', 'qbittorrent_startonload', 'enable_rss', 'nzbsu', 'nzbsu_verify',
                            'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_tpse', 'enable_32p', 'enable_torznab',
-                           'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling',
+                           'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'cvinfo', 'snatchedtorrent_notify',
@@ -4614,46 +4622,6 @@ class WebInterface(object):
 
                 mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
-        ## Sanity checking
-        #if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API == '':
-        #    logger.info('Personal Comicvine API key not provided. This will severely impact the usage of Mylar - you have been warned.')
-        #    mylar.CONFIG.COMICVINE_API = None
-
-        #if mylar.CONFIG.SEARCH_INTERVAL < 360:
-        #    logger.info("Search interval too low. Resetting to 6 hour minimum") mylar.CONFIG.SEARCH_INTERVAL = 360
-
-        #if mylar.CONFIG.SEARCH_DELAY < 1:
-        #    logger.info("Minimum search delay set for 1 minute to avoid hammering.")
-        #    mylar.CONFIG.SEARCH_DELAY = 1
-
-        #if mylar.CONFIG.RSS_CHECKINTERVAL < 20:
-        #    logger.info("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
-        #    mylar.CONFIG.RSS_CHECKINTERVAL = 20
-
-        #if not helpers.is_number(mylar.CONFIG.CHMOD_DIR):
-        #    logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
-        #    mylar.CONFIG.CHMOD_DIR = '0777'
-
-        #if not helpers.is_number(mylar.CONFIG.CHMOD_FILE):
-        #    logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
-        #    mylar.CONFIG.CHMOD_FILE = '0660'
-
-        #if mylar.CONFIG.SAB_HOST.endswith('/'):
-        #    logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
-        #    mylar.CONFIG.SAB_HOST = mylar.CONFIG.SAB_HOST[:-1]
-
-        #if mylar.CONFIG.FILE_OPTS is None:
-        #    mylar.CONFIG.FILE_OPTS = 'move'
-
-        #if any([mylar.CONFIG.FILE_OPTS == 'hardlink', mylar.CONFIG.FILE_OPTS == 'softlink']):
-        #    #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
-        #    mylar.CONFIG.ENABLE_META = 0
-
-        #if mylar.CONFIG.ENABLE_META:
-        #    #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.
-        #    logger.fdebug("ComicTagger Path enforced to use local library : " + mylar.PROG_DIR)
-        #    mylar.CONFIG.CMTAGGER_PATH = mylar.PROG_DIR
-
         mylar.CONFIG.process_kwargs(kwargs)
 
         #this makes sure things are set to the default values if they're not appropriately set.
@@ -4668,7 +4636,6 @@ class WebInterface(object):
     configUpdate.exposed = True
 
     def SABtest(self, sabhost=None, sabusername=None, sabpassword=None, sabapikey=None):
-        logger.info('here')
         if sabhost is None:
             sabhost = mylar.CONFIG.SAB_HOST
         if sabusername is None:
@@ -4677,14 +4644,9 @@ class WebInterface(object):
             sabpassword = mylar.CONFIG.SAB_PASSWORD
         if sabapikey is None:
             sabapikey = mylar.CONFIG.SAB_APIKEY
-        logger.fdebug('testing SABnzbd connection')
-        logger.fdebug('sabhost: ' + str(sabhost))
-        logger.fdebug('sabusername: ' + str(sabusername))
-        logger.fdebug('sabpassword: ' + str(sabpassword))
-        logger.fdebug('sabapikey: ' + str(sabapikey))
-        if mylar.CONFIG.USE_SABNZBD:
+        logger.fdebug('Now attempting to test SABnzbd connection')
+        if mylar.USE_SABNZBD:
             import requests
-            from xml.dom.minidom import parseString, Element
 
             #if user/pass given, we can auto-fill the API ;)
             if sabusername is None or sabpassword is None:
@@ -4699,7 +4661,8 @@ class WebInterface(object):
             querysab = sabhost + 'api'
             payload = {'mode':    'get_config',
                        'section': 'misc',
-                       'output':  'xml',
+                       'output':  'json',
+                       'keyword': 'api_key',
                        'apikey':   sabapikey}
 
             if sabhost.startswith('https'):
@@ -4710,7 +4673,7 @@ class WebInterface(object):
             try:
                 r = requests.get(querysab, params=payload, verify=verify)
             except Exception, e:
-                logger.warn('Error fetching data from %s: %s' % (sabhost, e))
+                logger.warn('Error fetching data from %s: %s' % (querysab, e))
                 if requests.exceptions.SSLError:
                     logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
                     try:
@@ -4736,60 +4699,25 @@ class WebInterface(object):
                 logger.warn('Unable to properly query SABnzbd @' + sabhost + ' [Status Code returned: ' + str(r.status_code) + ']')
                 data = False
             else:
-                data = r.content
+                data = r.json()
 
-            if data:
-                dom = parseString(data)
-            else:
-                return 'Unable to reach SABnzbd'
-
+            logger.info('data: %s' % data)
             try:
-                q_sabhost = dom.getElementsByTagName('host')[0].firstChild.wholeText
-                q_nzbkey = dom.getElementsByTagName('nzb_key')[0].firstChild.wholeText
-                q_apikey = dom.getElementsByTagName('api_key')[0].firstChild.wholeText
+                q_apikey = data['config']['misc']['api_key']
             except:
-                errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
-                logger.error(u"Error detected attempting to retrieve SAB data using FULL APIKey: " + errorm)
-                if errorm == 'API Key Incorrect':
-                    logger.fdebug('You may have given me just the right amount of power (NZBKey), will test SABnzbd against the NZBkey now')
-                    querysab = sabhost + 'api'
-                    payload = {'mode':    'addurl',
-                               'name':    'http://www.example.com/example.nzb',
-                               'nzbname': 'NiceName',
-                               'output':  'xml',
-                               'apikey':   sabapikey}
+                logger.error('Error detected attempting to retrieve SAB data using FULL APIKey')
+                if all([sabusername is not None, sabpassword is not None]):
                     try:
-                        r = requests.get(querysab, params=payload, verify=verify)
+                        sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
+                        q_apikey = sp.sab_get()
                     except Exception, e:
-                        logger.warn('Error fetching data from %s: %s' % (sabhost, e))
-                        return 'Unable to retrieve data from SABnzbd'
-
-                    dom = parseString(r.content)
-                    qdata = dom.getElementsByTagName('status')[0].firstChild.wholeText
-
-                    if str(qdata) == 'True':
-                        q_nzbkey = mylar.CONFIG.SAB_APIKEY
+                        logger.warn('failure: %s' % e)
                         q_apikey = None
-                        qd = True
-                    else:
-                        qerror = dom.getElementsByTagName('error')[0].firstChild.wholeText
-                        logger.error(str(qerror) + ' - check that the API (NZBkey) is correct, use the auto-detect option AND/OR check host:port settings')
-                        qd = False
+                    if q_apikey is None:
+                        return "Invalid APIKey provided"
 
-                if qd == False: return "Invalid APIKey provided."
-
-            #test which apikey provided
-            if q_nzbkey != sabapikey:
-                if q_apikey != sabapikey:
-                    logger.error('APIKey provided does not match with SABnzbd')
-                    return "Invalid APIKey provided"
-                else:
-                    logger.info('APIKey provided is FULL APIKey which is too much power - changing to NZBKey')
-                    mylar.CONFIG.SAB_APIKEY = q_nzbkey
-                    #mylar.config_write()
-                    logger.info('Succcessfully changed to NZBKey. Thanks for shopping S-MART!')
-            else:
-                logger.info('APIKey provided is NZBKey which is the correct key.')
+            mylar.CONFIG.SAB_APIKEY = q_apikey
+            logger.info('APIKey provided is the FULL APIKey which is the correct key. You still need to SAVE the config for the changes to be applied.')
 
             logger.info('Connection to SABnzbd tested sucessfully')
             return "Successfully verified APIkey"
@@ -4836,9 +4764,9 @@ class WebInterface(object):
     getComicArtwork.exposed = True
 
     def findsabAPI(self, sabhost=None, sabusername=None, sabpassword=None):
-        from mylar import sabparse
-        sabapi = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
-        logger.info('SAB NZBKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
+        sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
+        sabapi = sp.sab_get()
+        logger.info('SAB APIKey found as : ' + str(sabapi) + '. You still have to save the config to retain this setting.')
         mylar.CONFIG.SAB_APIKEY = sabapi
         return sabapi
 

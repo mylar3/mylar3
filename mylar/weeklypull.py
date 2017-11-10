@@ -31,27 +31,32 @@ import shutil
 import mylar
 from mylar import db, updater, helpers, logger, newpull, importer, mb, locg
 
-def pullit(forcecheck=None):
+def pullit(forcecheck=None, weeknumber=None, year=None):
     myDB = db.DBConnection()
-    popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
-    if popit:
-        try:
-            pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
-            logger.info(u"Weekly pull list present - checking if it's up-to-date..")
-            if (pull_date is None):
+    if weeknumber is None:
+        popit = myDB.select("SELECT count(*) FROM sqlite_master WHERE name='weekly' and type='table'")
+        if popit:
+            try:
+                pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
+                logger.info(u"Weekly pull list present - checking if it's up-to-date..")
+                if (pull_date is None):
+                    pulldate = '00000000'
+                else:
+                    pulldate = pull_date['SHIPDATE']
+            except (sqlite3.OperationalError, TypeError), msg:
+                logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
+                myDB.action("DROP TABLE weekly")
+                myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
                 pulldate = '00000000'
-            else:
-                pulldate = pull_date['SHIPDATE']
-        except (sqlite3.OperationalError, TypeError), msg:
-            logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
-            myDB.action("DROP TABLE weekly")
-            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
+                logger.fdebug(u"Table re-created, trying to populate")
+        else:
+            logger.info(u"No pullist found...I'm going to try and get a new list now.")
             pulldate = '00000000'
-            logger.fdebug(u"Table re-created, trying to populate")
     else:
-        logger.info(u"No pullist found...I'm going to try and get a new list now.")
+        pulldate = None
+
+    if pulldate is None and weeknumber is None:
         pulldate = '00000000'
-    if pulldate is None: pulldate = '00000000'
 
     #only for pw-file or ALT_PULL = 1
     newrl = os.path.join(mylar.CONFIG.CACHE_DIR, 'newreleases.txt')
@@ -63,7 +68,12 @@ def pullit(forcecheck=None):
         newpull.newpull()
     elif mylar.CONFIG.ALT_PULL == 2:
         logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website')
-        chk_locg = locg.locg('00000000')  #setting this to 00000000 will do a Recreate on every call instead of a Refresh
+        if pulldate is not None:
+            chk_locg = locg.locg('00000000')  #setting this to 00000000 will do a Recreate on every call instead of a Refresh
+        else:
+            logger.info('[PULL-LIST] Populating & Loading pull-list data directly from alternate website for specific week of %s, %s' % (weeknumber, year))
+            chk_locg = locg.locg(weeknumber=weeknumber, year=year)
+
         if chk_locg['status'] == 'up2date':
             logger.info('[PULL-LIST] Pull-list is already up-to-date with ' + str(chk_locg['count']) + 'issues. Polling watchlist against it to see if anything is new.')
             mylar.PULLNEW = 'no'
@@ -826,6 +836,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
     myDB = db.DBConnection()
     watchlist = []
     weeklylist = []
+    pullist = helpers.listPull(weeknumber,pullyear)
     if comic1off_name:
         comiclist = myDB.select("SELECT * FROM comics WHERE Status='Active' AND ComicID=?",[comic1off_id])
     else:
@@ -848,10 +859,11 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                               "AlternateSearch":    weekly['AlternateSearch'],
                               "DynamicName":        weekly['DynamicComicName']})
 
-
     if len(watchlist) > 0:
         for watch in watchlist:
-            if 'Present' in watch['ComicPublished'] or (helpers.now()[:4] in watch['ComicPublished']) or watch['ForceContinuing'] == 1:
+            listit = [pls for pls in pullist if str(pls) == str(watch['ComicID'])] 
+            logger.info('watchCOMICID:%s  / listit: %s' % (watch['ComicID'], listit))
+            if 'Present' in watch['ComicPublished'] or (helpers.now()[:4] in watch['ComicPublished']) or watch['ForceContinuing'] == 1 or len(listit) >0:
                 # this gets buggered up when series are named the same, and one ends in the current
                 # year, and the new series starts in the same year - ie. Avengers
                 # lets' grab the latest issue date and see how far it is from current
@@ -886,7 +898,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 chklimit = helpers.checkthepub(watch['ComicID'])
                 logger.fdebug("Check date limit set to : " + str(chklimit))
                 logger.fdebug(" ----- ")
-                if recentchk < int(chklimit) or watch['ForceContinuing'] == 1:
+                if recentchk < int(chklimit) or watch['ForceContinuing'] == 1 or len(listit) > 0:
                     if watch['ForceContinuing'] == 1:
                         logger.fdebug('Forcing Continuing Series enabled for series...')
                     # let's not even bother with comics that are not in the Present.
@@ -909,7 +921,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                 annual_ids.append({'ComicID':    an['ReleaseComicID'],
                                                    'ComicName':  an['ReleaseComicName']})
 
-                    weeklylist.append({'ComicName':       watch['ComicName'],                    
+                    weeklylist.append({'ComicName':       watch['ComicName'],
                                        'SeriesYear':      watch['ComicYear'],
                                        'ComicID':         watch['ComicID'],
                                        'Pubdate':         watch['ComicPublished'],

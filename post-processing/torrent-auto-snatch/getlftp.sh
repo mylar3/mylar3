@@ -1,31 +1,15 @@
 #!/bin/bash
 
-##-- start configuration
-
-#this needs to be edited to the full path to the get.conf file containing the torrent client information
-configfile='/home/hero/mylar/post-processing/torrent-auto-snatch/get.conf'
-
-#this is the temporary location where it will make sure the conf is safe for use (by default this should be fine if left alone)
-configfile_secured='/tmp/get.conf'
-
-##-- end configuration
-
-
-## --- don't change stuff below here ----
-
-# check if the file contains something we don't want
-if egrep -q -v '^#|^[^ ]*=[^;]*' "$configfile"; then
-  # echo "Config file is unclean, cleaning it..." >&2
-  # filter the original to a new file
-  egrep '^#|^[^ ]*=[^;&]*'  "$configfile" > "$configfile_secured"
-  configfile="$configfile_secured"
-fi
-
-# now source it, either the original or the filtered variant
-source "$configfile"
+#load the value from the conf.
+HOST="$host"
+PORT="$port"
+USER="$user"
+PASSWD="$passwd"
+LOCALCD="$localcd"
+KEYFILE="$keyfile"
+filename="$downlocation"
 
 cd $LOCALCD
-filename="$downlocation"
 
 if [[ "${filename##*.}" == "cbr" || "${filename##*.}" == "cbz" ]]; then
     LCMD="pget -n 6 '$filename'"

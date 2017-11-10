@@ -83,7 +83,6 @@ RSS_STATUS = 'Waiting'
 WEEKLY_STATUS = 'Waiting'
 VERSION_STATUS = 'Waiting'
 UPDATER_STATUS = 'Waiting'
-SNATCHED_QUEUE = Queue.Queue()
 SCHED_RSS_LAST = None
 SCHED_WEEKLY_LAST = None
 SCHED_MONITOR_LAST = None
@@ -118,6 +117,9 @@ USE_QBITTORENT = False
 USE_UTORRENT = False
 USE_WATCHDIR = False
 SNPOOL = None
+NZBPOOL = None
+SNATCHED_QUEUE = Queue.Queue()
+NZB_QUEUE = Queue.Queue()
 COMICSORT = None
 PULLBYFILE = None
 CFG = None
@@ -134,6 +136,7 @@ DOWNLOAD_APIKEY = None
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "1.0"
+SAB_PARAMS = None
 SCHED = BackgroundScheduler({
                              'apscheduler.executors.default': {
                                  'class':  'apscheduler.executors.pool:ThreadPoolExecutor',
@@ -149,9 +152,9 @@ def initialize(config_file):
     with INIT_LOCK:
 
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
-               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
+               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, TPSEURL, \
-               USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, \
+               USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST
@@ -165,7 +168,7 @@ def initialize(config_file):
             return False
 
         #set up the default values here if they're wrong.
-        cc.configure()
+        #cc.configure()
 
         # Start the logger, silence console logging if we need to
         logger.initLogger(console=not QUIET, log_dir=CONFIG.LOG_DIR, verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
@@ -381,29 +384,25 @@ def start():
                     SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
 
             if all([CONFIG.ENABLE_TORRENTS, CONFIG.AUTO_SNATCH, OS_DETECT != 'Windows']) and any([CONFIG.TORRENT_DOWNLOADER == 2, CONFIG.TORRENT_DOWNLOADER == 4]):
-                logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to backgroun load....')
+                logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to background load....')
                 SNPOOL = threading.Thread(target=helpers.worker_main, args=(SNATCHED_QUEUE,), name="AUTO-SNATCHER")
                 SNPOOL.start()
                 logger.info('[AUTO-SNATCHER] Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
 
-            helpers.latestdate_fix()
+            if CONFIG.POST_PROCESSING is True and ( all([CONFIG.NZB_DOWNLOADER == 0, CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([CONFIG.NZB_DOWNLOADER == 1, CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
+                if CONFIG.NZB_DOWNLOADER == 0:
+                    logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
+                elif CONFIG.NZB_DOWNLOADER == 1:
+                    logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
+                NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
+                NZBPOOL.start()
+                if CONFIG.NZB_DOWNLOADER == 0:
+                    logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically....')
+                elif CONFIG.NZB_DOWNLOADER == 1:
+                    logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically....')
 
-            #initiate startup rss feeds for torrents/nzbs here...
-            if CONFIG.ENABLE_RSS:
-                logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
-                if SCHED_RSS_LAST is not None:
-                    rss_timestamp = float(SCHED_RSS_LAST)
-                    logger.info('[RSS-FEEDS] RSS last run @ %s' % datetime.datetime.utcfromtimestamp(rss_timestamp))
-                else:
-                    rss_timestamp = helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) *60)
-                rs = rsscheckit.tehMain()
-                duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
-                if duration_diff >= int(CONFIG.RSS_CHECKINTERVAL):
-                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.now(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
-                else:
-                    rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
-                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, CONFIG.RSS_CHECKINTERVAL))
-                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
+
+            helpers.latestdate_fix()
 
             if CONFIG.ALT_PULL == 2:
                 weektimer = 4
@@ -425,11 +424,28 @@ def start():
 
             if duration_diff >= weekly_interval/60:
                 logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % (duration_diff/60))
-                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.now(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
             else:
                 weekly_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (weekly_interval - (duration_diff * 60)))
                 logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
                 SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+
+            #initiate startup rss feeds for torrents/nzbs here...
+            if CONFIG.ENABLE_RSS:
+                logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
+                if SCHED_RSS_LAST is not None:
+                    rss_timestamp = float(SCHED_RSS_LAST)
+                    logger.info('[RSS-FEEDS] RSS last run @ %s' % datetime.datetime.utcfromtimestamp(rss_timestamp))
+                else:
+                    rss_timestamp = helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) *60)
+                rs = rsscheckit.tehMain()
+                duration_diff = (helpers.utctimestamp() - rss_timestamp)/60
+                if duration_diff >= int(CONFIG.RSS_CHECKINTERVAL):
+                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
+                else:
+                    rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
+                    logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, CONFIG.RSS_CHECKINTERVAL))
+                    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
 
             if CONFIG.CHECK_GITHUB:
                 vs = versioncheckit.CheckVersion()
@@ -1102,6 +1118,17 @@ def halt():
             except:
                 SCHED.shutdown(wait=False)
 
+            if NZBPOOL is not None:
+                logger.info('Terminating the nzb auto-complete thread.')
+                try:
+                    NZBPOOL.join(10)
+                    logger.info('Joined pool for termination -  successful')
+                except KeyboardInterrupt:
+                    NZB_QUEUE.put('exit')
+                    NZBPOOL.join(5)
+                except AssertionError:
+                    os._exit(0)
+
             if SNPOOL is not None:
                 logger.info('Terminating the auto-snatch thread.')
                 try:
@@ -1112,7 +1139,6 @@ def halt():
                     SNPOOL.join(5)
                 except AssertionError:
                     os._exit(0)
-
             _INITIALIZED = False
 
 def shutdown(restart=False, update=False):

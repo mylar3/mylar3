@@ -100,7 +100,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CVAPI_RATE' : (int, 'CV', 2),
     'COMICVINE_API': (str, 'CV', None),
-    'BLACKLISTED_PUBLISHERS' : (str, 'CV', None),
+    'BLACKLISTED_PUBLISHERS' : (str, 'CV', ''),
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
@@ -195,6 +195,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_PRIORITY': (str, 'SABnzbd', "Default"),
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
+    'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnbzd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'NZBGET_HOST': (str, 'NZBGet', None),
     'NZBGET_PORT': (str, 'NZBGet', None),
@@ -203,6 +204,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NZBGET_PRIORITY': (str, 'NZBGet', None),
     'NZBGET_CATEGORY': (str, 'NZBGet', None),
     'NZBGET_DIRECTORY': (str, 'NZBGet', None),
+    'NZBGET_CLIENT_POST_PROCESSING': (bool, 'NZBGet', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'BLACKHOLE_DIR': (str, 'Blackhole', None),
 
@@ -262,9 +264,16 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_TORRENTS': (bool, 'Torrents', False),
     'ENABLE_TORRENT_SEARCH': (bool, 'Torrents', False),
     'MINSEEDS': (int, 'Torrents', 0),
-    'AUTO_SNATCH': (bool, 'Torrents', False),
-    'AUTO_SNATCH_SCRIPT': (str, 'Torrents', None),
     'ALLOW_PACKS': (bool, 'Torrents', False),
+
+    'AUTO_SNATCH': (bool, 'AutoSnatch', False),
+    'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
+    'PP_SSHHOST': (str, 'AutoSnatch', None),
+    'PP_SSHPORT': (str, 'AutoSnatch', 22),
+    'PP_SSHUSER': (str, 'AutoSnatch', None),
+    'PP_SSHPASSWD': (str, 'AutoSnatch', None),
+    'PP_SSHLOCALCD': (str, 'AutoSnatch', None),
+    'PP_SSHKEYFILE': (str, 'AutoSnatch', None),
 
     'TORRENT_LOCAL': (bool, 'Watchdir', False),
     'LOCAL_WATCHDIR': (str, 'Watchdir', None),
@@ -467,7 +476,7 @@ class Config(object):
         default = key[3]
         myval = self.check_config(definition_type, section, inikey, default)
         if myval['status'] is False:
-            if self.CONFIG_VERSION == 6:
+            if self.CONFIG_VERSION == 6 or (config.has_section('Torrents') and any([inikey == 'auto_snatch', inikey == 'auto_snatch_script'])):
                 chkstatus = False
                 if config.has_section('Torrents'):
                     myval = self.check_config(definition_type, 'Torrents', inikey, default)
@@ -581,7 +590,11 @@ class Config(object):
     def writeconfig(self):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
-        config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extra_newznabs()))
+        config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
+        if type(self.BLACKLISTED_PUBLISHERS) == list:
+            config.set('CV', 'blacklisted_publishers', ', '.join(self.write_extras(self.BLACKLISTED_PUBLISHERS)))
+        else:
+            config.set('CV', 'blacklisted_publishers', self.BLACKLISTED_PUBLISHERS)
         config.set('General', 'dynamic_update', str(self.DYNAMIC_UPDATE))
         try:
             with codecs.open(self._config_file, encoding='utf8', mode='w+') as configfile:
@@ -659,6 +672,9 @@ class Config(object):
             #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
             self.ENABLE_META = False
 
+        if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == unicode:
+            setattr(self, 'BLACKLISTED_PUBLISHERS', self.BLACKLISTED_PUBLISHERS.split(', '))
+
         #comictagger - force to use included version if option is enabled.
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
@@ -676,6 +692,10 @@ class Config(object):
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
+
+        if self.AUTO_SNATCH is True and self.AUTO_SNATCH_SCRIPT is None:
+            setattr(self, 'AUTO_SNATCH_SCRIPT', os.path.join(mylar.PROG_DIR, 'post-processing', 'torrent-auto-snatch', 'getlftp.sh'))
+            config.set('AutoSnatch', 'auto_snatch_script', self.AUTO_SNATCH_SCRIPT)
         mylar.USE_SABNZBD = False
         mylar.USE_NZBGET = False
         mylar.USE_BLACKHOLE = False
@@ -861,9 +881,9 @@ class Config(object):
         setattr(self, 'PROVIDER_ORDER', PROVIDER_ORDER)
         logger.fdebug('Provider Order is now set : %s ' % self.PROVIDER_ORDER)
 
-    def write_extra_newznabs(self):
-        flattened_newznabs = []
-        for item in self.EXTRA_NEWZNABS:
+    def write_extras(self, value):
+        flattened = []
+        for item in value: #self.EXTRA_NEWZNABS:
             for i in item:
                 try:
                     if "\"" in i and " \"" in i:
@@ -872,5 +892,5 @@ class Config(object):
                         ib = i
                 except:
                     ib = i
-                flattened_newznabs.append(str(ib))
-        return flattened_newznabs
+                flattened.append(str(ib))
+        return flattened

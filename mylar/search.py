@@ -16,7 +16,7 @@
 from __future__ import division
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p, sabnzbd, nzbget
 
 import feedparser
 import requests
@@ -1620,7 +1620,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.error('[NZBPROVIDER = NONE] Encountered an error using given provider with requested information: ' + comicinfo + '. You have a blank entry most likely in your newznabs, fix it & restart Mylar')
                             continue
                         #generate the send-to and actually send the nzb / torrent.
-                        logger.info('entry: %s' % entry)
+                        #logger.info('entry: %s' % entry)
                         searchresult = searcher(nzbprov, nzbname, comicinfo, entry['link'], IssueID, ComicID, tmpprov, newznab=newznab_host)
 
                         if searchresult == 'downloadchk-fail':
@@ -1681,6 +1681,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), cyear, IssueNumber, nzbprov)
             prov_count == 0
             mylar.TMP_PROV = nzbprov
+
+            #if mylar.SAB_PARAMS is not None:
+            #    #should be threaded....
+            #    ss = sabnzbd.SABnzbd(mylar.SAB_PARAMS)
+            #    sendtosab = ss.sender()
+            #    if all([sendtosab['status'] is True, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]):
+            #        mylar.NZB_QUEUE.put(sendtosab)
             return foundc
 
         else:
@@ -2136,6 +2143,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.warn('Error fetching data from %s: %s' % (tmpprov, e))
             return "sab-fail"
 
+        logger.info('download-retrieved headers: %s' % r.headers)
         try:
             nzo_info['filename'] = r.headers['x-dnzb-name']
             filen = r.headers['x-dnzb-name']
@@ -2349,46 +2357,29 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         #nzb.get
         if mylar.USE_NZBGET:
-            from xmlrpclib import ServerProxy
-            if mylar.CONFIG.NZBGET_HOST[:5] == 'https':
-                tmpapi = "https://"
-                nzbget_host = mylar.CONFIG.NZBGET_HOST[8:]
-            elif mylar.CONFIG.NZBGET_HOST[:4] == 'http':
-                tmpapi = "http://"
-                nzbget_host = mylar.CONFIG.NZBGET_HOST[7:]
+            ss = nzbget.NZBGet()
+            send_to_nzbget = ss.sender(nzbpath)
+            if send_to_nzbget['status'] is True:
+                if mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True:
+                    mylar.NZB_QUEUE.put(send_to_nzbget)
             else:
-                logger.error("You have an invalid nzbget hostname specified. Exiting")
+                logger.warn('Unable to send nzb file to NZBGet. There was a parameter error as there are no values present: %s' % nzbget_params)
                 return "nzbget-fail"
 
-            in_file = open(nzbpath, "r")
-            nzbcontent = in_file.read()
-            in_file.close()
-            from base64 import standard_b64encode
-            nzbcontent64 = standard_b64encode(nzbcontent)
-
-            tmpapi = str(tmpapi) + str(mylar.CONFIG.NZBGET_USERNAME) + ":" + str(mylar.CONFIG.NZBGET_PASSWORD)
-            tmpapi = str(tmpapi) + "@" + str(nzbget_host)
-            if str(mylar.CONFIG.NZBGET_PORT).strip() != '':
-                tmpapi += ":" + str(mylar.CONFIG.NZBGET_PORT)
-            tmpapi += "/xmlrpc"
-            server = ServerProxy(tmpapi)
-            send_to_nzbget = server.append(nzbpath, str(mylar.CONFIG.NZBGET_CATEGORY), int(nzbgetpriority), True, nzbcontent64)
-            sent_to = "NZBGet"
-            if send_to_nzbget is True:
+            if send_to_nzbget['status'] is True:
                 logger.info("Successfully sent nzb to NZBGet!")
             else:
                 logger.info("Unable to send nzb to NZBGet - check your configs.")
                 return "nzbget-fail"
+            sent_to = "NZBGet"
+
         #end nzb.get
 
         elif mylar.USE_SABNZBD:
+            sab_params = None
             # let's build the send-to-SAB string now:
             # changed to just work with direct links now...
-            tmpapi = mylar.CONFIG.SAB_HOST + "/api?apikey=" + mylar.CONFIG.SAB_APIKEY
 
-            logger.fdebug("send-to-SAB host &api initiation string : " + str(helpers.apiremove(tmpapi, 'nzb')))
-
-            SABtype = "&mode=addurl&name="
             #generate the api key to download here and then kill it immediately after.
             if mylar.DOWNLOAD_APIKEY is None:
                 import hashlib, random
@@ -2460,53 +2451,53 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
             fileURL = mylar_host + 'api?apikey=' + mylar.DOWNLOAD_APIKEY + '&cmd=downloadNZB&nzbname=' + nzbname
 
-            tmpapi = tmpapi + SABtype
-            logger.fdebug("...selecting API type: " + str(tmpapi))
+            sab_params = {'apikey':     mylar.CONFIG.SAB_APIKEY,
+                          'mode':       'addurl',
+                          'name':       fileURL,
+                          'cmd':        'downloadNZB',
+                          'nzbname':    nzbname,
+                          'output':     'json'}
 
-
-            tmpapi = tmpapi + urllib.quote_plus(fileURL)
-
-            logger.fdebug("...attaching nzb via internal Mylar API: " + str(helpers.apiremove(tmpapi, '$')))
             # determine SAB priority
             if mylar.CONFIG.SAB_PRIORITY:
-                tmpapi = tmpapi + "&priority=" + sabpriority
-                logger.fdebug("...setting priority: " + str(helpers.apiremove(tmpapi, '&')))
+                #setup the priorities.
+                if mylar.CONFIG.SAB_PRIORITY == "Default": sabpriority = "-100"
+                elif mylar.CONFIG.SAB_PRIORITY == "Low": sabpriority = "-1"
+                elif mylar.CONFIG.SAB_PRIORITY == "Normal": sabpriority = "0"
+                elif mylar.CONFIG.SAB_PRIORITY == "High": sabpriority = "1"
+                elif mylar.CONFIG.SAB_PRIORITY == "Paused": sabpriority = "-2"
+            else:
+                #if sab priority isn't selected, default to Normal (0)
+                sabpriority = "0"
+
+            sab_params['priority'] = sabpriority
+
             # if category is blank, let's adjust
             if mylar.CONFIG.SAB_CATEGORY:
-                tmpapi = tmpapi + "&cat=" + mylar.CONFIG.SAB_CATEGORY
-                logger.fdebug("...attaching category: " + str(helpers.apiremove(tmpapi, '&')))
-            if mylar.CONFIG.POST_PROCESSING: #or mylar.CONFIG.RENAME_FILES:
-                if mylar.CONFIG.POST_PROCESSING_SCRIPT:
-                    #this is relative to the SABnzbd script directory (ie. no path)
-                    tmpapi = tmpapi + "&script=" + mylar.CONFIG.POST_PROCESSING_SCRIPT
-                else:
-                    tmpapi = tmpapi + "&script=ComicRN.py"
-                logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi, '&')))
+                sab_params['cat'] = mylar.CONFIG.SAB_CATEGORY
+            #if mylar.CONFIG.POST_PROCESSING: #or mylar.CONFIG.RENAME_FILES:
+            #    if mylar.CONFIG.POST_PROCESSING_SCRIPT:
+            #        #this is relative to the SABnzbd script directory (ie. no path)
+            #        tmpapi = tmpapi + "&script=" + mylar.CONFIG.POST_PROCESSING_SCRIPT
+            #    else:
+            #        tmpapi = tmpapi + "&script=ComicRN.py"
+            #    logger.fdebug("...attaching rename script: " + str(helpers.apiremove(tmpapi, '&')))
             #final build of send-to-SAB
-            logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi, '&')))
+            #logger.fdebug("Completed send-to-SAB link: " + str(helpers.apiremove(tmpapi, '&')))
 
-            try:
-                from requests.packages.urllib3 import disable_warnings
-                disable_warnings()
-            except:
-                logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
-
-            try:
-                requests.put(tmpapi, verify=False)
-            except:
-                logger.error('Unable to send nzb file to SABnzbd')
+            if sab_params is not None:
+                ss = sabnzbd.SABnzbd(sab_params)
+                sendtosab = ss.sender()
+                if all([sendtosab['status'] is True, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]):
+                    mylar.NZB_QUEUE.put(sendtosab)
+            else:
+                logger.warn('Unable to send nzb file to SABnzbd. There was a parameter error as there are no values present: %s' % sab_params)
                 mylar.DOWNLOAD_APIKEY = None
                 return "sab-fail"
 
-#         this works for non-http sends to sab (when both sab AND provider are non-https)
-#            try:
-#                urllib2.urlopen(tmpapi)
-#            except urllib2.URLError:
-#                logger.error(u"Unable to send nzb file to SABnzbd")
-#                return "sab-fail"
-
             sent_to = "SABnzbd+"
             logger.info(u"Successfully sent nzb file to SABnzbd")
+
         if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
                 clientmode = 'nzbget'

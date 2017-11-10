@@ -1438,7 +1438,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
         annualyear = SeriesYear  # no matter what, the year won't be less than this.
         logger.fdebug('[IMPORTER-ANNUAL] - Annual Year:' + str(annualyear))
-        sresults, explicit = mb.findComic(annComicName, mode, issue=None, explicit='all')#,explicit=True)
+        sresults = mb.findComic(annComicName, mode, issue=None)
         type='comic'
 
         annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
@@ -1547,7 +1547,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
         elif len(sresults) == 0 or len(sresults) is None:
             logger.fdebug('[IMPORTER-ANNUAL] - No results, removing the year from the agenda and re-querying.')
-            sresults, explicit = mb.findComic(annComicName, mode, issue=None)#, explicit=True)
+            sresults = mb.findComic(annComicName, mode, issue=None)
             if len(sresults) == 1:
                 sr = sresults[0]
                 logger.fdebug('[IMPORTER-ANNUAL] - ' + str(comicid) + ' found. Assuming it is part of the greater collection.')
