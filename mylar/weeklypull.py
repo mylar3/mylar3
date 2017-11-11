@@ -862,15 +862,14 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
     if len(watchlist) > 0:
         for watch in watchlist:
             listit = [pls for pls in pullist if str(pls) == str(watch['ComicID'])] 
-            logger.info('watchCOMICID:%s  / listit: %s' % (watch['ComicID'], listit))
             if 'Present' in watch['ComicPublished'] or (helpers.now()[:4] in watch['ComicPublished']) or watch['ForceContinuing'] == 1 or len(listit) >0:
                 # this gets buggered up when series are named the same, and one ends in the current
                 # year, and the new series starts in the same year - ie. Avengers
                 # lets' grab the latest issue date and see how far it is from current
                 # anything > 45 days we'll assume it's a false match ;)
-                logger.fdebug("ComicName: " + watch['ComicName'])
+                #logger.fdebug("ComicName: " + watch['ComicName'])
                 latestdate = watch['LatestDate']
-                logger.fdebug("latestdate:  " + str(latestdate))
+                #logger.fdebug("latestdate:  " + str(latestdate))
                 if latestdate[8:] == '':
                     if '-' in latestdate[:4] and not latestdate.startswith('20'):
                     #pull-list f'd up the date by putting '15' instead of '2015' causing 500 server errors
@@ -892,15 +891,15 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     #refresh series here and then continue.
  
                 n_date = datetime.date.today()
-                logger.fdebug("c_date : " + str(c_date) + " ... n_date : " + str(n_date))
+                #logger.fdebug("c_date : " + str(c_date) + " ... n_date : " + str(n_date))
                 recentchk = (n_date - c_date).days
-                logger.fdebug("recentchk: " + str(recentchk) + " days")
+                #logger.fdebug("recentchk: " + str(recentchk) + " days")
                 chklimit = helpers.checkthepub(watch['ComicID'])
-                logger.fdebug("Check date limit set to : " + str(chklimit))
-                logger.fdebug(" ----- ")
+                #logger.fdebug("Check date limit set to : " + str(chklimit))
+                #logger.fdebug(" ----- ")
                 if recentchk < int(chklimit) or watch['ForceContinuing'] == 1 or len(listit) > 0:
                     if watch['ForceContinuing'] == 1:
-                        logger.fdebug('Forcing Continuing Series enabled for series...')
+                        logger.fdebug('Forcing Continuing Series enabled for %s [%s]' % (watch['ComicName'],watch['ComicID']))
                     # let's not even bother with comics that are not in the Present.
                     Altload = helpers.LoadAlternateSearchNames(watch['AlternateSearch'], watch['ComicID'])
                     if Altload == 'no results' or Altload is None:
@@ -930,7 +929,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                                        'AlternateNames':  altnames,
                                        'AnnualIDs':       annual_ids})
                 else:
-                    logger.fdebug("Determined to not be a Continuing series at this time.")
+                    pass
+                    #logger.fdebug("Determined to not be a Continuing series at this time.")
 
     if len(weeklylist) >= 1:
         kp = []

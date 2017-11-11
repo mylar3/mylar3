@@ -1779,7 +1779,6 @@ class WebInterface(object):
             myDB.action("DELETE FROM weekly WHERE weeknumber=? AND year=?", [weeknumber, year])
             logger.info("Deleted existed pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
             weeklypull.pullit(forcecheck, weeknumber, year)
-        raise cherrypy.HTTPRedirect("pullist")
     pullrecreate.exposed = True
 
     def upcoming(self):
