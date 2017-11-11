@@ -100,7 +100,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'CVAPI_RATE' : (int, 'CV', 2),
     'COMICVINE_API': (str, 'CV', None),
-    'BLACKLISTED_PUBLISHERS' : (str, 'CV', ''),
+    'BLACKLISTED_PUBLISHERS' : (str, 'CV', None),
     'CV_VERIFY': (bool, 'CV', True),
     'CV_ONLY': (bool, 'CV', True),
     'CV_ONETIMER': (bool, 'CV', True),
@@ -591,14 +591,21 @@ class Config(object):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
-        if type(self.BLACKLISTED_PUBLISHERS) == list:
-            config.set('CV', 'blacklisted_publishers', ', '.join(self.write_extras(self.BLACKLISTED_PUBLISHERS)))
+        ###this should be moved elsewhere...
+        if type(self.BLACKLISTED_PUBLISHERS) != list:
+            if self.BLACKLISTED_PUBLISHERS is None:
+                bp = 'None'
+            else:
+                bp = ', '.join(self.write_extras(self.BLACKLISTED_PUBLISHERS))
+            config.set('CV', 'blacklisted_publishers', bp)
         else:
-            config.set('CV', 'blacklisted_publishers', self.BLACKLISTED_PUBLISHERS)
+            config.set('CV', 'blacklisted_publishers', ', '.join(self.BLACKLISTED_PUBLISHERS))
+        ###
         config.set('General', 'dynamic_update', str(self.DYNAMIC_UPDATE))
         try:
             with codecs.open(self._config_file, encoding='utf8', mode='w+') as configfile:
                 config.write(configfile)
+            logger.fdebug('Configuration written to disk.')
         except IOError as e:
             logger.warn("Error writing configuration file: %s", e)
 
