@@ -2747,10 +2747,17 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             os.environ['host'] = mylar.CONFIG.PP_SSHHOST
             os.environ['port'] = mylar.CONFIG.PP_SSHPORT
             os.environ['user'] = mylar.CONFIG.PP_SSHUSER
-            os.environ['passwd'] = mylar.CONFIG.PP_SSHPASSWD
             os.environ['localcd'] = mylar.CONFIG.PP_SSHLOCALCD
+            #bash won't accept None, so send check and send empty strings for the 2 possible None values if needed
             if mylar.CONFIG.PP_SSHKEYFILE is not None:
                 os.environ['keyfile'] = mylar.CONFIG.PP_SSHKEYFILE
+            else:
+                os.environ['keyfile'] = ''
+            if mylar.CONFIG.PP_SSHPASSWD is not None:
+                os.environ['passwd'] = mylar.CONFIG.PP_SSHPASSWD
+            else:
+                os.environ['passwd'] = ''
+
 
             #downlocation = re.sub("\'", "\\'", downlocation)
             #downlocation = re.sub("&", "\&", downlocation)
