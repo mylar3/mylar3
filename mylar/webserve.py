@@ -212,7 +212,7 @@ class WebInterface(object):
         return serve_template(templatename="comicdetails.html", title=comic['ComicName'], comic=comic, issues=issues, comicConfig=comicConfig, isCounts=isCounts, series=series, annuals=annuals_list, annualinfo=aName)
     comicDetails.exposed = True
 
-    def searchit(self, name, issue=None, mode=None, type=None, explicit=None, serinfo=None):
+    def searchit(self, name, issue=None, mode=None, type=None, serinfo=None):
         if type is None: type = 'comic'  # let's default this to comic search only for the time being (will add story arc, characters, etc later)
         else: logger.fdebug(str(type) + " mode enabled.")
         #mode dictates type of search:
@@ -227,7 +227,7 @@ class WebInterface(object):
                 #if it's an issue 0, CV doesn't have any data populated yet - so bump it up one to at least get the current results.
                 issue = 1
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue=issue)
+                searchresults = mb.findComic(name, mode, issue=issue)
             except TypeError:
                 logger.error('Unable to perform required pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
@@ -239,26 +239,26 @@ class WebInterface(object):
                 threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None]).start()
                 raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue=None, explicit=explicit)
+                searchresults = mb.findComic(name, mode, issue=None)
             except TypeError:
-                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][mode: ' + mode + '][explicitsearch:' + str(explicit) + ']')
+                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][mode: ' + mode + ']')
                 return
         elif type == 'comic' and mode == 'want':
             try:
-                searchresults, explicit = mb.findComic(name, mode, issue)
+                searchresults = mb.findComic(name, mode, issue)
             except TypeError:
                 logger.error('Unable to perform required one-off pull-list search for : [name: ' + name + '][issue: ' + issue + '][mode: ' + mode + ']')
                 return
         elif type == 'story_arc':
             try:
-                searchresults, explicit = mb.findComic(name, mode=None, issue=None, explicit='explicit', type='story_arc')
+                searchresults = mb.findComic(name, mode=None, issue=None, type='story_arc')
             except TypeError:
-                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + '][explicitsearch: explicit]')
+                logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
                 return
 
         searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         #print ("Results: " + str(searchresults))
-        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, explicit=explicit, serinfo=serinfo)
+        return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
     def addComic(self, comicid, comicname=None, comicyear=None, comicimage=None, comicissues=None, comicpublisher=None, imported=None, ogcname=None, serinfo=None):
@@ -2819,7 +2819,7 @@ class WebInterface(object):
 
         for duh in AMS:
             mode='series'
-            sresults, explicit = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'], explicit='all')
+            sresults = mb.findComic(duh['ComicName'], mode, issue=duh['highvalue'], limityear=duh['yearRANGE'])
             type='comic'
 
             if len(sresults) == 1:
@@ -3550,10 +3550,10 @@ class WebInterface(object):
     def confirmResult(self, comicname, comicid):
         #print ("here.")
         mode='series'
-        sresults, explicit = mb.findComic(comicname, mode, None, explicit='all')
+        sresults = mb.findComic(comicname, mode, None)
         #print sresults
         type='comic'
-        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"', searchresults=sresults, type=type, imported='confirm', ogcname=comicid, explicit=explicit)
+        return serve_template(templatename="searchresults.html", title='Import Results for: "' + comicname + '"', searchresults=sresults, type=type, imported='confirm', ogcname=comicid)
     confirmResult.exposed = True
 
     def Check_ImportStatus(self):
@@ -3888,9 +3888,9 @@ class WebInterface(object):
                 searchterm = '"' + displaycomic + '"'
                 try:
                     if yearRANGE is None:
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues) #ogcname, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
                     else:
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues, limityear=yearRANGE) #ogcname, mode, issue=numissues, limityear=yearRANGE, explicit='all') #ComicName, mode, issue=numissues, limityear=yearRANGE)
                 except TypeError:
                     logger.warn('Comicvine API limit has been reached, and/or the comicvine website is not responding. Aborting process at this time, try again in an ~ hr when the api limit is reset.')
                     break
@@ -3939,7 +3939,7 @@ class WebInterface(object):
                 else:
                     if len(search_matches) == 0 or len(search_matches) is None:
                         logger.fdebug("no results, removing the year from the agenda and re-querying.")
-                        sresults, explicit = mb.findComic(searchterm, mode, issue=numissues, explicit='all') #ComicName, mode, issue=numissues)
+                        sresults = mb.findComic(searchterm, mode, issue=numissues) #ComicName, mode, issue=numissues)
                         logger.fdebug('[' + str(len(sresults)) + '] search results')
                         for results in sresults:
                             rsn = filechecker.FileChecker()
