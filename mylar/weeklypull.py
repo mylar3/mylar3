@@ -1404,7 +1404,7 @@ def future_check():
                 if not theissdate.startswith('20'):
                     theissdate = ser['IssueDate'][:4]
                 logger.info('looking for new data for ' + ser['ComicName'] + '[#' + str(ser['IssueNumber']) + '] (' + str(theissdate) + ')')
-                searchresults, explicit = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=theissdate, explicit='all')
+                searchresults = mb.findComic(ser['ComicName'], mode='pullseries', issue=ser['IssueNumber'], limityear=theissdate)
                 if len(searchresults) > 0:
                     if len(searchresults) > 1:
                         logger.info('More than one result returned - this may have to be a manual add, but I\'m going to try to figure it out myself first.')

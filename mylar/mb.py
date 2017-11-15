@@ -44,20 +44,17 @@ if platform.python_version() == '2.7.6':
     httplib.HTTPConnection._http_vsn = 10
     httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
-def pullsearch(comicapi, comicquery, offset, type, annuals=False):
-    u_comicquery = urllib.quote(comicquery.encode('utf-8').strip())
-    u_comicquery = u_comicquery.replace(" ", "%20")
-    u_comicquery = u_comicquery.replace('-', '%2D')
-    #logger.info('comicquery: %s' % comicquery)
-    if annuals is True:
-        PULLURL = mylar.CVURL + 'search?api_key=' + str(comicapi) + '&resources=' + str(type) + '&query=' + u_comicquery + '&field_list=id,name,start_year,first_issue,site_detail_url,count_of_issues,image,publisher,deck,description,last_issue&format=xml&limit=100&page=' + str(offset)
+def pullsearch(comicapi, comicquery, offset, type):
 
-    else:
-        # 02/22/2014 use the volume filter label to get the right results.
-        # add the 's' to the end of type to pluralize the caption (it's needed)
-        if type == 'story_arc':
-           u_comicquery = re.sub("%20AND%20", "%20", u_comicquery)
-        PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + u_comicquery + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
+    cnt = 1
+    for x in comicquery:
+       if cnt == 1:
+           filterline = '%s' % x
+       else:
+           filterline+= ',name:%s' % x
+       cnt+=1
+
+    PULLURL = mylar.CVURL + str(type) + 's?api_key=' + str(comicapi) + '&filter=name:' + filterline + '&field_list=id,name,start_year,site_detail_url,count_of_issues,image,publisher,deck,description,first_issue,last_issue&format=xml&offset=' + str(offset) # 2012/22/02 - CVAPI flipped back to offset instead of page
 
     #all these imports are standard on most modern python implementations
     #logger.info('MB.PULLURL:' + PULLURL)
@@ -88,18 +85,14 @@ def findComic(name, mode, issue, limityear=None, type=None):
     comiclist = []
     arcinfolist = []
 
-    #if type == 'story_arc':
-    #    chars = set('!?*&')
-    #else:
-    #    chars = set('!?*&-')
-    #if any((c in chars) for c in name) or 'annual' in name:
-    #        name = '"' +name +'"'
-    annuals = False
-    if 'annual' in name:
-        name = '"' + name +'"'
-        annuals = True
+    commons = [' and ', ' the ']
+    for x in commons:
+        if x in name.lower():
+            name = re.sub(x, ' ', name.lower()).strip()
 
-    #print ("limityear: " + str(limityear))
+    pattern = re.compile(ur'\w+', re.UNICODE)
+    name = pattern.findall(name)
+
     if limityear is None: limityear = 'None'
 
     comicquery = name
@@ -114,7 +107,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
         type = 'volume'
 
     #let's find out how many results we get from the query...
-    searched = pullsearch(comicapi, comicquery, 0, type, annuals)
+    searched = pullsearch(comicapi, comicquery, 0, type)
     if searched is None:
         return False
     totalResults = searched.getElementsByTagName('number_of_total_results')[0].firstChild.wholeText
@@ -128,15 +121,9 @@ def findComic(name, mode, issue, limityear=None, type=None):
     while (countResults < int(totalResults)):
         #logger.fdebug("querying " + str(countResults))
         if countResults > 0:
-            #2012/22/02 - CV API flipped back to offset usage instead of page
-            if annuals is True:
-            #   search uses page for offset
-                offsetcount = (countResults /100) + 1
-            else:
-            #   filter uses offset
-                offsetcount = countResults
+            offsetcount = countResults
 
-            searched = pullsearch(comicapi, comicquery, offsetcount, type, annuals)
+            searched = pullsearch(comicapi, comicquery, offsetcount, type)
         comicResults = searched.getElementsByTagName(type)
         body = ''
         n = 0
