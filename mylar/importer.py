@@ -51,13 +51,7 @@ def is_exists(comicid):
 
 
 def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None):
-    # Putting this here to get around the circular import. Will try to use this to update images at later date.
-#    from mylar import cache
-
     myDB = db.DBConnection()
-
-    # We need the current minimal info in the database instantly
-    # so we don't throw a 500 error when we redirect to the artistPage
 
     controlValueDict = {"ComicID":     comicid}
 
@@ -86,10 +80,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             latestissueinfo.append({"latestiss": dbcomic['LatestIssue'],
                                     "latestdate":  dbcomic['LatestDate']})
 
-        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
-        if not checkdirectory:
-            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-            return
+        if mylar.CONFIG.CREATE_FOLDERS is True:
+            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+            if not checkdirectory:
+               logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+               return
         oldcomversion = dbcomic['ComicVersion'] #store the comicversion and chk if it exists before hammering.
     myDB.upsert("comics", newValueDict, controlValueDict)
 
@@ -251,16 +246,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if os.path.isdir(comlocation):
         logger.info('Directory (' + comlocation + ') already exists! Continuing...')
     else:
-        #print ("Directory doesn't exist!")
-        #try:
-        #    os.makedirs(str(comlocation))
-        #    logger.info(u"Directory successfully created at: " + str(comlocation))
-        #except OSError:
-        #    logger.error(u"Could not create comicdir : " + str(comlocation))
-        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
-        if not checkdirectory:
-            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-            return
+        if mylar.CONFIG.CREATE_FOLDERS is True:
+            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+            if not checkdirectory:
+                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                return
 
     #try to account for CV not updating new issues as fast as GCD
     #seems CV doesn't update total counts
@@ -358,7 +348,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             #ComicImage = "http://" + str(mylar.CONFIG.HTTP_HOST) + ":" + str(mylar.CONFIG.HTTP_PORT) + "/cache/" + str(comicid) + ".jpg"
 
     #if the comic cover local is checked, save a cover.jpg to the series folder.
-    if mylar.CONFIG.COMIC_COVER_LOCAL:
+    if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
             shutil.copyfile(coverfile, comiclocal)
@@ -433,7 +423,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if anndata:
             manualAnnual(annchk=anndata)
 
-    if mylar.CONFIG.CVINFO or (mylar.CONFIG.CV_ONLY and mylar.CONFIG.CVINFO):
+    if (mylar.CONFIG.CVINFO or (mylar.CONFIG.CV_ONLY and mylar.CONFIG.CVINFO)) and os.path.isdir(comlocation):
         if not os.path.exists(os.path.join(comlocation, "cvinfo")) or mylar.CONFIG.CV_ONETIMER:
             with open(os.path.join(comlocation, "cvinfo"), "w") as text_file:
                 text_file.write(str(comic['ComicURL']))
@@ -701,16 +691,11 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if os.path.isdir(comlocation):
         logger.info(u"Directory (" + comlocation + ") already exists! Continuing...")
     else:
-        #print ("Directory doesn't exist!")
-        #try:
-        #    os.makedirs(str(comlocation))
-        #    logger.info(u"Directory successfully created at: " + str(comlocation))
-        #except OSError:
-        #    logger.error(u"Could not create comicdir : " + str(comlocation))
-        checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
-        if not checkdirectory:
-            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-            return
+        if mylar.CONFIG.CREATE_FOLDERS is True:
+            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+            if not checkdirectory:
+                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                return
 
     comicIssues = gcdinfo['totalissues']
 
@@ -744,7 +729,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
             logger.info(u"Sucessfully retrieved cover for " + ComicName)
             #if the comic cover local is checked, save a cover.jpg to the series folder.
-            if mylar.CONFIG.COMIC_COVER_LOCAL:
+            if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
                 comiclocal = os.path.join(comlocation + "/cover.jpg")
                 shutil.copy(ComicImage, comiclocal)
     except IOError as e:
@@ -890,7 +875,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
     myDB.upsert("comics", newValueStat, controlValueStat)
 
-    if mylar.CONFIG.CVINFO:
+    if mylar.CONFIG.CVINFO and os.path.isdir(comlocation):
         if not os.path.exists(comlocation + "/cvinfo"):
             with open(comlocation + "/cvinfo", "w") as text_file:
                 text_file.write("http://comicvine.gamespot.com/volume/49-" + str(comicid))

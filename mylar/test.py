@@ -39,7 +39,11 @@ class RTorrent(object):
         if not self.client.connect(mylar.CONFIG.RTORRENT_HOST,
                                    mylar.CONFIG.RTORRENT_USERNAME,
                                    mylar.CONFIG.RTORRENT_PASSWORD,
-                                   mylar.CONFIG.RTORRENT_AUTHENTICATION):
+                                   mylar.CONFIG.RTORRENT_AUTHENTICATION,
+                                   mylar.CONFIG.RTORRENT_VERIFY,
+                                   mylar.CONFIG.RTORRENT_SSL,
+                                   mylar.CONFIG.RTORRENT_RPC_URL,
+                                   mylar.CONFIG.RTORRENT_CA_BUNDLE):
             logger.error('could not connect to %s, exiting', mylar.CONFIG.RTORRENT_HOST)
             sys.exit(-1)
 

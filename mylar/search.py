@@ -1882,13 +1882,9 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts):
     prov_order = []
 
     nzbproviders_lower = [x.lower() for x in nzbprovider]
-    print nzbprovider
-    print mylar.CONFIG.PROVIDER_ORDER
 
-    print len(mylar.CONFIG.PROVIDER_ORDER)
     if len(mylar.CONFIG.PROVIDER_ORDER) > 0:
         for pr_order in sorted(mylar.CONFIG.PROVIDER_ORDER.items(), key=itemgetter(0), reverse=False):
-            print pr_order
             logger.fdebug('looking for ' + str(pr_order[1]).lower())
             logger.fdebug('nzbproviders ' + str(nzbproviders_lower))
             logger.fdebug('torproviders ' + str(torprovider))

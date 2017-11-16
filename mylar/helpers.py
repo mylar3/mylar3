@@ -1097,10 +1097,10 @@ def checkthepub(ComicID):
     else:
         for publish in publishers:
             if publish in pubchk['ComicPublisher'].lower():
-                logger.fdebug('Biggie publisher detected - ' + pubchk['ComicPublisher'])
+                #logger.fdebug('Biggie publisher detected - ' + pubchk['ComicPublisher'])
                 return mylar.CONFIG.BIGGIE_PUB
 
-        logger.fdebug('Indie publisher detected - ' + pubchk['ComicPublisher'])
+        #logger.fdebug('Indie publisher detected - ' + pubchk['ComicPublisher'])
         return mylar.CONFIG.INDIE_PUB
 
 def annual_update():
@@ -1272,7 +1272,6 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
 
     #logger.fdebug('seriesname_alt:' + str(seriesname_alt))
     if seriesname_alt is None or seriesname_alt == 'None':
-        logger.fdebug('no Alternate name given. Aborting search.')
         return "no results"
     else:
         chkthealt = seriesname_alt.split('##')
@@ -3246,6 +3245,19 @@ def stupidchk():
     ens = myDB.select("SELECT COUNT(*) FROM comics WHERE Status='Loading' OR Status='Paused'")
     mylar.COUNT_COMICS = CCOMICS[0][0]
     mylar.EN_OOMICS = ens[0][0]
+
+def newznab_test(name, host, ssl, apikey):
+    params = {'t':       'caps',
+              'apikey':  apikey,
+              'o':       json}
+    import requests
+    try:
+        response = requests.get(host, params=params, verify=ssl)
+    except:
+        logger.warn('Unable to connect')
+        return
+    else:
+        logger.info('Successfully connected: %s' % response['status_code'])
 
 
 def file_ops(path,dst,arc=False,one_off=False):

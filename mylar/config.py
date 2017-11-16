@@ -69,6 +69,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SEND2READ': (bool, 'General', False),
     'NZB_STARTUP_SEARCH': (bool, 'General', False),
     'UNICODE_ISSUENUMBER': (bool, 'General', False),
+    'CREATE_FOLDERS': (bool, 'General', True),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),

@@ -505,7 +505,7 @@
                         <fieldset id="rtorrent_options">
                                 <div class="row">
                                         <label>rTorrent Host:port(optional)</label>
-                                        <input type="text" name="rtorrent_host" value="${config['rtorrent_host']}" size="30">
+                                        <input type="text" id="rtorrent_host" name="rtorrent_host" value="${config['rtorrent_host']}" size="30">
 					<small>ie. my.rtorrent:80, 192.168.1.1, scgi://localhost:5000</small>
                                 </div>
                                 <div class="row checkbox left clearfix">
@@ -518,7 +518,7 @@
                                 </div>
                                 <div class="row">
                                     <label>rTorrent Authentication</label>
-                                    <select name="rtorrent_authentication">
+                                    <select name="rtorrent_authentication" id="rtorrent_authentication">
                                     %for x in ['basic', 'digest']:
                                         <%
                                             if config['rtorrent_authentication'] == x:
@@ -532,16 +532,16 @@
                                 </div>
                                 <div class="row">
                                         <label>rTorrent RPC</label>
-                                        <input type="text" name="rtorrent_rpc_url" value="${config['rtorrent_rpc_url']}" size="30">
+                                        <input type="text" id="rtorrent_rpc_url" name="rtorrent_rpc_url" value="${config['rtorrent_rpc_url']}" size="30">
 					<small>ie. httprpc plugin = rutorrent/plugins/httprpc/action.php<br>rpc plugin = user/RPC2</small>
                                 </div>
                                 <div class="row">
                                         <label>rTorrent Username</label>
-                                        <input type="text" name="rtorrent_username" value="${config['rtorrent_username']}" size="30">
+                                        <input type="text" id="rtorrent_username" name="rtorrent_username" value="${config['rtorrent_username']}" size="30">
                                 </div>
                                 <div class="row">
                                         <label>rTorrent Password</label>
-                                        <input type="password" name="rtorrent_password" value="${config['rtorrent_password']| h}" size="30">
+                                        <input type="password" id="rtorrent_password" name="rtorrent_password" value="${config['rtorrent_password']| h}" size="30">
                                 </div>
                                 <div class="row">
                                         <label>rTorrent Directory</label>
@@ -556,6 +556,9 @@
                                 <div class="row checkbox left clearfix">
                                         <input id="rtorrent_startonload" type="checkbox" name="rtorrent_startonload" value="1" ${config['rtorrent_startonload']} /><label>Start Torrent on Successful Load</label>
                                         <small>Automatically start torrent on successful loading within rtorrent client</small>
+                                </div>
+                                <div class="row">
+                                        <input type="button" value="Test Connection" id="rtorrent_test" />
                                 </div>
                         </fieldset>
 			<fieldset id="transmission_options">
@@ -825,6 +828,10 @@
                                             </div>
                                             <div class="row checkbox">
                                                 <input id="newznab_enabled" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
+<!--
+                                                <input type="button" value="Test ${newznab[0]}" id="newznab_test(newznab${newznab_number})" style="float:center" /></br>
+                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/newznab_success.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="10" width="10" DISABLED />
+-->
                                             </div>
                                             <div class="row">
                                                 <input type="button" class="remove" id="newznab${newznab_number}" value="Remove ${newznab[0]}">
@@ -1870,6 +1877,44 @@
                 function addAction() {
                         $('#autoadd').append('<input type="hidden" name="tsab" value=1 />');
                 };
+
+                $('#rtorrent_test').click(function () {
+                    var host = document.getElementById('rtorrent_host').value;
+                    var username = document.getElementById('rtorrent_username').value;
+                    var password = document.getElementById('rtorrent_password').value;
+                    var auth = document.getElementById('rtorrent_authentication').value;
+                    var verify = document.getElementById('rtorrent_verify').value;
+                    var ssl = document.getElementById('rtorrent_ssl').value;
+                    var rpc_url = document.getElementById('rtorrent_rpc_url').value;
+                    alert(host);
+                    $.get("testrtorrent",
+                        { host: host, username: username, password: password, auth: auth, verify: verify, ssl: ssl, rpc_url: rpc_url },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            //$('#rtorrentstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#newznab_test').click(function (x) {
+                    // var name = document.getElementById("newznab_name").value;
+                    alert(x);
+                    $.get("testnewznab",
+                        { name: name, host: host, ssl: ssl, apikey: apikey },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#newznabstatus').show();
+                            $('#ajaxMsg').html("Successfully connected to newnzab");
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
 
                 $('#nma_test').click(function () {
                     var apikey = document.getElementById('nma_apikey').value;

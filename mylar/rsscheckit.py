@@ -53,7 +53,7 @@ class tehMain():
             if mylar.CONFIG.ENABLE_TORRENT_SEARCH:
                 logger.info('[RSS-FEEDS] Initiating Torrent RSS Check.')
                 if mylar.CONFIG.ENABLE_TPSE:
-                    logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on TorrentProject.')
+                    logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on Demonoid / WorldWideTorrents.')
                     #rsscheck.torrents(pickfeed='3')   #TP.SE RSS Check (has to be page-parsed)
                     rsscheck.torrents(pickfeed='TPSE')    #TPSE = DEM RSS Check + WWT RSS Check
                 if mylar.CONFIG.ENABLE_32P:

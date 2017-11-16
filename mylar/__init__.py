@@ -267,7 +267,7 @@ def initialize(config_file):
 
         #set default URL for Public trackers (just in case it changes more frequently)
         WWTURL = 'https://worldwidetorrents.me/'
-        DEMURL = 'https://dnoid.me/'
+        DEMURL = 'https://www.demonoid.pw/'
         TPSEURL = 'https://torrentproject.se/'
 
         if CONFIG.LOCMOVE:
@@ -366,7 +366,7 @@ def start():
             #let's do a run at the Wanted issues here (on startup) if enabled.
             ss = searchit.CurrentSearcher()
             if CONFIG.NZB_STARTUP_SEARCH:
-                SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.now(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.utcnow(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
             else:
                 if SCHED_SEARCH_LAST is not None:
                     search_timestamp = float(SCHED_SEARCH_LAST)

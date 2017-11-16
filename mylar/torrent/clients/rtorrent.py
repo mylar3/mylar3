@@ -11,36 +11,36 @@ class TorrentClient(object):
     def __init__(self):
         self.conn = None
 
-    def getVerifySsl(self):
+    def getVerifySsl(self, verify, ca_bundle):
         # Ensure verification has been enabled
-        if not mylar.CONFIG.RTORRENT_VERIFY:
+        if not verify:
             return False
 
         # Use ca bundle if defined
-        if mylar.CONFIG.RTORRENT_CA_BUNDLE is not None and os.path.exists(mylar.CONFIG.RTORRENT_CA_BUNDLE):
-            return mylar.CONFIG.RTORRENT_CA_BUNDLE
+        if ca_bundle is not None and os.path.exists(ca_bundle):
+            return ca_bundle
 
         # Use default ssl verification
         return True
 
-    def connect(self, host, username, password, auth):
+    def connect(self, host, username, password, auth, verify, ssl, rpc_url, ca_bundle):
         if self.conn is not None:
             return self.conn
 
         if not host:
             return False
 
-        url = helpers.cleanHost(host, protocol = True, ssl = mylar.CONFIG.RTORRENT_SSL)
+        url = helpers.cleanHost(host, protocol = True, ssl = ssl)
 
         # Automatically add '+https' to 'httprpc' protocol if SSL is enabled
-        if mylar.CONFIG.RTORRENT_SSL and url.startswith('httprpc://'):
+        if ssl is True and url.startswith('httprpc://'):
             url = url.replace('httprpc://', 'httprpc+https://')
 
         parsed = urlparse(url)
 
         # rpc_url is only used on http/https scgi pass-through
         if parsed.scheme in ['http', 'https']:
-            url += mylar.CONFIG.RTORRENT_RPC_URL
+            url += rpc_url
 
         #logger.fdebug(url)
 
@@ -49,7 +49,7 @@ class TorrentClient(object):
                 self.conn = RTorrent(
                     url,(auth, username, password),
                     verify_server=True,
-                    verify_ssl=self.getVerifySsl()
+                    verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
                 logger.error('Failed to connect to rTorrent: %s', err)
@@ -60,7 +60,7 @@ class TorrentClient(object):
                 self.conn = RTorrent(
                     url, (auth, username, password),
                     verify_server=True,
-                    verify_ssl=self.getVerifySsl()
+                    verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
                 logger.error('Failed to connect to rTorrent: %s', err)

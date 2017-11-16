@@ -95,12 +95,16 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             feedtype = ' from the New Releases RSS Feed for comics'
             verify = bool(mylar.CONFIG.VERIFY_32P)
         elif pickfeed == "2" and srchterm is not None:    # TP.SE search / RSS
-            feed = tpse_url + 'rss/' + str(srchterm) + '/'
-            verify = bool(mylar.CONFIG.TPSE_VERIFY)
+            lp+=1
+            continue
+            #feed = tpse_url + 'rss/' + str(srchterm) + '/'
+            #verify = bool(mylar.CONFIG.TPSE_VERIFY)
         elif pickfeed == "3":    # TP.SE rss feed (3101 = comics category) / non-RSS
-            feed = tpse_url + '?hl=en&safe=off&num=50&start=0&orderby=best&s=&filter=3101'
-            feedtype = ' from the New Releases RSS Feed for comics from TP.SE'
-            verify = bool(mylar.CONFIG.TPSE_VERIFY)
+            lp+=1
+            continue
+            #feed = tpse_url + '?hl=en&safe=off&num=50&start=0&orderby=best&s=&filter=3101'
+            #feedtype = ' from the New Releases RSS Feed for comics from TP.SE'
+            #verify = bool(mylar.CONFIG.TPSE_VERIFY)
         elif pickfeed == "4":    #32p search
             if any([mylar.CONFIG.USERNAME_32P is None, mylar.CONFIG.USERNAME_32P == '', mylar.CONFIG.PASSWORD_32P is None, mylar.CONFIG.PASSWORD_32P == '']):
                 logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')

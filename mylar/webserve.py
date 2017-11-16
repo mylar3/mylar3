@@ -241,7 +241,7 @@ class WebInterface(object):
             try:
                 searchresults = mb.findComic(name, mode, issue=None)
             except TypeError:
-                logger.error('Unable to perform required pull-list search for : [name: ' + name + '][mode: ' + mode + ']')
+                logger.error('Unable to perform required search for : [name: ' + name + '][mode: ' + mode + ']')
                 return
         elif type == 'comic' and mode == 'want':
             try:
@@ -887,9 +887,6 @@ class WebInterface(object):
 
     def force_rss(self):
         logger.info('Attempting to run RSS Check Forcibly')
-        #forcerss = True
-        #threading.Thread(target=mylar.rsscheck.tehMain, args=[True]).start()
-        #this is for use with the new scheduler not in place yet.
         forcethis = mylar.rsscheckit.tehMain()
         threading.Thread(target=forcethis.run, args=[True]).start()
     force_rss.exposed = True
@@ -1767,13 +1764,16 @@ class WebInterface(object):
             return {'status' : 'success'}
     manualpull.exposed = True
 
-    def pullrecreate(self):
+    def pullrecreate(self, weeknumber=None, year=None):
         myDB = db.DBConnection()
-        myDB.action("DROP TABLE weekly")
-        mylar.dbcheck()
-        logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+        if weeknumber is None:
+            myDB.action("DROP TABLE weekly")
+            mylar.dbcheck()
+            logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+        else:
+            myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
         forcecheck = 'yes'
-        weeklypull.pullit(forcecheck)
+        weeklypull.pullit(forcecheck, weeknumber, year)
         raise cherrypy.HTTPRedirect("pullist")
     pullrecreate.exposed = True
 
@@ -2163,32 +2163,19 @@ class WebInterface(object):
                 ctrl = {'JobName': job}
                 val = {'Status': 'Waiting'}
                 myDB.upsert('jobhistory', val, ctrl)
-
+            helpers.job_management()
         else:
             logger.warn('%s cannot be matched against any scheduled jobs - maybe you should restart?' % job)
-
     jobmanage.exposed = True
 
     def schedulerForceCheck(self, jobid):
         from apscheduler.triggers.date import DateTrigger
         for jb in mylar.SCHED.get_jobs():
-            #logger.info('jb : %s' % jb)
             if jobid.lower() in str(jb).lower():
-                logger.info('[%s] Now force submitting job.' % jb)
-                if jobid == 'rss':
-                    mylar.SCHED.add_job(func=jb.func, args=[True], trigger=DateTrigger(run_date=datetime.datetime.now()))
-                elif jobid == 'weekly':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
-                elif jobid == 'search':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
-                elif jobid == 'version':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
-                elif jobid == 'updater':
-                    mylar.SCHED.add_job(func=jb.func, args=[None,None,True], trigger=DateTrigger(run_date=datetime.datetime.now()))
-                elif jobid == 'monitor':
-                    mylar.SCHED.add_job(func=jb.func, trigger=DateTrigger(run_date=datetime.datetime.now()))
+                logger.info('[%s] Now force submitting job for jobid %s' % (jb, jobid))
+                if any([jobid == 'rss', jobid == 'weekly', jobid =='search', jobid == 'version', jobid == 'updater', jobid == 'monitor']):
+                    jb.modify(next_run_time=datetime.datetime.utcnow())
                 break
-
     schedulerForceCheck.exposed = True
 
     def manageComics(self):
@@ -4548,10 +4535,11 @@ class WebInterface(object):
             #    logger.info(u"Directory successfully created at: " + str(com_location))
             #except OSError:
             #    logger.error(u"Could not create comicdir : " + str(com_location))
-            checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
-            if not checkdirectory:
-                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                return
+            if mylar.CONFIG.CREATE_FOLDERS is True:
+                checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return
 
         myDB.upsert("comics", newValues, controlValueDict)
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
@@ -5148,6 +5136,33 @@ class WebInterface(object):
             logger.warn('Test variables used [WEBHOOK_URL: %s][USERNAME: %s]' % (webhook_url, username))
             return "Error sending test message to Slack"
     testslack.exposed = True
+
+
+    def testrtorrent(self, host, username, password, auth, verify, ssl, rpc_url):
+        import torrent.clients.rtorrent as TorClient
+        client = TorClient.TorrentClient()
+        ca_bundle = None
+        if mylar.CONFIG.RTORRENT_CA_BUNDLE is not None:
+            ca_bundle = mylar.CONFIG.RTORRENT_CA_BUNDLE
+        if not client.connect(host, username, password, auth, verify, ssl, rpc_url, ca_bundle):
+            logger.warn('Could not establish connection to %s' % host)
+            return 'Error establishing connection to Rtorrent'
+        else:
+            logger.info('Successfully validated connection to %s' % host)
+            return "Successfully validated connection to %s" % host
+    testrtorrent.exposed = True
+
+
+    def testnewznab(self, name, host, ssl, apikey):
+        result = helpers.newznab_test(name, host, ssl, apikey)
+
+        if result == True:
+            return "Successfully tested %s - valid api response received" % name
+        else:
+            logger.warn('Testing failed to %s [HOST:%s][SSL:%s][APIKEY:%s]' % (name, host, ssl, apikey))
+            return "Error testing newznab data"
+    testnewznab.exposed = True
+
 
     def orderThis(self, **kwargs):
         logger.info('here')
