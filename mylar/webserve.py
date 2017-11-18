@@ -1528,14 +1528,16 @@ class WebInterface(object):
                 xfound = False
                 tmp_status = weekly['Status']
                 if weekly['ComicID'] in watchlibrary:
-                    haveit = watchlibrary[weekly['ComicID']]
+                    haveit = watchlibrary[weekly['ComicID']]['comicid']
 
                     if weekinfo['weeknumber']:
-                        if any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                        if watchlibrary[weekly['ComicID']]['status'] == 'Paused':
+                            tmp_status = 'Paused'
+                        elif any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
 
                     for x in issueLibrary:
-                        if weekly['IssueID'] == x['IssueID']:
+                        if weekly['IssueID'] == x['IssueID'] and tmp_status != 'Paused':
                             xfound = True
                             tmp_status = x['Status']
                             break

@@ -1822,15 +1822,13 @@ def listLibrary():
     import db
     library = {}
     myDB = db.DBConnection()
-    # Get individual comics
-    list = myDB.select("SELECT ComicId FROM Comics")
+    list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
     for row in list:
-        library[row['ComicID']] = row['ComicID']
-    # Add the annuals
-    if mylar.CONFIG.ANNUALS_ON:
-        list = myDB.select("SELECT ReleaseComicId,ComicID FROM Annuals")
-        for row in list:
-            library[row['ReleaseComicId']] = row['ComicID']
+        library[row['ComicID']] = {'comicid':        row['ComicID'],
+                                   'status':         row['Status']}
+        if row['ReleaseComicID'] is not None:
+            library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
+                                              'status':    row['Status']}
     return library
 
 def listStoryArcs():

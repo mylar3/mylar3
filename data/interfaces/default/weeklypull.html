@@ -76,8 +76,8 @@
 					grade = 'C'
                                 elif weekly['STATUS'] == 'Downloaded':
                                         grade = 'D'
-				else:
-					grade = 'A'
+                                elif weekly['STATUS'] == 'Paused':
+                                        grade = 'T'
                                 if weekly['AUTOWANT'] == True:
                                         grade = 'H'
 

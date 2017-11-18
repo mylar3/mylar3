@@ -341,6 +341,14 @@ table.display tr.odd.gradeZ {
 table.display tr.even.gradeZ {
 	background-color: white;
 }
+table.display tr.odd.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display tr.even.gradeT {
+        background-color: #F9CBE6;
+}
+
 table.display tr.gradeL #status {
 	background: url("../images/loader_black.gif") no-repeat scroll 15px center transparent;
 	font-size: 11px;
@@ -355,6 +363,7 @@ table.display tr.gradeX td,
 table.display tr.gradeU td,
 table.display tr.gradeP td,
 table.display tr.gradeD td,
+table.display tr.gradeT td,
 table.display tr.gradeZ td {border-bottom: 1px solid #FFF;}
 table.display tr:last-child td {
 	border-bottom: 1px solid #eee;
@@ -433,6 +442,18 @@ table.display_no_select tr.odd.gradeD {
         background-color: #C7EFC7;
 }
 
+table.display_no_select tr.even.gradeD {
+        background-color: #C7EFC7;
+}
+
+table.display_no_select tr.odd.gradeT {
+        background-color: #F9CBE6;
+}
+
+table.display_no_select tr.even.gradeT {
+        background-color: #F9CBE6;
+}
+
 table.display_no_select tr.odd.gradeZ {
         background-color: #FAFAFA;
 }
@@ -454,6 +475,7 @@ table.display_no_select tr.gradeX td,
 table.display_no_select tr.gradeU td,
 table.display_no_select tr.gradeP td,
 table.display_no_select tr.gradeD td,
+table.display_no_select tr.gradeT td,
 table.display_no_select tr.gradeZ td {border-bottom: 1px solid #FFF;}
 table.display_no_select tr:last-child td {
         border-bottom: 1px solid #eee;
