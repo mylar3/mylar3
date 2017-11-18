@@ -336,7 +336,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
             else:
                 chkstatus = mylar.importer.addComictoDB(ComicID, mismatch)
 
-        cnt +=1
+        cnt += 1
         if sched is False:
             time.sleep(15) #pause for 15 secs so dont hammer CV and get 500 error
         else:
@@ -344,7 +344,6 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
             mylar.UPDATER_STATUS = 'Waiting'
             break
     logger.info('Update complete')
-
 
 def latest_update(ComicID, LatestIssue, LatestDate):
     # here we add to comics.latest

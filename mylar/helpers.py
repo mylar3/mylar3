@@ -3196,33 +3196,49 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                   'status':  status}
                     #logger.info('updateVals: %s' % updateVals)
                 elif last_run_completed is not None:
-                    if job == 'DB Updater':
-                        mylar.SCHED.reschedule_job('dbupdater', trigger=IntervalTrigger(hours=0, minutes=int(mylar.CONFIG.DBUPDATE_INTERVAL), timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DBUPDATE_INTERVAL) * 60)
-                    elif job == 'Auto-Search':
-                        mylar.SCHED.reschedule_job('search', trigger=IntervalTrigger(hours=0, minutes=mylar.CONFIG.SEARCH_INTERVAL, timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (mylar.CONFIG.SEARCH_INTERVAL * 60)
-                    elif job == 'RSS Feeds':
-                        mylar.SCHED.reschedule_job('rss', trigger=IntervalTrigger(hours=0, minutes=int(mylar.CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
-                        mylar.SCHED_RSS_LAST = last_run_completed
-                    elif job == 'Weekly Pullist':
-                        if mylar.CONFIG.ALT_PULL == 2:
-                            wkt = 4
-                        else:
-                            wkt = 24
-                        mylar.SCHED.reschedule_job('weekly', trigger=IntervalTrigger(hours=wkt, minutes=0, timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
-                        mylar.SCHED_WEEKLY_LAST = last_run_completed
-                    elif job == 'Check Version':
-                        mylar.SCHED.reschedule_job('version', trigger=IntervalTrigger(hours=0, minutes=mylar.CONFIG.CHECK_GITHUB_INTERVAL, timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
-                    elif job == 'Folder Monitor':
-                        mylar.SCHED.reschedule_job('monitor', trigger=IntervalTrigger(hours=0, minutes=int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
-                        nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
+                    if any([job == 'DB Updater', job == 'Auto-Search', job == 'RSS Feeds', job == 'Weekly Pullist', job == 'Check Version', job == 'Folder Monitor']):
+                        jobstore = None
+                        for jbst in mylar.SCHED.get_jobs():
+                            jb = str(jbst)
+                            if 'Status Updater' in jb.lower():
+                               continue
+                            elif job == 'DB Updater' and 'update' in jb.lower():
+                                nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
+                                logger.info('here-1')
+                                jobstore = jbst
+                                break
+                            elif job == 'Auto-Search' and 'search' in jb.lower():
+                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.SEARCH_INTERVAL * 60)
+                                jobstore = jbst
+                                break
+                            elif job == 'RSS Feeds' and 'rss' in jb.lower():
+                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
+                                mylar.SCHED_RSS_LAST = last_run_completed
+                                jobstore = jbst
+                                break
+                            elif job == 'Weekly Pullist' and 'weekly' in jb.lower():
+                                if mylar.CONFIG.ALT_PULL == 2:
+                                    wkt = 4
+                                else:
+                                    wkt = 24
+                                nextrun_stamp = utctimestamp() + (wkt * 60 * 60)
+                                mylar.SCHED_WEEKLY_LAST = last_run_completed
+                                jobstore = jbst
+                                break
+                            elif job == 'Check Version' and 'version' in jb.lower():
+                                nextrun_stamp = utctimestamp() + (mylar.CONFIG.CHECK_GITHUB_INTERVAL * 60)
+                                jobstore = jbst
+                                break
+                            elif job == 'Folder Monitor' and 'monitor' in jb.lower():
+                                nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) * 60)
+                                jobstore = jbst
+                                break
 
-                    nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
-                    nextrun_date = nextrun_date.replace(microsecond=0)
+                        if jobstore is not None:
+                            nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
+                            jobstore.modify(next_run_time=nextrun_date)
+                            nextrun_date = nextrun_date.replace(microsecond=0)
+
                     logger.fdebug('ReScheduled job: %s to %s' % (job, nextrun_date))
                     lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
                     lastrun_comp = lastrun_comp.replace(microsecond=0)
