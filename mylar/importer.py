@@ -960,7 +960,7 @@ def issue_collection(issuedata, nostatus):
                         dk = re.sub('-', '', issue['IssueDate']).strip()
                     else:
                         dk = re.sub('-', '', issue['ReleaseDate']).strip() # converts date to 20140718 format
-                    if dk == '0000-00-00':
+                    if dk == '00000000':
                         logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % issue['Issue_Number'])
                         newValueDict['Status'] = "Skipped"
                     else:
@@ -1483,7 +1483,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
                             if iss_exists is None:
-                                if stdate == '00000000':
+                                if stdate == '0000-00-00':
                                     dk = re.sub('-', '', issdate).strip()
                                 else:
                                     dk = re.sub('-', '', stdate).strip() # converts date to 20140718 format
