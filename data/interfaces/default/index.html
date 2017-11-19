@@ -47,7 +47,7 @@
                                 comic_percent = comic['percent']
 
 				if comic['Status'] == 'Paused':
-					grade = 'X'
+					grade = 'T'
 				elif comic['Status'] == 'Loading':
 			        	grade = 'L'
                                 elif comic['Status'] == 'Error':
@@ -100,8 +100,7 @@
 </%def>
 
 <%def name="headIncludes()">
-    <link rel="stylesheet" href="interfaces/default/css/data_table.dist.css">
-	<link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link rel="stylesheet" href="interfaces/default/css/data_table.css">
 </%def>
 
 <%def name="javascriptIncludes()">
