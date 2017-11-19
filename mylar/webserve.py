@@ -4381,7 +4381,7 @@ class WebInterface(object):
                     "opds_authentication": helpers.checked(mylar.CONFIG.OPDS_AUTHENTICATION),
                     "opds_username": mylar.CONFIG.OPDS_USERNAME,
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
-                    "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO),
+                    "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO)
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -4638,46 +4638,6 @@ class WebInterface(object):
 
                 mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
-        ## Sanity checking
-        #if mylar.CONFIG.COMICVINE_API == 'None' or mylar.CONFIG.COMICVINE_API == '':
-        #    logger.info('Personal Comicvine API key not provided. This will severely impact the usage of Mylar - you have been warned.')
-        #    mylar.CONFIG.COMICVINE_API = None
-
-        #if mylar.CONFIG.SEARCH_INTERVAL < 360:
-        #    logger.info("Search interval too low. Resetting to 6 hour minimum") mylar.CONFIG.SEARCH_INTERVAL = 360
-
-        #if mylar.CONFIG.SEARCH_DELAY < 1:
-        #    logger.info("Minimum search delay set for 1 minute to avoid hammering.")
-        #    mylar.CONFIG.SEARCH_DELAY = 1
-
-        #if mylar.CONFIG.RSS_CHECKINTERVAL < 20:
-        #    logger.info("Minimum RSS Interval Check delay set for 20 minutes to avoid hammering.")
-        #    mylar.CONFIG.RSS_CHECKINTERVAL = 20
-
-        #if not helpers.is_number(mylar.CONFIG.CHMOD_DIR):
-        #    logger.info("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
-        #    mylar.CONFIG.CHMOD_DIR = '0777'
-
-        #if not helpers.is_number(mylar.CONFIG.CHMOD_FILE):
-        #    logger.info("CHMOD File value is not a valid numeric - please correct. Defaulting to 0660")
-        #    mylar.CONFIG.CHMOD_FILE = '0660'
-
-        #if mylar.CONFIG.SAB_HOST.endswith('/'):
-        #    logger.info("Auto-correcting trailing slash in SABnzbd url (not required)")
-        #    mylar.CONFIG.SAB_HOST = mylar.CONFIG.SAB_HOST[:-1]
-
-        #if mylar.CONFIG.FILE_OPTS is None:
-        #    mylar.CONFIG.FILE_OPTS = 'move'
-
-        #if any([mylar.CONFIG.FILE_OPTS == 'hardlink', mylar.CONFIG.FILE_OPTS == 'softlink']):
-        #    #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
-        #    mylar.CONFIG.ENABLE_META = 0
-
-        #if mylar.CONFIG.ENABLE_META:
-        #    #force it to use comictagger in lib vs. outside in order to ensure 1/api second CV rate limit isn't broken.
-        #    logger.fdebug("ComicTagger Path enforced to use local library : " + mylar.PROG_DIR)
-        #    mylar.CONFIG.CMTAGGER_PATH = mylar.PROG_DIR
-
         mylar.CONFIG.process_kwargs(kwargs)
 
         #this makes sure things are set to the default values if they're not appropriately set.
@@ -4686,8 +4646,6 @@ class WebInterface(object):
         # Write the config
         logger.info('Now saving config...')
         mylar.CONFIG.writeconfig()
-
-        raise cherrypy.HTTPRedirect("config")
 
     configUpdate.exposed = True
 
