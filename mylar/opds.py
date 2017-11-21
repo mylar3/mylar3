@@ -222,10 +222,10 @@ class OPDS(object):
                 )
         if len(entries) > (index + 30):
             links.append(
-                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+                getLink(href='%s?cmd=AllTitles&amp;index=%s' % (self.opdsroot, index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
         if index >= 30:
             links.append(
-                getLink(href='%s?cmd=Publishers&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+                getLink(href='%s?cmd=AllTitles&amp;index=%s' % (self.opdsroot, index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
         feed['links'] = links
         feed['entries'] = entries[index:(index+30)]
