@@ -97,7 +97,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         if mylar.CONFIG.ENABLE_32P:
             torprovider.append('32p')
             torp+=1
-            #print torprovider[0]
         if mylar.CONFIG.ENABLE_TPSE:
             torprovider.append('tpse')
             torp+=1
@@ -127,15 +126,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     if mylar.CONFIG.NEWZNAB is True:
         for newznab_host in mylar.CONFIG.EXTRA_NEWZNABS:
-            logger.info(newznab_host)
             if newznab_host[5] == '1' or newznab_host[5] == 1:
                 newznab_hosts.append(newznab_host)
-                #if newznab_host[0] == newznab_host[1]:
-                #    nzbprovider.append('newznab')
-                #else:
                 nzbprovider.append('newznab:' + str(newznab_host[0]))
                 newznabs+=1
-                logger.fdebug("newznab name:" + str(newznab_host[0]) + " @ " + str(newznab_host[1]))
 
     logger.fdebug('nzbprovider(s): ' + str(nzbprovider))
     # --------
@@ -663,6 +657,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         try:
                             if str(r.status_code) != '200':
                                 logger.warn('Unable to retrieve search results from ' + tmpprov + ' [Status Code returned: ' + str(r.status_code) + ']')
+                                if str(r.status_code) == '503':
+                                    logger.warn('Unavailable indexer detected. Disabling for a short duration and will try again.')
+                                    helpers.disable_provider(tmpprov)
                                 data = False
                             else:
                                 data = r.content
@@ -675,7 +672,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             bb = "no results"
 
                         try:
-                            if bb['feed']['error']:
+                            if bb == 'no results':
+                                logger.fdebug('No results for search query from %s' % tmprov)
+                                break
+                            elif bb['feed']['error']:
                                 logger.error('[ERROR CODE: ' + str(bb['feed']['error']['code']) + '] ' + str(bb['feed']['error']['description']))
                                 if bb['feed']['error']['code'] == '910':
                                     logger.warn('DAILY API limit reached. Disabling provider usage until 12:01am')
@@ -1702,178 +1702,180 @@ def searchforissue(issueid=None, new=False, rsscheck=None):
 
     myDB = db.DBConnection()
 
-    if not issueid or rsscheck:
+    ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
+    if (any([mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and any([mylar.CONFIG.ENABLE_TPSE is True, mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.ENABLE_TORZNAB is True])):
+        if not issueid or rsscheck:
 
-        if rsscheck:
-            logger.info(u"Initiating RSS Search Scan at the scheduled interval of " + str(mylar.CONFIG.RSS_CHECKINTERVAL) + " minutes.")
+            if rsscheck:
+                logger.info(u"Initiating RSS Search Scan at the scheduled interval of " + str(mylar.CONFIG.RSS_CHECKINTERVAL) + " minutes.")
+            else:
+                logger.info(u"Initiating Search scan at the scheduled interval of " + str(mylar.CONFIG.SEARCH_INTERVAL) + " minutes.")
+
+            myDB = db.DBConnection()
+
+            stloop = 1
+            results = []
+
+            if mylar.CONFIG.ANNUALS_ON:
+                stloop+=1
+            while (stloop > 0):
+                if stloop == 1:
+                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
+                        issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
+                    else:
+                        issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
+                    for iss in issues_1:
+                        results.append({'ComicID':       iss['ComicID'],
+                                        'IssueID':       iss['IssueID'],
+                                        'Issue_Number':  iss['Issue_Number'],
+                                        'IssueDate':     iss['IssueDate'],
+                                        'StoreDate':     iss['ReleaseDate'],
+                                        'mode':          'want'
+                                       })
+                elif stloop == 2:
+                    if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
+                        issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
+                    else:
+                        issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
+                    for iss in issues_2:
+                        results.append({'ComicID':       iss['ComicID'],
+                                        'IssueID':       iss['IssueID'],
+                                        'Issue_Number':  iss['Issue_Number'],
+                                        'IssueDate':     iss['IssueDate'],
+                                        'StoreDate':     iss['ReleaseDate'],   #need to replace with Store date
+                                        'mode':          'want_ann'
+                                       })
+                stloop-=1
+
+            new = True
+
+            #to-do: re-order the results list so it's most recent to least recent.
+
+            for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
+                comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
+                if comic is None:
+                    logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
+                    continue
+                if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
+                    if result['IssueDate'] is None or result['IssueDate'] == '0000-00-00':
+                        logger.fdebug('ComicID: ' + str(result['ComicID']) + ' has invalid Date data. Skipping searching for this series.')
+                        continue
+
+                #status issue check - check status to see if it's Downloaded / Snatched already due to concurrent searches possible.
+                if result['IssueID']:
+                    isscheck = helpers.issue_status(result['IssueID'])
+                    #isscheck will return True if already Downloaded / Snatched, False if it's still in a Wanted status.
+                    if isscheck == True:
+                        logger.fdebug('Issue is already in a Downloaded / Snatched status.')
+                        continue
+
+                foundNZB = "none"
+                SeriesYear = comic['ComicYear']
+                Publisher = comic['ComicPublisher']
+                AlternateSearch = comic['AlternateSearch']
+                IssueDate = result['IssueDate']
+                StoreDate = result['StoreDate']
+                UseFuzzy = comic['UseFuzzy']
+                ComicVersion = comic['ComicVersion']
+                if result['IssueDate'] == None:
+                    ComicYear = comic['ComicYear']
+                else:
+                    ComicYear = str(result['IssueDate'])[:4]
+                if comic['AllowPacks']:
+                    AllowPacks = True
+                else:
+                    AllowPacks = False
+                mode = result['mode']
+
+                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
+                if foundNZB['status'] is True:
+                    logger.info(foundNZB)
+                    updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
+
+            if rsscheck:
+                logger.info('Completed RSS Search scan')
+            else:
+                logger.info('Completed API Search scan')
+
+
         else:
-            logger.info(u"Initiating Search scan at the scheduled interval of " + str(mylar.CONFIG.SEARCH_INTERVAL) + " minutes.")
-
-        myDB = db.DBConnection()
-
-        stloop = 1
-        results = []
-
-        if mylar.CONFIG.ANNUALS_ON:
-            stloop+=1
-        while (stloop > 0):
-            if stloop == 1:
-                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
-                    issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted" OR Status="Failed"')
-                else:
-                    issues_1 = myDB.select('SELECT * from issues WHERE Status="Wanted"')
-                for iss in issues_1:
-                    results.append({'ComicID':       iss['ComicID'],
-                                    'IssueID':       iss['IssueID'],
-                                    'Issue_Number':  iss['Issue_Number'],
-                                    'IssueDate':     iss['IssueDate'],
-                                    'StoreDate':     iss['ReleaseDate'],
-                                    'mode':          'want'
-                                   })
-            elif stloop == 2:
-                if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING and mylar.CONFIG.FAILED_AUTO:
-                    issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted" OR Status="Failed"')
-                else:
-                    issues_2 = myDB.select('SELECT * from annuals WHERE Status="Wanted"')
-                for iss in issues_2:
-                    results.append({'ComicID':       iss['ComicID'],
-                                    'IssueID':       iss['IssueID'],
-                                    'Issue_Number':  iss['Issue_Number'],
-                                    'IssueDate':     iss['IssueDate'],
-                                    'StoreDate':     iss['ReleaseDate'],   #need to replace with Store date
-                                    'mode':          'want_ann'
-                                   })
-            stloop-=1
-
-        new = True
-
-        #to-do: re-order the results list so it's most recent to least recent.
-
-        for result in sorted(results, key=itemgetter('StoreDate'), reverse=True):
-            comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
-            if comic is None:
-                logger.fdebug(str(result['ComicID']) + ' has no associated comic information. Skipping searching for this series.')
-                continue
-            if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
-                if result['IssueDate'] is None or result['IssueDate'] == '0000-00-00':
-                    logger.fdebug('ComicID: ' + str(result['ComicID']) + ' has invalid Date data. Skipping searching for this series.')
-                    continue
-
-            #status issue check - check status to see if it's Downloaded / Snatched already due to concurrent searches possible.
-            if result['IssueID']:
-                isscheck = helpers.issue_status(result['IssueID'])
-                #isscheck will return True if already Downloaded / Snatched, False if it's still in a Wanted status.
-                if isscheck == True:
-                    logger.fdebug('Issue is already in a Downloaded / Snatched status.')
-                    continue
-                else:
-                    logger.fdebug('Status check returned a Wanted status - continuing.')
-
-            foundNZB = "none"
+            result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            mode = 'want'
+            if result is None:
+                result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
+                mode = 'want_ann'
+                if result is None:
+                    logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
+                    return
+            ComicID = result['ComicID']
+            comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
             SeriesYear = comic['ComicYear']
             Publisher = comic['ComicPublisher']
             AlternateSearch = comic['AlternateSearch']
             IssueDate = result['IssueDate']
-            StoreDate = result['StoreDate']
+            StoreDate = result['ReleaseDate']
             UseFuzzy = comic['UseFuzzy']
             ComicVersion = comic['ComicVersion']
             if result['IssueDate'] == None:
-                ComicYear = comic['ComicYear']
+                IssueYear = comic['ComicYear']
             else:
-                ComicYear = str(result['IssueDate'])[:4]
+                IssueYear = str(result['IssueDate'])[:4]
+
             if comic['AllowPacks']:
                 AllowPacks = True
             else:
                 AllowPacks = False
-            mode = result['mode']
-            logger.info('preparing to fire..')
 
-            if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
-                    logger.info('fired off')
-                    foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), comic['ComicYear'], Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
-                    if foundNZB['status'] is True:
-                        logger.info(foundNZB)
-                        updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
-
-        if rsscheck:
-            logger.info('Completed RSS Search scan')
-        else:
-            logger.info('Completed API Search scan')
-
-
-    else:
-        result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
-        mode = 'want'
-        if result is None:
-            result = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
-            mode = 'want_ann'
-            if result is None:
-                logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
-                return
-        ComicID = result['ComicID']
-        comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
-        SeriesYear = comic['ComicYear']
-        Publisher = comic['ComicPublisher']
-        AlternateSearch = comic['AlternateSearch']
-        IssueDate = result['IssueDate']
-        StoreDate = result['ReleaseDate']
-        UseFuzzy = comic['UseFuzzy']
-        ComicVersion = comic['ComicVersion']
-        if result['IssueDate'] == None:
-            IssueYear = comic['ComicYear']
-        else:
-            IssueYear = str(result['IssueDate'])[:4]
-
-        if comic['AllowPacks']:
-            AllowPacks = True
-        else:
-            AllowPacks = False
-
-        foundNZB = "none"
-        if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
             foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
             if foundNZB['status'] is True:
                 logger.fdebug("I found " + comic['ComicName'] + ' #:' + str(result['Issue_Number']))
                 updater.foundsearch(ComicID=result['ComicID'], IssueID=result['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
+    else:
+        if rsscheck:
+            logger.warn('There are no search providers enabled atm - not performing an RSS check for obvious reasons')
+        else:
+            logger.warn('There are no search providers enabled atm - not performing an Force Check for obvious reasons')
     return
 
 def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
-    for issueid in issuelist:
-        issue = myDB.selectone('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
-        mode = 'want'
-        if issue is None:
-            issue = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
-            mode = 'want_ann'
+    ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
+    if (any([mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and any([mylar.CONFIG.ENABLE_TPSE is True, mylar.CONFIG.ENABLE_32P is True, mylar.CONFIG.ENABLE_TORZNAB is True])):
+        for issueid in issuelist:
+            issue = myDB.selectone('SELECT * from issues WHERE IssueID=?', [issueid]).fetchone()
+            mode = 'want'
             if issue is None:
-                logger.warn('unable to determine IssueID - perhaps you need to delete/refresh series? Skipping this entry: ' + issueid)
+                issue = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issueid]).fetchone()
+                mode = 'want_ann'
+                if issue is None:
+                    logger.warn('unable to determine IssueID - perhaps you need to delete/refresh series? Skipping this entry: ' + issueid)
+                    continue
+
+            if any([issue['Status'] == 'Downloaded', issue['Status'] == 'Snatched']):
+                logger.fdebug('Issue is already in a Downloaded / Snatched status.')
                 continue
 
-        if any([issue['Status'] == 'Downloaded', issue['Status'] == 'Snatched']):
-            logger.fdebug('Issue is already in a Downloaded / Snatched status.')
-            continue
+            comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
+            foundNZB = "none"
+            SeriesYear = comic['ComicYear']
+            AlternateSearch = comic['AlternateSearch']
+            Publisher = comic['ComicPublisher']
+            UseFuzzy = comic['UseFuzzy']
+            ComicVersion = comic['ComicVersion']
+            if issue['IssueDate'] == None:
+                IssueYear = comic['ComicYear']
+            else:
+                IssueYear = str(issue['IssueDate'])[:4]
+            if comic['AllowPacks']:
+                AllowPacks = True
+            else:
+                AllowPacks = False
 
-        comic = myDB.selectone('SELECT * from comics WHERE ComicID=?', [issue['ComicID']]).fetchone()
-        foundNZB = "none"
-        SeriesYear = comic['ComicYear']
-        AlternateSearch = comic['AlternateSearch']
-        Publisher = comic['ComicPublisher']
-        UseFuzzy = comic['UseFuzzy']
-        ComicVersion = comic['ComicVersion']
-        if issue['IssueDate'] == None:
-            IssueYear = comic['ComicYear']
-        else:
-            IssueYear = str(issue['IssueDate'])[:4]
-        if comic['AllowPacks']:
-            AllowPacks = True
-        else:
-            AllowPacks = False
-
-        if (mylar.CONFIG.NZBSU or mylar.CONFIG.DOGNZB or mylar.CONFIG.EXPERIMENTAL or mylar.CONFIG.NEWZNAB or mylar.CONFIG.ENABLE_32P or mylar.CONFIG.ENABLE_TPSE or mylar.CONFIG.ENABLE_TORZNAB) and (mylar.USE_SABNZBD or mylar.USE_NZBGET or mylar.CONFIG.ENABLE_TORRENTS or mylar.USE_BLACKHOLE):
-                foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
-                if foundNZB['status'] is True:
-                    updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
-
+            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks)
+            if foundNZB['status'] is True:
+                updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
+    else:
+        logger.warn('There are no search providers enabled atm - not performing the requested search for obvious reasons')
 
 
 def provider_sequence(nzbprovider, torprovider, newznab_hosts):
@@ -1885,21 +1887,13 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts):
 
     if len(mylar.CONFIG.PROVIDER_ORDER) > 0:
         for pr_order in sorted(mylar.CONFIG.PROVIDER_ORDER.items(), key=itemgetter(0), reverse=False):
-            logger.fdebug('looking for ' + str(pr_order[1]).lower())
-            logger.fdebug('nzbproviders ' + str(nzbproviders_lower))
-            logger.fdebug('torproviders ' + str(torprovider))
             if (pr_order[1].lower() in torprovider) or any(pr_order[1].lower() in x for x in nzbproviders_lower):
-                logger.fdebug('found provider in existing enabled providers.')
                 if any(pr_order[1].lower() in x for x in nzbproviders_lower):
                     # this is for nzb providers
                     for np in nzbprovider:
-                        logger.fdebug('checking against nzb provider: ' + str(np))
                         if all(['newznab' in np, pr_order[1].lower() in np.lower()]):
-                            logger.fdebug('newznab match against: ' + str(np))
                             for newznab_host in newznab_hosts:
-                                #logger.fdebug('comparing ' + str(pr_order[1]).lower() + ' against: ' + str(newznab_host[0]).lower())
                                 if newznab_host[0].lower() == pr_order[1].lower():
-                                    logger.fdebug('sucessfully matched - appending to provider.order sequence')
                                     prov_order.append(np) #newznab_host)
                                     newznab_info.append({"provider":     np,
                                                          "info": newznab_host})
@@ -1916,13 +1910,9 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts):
                             break
                 else:
                     for tp in torprovider:
-                        logger.fdebug('checking against torrent provider: ' + str(tp))
                         if (pr_order[1].lower() in tp.lower()):
-                            logger.fdebug('torrent provider found: ' + str(tp))
                             prov_order.append(tp) #torrent provider
                             break
-
-                logger.fdebug('provider order sequence is now to start with ' + pr_order[1] + ' at spot #' + str(pr_order[0]))
 
     return prov_order, newznab_info
 

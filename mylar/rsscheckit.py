@@ -30,7 +30,7 @@ class tehMain():
     def run(self, forcerss=None):
         with rss_lock:
 
-            logger.info('[RSS-FEEDS] RSS Feed Check was last run at : ' + str(mylar.SCHED_RSS_LAST))
+            #logger.info('[RSS-FEEDS] RSS Feed Check was last run at : ' + str(mylar.SCHED_RSS_LAST))
             firstrun = "no"
             #check the last run of rss to make sure it's not hammering.
             if mylar.SCHED_RSS_LAST is None or mylar.SCHED_RSS_LAST == '' or mylar.SCHED_RSS_LAST == '0' or forcerss == True:
@@ -40,14 +40,14 @@ class tehMain():
             else:
                 tstamp = float(mylar.SCHED_RSS_LAST)
                 duration_diff = abs(helpers.utctimestamp() - tstamp)/60
-            logger.fdebug('[RSS-FEEDS] Duration diff: %s' % duration_diff)
+            #logger.fdebug('[RSS-FEEDS] Duration diff: %s' % duration_diff)
             if firstrun == "no" and duration_diff < int(mylar.CONFIG.RSS_CHECKINTERVAL):
                 logger.fdebug('[RSS-FEEDS] RSS Check has taken place less than the threshold - not initiating at this time.')
                 return
 
             helpers.job_management(write=True, job='RSS Feeds', current_run=helpers.utctimestamp(), status='Running')
             mylar.RSS_STATUS = 'Running'
-            logger.fdebug('[RSS-FEEDS] Updated RSS Run time to : ' + str(mylar.SCHED_RSS_LAST))
+            #logger.fdebug('[RSS-FEEDS] Updated RSS Run time to : ' + str(mylar.SCHED_RSS_LAST))
 
             #function for looping through nzbs/torrent feeds
             if mylar.CONFIG.ENABLE_TORRENT_SEARCH:

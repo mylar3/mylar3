@@ -2328,7 +2328,7 @@ def issue_status(IssueID):
     import db, logger
     myDB = db.DBConnection()
 
-    logger.fdebug('[ISSUE-STATUS] Issue Status Check for ' + str(IssueID))
+    #logger.fdebug('[ISSUE-STATUS] Issue Status Check for ' + str(IssueID))
 
     isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if isschk is None:
@@ -3057,6 +3057,25 @@ def get_the_hash(filepath):
     logger.info('Hash of file : ' + thehash)
     return {'hash':     thehash}
 
+def disable_provider(site, newznab=False):
+    logger.info('Temporarily disabling %s due to not responding' % site)
+    if newznab is True:
+        tmplist = []
+        for ti in mylar.CONFIG.EXTRA_NEWZNABS:
+            tmpnewz = list(ti)
+            if tmpnewz[0] == site:
+                tmpnewz[5] = '0'
+            tmplist.append(tuple(tmpnewz))
+        mylar.CONFIG.EXTRA_NEWZNABS = tmplist
+    else:
+        if site == 'nzbsu':
+            mylar.CONFIG.NZBSU = False
+        elif site == 'dognzb':
+            mylar.CONFIG.DOGNZB = False
+        elif site == 'experimental':
+            mylar.CONFIG.EXPERIMENTAL = False
+
+
 def date_conversion(originaldate):
     c_obj_date = datetime.datetime.strptime(originaldate, "%Y-%m-%d %H:%M:%S")
     n_date = datetime.datetime.now()
@@ -3202,7 +3221,6 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                continue
                             elif job == 'DB Updater' and 'update' in jb.lower():
                                 nextrun_stamp = utctimestamp() + (int(mylar.DBUPDATE_INTERVAL) * 60)
-                                logger.info('here-1')
                                 jobstore = jbst
                                 break
                             elif job == 'Auto-Search' and 'search' in jb.lower():

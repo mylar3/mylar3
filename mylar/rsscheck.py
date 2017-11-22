@@ -389,9 +389,8 @@ def nzbs(provider=None, forcerss=False):
 
     feedthis = []
 
-    def _parse_feed(site, url, verify):
+    def _parse_feed(site, url, verify, payload=None):
         logger.fdebug('[RSS] Fetching items from ' + site)
-        payload = None
         headers = {'User-Agent':      str(mylar.USER_AGENT)}
 
         try:
@@ -400,6 +399,18 @@ def nzbs(provider=None, forcerss=False):
             logger.warn('Error fetching RSS Feed Data from %s: %s' % (site, e))
             return
 
+        if r.status_code != 200:
+            #typically 403 will not return results, but just catch anything other than a 200
+            if r.status_code == 403:
+                return False
+            else:
+                logger.warn('[%s] Status code returned: %s' % (site, r.status_code))
+                if r.status_code == 503:
+                    logger.warn('[%s] Site appears unresponsive/down. Disabling...' % (site))
+                    return 'disable'
+                else:
+                    return
+
         feedme = feedparser.parse(r.content)
 
         feedthis.append({"site": site,
@@ -407,90 +418,124 @@ def nzbs(provider=None, forcerss=False):
 
     newznab_hosts = []
 
-    logger.info('config.newznab: %s' % mylar.CONFIG.NEWZNAB)
-    logger.info('extra.newznabs: %s' % mylar.CONFIG.EXTRA_NEWZNABS)
-    if mylar.CONFIG.NEWZNAB == 1:
+    if mylar.CONFIG.NEWZNAB is True:
         for newznab_host in mylar.CONFIG.EXTRA_NEWZNABS:
-            logger.fdebug('[RSS] newznab name: ' + str(newznab_host[0]) + ' - enabled: ' + str(newznab_host[5]))
             if str(newznab_host[5]) == '1':
                 newznab_hosts.append(newznab_host)
 
-    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL == 1) + int(mylar.CONFIG.NZBSU == 1) + int(mylar.CONFIG.DOGNZB == 1)
+    providercount = len(newznab_hosts) + int(mylar.CONFIG.EXPERIMENTAL is True) + int(mylar.CONFIG.NZBSU is True) + int(mylar.CONFIG.DOGNZB is True)
     logger.fdebug('[RSS] You have enabled ' + str(providercount) + ' NZB RSS search providers.')
 
-    if mylar.CONFIG.EXPERIMENTAL == 1:
-        max_entries = "250" if forcerss else "50"
-        _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&max=' + max_entries + '&more=1', False)
+    if providercount > 0:
+        if mylar.CONFIG.EXPERIMENTAL == 1:
+            max_entries = "250" if forcerss else "50"
+            params = {'sort': 'agedesc',
+                      'max':   max_entries,
+                      'more':  '1'}
+            check = _parse_feed('experimental', 'http://nzbindex.nl/rss/alt.binaries.comics.dcp', False, params)
+            if check == 'disable':
+                helpers.disable_provider(site)
 
-    if mylar.CONFIG.NZBSU == 1:
-        num_items = "&num=100" if forcerss else ""  # default is 25
-        _parse_feed('nzb.su', 'http://api.nzb.su/rss?t=7030&dl=1&i=' + (mylar.CONFIG.NZBSU_UID or '1') + '&r=' + mylar.CONFIG.NZBSU_APIKEY + num_items, bool(mylar.CONFIG.NZBSU_VERIFY))
+        if mylar.CONFIG.NZBSU == 1:
+            num_items = "&num=100" if forcerss else ""  # default is 25
+            params = {'t':        '7030',
+                      'dl':        '1', 
+                      'i':         mylar.CONFIG.NZBSU_UID,
+                      'r':         mylar.CONFIG.NZBSU_APIKEY,
+                      'num_items': num_items}
+            check = _parse_feed('nzb.su', 'https://api.nzb.su/rss', mylar.CONFIG.NZBSU_VERIFY, params)
+            if check == 'disable':
+                helpers.disable_provider(site)
 
-    if mylar.CONFIG.DOGNZB == 1:
-        num_items = "&num=100" if forcerss else ""  # default is 25
-        _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm?r=' + mylar.CONFIG.DOGNZB_APIKEY + '&t=7030' + num_items, bool(mylar.CONFIG.DOGNZB_VERIFY))
+        if mylar.CONFIG.DOGNZB == 1:
+            num_items = "&num=100" if forcerss else ""  # default is 25
+            params = {'t':        '7030',
+                      'r':         mylar.CONFIG.DOGNZB_APIKEY,
+                      'num_items': num_items}
 
-    for newznab_host in newznab_hosts:
-        site = newznab_host[0].rstrip()
-        (newznabuid, _, newznabcat) = (newznab_host[4] or '').partition('#')
-        newznabuid = newznabuid or '1'
-        newznabcat = newznabcat or '7030'
+            check = _parse_feed('dognzb', 'https://dognzb.cr/rss.cfm', mylar.CONFIG.DOGNZB_VERIFY, params)
+            if check == 'disable':
+                helpers.disable_provider(site)
 
-        if site[-10:] == '[nzbhydra]':
-            #to allow nzbhydra to do category search by most recent (ie. rss)
-            _parse_feed(site, newznab_host[1].rstrip() + '/api?t=search&cat=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&apikey=' + newznab_host[3].rstrip(), bool(newznab_host[2]))
-        else:
-            # 11-21-2014: added &num=100 to return 100 results (or maximum) - unsure of cross-reliablity
-            _parse_feed(site, newznab_host[1].rstrip() + '/rss?t=' + str(newznabcat) + '&dl=1&i=' + str(newznabuid) + '&num=100&r=' + newznab_host[3].rstrip(), bool(newznab_host[2]))
+        for newznab_host in newznab_hosts:
+            site = newznab_host[0].rstrip()
+            (newznabuid, _, newznabcat) = (newznab_host[4] or '').partition('#')
+            newznabuid = newznabuid or '1'
+            newznabcat = newznabcat or '7030'
 
-    feeddata = []
-
-    for ft in feedthis:
-        site = ft['site']
-        logger.fdebug('[RSS] (' + site + ') now being updated...')
-
-        for entry in ft['feed'].entries:
-
-            if site == 'dognzb':
-                #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
-                size = 0
-                if 'newznab' in entry and 'size' in entry['newznab']:
-                    size = entry['newznab']['size']
+            if site[-10:] == '[nzbhydra]':
+                #to allow nzbhydra to do category search by most recent (ie. rss)
+                url = newznab_host[1].rstrip() + '/api'
+                params = {'t':         'search',
+                          'cat':       str(newznabcat),
+                          'dl':        '1',
+                          'apikey':    newznab_host[3].rstrip(),
+                          'num':       '100'}
+                check = _parse_feed(site, url, bool(newznab_host[2]), params)
             else:
-                # experimental, nzb.su, newznab
-                size = entry.enclosures[0]['length']
+                url = newznab_host[1].rstrip() + '/rss'
+                params = {'t':         str(newznabcat),
+                          'dl':        '1',
+                          'i':         str(newznabuid),
+                          'r':         newznab_host[3].rstrip(),
+                          'num':       '100'}
 
-            # Link
-            if site == 'experimental':
-                link = entry.enclosures[0]['url']
-            else:
-                # dognzb, nzb.su, newznab
-                link = entry.link
+                check = _parse_feed(site, url, bool(newznab_host[2]), params)
+                if check is False and 'rss' in url[-3:]:
+                    logger.fdebug('RSS url returning 403 error. Attempting to use API to get most recent items in lieu of RSS feed')
+                    url = newznab_host[1].rstrip() + '/api'
+                    params = {'t':         'search',
+                              'cat':       str(newznabcat),
+                              'dl':        '1',
+                              'apikey':    newznab_host[3].rstrip(),
+                              'num':       '100'}
+                    check = _parse_feed(site, url, bool(newznab_host[2]), params)
+                if check == 'disable':
+                    helpers.disable_provider(site, newznab=True)
 
-                #Remove the API keys from the url to allow for possible api key changes
+        feeddata = []
+
+        for ft in feedthis:
+            site = ft['site']
+            logger.fdebug('[RSS] (' + site + ') now being updated...')
+
+            for entry in ft['feed'].entries:
+
                 if site == 'dognzb':
-                    link = re.sub(mylar.CONFIG.DOGNZB_APIKEY, '', link).strip()
+                    #because the rss of dog doesn't carry the enclosure item, we'll use the newznab size value
+                    size = 0
+                    if 'newznab' in entry and 'size' in entry['newznab']:
+                        size = entry['newznab']['size']
                 else:
-                    link = link[:link.find('&i=')].strip()
+                    # experimental, nzb.su, newznab
+                    size = entry.enclosures[0]['length']
 
-            feeddata.append({'Site': site,
-                             'Title': entry.title,
-                             'Link': link,
-                             'Pubdate': entry.updated,
-                             'Size': size})
+                # Link
+                if site == 'experimental':
+                    link = entry.enclosures[0]['url']
+                else:
+                    # dognzb, nzb.su, newznab
+                    link = entry.link
 
-            # logger.fdebug("    Site: " + site)
-            # logger.fdebug("    Title: " + entry.title)
-            # logger.fdebug("    Link: " + link)
-            # logger.fdebug("    pubdate: " + entry.updated)
-            # logger.fdebug("    size: " + size)
+                   #Remove the API keys from the url to allow for possible api key changes
+                    if site == 'dognzb':
+                        link = re.sub(mylar.CONFIG.DOGNZB_APIKEY, '', link).strip()
+                    else:
+                        link = link[:link.find('&i=')].strip()
 
-        logger.info('[RSS] (' + site + ') ' + str(len(ft['feed'].entries)) + ' entries indexed.')
+                feeddata.append({'Site': site,
+                                 'Title': entry.title,
+                                 'Link': link,
+                                 'Pubdate': entry.updated,
+                                 'Size': size})
 
-    i = len(feeddata)
-    if i:
-        logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
-        rssdbupdate(feeddata, i, 'usenet')
+            logger.info('[RSS] (' + site + ') ' + str(len(ft['feed'].entries)) + ' entries indexed.')
+
+        i = len(feeddata)
+        if i:
+            logger.info('[RSS] ' + str(i) + ' entries have been indexed and are now going to be stored for caching.')
+            rssdbupdate(feeddata, i, 'usenet')
+
     return
 
 def rssdbupdate(feeddata, i, type):
