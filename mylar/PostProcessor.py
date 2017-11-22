@@ -348,13 +348,20 @@ class PostProcessor(object):
                         tcrc = helpers.crc(os.path.join(fl['comiclocation'], fl['comicfilename'].decode(mylar.SYS_ENCODING)))
                         crcchk = [x for x in pp_crclist if tcrc == x['crc']]
                         if crcchk:
-                           logger.fdebug('Already post-processed this item %s - Ignoring' % crcchk)
+                           logger.fdebug('%s Already post-processed this item %s - Ignoring' % (module, crcchk))
                            continue
 
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
                     mod_seriesname = as_dinfo['mod_seriesname']
                     loopchk = []
+                    if fl['alt_series'] is not None:
+                        logger.info('%s Alternate series naming detected: %s' % (module, fl['alt_series']))
+                        as_sinfo = as_d.dynamic_replace(helpers.conversion(fl['alt_series']))
+                        mod_altseriesname = as_sinfo['mod_seriesname']
+                        if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
+                            loopchk.append(re.sub('[\|\s]', '', mod_altseriesname.lower()))
+
                     for x in alt_list:
                         cname = x['AS_DyComicName']
                         for ab in x['AS_Alt']:
