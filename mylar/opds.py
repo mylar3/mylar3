@@ -31,7 +31,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue', 'StoryArc']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue', 'StoryArc', 'Recent']
 
 class OPDS(object):
 
@@ -121,6 +121,17 @@ class OPDS(object):
         links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
         links.append(getLink(href='%s?cmd=search' % self.opdsroot, type='application/opensearchdescription+xml',rel='search',title='Search'))
         publishers = myDB.select("SELECT ComicPublisher from comics GROUP BY ComicPublisher")
+        entries.append(
+            {
+                'title': 'Recent Additions',
+                'id': 'Recent',
+                'updated': mylar.helpers.now(),
+                'content': 'Recently Added Issues',
+                'href': '%s?cmd=Recent' % self.opdsroot,
+                'kind': 'acquisition',
+                'rel': 'subsection',
+            }
+        )
         if len(publishers) > 0:
             count = len(publishers)
             entries.append(
@@ -393,6 +404,74 @@ class OPDS(object):
         feed['entries'] = entries
         self.data = feed
         return
+
+
+    def _Recent(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        myDB = db.DBConnection()
+        links = []
+        entries=[]
+        recents = self._dic_from_query('SELECT * from snatched WHERE Status = "Post-Processed" order by DateAdded DESC LIMIT 120')
+        if index <= len(recents):
+            number = 1
+            subset = recents[index:(index+30)]
+            for issue in subset:
+                issuebook = myDB.fetch('SELECT * from issues WHERE IssueID = ?', (issue['IssueID'],)).fetchone()
+                if len(issuebook) == 0:
+                    issuebook = myDB.fetch('SELECT * from annuals WHERE IssueID = ?', (issue['IssueID'])).fetchone()
+                comic = myDB.fetch('SELECT * from comics WHERE ComicID = ?', (issue['ComicID'],)).fetchone()
+                updated = issue['DateAdded']
+                image = None
+                thumbnail = None
+                logger.info("TEMP: %s" % dict(zip(issuebook.keys(), issuebook)))
+                if 'DateAdded' in issuebook.keys():
+                    title = escape('%03d: %s #%s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                    image = issuebook['ImageURL_ALT']
+                    thumbnail = issuebook['ImageURL']
+                else:
+                    title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
+                metainfo = None
+                if mylar.CONFIG.OPDS_METAINFO:
+                    metainfo = mylar.helpers.IssueDetails(fileloc)
+                if not metainfo:
+                    metainfo = [{'writer': None,'summary': ''}]
+                entries.append(
+                    {
+                        'title': title,
+                        'id': escape('comic:%s - %s' % (issuebook['ComicName'], issuebook['Issue_Number'])),
+                        'updated': updated,
+                        'content': escape('%s' % (metainfo[0]['summary'])),
+                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issuebook['IssueID']),quote_plus(issuebook['Location'])),
+                        'kind': 'acquisition',
+                        'rel': 'file',
+                        'author': metainfo[0]['writer'],
+                        'image': image,
+                        'thumbnail': thumbnail,
+                    }
+                )
+                number += 1
+        feed = {}
+        feed['title'] = 'Mylar OPDS - New Arrivals'
+        feed['id'] = escape('New Arrivals')
+        feed['updated'] = mylar.helpers.now()
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=Recent' % (self.opdsroot),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        if len(recents) > (index + 30):
+            links.append(
+                getLink(href='%s?cmd=Recent&amp;index=%s' % (self.opdsroot,index+30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= 30:
+            links.append(
+                getLink(href='%s?cmd=Recent&amp;index=%s' % (self.opdsroot,index-30), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+        feed['links'] = links
+        feed['entries'] = entries
+        self.data = feed
+        return
+
+
 
     def _Issue(self, **kwargs):
         if 'issueid' not in kwargs:
