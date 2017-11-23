@@ -367,6 +367,9 @@ class OPDS(object):
                     title = escape('Annual %s - %s' % (issue['Issue_Number'], issue['IssueName']))
 
                 fileloc = os.path.join(comic['ComicLocation'],issue['Location'])
+                if not os.path.isfile(fileloc):
+                    logger.debug("Missing File: %s" % (fileloc))
+                    continue
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
                     metainfo = mylar.helpers.IssueDetails(fileloc)
