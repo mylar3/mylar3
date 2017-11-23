@@ -727,7 +727,6 @@ class Config(object):
             elif self.SAB_PRIORITY == "4": self.SAB_PRIORITY = "Paused"
             else: self.SAB_PRIORITY = "Default"
 
-        setattr(self, 'TORRENT_LOCAL', False)
         mylar.USE_WATCHDIR = False
         mylar.USE_UTORRENT = False
         mylar.USE_RTORRENT = False
