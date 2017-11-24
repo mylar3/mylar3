@@ -417,7 +417,7 @@ class OPDS(object):
         myDB = db.DBConnection()
         links = []
         entries=[]
-        recents = self._dic_from_query('SELECT * from snatched WHERE Status = "Post-Processed" order by DateAdded DESC LIMIT 120')
+        recents = self._dic_from_query('SELECT * from snatched WHERE Status = "Post-Processed" OR Status = "Downloaded" order by DateAdded DESC LIMIT 120')
         if index <= len(recents):
             number = 1
             subset = recents[index:(index+self.PAGE_SIZE)]
