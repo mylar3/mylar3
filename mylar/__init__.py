@@ -414,6 +414,12 @@ def start():
 
             #now the scheduler (check every 24 hours)
             weekly_interval = weektimer * 60 * 60
+            try:
+                if SCHED_WEEKLY_LAST:
+                    pass
+            except:
+                SCHED_WEEKLY_LAST = None
+
             if SCHED_WEEKLY_LAST is not None:
                 weekly_timestamp = float(SCHED_WEEKLY_LAST)
             else:

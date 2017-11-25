@@ -2858,7 +2858,12 @@ def weekly_info(week=None, year=None):
     else:
         weekdst = mylar.CONFIG.DESTINATION_DIR
 
-    weekly_last = datetime.datetime.fromtimestamp(mylar.SCHED_WEEKLY_LAST)
+    if mylar.SCHED_WEEKLY_LAST is not None:
+        weekly_last = datetime.datetime.fromtimestamp(mylar.SCHED_WEEKLY_LAST)
+        weekly_last = weekly_last.replace(microseconds=0)
+    else:
+        weekly_last = 'None'
+
     weekinfo = {'weeknumber':         weeknumber,
                 'startweek':          con_startweek,
                 'midweek':            midweek.strftime('%Y-%m-%d'),
@@ -2869,12 +2874,15 @@ def weekly_info(week=None, year=None):
                 'next_weeknumber':    next_week,
                 'next_year':          next_year,
                 'current_weeknumber': current_weeknumber,
-                'last_update':        weekly_last.replace(microsecond=0)}
+                'last_update':        weekly_last}
 
-    if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
-        weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+    if weekdst is not None:
+        if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
+            weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+        else:
+            weekfold = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
     else:
-        weekfold = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
+        weekfold = None
 
     weekinfo['week_folder'] = weekfold
 
