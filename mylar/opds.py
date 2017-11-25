@@ -429,13 +429,16 @@ class OPDS(object):
                 updated = issue['DateAdded']
                 image = None
                 thumbnail = None
-                logger.info("TEMP: %s" % dict(zip(issuebook.keys(), issuebook)))
                 if 'DateAdded' in issuebook.keys():
                     title = escape('%03d: %s #%s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
                     image = issuebook['ImageURL_ALT']
                     thumbnail = issuebook['ImageURL']
                 else:
                     title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
+                number +=1
+                if not issuebook['Location']:
+                    continue
                 fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
@@ -456,7 +459,6 @@ class OPDS(object):
                         'thumbnail': thumbnail,
                     }
                 )
-                number += 1
         feed = {}
         feed['title'] = 'Mylar OPDS - New Arrivals'
         feed['id'] = escape('New Arrivals')
@@ -587,6 +589,8 @@ class OPDS(object):
                         issue['image'] = None
                         issue['thumbnail'] = None
                         issue['updated'] =  annualentry['IssueDate']
+            if not os.path.isfile(fileloc):
+                fileexists = False
             if fileexists:
                 readlist.append(issue)
         if len(readlist) > 0:
@@ -684,6 +688,8 @@ class OPDS(object):
                             issue['image'] = None
                             issue['thumbnail'] = None
                             issue['updated'] = book['IssueDate']
+            if not os.path.isfile(fileloc):
+                fileexists = False
             if fileexists:
                 newarclist.append(issue)
         if len(newarclist) > 0:
