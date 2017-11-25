@@ -520,6 +520,8 @@ class Config(object):
             elif definition_type == bool:
                 myval = {'status': True, 'value': config.getboolean(section, inikey)}
         except Exception:
+            if definition_type == str:
+                myval = {'status': True, 'value': config.get(section, inikey, raw=True)}
             myval = {'status': False, 'value': None}
         return myval
 
