@@ -521,8 +521,12 @@ class Config(object):
                 myval = {'status': True, 'value': config.getboolean(section, inikey)}
         except Exception:
             if definition_type == str:
-                myval = {'status': True, 'value': config.get(section, inikey, raw=True)}
-            myval = {'status': False, 'value': None}
+                try:
+                    myval = {'status': True, 'value': config.get(section, inikey, raw=True)}
+                except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+                    myval = {'status': False, 'value': None}
+            else:
+                myval = {'status': False, 'value': None}
         return myval
 
     def _define(self, name):
