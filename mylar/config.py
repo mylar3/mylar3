@@ -400,10 +400,16 @@ class Config(object):
 
                 setattr(self, k, value)
 
+                try:
+                    #make sure interpolation isn't being used, so we can just escape the % character
+                    if v[0] == str:
+                        value = value.replace('%', '%%')
+                except Exception as e:
+                    pass
+
                 #just to ensure defaults are properly set...
                 if any([value is None, value == 'None']):
                     value = v[0](v[2])
-
 
                 if all([self.MINIMAL_INI is True, str(value) != str(v[2])]) or self.MINIMAL_INI is False:
                     try:
@@ -580,8 +586,12 @@ class Config(object):
                     if any([value is None, value == ""]):
                         value = definition_type(default)
                     if config.has_section(section) and (all([self.MINIMAL_INI is True, definition_type(value) != definition_type(default)]) or self.MINIMAL_INI is False):
+                        try:
+                            if definition_type == str:
+                                value = value.replace('%', '%%')
+                        except Exception as e:
+                            pass
                         config.set(section, ini_key, str(value))
-
                 else:
                     config.set(section, ini_key, str(self.MINIMAL_INI))
 
