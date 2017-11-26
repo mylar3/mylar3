@@ -3488,15 +3488,14 @@ class WebInterface(object):
 
     def MassWeeklyDownload(self, weeknumber=None, year=None, midweek=None, weekfolder=0, filename=None):
         if filename is None:
-            mylar.WEEKFOLDER = int(weekfolder)
-            #mylar.config_write()
+            mylar.CONFIG.WEEKFOLDER = bool(weekfolder)
             raise cherrypy.HTTPRedirect("pullist")
 
         # this will download all downloaded comics from the weekly pull list and throw them
         # into a 'weekly' pull folder for those wanting to transfer directly to a 3rd party device.
         myDB = db.DBConnection()
 
-        if mylar.WEEKFOLDER:
+        if mylar.CONFIG.WEEKFOLDER:
             if mylar.CONFIG.WEEKFOLDER_LOC:
                 dstdir = mylar.CONFIG.WEEKFOLDER_LOC
             else:

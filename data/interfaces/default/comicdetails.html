@@ -216,11 +216,11 @@
                    %endif
 
                 <form action="comic_config" method="GET">
-                <input type="hidden" name="ComicID" value=${comic['ComicID']}>
+                    <input type="hidden" name="ComicID" value=${comic['ComicID']}>
                         <fieldset>
                                 <br/><br/>
                                 <div class="row checkbox left clearfix">
-                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="force_continuing" value="2" ${comicConfig['force_continuing']} /></a><label>Forcibly Mark as Continuing Series<a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/default/images/info32.png" height="16" alt="" /></label>
+                                   <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="force_continuing" value="2" ${comicConfig['force_continuing']} /><label>Forcibly Mark as Continuing Series<a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/default/images/info32.png" height="16" alt="" /></label></a>
                                 </div>
                                 %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
                                     <div class="row">
@@ -241,7 +241,7 @@
 
                                    <div class="row">
                                        <label>Alternate Search Names</label>
-                                       <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="90">
+                                       <input type="text" name="alt_search" value="${comic['AlternateSearch']}" size="90" />
                                        <a href="#" title="Seperate multiple entries with ##"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                        <small>Alternate comic names to be searched in case naming is different (ie. Hack/Slash = hack-slash)</small>
                                    </div>
@@ -267,8 +267,8 @@
                                    </div>
                                    %endif
 
-                               <input type="submit" value="Update"/>
-                         </fieldset>
+                        </fieldset>
+                    <input type="submit" value="Update"/>
                 </form>
                </td>
              </tr>
