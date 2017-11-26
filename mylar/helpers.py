@@ -3145,6 +3145,13 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     monitor_newstatus = ji['status']
                     monitor_nextrun = ji['next_run_timestamp']
 
+            monitors = {'weekly': mylar.SCHED_WEEKLY_LAST,
+                        'monitor': mylar.SCHED_MONITOR_LAST,
+                        'search': mylar.SCHED_SEARCH_LAST,
+                        'dbupdater': mylar.SCHED_DBUPDATE_LAST,
+                        'version': mylar.SCHED_VERSION_LAST,
+                        'rss': mylar.SCHED_RSS_LAST}
+
             #this is for initial startup
             for jb in mylar.SCHED.get_jobs():
                 #logger.fdebug('jb: %s' % jb)
@@ -3195,8 +3202,10 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                                    'status': newstatus})
 
         if not write:
-            #logger.info('jobresults: %s' % jobresults)
-            return jobresults
+            if len(jobresults) == 0:
+                return monitors
+            else:
+                return jobresults
         else:
             if job is None:
                 for x in jobresults:

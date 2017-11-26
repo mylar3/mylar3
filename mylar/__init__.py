@@ -358,7 +358,13 @@ def start():
         if _INITIALIZED:
 
             #load up the previous runs from the job sql table so we know stuff...
-            helpers.job_management()
+            monitors = helpers.job_management()
+            SCHED_WEEKLY_LAST = monitors['weekly']
+            SCHED_SEARCH_LAST = monitors['search']
+            SCHED_UPDATER_LAST = monitors['dbupdater']
+            SCHED_MONITOR_LAST = monitors['monitor']
+            SCHED_VERSION_LAST = monitors['version']
+            SCHED_RSS_LAST = monitors['rss']
 
             # Start our scheduled background tasks
             SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=0, minutes=5, timezone='UTC'))
@@ -420,19 +426,20 @@ def start():
             except:
                 SCHED_WEEKLY_LAST = None
 
+            weektimestamp = helpers.utctimestamp()
             if SCHED_WEEKLY_LAST is not None:
                 weekly_timestamp = float(SCHED_WEEKLY_LAST)
             else:
-                weekly_timestamp = helpers.utctimestamp() + weekly_interval
+                weekly_timestamp = weektimestamp + weekly_interval
 
             ws = weeklypullit.Weekly()
-            duration_diff = (helpers.utctimestamp() - weekly_timestamp)/60
+            duration_diff = (weektimestamp - weekly_timestamp)/60
 
-            if duration_diff >= weekly_interval/60:
-                logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % (duration_diff/60))
+            if abs(duration_diff) >= weekly_interval/60:
+                logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % abs(duration_diff/60))
                 SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
             else:
-                weekly_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (weekly_interval - (duration_diff * 60)))
+                weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
                 logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
                 SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
 
