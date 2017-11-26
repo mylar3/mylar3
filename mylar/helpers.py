@@ -2859,8 +2859,8 @@ def weekly_info(week=None, year=None):
         weekdst = mylar.CONFIG.DESTINATION_DIR
 
     if mylar.SCHED_WEEKLY_LAST is not None:
-        weekly_last = datetime.datetime.fromtimestamp(mylar.SCHED_WEEKLY_LAST)
-        weekly_last = weekly_last.replace(microseconds=0)
+        weekly_stamp = datetime.datetime.fromtimestamp(mylar.SCHED_WEEKLY_LAST)
+        weekly_last = weekly_stamp.replace(microsecond=0)
     else:
         weekly_last = 'None'
 
