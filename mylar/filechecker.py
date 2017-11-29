@@ -905,7 +905,7 @@ class FileChecker(object):
             series_name_decoded= unicodedata.normalize('NFKD', helpers.conversion(series_name)).encode('ASCII', 'ignore')
 
             #check for annual in title(s) here.
-            if mylar.CONFIG.ANNUALS_ON and 'annual' not in self.watchcomic.lower():
+            if not self.justparse and mylar.CONFIG.ANNUALS_ON and 'annual' not in self.watchcomic.lower():
                 if 'annual' in series_name.lower():
                     issue_number = 'Annual ' + str(issue_number)
                     series_name = re.sub('annual', '', series_name, flags=re.I).strip()
