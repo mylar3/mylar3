@@ -23,8 +23,9 @@ import re
 
 def runGit(args):
 
+    git_locations = []
     if mylar.CONFIG.GIT_PATH is not None:
-        git_locations = ['"' +mylar.CONFIG.GIT_PATH +'"']
+        git_locations.append(mylar.CONFIG.GIT_PATH)
 
     git_locations.append('git')
 
