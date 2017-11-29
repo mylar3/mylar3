@@ -46,7 +46,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
             except (sqlite3.OperationalError, TypeError), msg:
                 logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
                 myDB.action("DROP TABLE weekly")
-                myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE text, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
+                myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, rowid INTEGER PRIMARY KEY)")
                 pulldate = '00000000'
                 logger.fdebug(u"Table re-created, trying to populate")
         else:
@@ -440,7 +440,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         logger.info(u"Populating the NEW Weekly Pull list into Mylar for week " + str(weeknumber))
 
         myDB.action("drop table if exists weekly")
-        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, rowid INTEGER PRIMARY KEY)")
+        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, rowid INTEGER PRIMARY KEY)")
 
         csvfile = open(newfl, "rb")
         creader = csv.reader(csvfile, delimiter='\t')
