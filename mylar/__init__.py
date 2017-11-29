@@ -1177,8 +1177,8 @@ def shutdown(restart=False, update=False):
         logger.info('Mylar is restarting...')
         popen_list = [sys.executable, FULL_PATH]
         popen_list += ARGS
-        if '--nolaunch' not in popen_list:
-            popen_list += ['--nolaunch']
+#        if '--nolaunch' not in popen_list:
+#            popen_list += ['--nolaunch']
         logger.info('Restarting Mylar with ' + str(popen_list))
         subprocess.Popen(popen_list, cwd=os.getcwd())
 
