@@ -21,15 +21,12 @@ from mylar import logger, version
 import requests
 import re
 
-#user = "evilhero"
-#branch = "development"
-
 def runGit(args):
 
-    if mylar.CONFIG.GIT_PATH:
+    if mylar.CONFIG.GIT_PATH is not None:
         git_locations = ['"' +mylar.CONFIG.GIT_PATH +'"']
-    else:
-        git_locations = ['git']
+
+    git_locations.append('git')
 
     if platform.system().lower() == 'darwin':
         git_locations.append('/usr/local/git/bin/git')
@@ -39,22 +36,23 @@ def runGit(args):
 
     for cur_git in git_locations:
 
-        cmd = cur_git +' ' +args
+        cmd = '%s %s' % (cur_git, args)
 
         try:
-            #logger.debug('Trying to execute: "' + cmd + '" with shell in ' + mylar.PROG_DIR)
+            #logger.debug('Trying to execute: %s with shell in %s' % (cmd, mylar.PROG_DIR))
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=mylar.PROG_DIR)
             output, err = p.communicate()
-            #logger.debug('Git output: ' + output)
-        except OSError:
-            logger.debug('Command ' + cmd + ' didn\'t work, couldn\'t find git')
+            #logger.debug('Git output: %s' % output)
+        except OSError as e:
+            logger.fdebug('Command %s didn\'t work [%s]' % (cmd, e))
             continue
 
         if 'not found' in output or "not recognized as an internal or external command" in output:
-            logger.debug('Unable to find git with command ' + cmd)
+            logger.fdebug('Unable to find git with command ' + cmd)
             output = None
         elif 'fatal:' in output or err:
-            logger.error('Git returned bad info. Are you sure this is a git installation?')
+            logger.error('Error: %s' % err)
+            logger.error('Git returned bad info. Are you sure this is a git installation? [%s]' % output)
             output = None
         elif output:
             break
@@ -208,8 +206,9 @@ def update():
 
         output, err = runGit('pull origin ' + mylar.CONFIG.GIT_BRANCH)
 
-        if not output:
+        if output is None:
             logger.error('Couldn\'t download latest version')
+            return
 
         for line in output.split('\n'):
 
@@ -245,7 +244,7 @@ def update():
                     f.flush()
 
         # Extract the tar to update folder
-        logger.info('Extracing file' + tar_download_path)
+        logger.info('Extracting file' + tar_download_path)
         tar = tarfile.open(tar_download_path)
         tar.extractall(update_dir)
         tar.close()
