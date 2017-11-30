@@ -445,6 +445,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         logger.info('Successfully refreshed ' + comic['ComicName'] + ' (' + str(SeriesYear) + '). Returning to Weekly issue update.')
         return  #no need to return any data here.
 
+
     logger.info('Updating complete for: ' + comic['ComicName'])
 
     #if it made it here, then the issuedata contains dates, let's pull the data now.
@@ -999,7 +1000,10 @@ def issue_collection(issuedata, nostatus):
 def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=None, annchk=None, manualupd=False):
         #called when importing/refreshing an annual that was manually added.
         myDB = db.DBConnection()
+
         if annchk is None:
+            nowdate = datetime.datetime.now()
+            now_week = datetime.datetime.strftime(nowdate, "%Y%U")
             annchk = []
             issueid = manual_comicid
             logger.fdebug(str(issueid) + ' added to series list as an Annual')
@@ -1025,6 +1029,24 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                         cleanname = helpers.cleanName(firstval['Issue_Name'])
                     except:
                         cleanname = 'None'
+
+                    if firstval['Store_Date'] == '0000-00-00':
+                        dk = re.sub('-', '', firstval['Issue_Date']).strip()
+                    else:
+                        dk = re.sub('-', '', firstval['Store_Date']).strip() # converts date to 20140718 format
+                    if dk == '00000000':
+                        logger.warn('Issue Data is invalid for Issue Number %s. Marking this issue as Skipped' % firstval['Issue_Number'])
+                        astatus = "Skipped"
+                    else:
+                        datechk = datetime.datetime.strptime(dk, "%Y%m%d")
+                        issue_week = datetime.datetime.strftime(datechk, "%Y%U")
+                        if mylar.CONFIG.AUTOWANT_ALL:
+                            astatus = "Wanted"
+                        elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING is True:
+                            astatus = "Wanted"
+                        else:
+                            astatus = "Skipped"
+
                     annchk.append({'IssueID':          str(firstval['Issue_ID']),
                                    'ComicID':          comicid,
                                    'ReleaseComicID':   re.sub('4050-', '', manual_comicid).strip(),
@@ -1033,7 +1055,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                                    'IssueName':        cleanname,
                                    'IssueDate':        str(firstval['Issue_Date']),
                                    'ReleaseDate':      str(firstval['Store_Date']),
-                                   'Status':           'Skipped',
+                                   'Status':           astatus,
                                    'ReleaseComicName': sr['ComicName']})
                     n+=1
 
@@ -1493,10 +1515,9 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                                 else:
                                     datechk = datetime.datetime.strptime(dk, "%Y%m%d")
                                     issue_week = datetime.datetime.strftime(datechk, "%Y%U")
-
                                     if mylar.CONFIG.AUTOWANT_ALL:
                                         astatus = "Wanted"
-                                    elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING:
+                                    elif issue_week >= now_week and mylar.CONFIG.AUTOWANT_UPCOMING is True:
                                         astatus = "Wanted"
                                     else:
                                         astatus = "Skipped"
@@ -1528,6 +1549,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
                             n+=1
                 num_res+=1
+            manualAnnual(annchk=annualslist)
             return annualslist
 
         elif len(sresults) == 0 or len(sresults) is None:

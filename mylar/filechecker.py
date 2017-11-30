@@ -998,11 +998,11 @@ class FileChecker(object):
 
             justthedigits = series_info['issue_number']
 
-            #if mylar.CONFIG.ANNUALS_ON and 'annual' not in nspace_watchcomic.lower():
-            #    if 'annual' in series_name.lower():
-            #        justthedigits = 'Annual ' + series_info['issue_number']
-            #    nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
-            #    nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
+            if mylar.CONFIG.ANNUALS_ON and 'annual' not in nspace_watchcomic.lower():
+                if 'annual' in series_name.lower():
+                    justthedigits = 'Annual ' + series_info['issue_number']
+                nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
+                nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
 
             seriesalt = False
             if nspace_altseriesname is not None:

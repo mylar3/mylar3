@@ -590,6 +590,8 @@ class PostProcessor(object):
                                                             "IssueID":         issuechk['IssueID'],
                                                             "IssueNumber":     issuechk['Issue_Number'],
                                                             "ComicName":       cs['ComicName'],
+                                                            "Series":          watchmatch['series_name'],
+                                                            "AltSeries":       watchmatch['alt_series'],
                                                             "One-Off":         False})
                                     else:
                                         logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
@@ -599,8 +601,25 @@ class PostProcessor(object):
                                     continue
 
                         logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
-                        break
+                        continue #break
 
+                    mlp = []
+
+                    xmld = filechecker.FileChecker()
+                    #mod_seriesname = as_dinfo['mod_seriesname']
+                    for x in manual_list:
+                        xmld1 = xmld.dynamic_replace(helpers.conversion(x['ComicName']))
+                        xseries = xmld1['mod_seriesname'].lower()
+                        xmld2 = xmld.dynamic_replace(helpers.conversion(x['Series']))
+                        xfile = xmld2['mod_seriesname'].lower()
+                        if re.sub('\|', '', xseries).strip() == re.sub('\|', '', xfile).strip():
+                            logger.fdebug(module + '[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (x['ComicName'], x['ComicID']))
+                            mlp.append(x)
+                        else:
+                            pass
+                    if len(mlp) == 1:
+                        manual_list = mlp 
+                        logger.fdebug(module + '[CONFIRMED-FORCE-OVERRIDE] Over-ride of matching taken due to exact name matching of series')
 
                     #we should setup for manual post-processing of story-arc issues here
                     #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
@@ -661,12 +680,12 @@ class PostProcessor(object):
                             res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
                                                           "WatchValues":   acv['WatchValues']})
 
+                    if len(res) > 0:
+                        logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
                     for k,v in res.items():
                         i = 0
                         #k is ComicName
                         #v is ArcValues and WatchValues
-                        if len(v) > 0:
-                            logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(v)))
                         while i < len(v):
                             if k is None or k == 'None':
                                 pass
@@ -1029,7 +1048,8 @@ class PostProcessor(object):
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
-
+                    if tmpiss is None:
+                        tmpiss = myDB.selectone('SELECT * FROM annuals WHERE IssueID=?', [issueid]).fetchone()
                     comicid = None
                     comicname = None
                     issuenumber = None
