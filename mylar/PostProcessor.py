@@ -313,20 +313,12 @@ class PostProcessor(object):
                 logger.fdebug (module + ' Manual Run initiated')
                 #Manual postprocessing on a folder.
                 #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
-                flc = filechecker.FileChecker(self.nzb_folder, justparse=True)
+                flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
                 filelist = flc.listFiles()
                 if filelist['comiccount'] == 0: # is None:
                     logger.warn('There were no files located - check the debugging logs if you think this is in error.')
                     return
                 logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
-
-                #load the hashes for torrents so continual post-processing of same issues don't occur.
-                pp_crclist = []
-                if mylar.CONFIG.ENABLE_TORRENTS:
-                    pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE a.Status='Post-Processed' and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived ORDER BY b.IssueDate')")
-                    for pp in pp_crc:
-                        pp_crclist.append({'IssueID':   pp['IssueID'],
-                                           'crc':       pp['crc']})
 
                 #preload the entire ALT list in here.
                 alt_list = []
@@ -343,13 +335,6 @@ class PostProcessor(object):
                 manual_arclist = []
 
                 for fl in filelist['comiclist']:
-                    if mylar.CONFIG.ENABLE_TORRENTS:
-                        crcchk = None
-                        tcrc = helpers.crc(os.path.join(fl['comiclocation'], fl['comicfilename'].decode(mylar.SYS_ENCODING)))
-                        crcchk = [x for x in pp_crclist if tcrc == x['crc']]
-                        if crcchk:
-                           logger.fdebug('%s Already post-processed this item %s - Ignoring' % (module, crcchk))
-                           continue
 
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))

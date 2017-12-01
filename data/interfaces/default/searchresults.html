@@ -48,6 +48,10 @@
 			%if searchresults:
 				%for result in searchresults:
 				<%
+                                        if result['haveit'] == 'No':
+                                            haveit = 'No'
+                                        else:
+                                            haveit = result['haveit']['comicid']
 					grade = 'Z'
                                         rtype = None
                                         if type != 'story_arc':
@@ -63,7 +67,7 @@
                                             else:
                                                 grade = 'A'
 
-                                        if result['haveit'] != "No":
+                                        if haveit != "No":
                                             grade = 'H';
 				%>
 				<tr class="grade${grade}">
@@ -92,7 +96,7 @@
 						<td class="add" nowrap="nowrap"><a href="addComic?comicid=${result['comicid']}&comicname=${result['name'] |u}&comicyear=${result['comicyear']}&comicpublisher=${result['publisher'] |u}&comicimage=${result['comicimage']}&comicissues=${result['issues']}&imported=${imported}&ogcname=${ogcname}&serinfo=${serinfo}"><span class="ui-icon ui-icon-plus"></span> Add this Comic</a></td>
                                             %endif
 					%else:
-						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${result['haveit']}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
+						<td class="add" nowrap="nowrap"><a href="comicDetails?ComicID=${haveit}"><span class="ui-icon ui-icon-arrowreturnthick-1-n"></span> Already in library</a></td>
 					%endif
 				</tr>
 				%endfor

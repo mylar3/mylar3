@@ -1523,6 +1523,7 @@ class WebInterface(object):
             watchlibrary = helpers.listLibrary()
             issueLibrary = helpers.listIssues(weekinfo['weeknumber'], weekinfo['year'])
             oneofflist = helpers.listoneoffs(weekinfo['weeknumber'], weekinfo['year'])
+            chklist = []
 
             for weekly in w_results:
                 xfound = False
@@ -1577,6 +1578,7 @@ class WebInterface(object):
                                            "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
+                                           "HASH":    None,
                                            "AUTOWANT": False
                                          })
                     else:
@@ -1592,6 +1594,7 @@ class WebInterface(object):
                                            "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
+                                           "HASH":    None,
                                            "AUTOWANT": True
                                          })
                         else:
@@ -1606,11 +1609,15 @@ class WebInterface(object):
                                            "SERIESYEAR": weekly['seriesyear'],
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
+                                           "HASH":    None,
                                            "AUTOWANT": False
                                          })
 
                     if tmp_status == 'Wanted':
                         wantedcount +=1
+                    elif tmp_status == 'Snatched':
+                        chklist.append(str(weekly['IssueID']))
+
 
             weeklyresults = sorted(weeklyresults, key=itemgetter('PUBLISHER', 'COMIC'), reverse=False)
         else:
@@ -1619,6 +1626,23 @@ class WebInterface(object):
         if generateonly is True:
             return weeklyresults, weekinfo
         else:
+            endresults = []
+            if len(chklist) > 0:
+                for genlist in helpers.chunker(chklist, 200):
+                    tmpsql = "SELECT * FROM snatched where Status='Snatched' and status != 'Post-Processed' and (provider='32P' or Provider='WWT' or Provider='DEM') AND IssueID in ({seq})".format(seq=','.join(['?'] *(len(genlist))))
+                    chkthis = myDB.select(tmpsql, genlist)
+                    if chkthis is None:
+                        continue
+                    else:
+                        for w in weeklyresults:
+                            weekit = w
+                            snatchit = [x['hash'] for x in chkthis if w['ISSUEID'] == x['IssueID']]
+                            if snatchit:
+                                logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (w['COMIC'], ''.join(snatchit)))
+                                weekit['HASH'] = ''.join(snatchit)
+                            endresults.append(weekit)
+                        weeklyresults = endresults
+
             if week:
                 return serve_template(templatename="weeklypull.html", title="Weekly Pull", weeklyresults=weeklyresults, pullfilter=True, weekfold=weekinfo['week_folder'], wantedcount=wantedcount, weekinfo=weekinfo)
             else:
@@ -2188,6 +2212,7 @@ class WebInterface(object):
     def manageIssues(self, **kwargs):
         status = kwargs['status']
         results = []
+        resultlist = []
         myDB = db.DBConnection()
         if mylar.CONFIG.ANNUALS_ON:
             issues = myDB.select("SELECT * from issues WHERE Status=? AND ComicName NOT LIKE '%Annual%'", [status])
@@ -2197,8 +2222,26 @@ class WebInterface(object):
             annuals = []
         for iss in issues:
             results.append(iss)
+            resultlist.append(str(iss['IssueID']))
         for ann in annuals:
             results.append(ann)
+            resultlist.append(str(iss['IssueID']))
+        endresults = []
+        if status == 'Snatched':
+            for genlist in helpers.chunker(resultlist, 200):
+                tmpsql = "SELECT * FROM snatched where Status='Snatched' and status != 'Post-Processed' and (provider='32P' or Provider='WWT' or Provider='DEM') AND IssueID in ({seq})".format(seq=','.join(['?'] *(len(genlist))))
+                chkthis = myDB.select(tmpsql, genlist)
+                if chkthis is None:
+                    continue
+                else:
+                    for r in results:
+                        rr = dict(r)
+                        snatchit = [x['hash'] for x in chkthis if r['ISSUEID'] == x['IssueID']]
+                        if snatchit:
+                            logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (r['ComicName'], ''.join(snatchit)))
+                            rr['hash'] = ''.join(snatchit)
+                        endresults.append(rr)
+                    results = endresults
 
         return serve_template(templatename="manageissues.html", title="Manage " + str(status) + " Issues", issues=results, status=status)
     manageIssues.exposed = True
@@ -4588,7 +4631,6 @@ class WebInterface(object):
 
 
     def configUpdate(self, **kwargs):
-
         checked_configs = ['enable_https', 'launch_browser', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
                            'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
                            'enable_torrents', 'qbittorrent_startonload', 'enable_rss', 'nzbsu', 'nzbsu_verify',

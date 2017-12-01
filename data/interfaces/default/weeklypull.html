@@ -119,6 +119,9 @@
                                                 %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
                                                     <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off"><span class="ui-icon ui-icon-plus"></span>Retry</a>
                                                 %endif
+                                                %if weekly['HASH'] is not None:
+                                                    <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
+                                                %endif
                                             %elif weekly['STATUS'] == 'Skipped':
                                                 %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
                                                     <a href="#" title="auto-add by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><span class="ui-icon ui-icon-plus"></span>Add</a>
@@ -129,6 +132,8 @@
                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist"><span class="ui-icon ui-icon-plus"></span>Search</a>
                                                 %endif
                                                 <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
+                                            %elif weekly['HASH'] is not None:
+                                                <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
                                             %endif
                                         %endif
                                         </td>

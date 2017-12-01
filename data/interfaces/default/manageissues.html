@@ -85,7 +85,17 @@
 				<td id="pubdate">${issue['IssueDate']}</td>
 				<td id="releasedate">${issue['ReleaseDate']}</td>
 				<td id="status">${issue['Status']}</td>	
-                                <td id="options"></td>
+                                <td id="options">
+                                <%
+                                     try:
+                                         ahash = issue['hash']
+                                     except:
+                                         ahash = None
+                                 %>
+                                 %if ahash is not None:
+                                     <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${ahash}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
+                                 %endif
+                                </td>
 			</tr>
 		%endfor
 		</tbody>

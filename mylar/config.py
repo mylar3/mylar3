@@ -196,7 +196,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_PRIORITY': (str, 'SABnzbd', "Default"),
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
-    'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnbzd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
+    'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'NZBGET_HOST': (str, 'NZBGet', None),
     'NZBGET_PORT': (str, 'NZBGet', None),
@@ -335,6 +335,15 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_PASSWORD': (str, 'OPDS', None),
     'OPDS_METAINFO': (bool, 'OPDS', False),
 
+    'TEST_VALUE': (bool, 'TEST', True),
+})
+
+_BAD_DEFINITIONS = OrderedDict({
+     #for those items that were in wrong sections previously, or sections that are no longer present...
+     #using this method, old values are able to be transfered to the new config items properly.
+     #keyname, section, oldkeyname
+    'SAB_CLIENT_POST_PROCESSING': ('SABnbzd', None),
+    'TEST_VALUE': ('TEST', 'TESTVALUE'),
 })
 
 class Config(object):
@@ -378,7 +387,27 @@ class Config(object):
                     x = 'None'
                 xv.append(x)
             value = self.check_setting(xv)
- 
+
+            for b, bv in _BAD_DEFINITIONS.iteritems():
+                try:
+                    if config.has_section(bv[0]) and any([b == k, bv[1] is None]):
+                        cvs = xv
+                        if bv[1] is None:
+                            ckey = k
+                        else:
+                            ckey = bv[1]
+                        corevalues = [ckey if x == 0 else x for x in cvs]
+                        corevalues = [bv[0] if x == corevalues.index(bv[0]) else x for x in cvs]
+                        value = self.check_setting(corevalues)
+                        if bv[1] is None:
+                            config.remove_option(bv[0], ckey.lower())
+                            config.remove_section(bv[0])
+                        else:
+                            config.remove_option(bv[0], bv[1].lower())
+                        break
+                except:
+                    pass
+
             if all([k != 'CONFIG_VERSION', k != 'MINIMAL_INI']):
                 try:
                     if v[0] == str and any([value == "", value is None, len(value) == 0, value == 'None']):

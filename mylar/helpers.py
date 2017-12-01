@@ -2933,10 +2933,10 @@ def nzb_monitor(queue):
         if item == 'exit':
             logger.info('Cleaning up workers for shutdown')
             break
-        if mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True:
+        if all([mylar.USE_SABNZBD is True, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]):
            nz = sabnzbd.SABnzbd(item)
            nzstat = nz.processor()
-        elif mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True:
+        elif all([mylar.USE_NZBGET is True, mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]):
            nz = nzbget.NZBGet()
            nzstat = nz.processor(item)
         else:

@@ -36,7 +36,7 @@ from mylar import logger, helpers
 
 class FileChecker(object):
 
-    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None):
+    def __init__(self, dir=None, watchcomic=None, Publisher=None, AlternateSearch=None, manual=None, sarc=None, justparse=None, file=None, pp_mode=False):
         #dir = full path to the series Comic Location (manual pp will just be psssing the already parsed filename)
         if dir:
             self.dir = dir
@@ -90,6 +90,10 @@ class FileChecker(object):
         else:
             self.file = None
 
+        if pp_mode:
+            self.pp_mode = True
+        else:
+            self.pp_mode = False
 
         self.failed_files = []
         self.dynamic_handlers = ['/','-',':','\'',',','&','?','!','+','(',')','\u2014']
@@ -132,7 +136,7 @@ class FileChecker(object):
                 if filename.startswith('.'):
                     continue
 
-                logger.info('[FILENAME]: ' + filename)
+                #logger.info('[FILENAME]: ' + filename)
                 runresults = self.parseit(self.dir, filename, filedir)
                 if runresults:
                     try:
@@ -1118,6 +1122,14 @@ class FileChecker(object):
 
         dir = dir.encode(mylar.SYS_ENCODING)
 
+        if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
+            import db
+            myDB = db.DBConnection()
+            pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE (a.Status='Post-Processed' or a.status='Snatched' or a.provider='32P') and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived') GROUP BY a.crc ORDER BY a.DateAdded")
+            for pp in pp_crc:
+                pp_crclist.append({'IssueID':   pp['IssueID'],
+                                   'crc':       pp['crc']})
+
         for (dirname, subs, files) in os.walk(dir):
 
             for fname in files:
@@ -1127,6 +1139,13 @@ class FileChecker(object):
                     direc = dirname
                     if '.AppleDouble' in direc:
                         #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
+                        continue
+
+                if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
+                    tcrc = helpers.crc(os.path.join(dirname, fname).decode(mylar.SYS_ENCODING))
+                    crcchk = [x for x in pp_crclist if tcrc == x['crc']]
+                    if crcchk:
+                        #logger.fdebug('%s Already post-processed this item %s - Ignoring' % fname)
                         continue
 
                 if os.path.splitext(fname)[1].lower().endswith(comic_ext):

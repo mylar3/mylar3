@@ -116,7 +116,9 @@ class NZBGet(object):
                         logger.fdebug('location found @ %s' % hq[0]['DestDir'])
                         return {'status':   True,
                                 'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
-                                'location': hq[0]['DestDir']}
+                                'location': hq[0]['DestDir'],
+                                'failed':   False}
+
                     else:
                         logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
                         return {'status': False}
