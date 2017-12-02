@@ -1125,7 +1125,8 @@ class FileChecker(object):
         if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
             import db
             myDB = db.DBConnection()
-            pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE (a.Status='Post-Processed' or a.status='Snatched' or a.provider='32P') and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived') GROUP BY a.crc ORDER BY a.DateAdded")
+            pp_crclist =[]
+            pp_crc = myDB.select("SELECT a.crc, b.IssueID FROM Snatched as a INNER JOIN issues as b ON a.IssueID=b.IssueID WHERE (a.Status='Post-Processed' or a.status='Snatched' or a.provider='32P' or a.provider='WWT' or a.provider='DEM') and a.crc is not NULL and (b.Status='Downloaded' or b.status='Archived') GROUP BY a.crc ORDER BY a.DateAdded")
             for pp in pp_crc:
                 pp_crclist.append({'IssueID':   pp['IssueID'],
                                    'crc':       pp['crc']})
