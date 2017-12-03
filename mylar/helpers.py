@@ -2363,7 +2363,23 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
     issuelist = myDB.select("SELECT * FROM issues WHERE ComicID=?", [ComicID])
 
     if 'Annual' not in pack:
-        pack_issues = range(int(pack[:pack.find('-')]),int(pack[pack.find('-')+1:])+1)
+        packlist = [x.strip() for x in pack.split(',')]
+        plist = []
+        pack_issues = []
+        for pl in packlist:
+            if '-' in pl:
+                plist.append(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1))
+            else:
+                plist.append(int(pl))
+
+        for pi in plist:
+            if type(pi) == list:
+                for x in pi:
+                    pack_issues.append(x)
+            else:
+                pack_issues.append(pi)
+
+        pack_issues.sort()
         annualize = False
     else:
         #remove the annuals wording
