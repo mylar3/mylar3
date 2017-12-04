@@ -1118,18 +1118,14 @@ def csv_load():
     c.close()
 
 def halt():
-    global _INITIALIZED, dbUpdateScheduler, searchScheduler, RSSScheduler, WeeklyScheduler, \
-        VersionScheduler, FolderMonitorScheduler, started
+    global _INITIALIZED, started
 
     with INIT_LOCK:
 
         if _INITIALIZED:
 
-            logger.info(u"Trying to gracefully shutdown the background schedulers...")
-            try:
-                SCHED.shutdown()
-            except:
-                SCHED.shutdown(wait=False)
+            logger.info('Shutting down the background schedulers...')
+            SCHED.shutdown(wait=False)
 
             if NZBPOOL is not None:
                 logger.info('Terminating the nzb auto-complete thread.')
@@ -1156,9 +1152,8 @@ def halt():
 
 def shutdown(restart=False, update=False):
 
-    halt()
-
     cherrypy.engine.exit()
+    halt()
 
     if not restart and not update:
         logger.info('Mylar is shutting down...')
@@ -1166,7 +1161,7 @@ def shutdown(restart=False, update=False):
         logger.info('Mylar is updating...')
         try:
             versioncheck.update()
-        except Exception, e:
+        except Exception as e:
             logger.warn('Mylar failed to update: %s. Restarting.' % e)
 
     if CREATEPID:
