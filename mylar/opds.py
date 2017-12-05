@@ -423,7 +423,7 @@ class OPDS(object):
             subset = recents[index:(index+self.PAGE_SIZE)]
             for issue in subset:
                 issuebook = myDB.fetch('SELECT * from issues WHERE IssueID = ?', (issue['IssueID'],)).fetchone()
-                if len(issuebook) == 0:
+                if not issuebook or len(issuebook) == 0:
                     issuebook = myDB.fetch('SELECT * from annuals WHERE IssueID = ?', (issue['IssueID'])).fetchone()
                 comic = myDB.fetch('SELECT * from comics WHERE ComicID = ?', (issue['ComicID'],)).fetchone()
                 updated = issue['DateAdded']
