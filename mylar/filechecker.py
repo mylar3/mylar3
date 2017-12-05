@@ -907,7 +907,6 @@ class FileChecker(object):
 
             #if the filename is unicoded, it won't match due to the unicode translation. Keep the unicode as well as the decoded.
             series_name_decoded= unicodedata.normalize('NFKD', helpers.conversion(series_name)).encode('ASCII', 'ignore')
-
             #check for annual in title(s) here.
             if not self.justparse and mylar.CONFIG.ANNUALS_ON and 'annual' not in self.watchcomic.lower():
                 if 'annual' in series_name.lower():
@@ -966,6 +965,7 @@ class FileChecker(object):
 
     def matchIT(self, series_info):
             series_name = series_info['series_name']
+            alt_series = series_info['alt_series']
             filename = series_info['comicfilename']
             #compare here - match comparison against u_watchcomic.
             #logger.fdebug('Series_Name: ' + series_name + ' --- WatchComic: ' + self.watchcomic)
@@ -974,11 +974,13 @@ class FileChecker(object):
             mod_seriesname = mod_dynamicinfo['mod_seriesname']
             mod_watchcomic = mod_dynamicinfo['mod_watchcomic']
             mod_altseriesname = None
+            mod_altseriesname_decoded = None
             #logger.fdebug('series_info: %s' % series_info)
             if series_info['alt_series'] is not None:
-                mod_dynamicalt = self.dynamic_replace(series_info['alt_series'])
+                mod_dynamicalt = self.dynamic_replace(alt_series)
                 mod_altseriesname = mod_dynamicalt['mod_seriesname']
- 
+                mod_alt_decoded = self.dynamic_replace(alt_series)
+                mod_altseriesname_decoded = mod_alt_decoded['mod_seriesname']
             #logger.fdebug('mod_altseriesname: %s' % mod_altseriesname)
             mod_series_decoded = self.dynamic_replace(series_info['series_name_decoded'])
             mod_seriesname_decoded = mod_series_decoded['mod_seriesname']
@@ -991,6 +993,7 @@ class FileChecker(object):
             nspace_altseriesname = None
             if mod_altseriesname is not None:
                 nspace_altseriesname = re.sub(' ', '', mod_altseriesname)
+                nspace_altseriesname_decoded = re.sub(' ', '', mod_altseriesname_decoded)
             nspace_seriesname_decoded = re.sub(' ', '', mod_seriesname_decoded)
             nspace_watchname_decoded = re.sub(' ', '', mod_watchname_decoded)
 
@@ -1005,10 +1008,13 @@ class FileChecker(object):
             if mylar.CONFIG.ANNUALS_ON and 'annual' not in nspace_watchcomic.lower():
                 if 'annual' in series_name.lower():
                     justthedigits = 'Annual ' + series_info['issue_number']
-                nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
-                nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
-
+                    nspace_seriesname = re.sub('annual', '', nspace_seriesname.lower()).strip()
+                    nspace_seriesname_decoded = re.sub('annual', '', nspace_seriesname_decoded.lower()).strip()
+                if alt_series is not None and 'annual' in alt_series.lower():
+                    nspace_altseriesname = re.sub('annual', '', nspace_altseriesname.lower()).strip()
+                    nspace_altseriesname_decoded = re.sub('annual', '', nspace_altseriesname_decoded.lower()).strip()
             seriesalt = False
+
             if nspace_altseriesname is not None:
                 if re.sub('\|','', nspace_altseriesname.lower()).strip() == re.sub('\|', '', nspace_watchcomic.lower()).strip():
                     seriesalt = True

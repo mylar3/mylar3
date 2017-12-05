@@ -344,6 +344,8 @@ class PostProcessor(object):
                         logger.info('%s Alternate series naming detected: %s' % (module, fl['alt_series']))
                         as_sinfo = as_d.dynamic_replace(helpers.conversion(fl['alt_series']))
                         mod_altseriesname = as_sinfo['mod_seriesname']
+                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]):
+                            mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
                         if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
                             loopchk.append(re.sub('[\|\s]', '', mod_altseriesname.lower()))
 
@@ -362,6 +364,7 @@ class PostProcessor(object):
                     #make sure we add back in the original parsed filename here.
                     if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
                         loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
+
                     tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
                     comicseries = myDB.select(tmpsql, tuple(loopchk))
 
@@ -587,6 +590,7 @@ class PostProcessor(object):
 
                         logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                         continue #break
+
 
                     mlp = []
 
