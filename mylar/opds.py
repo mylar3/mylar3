@@ -656,6 +656,7 @@ class OPDS(object):
             issue['ReadingOrder'] = book['ReadingOrder']
             issue['Title'] = '%s #%s' % (book['ComicName'],book['IssueNumber'])
             issue['IssueID'] = book['IssueID']
+            issue['fileloc'] = ''
             bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
             if bookentry and len(bookentry) > 0:
                 if bookentry['Location']:
@@ -688,7 +689,7 @@ class OPDS(object):
                             issue['image'] = None
                             issue['thumbnail'] = None
                             issue['updated'] = book['IssueDate']
-            if not os.path.isfile(fileloc):
+            if not os.path.isfile(issue['fileloc']):
                 fileexists = False
             if fileexists:
                 newarclist.append(issue)
