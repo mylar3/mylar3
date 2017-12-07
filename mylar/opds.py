@@ -484,17 +484,18 @@ class OPDS(object):
             self.data = self._error_with_message('No ComicID Provided')
             return
         myDB = db.DBConnection()
-        issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
         issuetype = 0
+        issue = myDB.selectone("SELECT * from readinglist WHERE IssueID=? and Location IS NOT NULL",
+                               (kwargs['issueid'],)).fetchone()
         if not issue:
-            issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
+            issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
             if not issue:
-                issue = myDB.selectone("SELECT * from readinglist WHERE IssueID=? and Location IS NOT NULL", (kwargs['issueid'],)).fetchone()
+                issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
                 if not issue:
                     self.data = self._error_with_message('Issue Not Found')
                     return
-                else:
-                    issuetype = 1
+        else:
+            issuetype = 1
         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
         if not comic:
             self.data = self._error_with_message('Comic Not Found')
