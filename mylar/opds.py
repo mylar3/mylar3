@@ -99,9 +99,9 @@ class OPDS(object):
     def _uni(self, instr):
         outstr = ""
         try:
-            outstr = unicode(instr, "ascii")
-        except UnicodeError:
             outstr = unicode(instr, "utf-8")
+        except UnicodeError:
+            return instr
         return outstr
 
     def _dic_from_query(self, query):
