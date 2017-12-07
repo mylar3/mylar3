@@ -485,17 +485,26 @@ class OPDS(object):
             return
         myDB = db.DBConnection()
         issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
+        issuetype = 0
         if len(issue) == 0:
             issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
             if len(issue) == 0:
-                self.data = self._error_with_message('Issue Not Found')
-                return
+                issue = myDB.selectone("SELECT * from readinglist WHERE IssueID=? and Location IS NOT NULL", (kwargs['issueid'],)).fetchone()
+                if len(issue) == 0:
+                    self.data = self._error_with_message('Issue Not Found')
+                    return
+                else:
+                    issuetype = 1
         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
         if len(comic) ==0:
             self.data = self._error_with_message('Comic Not Found')
             return
-        self.file = os.path.join(comic['ComicLocation'],issue['Location'])
-        self.filename = issue['Location']
+        if issuetype:
+            self.file = issue['Location']
+            self.filename = os.path.split(issue['Location'])[1]
+        else:
+            self.file = os.path.join(comic['ComicLocation'],issue['Location'])
+            self.filename = issue['Location']
         return
 
     def _StoryArcs(self, **kwargs):
