@@ -96,14 +96,6 @@ class OPDS(object):
         cherrypy.response.headers['Content-Type'] = "text/xml"
         return error
 
-    def _uni(self, instr):
-        outstr = ""
-        try:
-            outstr = unicode(instr, "utf-8")
-        except UnicodeError:
-            return instr
-        return outstr
-
     def _dic_from_query(self, query):
         myDB = db.DBConnection()
         rows = myDB.select(query)
@@ -388,7 +380,7 @@ class OPDS(object):
                         'id': escape('comic:%s - %s' % (issue['ComicName'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
-                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(self._uni(issue['Location']))),
+                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'].encode('utf-8'))),
                         'kind': 'acquisition',
                         'rel': 'file',
                         'author': metainfo[0]['writer'],
@@ -443,7 +435,7 @@ class OPDS(object):
                 else:
                     title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
                 # logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
-                location = self._uni(issuebook['Location'])
+                location = issuebook['Location'].encode('utf-8')
                 number +=1
                 if not issuebook['Location']:
                     continue
@@ -580,7 +572,7 @@ class OPDS(object):
                 if bookentry['Location']:
                     fileexists = True
                     issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
-                    issue['filename'] = self._uni(bookentry['Location'])
+                    issue['filename'] = bookentry['Location'].encode('utf-8')
                     issue['image'] =  bookentry['ImageURL_ALT']
                     issue['thumbnail'] =  bookentry['ImageURL']
                 if  bookentry['DateAdded']:
@@ -593,7 +585,7 @@ class OPDS(object):
                     if annualentry['Location']:
                         fileexists = True
                         issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
-                        issue['filename'] = self._uni(annualentry['Location'])
+                        issue['filename'] = annualentry['Location'].encode('utf-8')
                         issue['image'] = None
                         issue['thumbnail'] = None
                         issue['updated'] =  annualentry['IssueDate']
@@ -665,38 +657,46 @@ class OPDS(object):
             issue['Title'] = '%s #%s' % (book['ComicName'],book['IssueNumber'])
             issue['IssueID'] = book['IssueID']
             issue['fileloc'] = ''
-            bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
-            if bookentry and len(bookentry) > 0:
-                if bookentry['Location']:
-                    comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( bookentry['ComicID'],)).fetchone()
-                    fileexists = True
-                    issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
-                    issue['filename'] = self._uni(bookentry['Location'])
-                    issue['image'] =  bookentry['ImageURL_ALT']
-                    issue['thumbnail'] =  bookentry['ImageURL']
-                if  bookentry['DateAdded']:
-                    issue['updated'] =  bookentry['DateAdded']
-                else:
-                    issue['updated'] =  bookentry['IssueDate']
+            if book['Location']:
+                issue['fileloc'] = book['Location']
+                fileexists = True
+                issue['filename'] = os.path.split(book['Location'])[1].encode('utf-8')
+                issue['image'] = None
+                issue['thumbnail'] = None
+                issue['updated'] = book['IssueDate']
             else:
-                annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
-                if annualentry and len(annualentry) > 0:
-                    if  annualentry['Location']:
-                        comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( annualentry['ComicID'],))
+                bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
+                if bookentry and len(bookentry) > 0:
+                    if bookentry['Location']:
+                        comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( bookentry['ComicID'],)).fetchone()
                         fileexists = True
-                        issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
-                        issue['filename'] =  self._uni(annualentry['Location'])
-                        issue['image'] = None
-                        issue['thumbnail'] = None
-                        issue['updated'] =  annualentry['IssueDate']
+                        issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
+                        issue['filename'] = bookentry['Location'].encode('utf-8')
+                        issue['image'] =  bookentry['ImageURL_ALT']
+                        issue['thumbnail'] =  bookentry['ImageURL']
+                    if  bookentry['DateAdded']:
+                        issue['updated'] =  bookentry['DateAdded']
                     else:
-                        if book['Location']:
+                        issue['updated'] =  bookentry['IssueDate']
+                else:
+                    annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
+                    if annualentry and len(annualentry) > 0:
+                        if  annualentry['Location']:
+                            comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( annualentry['ComicID'],))
                             fileexists = True
-                            issue['fileloc'] = book['Location']
-                            issue['filename'] = self._uni(os.path.split(book['Location'])[1])
+                            issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
+                            issue['filename'] = annualentry['Location'].encode('utf-8')
                             issue['image'] = None
                             issue['thumbnail'] = None
-                            issue['updated'] = book['IssueDate']
+                            issue['updated'] =  annualentry['IssueDate']
+                        else:
+                            if book['Location']:
+                                fileexists = True
+                                issue['fileloc'] = book['Location']
+                                issue['filename'] = os.path.split(book['Location'])[1].encode('utf-8')
+                                issue['image'] = None
+                                issue['thumbnail'] = None
+                                issue['updated'] = book['IssueDate']
             if not os.path.isfile(issue['fileloc']):
                 fileexists = False
             if fileexists:
@@ -725,23 +725,23 @@ class OPDS(object):
                         }
                     )
 
-            feed = {}
-            feed['title'] = 'Mylar OPDS - %s' % escape(arcname)
-            feed['id'] = escape('storyarc:%s' % kwargs['arcid'])
-            feed['updated'] = mylar.helpers.now()
-            links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
-            links.append(getLink(href='%s?cmd=StoryArc&amp;arcid=%s' % (self.opdsroot, quote_plus(kwargs['arcid'])),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
-            if len(newarclist) > (index + self.PAGE_SIZE):
-                links.append(
-                    getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index+self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
-            if index >= self.PAGE_SIZE:
-                links.append(
-                    getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index-self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+        feed = {}
+        feed['title'] = 'Mylar OPDS - %s' % escape(arcname)
+        feed['id'] = escape('storyarc:%s' % kwargs['arcid'])
+        feed['updated'] = mylar.helpers.now()
+        links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+        links.append(getLink(href='%s?cmd=StoryArc&amp;arcid=%s' % (self.opdsroot, quote_plus(kwargs['arcid'])),type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+        if len(newarclist) > (index + self.PAGE_SIZE):
+            links.append(
+                getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index+self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+        if index >= self.PAGE_SIZE:
+            links.append(
+                getLink(href='%s?cmd=StoryArc&amp;arcid=%s&amp;index=%s' % (self.opdsroot, quote_plus(kwargs['arcid']),index-self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
 
-            feed['links'] = links
-            feed['entries'] = entries
-            self.data = feed
-            return
+        feed['links'] = links
+        feed['entries'] = entries
+        self.data = feed
+        return
 
 
 
