@@ -338,7 +338,7 @@ class OPDS(object):
         links = []
         entries=[]
         comic = myDB.selectone('SELECT * from comics where ComicID=?', (kwargs['comicid'],)).fetchone()
-        if len(comic) == 0:
+        if not comic:
             self.data = self._error_with_message('Comic Not Found')
             return
         issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + kwargs['comicid'] + '"order by Int_IssueNumber DESC')
@@ -422,7 +422,7 @@ class OPDS(object):
             subset = recents[index:(index+self.PAGE_SIZE)]
             for issue in subset:
                 issuebook = myDB.fetch('SELECT * from issues WHERE IssueID = ?', (issue['IssueID'],)).fetchone()
-                if not issuebook or len(issuebook) == 0:
+                if not issuebook:
                     issuebook = myDB.fetch('SELECT * from annuals WHERE IssueID = ?', (issue['IssueID'])).fetchone()
                 comic = myDB.fetch('SELECT * from comics WHERE ComicID = ?', (issue['ComicID'],)).fetchone()
                 updated = issue['DateAdded']
@@ -486,17 +486,17 @@ class OPDS(object):
         myDB = db.DBConnection()
         issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
         issuetype = 0
-        if len(issue) == 0:
+        if not issue:
             issue = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
-            if len(issue) == 0:
+            if not issue:
                 issue = myDB.selectone("SELECT * from readinglist WHERE IssueID=? and Location IS NOT NULL", (kwargs['issueid'],)).fetchone()
-                if len(issue) == 0:
+                if not issue:
                     self.data = self._error_with_message('Issue Not Found')
                     return
                 else:
                     issuetype = 1
         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
-        if len(comic) ==0:
+        if not comic:
             self.data = self._error_with_message('Comic Not Found')
             return
         if issuetype:
@@ -577,7 +577,7 @@ class OPDS(object):
             issue['IssueID'] = book['IssueID']
             comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (book['ComicID'],)).fetchone()
             bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
-            if bookentry and len(bookentry) > 0:
+            if bookentry:
                 if bookentry['Location']:
                     fileexists = True
                     issue['fileloc'] = os.path.join(comic['ComicLocation'], bookentry['Location'])
@@ -590,7 +590,7 @@ class OPDS(object):
                     issue['updated'] =  bookentry['IssueDate']
             else:
                 annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
-                if annualentry and len(annualentry) > 0:
+                if annualentry:
                     if annualentry['Location']:
                         fileexists = True
                         issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
@@ -675,7 +675,7 @@ class OPDS(object):
                 issue['updated'] = book['IssueDate']
             else:
                 bookentry = myDB.selectone("SELECT * from issues WHERE IssueID=?", (book['IssueID'],)).fetchone()
-                if bookentry and len(bookentry) > 0:
+                if bookentry:
                     if bookentry['Location']:
                         comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( bookentry['ComicID'],)).fetchone()
                         fileexists = True
@@ -689,8 +689,8 @@ class OPDS(object):
                         issue['updated'] =  bookentry['IssueDate']
                 else:
                     annualentry = myDB.selectone("SELECT * from annuals WHERE IssueID=?", (book['IssueID'],)).fetchone()
-                    if annualentry and len(annualentry) > 0:
-                        if  annualentry['Location']:
+                    if annualentry:
+                        if annualentry['Location']:
                             comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", ( annualentry['ComicID'],))
                             fileexists = True
                             issue['fileloc'] = os.path.join(comic['ComicLocation'],  annualentry['Location'])
