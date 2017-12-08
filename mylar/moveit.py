@@ -1,5 +1,5 @@
 import mylar
-from mylar import db, logger, helpers, updater
+from mylar import db, logger, helpers, updater, filechecker
 import os
 import shutil
 import ast
@@ -21,6 +21,12 @@ def movefiles(comicid, comlocation, imported):
     impres = imported['filelisting']
 
     if impres is not None:
+        if all([mylar.CONFIG.CREATE_FOLDERS is False, not os.path.isdir(comlocation)]):
+            checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
+            if not checkdirectory:
+                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                return
+
         for impr in impres:
             srcimp = impr['comiclocation']
             orig_filename = impr['comicfilename']
