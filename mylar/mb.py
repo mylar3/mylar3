@@ -85,10 +85,17 @@ def findComic(name, mode, issue, limityear=None, type=None):
     comiclist = []
     arcinfolist = []
 
-    commons = [' and ', ' the ']
+    commons = ['and', 'the', '&', '-']
     for x in commons:
         if x in name.lower():
-            name = re.sub(x, ' ', name.lower()).strip()
+            for m in re.finditer(x, name.lower()):
+                tehstart = m.start()
+                tehend = m.end()
+                if any([x == 'the', x == 'and']):
+                    if not all([tehstart == 0, name[tehend] == ' ']) or not all([tehstart != 0, name[tehstart-1] == ' ', name[tehend] == ' ']):
+                        continue
+                else:
+                    name = name[tehstart:tehend].replace(x, ' ').strip() + name[tehend+1:]
 
     pattern = re.compile(ur'\w+', re.UNICODE)
     name = pattern.findall(name)

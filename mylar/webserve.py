@@ -374,11 +374,14 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     addComic.exposed = True
 
-    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None):
+    def addbyid(self, comicid, calledby=None, imported=None, ogcname=None, nothread=False):
         mismatch = "no"
         logger.info('Attempting to add directly by ComicVineID: ' + str(comicid))
         if comicid.startswith('4050-'): comicid = re.sub('4050-', '', comicid)
-        threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
+        if nothread is False:
+            threading.Thread(target=importer.addComictoDB, args=[comicid, mismatch, None, imported, ogcname]).start()
+        else:
+            return importer.addComictoDB(comicid, mismatch, None, imported, ogcname)
         if calledby == True or calledby == 'True':
            return
         elif calledby == 'web-import':
@@ -3760,7 +3763,7 @@ class WebInterface(object):
                                 'Volume':        comicinfo['Volume'],
                                 'filelisting':   files,
                                 'srid':          SRID}
-                    self.addbyid(comicinfo['ComicID'], calledby=True, imported=imported, ogcname=comicinfo['ComicName'])
+                    self.addbyid(comicinfo['ComicID'], calledby=True, imported=imported, ogcname=comicinfo['ComicName'], nothread=True)
 
                     #status update.
                     ctrlVal = {"ComicID":     comicinfo['ComicID']}
@@ -4032,48 +4035,64 @@ class WebInterface(object):
 
                 myDB.upsert("importresults", newVal, ctrlVal)
 
-                if len(search_matches) > 1:
-                    # if we matched on more than one series above, just save those results instead of the entire search result set.
-                    for sres in search_matches:
-                        cVal = {"SRID":        SRID,
-                                "comicid":     sres['comicid']}
-                        #should store ogcname in here somewhere to account for naming conversions above.
-                        nVal = {"Series":      ComicName,
-                                "results":     len(search_matches),
-                                "publisher":   sres['publisher'],
-                                "haveit":      sres['haveit'],
-                                "name":        sres['name'],
-                                "deck":        sres['deck'],
-                                "url":         sres['url'],
-                                "description":  sres['description'],
-                                "comicimage":  sres['comicimage'],
-                                "issues":      sres['issues'],
-                                "ogcname":     ogcname,
-                               "comicyear":   sres['comicyear']}
-                        myDB.upsert("searchresults", nVal, cVal)
+                if resultset == 0:
+                    if len(search_matches) > 1:
+                       # if we matched on more than one series above, just save those results instead of the entire search result set.
+                        for sres in search_matches:
+                            cVal = {"SRID":        SRID,
+                                    "comicid":     sres['comicid']}
+                            #should store ogcname in here somewhere to account for naming conversions above.
+                            nVal = {"Series":      ComicName,
+                                    "results":     len(search_matches),
+                                    "publisher":   sres['publisher'],
+                                    "haveit":      sres['haveit'],
+                                    "name":        sres['name'],
+                                    "deck":        sres['deck'],
+                                    "url":         sres['url'],
+                                    "description":  sres['description'],
+                                    "comicimage":  sres['comicimage'],
+                                    "issues":      sres['issues'],
+                                    "ogcname":     ogcname,
+                                    "comicyear":   sres['comicyear']}
+                            myDB.upsert("searchresults", nVal, cVal)
+                        logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
+                        #force the status here just in case
+                        newVal = {'SRID':     SRID,
+                                  'Status':   'Manual Intervention'}
+                        myDB.upsert("importresults", newVal, ctrlVal)
+
+                    elif len(sresults) > 1:
+                        # store the search results for series that returned more than one result for user to select later / when they want.
+                        # should probably assign some random numeric for an id to reference back at some point.
+                        for sres in sresults:
+                            cVal = {"SRID":        SRID,
+                                    "comicid":     sres['comicid']}
+                            #should store ogcname in here somewhere to account for naming conversions above.
+                            nVal = {"Series":      ComicName,
+                                    "results":     len(sresults),
+                                    "publisher":   sres['publisher'],
+                                    "haveit":      sres['haveit'],
+                                    "name":        sres['name'],
+                                    "deck":        sres['deck'],
+                                    "url":         sres['url'],
+                                    "description":  sres['description'],
+                                    "comicimage":  sres['comicimage'],
+                                    "issues":      sres['issues'],
+                                    "ogcname":     ogcname,
+                                    "comicyear":   sres['comicyear']}
+                            myDB.upsert("searchresults", nVal, cVal)
+                        logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
+                        #force the status here just in case
+                        newVal = {'SRID':     SRID,
+                                  'Status':   'Manual Intervention'}
+                        myDB.upsert("importresults", newVal, ctrlVal)
+                    else:
+                        logger.info('[IMPORT] Could not find any matching results against CV. Check the logs and perhaps rename the attempted file(s)')
+                        newVal = {'SRID':     SRID,
+                                  'Status':   'No Results'}
+                        myDB.upsert("importresults", newVal, ctrlVal)
 
                 else:
-                    # store the search results for series that returned more than one result for user to select later / when they want.
-                    # should probably assign some random numeric for an id to reference back at some point.
-                    for sres in sresults:
-                        cVal = {"SRID":        SRID,
-                                "comicid":     sres['comicid']}
-                        #should store ogcname in here somewhere to account for naming conversions above.
-                        nVal = {"Series":      ComicName,
-                                "results":     len(sresults),
-                                "publisher":   sres['publisher'],
-                                "haveit":      sres['haveit'],
-                                "name":        sres['name'],
-                                "deck":        sres['deck'],
-                                "url":         sres['url'],
-                                "description":  sres['description'],
-                                "comicimage":  sres['comicimage'],
-                                "issues":      sres['issues'],
-                                "ogcname":     ogcname,
-                               "comicyear":   sres['comicyear']}
-                        myDB.upsert("searchresults", nVal, cVal)
-
-                if resultset == 1:
                     logger.info('[IMPORT] Now adding %s...' % ComicName)
 
                     if volume is None or volume == 'None':
@@ -4095,17 +4114,10 @@ class WebInterface(object):
                                 'filelisting':   files,
                                 'srid':          SRID}
 
-                    self.addbyid(sr['comicid'], calledby=True, imported=imported, ogcname=ogcname)  #imported=yes)
-
-                else:
-                    logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
-                    #force the status here just in case
-                    newVal = {'SRID':     SRID,
-                              'Status':   'Manual Intervention'}
-                    myDB.upsert("importresults", newVal, ctrlVal)
+                    self.addbyid(sr['comicid'], calledby=True, imported=imported, ogcname=ogcname, nothread=True)
 
         mylar.IMPORTLOCK = False
-        logger.info('[IMPORT] Initial Import complete (I might still be populating the series data).')
+        logger.info('[IMPORT] Import completed.')
 
     preSearchit.exposed = True
 
