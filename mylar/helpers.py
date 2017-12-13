@@ -291,9 +291,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                     #this has to be adjusted to be able to include story arc issues that span multiple arcs
                     chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                 else:
-                    if all([annualize is None, not mylar.CONFIG.ANNUALS_ON]):
-                        chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
-                    else:
+                    chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
                         chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
 
                 if chkissue is None:
@@ -302,7 +301,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                     else:
                         chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
-                        if all([annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
+                        if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
                             chkissue = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
 
                     if chkissue is None:
