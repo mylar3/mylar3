@@ -423,7 +423,7 @@ class OPDS(object):
             for issue in subset:
                 issuebook = myDB.fetch('SELECT * from issues WHERE IssueID = ?', (issue['IssueID'],)).fetchone()
                 if not issuebook:
-                    issuebook = myDB.fetch('SELECT * from annuals WHERE IssueID = ?', (issue['IssueID'])).fetchone()
+                    issuebook = myDB.fetch('SELECT * from annuals WHERE IssueID = ?', (issue['IssueID'],)).fetchone()
                 comic = myDB.fetch('SELECT * from comics WHERE ComicID = ?', (issue['ComicID'],)).fetchone()
                 updated = issue['DateAdded']
                 image = None
