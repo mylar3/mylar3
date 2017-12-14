@@ -435,10 +435,10 @@ class OPDS(object):
                 else:
                     title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
                 # logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
-                location = issuebook['Location'].encode('utf-8')
                 number +=1
                 if not issuebook['Location']:
                     continue
+                location = issuebook['Location'].encode('utf-8')
                 fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
                 metainfo = None
                 if mylar.CONFIG.OPDS_METAINFO:
