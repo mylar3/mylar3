@@ -833,7 +833,7 @@ class WebInterface(object):
             logger.fdebug("Wiping NZBLOG in it's entirety. You should NOT be downloading while doing this or else you'll lose the log for the download.")
             myDB.action('DROP table nzblog')
             logger.fdebug("Deleted nzblog table.")
-            myDB.action('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT)')
+            myDB.action('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT, OneOff TEXT)')
             logger.fdebug("Re-created nzblog table.")
             raise cherrypy.HTTPRedirect("history")
         if IssueID:
