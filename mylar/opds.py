@@ -428,37 +428,38 @@ class OPDS(object):
                 updated = issue['DateAdded']
                 image = None
                 thumbnail = None
-                if 'DateAdded' in issuebook.keys():
-                    title = escape('%03d: %s #%s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
-                    image = issuebook['ImageURL_ALT']
-                    thumbnail = issuebook['ImageURL']
-                else:
-                    title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
-                # logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
-                number +=1
-                if not issuebook['Location']:
-                    continue
-                location = issuebook['Location'].encode('utf-8')
-                fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
-                metainfo = None
-                if mylar.CONFIG.OPDS_METAINFO:
-                    metainfo = mylar.helpers.IssueDetails(fileloc)
-                if not metainfo:
-                    metainfo = [{'writer': None,'summary': ''}]
-                entries.append(
-                    {
-                        'title': title,
-                        'id': escape('comic:%s - %s' % (issuebook['ComicName'], issuebook['Issue_Number'])),
-                        'updated': updated,
-                        'content': escape('%s' % (metainfo[0]['summary'])),
-                        'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issuebook['IssueID']),quote_plus(location)),
-                        'kind': 'acquisition',
-                        'rel': 'file',
-                        'author': metainfo[0]['writer'],
-                        'image': image,
-                        'thumbnail': thumbnail,
-                    }
-                )
+                if issuebook:
+                    if 'DateAdded' in issuebook.keys():
+                        title = escape('%03d: %s #%s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                        image = issuebook['ImageURL_ALT']
+                        thumbnail = issuebook['ImageURL']
+                    else:
+                        title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                    # logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
+                    number +=1
+                    if not issuebook['Location']:
+                        continue
+                    location = issuebook['Location'].encode('utf-8')
+                    fileloc = os.path.join(comic['ComicLocation'],issuebook['Location'])
+                    metainfo = None
+                    if mylar.CONFIG.OPDS_METAINFO:
+                        metainfo = mylar.helpers.IssueDetails(fileloc)
+                    if not metainfo:
+                        metainfo = [{'writer': None,'summary': ''}]
+                    entries.append(
+                        {
+                            'title': title,
+                            'id': escape('comic:%s - %s' % (issuebook['ComicName'], issuebook['Issue_Number'])),
+                            'updated': updated,
+                            'content': escape('%s' % (metainfo[0]['summary'])),
+                            'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issuebook['IssueID']),quote_plus(location)),
+                            'kind': 'acquisition',
+                            'rel': 'file',
+                            'author': metainfo[0]['writer'],
+                            'image': image,
+                            'thumbnail': thumbnail,
+                        }
+                    )
         feed = {}
         feed['title'] = 'Mylar OPDS - New Arrivals'
         feed['id'] = escape('New Arrivals')
