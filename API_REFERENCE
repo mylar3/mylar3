@@ -62,5 +62,11 @@ shutdown (shut down mylar)
 restart (restart mylar)
 update (update mylar - you may want to check the install type in get version and not allow this if type==exe)
 
-downloadIssue&id=$issueid (download that isse to your browser)
+downloadIssue&id=$issueid (download that issue to your browser)
 findComic&name=$comicname (Find comics)
+
+getStoryArc (List all story arcs)
+getStoryArc&customOnly=1 (List custom story arcs)
+getStoryArc&id=$arcid (Show story arc issues)
+
+addStoryArc

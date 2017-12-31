@@ -35,7 +35,7 @@ cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update',
             'getComicInfo', 'getIssueInfo', 'getArt', 'downloadIssue',
-            'downloadNZB', 'getReadList']
+            'downloadNZB', 'getReadList', 'getStoryArc', 'addStoryArc']
 
 
 class Api(object):
