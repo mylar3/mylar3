@@ -69,4 +69,7 @@ getStoryArc (List all story arcs)
 getStoryArc&customOnly=1 (List custom story arcs)
 getStoryArc&id=$arcid (Show story arc issues)
 
-addStoryArc
+addStoryArc&id=$arcid&issues=$issues (add a comma delimited list of CV issue IDs to existing Story Arc ID.
+                                      Appended in order to the end of the reading order)
+addStoryArc&storyarcname=$name&issues=$issues (create a new story arc and add a comma delimited list of CV issue IDs
+                                               to it.)

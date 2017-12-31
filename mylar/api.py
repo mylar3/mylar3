@@ -533,7 +533,7 @@ class Api(object):
                         arclist += "|"
             if 'arclist' in kwargs:
                 cvlist = kwargs.pop('arclist')
-                issuelist = split(cvlist,"|")
+                issuelist = cvlist.split("|")
                 index = 0
                 for issue in issuelist:
                     arclist += "%s,%s" % (issue.split(",")[0],issuecount + 1)
