@@ -657,7 +657,7 @@ class OPDS(object):
             return
         links = []
         entries=[]
-        arclist = self._dic_from_query("SELECT * from readinglist WHERE StoryArcID=" + kwargs['arcid'] + " ORDER BY ReadingOrder")
+        arclist = self._dic_from_query("SELECT * from readinglist WHERE StoryArcID='" + kwargs['arcid'] + "' ORDER BY ReadingOrder")
         newarclist = []
         arcname = ''
         for book in arclist:

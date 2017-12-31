@@ -17,9 +17,10 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
+from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, webserve
 import simplejson as simplejson
 import cherrypy
+import random
 import os
 import urllib2
 import cache
@@ -489,3 +490,58 @@ class Api(object):
         else:
             self.data = self._error_with_message('NZBname does not exist within the cache directory. Unable to retrieve.')
             return
+
+    def _getStoryArc(self, **kwargs):
+        if not 'id' in kwargs:
+            if 'customOnly' in kwargs and kwargs['customOnly']:
+                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from readinglist WHERE StoryArcID LIKE "C%" GROUP BY StoryArcID ORDER BY StoryArc')
+            else:
+                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from readinglist GROUP BY StoryArcID ORDER BY StoryArc')
+        else:
+            self.id = kwargs['id']
+            self.data = self._dic_from_query('SELECT StoryArc, ReadingOrder, ComicID, ComicName, IssueNumber, IssueID, \
+                                            IssueDate, IssueName, IssuePublisher from readinglist WHERE StoryArcID="' + self.id + '" ORDER BY ReadingOrder')
+        return
+
+    def _addStoryArc(self, **kwargs):
+        issuecount = 0
+        if not 'id' in kwargs:
+            self.id = 'C%04d' % random.randint(1, 9999)
+            if not 'storyarcname' in kwargs:
+                self.data = self._error_with_message('You need to provide either id or storyarcname')
+                return
+            else:
+                storyarcname = kwargs.pop('storyarcname')
+        else:
+            self.id = kwargs.pop('id')
+            arc = self._dic_from_query('SELECT * from readinglist WHERE StoryArcID="' + self.id + '" ORDER by ReadingOrder')
+            storyarcname = arc[0]['StoryArc']
+            issuecount = len(arc)
+        if not 'issues' in kwargs and not 'arclist' in kwargs:
+            self.data = self._error_with_message('No issues specified')
+            return
+        else:
+            arclist = ""
+            if 'issues' in kwargs:
+                issuelist = kwargs.pop('issues').split(",")
+                index = 0
+                for issue in issuelist:
+                    arclist += "%s,%s" % (issue, issuecount + 1)
+                    index += 1
+                    issuecount += 1
+                    if index < len(issuelist):
+                        arclist += "|"
+            if 'arclist' in kwargs:
+                cvlist = kwargs.pop('arclist')
+                issuelist = split(cvlist,"|")
+                index = 0
+                for issue in issuelist:
+                    arclist += "%s,%s" % (issue.split(",")[0],issuecount + 1)
+                    index += 1
+                    issuecount += 1
+                    if index < len(issuelist):
+                        arclist += "|"
+        wi = webserve.WebInterface()
+        logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
+        wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
+        return
