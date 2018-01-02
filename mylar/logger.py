@@ -102,9 +102,9 @@ def initLogger(console=False, log_dir=False, init=False, verbose=False):
     if init is True:
         logger.setLevel(logging.DEBUG if verbose else logging.INFO)
     else:
-        if mylar.CONFIG.LOG_LEVEL == '1':
+        if mylar.CONFIG.LOG_LEVEL == 1:
             logger.setLevel(logging.DEBUG if verbose else logging.WARN)
-        elif mylar.CONFIG.LOG_LEVEL == '2':
+        elif mylar.CONFIG.LOG_LEVEL == 2:
             logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
         else:
             logger.setLevel(logging.DEBUG if verbose else logging.INFO)
