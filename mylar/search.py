@@ -409,7 +409,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         findcomiciss = iss
 
     #print ("we need : " + str(findcomic[findcount]) + " issue: #" + str(findcomiciss[findcount]))
-    cm1 = re.sub("[\/]", " ", findcomic)
+    cm1 = re.sub("[\/\-]", " ", findcomic)
     # replace whitespace in comic name with %20 for api search
     #cm = re.sub("\&", "%26", str(cm1))
     cm = re.sub("\\band\\b", "", cm1.lower()) # remove 'and' & '&' from the search pattern entirely (broader results, will filter out later)
