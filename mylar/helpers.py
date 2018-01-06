@@ -2850,15 +2850,15 @@ def weekly_info(week=None, year=None):
 
     prev_week = int(weeknumber) - 1
     prev_year = year
-    if prev_week == 0:
+    if prev_week < 0:
         prev_week = 52
         prev_year = int(year) - 1
 
     next_week = int(weeknumber) + 1
     next_year = year
-    if next_week == 53:
-        next_week = 1
+    if next_week > 52:
         next_year = int(year) + 1
+        next_week = datetime.date(int(next_year),1,1).strftime("%U")
 
     date_fmt = "%B %d, %Y"
     try:
