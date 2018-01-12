@@ -744,11 +744,8 @@ class Config(object):
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
-        logger.info('mode_32p: %s' % self.MODE_32P)
-        logger.info('rssfeed_32p: %s' % self.RSSFEED_32P)
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)
-            logger.info('keys_32p: %s' % mylar.KEYS_32P)
 
         if self.AUTO_SNATCH is True and self.AUTO_SNATCH_SCRIPT is None:
             setattr(self, 'AUTO_SNATCH_SCRIPT', os.path.join(mylar.PROG_DIR, 'post-processing', 'torrent-auto-snatch', 'getlftp.sh'))
