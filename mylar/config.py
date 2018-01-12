@@ -335,15 +335,14 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'OPDS_PASSWORD': (str, 'OPDS', None),
     'OPDS_METAINFO': (bool, 'OPDS', False),
 
-    'TEST_VALUE': (bool, 'TEST', True),
 })
 
 _BAD_DEFINITIONS = OrderedDict({
      #for those items that were in wrong sections previously, or sections that are no longer present...
      #using this method, old values are able to be transfered to the new config items properly.
      #keyname, section, oldkeyname
+     #ie. 'TEST_VALUE': ('TEST', 'TESTVALUE')
     'SAB_CLIENT_POST_PROCESSING': ('SABnbzd', None),
-    'TEST_VALUE': ('TEST', 'TESTVALUE'),
 })
 
 class Config(object):
@@ -745,6 +744,11 @@ class Config(object):
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
+        logger.info('mode_32p: %s' % self.MODE_32P)
+        logger.info('rssfeed_32p: %s' % self.RSSFEED_32P)
+        if self.MODE_32P is False and self.RSSFEED_32P is not None:
+            mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)
+            logger.info('keys_32p: %s' % mylar.KEYS_32P)
 
         if self.AUTO_SNATCH is True and self.AUTO_SNATCH_SCRIPT is None:
             setattr(self, 'AUTO_SNATCH_SCRIPT', os.path.join(mylar.PROG_DIR, 'post-processing', 'torrent-auto-snatch', 'getlftp.sh'))
@@ -793,6 +797,37 @@ class Config(object):
         else:
             self.TORRENT_DOWNLOADER = 0
             mylar.USE_WATCHDIR = True
+
+    def parse_32pfeed(self, rssfeedline):
+        KEYS_32P = {}
+        if self.ENABLE_32P and len(rssfeedline) > 1:
+            userid_st = rssfeedline.find('&user')
+            userid_en = rssfeedline.find('&', userid_st +1)
+            if userid_en == -1:
+                userid_32p = rssfeedline[userid_st +6:]
+            else:
+                userid_32p = rssfeedline[userid_st +6:userid_en]
+
+            auth_st = rssfeedline.find('&auth')
+            auth_en = rssfeedline.find('&', auth_st +1)
+            if auth_en == -1:
+                auth_32p = rssfeedline[auth_st +6:]
+            else:
+                auth_32p = rssfeedline[auth_st +6:auth_en]
+
+            authkey_st = rssfeedline.find('&authkey')
+            authkey_en = rssfeedline.find('&', authkey_st +1)
+            if authkey_en == -1:
+                authkey_32p = rssfeedline[authkey_st +9:]
+            else:
+                authkey_32p = rssfeedline[authkey_st +9:authkey_en]
+
+            KEYS_32P = {"user":    userid_32p,
+                        "auth":    auth_32p,
+                        "authkey": authkey_32p,
+                        "passkey": self.PASSKEY_32P}
+
+        return KEYS_32P
 
     def get_extra_newznabs(self):
         extra_newznabs = zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6)
