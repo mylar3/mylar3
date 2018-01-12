@@ -2062,7 +2062,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         nzo_info = {}
         filen = None
-        nzbmega = False
+        nzbhydra = False
         payload = None
         headers = {'User-Agent': str(mylar.USER_AGENT)}
         #link doesn't have the apikey - add it and use ?t=get for newznab based.
@@ -2079,25 +2079,28 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     host_newznab_fix = host_newznab
 
                 #account for nzbmegasearch & nzbhydra
-                if 'warp?x=' in link or 'searchresultid' in link:
-                    logger.fdebug('NZBMegaSearch / NZBHydra url detected. Adjusting...')
-                    nzbmega = True
+                if 'searchresultid' in link:
+                    logger.fdebug('NZBHydra V1 url detected. Adjusting...')
+                    nzbhydra = True
                 else:
                     apikey = newznab[3].rstrip()
-                    down_url = host_newznab_fix + 'api'
                     verify = bool(newznab[2])
             else:
                 down_url = 'https://api.nzb.su/api'
                 apikey = mylar.CONFIG.NZBSU_APIKEY
                 verify = bool(mylar.CONFIG.NZBSU_VERIFY)
 
-            if nzbmega == True:
+            if nzbhydra == True:
                 down_url = link
                 verify = False
-            else:
+            elif 'https://cdn.' in link:
+                down_url = host_newznab_fix + 'api'
+                logger.fdebug('Re-routing incorrect RSS URL response for NZBGeek to correct API')
                 payload = {'t': 'get',
                            'id': str(nzbid),
                            'apikey': str(apikey)}
+            else:
+                down_url = link
 
         elif nzbprov == 'dognzb':
             #dognzb - need to add back in the dog apikey
@@ -2129,7 +2132,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             logger.warn('Error fetching data from %s: %s' % (tmpprov, e))
             return "sab-fail"
 
-        logger.info('download-retrieved headers: %s' % r.headers)
+        logger.fdebug('Status code returned: %s' % r.status_code)
         try:
             nzo_info['filename'] = r.headers['x-dnzb-name']
             filen = r.headers['x-dnzb-name']
@@ -2761,19 +2764,20 @@ def generate_id(nzbprov, link):
     elif 'newznab' in nzbprov:
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
         tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
-        if 'warp' in urlparse.urlparse(link)[2] and 'x=' in tmpid:
-            nzbid = os.path.splitext(link)[0].rsplit('x=',1)[1]
-        elif 'searchresultid' in tmpid:
+        if 'searchresultid' in tmpid:
             nzbid = os.path.splitext(link)[0].rsplit('searchresultid=',1)[1]
         elif tmpid == '' or tmpid is None:
             nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
         else:
             # for the geek in all of us...
             st = tmpid.find('&id')
-            end = tmpid.find('&', st +1)
-            if end == -1:
-                end = len(tmpid)
-            nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
+            if st == -1:
+                nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+            else:
+                end = tmpid.find('&', st +1)
+                if end == -1:
+                    end = len(tmpid)
+                nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
     elif nzbprov == 'Torznab':
         if mylar.CONFIG.TORZNAB_HOST.endswith('/'):
             tmphost = mylar.CONFIG.TORZNAB_HOST + 'download/'
