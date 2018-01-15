@@ -95,6 +95,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'HTTPS_CHAIN' : (str, 'Interface', None),
     'HTTPS_FORCE_ON' : (bool, 'Interface', False),
     'HOST_RETURN' : (str, 'Interface', None),
+    'AUTHENTICATION' : (int, 'Interface', 0),
+    'LOGIN_TIMEOUT': (int, 'Interface', 43800),
 
     'API_ENABLED' : (bool, 'API', False),
     'API_KEY' : (str, 'API', None),
@@ -726,6 +728,12 @@ class Config(object):
 
         if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == unicode:
             setattr(self, 'BLACKLISTED_PUBLISHERS', self.BLACKLISTED_PUBLISHERS.split(', '))
+
+        if all([self.AUTHENTICATION == 0, self.HTTP_USERNAME is not None, self.HTTP_PASSWORD is not None]):
+            #set it to the default login prompt if nothing selected.
+            self.AUTHENTICATION = 1
+        elif all([self.HTTP_USERNAME is None, self.HTTP_PASSWORD is None]):
+            self.AUTHENTICATION = 0
 
         #comictagger - force to use included version if option is enabled.
         if self.ENABLE_META:

@@ -240,6 +240,8 @@ def main():
         'https_chain': mylar.CONFIG.HTTPS_CHAIN,
         'http_username': mylar.CONFIG.HTTP_USERNAME,
         'http_password': mylar.CONFIG.HTTP_PASSWORD,
+        'authentication': mylar.CONFIG.AUTHENTICATION,
+        'login_timeout': mylar.CONFIG.LOGIN_TIMEOUT,
         'opds_enable': mylar.CONFIG.OPDS_ENABLE,
         'opds_authentication': mylar.CONFIG.OPDS_AUTHENTICATION,
         'opds_username': mylar.CONFIG.OPDS_USERNAME,

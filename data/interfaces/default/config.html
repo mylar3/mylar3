@@ -143,16 +143,38 @@
                                              <input type="text" title="the FULL path to the key" name="https_key" value="${config['https_key']}" size="30">
                                         </div>
                                      </div>
-	            		 </div>
-	            		 <div class="row">
-	            		     <label>HTTP Username</label>
-	            		     <input type="text" name="http_username" value="${config['http_user']}" size="30">
-	            		 </div>
-	            		 
-	            		 <div class="row">
-	            		   <label>HTTP Password</label>
-	            		   <input type="password" name="http_password" value="${config['http_pass']| h}" size="30">
-	            		 </div>
+                                 </div>
+                                 <div class="row">
+                                     <label>Authentication</label>
+                                         <select name="authentication" onchange="authoptions()" id="authentication">
+                                               %for lpe in [0, 1, 2]:
+                                                        <%
+                                                                if config['authentication'] == lpe:
+                                                                        outputselect = 'selected'
+                                                                else:
+                                                                        outputselect = ''
+                                                                if lpe == 2:
+                                                                        auth_value = 'Forms (Login Page)'
+                                                                elif lpe == 1:
+                                                                        auth_value = 'Basic (Browser Popup)'
+                                                                else:
+                                                                        auth_value = 'None'
+
+                                                        %>
+                                                   <option value=${lpe} ${outputselect}>${auth_value}</option>
+                                                %endfor
+                                         </select>
+                                 </div>
+                                 <div id="auth_options">
+                                     <div class="row">
+                                         <label>HTTP Username</label>
+                                         <input type="text" name="http_username" value="${config['http_user']}" size="30">
+                                     </div>
+                                     <div class="row">
+                                         <label>HTTP Password</label>
+                                         <input type="password" name="http_password" value="${config['http_pass']| h}" size="30">
+                                     </div>
+                                </div>
                                  <div class="row checkbox">
                                     <input type="checkbox" name="launch_browser" value="1" ${config['launch_browser']} /> <label>Launch Browser on Startup</label>
                                  </div>
@@ -1390,7 +1412,17 @@
             }
         }
         </script>
-
+        <script>
+        function authoptions()
+        {
+            var answer = document.getElementById("authentication");
+            if(answer[answer.selectedIndex].value == 2 || answer[answer.selectedIndex].value == 1){
+                document.getElementById("auth_options").style.display = "initial";
+            } else {
+                document.getElementById("auth_options").style.display = "none";
+            }
+        }
+        </script>
 	<script>
 	function initThisPage() 
 	
