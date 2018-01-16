@@ -24,6 +24,7 @@ import cherrypy
 from cherrypy.lib.static import serve_file
 from cgi import escape
 import urllib
+import mylar
 
 SESSION_KEY = '_cp_username'
 
@@ -43,7 +44,6 @@ def check_auth(*args, **kwargs):
     is not None, a login is required and the entry is evaluated as a list of
     conditions that the user must fulfill"""
     conditions = cherrypy.request.config.get('auth.require', None)
-    get_parmas = urllib.quote(cherrypy.request.request_line.split()[1])
     if conditions is not None:
         username = cherrypy.session.get(SESSION_KEY)
         if username:
@@ -51,10 +51,9 @@ def check_auth(*args, **kwargs):
             for condition in conditions:
                 # A condition is just a callable that returns true or false
                 if not condition():
-                    raise cherrypy.HTTPRedirect("/auth/login")
+                    raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
         else:
-            # Send old page as from_page parameter
-            raise cherrypy.HTTPRedirect("/auth/login")
+            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT + "auth/login")
 
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
@@ -122,8 +121,7 @@ class AuthController(object):
 
     def get_loginform(self, username, msg="Enter login information"):
         from mylar.webserve import serve_template
-        username=escape(username, True)
-        return serve_template(templatename="login.html", title="Login")
+        return serve_template(templatename="login.html", username=escape(username, True), title="Login")
 
     @cherrypy.expose
     def login(self, username=None, password=None):
@@ -137,7 +135,7 @@ class AuthController(object):
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = username
             self.on_login(username)
-            raise cherrypy.HTTPRedirect("/")
+            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
 
     @cherrypy.expose
     def logout(self):
@@ -147,5 +145,5 @@ class AuthController(object):
         if username:
             cherrypy.request.login = None
             self.on_logout(username)
-            raise cherrypy.HTTPRedirect("/")
+            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
 

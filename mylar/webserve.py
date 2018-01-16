@@ -51,7 +51,7 @@ def serve_template(templatename, **kwargs):
     _hplookup = TemplateLookup(directories=[template_dir])
     try:
         template = _hplookup.get_template(templatename)
-        return template.render(**kwargs)
+        return template.render(http_root=mylar.CONFIG.HTTP_ROOT, **kwargs)
     except:
         return exceptions.html_error_template().render()
 

@@ -8,16 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
 
   
-      <link rel="stylesheet" href="/css/login.css">
+      <link rel="stylesheet" href="${http_root}css/login.css">
 
   
 </head>
 
 <body>
-      <form action="/auth/login">     
+      <form action="${http_root}auth/login" method="post">
       <div class="wrap">
 		<div class="avatar">
-                     <img src="/images/mylarlogo.png" />
+                     <img src="${http_root}images/mylarlogo.png" />
 		</div>
 		<input type="text" placeholder="username" name="username" required autofocus />
 		<div class="bar">

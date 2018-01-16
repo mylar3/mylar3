@@ -69,22 +69,10 @@ def initialize(options):
     else:
         protocol = "http"
 
-    logger.info("Starting Mylar on %s://%s:%d/", protocol,
-        options['http_host'], options['http_port'])
+    logger.info("Starting Mylar on %s://%s:%d%s", protocol,
+        options['http_host'], options['http_port'], options['http_root'])
     cherrypy.config.update(options_dict)
 
-#    cherrypy.config.update({
-#                'log.screen':           False,
-#                'server.thread_pool':   10,
-#                'server.socket_port':   options['http_port'],
-#                'server.socket_host':   options['http_host'],
-#                'engine.autoreload_on': False,
-#        })
-
-    #conf = {
-    #    '/': {
-    #        'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')
-    #    },
     conf = {
         '/': {
             'tools.staticdir.root': os.path.join(mylar.PROG_DIR, 'data')

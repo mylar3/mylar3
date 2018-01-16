@@ -666,6 +666,12 @@ class Config(object):
         except:
             pass
 
+        if any([self.HTTP_ROOT is None, self.HTTP_ROOT == '/']):
+            self.HTTP_ROOT = '/'
+        else:
+            if not self.HTTP_ROOT.endswith('/'):
+                self.HTTP_ROOT += '/'
+
         if not update:
            logger.fdebug('Log dir: %s' % self.LOG_DIR)
 
