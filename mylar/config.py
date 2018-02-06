@@ -867,7 +867,7 @@ class Config(object):
             PR.append('Torznab')
             PR_NUM +=1
 
-        PPR = ['32p', 'tpse', 'nzb.su', 'dognzb', 'Experimental', 'Torzanb']
+        PPR = ['32p', 'tpse', 'nzb.su', 'dognzb', 'Experimental', 'Torznab']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
