@@ -92,7 +92,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
         #clear out the upcoming table here so they show the new values properly.
         if pulldate == '00000000':
             logger.info('Re-creating pullist to ensure everything\'s fresh.')
-            myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[str(weeknumber), str(year)])
+            myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
 
         for x in pull:
             comicid = None
