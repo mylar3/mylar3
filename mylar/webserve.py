@@ -1803,10 +1803,10 @@ class WebInterface(object):
         if weeknumber is None:
             myDB.action("DROP TABLE weekly")
             mylar.dbcheck()
-            logger.info("Deleted existed pull-list data. Recreating Pull-list...")
+            logger.info("Deleted existing pull-list data. Recreating Pull-list...")
         else:
-            myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [weeknumber, year])
-            logger.info("Deleted existed pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
+            myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
+            logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
         weeklypull.pullit(forcecheck, weeknumber, year)
     pullrecreate.exposed = True
 
