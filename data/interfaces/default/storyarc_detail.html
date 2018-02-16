@@ -23,11 +23,14 @@
 </%def>
 
 <%def name="body()">
-	<div id="paddingheader">
-		<h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" alt="Story Arc Management"/>Story Arc Management</a></h1>
-	</div>
-         <center><h1>${storyarcname}</h1></center>
-         <div id="tabs">
+         <h1 class="clearfix"><a href="storyarc_main"><img src="interfaces/default/images/ReadingList-icon.png" height="26" width="26" align="left" alt="Story Arc Management"/></a></h1>
+         %if storyarcbanner is not None:
+             <img src="${storyarcbanner}" onload="resizeimage('${bannerheight}')" width="960" height="${bannerheight}" id="banner" style="text-decoration: none; position: relative; top: 40px;"/>
+         %else:
+             </br>
+         %endif
+
+         <div id="tabs" style="z-index:10">
                 <ul>
                         <li><a href="#tabs-1">Options</a></li>
                 </ul>
@@ -37,17 +40,26 @@
             <table class="configtable">
                <tr>
                 <form action="arcOptions" id="chkoptions" method="GET">
-                   <fieldset>
+                                 <%
+                                         if arcdetail['percent'] == 101:
+                                                 css = '<div class=\"progress-container warning\">'
+                                         if arcdetail['percent'] == 100:
+                                                 css = '<div class=\"progress-container complete\">'
+                                         if arcdetail['percent'] < 100:
+                                                 css = '<div class=\"progress-container missing\">'
+
+                                  %>
+                     <fieldset>
                      <div class="row checkbox left clearfix">
                          %if mylar.CONFIG.STORYARCDIR:
                              <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.CONFIG.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><br/>
-                             <small>Arcs in StoryArc Directory: ${sdir}</small><br/>
+                             <small>${sdir}</small><br/>
                          %endif
 <!--
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
 -->
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} /><label>Append Reading# to filename</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} /><label>Prepend Reading# to filename</label><br/>
                          <%
                                if mylar.CONFIG.STORYARCDIR:
                                    carcdir = 'StoryArc'
@@ -55,15 +67,44 @@
                                    carcdir = 'GrabBag'
                          %>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} /><label>Copy watchlisted issues to ${carcdir} Directory</label>
+
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
                        <input type="hidden" name="StoryArcName" value="${storyarcname}">
-
                      </div>
-                   </fieldset>
-                         <div>
-                            <input type="submit" value="Update"/>
-                         </div>
-                 </form>
+                    </fieldset>
+                    </form>
+                     <div style="display:block;position:relative;top:10px;">
+                        <input type="submit" value="Update"/>
+                     </div>
+                     <div style="display:block;float:right;position:relative;text-color:black;top:-130px;">
+                         <h1><p style="display:inline;float:right;">${storyarcname}</h1>
+                         <div style="display:inline;float:right;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
+                     </div>
+                         <%
+                             if storyarcbanner is None:
+                                 optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:120px;\">'
+                             else:
+                                 optpos = '<div style=\"display:block;float:right;position:absolute;right:20px;top:100px;\">'
+                         %>
+                     ${optpos}
+                         <form action="downloadBanner" method="GET">
+                         <label style="display:inline;float:right;">Banner Image Retrieval</label></br>
+                               <input style="display:inline;float:right;" type="text" title="enter full url where image resides" placeholder="full URL where image resides" onfocus="if(this.value==this.defaultValue) this.value='';" name="url" size="25">
+                               <input style="display:inline;float:right;" type="image" src="interfaces/default/images/download_icon.png" height="20" width="20" alt="submit"></br>
+                               <input type="hidden" name="storyarcid" value="${storyarcid}">
+                               <input type="hidden" name="storyarcname" value="${storyarcname}">
+                          %if storyarcbanner is not None:
+                             <p style="display:inline;float:right;">
+                             <input type="hidden" name="height" id="height" value="" />
+                             <button type="button" onclick="zoomin()">Zoom In</button>
+                             <button type="button" onclick="zoomout()">Zoom Out</button>
+                             <button type="button" onclick="getHeight('${storyarcid}', 'delete')" data-success="Successfully deleted banner image">Clear</button>
+                             <button type="button" onclick="getHeight('${storyarcid}', 'save')" data-success="Saved new height dimensions for banner">Save</button>
+                             </p>
+                          %endif
+                         </form>
+                     </div>
+
                </tr>
            </table>
           </div>
@@ -73,8 +114,8 @@
 			<tr>
         <th id="readingorder"></th>
         <th id="comicname">ComicName</th>
-        <th id="issue">Issue</th>
-        <th id="issuedate">Pub Date</th>
+        <th id="issue">#</th>
+        <th id="issuedate">Date</th>
         <th id="status">Status</th>
         <th id="options">Options</th>
 			</tr>
@@ -85,6 +126,7 @@
         %>
 		%for item in readlist:
         <%
+
                 if item['Status'] == 'Skipped':
                         grade = 'Z'
                 elif item['Status'] == 'Wanted':
@@ -107,7 +149,8 @@
                         grade = 'Z'
 
                 if item['ComicID'] in cids:
-                        haveit = cids[item['ComicID']]
+                        ht = cids[item['ComicID']]
+                        haveit = ht['comicid']
                 else:
                         haveit = "No"
 
@@ -135,8 +178,8 @@
                         if item['IssueDate'] != '0000-00-00' and item['IssueDate'] is not None:
                             issuedate = item['IssueDate']
                         else:
-                            if item['StoreDate'] != '0000-00-00' and item['StoreDate'] is not None:
-                                issuedate = item['StoreDate']
+                            if item['ReleaseDate'] != '0000-00-00' and item['ReleaseDate'] is not None:
+                                issuedate = item['ReleaseDate']
                             else:
                                 # this is needed for imported cbl's
                                 try:
@@ -204,6 +247,51 @@
             $('#chkoptions').submit();
             return true;
         });
+        </script>
+        <script type="text/javascript">
+        function zoomin(){
+            var myImg = document.getElementById("banner");
+            var currHeight = myImg.clientHeight;
+            if(currHeight == 400){
+                alert("Maximum zoom-in level reached.");
+            } else{
+                myImg.style.height = (currHeight + 50) + "px";
+            } 
+        }
+        function zoomout(){
+            var myImg = document.getElementById("banner");
+            var currHeight = myImg.clientHeight;
+            if(currHeight == 50){
+                alert("Maximum zoom-out level reached.");
+            } else{
+                myImg.style.height = (currHeight - 50) + "px";
+            }
+        }
+        function resizeimage(height) {
+            var myImg = document.getElementById("banner");
+            myImg.style.height = height + "px";
+        }
+        function getHeight(comicid, action) {
+            var myImg = document.getElementById("banner");
+            var curHeight = myImg.clientHeight;
+            //document.getElementById("#height").setAttribute("value", curHeight);
+            $.ajax({
+               type: "GET",
+               url: "manageBanner",
+               data: { comicid: comicid, action: action, height: curHeight },
+               success: function(response) {
+                 if (action = "save") {
+                     myImg.style.height = curHeight + "px";
+                 } else{
+                     document.getElementById("#height").src="";
+                 }
+               },
+               error: function(data)
+               {
+                 alert('ERROR'+data.responseText);
+               },
+            });
+        }            
         </script>
 	<script>
 	function initThisPage() {

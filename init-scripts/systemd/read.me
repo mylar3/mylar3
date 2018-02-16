@@ -1,0 +1,11 @@
+Instructions on setting up mylar as a systemd serivce that will run on startup/via systemctl commands...
+
+1 - copy the mylar.service to /lib/systemd/system/mylar.service
+2 - create a symbolic link to it:  ln -s /lib/systemd/system/mylar.service /etc/systemd/system/mylar.service
+3 - copy mylar.default to /etc/default/mylar (make sure it's renamed from mylar.default to just mylar)
+4 - copy mylar.nitd to /etc/init.d/mylar (rename it to just mylar) and then 'sudo chmod +x /etc/init.d/mylar'
+5 - edit the /etc/default/mylar file to your defaults (make sure to set MYLAR_USER & MYLAR_HOME as they're required)
+6 - make systemd aware of new services: sudo sytemctl daemon-reload
+7 -                                     sudo systemctl enable mylar
+8 -                                     sudo systemctl start mylar
+9 - to check to see if running/status - sudo sytemctl status mylar

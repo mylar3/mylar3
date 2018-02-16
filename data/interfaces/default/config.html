@@ -385,8 +385,13 @@
                                 </div>
 
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling<label>
-                                    <small>The category label above is used to when completed download handling is enabled</small>
+                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                    <div id="completedinfo">
+                                       <div class="row">
+                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
+                                           ComicRN script cannot be used with the same category / Category above has to be set within SABnzbd</small>
+                                       </div>
+                                    </div>
                                 </div>
 
                                 <div align="center" class="row">
@@ -732,9 +737,9 @@
                                 </div>
                                 <div class="config">
                                          <div class="row checkbox left clearfix">
-                                                <input id="enable_tpse" title="Will Use TPSE for searches, Demonoid & WWT for RSS feeds" type="checkbox" name="enable_tpse" value=1 ${config['enable_tpse']} /><label>Enable Public Torrent Search</label>
+                                                <input id="enable_public" title="Use Public Torrents" type="checkbox" name="enable_public" value=1 ${config['enable_public']} /><label>Enable Public Torrent Search</label>
                                                 <div align="left">
-                                                   <small class="heading"><span style="float: left; margin-left: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Search: TPSE / RSS: DEM & WWT</small>
+                                                   <small class="heading"><span style="float: left; margin-left: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>Search: WWT / RSS: DEM & WWT</small>
                                                 </div>                                            
                                          </div>
                                          <div class="row checkbox left clearfix">
@@ -840,18 +845,18 @@
                                         <div class="config" id="newznab${newznab_number}">
                                             <div class="row">
                                                 <label>Newznab Name</label>
-                                                <input type="text" name="newznab_name${newznab_number}" value="${newznab[0]}" size="30">
+                                                <input type="text" name="newznab_name${newznab_number}" id="newznab_name${newznab_number}" value="${newznab[0]}" size="30">
                                             </div>
                                             <div class="row">
                                                 <label>Newznab Host</label>
-                                                <input type="text" name="newznab_host${newznab_number}" value="${newznab[1]}" size="30">
+                                                <input type="text" name="newznab_host${newznab_number}" id="newznab_host${newznab_number}" value="${newznab[1]}" size="30">
                                             </div>
                                             <div class="row checkbox">
-                                                <input id="newznab_verify" type="checkbox" name="newznab_verify${newznab_number}" value="1" ${newznab_verify} /><label>Verify SSL</label>
+                                                <input id="newznab_verify${newznab_number}" type="checkbox" name="newznab_verify${newznab_number}" value="1" ${newznab_verify} /><label>Verify SSL</label>
                                             </div>
                                             <div class="row">
                                                 <label>Newznab API</label>
-                                                <input type="text" name="newznab_api${newznab_number}" value="${newznab[3]}" size="36">
+                                                <input type="text" name="newznab_api${newznab_number}" id="newznab_api${newznab_number}" value="${newznab[3]}" size="36">
                                             </div>
                                             <div class="row">
                                                 <label>Newznab UID</label>
@@ -860,10 +865,8 @@
                                             </div>
                                             <div class="row checkbox">
                                                 <input id="newznab_enabled" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
-<!--
-                                                <input type="button" value="Test ${newznab[0]}" id="newznab_test(newznab${newznab_number})" style="float:center" /></br>
-                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/newznab_success.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="10" width="10" DISABLED />
--->
+                                                <input type="button" value="Test ${newznab[0]}" name="${newznab_number}" id="newznabtest" style="float:center" />
+                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/checkmark.png" style="vertical-align: middle; margin: 3px; margin-top: -1px; display: none" height="10" width="10">
                                             </div>
                                             <div class="row">
                                                 <input type="button" class="remove" id="newznab${newznab_number}" value="Remove ${newznab[0]}">
@@ -878,6 +881,7 @@
                         </fieldset>
 
                 </td>
+
 
             </tr>
              <tr>
@@ -1046,7 +1050,7 @@
                                 </div>                           
                 	</fieldset>
                         <fieldset>
-                                <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included but configparser is required</small>
+                                <legend>Metadata Tagging</legend><small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>ComicTagger is included</small>
                                 <div class="row checkbox left clearfix">
                                      <input id="enable_meta" type="checkbox" onclick="initConfigCheckbox($this));" name="enable_meta" value="1" ${config['enable_meta']} /><label>Enable Metadata Tagging</label>
                                 </div>
@@ -1163,6 +1167,7 @@
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="autowant_all" value="1" ${config['autowant_all']} /><label>Automatically Mark All Issues as Wanted</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="comic_cover_local" value="1" ${config['comic_cover_local']} /><label>Place cover.jpg into Comic Directory for each comic</label>
                                                    <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="cvinfo" value="1" ${config['cvinfo']} /><label>Write cvinfo into each comic directory</label>
+                                                   <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -1px;" name="alternate_latest_series_covers" value="1" ${config['alternate_latest_series_covers']} /><label>Alternate Series Covers</label>
                                                    %if mylar.CONFIG.ENABLE_TORRENTS:
                                                        <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="snatchedtorrent_notify" value="1" ${config['snatchedtorrent_notify']} /><label>Manual Post-Processing - Notify on Completed Torrents</label>
                                                    %endif
@@ -1445,6 +1450,25 @@
                         else
                         {
                                 $("#apioptions").slideUp();
+                        }
+                });
+                if ($("#sab_client_post_processing").is(":checked"))
+                        {
+                                $("#completedinfo").show();
+                        }
+                else
+                        {
+                                $("#completedinfo").hide();
+                        }
+
+                $("#sab_client_post_processing").click(function(){
+                        if ($("#sab_client_post_processing").is(":checked"))
+                        {
+                                $("#completedinfo").slideDown();
+                        }
+                        else
+                        {
+                                $("#completedinfo").slideUp();
                         }
                 });
                 if ($("#opds_enable").is(":checked"))
@@ -1943,9 +1967,12 @@
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
-                $('#newznab_test').click(function (x) {
-                    // var name = document.getElementById("newznab_name").value;
-                    alert(x);
+                $('#newznabtest').click(function () {
+                    var newznab = document.getElementById("newznabtest").getAttribute("name");
+                    var name = document.getElementById("newznab_name"+newznab).value;
+                    var host = document.getElementById("newznab_host"+newznab).value;;
+                    var ssl = document.getElementById("newznab_verify"+newznab).value;
+                    var apikey = document.getElementById("newznab_api"+newznab).value;
                     $.get("testnewznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
                         function(data){
@@ -1953,8 +1980,8 @@
                                 alert(data.error);
                                 return;
                             }
-                            $('#newznabstatus').show();
-                            $('#ajaxMsg').html("Successfully connected to newnzab");
+                            document.getElementById("newznabstatus" + newznab).style.display = "inline";
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });

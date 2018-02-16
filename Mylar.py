@@ -94,6 +94,8 @@ def main():
     #        versioncheck.update()
     #    except Exception, e:
     #        sys.exit('Mylar failed to update.')
+    #    else:
+    #        mylar.shutdown(restart=True)
 
     if args.daemon:
         if sys.platform == 'win32':

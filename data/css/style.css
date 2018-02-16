@@ -259,6 +259,16 @@ table#searchresults_table td#name { vertical-align: middle; text-align: left; mi
 table#searchresults_table td#comicyear { vertical-align: middle; text-align: left; min-width: 50px; }
 table#searchresults_table td#issues { vertical-align: middle; text-align: center; min-width: 50px; }
 
+table#downloads_table th#title { text-align: center; min-width: 100px; }
+table#donwloads_table th#provider { text-align: center; min-width: 30px; }
+table#downloads_table th#size { text-align: center; min-width: 20px; }
+table#downloads_table th#kind { text-align: center; min-width: 20px; }
+
+table#downloads_table td#title { vertical-align: middle; text-align: left; min-width: 100px; }
+table#downloads_table td#provider { vertical-align: middle; text-align: left; min-width: 30px; }
+table#downloads_table td#size { vertical-align: middle; text-align: left; min-width: 20px; }
+table#downloads_table td#kind { vertical-align: middle; text-align: left; min-width: 20px; }
+
 .havetracks { font-size: 13px; margin-left: 36px; padding-bottom: 3px; vertical-align: middle; }
 
 footer { margin: 20px auto 20px auto; }

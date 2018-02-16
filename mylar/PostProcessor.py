@@ -192,12 +192,14 @@ class PostProcessor(object):
                 logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 return True
 
-    def tidyup(self, odir=None, del_nzbdir=False, sub_path=None):
-            # del_nzbdir will remove the original directory location. Must be set to False for manual pp or else will delete manual dir that's provided (if empty).
-            # move = cleanup/delete original location (self.nzb_folder) AND cache location (odir) if metatagging is enabled.
-            # copy = cleanup/delete cache location (odir) only if enabled.
+    def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False):
+        # del_nzbdir will remove the original directory location. Must be set to False for manual pp or else will delete manual dir that's provided (if empty).
+        # move = cleanup/delete original location (self.nzb_folder) AND cache location (odir) if metatagging is enabled.
+        # copy = cleanup/delete cache location (odir) only if enabled.
+        # cacheonly = will only delete the cache location (useful if there's an error during metatagging, and/or the final location is out of space)
+        try:
             #tidyup old path
-            try:
+            if cacheonly is False:
                 logger.fdebug('File Option: ' + mylar.CONFIG.FILE_OPTS + ' [META-ENABLED: ' + str(mylar.CONFIG.ENABLE_META) + ']')
                 logger.fdebug('odir: ' + odir + ' [self.nzb_folder: ' + self.nzb_folder + ']')
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
@@ -234,27 +236,27 @@ class PostProcessor(object):
                         self._log('Failed to remove temporary directory: ' + tmp_folder)
                         logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
 
-                if mylar.CONFIG.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
-                    #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
-                    #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
-                    for filename in os.listdir(odir):
-                        filepath = os.path.join(odir, filename)
-                        try:
-                            os.remove(filepath)
-                        except OSError:
-                            pass
+            if mylar.CONFIG.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
+                #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
+                #sometimes during a meta, it retains the cbr as well after conversion depending on settings. Make sure to delete too thus the 'walk'.
+                for filename in os.listdir(odir):
+                    filepath = os.path.join(odir, filename)
+                    try:
+                        os.remove(filepath)
+                    except OSError:
+                        pass
 
-                    if not os.listdir(odir):
-                        logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
-                        shutil.rmtree(odir)
-                        self._log("Removed temporary directory : " + odir)
-                    else:
-                        self._log('Failed to remove temporary directory: ' + odir)
-                        logger.error(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
+                if not os.listdir(odir):
+                    logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
+                    shutil.rmtree(odir)
+                    self._log("Removed temporary directory : " + odir)
+                else:
+                    self._log('Failed to remove temporary directory: ' + odir)
+                    logger.error(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
 
-            except (OSError, IOError):
-                logger.fdebug(self.module + ' Failed to remove directory - Processing will continue, but manual removal is necessary')
-                self._log('Failed to remove temporary directory')
+        except (OSError, IOError):
+            logger.fdebug(self.module + ' Failed to remove directory - Processing will continue, but manual removal is necessary')
+            self._log('Failed to remove temporary directory')
 
 
     def Process(self):
@@ -628,7 +630,7 @@ class PostProcessor(object):
                     #if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in arcloopchk):
                     #    arcloopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
 
-                    tmpsql = "SELECT * FROM readinglist WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk))) #len(arcloopchk)))
+                    tmpsql = "SELECT * FROM storyarcs WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk))) #len(arcloopchk)))
                     arc_series = myDB.select(tmpsql, tuple(loopchk)) #arcloopchk))
 
                     if arc_series is None:
@@ -700,10 +702,10 @@ class PostProcessor(object):
                                             fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                             logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(v[i]['WatchValues']['ComicID']))
                                         annchk = "yes"
-                                        issuechk = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
+                                        issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
                                     else:
                                         fcdigit = helpers.issuedigits(temploc)
-                                        issuechk = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
+                                        issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
 
                                     if issuechk is None:
                                         logger.fdebug(module + ' No corresponding issue # found for ' + str(v[i]['WatchValues']['ComicID']))
@@ -718,16 +720,16 @@ class PostProcessor(object):
                                             logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
                                             logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
 
-                                            logger.fdebug('StoreDate ' + str(issuechk['StoreDate']))
+                                            logger.fdebug('StoreDate ' + str(issuechk['ReleaseDate']))
                                             logger.fdebug('IssueDate: ' + str(issuechk['IssueDate']))
-                                            if all([issuechk['StoreDate'] is not None, issuechk['StoreDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
-                                                if issuechk['StoreDate'] == '0000-00-00':
+                                            if all([issuechk['ReleaseDate'] is not None, issuechk['ReleaseDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
+                                                if issuechk['ReleasDate'] == '0000-00-00':
                                                     datevalue = issuechk['IssueDate']
                                                     if int(datevalue[:4]) < int(arcmatch['issue_year']):
                                                         logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
                                                         datematch = "False"
                                                 else:
-                                                    datevalue = issuechk['StoreDate']
+                                                    datevalue = issuechk['ReleaseDate']
                                                     if int(datevalue[:4]) < int(arcmatch['issue_year']):
                                                         logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year of ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
                                                         datematch = "False"
@@ -883,6 +885,11 @@ class PostProcessor(object):
                         #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
 
                         try:
+                            checkspace = helpers.get_free_space(grdst)
+                            if checkspace is False:
+                                if all([metaresponse is not None, metaresponse != 'fail']):  # meta was done
+                                    self.tidyup(src_location, True, cacheonly=True)
+                                raise OSError
                             fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True)
                             if not fileoperation:
                                 raise OSError
@@ -906,7 +913,7 @@ class PostProcessor(object):
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
-                        myDB.upsert("readinglist", newVal, ctrlVal)
+                        myDB.upsert("storyarcs", newVal, ctrlVal)
 
                         logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
@@ -1055,7 +1062,7 @@ class PostProcessor(object):
                     elif all([self.oneoff is not None, issueid[0] == 'S']):
                         logger.info('should be here')
                         issuearcid = re.sub('S', '', issueid).strip()
-                        oneinfo = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+                        oneinfo = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if oneinfo is None:
                             logger.warn('Unable to locate issue as previously snatched arc issue - it might be something else...')
                             self._log('Unable to locate issue as previously snatched arc issue - it might be something else...')
@@ -1197,7 +1204,7 @@ class PostProcessor(object):
 #                        if sandwich is not None and 'S' in sandwich:
 #                            issuearcid = re.sub('S', '', issueid)
 #                            logger.fdebug(module + ' issuearcid:' + str(issuearcid))
-#                            arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+#                            arcdata = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
 #                            if arcdata is None:
 #                                logger.warn(module + ' Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary')
 #                                self._log('Unable to locate issue within Story Arcs in orde to properly assign metadata. PostProcessing aborted.')
@@ -1320,7 +1327,7 @@ class PostProcessor(object):
 #                            ctrlVal = {"IssueArcID":  issuearcid}
 #                            newVal = {"Status":       "Downloaded",
 #                                      "Location":     grab_dst}
-#                            myDB.upsert("readinglist", newVal, ctrlVal)
+#                            myDB.upsert("storyarcs", newVal, ctrlVal)
 #                            logger.info(module + ' Updated status to Downloaded')
 #
 #                            logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
@@ -1366,13 +1373,12 @@ class PostProcessor(object):
                     issueid = ml['IssueID']
                     issuenumOG = ml['IssueNumber']
                     #check to see if file is still being written to.
-                    while True:
-                        waiting = False
+                    waiting = True
+                    while waiting is True:
                         try:
                             ctime = max(os.path.getctime(ml['ComicLocation']), os.path.getmtime(ml['ComicLocation']))
                             if time.time() > ctime > time.time() - 10:
                                 time.sleep(max(time.time() - ctime, 0))
-                                waiting = True
                             else:
                                 break
                         except:
@@ -1522,7 +1528,7 @@ class PostProcessor(object):
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)
                         logger.fdebug(module + ' issuearcid:' + str(issuearcid))
-                        arcdata = myDB.selectone("SELECT * FROM readinglist WHERE IssueArcID=?", [issuearcid]).fetchone()
+                        arcdata = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if arcdata is None:
                             logger.warn(module + ' Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary.')
                             self._log('Unable to locate issue within Story Arcs in orde to properly assign metadata. PostProcessing aborted.')
@@ -1620,6 +1626,11 @@ class PostProcessor(object):
                     logger.info(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + ofilename + ' into directory : ' + grab_dst)
 
                     try:
+                        checkspace = helpers.get_free_space(grdst)
+                        if checkspace is False:
+                            if all([metaresponse != 'fail', metaresponse is not None]):  # meta was done
+                                self.tidyup(src_location, True, cacheonly=True)
+                            raise OSError
                         fileoperation = helpers.file_ops(grab_src, grab_dst)
                         if not fileoperation:
                             raise OSError
@@ -1640,7 +1651,7 @@ class PostProcessor(object):
                         ctrlVal = {"IssueArcID":  issuearcid}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
-                        myDB.upsert("readinglist", newVal, ctrlVal)
+                        myDB.upsert("storyarcs", newVal, ctrlVal)
                         logger.info(module + ' Updated status to Downloaded')
 
                         logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
@@ -2282,7 +2293,6 @@ class PostProcessor(object):
                                        "mode": 'stop'})
                 return self.queue.put(self.valreturn)
 
-
             if mylar.CONFIG.LOWERCASE_FILENAMES:
                 dst = os.path.join(comlocation, (nfilename + ext).lower())
             else:
@@ -2314,6 +2324,11 @@ class PostProcessor(object):
                 src = os.path.join(odir, ofilename)
                 try:
                     self._log("[" + mylar.CONFIG.FILE_OPTS + "] " + src + " - to - " + dst)
+                    checkspace = helpers.get_free_space(comlocation)
+                    if checkspace is False:
+                        if all([pcheck is not None, pcheck != 'fail']):  # meta was done
+                            self.tidyup(odir, True, cacheonly=True)
+                        raise OSError
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
@@ -2346,6 +2361,11 @@ class PostProcessor(object):
                 logger.fdebug(module + ' odir src : ' + src)
                 logger.fdebug(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + src + ' ... to ... ' + dst)
                 try:
+                    checkspace = helpers.get_free_space(comlocation)
+                    if checkspace is False:
+                        if all([pcheck != 'fail', pcheck is not None]):  # meta was done
+                            self.tidyup(odir, True, cacheonly=True)
+                        raise OSError
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
@@ -2383,25 +2403,34 @@ class PostProcessor(object):
             #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
+            updater.totals(comicid, havefiles='+1',issueid=issueid)
+
             #update snatched table to change status to Downloaded
             if annchk == "no":
                 updater.foundsearch(comicid, issueid, down=downtype, module=module, crc=crcvalue)
                 dispiss = 'issue: ' + issuenumOG
+                updatetable = 'issues'
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module, crc=crcvalue)
                 if 'annual' not in series.lower():
                     dispiss = 'annual issue: ' + issuenumOG
                 else:
                     dispiss = issuenumOG
+                updatetable = 'annuals'
 
-            #force rescan of files
-            updater.forceRescan(comicid, module=module)
+            #new method for updating status after pp
+            if os.path.isfile(dst):
+                ctrlVal = {"IssueID":     issueid}
+                newVal = {"Status":       "Downloaded",
+                          "Location":     os.path.basename(dst)}
+                logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                myDB.upsert(updatetable, newVal, ctrlVal)
 
             try:
                 if ml['IssueArcID']:
                     logger.info('Watchlist Story Arc match detected.')
                     logger.info(ml)
-                    arcinfo = myDB.selectone('SELECT * FROM readinglist where IssueArcID=?', [ml['IssueArcID']]).fetchone()
+                    arcinfo = myDB.selectone('SELECT * FROM storyarcs where IssueArcID=?', [ml['IssueArcID']]).fetchone()
                     if arcinfo is None:
                         logger.warn('Unable to locate IssueID within givin Story Arc. Ensure everything is up-to-date (refreshed) for the Arc.')
                     else:
@@ -2438,10 +2467,12 @@ class PostProcessor(object):
 
                         try:
                             #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
+                            checkspace = helpers.get_free_space(grdst)
+                            if checkspace is False:
+                                raise OSError
                             fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
                             if not fileoperation:
                                 raise OSError
-                            #shutil.copy(grab_src, grab_dst)
                         except (OSError, IOError):
                             logger.fdebug(module + '[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] Failure ' + src + ' - check directories and manually re-run.')
                             return
@@ -2455,7 +2486,7 @@ class PostProcessor(object):
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
-                        myDB.upsert("readinglist", newVal, ctrlVal)
+                        myDB.upsert("storyarcs", newVal, ctrlVal)
                         logger.fdebug(module + ' [' + arcinfo['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
             except:

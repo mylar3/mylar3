@@ -1054,7 +1054,7 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #arc_detail th#options {
-  min-width: 150px;
+  min-width: 130px;
   text-align: left;
 }
 #arc_detail th#comicname {
@@ -1066,11 +1066,11 @@ div#artistheader h2 a {
   text-align: center;
 }
 #arc_detail th#status {
-  max-width: 75px;
+  max-width: 85px;
   text-align: center;
 }
 #arc_detail th#issuedate {
-  max-width: 45px;
+  max-width: 58px;
   text-align: center;
 }
 #arc_detail th#readingorder {
@@ -1090,17 +1090,17 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #arc_detail td#status {
-  max-width: 75px;
+  max-width: 85px;
   text-align: center;
   vertical-align: middle;
 }
 #arc_detail td#issuedate {
-  max-width: 45px;
+  max-width: 58px;
   text-align: center;
   vertical-align: middle;
 }
 #arc_detail td#options {
-  min-width: 150px;
+  min-width: 130px;
   text-align: left;
   vertical-align: middle;
 }
@@ -1144,7 +1144,7 @@ div#artistheader h2 a {
 #pull_table th#publishdate {
   min-width: 50px;
   text-align: left;
-  vertial-align: middle;
+  vertical-align: middle;
 }
 #pull_table th#publisher {
   min-width: 100px;
@@ -1162,14 +1162,19 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #pull_table th#status {
-  min-width: 120px;
+  min-width: 30px;
+  text-align: left;
+  vertical-align: middle;
+}
+#pull_table th#options {
+  min-width: 90px;
   text-align: left;
   vertical-align: middle;
 }
 #pull_table td#publishdate {
   max-width: 50px;
   text-align: left;
-  vertial-align: middle;
+  vertical-align: middle;
 }
 #pull_table td#publisher {
   min-width: 100px;
@@ -1187,9 +1192,14 @@ div#artistheader h2 a {
   vertical-align: middle;
 }
 #pull_table td#status {
-  min-width: 120px;
+  min-width: 30px;
   text-align: left;
-  vertial-align: middle;
+  vertical-align: middle;
+}
+#pull_table td#options {
+  min-width: 90px;
+  text-align: left;
+  vertical-align: middle;
 }
 #manage_comic th#name {
   min-width: 275px;
@@ -1604,6 +1614,46 @@ div#artistheader h2 a {
   min-width: 100px;
   vertical-align: middle;
   text-align: left;
+}
+#downloads_table th#title {
+  max-width: 150px;
+  vertical-align: middle;
+  text-align: center;
+}
+#downloads_table th#size {
+  max-width: 35px;
+  vertical-align: middle;
+  text-align: center;
+}
+#downloads_table th#kind {
+  max-width: 20px;
+  vertical-align: middle;
+  text-align: center;
+}
+#downloads_table th#provider {
+  max-width: 30px;
+  vertical-align: middle;
+  text-align: center;
+}
+#downloads_table td#title {
+  max-width: 150px;
+  vertical-align: middle;
+  text-align: left;
+}
+#downloads_table td#size {
+  max-width: 35px;
+  vertical-align: middle;
+  text-align: left;
+}
+#downloads_table td#kind {
+  max-width: 20px;
+  vertical-align: middle;
+  text-align: left;
+}
+#downloads_table td#provider {
+  max-width: 30px;
+  vertical-align: middle;
+  text-align: center;
 }
 #searchmanage_table th#comicname {
   min-width: 325px;

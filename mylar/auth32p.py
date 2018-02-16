@@ -172,8 +172,8 @@ class info32p(object):
         comic_id = self.searchterm['id']
 
         annualize = False
-        if 'Annual' in series_search:
-            series_search = re.sub(' Annual', '', series_search).strip()
+        if 'annual' in series_search.lower():
+            series_search = re.sub(' annual', '', series_search.lower()).strip()
             annualize = True
         issue_search = self.searchterm['issue']
         volume_search = self.searchterm['volume']
@@ -265,13 +265,13 @@ class info32p(object):
                     seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
                     #seriesresult = as_dinfo['mod_seriesname']
                     logger.info('searchresult: ' + seriesresult + ' --- ' + mod_series + '[' + publisher_search + ']')
-                    if seriesresult == mod_series:
+                    if seriesresult.lower() == mod_series.lower():
                         logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
                         data.append({"id":      torrentid,
                                      "series":  torrentname})
-                    elif publisher_search in seriesresult:
+                    elif publisher_search.lower() in seriesresult.lower():
                         logger.info('publisher match.')
-                        tmp_torrentname = re.sub(publisher_search, '', seriesresult).strip()
+                        tmp_torrentname = re.sub(publisher_search.lower(), '', seriesresult.lower()).strip()
                         as_t = filechecker.FileChecker()
                         as_tinfo = as_t.dynamic_replace(tmp_torrentname)
                         logger.info('tmp_torrentname:' + tmp_torrentname)

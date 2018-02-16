@@ -25,7 +25,7 @@ import mylar
 from mylar import logger
 from mylar.webserve import WebInterface
 from mylar.helpers import create_https_certificates
-
+from mylar.api import REST
 
 def initialize(options):
 
@@ -106,6 +106,8 @@ def initialize(options):
         }
     }
 
+    userpassdict = dict(zip((options['http_username'].encode('utf-8'),), (options['http_password'].encode('utf-8'),)))
+    get_ha1= cherrypy.lib.auth_digest.get_ha1_dict_plain(userpassdict)
     if options['http_password'] is not None:
         if options['authentication'] == 2:
             # Set up a sessions based login page instead of using basic auth,
@@ -142,6 +144,16 @@ def initialize(options):
                     })
             conf['/api'] = {'tools.auth_basic.on': False}
 
+    rest_api = {
+        '/': {
+                # the api uses restful method dispatching
+                'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+
+                # all api calls require that the client passes HTTP basic authentication
+                'tools.auth_basic.on' : False,
+             }
+    }
+
     if options['opds_authentication']:
         user_list = {}
         if len(options['opds_username']) > 0:
@@ -158,6 +170,14 @@ def initialize(options):
     cherrypy.engine.timeout_monitor.unsubscribe()
 
     cherrypy.tree.mount(WebInterface(), str(options['http_root']), config = conf)
+
+    restroot = REST()
+    restroot.comics = restroot.Comics()
+    restroot.comic = restroot.Comic()
+    restroot.watchlist = restroot.Watchlist()
+    #restroot.issues = restroot.comic.Issues()
+    #restroot.issue = restroot.comic.Issue()
+    cherrypy.tree.mount(restroot, '/rest', config = rest_api)
 
     try:
         cherrypy.process.servers.check_port(options['http_host'], options['http_port'])

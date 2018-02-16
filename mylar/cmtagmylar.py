@@ -54,11 +54,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
         new_filepath = os.path.join(new_folder, filename)
         logger.info('New_Filepath: %s' % new_filepath)
         if mylar.CONFIG.FILE_OPTS == 'copy' and manualmeta == False:
-            logger.info('Attempting to copy: %s' % mylar.CONFIG.FILE_OPTS)
             shutil.copy(filepath, new_filepath)
         else:
-            logger.info('Attempting to move: %s' % mylar.CONFIG.FILE_OPTS)
-            shutil.move(filepath, new_filepath)
+            shutil.copy(filepath, new_filepath)
         filepath = new_filepath  
     except:
         logger.warn(module + ' Unexpected Error: %s' % sys.exc_info()[0])

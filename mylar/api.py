@@ -17,8 +17,9 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, webserve
+from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers
 import simplejson as simplejson
+import json
 import cherrypy
 import random
 import os
@@ -51,6 +52,7 @@ class Api(object):
         self.data = None
         self.callback = None
         self.apitype = None
+        self.comicrn = False
 
     def checkParams(self, *args, **kwargs):
 
@@ -116,8 +118,11 @@ class Api(object):
                 if isinstance(self.data, basestring):
                     return self.data
                 else:
-                    cherrypy.response.headers['Content-Type'] = "application/json"
-                    return simplejson.dumps(self.data)
+                    if self.comicrn is True:
+                        return self.data
+                    else:
+                        cherrypy.response.headers['Content-Type'] = "application/json"
+                        return simplejson.dumps(self.data)
             else:
                 self.callback = self.kwargs['callback']
                 self.data = simplejson.dumps(self.data)
@@ -314,8 +319,21 @@ class Api(object):
         else:
             self.nzb_folder = kwargs['nzb_folder']
 
-        forceProcess = PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder)
-        forceProcess.Process()
+        if 'failed' not in kwargs:
+            failed = False
+        else:
+            failed = kwargs['failed']
+
+
+        if 'apc_version' not in kwargs:
+            fp = process.Process(self.nzb_name, self.nzb_folder, failed=failed)
+            self.data = fp.post_process()
+        else:
+            logger.info('[API] Api Call from ComicRN detected - initiating script post-processing.')
+            fp = webserve.WebInterface()
+            self.data = fp.post_process(self.nzb_name, self.nzb_folder, failed=failed, apc_version=kwargs['apc_version'], comicrn_version=kwargs['comicrn_version'])
+            self.comicrn = True
+        return
 
     def _getVersion(self, **kwargs):
         self.data = {
@@ -494,13 +512,13 @@ class Api(object):
     def _getStoryArc(self, **kwargs):
         if not 'id' in kwargs:
             if 'customOnly' in kwargs and kwargs['customOnly']:
-                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from readinglist WHERE StoryArcID LIKE "C%" GROUP BY StoryArcID ORDER BY StoryArc')
+                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs WHERE StoryArcID LIKE "C%" GROUP BY StoryArcID ORDER BY StoryArc')
             else:
-                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from readinglist GROUP BY StoryArcID ORDER BY StoryArc')
+                self.data = self._dic_from_query('SELECT StoryArcID, StoryArc, MAX(ReadingOrder) AS HighestOrder from storyarcs GROUP BY StoryArcID ORDER BY StoryArc')
         else:
             self.id = kwargs['id']
             self.data = self._dic_from_query('SELECT StoryArc, ReadingOrder, ComicID, ComicName, IssueNumber, IssueID, \
-                                            IssueDate, IssueName, IssuePublisher from readinglist WHERE StoryArcID="' + self.id + '" ORDER BY ReadingOrder')
+                                            IssueDate, IssueName, IssuePublisher from storyarcs WHERE StoryArcID="' + self.id + '" ORDER BY ReadingOrder')
         return
 
     def _addStoryArc(self, **kwargs):
@@ -514,7 +532,7 @@ class Api(object):
                 storyarcname = kwargs.pop('storyarcname')
         else:
             self.id = kwargs.pop('id')
-            arc = self._dic_from_query('SELECT * from readinglist WHERE StoryArcID="' + self.id + '" ORDER by ReadingOrder')
+            arc = self._dic_from_query('SELECT * from storyarcs WHERE StoryArcID="' + self.id + '" ORDER by ReadingOrder')
             storyarcname = arc[0]['StoryArc']
             issuecount = len(arc)
         if not 'issues' in kwargs and not 'arclist' in kwargs:
@@ -545,3 +563,128 @@ class Api(object):
         logger.info("arclist: %s - arcid: %s - storyarcname: %s - storyarcissues: %s" % (arclist, self.id, storyarcname, issuecount))
         wi.addStoryArc_thread(arcid=self.id, storyarcname=storyarcname, storyarcissues=issuecount, arclist=arclist, **kwargs)
         return
+
+class REST(object):
+
+    def __init__(self):
+        pass
+
+    class verify_api(object):
+        def __init__(self):
+            pass
+
+        def validate(self):
+            logger.info('attempting to validate...')
+            req = cherrypy.request.headers
+            logger.info('thekey: %s' % req)
+            logger.info('url: %s' % cherrypy.url())
+            logger.info('mylar.apikey: %s [%s]' % (mylar.CONFIG.API_KEY, type(mylar.CONFIG.API_KEY)))
+            logger.info('submitted.apikey: %s [%s]' % (req['Api-Key'], type(req['Api-Key'])))
+            if 'Api-Key' not in req or req['Api-Key'] != str(mylar.CONFIG.API_KEY): #str(mylar.API_KEY) or mylar.API_KEY not in cherrypy.url():
+                logger.info('wrong APIKEY')
+                return 'api-key provided was either not present in auth header, or was incorrect.'
+            else:
+                return True
+
+    class Watchlist(object):
+        exposed = True
+        def __init__(self):
+            pass
+
+        def GET(self):
+            va = REST.verify_api()
+            vchk = va.validate()
+            if vchk is not True:
+                return('api-key provided was either not present in auth header, or was incorrect.')
+            #rows_as_dic = []
+
+            #for row in rows:
+            #    row_as_dic = dict(zip(row.keys(), row))
+            #    rows_as_dic.append(row_as_dic)
+
+            #return rows_as_dic
+            some = helpers.havetotals()
+            return simplejson.dumps(some)
+
+    class Comics(object):
+        exposed = True
+        def __init__(self):
+            pass
+
+        def _dic_from_query(self, query):
+            myDB = db.DBConnection()
+            rows = myDB.select(query)
+
+            rows_as_dic = []
+
+            for row in rows:
+                row_as_dic = dict(zip(row.keys(), row))
+                rows_as_dic.append(row_as_dic)
+
+            return rows_as_dic
+
+        def GET(self):
+            va = REST.verify_api()
+            vchk = va.validate()
+            if vchk is not True:
+                return('api-key provided was either not present in auth header, or was incorrect.')
+            #req = cherrypy.request.headers
+            #logger.info('thekey: %s' % req)
+            #if 'api-key' not in req or req['api-key'] != 'hello':
+            #    logger.info('wrong APIKEY')
+            #    return('api-key provided was either not present in auth header, or was incorrect.')
+
+            self.comics = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+            return('Here are all the comics we have: %s' % self.comics)
+
+    @cherrypy.popargs('comic_id','issuemode','issue_id')
+    class Comic(object):
+        exposed = True
+
+        def __init__(self):
+            pass
+
+        def _dic_from_query(self, query):
+            myDB = db.DBConnection()
+            rows = myDB.select(query)
+
+            rows_as_dic = []
+
+            for row in rows:
+                row_as_dic = dict(zip(row.keys(), row))
+                rows_as_dic.append(row_as_dic)
+
+            return rows_as_dic
+
+        def GET(self, comic_id=None, issuemode=None, issue_id=None):
+            va = REST.verify_api()
+            vchk = va.validate()
+            if vchk is not True:
+                return('api-key provided was either not present in auth header, or was incorrect.')
+
+            #req = cherrypy.request.headers
+            #logger.info('thekey: %s' % req)
+            #if 'api-key' not in req or req['api-key'] != 'hello':
+            #    logger.info('wrong APIKEY')
+            #    return('api-key provided was either not present in auth header, or was incorrect.')
+
+            self.comics = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+
+            if comic_id is None:
+                return('No valid ComicID entered')
+            else:
+                if issuemode is None:
+                    match = [c for c in self.comics if comic_id == c['ComicID']]
+                    if match:
+                        return json.dumps(match,ensure_ascii=False)
+                    else:
+                        return('No Comic with the ID %s :-(' % comic_id)
+                elif issuemode == 'issues':
+                    self.issues = self._dic_from_query('SELECT * from issues where comicid="' + comic_id + '"')
+                    return json.dumps(self.issues, ensure_ascii=False)
+                elif issuemode == 'issue' and issue_id is not None:
+                    self.issues = self._dic_from_query('SELECT * from issues where comicid="' + comic_id + '" and issueid="' + issue_id + '"')
+                    return json.dumps(self.issues, ensure_ascii=False)
+                else:
+                    return('Nothing to do.')
+

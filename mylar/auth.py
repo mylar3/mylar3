@@ -25,6 +25,7 @@ from cherrypy.lib.static import serve_file
 from cgi import escape
 import urllib
 import mylar
+from mylar import logger
 
 SESSION_KEY = '_cp_username'
 
@@ -113,6 +114,7 @@ def all_of(*conditions):
 class AuthController(object):
     def on_login(self, username):
         """Called on successful login"""
+        logger.info('%s successfully logged on.' % username)
         # not needed or used for Mylar currently
 
     def on_logout(self, username):
@@ -124,17 +126,17 @@ class AuthController(object):
         return serve_template(templatename="login.html", username=escape(username, True), title="Login")
 
     @cherrypy.expose
-    def login(self, username=None, password=None):
-        if username is None or password is None:
+    def login(self, current_username=None, current_password=None):
+        if current_username is None or current_password is None:
             return self.get_loginform("")
 
-        error_msg = check_credentials(username, password)
+        error_msg = check_credentials(current_username, current_password)
         if error_msg:
-            return self.get_loginform(username, error_msg)
+            return self.get_loginform(current_username, error_msg)
         else:
             cherrypy.session.regenerate()
-            cherrypy.session[SESSION_KEY] = cherrypy.request.login = username
-            self.on_login(username)
+            cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
+            self.on_login(current_username)
             raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
 
     @cherrypy.expose

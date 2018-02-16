@@ -66,9 +66,9 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
             cv_type = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
         PULLURL = mylar.CVURL + str(cv_type) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
-    elif type == 'firstissue':
+    elif any([type == 'image', type == 'firstissue']):
         #this is used ONLY for CV_ONLY
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date'
+        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,image'
     elif type == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif type == 'comicyears':
@@ -154,9 +154,9 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
     elif type == 'comic':
         dom = pulldetails(comicid, 'comic', None, 1)
         return GetComicInfo(comicid, dom)
-    elif type == 'firstissue':
-        dom = pulldetails(comicid, 'firstissue', issueid, 1)
-        return GetFirstIssue(issueid, dom)
+    elif any([type == 'image', type == 'firstissue']):
+        dom = pulldetails(comicid, type, issueid, 1)
+        return Getissue(issueid, dom, type)
     elif type == 'storyarc':
         dom = pulldetails(arc, 'storyarc', None, 1)
         return GetComicInfo(issueid, dom)
@@ -541,19 +541,27 @@ def GetIssuesInfo(comicid, dom, arcid=None):
     #issue['firstdate'] = firstdate
     return issuech, firstdate
 
-def GetFirstIssue(issueid, dom):
+def Getissue(issueid, dom, type):
     #if the Series Year doesn't exist, get the first issue and take the date from that
-    try:
-        first_year = dom.getElementsByTagName('cover_date')[0].firstChild.wholeText
-    except:
-        first_year = '0000'
-        return first_year
+    if type == 'firstissue':
+        try:
+            first_year = dom.getElementsByTagName('cover_date')[0].firstChild.wholeText
+        except:
+            first_year = '0000'
+            return first_year
 
-    the_year = first_year[:4]
-    the_month = first_year[5:7]
-    the_date = the_year + '-' + the_month
+        the_year = first_year[:4]
+        the_month = first_year[5:7]
+        the_date = the_year + '-' + the_month
+        return the_year
+    else:
+        try:
+            image = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
+            image_alt = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+        except:
+            image = None
 
-    return the_year
+        return image
 
 def GetSeriesYears(dom):
     #used by the 'add a story arc' option to individually populate the Series Year for each series within the given arc.

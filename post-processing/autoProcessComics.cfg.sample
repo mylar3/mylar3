@@ -1,7 +1,6 @@
 [Mylar]
 host=localhost
 port=8090
-username=
-password=
+apikey=
 web_root=
 ssl=0

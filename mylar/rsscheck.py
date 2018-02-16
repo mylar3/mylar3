@@ -46,27 +46,16 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
     if issue:
         srchterm += '%20' + str(issue)
 
-    if mylar.CONFIG.TPSE_PROXY:
-        if mylar.CONFIG.TPSE_PROXY.endswith('/'):
-            tpse_url = mylar.CONFIG.TPSE_PROXY
-        else:
-            tpse_url = mylar.CONFIG.TPSE_PROXY + '/'
-    else:
-        #switched to https.
-        tpse_url = mylar.TPSEURL
-
     #this is for the public trackers included thus far in order to properly cycle throught the correct ones depending on the search request
-    # TPSE = search only
     # DEM = rss feed
     # WWT = rss feed
-    if pickfeed == 'TPSE-SEARCH':
-        pickfeed = '2'
-        loopit = 1
-    elif pickfeed == 'TPSE':
+    #if pickfeed == 'TPSE-SEARCH':
+    #    pickfeed = '2'
+    #    loopit = 1
+    loopit = 1
+    if pickfeed == 'Public':
         #we need to cycle through both DEM + WWT feeds
         loopit = 2
-    else:
-        loopit = 1
 
     lp = 0
     totalcount = 0
@@ -117,11 +106,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             return
         elif pickfeed == "5" and srchterm is not None:  # demonoid search / non-RSS
             feed = mylar.DEMURL + "files/?category=10&subcategory=All&language=0&seeded=2&external=2&query=" + str(srchterm) + "&uid=0&out=rss"
-            verify = bool(mylar.CONFIG.TPSE_VERIFY)
+            verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
         elif pickfeed == "6":    # demonoid rss feed 
             feed = mylar.DEMURL + 'rss/10.xml'
             feedtype = ' from the New Releases RSS Feed from Demonoid'
-            verify = bool(mylar.CONFIG.TPSE_VERIFY)
+            verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
         elif pickfeed == "999":    #WWT rss feed
             feed = mylar.WWTURL + 'rss.php?cat=132,50'
             feedtype = ' from the New Releases RSS Feed from WorldWideTorrents'
@@ -135,14 +124,12 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             logger.error('invalid pickfeed denoted...')
             return
 
-        if pickfeed == '2' or pickfeed == '3':
-            picksite = 'TPSE'
+        #if pickfeed == '2' or pickfeed == '3':
+        #    picksite = 'TPSE'
             #if pickfeed == '2':
             #    feedme = tpse.
-        elif pickfeed == '5' or pickfeed == '6':
+        if pickfeed == '5' or pickfeed == '6':
             picksite = 'DEM'
-            #if pickfeed == '5':
-            #    feedme = dem.
         elif pickfeed == '999':
             picksite = 'WWT'
         elif pickfeed == '1' or pickfeed == '4' or int(pickfeed) > 7:
@@ -165,7 +152,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 if cf_cookievalue:
                     r = scraper.get(feed, verify=verify, cookies=cf_cookievalue, headers=headers)
                 else:
-                    r = scraper.get(feed, verify=verify)#requests.get(feed, params=payload, verify=verify)
+                    r = scraper.get(feed, verify=verify)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
                 lp+=1
@@ -229,25 +216,8 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 i+=1
         else:
             for entry in feedme['entries']:
-                #TP.SE RSS SEARCH RESULT
-                if pickfeed == "2":
-                    try:
-                        tmpenc = feedme.entries[i].enclosures[0]
-                    except AttributeError:
-                        logger.warn('Unable to retrieve results - probably just hitting it too fast...')
-                        continue
-                    id = urlparse.urlparse(feedme.entries[i].link).path.rpartition('/')[0]
-
-                    torthetpse.append({
-                                    'site':     picksite,
-                                    'title':    feedme.entries[i].title,
-                                    'id':       re.sub('/', '', id).strip(),  #make sure to remove the leading '/'
-                                    'link':     tmpenc['url'],   #should change this to magnet
-                                    'pubdate':  feedme.entries[i].updated,
-                                    'size':     tmpenc['length']
-                                    })
                 #DEMONOID / FEED
-                elif pickfeed == "6":
+                if pickfeed == "6":
                     tmpsz = feedme.entries[i].description
                     tmpsz_st = tmpsz.find('Size')
                     if tmpsz_st != -1:
@@ -606,7 +576,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
 
     if mylar.CONFIG.ENABLE_32P and nzbprov == '32P':
         tresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='32P'", [tsearch])
-    if mylar.CONFIG.ENABLE_TPSE and nzbprov == 'TPSE':
+    if mylar.CONFIG.ENABLE_PUBLIC and nzbprov == 'Public Torrents':
         tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [tsearch])
 
     logger.fdebug('seriesname_alt:' + str(seriesname_alt))
@@ -645,7 +615,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
             AS_Alternate = '%' + AS_Alternate
             if mylar.CONFIG.ENABLE_32P and nzbprov == '32P':
                 tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='32P'", [AS_Alternate])
-            if mylar.CONFIG.ENABLE_TPSE and nzbprov == 'TPSE':
+            if mylar.CONFIG.ENABLE_PUBLIC and nzbprov == 'Public Torrents':
                 tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [AS_Alternate])
 
     if tresults is None:
@@ -678,7 +648,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
         #logger.fdebug('there are ' + str(len(torsplit)) + ' sections in this title')
         i=0
         if nzbprov is not None:
-            if nzbprov != tor['Site'] and not any([mylar.CONFIG.ENABLE_TPSE, tor['Site'] != 'WWT', tor['Site'] != 'DEM']):
+            if nzbprov != tor['Site'] and not any([mylar.CONFIG.ENABLE_PUBLIC, tor['Site'] != 'WWT', tor['Site'] != 'DEM']):
                 logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
                 continue
         #0 holds the title/issue and format-type.
@@ -952,8 +922,8 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
         headers = None #{'Accept-encoding': 'gzip',
                        # 'User-Agent':      str(mylar.USER_AGENT)}
-    elif site == 'TPSE':
-        pass
+    #elif site == 'TPSE':
+    #    pass
         #linkit should be the magnet link since it's TPSE
         #url = linkit
 
@@ -1021,7 +991,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
         payload = None
         verify = False
 
-    if site != 'TPSE':
+    if site != 'Public Torrents':
         if not verify:
             #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
             #disable SSL warnings - too many 'warning' messages about invalid certificates
@@ -1074,7 +1044,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             else:
                 return "fail"
 
-        if any([site == 'TPSE', site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
+        if any([site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
             if str(r.status_code) != '503':
                 logger.warn('Unable to download from ' + site + ' [' + str(r.status_code) + ']')
                 #retry with the alternate torrent link.
@@ -1099,10 +1069,14 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
         if str(r.status_code) != '200':
             logger.warn('Unable to download torrent from ' + site + ' [Status Code returned: ' + str(r.status_code) + ']')
-            logger.info('content: %s' % r.content)
+            if str(r.status_code) == '404' and site == '32P':
+                logger.warn('[32P-CACHED_ENTRY] Entry found in 32P cache - incorrect. Torrent has probably been merged into a pack, or another series id. Removing from cache.')
+                delete_cache_entry(linkit)
+            else:
+                logger.info('content: %s' % r.content)
             return "fail"
 
-        if any([site == 'TPSE', site == 'DEM', site == 'WWT']):
+        if any([site == 'DEM', site == 'WWT']):
             if r.headers.get('Content-Encoding') == 'gzip':
                 buf = StringIO(r.content)
                 f = gzip.GzipFile(fileobj=buf)
@@ -1120,10 +1094,10 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
     if mylar.USE_UTORRENT:
         uTC = utorrent.utorrentclient()
-        if site == 'TPSE':
-            ti = uTC.addurl(linkit)
-        else:
-            ti = uTC.addfile(filepath, filename)
+        #if site == 'TPSE':
+        #    ti = uTC.addurl(linkit)
+        #else:
+        ti = uTC.addfile(filepath, filename)
         if ti == 'fail':
             return ti
         else:
@@ -1206,11 +1180,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
     elif mylar.USE_WATCHDIR:
         if mylar.CONFIG.TORRENT_LOCAL:
-            if site == 'TPSE':
-                torrent_info = {'hash': pubhash}
-            else:
-                #get the hash so it doesn't mess up...
-                torrent_info = helpers.get_the_hash(filepath)
+            #if site == 'TPSE':
+            #    torrent_info = {'hash': pubhash}
+            #else:
+            #    #get the hash so it doesn't mess up...
+            torrent_info = helpers.get_the_hash(filepath)
             torrent_info['clientmode'] = 'watchdir'
             torrent_info['link'] = linkit
             torrent_info['filepath'] = filepath
@@ -1219,6 +1193,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             tssh = ftpsshup.putfile(filepath, filename)
             return tssh
 
+def delete_cache_entry(id):
+    myDB = db.DBConnection()
+    myDB.action("DELETE FROM rssdb WHERE link=? AND Site='32P'", [id])
 
 if __name__ == '__main__':
     #torrents(sys.argv[1])

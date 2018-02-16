@@ -1,27 +1,9 @@
 import sys
-import urllib
+import requests
 import os.path
 import ConfigParser
 
-apc_version = "1.0"
-
-class AuthURLOpener(urllib.FancyURLopener):
-    def __init__(self, user, pw):
-        self.username = user
-        self.password = pw
-        self.numTries = 0
-        urllib.FancyURLopener.__init__(self)
-
-    def prompt_user_passwd(self, host, realm):
-        if self.numTries == 0:
-            self.numTries = 1
-            return (self.username, self.password)
-        else:
-            return ('', '')
-
-    def openit(self, url):
-        self.numTries = 0
-        return urllib.FancyURLopener.open(self, url)
+apc_version = "2.0"
 
 def processEpisode(dirName, nzbName=None):
     print "Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors."
@@ -47,8 +29,10 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
 
     host = config.get("Mylar", "host")
     port = config.get("Mylar", "port")
-    username = config.get("Mylar", "username")
-    password = config.get("Mylar", "password")
+    apikey = config.get("Mylar", "apikey")
+    if apikey is None:
+        print("No ApiKey has been set within Mylar to allow this script to run. This is NEW. Generate an API within Mylar, and make sure to enter the apikey value into the autoProcessComics.cfg file before re-running.")
+        sys.exit(1)
     try:
         ssl = int(config.get("Mylar", "ssl"))
     except (ConfigParser.NoOptionError, ValueError):
@@ -59,37 +43,36 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
     except ConfigParser.NoOptionError:
         web_root = ""
 
-    params = {}
-
-    params['nzb_folder'] = dirName
-    if nzbName != None:
-        params['nzb_name'] = nzbName
-
-    params['failed'] = failed
-
-    params['apc_version'] = apc_version
-    params['comicrn_version'] = comicrn_version
-
-    myOpener = AuthURLOpener(username, password)
-
     if ssl:
         protocol = "https://"
     else:
         protocol = "http://"
 
-    url = protocol + host + ":" + port + web_root + "/post_process?" + urllib.urlencode(params)
+    url = protocol + host + ":" + port + web_root + '/api'
 
-    print "Opening URL:", url
+    params = {'cmd': 'forceProcess',
+              'apikey': apikey,
+              'nzb_folder': dirName}
+
+    if nzbName != None:
+        params['nzb_name'] = nzbName
+    params['failed'] = failed
+
+    params['apc_version'] = apc_version
+    params['comicrn_version'] = comicrn_version
 
     try:
-        urlObj = myOpener.openit(url)
-    except IOError, e:
-        print "Unable to open URL: ", str(e)
+        print("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url))
+        pp = requests.post(url, params=params, verify=False)
+    except Exception as e:
+        print("Unable to open URL: %s" %e)
         sys.exit(1)
 
-    result = urlObj.readlines()
-    for line in result:
-        print line
+    print 'statuscode: %s' % pp.status_code
+
+    result = pp.content
+
+    print pp.content
 
     if any("Post Processing SUCCESSFUL" in s for s in result):
         return 0

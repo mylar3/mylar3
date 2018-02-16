@@ -70,6 +70,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'NZB_STARTUP_SEARCH': (bool, 'General', False),
     'UNICODE_ISSUENUMBER': (bool, 'General', False),
     'CREATE_FOLDERS': (bool, 'General', True),
+    'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -211,10 +212,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'BLACKHOLE_DIR': (str, 'Blackhole', None),
 
-    'ENABLE_TPSE': (bool, 'TPSE', False),
-    'TPSE_PROXY': (str, 'TPSE', None),
-    'TPSE_VERIFY': (bool, 'TPSE', True),
-
     'NZBSU': (bool, 'NZBsu', False),
     'NZBSU_UID': (str, 'NZBsu', None),
     'NZBSU_APIKEY': (str, 'NZBsu', None),
@@ -247,6 +244,8 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'COPY2ARCDIR': (bool, 'StoryArc', False),
     'ARC_FOLDERFORMAT': (str, 'StoryArc', None),
     'ARC_FILEOPS': (str, 'StoryArc', 'copy'),
+    'UPCOMING_STORYARCS': (bool, 'StoryArc', False),
+    'SEARCH_STORYARCS': (bool, 'StoryArc', False),
 
     'LOCMOVE': (bool, 'Update', False),
     'NEWCOM_DIR': (str, 'Update', None),
@@ -268,6 +267,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_TORRENT_SEARCH': (bool, 'Torrents', False),
     'MINSEEDS': (int, 'Torrents', 0),
     'ALLOW_PACKS': (bool, 'Torrents', False),
+    'ENABLE_PUBLIC': (bool, 'Torrents', False),
 
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
@@ -345,6 +345,8 @@ _BAD_DEFINITIONS = OrderedDict({
      #keyname, section, oldkeyname
      #ie. 'TEST_VALUE': ('TEST', 'TESTVALUE')
     'SAB_CLIENT_POST_PROCESSING': ('SABnbzd', None),
+    'ENABLE_PUBLIC': ('Torrents', 'ENABLE_TPSE'),
+    'PUBLIC_VERIFY': ('Torrents', 'TPSE_VERIFY'),
 })
 
 class Config(object):
@@ -851,8 +853,8 @@ class Config(object):
             if self.ENABLE_32P:
                 PR.append('32p')
                 PR_NUM +=1
-            if self.ENABLE_TPSE:
-                PR.append('tpse')
+            if self.ENABLE_PUBLIC:
+                PR.append('public torrents')
                 PR_NUM +=1
         if self.NZBSU:
             PR.append('nzb.su')
@@ -867,7 +869,7 @@ class Config(object):
             PR.append('Torznab')
             PR_NUM +=1
 
-        PPR = ['32p', 'tpse', 'nzb.su', 'dognzb', 'Experimental', 'Torznab']
+        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental', 'Torznab']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled

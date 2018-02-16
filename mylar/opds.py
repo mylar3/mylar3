@@ -486,7 +486,7 @@ class OPDS(object):
             return
         myDB = db.DBConnection()
         issuetype = 0
-        issue = myDB.selectone("SELECT * from readinglist WHERE IssueID=? and Location IS NOT NULL",
+        issue = myDB.selectone("SELECT * from storyarcs WHERE IssueID=? and Location IS NOT NULL",
                                (kwargs['issueid'],)).fetchone()
         if not issue:
             issue = myDB.selectone("SELECT * from issues WHERE IssueID=?", (kwargs['issueid'],)).fetchone()
@@ -522,7 +522,7 @@ class OPDS(object):
             issuecount = 0
             arcname = ''
             updated = '0000-00-00'
-            arclist = myDB.select("SELECT * from readinglist WHERE StoryArcID=?", (arc,))
+            arclist = myDB.select("SELECT * from storyarcs WHERE StoryArcID=?", (arc,))
             for issue in arclist:
                 if issue['Status'] == 'Downloaded':
                     issuecount += 1
@@ -657,7 +657,7 @@ class OPDS(object):
             return
         links = []
         entries=[]
-        arclist = self._dic_from_query("SELECT * from readinglist WHERE StoryArcID='" + kwargs['arcid'] + "' ORDER BY ReadingOrder")
+        arclist = self._dic_from_query("SELECT * from storyarcs WHERE StoryArcID='" + kwargs['arcid'] + "' ORDER BY ReadingOrder")
         newarclist = []
         arcname = ''
         for book in arclist:

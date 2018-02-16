@@ -19,10 +19,12 @@ from operator import itemgetter
 import datetime
 from datetime import timedelta, date
 import subprocess
+import requests
 import shlex
 import json
 import re
 import sys
+import ctypes
 import platform
 import calendar
 import itertools
@@ -257,7 +259,7 @@ def decimal_issue(iss):
     return deciss, dec_except
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None, arc=False):
-            import db, logger
+            import db
             myDB = db.DBConnection()
             comicid = str(comicid)   # it's coming in unicoded...
 
@@ -289,7 +291,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 logger.fdebug('annualize is ' + str(annualize))
                 if arc:
                     #this has to be adjusted to be able to include story arc issues that span multiple arcs
-                    chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
+                    chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                 else:
                     chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Issue_Number=?", [comicid, issue]).fetchone()
                     if all([chkissue is None, annualize is None, not mylar.CONFIG.ANNUALS_ON]):
@@ -298,7 +300,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                 if chkissue is None:
                     #rechk chkissue against int value of issue #
                     if arc:
-                        chkissue = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
+                        chkissue = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                     else:
                         chkissue = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [comicid, issuedigits(issue)]).fetchone()
                         if all([chkissue is None, annualize == 'yes', mylar.CONFIG.ANNUALS_ON]):
@@ -316,7 +318,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             #use issueid to get publisher, series, year, issue number
             logger.fdebug('issueid is now : ' + str(issueid))
             if arc:
-                issuenzb = myDB.selectone("SELECT * from readinglist WHERE ComicID=? AND IssueID=? AND StoryArc=?", [comicid, issueid, arc]).fetchone()
+                issuenzb = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND IssueID=? AND StoryArc=?", [comicid, issueid, arc]).fetchone()
             else:
                 issuenzb = myDB.selectone("SELECT * from issues WHERE ComicID=? AND IssueID=?", [comicid, issueid]).fetchone()
                 if issuenzb is None:
@@ -687,9 +689,11 @@ def apiremove(apistring, type):
     else:
         #type = $ to denote end of string
         #type = & to denote up until next api variable
-        value_regex = re.compile("(?<=%26i=1%26r=)(?P<value>.*?)(?=" + str(type) +")")
+        value_regex1 = re.compile("(?<=%26i=1%26r=)(?P<value>.*?)(?=" + str(type) +")")
         #match = value_regex.search(apistring)
-        apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apistring)
+        apiremoved1 = value_regex1.sub("xUDONTNEEDTOKNOWTHISx", apistring)
+        value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=" + str(type) +")")
+        apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apiremoved1)
 
     #need to remove the urlencoded-portions as well in future
     return apiremoved
@@ -706,7 +710,7 @@ def ComicSort(comicorder=None, sequence=None, imported=None):
     if sequence:
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
-        import db, logger
+        import db
         myDB = db.DBConnection()
         comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
@@ -791,7 +795,7 @@ def updateComicLocation():
     #                  - set NEWCOMDIR = new ComicLocation
     #after running, set ComicLocation to new location in Configuration GUI
 
-    import db, logger
+    import db
     myDB = db.DBConnection()
     if mylar.CONFIG.NEWCOM_DIR is not None:
         logger.info('Performing a one-time mass update to Comic Location')
@@ -910,7 +914,7 @@ def cleanhtml(raw_html):
 
 
 def issuedigits(issnum):
-    import db, logger
+    import db
 
     int_issnum = None
 
@@ -1040,24 +1044,25 @@ def issuedigits(issnum):
                     tstord = None
                     issno = None
                     invchk = "false"
-                    while (x < len(issnum)):
-                        if issnum[x].isalpha():
-                        #take first occurance of alpha in string and carry it through
-                            tstord = issnum[x:].rstrip()
-                            tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
-                            issno = issnum[:x].rstrip()
-                            issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
-                            try:
-                                isschk = float(issno)
-                            except ValueError, e:
-                                if len(issnum) == 1 and issnum.isalpha():
-                                    break
-                                logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
-                                issno = None
-                                tstord = None
-                                invchk = "true"
-                            break
-                        x+=1
+                    if issnum.lower() != 'preview':
+                        while (x < len(issnum)):
+                            if issnum[x].isalpha():
+                            #take first occurance of alpha in string and carry it through
+                                tstord = issnum[x:].rstrip()
+                                tstord = re.sub('[\-\,\.\+]', '', tstord).rstrip()
+                                issno = issnum[:x].rstrip()
+                                issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
+                                try:
+                                    isschk = float(issno)
+                                except ValueError, e:
+                                    if len(issnum) == 1 and issnum.isalpha():
+                                        break
+                                    logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
+                                    issno = None
+                                    tstord = None
+                                    invchk = "true"
+                                break
+                            x+=1
                     if tstord is not None and issno is not None:
                         a = 0
                         ordtot = 0
@@ -1078,6 +1083,15 @@ def issuedigits(issnum):
                             int_issnum = (9 * 1000) + (.5 * 1000)
                         elif issnum == '112/113':
                             int_issnum = (112 * 1000) + (.5 * 1000)
+                        elif issnum == '14-16':
+                            int_issnum = (15 * 1000) + (.5 * 1000)
+                        elif issnum.lower() == 'preview':
+                            inu = 0
+                            ordtot = 0
+                            while (inu < len(issnum)):
+                                ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
+                                inu+=1
+                            int_issnum = ordtot
                         else:
                             logger.error(issnum + ' this has an alpha-numeric in the issue # which I cannot account for.')
                             return 999999999999999
@@ -1086,7 +1100,7 @@ def issuedigits(issnum):
 
 
 def checkthepub(ComicID):
-    import db, logger
+    import db
     myDB = db.DBConnection()
     publishers = ['marvel', 'dc', 'darkhorse']
     pubchk = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
@@ -1103,7 +1117,7 @@ def checkthepub(ComicID):
         return mylar.CONFIG.INDIE_PUB
 
 def annual_update():
-    import db, logger
+    import db
     myDB = db.DBConnection()
     annuallist = myDB.select('SELECT * FROM annuals')
     if annuallist is None:
@@ -1151,7 +1165,6 @@ def urlretrieve(urlfile, fpath):
         print "Read %s bytes"%len(data)
 
 def renamefile_readingorder(readorder):
-    import logger
     logger.fdebug('readingorder#: ' + str(readorder))
     if int(readorder) < 10: readord = "00" + str(readorder)
     elif int(readorder) >= 10 and int(readorder) < 99: readord = "0" + str(readorder)
@@ -1160,7 +1173,7 @@ def renamefile_readingorder(readorder):
     return readord
 
 def latestdate_fix():
-    import db, logger
+    import db
     datefix = []
     cnupdate = []
     myDB = db.DBConnection()
@@ -1208,7 +1221,7 @@ def latestdate_fix():
     return
 
 def upgrade_dynamic():
-    import db, logger
+    import db
     dynamic_comiclist = []
     myDB = db.DBConnection()
     #update the comicdb to include the Dynamic Names (and any futher changes as required)
@@ -1225,9 +1238,9 @@ def upgrade_dynamic():
             newVal = {"DynamicComicName": dl['DynamicComicName']}
             myDB.upsert("Comics", newVal, CtrlVal)
 
-    #update the readinglistdb to include the Dynamic Names (and any futher changes as required)
+    #update the storyarcsdb to include the Dynamic Names (and any futher changes as required)
     dynamic_storylist = []
-    rlist = myDB.select('SELECT * FROM readinglist WHERE StoryArcID is not NULL')
+    rlist = myDB.select('SELECT * FROM storyarcs WHERE StoryArcID is not NULL')
     for rl in rlist:
         rl_d = mylar.filechecker.FileChecker(watchcomic=rl['ComicName'])
         rl_dyninfo = cl_d.dynamic_replace(rl['ComicName'])
@@ -1238,7 +1251,7 @@ def upgrade_dynamic():
         for ds in dynamic_storylist:
             CtrlVal = {"IssueArcID": ds['IssueArcID']}
             newVal = {"DynamicComicName": ds['DynamicComicName']}
-            myDB.upsert("readinglist", newVal, CtrlVal)   
+            myDB.upsert("storyarcs", newVal, CtrlVal)   
 
     logger.info('Finished updating ' + str(len(dynamic_comiclist)) + ' / ' + str(len(dynamic_storylist)) + ' entries within the db.')
     mylar.CONFIG.DYNAMIC_UPDATE = 4
@@ -1246,7 +1259,7 @@ def upgrade_dynamic():
     return
 
 def checkFolder(folderpath=None):
-    from mylar import PostProcessor, logger
+    from mylar import PostProcessor
     import Queue
 
     queue = Queue.Queue()
@@ -1263,7 +1276,6 @@ def checkFolder(folderpath=None):
     return
 
 def LoadAlternateSearchNames(seriesname_alt, comicid):
-    import logger
     #seriesname_alt = db.comics['AlternateSearch']
     AS_Alt = []
     Alternate_Names = {}
@@ -1294,7 +1306,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         return Alternate_Names
 
 def havetotals(refreshit=None):
-        import db, logger
+        import db
 
         comics = []
         myDB = db.DBConnection()
@@ -1323,8 +1335,8 @@ def havetotals(refreshit=None):
             #        continue
             try:
                 totalissues = comic['Total']
-                if mylar.CONFIG.ANNUALS_ON:
-                    totalissues += comic['TotalAnnuals']
+#                if mylar.CONFIG.ANNUALS_ON:
+#                    totalissues += comic['TotalAnnuals']
                 haveissues = comic['Have']
             except TypeError:
                 logger.warning('[Warning] ComicID: ' + str(comic['ComicID']) + ' is incomplete - Removing from DB. You should try to re-add the series.')
@@ -1347,7 +1359,7 @@ def havetotals(refreshit=None):
                     percent = 101
             except (ZeroDivisionError, TypeError):
                 percent = 0
-                totalissuess = '?'
+                totalissues = '?'
 
             if comic['LatestDate'] is None:
                 logger.warn(comic['ComicName'] + ' has not finished loading. Nulling some values so things display properly until they can populate.')
@@ -1418,7 +1430,7 @@ def filesafe(comic):
     return comicname_filesafe
 
 def IssueDetails(filelocation, IssueID=None, justinfo=False):
-    import zipfile, logger
+    import zipfile
     from xml.dom.minidom import parseString
 
     issuedetails = []
@@ -1776,7 +1788,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
     return issuedetails
 
 def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
-    import db, logger
+    import db
     myDB = db.DBConnection()
     if IssueID:
         issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
@@ -1835,11 +1847,11 @@ def listStoryArcs():
     library = {}
     myDB = db.DBConnection()
     # Get Distinct Arc IDs
-    list = myDB.select("SELECT DISTINCT(StoryArcID) FROM readinglist");
+    list = myDB.select("SELECT DISTINCT(StoryArcID) FROM storyarcs");
     for row in list:
         library[row['StoryArcID']] = row['StoryArcID']
     # Get Distinct CV Arc IDs
-    list = myDB.select("SELECT DISTINCT(CV_ArcID) FROM readinglist");
+    list = myDB.select("SELECT DISTINCT(CV_ArcID) FROM storyarcs");
     for row in list:
         library[row['CV_ArcID']] = row['CV_ArcID']
     return library
@@ -1867,7 +1879,7 @@ def manualArc(issueid, reading_order, storyarcid):
 
     myDB = db.DBConnection()
 
-    arc_chk = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=? AND NOT Manual is 'deleted'", [storyarcid])
+    arc_chk = myDB.select("SELECT * FROM storyarcs WHERE StoryArcID=? AND NOT Manual is 'deleted'", [storyarcid])
     storyarcname = arc_chk[0]['StoryArc']
     storyarcissues = arc_chk[0]['TotalIssues']
 
@@ -1952,14 +1964,14 @@ def manualArc(issueid, reading_order, storyarcid):
                "TotalIssues":       str(int(storyarcissues) +1),
                "ReadingOrder":      int(reading_order),  #arbitrarily set it to the last reading order sequence # just to see if it works.
                "IssueDate":         issdate,
-               "StoreDate":         storedate,
+               "ReleaseDate":       storedate,
                "SeriesYear":        seriesYear,
                "IssuePublisher":    issuePublisher,
                "CV_ArcID":          storyarcid,
                "Int_IssueNumber":   int_issnum,
                "Manual":            manual_mod}
 
-    myDB.upsert("readinglist", newVals, newCtrl)
+    myDB.upsert("storyarcs", newVals, newCtrl)
 
     #now we resequence the reading-order to accomdate the change.
     logger.info('Adding the new issue into the reading order & resequencing the order to make sure there are no sequence drops...')
@@ -1982,7 +1994,7 @@ def manualArc(issueid, reading_order, storyarcid):
         r1_new = {"ReadingOrder":       rorder}
         newrl = rorder
 
-        myDB.upsert("readinglist", r1_new, rl_ctrl)
+        myDB.upsert("storyarcs", r1_new, rl_ctrl)
 
     #check to see if the issue exists already so we can set the status right away.
     iss_chk = myDB.selectone('SELECT * FROM issues where issueid = ?', [issueid]).fetchone()
@@ -1992,7 +2004,7 @@ def manualArc(issueid, reading_order, storyarcid):
     else:
         status_change = iss_chk['Status']
         logger.info('Issue currently exists in your watchlist. Setting status to ' + status_change)
-        myDB.upsert("readinglist", {'Status': status_change}, newCtrl)
+        myDB.upsert("storyarcs", {'Status': status_change}, newCtrl)
 
     return
 
@@ -2042,7 +2054,7 @@ def listIssues(weeknumber, year):
     return library
 
 def incr_snatched(ComicID):
-    import db, logger
+    import db
     myDB = db.DBConnection()
     incr_count = myDB.selectone("SELECT Have FROM Comics WHERE ComicID=?", [ComicID]).fetchone()
     logger.fdebug('Incrementing HAVE count total to : ' + str(incr_count['Have'] + 1))
@@ -2057,7 +2069,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
     #issueid = the issueid of the issue that's being checked for duplication
     #storyarcid = the storyarcid of the issue that's being checked for duplication.
     #
-    import db, logger
+    import db
     myDB = db.DBConnection()
 
     logger.info('[DUPECHECK] Duplicate check for ' + filename)
@@ -2192,7 +2204,6 @@ def create_https_certificates(ssl_cert, ssl_key):
     This code is stolen from SickBeard (http://github.com/midgetspy/Sick-Beard).
     """
 
-    import logger
     from OpenSSL import crypto
     from certgen import createKeyPair, createCertRequest, createCertificate, \
         TYPE_RSA, serial
@@ -2221,11 +2232,11 @@ def create_https_certificates(ssl_cert, ssl_key):
 def torrent_create(site, linkid, alt=None):
     if any([site == '32P', site == 'TOR']):
         pass
-    elif site == 'TPSE':
-        if alt is None:
-            url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
-        else:
-            url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
+    #elif site == 'TPSE':
+    #    if alt is None:
+    #        url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
+    #    else:
+    #        url = mylar.TPSEURL + 'torrent/' + str(linkid) + '.torrent'
     elif site == 'DEM':
         url = mylar.DEMURL + 'files/download/' + str(linkid) + '/'
     elif site == 'WWT':
@@ -2324,21 +2335,27 @@ def humanize_time(amount, units = 'seconds'):
     return buf
 
 def issue_status(IssueID):
-    import db, logger
+    import db
     myDB = db.DBConnection()
 
-    #logger.fdebug('[ISSUE-STATUS] Issue Status Check for ' + str(IssueID))
+    IssueID = str(IssueID)
+
+    logger.fdebug('[ISSUE-STATUS] Issue Status Check for %s' % IssueID)
 
     isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if isschk is None:
         isschk = myDB.selectone("SELECT * FROM annuals WHERE IssueID=?", [IssueID]).fetchone()
         if isschk is None:
-            logger.warn('Unable to retrieve IssueID from db. This is a problem. Aborting.')
-            return False
+            isschk = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [IssueID]).fetchone()
+            if isschk is None:
+                logger.warn('Unable to retrieve IssueID from db. This is a problem. Aborting.')
+                return False
 
     if any([isschk['Status'] == 'Downloaded', isschk['Status'] == 'Snatched']):
+        logger.info('returning true')
         return True
     else:
+        logger.info('returning false')
         return False
 
 def crc(filename):
@@ -2355,7 +2372,7 @@ def crc(filename):
     return hashlib.md5(filename).hexdigest()
 
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
-    import db, logger
+    import db
 
     myDB = db.DBConnection()
 
@@ -2482,7 +2499,7 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
     return host
 
 def checkthe_id(comicid=None, up_vals=None):
-    import db, logger
+    import db
     myDB = db.DBConnection()
     if not up_vals:
         chk = myDB.selectone("SELECT * from ref32p WHERE ComicID=?", [comicid]).fetchone()
@@ -2513,7 +2530,7 @@ def checkthe_id(comicid=None, up_vals=None):
         myDB.upsert("ref32p", newVal, ctrlVal)
 
 def updatearc_locs(storyarcid, issues):
-    import db, logger
+    import db
     myDB = db.DBConnection()
     issuelist = []
     for x in issues:
@@ -2575,6 +2592,10 @@ def updatearc_locs(storyarcid, issues):
 
                     logger.fdebug('Destination Path : ' + pathdst)
                     logger.fdebug('Source Path : ' + pathsrc)
+                    if not os.path.isdir(grdst):
+                        logger.fdebug('[ARC-DIRECTORY] Arc directory doesn\'t exist. Creating: %s' % grdst)
+                        mylar.filechecker.validateAndCreateDirectory(grdst, create=True)
+
                     if not os.path.isfile(pathdst):
                         logger.info('[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] ' + pathsrc + ' into directory : ' + pathdst)
 
@@ -2595,14 +2616,14 @@ def updatearc_locs(storyarcid, issues):
 
     for ui in update_iss:
         logger.info(ui['IssueID'] + ' to update location to: ' + ui['Location'])
-        myDB.upsert("readinglist", {'Location': ui['Location']}, {'IssueID': ui['IssueID'], 'StoryArcID': storyarcid})
+        myDB.upsert("storyarcs", {'Location': ui['Location']}, {'IssueID': ui['IssueID'], 'StoryArcID': storyarcid})
 
 
 def spantheyears(storyarcid):
     import db
     myDB = db.DBConnection()
 
-    totalcnt = myDB.select("SELECT * FROM readinglist WHERE StoryArcID=?", [storyarcid])
+    totalcnt = myDB.select("SELECT * FROM storyarcs WHERE StoryArcID=?", [storyarcid])
     lowyear = 9999
     maxyear = 0
     for la in totalcnt:
@@ -2653,9 +2674,6 @@ def arcformat(arc, spanyears, publisher):
         arcpath = arcpath[2:]
 
     if mylar.CONFIG.STORYARCDIR:
-        logger.info(mylar.CONFIG.DESTINATION_DIR)
-        logger.info('StoryArcs')
-        logger.info(arcpath)
         dstloc = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs', arcpath)
     elif mylar.CONFIG.COPY2ARCDIR:
         logger.warn('Story arc directory is not configured. Defaulting to grabbag directory: ' + mylar.CONFIG.GRABBAG_DIR)
@@ -3314,14 +3332,98 @@ def newznab_test(name, host, ssl, apikey):
     params = {'t':       'caps',
               'apikey':  apikey,
               'o':       json}
-    import requests
+
+    if host[:-1] == '/':
+        host = host + 'api'
+    else:
+        host = host + '/api'
+    logger.info('host: %s' % host)
     try:
-        response = requests.get(host, params=params, verify=ssl)
-    except:
-        logger.warn('Unable to connect')
+        r = requests.get(host, params=params, verify=bool(ssl))
+    except Exception as e:
+        logger.warn('Unable to connect: %s' % e)
         return
     else:
-        logger.info('Successfully connected: %s' % response['status_code'])
+        logger.info('Connected - Status code returned: %s' % r.status_code)
+
+def get_free_space(folder):
+    st = os.statvfs(folder)
+    dst_freesize = st.f_bavail * st.f_frsize
+    min_threshold = 100000000 #threshold for minimum amount of freespace available
+    logger.fdebug('[FREESPACE-CHECK] %s has %s free' % (folder, sizeof_fmt(dst_freesize)))
+    if min_threshold > dst_freesize:
+        logger.warn('[FREESPACE-CHECK] There is only %s space left on %s' % (dst_freesize, folder))
+        return False
+    else:
+        return True
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+def getImage(comicid, url, issueid=None):
+
+    if os.path.exists(mylar.CONFIG.CACHE_DIR):
+        pass
+    else:
+        #let's make the dir.
+        try:
+            os.makedirs(str(mylar.CONFIG.CACHE_DIR))
+            logger.info('Cache Directory successfully created at: ' + str(mylar.CONFIG.CACHE_DIR))
+
+        except OSError:
+            logger.error('Could not create cache dir. Check permissions of cache dir: ' + str(mylar.CONFIG.CACHE_DIR))
+
+    coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  str(comicid) + ".jpg")
+
+    #if cover has '+' in url it's malformed, we need to replace '+' with '%20' to retreive properly.
+
+    #new CV API restriction - one api request / second.(probably unecessary here, but it doesn't hurt)
+    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
+        time.sleep(2)
+    else:
+        time.sleep(mylar.CONFIG.CVAPI_RATE)
+
+    logger.info('Attempting to retrieve the comic image for series')
+    try:
+        r = requests.get(url, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+    except Exception, e:
+        logger.warn('Unable to download image from CV URL link: ' + url + ' [Status Code returned: ' + str(r.status_code) + ']')
+
+    logger.fdebug('comic image retrieval status code: ' + str(r.status_code))
+
+    if str(r.status_code) != '200':
+        logger.warn('Unable to download image from CV URL link: ' + url + ' [Status Code returned: ' + str(r.status_code) + ']')
+        coversize = 0
+    else:
+        if r.headers.get('Content-Encoding') == 'gzip':
+            buf = StringIO(r.content)
+            f = gzip.GzipFile(fileobj=buf)
+
+        with open(coverfile, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
+
+
+        statinfo = os.stat(coverfile)
+        coversize = statinfo.st_size
+
+    if int(coversize) < 30000 or str(r.status_code) != '200':
+        if str(r.status_code) != '200':
+            logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
+        else:
+            logger.info('Image size invalid [' + str(coversize) + ' bytes] - trying to get alternate cover image.')
+        logger.fdebug('invalid image link is here: ' + url)
+
+        if os.path.exists(coverfile):
+            os.remove(coverfile)
+
+        return 'retry'
 
 
 def file_ops(path,dst,arc=False,one_off=False):

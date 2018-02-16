@@ -63,6 +63,7 @@
                                 <th id="comicname">Comic</th>
 				<th id="comicnumber">#</th>
 				<th id="status">Status</th>
+				<th id="options">Options</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -112,29 +113,51 @@
                                         </td>
                                         <td class="comicnumber">${weekly['ISSUE']}</td>
                                         %if weekly['AUTOWANT']:
-             	                             <td class="status">Auto-Want
+             	                             <td class="status">Auto-Want</td>
                                         %else:
-              	                            <td class="status">${weekly['STATUS']}
-                                            %if weekly['HAVEIT'] == 'OneOff':
-                                                %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
-                                                    <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off"><span class="ui-icon ui-icon-plus"></span>Retry</a>
-                                                %endif
-                                                %if weekly['HASH'] is not None:
-                                                    <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
-                                                %endif
-                                            %elif weekly['STATUS'] == 'Skipped':
+              	                            <td class="status">${weekly['STATUS']}</td>
+                                        %endif
+                                        <td class="options">
+                                        %if weekly['HAVEIT'] == 'OneOff':
+                                            %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
+                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off"><img style="margin: 0px 5px" src="interfaces/default/images/retry.png" height="25" width="25" class="highqual" /></a>
+                                            %endif
+                                            %if weekly['HASH'] is not None:
+                                                <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" /></a>
+                                            %endif
+                                        %elif any([weekly['STATUS'] == 'Skipped', weekly['STATUS'] == 'Wanted']):
+                                            %if weekly['STATUS'] == 'Skipped':
                                                 %if weekly['COMICID'] != '' and weekly['COMICID'] is not None:
-                                                    <a href="#" title="auto-add by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><span class="ui-icon ui-icon-plus"></span>Add</a>
+                                                    <a href="#" title="auto-add to Watchlist directly by ID available for this series" onclick="doAjaxCall('addbyid?comicid=${weekly['COMICID']}&calledby=True',$(this),'table')" data-success="${weekly['COMIC']} is now being added to your wachlist."><img style="margin: 0px 5px" src="interfaces/default/images/add.png" height="25" width="25" class="highqual" /></a>
                                                 %else:
                                                     %if weekly['ISSUE'] == '1' or weekly['ISSUE'] == '0':
-                                                        <a href="#" title="Watch for this series and auto-add when available" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo['midweek']}&weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><span class="ui-icon ui-icon-plus"></span>Watch</a>
-                                                    %endif
-                                                    <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist"><span class="ui-icon ui-icon-plus"></span>Search</a>
+                                                        <a href="#" title="Watch for this series and auto-add to Watchlist when available" onclick="doAjaxCall('add2futurewatchlist?ComicName=${weekly['COMIC'] |u}&Issue=${weekly['ISSUE']}&Publisher=${weekly['PUBLISHER']}&ShipDate=${weekinfo['midweek']}&weeknumber=${weekinfo['weeknumber']}&year=${weekinfo['year']}',$(this),'table')" data-success="${weekly['COMIC']} is now on auto-watch/add."><img style="margin: 0px 5px" src="interfaces/default/images/watch.png" height="25" width="25" class="highqual" /></a>
+                                                     %endif
+                                                     <a href="searchit?name=${weekly['COMIC'] | u}&issue=${weekly['ISSUE']}&mode=pullseries" title="Search for this series to add to your watchlist"><img style="margin: 0px 5px" src="interfaces/default/images/search_add.png" height="25" width="25" class="highqual" /></a>
                                                 %endif
-                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Just grab it"><span class="ui-icon ui-icon-plus"></span>One-Off</a>
-                                            %elif weekly['HASH'] is not None:
-                                                <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
                                             %endif
+                                            %if weekly['ISSUEID'] is None and weekly['STATUS'] == 'Skipped':
+                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download"><img style="margin: 0px 5px" src="interfaces/default/images/search.png" height="25" width="25" class="highqual" /></a>
+                                            %endif
+                                            <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${weekly['ISSUEID']}', '${weekly['COMIC']}', '${weekly['COMICID']}', '${weekly['ISSUE']}', 'pullwant', '${weekly['PUBLISHER']}', '${weekinfo['midweek']}', '${weekinfo['weeknumber']}', '${weekinfo['year']}')"><img style="margin: 0px 5px" src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" /></a>
+                                            <div id="choose_specific_download_dialog" title="Search & Choose a specific download for this issue" style="display:none" class="configtable">
+                                              <table class="display" id="downloads_table">
+                                                 <thead>
+                                                   <tr>
+                                                     <th id="title">Title</th>
+                                                     <th id="provider">Provider</th>
+                                                     <th id="size">Size</th>
+                                                     <th id="kind">Kind</th>
+                                                   </tr>
+                                                 </thead>
+                                                 <tbody id="downloads_table_body" value="Now searching....this might take up to 90 seconds.">
+                                                 </tbody>
+                                              </table>
+                                            </div
+<!--
+                                        %elif weekly['HASH'] is not None:
+                                            <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" /></a>
+-->
                                         %endif
                                         </td>
                                 %endif
@@ -166,6 +189,74 @@
         </script>
 
 	<script>
+        function getAvailableDownloads(issueid, comicname, comicid, issue, mode, publisher, pullinfo, pullweek, pullyear) {
+                ShowSpinner();
+                $.getJSON("choose_specific_download", {issueid: issueid, comicname: comicname, comicid: comicid, issue: issue, mode: mode, publisher: publisher, pullinfo: pullinfo, pullweek: pullweek, pullyear: pullyear}, function(data) {
+                        loader.remove();
+                        feedback.fadeOut();
+                        search_results = data;
+                        if(search_results !=null){
+                            for( var i = 0, len = data.length; i < len; i++ ) {
+                                $('#downloads_table_body').append('<tr><td id="title"><a href="javascript:void(0)" onclick="downloadSpecificRelease('+i+')">'+data[i].nzbtitle+'</a></td><td id="provider">'+data[i].provider+'</td><td id="size">'+data[i].size+'</td><td id="kind">'+data[i].kind+'</td></tr>');
+                        }
+                            $('#downloads_table').dataTable({
+                                    "aoColumns": [
+                                            null,
+                                            null,
+                                            null,
+                                            null
+                                    ],
+                                    "aaSorting": [[ 1, 'desc']],
+                                    "olanguage": {
+                                           "emptyTable": "No search results found"},
+                                    "bFilter": false,
+                                    "bInfo": false,
+                                    "bPaginate": false,
+                                    "bDestroy": true
+                            });
+                        } else{ 
+                            $('#downloads_table_body').append('<tr><td style="text-align:center;" colspan="3">No results returned</td></tr>');
+                        }
+                $("#choose_specific_download_dialog").dialog({
+                        width: "70%",
+                        maxHeight: 500
+                });
+                return false;
+                });
+        }
+
+        function downloadSpecificRelease(i){
+
+                name = search_results[i].nzbtitle
+                prov = search_results[i].tmpprov
+                nzbid = search_results[i].nzbid
+                ShowSpinner();
+                $.getJSON("download_specific_release", {nzbid: nzbid, provider: prov, name: name}, function(data) {
+                        loader.remove();
+                        feedback.fadeOut();
+                        refreshSubmenu();
+                        $("#choose_specific_download_dialog").dialog("close");
+                });
+        }
+
+        function ShowSpinner() {
+                feedback = $("#ajaxMsg");
+                update = $("#updatebar");
+                if ( update.is(":visible") ) {
+                        var height = update.height() + 35;
+                        feedback.css("bottom",height + "px");
+                } else {
+                        feedback.removeAttr("style");
+                }
+                loader = $("<i class='fa fa-refresh fa-spin'></i>");
+                feedback.prepend(loader);
+                feedback.fadeIn();
+        }
+
+        var loadingMessage = false;
+        var spinner_active = false;
+        var loadingtext_active = false;
+        var refreshInterval;
 
         function initThisPage() {
                 $("#weekfolder").click(function(){

@@ -171,6 +171,13 @@ function refreshTable() {
 		initThisPage();
 	});
 }
+function refreshTab() {
+        var url =  $(location).attr('href');
+        var tabId = $('.ui-tabs-panel:visible').attr("id");
+        $('.ui-tabs-panel:visible').load(url + " #"+ tabId, function() {
+                initThisPage();
+        });
+}
 function refreshLoadArtist() {
 	if ( $(".gradeL").length > 0 ) {
 		var url =  $(location).attr('href');
