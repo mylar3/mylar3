@@ -5490,9 +5490,6 @@ class WebInterface(object):
     downloadBanner.exposed = True
 
     def manageBanner(self, comicid, action, height=None, width=None):
-        logger.info('comicid: %s' % comicid)
-        logger.info('action: %s' % action)
-        logger.info('height: %s' % height)
         rootpath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')
         if action == 'delete':
             delete = False
@@ -5526,8 +5523,6 @@ class WebInterface(object):
             #    if os.path.isfile(loc +x):
             #        ext = x
             #        break
-            logger.info('original path: %s' % filepath)
-            logger.info('new path: %s' % os.path.join(rootpath, (str(comicid) + '-bannerH' + str(height) + ext)))
             if filepath is not None:
                 os.rename(filepath, os.path.join(rootpath, (str(comicid) + '-bannerH' + str(height) + ext)))
                 logger.info('successfully saved %s to new dimensions of banner : 960 x %s' % (str(comicid) + '-bannerH' + str(height) + ext, height))
@@ -5537,7 +5532,12 @@ class WebInterface(object):
     manageBanner.exposed = True
 
     def choose_specific_download(self, **kwargs): #manual=True):
-        if all([kwargs['issueid'] != 'None', kwargs['issueid'] is not None]):
+        try:
+            action = kwargs['action']
+        except:
+            action = False
+
+        if all([kwargs['issueid'] != 'None', kwargs['issueid'] is not None]) and kwargs['action'] is False:
             issueid = kwargs['issueid']
             logger.info('checking for: %s' % issueid)
             results = search.searchforissue(issueid, manual=True)

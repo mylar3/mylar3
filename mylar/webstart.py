@@ -106,9 +106,9 @@ def initialize(options):
         }
     }
 
-    userpassdict = dict(zip((options['http_username'].encode('utf-8'),), (options['http_password'].encode('utf-8'),)))
-    get_ha1= cherrypy.lib.auth_digest.get_ha1_dict_plain(userpassdict)
     if options['http_password'] is not None:
+        #userpassdict = dict(zip((options['http_username'].encode('utf-8'),), (options['http_password'].encode('utf-8'),)))
+        #get_ha1= cherrypy.lib.auth_digest.get_ha1_dict_plain(userpassdict)
         if options['authentication'] == 2:
             # Set up a sessions based login page instead of using basic auth,
             # using the credentials set for basic auth. Attempting to browse to
