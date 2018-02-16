@@ -173,7 +173,10 @@ class WebInterface(object):
 #        imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comic['ComicID'], helpers.issuedigits(comic['LatestIssue'])]).fetchone()
 #        imageurl = mylar.cv.getComic(comic['ComicID'], 'image', issueid=imagetopull[0])
 #        helpers.getImage(comic['ComicID'], imageurl)
-
+        if comic['ComicImage'] is None:
+            comicImage = 'cache/' + str(ComicID) + '.jpg'
+        else:
+            comicImage = comic['ComicImage']
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1":                    helpers.radio(int(usethefuzzy), 1),
@@ -186,7 +189,7 @@ class WebInterface(object):
                     "totalissues":                    totalissues,
                     "haveissues":                     haveissues,
                     "percent":                        percent,
-                    "ComicImage":                     comic['ComicImage'] + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                    "ComicImage":                     comicImage + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
                }
 
         if mylar.CONFIG.ANNUALS_ON:
