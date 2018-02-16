@@ -1978,7 +1978,7 @@ class WebInterface(object):
         if mylar.CONFIG.UPCOMING_STORYARCS is True:
             arcs = myDB.select("SELECT * from storyarcs WHERE Status='Wanted'")
         else:
-            arcs = 0
+            arcs = []
         if mylar.CONFIG.UPCOMING_SNATCHED is True:
             issues += myDB.select("SELECT * from issues WHERE Status='Snatched'")
             if mylar.CONFIG.UPCOMING_STORYARCS is True:
