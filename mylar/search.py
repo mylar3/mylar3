@@ -1701,8 +1701,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         continue
                     #generate the send-to and actually send the nzb / torrent.
                     #logger.info('entry: %s' % entry)
-                    links = {'id': entry['id'],
-                             'link': entry['link']}
+                    try:
+                        links = {'id': entry['id'],
+                                 'link': entry['link']}
+                    except:
+                        links = entry['link']
                     searchresult = searcher(nzbprov, nzbname, mylar.COMICINFO, links, IssueID, ComicID, tmpprov, newznab=newznab_host)
 
                     if searchresult == 'downloadchk-fail':
