@@ -1652,9 +1652,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             if nowrite is False:
                                 if any([nzbprov == 'dognzb', nzbprov == 'nzb.su', nzbprov == 'experimental', 'newznab' in nzbprov]):
                                     tprov = nzbprov
+                                    kind = 'usenet'
                                     if newznab_host is not None:
                                         tprov = newznab_host[0]
-                                        kind = 'usenet'
                                 else:
                                     kind = 'torrent'
                                     tprov = nzbprov
