@@ -274,7 +274,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
             try:
                 comiclocal = os.path.join(comlocation, 'cover.jpg')
-                shutil.copyfile(coverfile, comiclocal)
+                shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
                 if mylar.CONFIG.ENFORCE_PERMS:
                     filechecker.setperms(comiclocal)
             except IOError as e:
@@ -352,7 +352,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is True:
         imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comicid, helpers.issuedigits(importantdates['LatestIssue'])]).fetchone()
         imageurl = mylar.cv.getComic(comicid, 'image', issueid=imagetopull['IssueID'])
-        helpers.getImage(comicid, imageurl)
+        covercheck = helpers.getImage(comicid, imageurl)
+        if covercheck == 'retry':
+            logger.info('Attempting to retrieve alternate comic image for the series.')
+            covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
 
