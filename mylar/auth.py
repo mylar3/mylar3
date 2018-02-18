@@ -23,6 +23,7 @@
 import cherrypy
 from cherrypy.lib.static import serve_file
 from cgi import escape
+#from datetime import datetime, timedelta
 import urllib
 import mylar
 from mylar import logger
@@ -45,6 +46,7 @@ def check_auth(*args, **kwargs):
     is not None, a login is required and the entry is evaluated as a list of
     conditions that the user must fulfill"""
     conditions = cherrypy.request.config.get('auth.require', None)
+    get_params = urllib.quote(cherrypy.request.request_line.split()[1])
     if conditions is not None:
         username = cherrypy.session.get(SESSION_KEY)
         if username:
@@ -52,9 +54,9 @@ def check_auth(*args, **kwargs):
             for condition in conditions:
                 # A condition is just a callable that returns true or false
                 if not condition():
-                    raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
+                    raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT + "auth/login?from_page=%s" % get_params)
         else:
-            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT + "auth/login")
+            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT + "auth/login?from_page=%s" % get_params)
 
 cherrypy.tools.auth = cherrypy.Tool('before_handler', check_auth)
 
@@ -121,31 +123,35 @@ class AuthController(object):
         """Called on logout"""
         # not needed or used for Mylar currently
 
-    def get_loginform(self, username, msg="Enter login information"):
+    def get_loginform(self, username, msg="Enter login information", from_page="/"):
         from mylar.webserve import serve_template
-        return serve_template(templatename="login.html", username=escape(username, True), title="Login")
+        return serve_template(templatename="login.html", username=escape(username, True), title="Login", from_page=escape(from_page, True))
 
     @cherrypy.expose
-    def login(self, current_username=None, current_password=None):
+    def login(self, current_username=None, current_password=None, remember_me='0', from_page="/"):
         if current_username is None or current_password is None:
-            return self.get_loginform("")
+            return self.get_loginform("", from_page=from_page)
 
         error_msg = check_credentials(current_username, current_password)
         if error_msg:
-            return self.get_loginform(current_username, error_msg)
+            return self.get_loginform(current_username, error_msg, from_page)
         else:
+            from_page = mylar.CONFIG.HTTP_ROOT + from_page
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
+            #expiry = datetime.now() + (timedelta(days=30) if remember_me == '1' else timedelta(minutes=60))
+            #cherrypy.session[SESSION_KEY] = {'user':    cherrypy.request.login,
+            #                                 'expiry':  expiry}
             self.on_login(current_username)
-            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
+            raise cherrypy.HTTPRedirect(from_page or mylar.CONFIG.HTTP_ROOT)
 
     @cherrypy.expose
-    def logout(self):
+    def logout(self, from_page="/"):
         sess = cherrypy.session
         username = sess.get(SESSION_KEY, None)
         sess[SESSION_KEY] = None
         if username:
             cherrypy.request.login = None
             self.on_logout(username)
-            raise cherrypy.HTTPRedirect(mylar.CONFIG.HTTP_ROOT)
+            raise cherrypy.HTTPRedirect(from_page or mylar.CONFIG.HTTP_ROOT)
 
