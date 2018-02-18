@@ -1205,8 +1205,8 @@ def latestdate_fix():
                                     "latestdate": latestdate})
                     #logger.info('latest date: ' + str(latestdate))
         except:
-            datefix.append({"comicid":   cl['ComicID'],
-                            "latestdate" '0000-00-00'})
+            datefix.append({"comicid":    cl['ComicID'],
+                            "latestdate": '0000-00-00'})
 
     #now we fix.
     if len(datefix) > 0:
