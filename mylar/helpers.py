@@ -1187,22 +1187,26 @@ def latestdate_fix():
                             "comicname_filesafe": filesafe(cl['ComicName'])})
         latestdate = cl['LatestDate']
         #logger.fdebug("latestdate:  " + str(latestdate))
-        if latestdate[8:] == '':
-            #logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day to avoid errors")
-            if len(latestdate) <= 7:
-                finddash = latestdate.find('-')
-                #logger.info('dash found at position ' + str(finddash))
-                if finddash != 4:  #format of mm-yyyy
-                    lat_month = latestdate[:finddash]
-                    lat_year = latestdate[finddash +1:]
-                else:  #format of yyyy-mm
-                    lat_month = latestdate[finddash +1:]
-                    lat_year = latestdate[:finddash]
+        try:
+            if latestdate[8:] == '':
+                #logger.fdebug("invalid date " + str(latestdate) + " appending 01 for day to avoid errors")
+                if len(latestdate) <= 7:
+                    finddash = latestdate.find('-')
+                    #logger.info('dash found at position ' + str(finddash))
+                    if finddash != 4:  #format of mm-yyyy
+                        lat_month = latestdate[:finddash]
+                        lat_year = latestdate[finddash +1:]
+                    else:  #format of yyyy-mm
+                        lat_month = latestdate[finddash +1:]
+                        lat_year = latestdate[:finddash]
 
-                latestdate = (lat_year) + '-' + str(lat_month) + '-01'
-                datefix.append({"comicid":    cl['ComicID'],
-                                "latestdate": latestdate})
-                #logger.info('latest date: ' + str(latestdate))
+                    latestdate = (lat_year) + '-' + str(lat_month) + '-01'
+                    datefix.append({"comicid":    cl['ComicID'],
+                                    "latestdate": latestdate})
+                    #logger.info('latest date: ' + str(latestdate))
+        except:
+            datefix.append({"comicid":   cl['ComicID'],
+                            "latestdate" '0000-00-00'})
 
     #now we fix.
     if len(datefix) > 0:
