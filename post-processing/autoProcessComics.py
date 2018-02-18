@@ -1,9 +1,17 @@
 import sys
-import requests
 import os.path
 import ConfigParser
+import urllib2
+import urllib
+try:
+    import requests2
+    use_requests = True
+except ImportError:
+    print "Requests module not found on system. I'll revert so this will work, but you probably should install "
+    print "requests to bypass this in the future (ie. pip install requests)"
+    use_requests = False
 
-apc_version = "2.0"
+apc_version = "2.01"
 
 def processEpisode(dirName, nzbName=None):
     print "Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors."
@@ -61,18 +69,29 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
     params['apc_version'] = apc_version
     params['comicrn_version'] = comicrn_version
 
-    try:
-        print("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url))
-        pp = requests.post(url, params=params, verify=False)
-    except Exception as e:
-        print("Unable to open URL: %s" %e)
-        sys.exit(1)
-
-    print 'statuscode: %s' % pp.status_code
-
-    result = pp.content
-
-    print pp.content
+    if use_requests is True:
+        try:
+            print("Opening URL for post-process of %s @ %s/forceProcess:" % (dirName,url))
+            pp = requests.post(url, params=params, verify=False)
+        except Exception as e:
+            print("Unable to open URL: %s" %e)
+            sys.exit(1)
+        else:
+            print 'statuscode: %s' % pp.status_code
+            result = pp.content
+            print pp.content
+    else:
+        url += "?" + urllib.urlencode(params)
+        print "Opening URL:", url
+        try:
+            urlObj = urllib2.urlopen(url)
+        except IOError, e:
+            print "Unable to open URL: ", str(e)
+            sys.exit(1)
+        else:
+            result = urlObj.readlines()
+            for line in result:
+                print line
 
     if any("Post Processing SUCCESSFUL" in s for s in result):
         return 0
