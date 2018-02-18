@@ -902,7 +902,10 @@ class WebInterface(object):
     def refreshSeries(self, ComicID):
         comicsToAdd = [ComicID]
         logger.fdebug("Refreshing comic: %s" % comicsToAdd)
-        threading.Thread(target=updater.dbUpdate, args=[comicsToAdd,'refresh']).start()
+        #myDB = db.DBConnection()
+        #myDB.upsert('comics', {'Status': 'Loading'}, {'ComicID': ComicID})
+        #threading.Thread(target=updater.dbUpdate, args=[comicsToAdd,'refresh']).start()
+        updater.dbUpdate(comicsToAdd, 'refresh')
     refreshSeries.exposed = True
 
     def issue_edit(self, id, value):

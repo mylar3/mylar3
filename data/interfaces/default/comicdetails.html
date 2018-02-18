@@ -8,7 +8,7 @@
 <%def name="headerIncludes()">
 	<div id="subhead_container">
 		<div id="subhead_menu">
-                        <a id="menu_link_refresh" onclick="doAjaxCall('refreshSeries?ComicID=${comic['ComicID']}', $(this),'table')" href="#" data-success="${comic['ComicName']} is being refreshed">Refresh Comic</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('refreshSeries?ComicID=${comic['ComicID']}', $(this), 'tabs');" href="#" data-success="${comic['ComicName']} is being refreshed">Refresh Comic</a>
                         <a id="menu_link_delete" href="#">Delete Comic</a>
                            <div id="dialog" title="Delete Series Confirmation" style="display:none" class="configtable">
                               <form action="deleteSeries" method="GET" style="vertical-align: middle; text-align: center">
@@ -24,9 +24,9 @@
                         %if mylar.CONFIG.RENAME_FILES:
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
                         %endif
-                            <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this),true);return true;"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this));refreshLoadSeries();"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
                         %if mylar.CONFIG.ENABLE_META:
-                            <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table')" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table');refreshLoadSeries();" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
                         %if comic['Status'] == 'Paused':
                                 <a id="menu_link_resume" href="#" onclick="doAjaxCall('resumeSeries?ComicID=${comic['ComicID']}',$(this),true)" data-success="${comic['ComicName']} resumed">Resume Comic</a>
@@ -432,7 +432,7 @@
                                                 %endif
 
                                                 %if mylar.CONFIG.ENABLE_META:
-                                                    <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
+                                                    <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this));refreshLoadSeries();" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
                                                 %endif
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" class="highqual" /></a>

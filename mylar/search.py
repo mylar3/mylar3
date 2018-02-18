@@ -711,7 +711,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         log2file = ""
         if not bb == "no results":
             for entry in bb['entries']:
-                logger.info('entry: %s' % entry)  #<--- uncomment this to see what the search result(s) are
+                #logger.fdebug('entry: %s' % entry)  #<--- uncomment this to see what the search result(s) are
                 #brief match here against 32p since it returns the direct issue number
                 if nzbprov == '32P' and RSS == 'no':
                     if entry['pack'] == '0':
@@ -1298,9 +1298,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     if nowrite is False:
                         if any([nzbprov == 'dognzb', nzbprov == 'nzb.su', nzbprov == 'experimental', 'newznab' in nzbprov]):
                             tprov = nzbprov
+                            kind = 'usenet'
                             if newznab_host is not None:
                                 tprov = newznab_host[0]
-                                kind = 'usenet'
                         else:
                             kind = 'torrent'
                             tprov = nzbprov
@@ -2938,7 +2938,7 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
         return
 
 def generate_id(nzbprov, link):
-    logger.info('[%s] generate_id - link: %s' % (nzbprov, link))
+    #logger.fdebug('[%s] generate_id - link: %s' % (nzbprov, link))
     if nzbprov == 'experimental':
         #id is located after the /download/ portion
         url_parts = urlparse.urlparse(link)
