@@ -25,6 +25,7 @@ from cherrypy.lib.static import serve_file
 from cgi import escape
 #from datetime import datetime, timedelta
 import urllib
+import re
 import mylar
 from mylar import logger
 
@@ -138,6 +139,8 @@ class AuthController(object):
         else:
             if from_page != "/":
                 from_page = from_page
+            if mylar.CONFIG.HTTP_ROOT != "/":
+                from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
             #expiry = datetime.now() + (timedelta(days=30) if remember_me == '1' else timedelta(minutes=60))
