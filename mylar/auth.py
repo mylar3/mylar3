@@ -136,10 +136,8 @@ class AuthController(object):
         if error_msg:
             return self.get_loginform(current_username, error_msg, from_page)
         else:
-            if mylar.CONFIG.HTTP_ROOT != "/":
+            if from_page != "/":
                 from_page = from_page
-            else:
-                from_page = mylar.CONFIG.HTTP_ROOT + from_page
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
             #expiry = datetime.now() + (timedelta(days=30) if remember_me == '1' else timedelta(minutes=60))
