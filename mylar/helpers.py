@@ -1399,7 +1399,11 @@ def havetotals(refreshit=None):
             if recentstatus == 'Loading':
                 cpub = comic['ComicPublished']
             else:
-                cpub = re.sub('(N)', '', comic['ComicPublished']).strip()
+                try:
+                    cpub = re.sub('(N)', '', comic['ComicPublished']).strip()
+                except Exception as e:
+                    logger.warn('[Error: %s] No Publisher found for %s - you probably want to Refresh the series when you get a chance.' % (e, comic['ComicName']))
+                    cpub = None
 
             comics.append({"ComicID":         comic['ComicID'],
                            "ComicName":       comic['ComicName'],
