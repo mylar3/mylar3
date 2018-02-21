@@ -137,14 +137,14 @@ class AuthController(object):
         if error_msg:
             return self.get_loginform(current_username, error_msg, from_page)
         else:
-            if all([from_page != "/", from_page != "//"]):
-                from_page = from_page
-            if mylar.OS_DETECT == 'Windows':
-                if mylar.CONFIG.HTTP_ROOT != "//":
-                    from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
-            else:
-                if mylar.CONFIG.HTTP_ROOT != "/":
-                    from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
+            #if all([from_page != "/", from_page != "//"]):
+            #    from_page = from_page
+            #if mylar.OS_DETECT == 'Windows':
+            #    if mylar.CONFIG.HTTP_ROOT != "//":
+            #        from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
+            #else:
+            #    #if mylar.CONFIG.HTTP_ROOT != "/":
+            #    from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
             #expiry = datetime.now() + (timedelta(days=30) if remember_me == '1' else timedelta(minutes=60))
