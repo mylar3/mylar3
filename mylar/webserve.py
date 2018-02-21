@@ -1146,7 +1146,7 @@ class WebInterface(object):
                    logger.error("Unable to send torrent - check logs and settings.")
                    continue
                 else:
-                    if any([mylar.CONFIG.USE_RTORRENT, mylar.CONFIG.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
+                    if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
                         mylar.SNATCHED_QUEUE.put(rcheck['hash'])
                     elif mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
                         #packs not supported on retry atm - Volume and Issuedate also not included due to limitations...
