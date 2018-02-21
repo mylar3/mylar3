@@ -151,7 +151,7 @@ SCHED = BackgroundScheduler({
 def initialize(config_file):
     with INIT_LOCK:
 
-        global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
+        global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
                DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
@@ -914,67 +914,67 @@ def dbcheck():
         c.execute('ALTER TABLE upcoming ADD COLUMN DisplayComicName TEXT')
 
 
-    ## -- Readinglist Table --
+    ## -- storyarcs Table --
 
     try:
-        c.execute('SELECT ComicID from readinglist')
+        c.execute('SELECT ComicID from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN ComicID TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN ComicID TEXT')
 
     try:
-        c.execute('SELECT StoreDate from readinglist')
+        c.execute('SELECT StoreDate from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN StoreDate TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN StoreDate TEXT')
 
     try:
-        c.execute('SELECT IssueDate from readinglist')
+        c.execute('SELECT IssueDate from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN IssueDate TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN IssueDate TEXT')
 
     try:
-        c.execute('SELECT Publisher from readinglist')
+        c.execute('SELECT Publisher from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN Publisher TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN Publisher TEXT')
 
     try:
-        c.execute('SELECT IssuePublisher from readinglist')
+        c.execute('SELECT IssuePublisher from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN IssuePublisher TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN IssuePublisher TEXT')
 
     try:
-        c.execute('SELECT IssueName from readinglist')
+        c.execute('SELECT IssueName from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN IssueName TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN IssueName TEXT')
 
     try:
-        c.execute('SELECT CV_ArcID from readinglist')
+        c.execute('SELECT CV_ArcID from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN CV_ArcID TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN CV_ArcID TEXT')
 
     try:
-        c.execute('SELECT Int_IssueNumber from readinglist')
+        c.execute('SELECT Int_IssueNumber from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN Int_IssueNumber INT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN Int_IssueNumber INT')
 
     try:
-        c.execute('SELECT DynamicComicName from readinglist')
+        c.execute('SELECT DynamicComicName from storyarcs')
         if CONFIG.DYNAMIC_UPDATE < 4:
             dynamic_upgrade = True
         else:
             dynamic_upgrade = False
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN DynamicComicName TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN DynamicComicName TEXT')
         dynamic_upgrade = True
 
     try:
-        c.execute('SELECT Volume from readinglist')
+        c.execute('SELECT Volume from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN Volume TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN Volume TEXT')
 
     try:
-        c.execute('SELECT Manual from readinglist')
+        c.execute('SELECT Manual from storyarcs')
     except sqlite3.OperationalError:
-        c.execute('ALTER TABLE readinglist ADD COLUMN Manual TEXT')
+        c.execute('ALTER TABLE storyarcs ADD COLUMN Manual TEXT')
 
     ## -- searchresults Table --
     try:
