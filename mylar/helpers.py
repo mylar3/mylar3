@@ -3355,9 +3355,14 @@ def newznab_test(name, host, ssl, apikey):
         logger.info('Connected - Status code returned: %s' % r.status_code)
 
 def get_free_space(folder):
-    st = os.statvfs(folder)
-    dst_freesize = st.f_bavail * st.f_frsize
-    min_threshold = 100000000 #threshold for minimum amount of freespace available
+    min_threshold = 100000000 #threshold for minimum amount of freespace available (#100mb)
+    if platform.system() == "Windows":
+        free_bytes = ctypes.c_ulonglong(0)
+        ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(folder), None, None, ctypes.pointer(free_bytes))
+        dst_freesize = free_bytes.value
+    else:
+        st = os.statvfs(folder)
+        dst_freesize = st.f_bavail * st.f_frsize
     logger.fdebug('[FREESPACE-CHECK] %s has %s free' % (folder, sizeof_fmt(dst_freesize)))
     if min_threshold > dst_freesize:
         logger.warn('[FREESPACE-CHECK] There is only %s space left on %s' % (dst_freesize, folder))
