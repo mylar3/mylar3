@@ -723,7 +723,7 @@ class PostProcessor(object):
                                             logger.fdebug('StoreDate ' + str(issuechk['ReleaseDate']))
                                             logger.fdebug('IssueDate: ' + str(issuechk['IssueDate']))
                                             if all([issuechk['ReleaseDate'] is not None, issuechk['ReleaseDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
-                                                if issuechk['ReleasDate'] == '0000-00-00':
+                                                if issuechk['ReleaseDate'] == '0000-00-00':
                                                     datevalue = issuechk['IssueDate']
                                                     if int(datevalue[:4]) < int(arcmatch['issue_year']):
                                                         logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
