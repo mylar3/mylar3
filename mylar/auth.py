@@ -126,7 +126,7 @@ class AuthController(object):
 
     def get_loginform(self, username, msg="Enter login information", from_page="/"):
         from mylar.webserve import serve_template
-        return serve_template(templatename="login.html", username=escape(username, True), title="Login", from_page=escape(from_page, True))
+        return serve_template(templatename="login.html", username=escape(username, True), title="Login", from_page=from_page)
 
     @cherrypy.expose
     def login(self, current_username=None, current_password=None, remember_me='0', from_page="/"):
@@ -137,10 +137,14 @@ class AuthController(object):
         if error_msg:
             return self.get_loginform(current_username, error_msg, from_page)
         else:
-            if from_page != "/":
+            if all([from_page != "/", from_page != "//"]):
                 from_page = from_page
-            if mylar.CONFIG.HTTP_ROOT != "/":
-                from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
+            if mylar.OS_DETECT == 'Windows':
+                if mylar.CONFIG.HTTP_ROOT != "//":
+                    from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
+            else:
+                if mylar.CONFIG.HTTP_ROOT != "/":
+                    from_page = re.sub(mylar.CONFIG.HTTP_ROOT, '', from_page,1).strip()
             cherrypy.session.regenerate()
             cherrypy.session[SESSION_KEY] = cherrypy.request.login = current_username
             #expiry = datetime.now() + (timedelta(days=30) if remember_me == '1' else timedelta(minutes=60))
