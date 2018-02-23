@@ -188,7 +188,7 @@ class info32p(object):
         if comic_id:
             chk_id = helpers.checkthe_id(comic_id)
 
-        if any([not chk_id, mylar.CONFIG.DEEP_SEARCH_32P is True]):
+        if any([chk_id is None, mylar.CONFIG.DEEP_SEARCH_32P is True]):
             #generate the dynamic name of the series here so we can match it up
             as_d = filechecker.FileChecker()
             as_dinfo = as_d.dynamic_replace(series_search)
@@ -263,21 +263,18 @@ class info32p(object):
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(torrentname)
                     seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
-                    #seriesresult = as_dinfo['mod_seriesname']
                     logger.info('searchresult: ' + seriesresult + ' --- ' + mod_series + '[' + publisher_search + ']')
                     if seriesresult.lower() == mod_series.lower():
-                        logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
+                        logger.fdebug('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
                         data.append({"id":      torrentid,
                                      "series":  torrentname})
                     elif publisher_search.lower() in seriesresult.lower():
-                        logger.info('publisher match.')
+                        logger.fdebug('[MATCH] Publisher match.')
                         tmp_torrentname = re.sub(publisher_search.lower(), '', seriesresult.lower()).strip()
                         as_t = filechecker.FileChecker()
                         as_tinfo = as_t.dynamic_replace(tmp_torrentname)
-                        logger.info('tmp_torrentname:' + tmp_torrentname)
-                        logger.info('as_tinfo:' + as_tinfo['mod_seriesname'])
-                        if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series:
-                            logger.info('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
+                        if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series.lower():
+                            logger.fdebug('[MATCH] ' + torrentname + ' [' + str(torrentid) + ']')
                             pdata.append({"id":      torrentid,
                                           "series":  torrentname})
                             pubmatch = True

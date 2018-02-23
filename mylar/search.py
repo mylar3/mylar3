@@ -263,11 +263,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 tmp_prov_count = len(prov_order)
 
             searchprov = None
-            logger.fdebug('cmloopit: %s' % cmloopit)
 
             while (tmp_prov_count > prov_count):
-                logger.fdebug('prov_count: %s' % prov_count)
-                logger.fdebug('tmp_prov_count: %s' % tmp_prov_count)
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 if prov_order[prov_count] == '32p':
@@ -2496,39 +2493,42 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #since this is torrentspecific snatch, the vars will be different than nzb snatches.
             #torrent_info{'folder','name',['total_filesize','label','hash','files','time_started'}
             t_hash = rcheck['hash']
-
+            rcheck['torrent_filename'] = nzbname
             if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
             elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.LOCAL_TORRENT_PP:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
             else:
                 if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
-                    if comicinfo[0]['pack'] is False:
-                        pnumbers = None
-                        plist = None
-                    else:
-                        pnumbers = '|'.join(comicinfo[0]['pack_numbers'])
-                        plist= '|'.join(comicinfo[0]['pack_issuelist'])
-                    snatch_vars = {'comicinfo':       {'comicname':        ComicName,
-                                                       'volume':           comicinfo[0]['ComicVolume'],
-                                                       'issuenumber':      IssueNumber,
-                                                       'issuedate':        comicinfo[0]['IssueDate'],
-                                                       'seriesyear':       comyear,
-                                                       'comicid':          ComicID,
-                                                       'issueid':          IssueID},
-                                   'pack':             comicinfo[0]['pack'],
-                                   'pack_numbers':     pnumbers,
-                                   'pack_issuelist':   plist,
-                                   'provider':         nzbprov,
-                                   'method':           'torrent',
-                                   'clientmode':       rcheck['clientmode'],
-                                   'torrentinfo':      rcheck}
+                    try:
+                        if comicinfo[0]['pack'] is False:
+                            pnumbers = None
+                            plist = None
+                        else:
+                            pnumbers = '|'.join(comicinfo[0]['pack_numbers'])
+                            plist= '|'.join(comicinfo[0]['pack_issuelist'])
+                        snatch_vars = {'comicinfo':       {'comicname':        ComicName,
+                                                           'volume':           comicinfo[0]['ComicVolume'],
+                                                           'issuenumber':      IssueNumber,
+                                                           'issuedate':        comicinfo[0]['IssueDate'],
+                                                           'seriesyear':       comyear,
+                                                           'comicid':          ComicID,
+                                                           'issueid':          IssueID},
+                                       'pack':             comicinfo[0]['pack'],
+                                       'pack_numbers':     pnumbers,
+                                       'pack_issuelist':   plist,
+                                       'provider':         nzbprov,
+                                       'method':           'torrent',
+                                       'clientmode':       rcheck['clientmode'],
+                                       'torrentinfo':      rcheck}
 
-                    snatchitup = helpers.script_env('on-snatch',snatch_vars)
-                    if snatchitup is True:
-                        logger.info('Successfully submitted on-grab script as requested.')
-                    else:
-                        logger.info('Could not Successfully submit on-grab script as requested. Please check logs...')
+                        snatchitup = helpers.script_env('on-snatch',snatch_vars)
+                        if snatchitup is True:
+                            logger.info('Successfully submitted on-grab script as requested.')
+                        else:
+                            logger.info('Could not Successfully submit on-grab script as requested. Please check logs...')
+                    except Exception as e:
+                        logger.warn('error: %s' % e)
 
         if mylar.USE_WATCHDIR is True:
             if mylar.CONFIG.TORRENT_LOCAL is True:
@@ -2760,7 +2760,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         #send out notifications for on snatch after the updater incase notification fails (it would bugger up the updater/pp scripts)
         notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
         mylar.TMP_PROV = nzbprov
-        return
+        return return_val
 
 def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
 

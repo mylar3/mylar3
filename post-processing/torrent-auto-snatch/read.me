@@ -1,9 +1,6 @@
 #Auto-snatch script for torrent clients (tested against rtorrent, should work with deluge)
 
-1) Browse to the post-processing/torrent-auto-snatch subdirectory of mylar and make a copy of the get.conf.sample 
-script and call it get.conf
-
-2) You can either then startup mylar and exit so that it can regenerate the new value 
+1) You can either then startup mylar and exit so that it can regenerate the new value 
 for the config file - OR -  you can manually enter it. 
 In the config.ini, 2 values need to get changed prior to usage: AUTO_SNATCH and SNATCH_SCRIPT
 -- Set auto-snatch to True in the config.ini to allow mylar to automatically monitor the download in your torrent
@@ -13,17 +10,11 @@ retrieve it to the desired location on the machine that mylar is running on - th
 (normally it should look like this : snatch_script = /mylar/post-processing/torrent-auto-snatch/getlftp.sh)
 save the config.ini
 
-3) Browse to post-processing/torrent-auto-snatch/get.conf done in step 1 and edit the file.
-enter in the required information to connect to your torrent box. Note that this uses ssh to
+2) Confirm the values in your config.ini so that they will work as intended. Note that this uses ssh to
 connect so the host/port/user/pass should relate to your ssh information (if you use ssh-keys,
-leave the pass blank - and enter the full path to your public key file for KEYFILE).
-The LOCALCD option is the location where you want the script to put whatever it downloads from your
+leave the PP_SSHPASS blank - and enter the full path to your public key file for PP_SSHKEYFILE).
+The PP_SSHLOCALCD option is the location where you want the script to put whatever it downloads from your
 client - ideally, this should be the folder that Mylar is to monitor for new items (Folder Monitor).
 
-4) Browse to post-processing/torrent-auto-snatch/getlftp.sh and edit the file.
-edit the first configuration variable of config_file and point it to the FULL path location where the
-get.conf file exists (where is up to you, but it needs to be accessible by the mylar program).
-Save the file.
-
-5) Start up mylar, snatch a torrent and see if it auto-snatches the torrent once it's completed :)
+3) Start up mylar, snatch a torrent and see if it auto-snatches the torrent once it's completed :)
 

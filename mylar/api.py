@@ -107,7 +107,7 @@ class Api(object):
     def fetchData(self):
 
         if self.data == 'OK':
-            logger.fdebug('Recieved API command: ' + self.cmd)
+            logger.fdebug('Received API command: ' + self.cmd)
             methodToCall = getattr(self, "_" + self.cmd)
             result = methodToCall(**self.kwargs)
             if 'callback' not in self.kwargs:
@@ -305,6 +305,29 @@ class Api(object):
 
     def _forceSearch(self, **kwargs):
         search.searchforissue()
+
+    def _issueProcess(self, **kwargs):
+        if 'comicid' not in kwargs:
+            self.data = self._error_with_message('Missing parameter: comicid')
+            return
+        else:
+            self.comicid = kwargs['comicid']
+
+        if 'issueid' not in kwargs:
+            self.issueid = None
+        else:
+            self.issueid = kwargs['issueid']
+
+        if 'folder' not in kwargs:
+            self.data = self._error_with_message('Missing parameter: folder')
+            return
+        else:
+            self.folder = kwargs['folder']
+
+
+        fp = process.Process(self.comicid, self.folder, self.issueid)
+        self.data = fp.post_process()
+        return
 
     def _forceProcess(self, **kwargs):
         if 'nzb_name' not in kwargs:

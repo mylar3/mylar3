@@ -1267,7 +1267,7 @@ class WebInterface(object):
         threading.Thread(target=self.queueissue, kwargs=kwargs).start()
     queueit.exposed = True
 
-    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None, pullweek=None, pullyear=None, manual=False):
+    def queueissue(self, mode, ComicName=None, ComicID=None, ComicYear=None, ComicIssue=None, IssueID=None, new=False, redirect=None, SeriesYear=None, SARC=None, IssueArcID=None, manualsearch=None, Publisher=None, pullinfo=None, pullweek=None, pullyear=None, manual=False, ComicVersion=None):
         logger.fdebug('ComicID:' + str(ComicID))
         logger.fdebug('mode:' + str(mode))
         now = datetime.datetime.now()
@@ -1335,7 +1335,7 @@ class WebInterface(object):
                 ComicYear == now.year
             if Publisher == 'COMICS': Publisher = None
             logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
-            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=IssueDate, IssueID=IssueID, ComicID=ComicID, AlternateSearch=None, mode=mode, UseFuzzy=None, ComicVersion=None, allow_packs=False, manual=manual)
+            foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=IssueDate, IssueID=IssueID, ComicID=ComicID, AlternateSearch=None, mode=mode, UseFuzzy=None, ComicVersion=ComicVersion, allow_packs=False, manual=manual)
             if manual is True:
                 return foundcom
             if foundcom['status'] is True:
@@ -1701,9 +1701,14 @@ class WebInterface(object):
                         for w in weeklyresults:
                             weekit = w
                             snatchit = [x['hash'] for x in chkthis if w['ISSUEID'] == x['IssueID']]
-                            if snatchit:
-                                logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (w['COMIC'], ''.join(snatchit)))
-                                weekit['HASH'] = ''.join(snatchit)
+                            try:
+                                if snatchit:
+                                    logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (w['COMIC'], ''.join(snatchit)))
+                                    weekit['HASH'] = ''.join(snatchit)
+                                else:
+                                    weekit['HASH'] = None
+                            except:
+                                weekit['HASH'] = None
                             endresults.append(weekit)
                         weeklyresults = endresults
 
@@ -3355,6 +3360,7 @@ class WebInterface(object):
                 issuechk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [want['IssueArcID']]).fetchone()
                 SARC = want['StoryArc']
                 IssueArcID = want['IssueArcID']
+                Publisher = want['Publisher']
                 if issuechk is None:
                     # none means it's not a 'watched' series
                     s_comicid = want['ComicID'] #None
@@ -3380,14 +3386,14 @@ class WebInterface(object):
                             issueyear = stdate[:4]
 
                     logger.fdebug('ComicYear: ' + str(want['SeriesYear']))
-                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=issueyear, SeriesYear=want['SeriesYear'], Publisher=None, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID, oneoff=True)
+                    foundcom, prov = search.search_init(ComicName=want['ComicName'], IssueNumber=want['IssueNumber'], ComicYear=issueyear, SeriesYear=want['SeriesYear'], Publisher=Publisher, IssueDate=issdate, StoreDate=stdate, IssueID=s_issueid, SARC=SARC, IssueArcID=IssueArcID, oneoff=True)
                 else:
                     # it's a watched series
                     s_comicid = issuechk['ComicID']
                     s_issueid = issuechk['IssueID']
                     logger.fdebug("-- watched series queue.")
                     logger.fdebug(issuechk['ComicName'] + " -- #" + str(issuechk['Issue_Number']))
-                    foundcom, prov = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], Publisher=None, IssueDate=None, StoreDate=issuechk['ReleaseDate'], IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
+                    foundcom, prov = search.search_init(ComicName=issuechk['ComicName'], IssueNumber=issuechk['Issue_Number'], ComicYear=issuechk['IssueYear'], SeriesYear=issuechk['SeriesYear'], Publisher=Publisher, IssueDate=None, StoreDate=issuechk['ReleaseDate'], IssueID=issuechk['IssueID'], AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=SARC, IssueArcID=IssueArcID)
 
                 if foundcom['status'] is True:
                     logger.fdebug('sucessfully found.')
@@ -5543,12 +5549,17 @@ class WebInterface(object):
         except:
             action = False
 
-        if all([kwargs['issueid'] != 'None', kwargs['issueid'] is not None]) and kwargs['action'] is False:
+        try:
+            comicvolume = kwargs['comicvolume']
+        except:
+            comicvolume = None
+
+        if all([kwargs['issueid'] != 'None', kwargs['issueid'] is not None]) and action is False:
             issueid = kwargs['issueid']
             logger.info('checking for: %s' % issueid)
             results = search.searchforissue(issueid, manual=True)
         else:
-            results = self.queueissue(kwargs['mode'], ComicName=kwargs['comicname'], ComicID=kwargs['comicid'], IssueID=kwargs['issueid'], ComicIssue=kwargs['issue'], Publisher=kwargs['publisher'], pullinfo=kwargs['pullinfo'], pullweek=kwargs['pullweek'], pullyear=kwargs['pullyear'], manual=True)
+            results = self.queueissue(kwargs['mode'], ComicName=kwargs['comicname'], ComicID=kwargs['comicid'], IssueID=kwargs['issueid'], ComicIssue=kwargs['issue'], ComicVersion=comicvolume, Publisher=kwargs['publisher'], pullinfo=kwargs['pullinfo'], pullweek=kwargs['pullweek'], pullyear=kwargs['pullyear'], manual=True)
 
         myDB = db.DBConnection()
         r = []
@@ -5600,12 +5611,16 @@ class WebInterface(object):
             return
         else:
             oneoff = bool(int(dsr['oneoff']))
+            try:
+                pack = bool(int(dsr['pack']))
+            except:
+                pack = False
             comicinfo = [{'ComicName':     dsr['comicname'],
                           'ComicVolume':   dsr['volume'],
                           'IssueNumber':   dsr['issuenumber'],
                           'comyear':       dsr['comicyear'],
                           'IssueDate':     dsr['issuedate'],
-                          'pack':          dsr['pack'],
+                          'pack':          pack,
                           'modcomicname':  dsr['modcomicname'],
                           'oneoff':        oneoff,
                           'SARC':          dsr['sarc'],
@@ -5639,8 +5654,9 @@ class WebInterface(object):
 
         try:
             nzbname = search.nzbname_create(dsr['fullprov'], info=comicinfo, title=dsr['name'])
-            search.searcher(dsr['fullprov'], nzbname, comicinfo, link=link, IssueID=dsr['issueid'], ComicID=dsr['comicid'], tmpprov=dsr['tmpprov'], directsend=True, newznab=newznabinfo)
-            updater.foundsearch(dsr['ComicID'], dsr['IssueID'], mode='series', provider=dsr['tmpprov'])
+            sresults = search.searcher(dsr['fullprov'], nzbname, comicinfo, link=link, IssueID=dsr['issueid'], ComicID=dsr['comicid'], tmpprov=dsr['tmpprov'], directsend=True, newznab=newznabinfo)
+            if sresults is not None:
+                updater.foundsearch(dsr['ComicID'], dsr['IssueID'], mode='series', provider=dsr['tmpprov'], hash=sresults['t_hash'])
         except:
             return json.dumps({'result': 'failure'})
         else:

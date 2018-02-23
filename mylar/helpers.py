@@ -3008,6 +3008,8 @@ def script_env(mode, vars):
         if 'torrentinfo' in vars:
             if 'hash' in vars['torrentinfo']:
                 os.environ['mylar_release_hash'] = vars['torrentinfo']['hash'] 
+            if 'torrent_filename' in vars['torrentinfo']:
+                os.environ['mylar_torrent_filename'] = vars['torrentinfo']['torrent_filename']
             if 'name' in vars['torrentinfo']:
                 os.environ['mylar_release_name'] = vars['torrentinfo']['name']
             if 'folder' in vars['torrentinfo']:

@@ -142,7 +142,7 @@
                                             %if weekly['ISSUEID'] is None and weekly['STATUS'] == 'Skipped':
                                                 <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download"><img style="margin: 0px 5px" src="interfaces/default/images/search.png" height="25" width="25" class="highqual" /></a>
                                             %endif
-                                            <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${weekly['ISSUEID']}', '${weekly['COMIC']}', '${weekly['COMICID']}', '${weekly['ISSUE']}', 'pullwant', '${weekly['PUBLISHER']}', '${weekinfo['midweek']}', '${weekinfo['weeknumber']}', '${weekinfo['year']}', '${dl}')"><img style="margin: 0px 5px" src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" /></a>
+                                            <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${weekly['ISSUEID']}', '${weekly['COMIC']}', '${weekly['COMICID']}', '${weekly['ISSUE']}', '${weekly['VOLUME']}', 'pullwant', '${weekly['PUBLISHER']}', '${weekinfo['midweek']}', '${weekinfo['weeknumber']}', '${weekinfo['year']}', '${dl}')"><img style="margin: 0px 5px" src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" /></a>
                                             <div id="choose_specific_download_dialog" title="Search & Choose a specific download for this issue" style="display:none" class="configtable">
                                               <table class="display" id="downloads_table">
                                                  <thead>
@@ -192,9 +192,9 @@
         </script>
 
 	<script>
-        function getAvailableDownloads(issueid, comicname, comicid, issue, mode, publisher, pullinfo, pullweek, pullyear, dl) {
+        function getAvailableDownloads(issueid, comicname, comicid, issue, comicvolume, mode, publisher, pullinfo, pullweek, pullyear, dl) {
                 ShowSpinner();
-                $.getJSON("choose_specific_download", {issueid: issueid, comicname: comicname, comicid: comicid, issue: issue, mode: mode, publisher: publisher, pullinfo: pullinfo, pullweek: pullweek, pullyear: pullyear, action: dl}, function(data) {
+                $.getJSON("choose_specific_download", {issueid: issueid, comicname: comicname, comicid: comicid, issue: issue, comicvolume: comicvolume, mode: mode, publisher: publisher, pullinfo: pullinfo, pullweek: pullweek, pullyear: pullyear, action: dl}, function(data) {
                         loader.remove();
                         feedback.fadeOut();
                         search_results = data;

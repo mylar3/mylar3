@@ -44,7 +44,7 @@ class PostProcessor(object):
     FOLDER_NAME = 2
     FILE_NAME = 3
 
-    def __init__(self, nzb_name, nzb_folder, module=None, queue=None):
+    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None):
         """
         Creates a new post processor with the given file path and optionally an NZB name.
 
@@ -192,7 +192,7 @@ class PostProcessor(object):
                 logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 return True
 
-    def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False):
+    def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False, filename=None):
         # del_nzbdir will remove the original directory location. Must be set to False for manual pp or else will delete manual dir that's provided (if empty).
         # move = cleanup/delete original location (self.nzb_folder) AND cache location (odir) if metatagging is enabled.
         # copy = cleanup/delete cache location (odir) only if enabled.
@@ -200,8 +200,8 @@ class PostProcessor(object):
         try:
             #tidyup old path
             if cacheonly is False:
-                logger.fdebug('File Option: ' + mylar.CONFIG.FILE_OPTS + ' [META-ENABLED: ' + str(mylar.CONFIG.ENABLE_META) + ']')
-                logger.fdebug('odir: ' + odir + ' [self.nzb_folder: ' + self.nzb_folder + ']')
+                logger.fdebug('File Option: %s [META-ENABLED: %s]' % (mylar.CONFIG.FILE_OPTS, mylar.CONFIG.ENABLE_META))
+                logger.fdebug('odir: %s [filename: %s][self.nzb_folder: %s]' % (odir, filename, self.nzb_folder))
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
                 if all([sub_path is not None, sub_path != self.nzb_folder]):
                     logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
@@ -224,8 +224,37 @@ class PostProcessor(object):
                         shutil.rmtree(tmp_folder)
                         self._log("Removed temporary directory : " + tmp_folder)
                     else:
-                        self._log('Failed to remove temporary directory: ' + tmp_folder)
-                        logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+                        if filename is not None:
+                            if os.path.isfile(os.path.join(tmp_folder,filename)):
+                                logger.fdebug('%s Attempting to remove file: %s' % (self.module, os.path.join(tmp_folder, filename)))
+                                try:
+                                    os.remove(os.path.join(tmp_folder, filename))
+                                except Exception as e:
+                                    logger.warn('%s [%s] Unable to remove file : %s' % (self.module, e, os.path.join(tmp_folder, filename)))
+                                else:
+                                    if not os.listdir(tmp_folder):
+                                       logger.fdebug('%s Tidying up. Deleting original folder location : %s' % (self.module, tmp_folder))
+                                       try:
+                                           shutil.rmtree(tmp_folder)
+                                       except Exception as e:
+                                           logger.warn('%s [%s] Unable to delete original folder location: %s' % (self.module, e, tmp_folder))
+                                       else:
+                                           logger.fdebug('%s Removed original folder location: %s' % (self.module, tmp_folder))
+                                           self._log("Removed temporary directory : " + tmp_folder)
+                                    else:
+                                        self._log('Failed to remove temporary directory: ' + tmp_folder)
+                                        logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
+                        else:
+                            self._log('Failed to remove temporary directory: ' + tmp_folder)
+                            logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+
+                elif all([mylar.CONFIG.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', filename is not None]):
+                    if os.path.isfile(os.path.join(tmp_folder,filename)):
+                        logger.fdebug('%s Attempting to remove original file: %s' % (self.module, os.path.join(tmp_folder, filename)))
+                        try:
+                            os.remove(os.path.join(tmp_folder, filename))
+                        except Exception as e:
+                            logger.warn('%s [%s] Unable to remove file : %s' % (self.module, e, os.path.join(tmp_folder, filename)))
 
                 elif mylar.CONFIG.FILE_OPTS == 'move' and all([del_nzbdir is True, self.nzb_name != 'Manual Run']): #tmp_folder != self.nzb_folder]):
                     if not os.listdir(tmp_folder):
@@ -233,8 +262,29 @@ class PostProcessor(object):
                         shutil.rmtree(tmp_folder)
                         self._log("Removed temporary directory : " + tmp_folder)
                     else:
-                        self._log('Failed to remove temporary directory: ' + tmp_folder)
-                        logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+                        if filename is not None:
+                            if os.path.isfile(os.path.join(tmp_folder,filename)):
+                                logger.fdebug('%s Attempting to remove file: %s' % (self.module, os.path.join(tmp_folder, filename)))
+                                try:
+                                    os.remove(os.path.join(tmp_folder, filename))
+                                except Exception as e:
+                                    logger.warn('%s [%s] Unable to remove file : %s' % (self.module, e, os.path.join(tmp_folder, filename)))
+                                else:
+                                    if not os.listdir(tmp_folder):
+                                       logger.fdebug('%s Tidying up. Deleting original folder location : %s' % (self.module, tmp_folder))
+                                       try:
+                                           shutil.rmtree(tmp_folder)
+                                       except Exception as e:
+                                           logger.warn('%s [%s] Unable to delete original folder location: %s' % (self.module, e, tmp_folder))
+                                       else:
+                                           logger.fdebug('%s Removed original folder location: %s' % (self.module, tmp_folder))
+                                           self._log("Removed temporary directory : " + tmp_folder)
+                                    else:
+                                        self._log('Failed to remove temporary directory: ' + tmp_folder)
+                                        logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
+                        else:
+                            self._log('Failed to remove temporary directory: ' + tmp_folder)
+                            logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
 
             if mylar.CONFIG.ENABLE_META and all([os.path.isdir(odir), 'mylar_' in odir]):
                 #Regardless of the copy/move operation, we need to delete the files from within the cache directory, then remove the cache directory itself for the given issue.
@@ -245,7 +295,6 @@ class PostProcessor(object):
                         os.remove(filepath)
                     except OSError:
                         pass
-
                 if not os.listdir(odir):
                     logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
                     shutil.rmtree(odir)
@@ -274,27 +323,6 @@ class PostProcessor(object):
                 if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
                     self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                     logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
-
-      # -- start. not used.
-                #query SAB to find out if Replace Spaces enabled / not as well as Replace Decimals
-                #http://localhost:8080/sabnzbd/api?mode=set_config&section=misc&keyword=dirscan_speed&value=5
-                #querysab = str(mylar.CONFIG.SAB_HOST) + "/api?mode=get_config&section=misc&output=xml&apikey=" + str(mylar.CONFIG.SAB_APIKEY)
-                #logger.info("querysab_string:" + str(querysab))
-                #file = urllib2.urlopen(querysab)
-                #data = file.read()
-                #file.close()
-                #dom = parseString(data)
-
-                #try:
-                #    sabreps = dom.getElementsByTagName('replace_spaces')[0].firstChild.wholeText
-                #except:
-                #    errorm = dom.getElementsByTagName('error')[0].firstChild.wholeText
-                #    logger.error(u"Error detected attempting to retrieve SAB data : " + errorm)
-                #    return
-                #sabrepd = dom.getElementsByTagName('replace_dots')[0].firstChild.wholeText
-                #logger.fdebug("SAB Replace Spaces: " + str(sabreps))
-                #logger.fdebug("SAB Replace Dots: " + str(sabrepd))
-         # -- end. not used.
 
             if mylar.USE_NZBGET==1:
                 if self.nzb_name != 'Manual Run':
@@ -803,7 +831,7 @@ class PostProcessor(object):
                     logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found ' + str(len(manual_arclist)) + ' issues that belong to Story Arcs. Flinging them into the correct directories.')
                     for ml in manual_arclist:
                         issueid = ml['IssueID']
-                        ofilename = ml['ComicLocation']
+                        ofilename = orig_filename = ml['ComicLocation']
                         logger.info('[STORY-ARC POST-PROCESSING] Enabled for ' + ml['StoryArc'])
 
                         grdst = helpers.arcformat(ml['StoryArc'], helpers.spantheyears(ml['StoryArcID']), ml['Publisher'])
@@ -899,7 +927,7 @@ class PostProcessor(object):
 
                         #tidyup old path
                         if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                            self.tidyup(src_location, True)
+                            self.tidyup(src_location, True, filename=orig_filename)
 
                         #delete entry from nzblog table
                         #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
@@ -1130,230 +1158,6 @@ class PostProcessor(object):
                         logger.info('[PPINFO-POST-PROCESSING-ATTEMPT] %s' % pp)
                         self.nzb_or_oneoff_pp(tinfo=pp)
 
-            #if len(manual_list) > 0:
-                #for ml in manual_list:
-                #    logger.info('[MANUAL-POST-PROCESSING-ATTEMPT] %s' % ml)
-                #self.nzb_or_oneoff_pp(manual=manual_list)
-
-#                annchk = "no"
-#                issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
-#                if issuenzb is None:
-#                    logger.info(module + ' Could not detect as a standard issue - checking against annuals.')
-#                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
-#                    if issuenzb is None:
-#                        logger.info(module + ' issuenzb not found.')
-#                        #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
-#                        #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
-#                        if 'S' in issueid:
-#                            sandwich = issueid
-#                        elif 'G' in issueid or '-' in issueid:
-#                            sandwich = 1
-#                        elif any([self.oneoff is True, issueid >= '900000', issueid == '1']):
-#                            logger.info(module + ' [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.')
-#                            sandwich = None #arbitrarily set it to None just to force one-off downloading below.
-#                        else:
-#                            logger.error(module + ' Unable to locate downloaded file as being initiated via Mylar. Attempting to parse the filename directly and process.')
-#                            self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
-#                            self.valreturn.append({"self.log": self.log,
-#                                                   "mode": 'outside'})
-#                            return self.queue.put(self.valreturn)
-#                    else:
-#                        logger.info(module + ' Successfully located issue as an annual. Continuing.')
-#                        annchk = "yes"
-#
-#                if issuenzb is not None:
-#                    logger.info(module + ' issuenzb found.')
-#                    if helpers.is_number(issueid):
-#                        sandwich = int(issuenzb['IssueID'])
-#                if sandwich is not None and helpers.is_number(sandwich):
-#                    if sandwich < 900000:
-#                        # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
-#                        pass
-#                else:
-#                    if any([self.oneoff is True, issuenzb is None]) or all([sandwich is not None, 'S' in sandwich]) or int(sandwich) >= 900000:
-#                        # this has no issueID, therefore it's a one-off or a manual post-proc.
-#                        # At this point, let's just drop it into the Comic Location folder and forget about it..
-#                        if sandwich is not None and 'S' in sandwich:
-#                            self._log("One-off STORYARC mode enabled for Post-Processing for " + str(sarc))
-#                            logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + str(sarc))
-#                        else:
-#                            self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
-#                            logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
-#                            self._log("Grab-Bag Directory set to : " + mylar.CONFIG.GRABBAG_DIR)
-#                            grdst = mylar.CONFIG.GRABBAG_DIR
-#
-#                        odir = None
-#                        ofilename = None
-#                        for root, dirnames, filenames in os.walk(self.nzb_folder):
-#                            for filename in filenames:
-#                                if filename.lower().endswith(self.extensions):
-#                                    odir = root
-#                                    ofilename = filename
-#                                    path, ext = os.path.splitext(ofilename)
-#
-#                        if ofilename is None:
-#                            logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format. PostProcessing aborted.')
-#                            self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
-#                            self.valreturn.append({"self.log": self.log,
-#                                                   "mode": 'stop'})
-#                            return self.queue.put(self.valreturn)
-#
-#                        if odir is None:
-#                            odir = self.nzb_folder
-#
-#                        if sandwich is not None and 'S' in sandwich:
-#                            issuearcid = re.sub('S', '', issueid)
-#                            logger.fdebug(module + ' issuearcid:' + str(issuearcid))
-#                            arcdata = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
-#                            if arcdata is None:
-#                                logger.warn(module + ' Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary')
-#                                self._log('Unable to locate issue within Story Arcs in orde to properly assign metadata. PostProcessing aborted.')
-#                                self.valreturn.append({"self.log": self.log,
-#                                                       "mode": 'stop'})
-#                                return self.queue.put(self.valreturn)
-#
-#                            if arcdata['Publisher'] is None:
-#                                arcpub = arcdata['IssuePublisher']
-#                            else:
-#                                arcpub = arcdata['Publisher']
-#
-#                            grdst = helpers.arcformat(arcdata['StoryArc'], helpers.spantheyears(arcdata['StoryArcID']), arcpub)
-#
-#                            if comicid is None:
-#                                comicid = arcdata['ComicID']
-#                            if comicname is None:
-#                                comicname = arcdata['ComicName']
-#                            if issuenumber is None:
-#                                issuenumber = arcdata['IssueNumber']
-#                            issueid = arcdata['IssueID']
-#
-#                        #tag the meta.
-#                        metaresponse = None
-#
-#                        crcvalue = helpers.crc(os.path.join(self.nzb_folder, ofilename))
-#
-#                        #if a one-off download from the pull-list, will not have an issueid associated with it, and will fail to due conversion/tagging.
-#                        #if altpull/2 method is being used, issueid may already be present so conversion/tagging is possible with some additional fixes.
-#                        if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
-#                            self._log("Metatagging enabled - proceeding...")
-#                            try:
-#                                import cmtagmylar
-#                                metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
-#                            except ImportError:
-#                                logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
-#                                metaresponse = "fail"
-#
-#                            if metaresponse == "fail":
-#                                logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...')
-#                            elif metaresponse == "unrar error":
-#                                logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
-#                                #launch failed download handling here.
-#                            elif metaresponse.startswith('file not found'):
-#                                filename_in_error = os.path.split(metaresponse, '||')[1]
-#                                self._log("The file cannot be found in the location provided for metatagging [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
-#                                logger.error(module + ' The file cannot be found in the location provided for metagging [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
-#                            else:
-#                                odir = os.path.split(metaresponse)[0]
-#                                ofilename = os.path.split(metaresponse)[1]
-#                                ext = os.path.splitext(metaresponse)[1]
-#                                logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
-#                                self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
-#
-#                        dfilename = ofilename
-#
-#                        if metaresponse:
-#                            src_location = odir
-#                        else:
-#                            src_location = self.nzb_folder
-#
-#                        grab_src = os.path.join(src_location, ofilename)
-#                        self._log("Source Path : " + grab_src)
-#                        logger.info(module + ' Source Path : ' + grab_src)
-#
-#                        checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
-#                        if not checkdirectory:
-#                            logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
-#                            self.valreturn.append({"self.log": self.log,
-#                                                   "mode": 'stop'})
-#                            return self.queue.put(self.valreturn)
-#
-#                        #send to renamer here if valid.
-#                        if mylar.CONFIG.RENAME_FILES:
-#                            renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
-#                            if renamed_file:
-#                                dfilename = renamed_file['nfilename']
-#                                logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
-#
-#
-#                        if sandwich is not None and 'S' in sandwich:
-#                            #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
-#                            if mylar.CONFIG.READ2FILENAME:
-#                                logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
-#                                if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
-#                                elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
-#                                else: readord = str(arcdata['ReadingOrder'])
-#                                dfilename = str(readord) + "-" + dfilename
-#                            else:
-#                                dfilename = ofilename
-#                            grab_dst = os.path.join(grdst, dfilename)
-#                        else:
-#                            grab_dst = os.path.join(grdst, ofilename)
-#
-#                        self._log("Destination Path : " + grab_dst)
-#
-#                        logger.info(module + ' Destination Path : ' + grab_dst)
-#
-#                        logger.info(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + str(ofilename) + ' into directory : ' + str(grab_dst))
-#
-#                        try:
-#                            fileoperation = helpers.file_ops(grab_src, grab_dst)
-#                            if not fileoperation:
-#                                raise OSError
-#                        except (OSError, IOError):
-#                            logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-#                            self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src + " - check directories and manually re-run.")
-#                            return
-#
-#                        #tidyup old path
-#                        if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-#                            self.tidyup(src_location, True)
-#
-#                        #delete entry from nzblog table
-#                        myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
-#
-#                        if sandwich is not None and 'S' in sandwich:
-#                            #issuearcid = re.sub('S', '', issueid)
-#                            logger.info(module + ' IssueArcID is : ' + str(issuearcid))
-#                            ctrlVal = {"IssueArcID":  issuearcid}
-#                            newVal = {"Status":       "Downloaded",
-#                                      "Location":     grab_dst}
-#                            myDB.upsert("storyarcs", newVal, ctrlVal)
-#                            logger.info(module + ' Updated status to Downloaded')
-#
-#                            logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
-#                            self._log(u"Post Processing SUCCESSFUL! ")
-#                        elif self.oneoff is True:
-#                            logger.info(module + ' IssueID is : ' + str(issueid))
-#                            ctrlVal = {"IssueID":  issueid}
-#                            newVal = {"Status":       "Downloaded"}
-#                            logger.info(module + ' Writing to db: ' + str(newVal) + ' -- ' + str(ctrlVal))
-#                            myDB.upsert("weekly", newVal, ctrlVal)
-#                            logger.info(module + ' Updated status to Downloaded')
-#                            myDB.upsert("oneoffhistory", newVal, ctrlVal)
-#                            logger.info(module + ' Updated history for one-off\'s for tracking purposes')
-#                            logger.info(module + ' Post-Processing completed for: [ %s #%s ] %s' % (comicname, issuenumber, grab_dst))
-#                            self._log(u"Post Processing SUCCESSFUL! ")
-#
-#                        try:
-#                            self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module)
-#                        except:
-#                            pass
-#
-#                        self.valreturn.append({"self.log": self.log,
-#                                               "mode": 'stop'})
-#                        return self.queue.put(self.valreturn)
-
-
             if self.nzb_name == 'Manual Run':
                 #loop through the hits here.
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
@@ -1408,33 +1212,6 @@ class PostProcessor(object):
                 return
             else:
                 pass
-            #    comicid = issuenzb['ComicID']
-            #    issuenumOG = issuenzb['Issue_Number']
-            #    #the self.nzb_folder should contain only the existing filename
-            #    dupthis = helpers.duplicate_filecheck(self.nzb_folder, ComicID=comicid, IssueID=issueid)
-            #    if dupthis['action'] == 'dupe_src' or dupthis['action'] == 'dupe_file':
-            #        #check if duplicate dump folder is enabled and if so move duplicate file in there for manual intervention.
-            #        #'dupe_file' - do not write new file as existing file is better quality
-            #        #'dupe_src' - write new file, as existing file is a lesser quality (dupe)
-            #        if mylar.CONFIG.DUPLICATE_DUMP:
-            #            if mylar.CONFIG.DDUMP and not all([mylar.CONFIG.DUPLICATE_DUMP is None, mylar.CONFIG.DUPLICATE_DUMP == '']):
-            #                dupchkit = self.duplicate_process(dupthis)
-            #                if dupchkit == False:
-            #                    logger.warn('Unable to move duplicate file - skipping post-processing of this file.')
-            #                    self.valreturn.append({"self.log": self.log,
-            #                                           "mode": 'stop',
-            #                                           "issueid": issueid,
-            #                                           "comicid": comicid})
-            #                    return self.queue.put(self.valreturn)
-            #
-            #    if dupthis['action'] == "write" or dupthis['action'] == 'dupe_src':
-            #        return self.Process_next(comicid, issueid, issuenumOG)
-            #    else:
-            #        self.valreturn.append({"self.log": self.log,
-            #                               "mode": 'stop',
-            #                               "issueid": issueid,
-            #                               "comicid": comicid})
-            #        return self.queue.put(self.valreturn)
 
     def nzb_or_oneoff_pp(self, tinfo=None, manual=None):
         module = self.module
@@ -1504,7 +1281,7 @@ class PostProcessor(object):
                     if odir is None:
                         odir = self.nzb_folder
 
-                    ofilename = tinfo['comiclocation']
+                    ofilename = orig_filename = tinfo['comiclocation']
 
                     if ofilename is not None:
                         path, ext = os.path.splitext(ofilename)
@@ -1513,7 +1290,7 @@ class PostProcessor(object):
                         for root, dirnames, filenames in os.walk(odir, followlinks=True):
                             for filename in filenames:
                                 if filename.lower().endswith(self.extensions):
-                                    ofilename = filename
+                                    ofilename = orig_filename = filename
                                     logger.fdebug(module + ' Valid filename located as : ' + ofilename)
                                     path, ext = os.path.splitext(ofilename)
                                     break
@@ -1641,7 +1418,7 @@ class PostProcessor(object):
 
                     #tidyup old path
                     if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                        self.tidyup(src_location, True)
+                        self.tidyup(src_location, True, filename=orig_filename)
 
                     #delete entry from nzblog table
                     myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
@@ -1939,59 +1716,6 @@ class PostProcessor(object):
                 prettycomiss = str(issueno)
                 logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
 
-#start outdated?
-#            if str(len(issueno)) > 1:
-#                if issueno.isalpha():
-#                    self._log('issue detected as an alpha.')
-#                    prettycomiss = str(issueno)
-
-#                elif int(issueno) < 0:
-#                    self._log("issue detected is a negative")
-#                    prettycomiss = '-' + str(zeroadd) + str(abs(issueno))
-#                elif int(issueno) < 10:
-#                    self._log("issue detected less than 10")
-#                    if '.' in iss:
-#                        if int(iss_decval) > 0:
-#                            issueno = str(iss)
-#                            prettycomiss = str(zeroadd) + str(iss)
-#                        else:
-#                            prettycomiss = str(zeroadd) + str(int(issueno))
-#                    else:
-#                        prettycomiss = str(zeroadd) + str(iss)
-#                    if issue_except != 'None':
-#                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
-#                elif int(issueno) >= 10 and int(issueno) < 100:
-#                    self._log("issue detected greater than 10, but less than 100")
-#                    if mylar.CONFIG.ZERO_LEVEL_N == "none":
-#                        zeroadd = ""
-#                    else:
-#                        zeroadd = "0"
-#                    if '.' in iss:
-#                        if int(iss_decval) > 0:
-#                            issueno = str(iss)
-#                            prettycomiss = str(zeroadd) + str(iss)
-#                        else:
-#                           prettycomiss = str(zeroadd) + str(int(issueno))
-#                    else:
-#                        prettycomiss = str(zeroadd) + str(iss)
-#                    if issue_except != 'None':
-#                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ".Issue will be set as : " + str(prettycomiss))
-#                else:
-#                    self._log("issue detected greater than 100")
-#                    if '.' in iss:
-#                        if int(iss_decval) > 0:
-#                            issueno = str(iss)
-#                    prettycomiss = str(issueno)
-#                    if issue_except != 'None':
-#                        prettycomiss = str(prettycomiss) + issue_except
-#                    self._log("Zero level supplement set to " + str(mylar.CONFIG.ZERO_LEVEL_N) + ". Issue will be set as : " + str(prettycomiss))
-#            else:
-#                prettycomiss = str(issueno)
-#                self._log("issue length error - cannot determine length. Defaulting to None:  " + str(prettycomiss))
-#--end outdated?
-
             if annchk == "yes":
                 self._log("Annual detected.")
             logger.fdebug(module + ' Pretty Comic Issue is : ' + str(prettycomiss))
@@ -2002,7 +1726,6 @@ class PostProcessor(object):
             month_name = helpers.fullmonth(month)
             if month_name is None:
                 month_name = 'None'
-#            comicnzb= myDB.action("SELECT * from comics WHERE comicid=?", [comicid]).fetchone()
             publisher = comicnzb['ComicPublisher']
             self._log("Publisher: " + publisher)
             logger.fdebug(module + ' Publisher: ' + publisher)
@@ -2057,7 +1780,7 @@ class PostProcessor(object):
 
             #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
             if ml is None:
-                ofilename = None
+                importissue = False
                 for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
                     for filename in filenames:
                         if filename.lower().endswith(self.extensions):
@@ -2072,7 +1795,13 @@ class PostProcessor(object):
                         odir = self.nzb_folder
                 except:
                     logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
-                    odir = self.nzb_folder
+                    if os.path.isfile(self.nzb_folder) and self.nzb_folder.lower().endswith(self.extensions):
+                        import ntpath
+                        odir, ofilename = ntpath.split(self.nzb_folder)
+                        path, ext = os.path.splitext(ofilename)
+                        importissue = True
+                    else:
+                        odir = self.nzb_folder
 
                 if ofilename is None:
                     self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
@@ -2093,11 +1822,11 @@ class PostProcessor(object):
             #tidy-up we can remove the empty directory too. odir is the original COMPLETE path at this point
             if ml is None:
                 subpath = odir
+                orig_filename = ofilename
                 crcvalue = helpers.crc(os.path.join(odir, ofilename))
             else:
-                subpath = os.path.split(ml['ComicLocation'])[0]
+                subpath, orig_filename = os.path.split(ml['ComicLocation'])
                 crcvalue = helpers.crc(ml['ComicLocation'])
-
 
             #tag the meta.
             if mylar.CONFIG.ENABLE_META:
@@ -2162,9 +1891,6 @@ class PostProcessor(object):
                     ext = os.path.splitext(ofilename)[1]
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
                     logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
-                    #if this is successful, and we're copying to dst then set the file op to move this cbz so we
-                    #don't leave a cbr/cbz in the origianl directory.
-                    #self.fileop = shutil.move
             #Run Pre-script
 
             if mylar.CONFIG.ENABLE_PRE_SCRIPTS:
@@ -2186,9 +1912,6 @@ class PostProcessor(object):
                 seriesmetadata['seriesmeta'] = seriesmeta
                 self._run_pre_scripts(nzbn, nzbf, seriesmetadata)
 
-        #rename file and move to new path
-        #nfilename = series + " " + issueno + " (" + seriesyear + ")"
-
             file_values = {'$Series':    seriesfilename,
                            '$Issue':     prettycomiss,
                            '$Year':      issueyear,
@@ -2203,45 +1926,17 @@ class PostProcessor(object):
                           }
 
 
-            #if it's a Manual Run, use the ml['ComicLocation'] for the exact filename.
-#            if ml is None:
-#                ofilename = None
-#                for root, dirnames, filenames in os.walk(self.nzb_folder, followlinks=True):
-#                    for filename in filenames:
-#                        if filename.lower().endswith(self.extensions):
-#                            odir = root
-#                            logger.fdebug(module + ' odir (root): ' + odir)
-#                            ofilename = filename
-#                            logger.fdebug(module + ' ofilename: ' + ofilename)
-#                            path, ext = os.path.splitext(ofilename)
-#                try:
-#                    if odir is None:
-#                        logger.fdebug(module + ' No root folder set.')
-#                        odir = self.nzb_folder
-#                except:
-#                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
-#                    odir = self.nzb_folde
-#
-#                if ofilename is None:
-#                    self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
-#                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
-#                    self.valreturn.append({"self.log": self.log,
-#                                           "mode": 'stop'})
-#                    return self.queue.put(self.valreturn)
-#                logger.fdebug(module + ' odir: ' + odir)
-#                logger.fdebug(module + ' ofilename: ' + ofilename)
-
             if ml:
 
                 if pcheck == "fail":
                     odir, ofilename = os.path.split(ml['ComicLocation'])
+                    orig_filename = ofilename
                 elif pcheck:
                     #odir, ofilename already set. Carry it through.
                     pass
                 else:
-                    odir = os.path.split(ml['ComicLocation'])[0]
+                    odir, orig_filename = os.path.split(ml['ComicLocation'])
                 logger.fdebug(module + ' ofilename:' + ofilename)
-                #ofilename = otofilename
                 if any([ofilename == odir, ofilename == odir[:-1], ofilename == '']):
                     self._log("There was a problem deciphering the filename/directory - please verify that the filename : [" + ofilename + "] exists in location [" + odir + "]. Aborting.")
                     logger.error(module + ' There was a problem deciphering the filename/directory - please verify that the filename : [' + ofilename + '] exists in location [' + odir + ']. Aborting.')
@@ -2260,10 +1955,9 @@ class PostProcessor(object):
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop'})
                 return self.queue.put(self.valreturn)
-            self._log("Original Filename: " + ofilename)
-            self._log("Original Extension: " + ext)
-            logger.fdebug(module + ' Original Filename: ' + ofilename)
-            logger.fdebug(module + ' Original Extension: ' + ext)
+
+            self._log('Original Filename: %s [%s]' % (orig_filename, ext))
+            logger.fdebug('%s Original Filename: %s [%s]' % (module, orig_filename, ext))
 
             if mylar.CONFIG.FILE_FORMAT == '' or not mylar.CONFIG.RENAME_FILES:
                 self._log("Rename Files isn't enabled...keeping original filename.")
@@ -2283,7 +1977,6 @@ class PostProcessor(object):
             self._log("New Filename: " + nfilename)
             logger.fdebug(module + ' New Filename: ' + nfilename)
 
-            #src = os.path.join(self.nzb_folder, ofilename)
             src = os.path.join(odir, ofilename)
             checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True, module=module)
             if not checkdirectory:
@@ -2313,14 +2006,9 @@ class PostProcessor(object):
                 if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir, nfilename + ext))
-                        #if mylar.CONFIG.FILE_OPTS == 'move':
-                        #    os.rename(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
-                        # else:
-                        #    self.fileop(os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
-                #src = os.path.join(self.nzb_folder, str(nfilename + ext))
                 src = os.path.join(odir, ofilename)
                 try:
                     self._log("[" + mylar.CONFIG.FILE_OPTS + "] " + src + " - to - " + dst)
@@ -2343,7 +2031,7 @@ class PostProcessor(object):
 
                 #tidyup old path
                 if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                    self.tidyup(odir, True)
+                    self.tidyup(odir, True, filename=orig_filename)
 
             else:
                 #downtype = for use with updater on history table to set status to 'Post-Processed'
@@ -2353,8 +2041,6 @@ class PostProcessor(object):
                 if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
                         logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename)) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
-                        #os.rename(os.path.join(odir, str(ofilename)), os.path.join(odir, str(nfilename + ext)))
-                        #src = os.path.join(odir, str(nfilename + ext))
                     else:
                         logger.fdebug(module + ' Filename is identical as original, not renaming.')
 
@@ -2379,7 +2065,7 @@ class PostProcessor(object):
                 logger.info(module + ' ' + mylar.CONFIG.FILE_OPTS + ' successful to : ' + dst)
 
                 if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                    self.tidyup(odir, False, subpath)
+                    self.tidyup(odir, True, subpath, filename=orig_filename)
 
             #Hopefully set permissions on downloaded file
             if mylar.CONFIG.ENFORCE_PERMS:
