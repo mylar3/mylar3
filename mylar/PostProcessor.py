@@ -215,6 +215,10 @@ class PostProcessor(object):
                 else:
                     tmp_folder = orig_folder
 
+                if os.path.split(tmp_folder)[1] == filename and not os.path.isdir(tmp_folder):
+                    logger.fdebug('%s item to be deleted is file, not folder due to direct submission: %s' % (self.module, tmp_folder))
+                    tmp_folder = os.path.split(tmp_folder)[0]
+
                 #if all([os.path.isdir(odir), self.nzb_folder != tmp_folder]) or any([odir.startswith('mylar_'),del_nzbdir is True]):
                     # check to see if the directory is empty or not.
 

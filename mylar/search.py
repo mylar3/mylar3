@@ -2316,11 +2316,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 tmp_url_en = len(tmp_url)
             tmp_line += tmp_url[tmp_url_en:]
             #tmp_url = helpers.apiremove(down_url.copy(), '&') 
-            logger.info('Download URL: ' + str(tmp_line) + ' [VerifySSL:' + str(verify) + ']')
+            logger.fdebug('[PAYLOAD-NONE]Download URL: ' + str(tmp_line) + ' [VerifySSL:' + str(verify) + ']')
         else:
             tmppay = payload.copy()
             tmppay['apikey'] = 'YOUDONTNEEDTOKNOWTHIS'
-            logger.info('Download URL: ' + down_url + '?' + urllib.urlencode(tmppay) + ' [VerifySSL:' + str(verify) + ']')
+            logger.fdebug('[PAYLOAD] Download URL: ' + down_url + '?' + urllib.urlencode(tmppay) + ' [VerifySSL:' + str(verify) + ']')
 
         if down_url.startswith('https') and verify == False:
             try:
@@ -2364,10 +2364,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 
         if filen is None:
             if payload is None:
-                logger.error('Unable to download nzb from link: ' + str(down_url) + ' [' + link + ']')
+                logger.error('[PAYLOAD:NONE] Unable to download nzb from link: ' + str(down_url) + ' [' + link + ']')
             else:
                 errorlink = down_url + '?' + urllib.urlencode(payload)
-                logger.error('Unable to download nzb from link: ' + str(errorlink) + ' [' + link + ']')
+                logger.error('[PAYLOAD:PRESENT] Unable to download nzb from link: ' + str(errorlink) + ' [' + link + ']')
             return "sab-fail"
         else:
             #convert to a generic type of format to help with post-processing.
@@ -2978,6 +2978,18 @@ def generate_id(nzbprov, link):
             nzbid = os.path.splitext(link)[0].rsplit('searchresultid=',1)[1]
         elif tmpid == '' or tmpid is None:
             nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
+        elif 'apikey' in tmpid:
+            #if apikey is passed in as a parameter and the id is in the path
+            findend = tmpid.find('&')
+            if findend == -1:
+                findend = len(tmpid)
+                nzbid = tmpid[findend+1:].strip()
+            else:
+                findend = tmpid.find('apikey=', findend)
+                nzbid = tmpid[findend+1:].strip()
+            if '&id' not in tmpid or nzbid == '':
+                tmpid = urlparse.urlparse(link)[2]
+                nzbid = tmpid.rsplit('/', 1)[1]
         else:
             # for the geek in all of us...
             st = tmpid.find('&id')
@@ -2989,13 +3001,6 @@ def generate_id(nzbprov, link):
                     end = len(tmpid)
                 nzbid = re.sub('&id=', '', tmpid[st:end]).strip()
     elif nzbprov == 'Torznab':
-        #if mylar.CONFIG.TORZNAB_HOST.endswith('/'):
-        #    tmphost = mylar.CONFIG.TORZNAB_HOST + 'download/'
-        #else:
-        #    tmphost = mylar.CONFIG.TORZNAB_HOST + '/download/'
-        #tmpline = re.sub(tmphost, '', tmphost).strip()
-        #tmpidend = tmpline.find('/')
-        #nzbid = tmpline[:tmpidend]
         idtmp = urlparse.urlparse(link)[4]
         idpos = idtmp.find('&')
         nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
