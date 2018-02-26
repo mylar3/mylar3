@@ -76,8 +76,9 @@ def archivefiles(comicid, comlocation, imported):
     # if move files isn't enabled, let's set all found comics to Archive status :)
     try:
         imported = ast.literal_eval(imported)
-    except ValueError:
-        pass
+    except Exception as e:
+        logger.warn('[%s] Error encountered converting import data' % e)
+
     ComicName = imported['ComicName']
     impres = imported['filelisting']
 

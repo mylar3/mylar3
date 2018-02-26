@@ -775,7 +775,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
 
-                    logger.info('comsize_b: %s' % comsize_b)
+                    logger.fdebug('comsize_b: %s' % comsize_b)
                     #file restriction limitation here
                     #only works with TPSE (done here) & 32P (done in rsscheck) & Experimental (has it embeded in search and rss checks)
                     if nzbprov == 'Public Torrents' or (nzbprov == '32P' and RSS == 'no'):

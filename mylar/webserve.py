@@ -2183,7 +2183,7 @@ class WebInterface(object):
                                     logger.info('Not renaming ' + filename + ' as it is in desired format already.')
                                 #continue
             logger.info('I have renamed ' + str(filefind) + ' issues of ' + comicname)
-            updater.forceRescan(comicid)
+            updater.forceRescan(cid)
         if len(comiclist) > 1:
             logger.info('[RENAMER] %s series have been renamed.' % len(comiclist))
     manualRename.exposed = True
@@ -4052,6 +4052,9 @@ class WebInterface(object):
                 except TypeError:
                     logger.warn('[IMPORT] Comicvine API limit has been reached, and/or the comicvine website is not responding. Aborting process at this time, try again in an ~ hr when the api limit is reset.')
                     break
+                else:
+                    if sresults is False:
+                        sresults = []
 
                 type='comic'
 

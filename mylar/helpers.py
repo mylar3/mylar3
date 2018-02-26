@@ -666,7 +666,8 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             logger.fdebug('New Filename: ' + nfilename)
 
             if mylar.CONFIG.LOWERCASE_FILENAMES:
-                dst = os.path.join(comlocation, nfilename.lower())
+                nfilename = nfilename.lower()
+                dst = os.path.join(comlocation, nfilename)
             else:
                 dst = os.path.join(comlocation, nfilename)
 
