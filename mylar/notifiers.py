@@ -424,9 +424,6 @@ class TELEGRAM:
             self.token = test_token
 
     def notify(self, message):
-        if not mylar.CONFIG.TELEGRAM_ENABLED:
-            return
-
         # Construct message
         payload = {'chat_id': self.userid, 'text': message}
 
