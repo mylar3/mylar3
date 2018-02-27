@@ -2243,7 +2243,7 @@ class PostProcessor(object):
             if issueyear is None:
                 prline = series + ' - issue #' + issuenumOG
             else:
-                prline = series + '(' + issueyear + ') - issue #' + issuenumOG
+                prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
         else:
             if issueyear is None:
                 if 'annual' not in series.lower():
