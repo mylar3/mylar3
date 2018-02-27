@@ -1391,6 +1391,10 @@ def setperms(path, dir=False):
                     permission = int(mylar.CONFIG.CHMOD_DIR, 8)
                     os.chmod(path, permission)
                     os.chown(path, chowner, chgroup)
+                elif os.path.isfile(path):
+                    permission = int(mylar.CONFIG.CHMOD_FILE, 8)
+                    os.chown(path, chowner, chgroup)
+                    os.chmod(path, permission)   
                 else:
                     for root, dirs, files in os.walk(path):
                         for momo in dirs:
@@ -1404,6 +1408,9 @@ def setperms(path, dir=False):
 
                 logger.fdebug('Successfully changed ownership and permissions [' + str(mylar.CONFIG.CHOWNER) + ':' + str(mylar.CONFIG.CHGROUP) + '] / [' + str(mylar.CONFIG.CHMOD_DIR) + ' / ' + str(mylar.CONFIG.CHMOD_FILE) + ']')
 
+            elif os.path.isfile(path):
+                    permission = int(mylar.CONFIG.CHMOD_FILE, 8)
+                    os.chmod(path, permission)
             else:
                 for root, dirs, files in os.walk(path):
                     for momo in dirs:
