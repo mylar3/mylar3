@@ -2281,7 +2281,7 @@ class PostProcessor(object):
 
         if mylar.CONFIG.TELEGRAM_ENABLED:
             telegram = notifiers.TELEGRAM()
-            telegram.notify(prline, prline2)
+            telegram.notify(prline2)
 
         if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
