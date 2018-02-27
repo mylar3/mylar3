@@ -423,12 +423,12 @@ class TELEGRAM:
         else:
             self.token = test_token
 
-    def notify(self, message, status):
+    def notify(self, message):
         if not mylar.CONFIG.TELEGRAM_ENABLED:
             return
 
         # Construct message
-        payload = {'chat_id': self.userid, 'text': status + ': ' + message}
+        payload = {'chat_id': self.userid, 'text': message}
 
         # Send message to user using Telegram's Bot API
         try:
@@ -446,7 +446,7 @@ class TELEGRAM:
         return sent_successfuly
 
     def test_notify(self):
-        return self.notify('Test Message', 'Release the Ninjas!')
+        return self.notify('Test Message: Release the Ninjas!')
 
 class SLACK:
     def __init__(self, test_webhook_url=None):
