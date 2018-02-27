@@ -453,6 +453,14 @@ class WebInterface(object):
 #                logger.warn(module + ' ' + storyarcname + ' already exists on your Story Arc Watchlist.')
 #                raise cherrypy.HTTPRedirect("readlist")
 
+        #check to makes sure storyarcs dir is present in cache in order to save the images...
+        if not os.path.isdir(os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')):
+            checkdirectory = filechecker.validateAndCreateDirectory(os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs'), True)
+            if not checkdirectory:
+                logger.warn('Error trying to validate/create cache storyarc directory. Aborting this process at this time.')
+                return
+
+
         coverfile = os.path.join(mylar.CONFIG.CACHE_DIR,  'storyarcs', str(cvarcid) + "-banner.jpg")
 
         if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
