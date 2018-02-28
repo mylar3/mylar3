@@ -71,6 +71,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'UNICODE_ISSUENUMBER': (bool, 'General', False),
     'CREATE_FOLDERS': (bool, 'General', True),
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
+    'SHOW_ICONS': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
