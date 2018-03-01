@@ -177,6 +177,7 @@ class WebInterface(object):
             comicImage = 'cache/' + str(ComicID) + '.jpg'
         else:
             comicImage = comic['ComicImage']
+        comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1":                    helpers.radio(int(usethefuzzy), 1),
@@ -189,6 +190,10 @@ class WebInterface(object):
                     "totalissues":                    totalissues,
                     "haveissues":                     haveissues,
                     "percent":                        percent,
+                    "publisher_image":                comicpublisher['publisher_image'],
+                    "publisher_image_alt":            comicpublisher['publisher_image_alt'],
+                    "publisher_imageH":               comicpublisher['publisher_imageH'],
+                    "publisher_imageW":               comicpublisher['publisher_imageW'],
                     "ComicImage":                     comicImage + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
                }
 
@@ -207,9 +212,14 @@ class WebInterface(object):
                     aName.append({"annualComicName":   ann['ReleaseComicName'],
                                   "annualComicID":     ann['ReleaseComicID']})
 
+                issuename = ann['IssueName']
+                if ann['IssueName'] is not None:
+                    if len(ann['IssueName']) > 75:
+                        issuename = '%s...' % ann['IssueName'][:75]
+
                 annuals_list.append({"Issue_Number":      ann['Issue_Number'],
                                      "Int_IssueNumber":   ann['Int_IssueNumber'],
-                                     "IssueName":         ann['IssueName'],
+                                     "IssueName":         issuename,
                                      "IssueDate":         ann['IssueDate'],
                                      "Status":            ann['Status'],
                                      "Location":          ann['Location'],
@@ -2695,7 +2705,7 @@ class WebInterface(object):
             import get_image_size
             image = get_image_size.get_image_metadata(filepath)
             imageinfo = json.loads(get_image_size.Image.to_str_json(image))
-            logger.info('imageinfo: %s' % imageinfo)
+            #logger.fdebug('imageinfo: %s' % imageinfo)
             if imageinfo['width'] > imageinfo['height']:
                 template = 'storyarc_detail.html'
                 bannerheight = '280'

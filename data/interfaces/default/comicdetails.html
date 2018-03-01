@@ -24,7 +24,7 @@
                         %if mylar.CONFIG.RENAME_FILES:
                             <a id="menu_link_refresh" onclick="doAjaxCall('manualRename?comicid=${comic['ComicID']}', $(this),'table')" data-success="Renaming files.">Rename Files</a>
                         %endif
-                            <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this));refreshLoadSeries();"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
+                            <a id="menu_link_refresh" onclick="doAjaxCall('forceRescan?ComicID=${comic['ComicID']}', $(this), 'table');"  data-success="${comic['ComicName']} is being rescanned">Recheck Files</a>
                         %if mylar.CONFIG.ENABLE_META:
                             <a id="menu_link_refresh" onclick="doAjaxCall('group_metatag?ComicID=${comic['ComicID']}&dirName=${comic['ComicLocation'] |u}', $(this),'table');refreshLoadSeries();" data-success="(re)tagging every issue present for '${comic['ComicName']}'">Manual MetaTagging</a>
                         %endif
@@ -95,50 +95,8 @@
                    <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
                  </td>
                  <td width="100%" padding="10">
-                       %if comic['ComicPublisher'] == 'DC Comics':
-                        <img src="interfaces/default/images/publisherlogos/logo-dccomics.png" align="right" alt="DC" height="50" width="50" />
-                       %elif comic['ComicPublisher'] == 'Marvel':
-                        <img src="interfaces/default/images/publisherlogos/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Image':
-                        <img src="interfaces/default/images/publisherlogos/logo-imagecomics.png" align="right" alt="Image" height="100" width="50" />
-                       %elif comic['ComicPublisher'] == 'Dark Horse Comics' or comic['ComicPublisher'] == 'Dark Horse':
-                        <img src="interfaces/default/images/publisherlogos/logo-darkhorse.png" align="right" alt="Darkhorse" height="100" width="75" />
-                       %elif comic['ComicPublisher'] == 'IDW Publishing':
-                        <img src="interfaces/default/images/publisherlogos/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Icon':
-                        <img src="interfaces/default/images/publisherlogos/logo-iconcomics.png" align="right" alt="Icon" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Red5':
-                        <img src="interfaces/default/images/publisherlogos/logo-red5comics.png" align="right" alt="Red5" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Vertigo':
-                        <img src="interfaces/default/images/publisherlogos/logo-vertigo.jpg" align="right" alt="Vertigo" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'ShadowLine':
-                        <img src="interfaces/default/images/publisherlogos/logo-shadowline.png" align="right" alt="Shadowline" height="75" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Archie Comics':
-                        <img src="interfaces/default/images/publisherlogos/logo-archiecomics.jpg" align="right" alt="Archie" height="75" width="75"/>
-                       %elif comic['ComicPublisher'] == 'Oni Press':
-                        <img src="interfaces/default/images/publisherlogos/logo-onipress.png" align="right" alt="Oni Press" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Tokyopop':
-                        <img src="interfaces/default/images/publisherlogos/logo-tokyopop.jpg" align="right" alt="Tokyopop" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Midtown Comics':
-                        <img src="interfaces/default/images/publisherlogos/logo-midtowncomics.jpg" align="right" alt="Midtown" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Boom! Studios':
-                        <img src="interfaces/default/images/publisherlogos/logo-boom.jpg" align="right" alt="Boom!" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Skybound':
-                        <img src="interfaces/default/images/publisherlogos/logo-skybound.jpg" align="right" alt="Skybound" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Vertigo':
-                        <img src="interfaces/default/images/publisherlogos/logo-dynamite.jpg" align="right" alt="Dynamite" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Top Cow':
-                        <img src="interfaces/default/images/publisherlogos/logo-topcow.gif" align="right" alt="Top Cow" height="75" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Dynamite Entertainment':
-                        <img src="interfaces/default/images/publisherlogos/logo-dynamite.png" align="right" alt="Dynamite" height="50" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Cartoon Books':
-                        <img src="interfaces/default/images/publisherlogos/logo-cartoonbooks.jpg" align="right" alt="Cartoon Books" height="75" width="90"/>
-                       %elif comic['ComicPublisher'] == 'Valiant':
-                        <img src="interfaces/default/images/publisherlogos/logo-valiant.png" align="right" alt="Valiant" height="100" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Action Lab':
-                        <img src="interfaces/default/images/publisherlogos/logo-actionlabs.png" align="right" alt="Action Lab" height="100" width="100"/>
-                       %elif comic['ComicPublisher'] == 'Zenescope Entertainment':
-                        <img src="interfaces/default/images/publisherlogos/logo-zenescope.png" align="right" alt="Zenescope" height="100" width="160"/>
+                       %if comicConfig['publisher_image'] is not None:
+                        <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
                        %endif
         		 <fieldset>
                                 <div>
@@ -213,19 +171,10 @@
                    <div style="display:table;position:relative;margin:auto;top:0px;"><span title="${comicConfig['percent']}"></span>${css}<div style="width:${comicConfig['percent']}%"><span class="progressbar-front-text">${comicConfig['haveissues']}/${comicConfig['totalissues']}</span></div></div></div>
                  </td>
                  <td width="100%" padding="10">
-                  %if comic['ComicPublisher'] == 'DC Comics':
-                   <img src="interfaces/default/images/publisherlogos/logo-dccomics.png" align="right" alt="DC" height="50" width="50"/>
-                   %elif comic['ComicPublisher'] == 'Marvel':
-                   <img src="interfaces/default/images/publisherlogos/logo-marvel.jpg" align="right" alt="Marvel" height="50" width="100" border="1"/>
-                   %elif comic['ComicPublisher'] == 'Image':
-                   <img src="interfaces/default/images/publisherlogos/logo-imagecomics.png" align="right" alt="Image" height="100" width="50"/>
-                   %elif comic['ComicPublisher'] == 'Dark Horse Comics':
-                   <img src="interfaces/default/images/publisherlogos/logo-darkhorse.png" align="right" alt="Darkhorse" height="100" width="75"/>
-                   %elif comic['ComicPublisher'] == 'IDW Publishing':
-                   <img src="interfaces/default/images/publisherlogos/logo-idwpublish.png" align="right" alt="IDW" height="50" width="100"/>
-                   %endif
-
-                <form action="comic_config" method="GET">
+                 %if comicConfig['publisher_image'] is not None:
+                     <img src="${comicConfig['publisher_image']}" align="right" alt="${comicConfig['publisher_image_alt']}" height="${comicConfig['publisher_imageH']}" width="${comicConfig['publisher_imageW']}" />
+                 %endif
+                 <form action="comic_config" method="GET">
                     <input type="hidden" name="ComicID" value=${comic['ComicID']}>
                         <fieldset>
                                 <br/>
@@ -364,7 +313,7 @@
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
                                 <%
                                     if len(issue['IssueName']) > 70:
-                                        issuename = issue['IssueName'][:70] + '...'
+                                        issuename = "%s..." % issue['IssueName'][:70]
                                     else:
                                         issuename = issue['IssueName']
                                     endif

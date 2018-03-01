@@ -200,8 +200,9 @@
                                               </table>
                                             </div>
                                         %elif weekly['HASH'] is not None:
+                                            <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file">
                                             %if mylar.CONFIG.SHOW_ICONS:
-                                                <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" />
+                                                <img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" />
                                             %else:
                                                 <span class="ui-icon ui-icon-plus"></span>Auto-Snatch
                                             %endif

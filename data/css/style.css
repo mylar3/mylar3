@@ -260,7 +260,7 @@ table#searchresults_table td#comicyear { vertical-align: middle; text-align: lef
 table#searchresults_table td#issues { vertical-align: middle; text-align: center; min-width: 50px; }
 
 table#downloads_table th#title { text-align: center; min-width: 100px; }
-table#donwloads_table th#provider { text-align: center; min-width: 30px; }
+table#downloads_table th#provider { text-align: center; min-width: 30px; }
 table#downloads_table th#size { text-align: center; min-width: 20px; }
 table#downloads_table th#kind { text-align: center; min-width: 20px; }
 
