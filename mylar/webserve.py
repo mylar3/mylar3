@@ -4756,25 +4756,27 @@ class WebInterface(object):
     readlistOptions.exposed = True
 
     def arcOptions(self, StoryArcID=None, StoryArcName=None, read2filename=0, storyarcdir=0, arc_folderformat=None, copy2arcdir=0, arc_fileops='copy'):
-        mylar.CONFIG.READ2FILENAME = int(read2filename)
-        mylar.CONFIG.STORYARCDIR = int(storyarcdir)
-        mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
-        mylar.CONFIG.COPY2ARCDIR = int(copy2arcdir)
+        mylar.CONFIG.READ2FILENAME = bool(int(read2filename))
+        mylar.CONFIG.STORYARCDIR = bool(int(storyarcdir))
+        if arc_folderformat is None:
+            mylar.CONFIG.ARC_FOLDERFORMAT = "$(arc) ($spanyears)"
+        else:
+            mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
+        mylar.CONFIG.COPY2ARCDIR = bool(int(copy2arcdir))
         mylar.CONFIG.ARC_FILEOPS = arc_fileops
-        #mylar.config_write()
-        logger.info(mylar.CONFIG.ARC_FOLDERFORMAT)
+        mylar.CONFIG.writeconfig()
 
         #force the check/creation of directory com_location here
-        #if mylar.CONFIG.STORYARCDIR:
-        #    arcdir = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
-        #    if os.path.isdir(str(arcdir)):
-        #        logger.info(u"Validating Directory (" + str(arcdir) + "). Already exists! Continuing...")
-        #    else:
-        #        logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
-        #        checkdirectory = filechecker.validateAndCreateDirectory(arcdir, True)
-        #        if not checkdirectory:
-        #            logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-        #            return
+        if mylar.CONFIG.STORYARCDIR is True:
+            arcdir = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'StoryArcs')
+            if os.path.isdir(arcdir):
+                logger.info('Validating Directory (%s). Already exists! Continuing...' % arcdir)
+            else:
+                logger.fdebug('Storyarc Directory doesn\'t exist! Attempting to create now.')
+                checkdirectory = filechecker.validateAndCreateDirectory(arcdir, True)
+                if not checkdirectory:
+                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                    return
         if StoryArcID is not None:
             raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (StoryArcID, StoryArcName))
         else:

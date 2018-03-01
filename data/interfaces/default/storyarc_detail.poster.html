@@ -57,8 +57,8 @@
                  <div style="position:relative;left:20px;float:left;top:-30px;">
                   <form action="arcOptions" id="chkoptions" method="GET">
                      <div class="row checkbox left clearfix">
-                         %if mylar.CONFIG.STORYARCDIR:
-                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.CONFIG.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><small>${sdir}</small>
+                         %if mylar.CONFIG.STORYARCDIR is True:
+                             <label>Location: ${sdir}</label>
                          %endif
                      </div>
                      <div class="row checkbox left clearfix">
@@ -236,6 +236,7 @@
                     console.log(this);
                     console.log(value);
                     console.log(settings);
+                    refreshTable();
                     return(value);
                 }
             });

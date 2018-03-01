@@ -51,10 +51,11 @@
                                   %>
                      <fieldset>
                      <div class="row checkbox left clearfix">
-                         %if mylar.CONFIG.STORYARCDIR:
-                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="storyarcdir" id="storyarcdir" value="1" ${checked(mylar.CONFIG.STORYARCDIR)} /><label>Should I create a Story-Arc Directory?</label><br/>
-                             <small>${sdir}</small><br/>
+                         </br>
+                         %if mylar.CONFIG.STORYARCDIR is True:
+                             <label>Location: ${sdir}</label>
                          %endif
+                         </br>
 <!--
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
@@ -237,6 +238,7 @@
                     console.log(this);
                     console.log(value);
                     console.log(settings);
+                    refreshTable();
                     return(value);
                 }
             });
