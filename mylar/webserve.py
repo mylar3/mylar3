@@ -5163,6 +5163,14 @@ class WebInterface(object):
             else:
                 logger.fdebug('Failed to remove temporary directory: %s' % cache_dir)
 
+            if filename is not None:
+                if os.path.isfile(filename):
+                    try:
+                        logger.fdebug('%s Removing original filename: %s' % (module, filename))
+                        os.remove(filename)
+                    except OSError:
+                        pass
+
         if any([group is False, fail is False]):
             updater.forceRescan(comicid)
 
