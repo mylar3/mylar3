@@ -198,11 +198,14 @@
                                                  <tbody id="downloads_table_body" value="Now searching....this might take up to 90 seconds.">
                                                  </tbody>
                                               </table>
-                                            </div
-<!--
+                                            </div>
                                         %elif weekly['HASH'] is not None:
-                                            <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" /></a>
--->
+                                            %if mylar.CONFIG.SHOW_ICONS:
+                                                <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${weekly['HASH']}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><img style="margin: 0px 5px" src="interfaces/default/images/snatch.png" height="25" width="25" class="highqual" />
+                                            %else:
+                                                <span class="ui-icon ui-icon-plus"></span>Auto-Snatch
+                                            %endif
+                                            </a>
                                         %endif
                                         </td>
                                 %endif
