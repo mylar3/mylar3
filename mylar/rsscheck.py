@@ -1102,7 +1102,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             return ti
         else:
             #if ti is value, it will return the hash
-            torrent_info = []
+            torrent_info = {}
             torrent_info['hash'] = ti
             torrent_info['clientmode'] = 'utorrent'
             torrent_info['link'] = linkit
