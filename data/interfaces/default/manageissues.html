@@ -92,7 +92,7 @@
                                      except:
                                          ahash = None
                                  %>
-                                 %if ahash is not None:
+                                 %if ahash is not None and mylar.CONFIG.AUTO_SNATCH is True:
                                      <a href="#" onclick="doAjaxCall('torrentit?torrent_hash=${ahash}&download=True',$(this),'table')" title="Auto-Snatch torrent file"><span class="ui-icon ui-icon-plus"></span>auto-snatch</a>
                                  %endif
                                 </td>
