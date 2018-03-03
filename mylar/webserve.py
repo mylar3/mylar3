@@ -1463,7 +1463,6 @@ class WebInterface(object):
                    myDB.upsert("annuals", newValueDict, controlValueDict)
                 else:
                    myDB.upsert("issues", newValueDict, controlValueDict)
-                yield cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
                 self.failed_handling(ComicID=ComicID, IssueID=IssueID)
             else:
                 logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Skipped...")
@@ -1472,7 +1471,6 @@ class WebInterface(object):
                    myDB.upsert("annuals", newValueDict, controlValueDict)
                 else:
                    myDB.upsert("issues", newValueDict, controlValueDict)
-            #cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
         else:
             #if ComicName is not None, then it's from the FuturePull list that we're 'unwanting' an issue.
             #ComicID may be present if it's a watch from the Watchlist, otherwise it won't exist.
