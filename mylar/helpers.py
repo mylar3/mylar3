@@ -1856,13 +1856,13 @@ def listStoryArcs():
     library = {}
     myDB = db.DBConnection()
     # Get Distinct Arc IDs
-    list = myDB.select("SELECT DISTINCT(StoryArcID) FROM storyarcs");
-    for row in list:
-        library[row['StoryArcID']] = row['StoryArcID']
+    #list = myDB.select("SELECT DISTINCT(StoryArcID) FROM storyarcs");
+    #for row in list:
+    #    library[row['StoryArcID']] = row['StoryArcID']
     # Get Distinct CV Arc IDs
     list = myDB.select("SELECT DISTINCT(CV_ArcID) FROM storyarcs");
     for row in list:
-        library[row['CV_ArcID']] = row['CV_ArcID']
+        library[row['CV_ArcID']] = {'comicid': row['CV_ArcID']}
     return library
 
 def listoneoffs(weeknumber, year):

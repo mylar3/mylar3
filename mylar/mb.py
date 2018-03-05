@@ -470,7 +470,7 @@ def storyarcinfo(xmlid):
         if firstid is not None:
             firstdom = cv.pulldetails(comicid=None, type='firstissue', issueid=firstid)
             logger.fdebug('success')
-            arcyear = cv.GetFirstIssue(firstid,firstdom)
+            arcyear = cv.Getissue(firstid,firstdom,'firstissue')
     except:
         logger.fdebug('Unable to retrieve first issue details. Not caclulating at this time.')
 
