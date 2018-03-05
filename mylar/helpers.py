@@ -29,7 +29,9 @@ import platform
 import calendar
 import itertools
 import shutil
+import hashlib
 import os, errno
+from StringIO import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
@@ -2368,7 +2370,6 @@ def issue_status(IssueID):
         return False
 
 def crc(filename):
-    import hashlib
     #memory in lieu of speed (line by line)
     #prev = 0
     #for eachLine in open(filename,"rb"):
@@ -3099,7 +3100,6 @@ def script_env(mode, vars):
         return True
 
 def get_the_hash(filepath):
-    import hashlib, StringIO
     import bencode
     # Open torrent file
     torrent_file = open(filepath, "rb")

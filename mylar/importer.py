@@ -30,7 +30,6 @@ import sqlite3
 import cherrypy
 import requests
 import gzip
-from StringIO import StringIO
 
 import mylar
 from mylar import logger, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
