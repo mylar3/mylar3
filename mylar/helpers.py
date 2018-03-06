@@ -30,6 +30,7 @@ import calendar
 import itertools
 import shutil
 import hashlib
+import gzip
 import os, errno
 from StringIO import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
