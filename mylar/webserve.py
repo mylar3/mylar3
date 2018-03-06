@@ -2154,8 +2154,8 @@ class WebInterface(object):
             comiclist = []
             comiclist.append(comicid)
         myDB = db.DBConnection()
-        filefind = 0
         for cid in comiclist:
+            filefind = 0
             comic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [cid]).fetchone()
             comicdir = comic['ComicLocation']
             comicname = comic['ComicName']
