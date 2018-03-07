@@ -580,13 +580,14 @@ class Config(object):
         for name, value in kwargs.items():
             if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('Torznab')]):
                 key, definition_type, section, ini_key, default = self._define(name)
-                try:
-                    if any([value == "", value is None, len(value) == 0]) and definition_type == str:
+                if definition_type == str:
+                    try:
+                        if any([value == "", value is None, len(value) == 0]):
+                            value = default
+                        else:
+                            value = str(value)
+                    except:
                         value = default
-                    else:
-                        value = str(value)
-                except:
-                    value = default
                 try:
                     if definition_type == bool:
                         value = self.argToBool(value)
@@ -637,7 +638,7 @@ class Config(object):
             else:
                 pass
 
-    def writeconfig(self):
+    def writeconfig(self, values=None):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
@@ -652,6 +653,10 @@ class Config(object):
             config.set('CV', 'blacklisted_publishers', ', '.join(self.BLACKLISTED_PUBLISHERS))
         ###
         config.set('General', 'dynamic_update', str(self.DYNAMIC_UPDATE))
+
+        if values is not None:
+            self.process_kwargs(values)
+
         try:
             with codecs.open(self._config_file, encoding='utf8', mode='w+') as configfile:
                 config.write(configfile)

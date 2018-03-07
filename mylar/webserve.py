@@ -3679,7 +3679,8 @@ class WebInterface(object):
 
     def MassWeeklyDownload(self, weeknumber=None, year=None, midweek=None, weekfolder=0, filename=None):
         if filename is None:
-            mylar.CONFIG.WEEKFOLDER = bool(weekfolder)
+            mylar.CONFIG.WEEKFOLDER = bool(int(weekfolder))
+            mylar.CONFIG.writeconfig(values={'weekfolder': mylar.CONFIG.WEEKFOLDER})
             raise cherrypy.HTTPRedirect("pullist")
 
         # this will download all downloaded comics from the weekly pull list and throw them
@@ -4750,14 +4751,21 @@ class WebInterface(object):
     comic_config.exposed = True
 
     def readlistOptions(self, send2read=0, tab_enable=0, tab_host=None, tab_user=None, tab_pass=None, tab_directory=None, maintainseriesfolder=0):
-        mylar.CONFIG.SEND2READ = int(send2read)
-        mylar.CONFIG.MAINTAINSERIESFOLDER = int(maintainseriesfolder)
-        mylar.CONFIG.TAB_ENABLE = int(tab_enable)
+        mylar.CONFIG.SEND2READ = bool(int(send2read))
+        mylar.CONFIG.MAINTAINSERIESFOLDER = bool(int(maintainseriesfolder))
+        mylar.CONFIG.TAB_ENABLE = bool(int(tab_enable))
         mylar.CONFIG.TAB_HOST = tab_host
         mylar.CONFIG.TAB_USER = tab_user
         mylar.CONFIG.TAB_PASS = tab_pass
         mylar.CONFIG.TAB_DIRECTORY = tab_directory
-        #mylar.config_write()
+        readoptions = {'send2read':              mylar.CONFIG.SEND2READ,
+                       'maintainseriesfolder':   mylar.CONFIG.MAINTAINSERIESFOLDER,
+                       'tab_enable':             mylar.CONFIG.TAB_ENABLE,
+                       'tab_host':               mylar.CONFIG.TAB_HOST,
+                       'tab_user':               mylar.CONFIG.TAB_USER,
+                       'tab_pass':               mylar.CONFIG.TAB_PASS,
+                       'tab_directory':          mylar.CONFIG.TAB_DIRECTORY}
+        mylar.CONFIG.writeconfig(values=readoptions)
 
         raise cherrypy.HTTPRedirect("readlist")
 
@@ -4772,7 +4780,12 @@ class WebInterface(object):
             mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
         mylar.CONFIG.COPY2ARCDIR = bool(int(copy2arcdir))
         mylar.CONFIG.ARC_FILEOPS = arc_fileops
-        mylar.CONFIG.writeconfig()
+        options = {'read2filename':     mylar.CONFIG.READ2FILENAME,
+                   'storyarcdir':       mylar.CONFIG.STORYARCDIR,
+                   'arc_folderformat':  mylar.CONFIG.ARC_FOLDERFORMAT,
+                   'copy2arcdir':       mylar.CONFIG.COPY2ARCDIR,
+                   'arc_fileops':       mylar.CONFIG.ARC_FILEOPS}
+        mylar.CONFIG.writeconfig(values=options)
 
         #force the check/creation of directory com_location here
         if mylar.CONFIG.STORYARCDIR is True:
