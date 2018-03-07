@@ -3453,7 +3453,7 @@ def publisherImages(publisher):
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '50'}
     elif publisher == 'Marvel':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-mavel.jpg',
+        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-marvel.jpg',
                           'publisher_image_alt':   'Marvel',
                           'publisher_imageH':      '50',
                           'publisher_imageW':      '100'}
@@ -3597,11 +3597,6 @@ def publisherImages(publisher):
                           'publisher_image_alt':   'Devil\'s Due',
                           'publisher_imageH':      '75',
                           'publisher_imageW':      '75'}
-    elif publisher == 'Icon Comics':
-        comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-iconcomics.png',
-                          'publisher_image_alt':   'Icon',
-                          'publisher_imageH':      '50',
-                          'publisher_imageW':      '50'}
     elif publisher == 'Joe Books':
         comicpublisher = {'publisher_image':       'interfaces/default/images/publisherlogos/logo-joebooks.png',
                           'publisher_image_alt':   'Joe Books',
