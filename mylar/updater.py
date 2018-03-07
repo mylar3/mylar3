@@ -1552,7 +1552,7 @@ def forceRescan(ComicID, archive=None, module=None):
         filechecker.setperms(rescan['ComicLocation'])
     logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, snatched ' + str(snatchedcount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state [ Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total) + ' ]')
 
-def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None):
+def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, file=None):
     if module is None:
         module = '[FILE-RESCAN]'
     myDB = db.DBConnection()
@@ -1566,14 +1566,14 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None):
             if hf is None:
                 hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
             totalfiles = int(hf['Total'])
-            logger.info('totalfiles: %s' % totalfiles)
-            logger.info('status: %s' % hf['IssStatus'])
+            logger.fdebug('totalfiles: %s' % totalfiles)
+            logger.fdebug('status: %s' % hf['IssStatus'])
             if hf['IssStatus'] != 'Downloaded':
                 havefiles = int(hf['Have']) +1
-                logger.info('incremented havefiles: %s' % havefiles)
+                logger.fdebug('incremented havefiles: %s' % havefiles)
             else:
                 havefiles = int(hf['Have'])
-                logger.info('untouched havefiles: %s' % havefiles)
+                logger.fdebug('untouched havefiles: %s' % havefiles)
     #let's update the total count of comics that was found.
     #store just the total of issues, since annuals gets tracked seperately.
     controlValueStat = {"ComicID":     ComicID}
@@ -1581,4 +1581,8 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None):
                     "Total":           totalfiles}
 
     myDB.upsert("comics", newValueStat, controlValueStat)
-
+    if file is not None:
+        controlValueStat = {"IssueID":     issueid,
+                            "ComicID":     ComicID}
+        newValueStat = {"ComicSize":       os.path.getsize(file)}
+        myDB.upsert("issues", newValueStat, controlValueStat)

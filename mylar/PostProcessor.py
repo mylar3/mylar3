@@ -2093,7 +2093,7 @@ class PostProcessor(object):
             #delete entry from nzblog table
             myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
-            updater.totals(comicid, havefiles='+1',issueid=issueid)
+            updater.totals(comicid, havefiles='+1',issueid=issueid,file=dst)
 
             #update snatched table to change status to Downloaded
             if annchk == "no":

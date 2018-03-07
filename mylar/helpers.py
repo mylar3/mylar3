@@ -2124,10 +2124,14 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     mylar.updater.dbUpdate(ComicIDList=cid, calledfrom='dupechk')
                     return duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
                 else:
-                    #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
-                    logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
                     rtnval = {'action':  "dont_dupe"}
-
+                    #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
+                    #quick rescan of files in dir, then rerun the dup check again...
+                    mylar.updater.forceRescan(ComicID)
+                    chk1 = duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
+                    if chk1['action'] == 'dont_dupe':
+                        logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
+                    rtnval = chk1
             else:
                 rtnval = {'action':  "dupe_file",
                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
