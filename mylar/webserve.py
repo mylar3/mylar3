@@ -4775,7 +4775,7 @@ class WebInterface(object):
         mylar.CONFIG.READ2FILENAME = bool(int(read2filename))
         mylar.CONFIG.STORYARCDIR = bool(int(storyarcdir))
         if arc_folderformat is None:
-            mylar.CONFIG.ARC_FOLDERFORMAT = "$(arc) ($spanyears)"
+            mylar.CONFIG.ARC_FOLDERFORMAT = "($arc) ($spanyears)"
         else:
             mylar.CONFIG.ARC_FOLDERFORMAT = arc_folderformat
         mylar.CONFIG.COPY2ARCDIR = bool(int(copy2arcdir))
