@@ -430,11 +430,16 @@ class OPDS(object):
                 thumbnail = None
                 if issuebook:
                     if 'DateAdded' in issuebook.keys():
-                        title = escape('%03d: %s #%s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
-                        image = issuebook['ImageURL_ALT']
-                        thumbnail = issuebook['ImageURL']
+                        if 'DateAdded' is None:
+                            title = escape('%03d: %s #%s - %s (In stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['ReleaseDate']))
+                            image = issuebook['ImageURL_ALT']
+                            thumbnail = issuebook['ImageURL']
+                        else:    
+                            title = escape('%03d: %s #%s - %s (Added to Mylar %s, in stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['DateAdded'], issuebook['ReleaseDate']))
+                            image = issuebook['ImageURL_ALT']
+                            thumbnail = issuebook['ImageURL']
                     else:
-                        title = escape('%03d: %s Annual %s - %s' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName']))
+                        title = escape('%03d: %s Annual %s - %s (In stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['ReleaseDate']))
                     # logger.info("%s - %s" % (comic['ComicLocation'], issuebook['Location']))
                     number +=1
                     if not issuebook['Location']:
