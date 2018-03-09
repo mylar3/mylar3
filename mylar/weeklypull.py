@@ -1068,7 +1068,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 updater.latest_update(ComicID=comicid, LatestIssue=week['issue'], LatestDate=ComicDate)
                 # here we add to upcoming table...
                 statusupdate = updater.upcoming_update(ComicID=comicid, ComicName=comicname, IssueNumber=week['issue'], IssueDate=ComicDate, forcecheck=forcecheck, weekinfo={'weeknumber':weeknumber,'year':pullyear})
-                logger.info('statusupdate: ' + str(statusupdate))
+                logger.fdebug('statusupdate: ' + str(statusupdate))
 
                 # here we update status of weekly table...
                 try:

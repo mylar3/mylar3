@@ -29,7 +29,6 @@ import imghdr
 import sqlite3
 import cherrypy
 import requests
-import gzip
 
 import mylar
 from mylar import logger, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
@@ -341,7 +340,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         logger.warn('Unable to complete Refreshing / Adding issue data - this WILL create future problems if not addressed.')
         return {'status': 'incomplete'}
 
-    if calledfrom is None:
+    if any([calledfrom is None, calledfrom == 'maintenance']):
         issue_collection(issuedata, nostatus='False')
         #need to update annuals at this point too....
         if anndata:
@@ -349,12 +348,18 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #let's download the image...
     if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is True:
-        imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comicid, helpers.issuedigits(importantdates['LatestIssue'])]).fetchone()
-        imageurl = mylar.cv.getComic(comicid, 'image', issueid=imagetopull['IssueID'])
-        covercheck = helpers.getImage(comicid, imageurl)
+        ls = helpers.issuedigits(importantdates['LatestIssue'])
+        imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comicid, ls]).fetchone()
+        imageurl = mylar.cv.getComic(comicid, 'image', issueid=imagetopull[0])
+        covercheck = helpers.getImage(comicid, imageurl['image'])
         if covercheck == 'retry':
-            logger.info('Attempting to retrieve alternate comic image for the series.')
-            covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
+            logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')
+            if imageurl['image_alt'] is not None:
+                covercheck = helpers.getImage(comicid, imageurl['image_alt'])
+            else:
+                if not os.path.isfile(os.path.join(mylar.CACHE_DIR, str(comicid) + '.jpg')):
+                    logger.fdebug('Failed to retrieve issue image, possibly because not available. Reverting back to series image.')
+                    covercheck = helpers.getImage(comicid, comic['ComicImage'])
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
 
@@ -442,6 +447,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     updater.newpullcheck(ComicName=cn_pull, ComicID=comicid, issue=latestiss)
 
             #here we grab issues that have been marked as wanted above...
+                if calledfrom != 'maintenance':
                     results = []
                     issresults = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [comicid])
                     if issresults:
@@ -501,6 +507,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if calledfrom == 'addbyid':
         logger.info('Sucessfully added %s (%s) to the watchlist by directly using the ComicVine ID' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}
+    elif calledfrom == 'maintenance':
+        logger.info('Sucessfully added %s (%s) to the watchlist' % (comic['ComicName'], SeriesYear))
+        return {'status':    'complete',
+                'comicname': comic['ComicName'],
+                'year':      SeriesYear}
     else:
         logger.info('Sucessfully added %s (%s) to the watchlist' % (comic['ComicName'], SeriesYear))
         return {'status': 'complete'}

@@ -387,6 +387,7 @@
                                                 %endif
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" class="highqual" /></a>
+                                        <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                 %else:
                                 <a href="#" title="Retry the same download again" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                 <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table',true);" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
@@ -549,7 +550,6 @@
 -->
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${annual['IssueID']}',$(this),'table')" data-success="${aninfo['annualComicName']} #${annual['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" class="highqual" /></a>
 
-                                        <a href="#" onclick="doAjaxCall('retryit?ComicName=${annual['ComicName'] |u}&ComicID=${annual['ComicID']}&IssueID=${annual['IssueID']}&IssueNumber=${annual['Issue_Number']}&ComicYear=${annual['IssueDate']}&ReleaseComicID=${annual['ReleaseComicID']}', $(this),'table')" data-success="Retrying the same version of '${annual['ComicName']}' '${annual['Issue_Number']}'" title="Retry the same download again"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                         <a href="#" title="Mark annual as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${annual['IssueID']}&ComicID=${annual['ComicID']}&ReleaseComicID=${annual['ReleaseComicID']}',$(this),'table')" data-success="'${annual['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
 
                                 %else:

@@ -25,7 +25,7 @@ sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
 
 import mylar
 
-from mylar import webstart, logger, filechecker, versioncheck
+from mylar import webstart, logger, filechecker, versioncheck, maintenance
 
 import argparse
 
@@ -64,7 +64,10 @@ def main():
 
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Automated Comic Book Downloader')
+    subparsers = parser.add_subparsers(title='Subcommands', dest='maintenance')
+    parser_maintenance = subparsers.add_parser('maintenance', help='Enter maintenance mode (no GUI). Additional commands are available (maintenance --help)')
 
+    #main parser
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase console logging verbosity')
     parser.add_argument('-q', '--quiet', action='store_true', help='Turn off console logging')
     parser.add_argument('-d', '--daemon', action='store_true', help='Run as a daemon')
@@ -76,9 +79,22 @@ def main():
     parser.add_argument('--nolaunch', action='store_true', help='Prevent browser from launching on startup')
     parser.add_argument('--pidfile', help='Create a pid file (only relevant when running as a daemon)')
     parser.add_argument('--safe', action='store_true', help='redirect the startup page to point to the Manage Comics screen on startup')
-    #parser.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
+    parser_maintenance.add_argument('-xj', '--exportjson', action='store', help='Export existing mylar.db to json file')
+    parser_maintenance.add_argument('-id', '--importdatabase', action='store', help='Import a mylar.db into current db')
+    parser_maintenance.add_argument('-ij', '--importjson', action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db')
+    parser_maintenance.add_argument('-st', '--importstatus', action='store_true', help='Provide current maintenance status')
+    parser_maintenance.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
+    #parser_maintenance.add_argument('-it', '--importtext', action='store', help='Import a specified text file into current db')
 
     args = parser.parse_args()
+
+    if args.maintenance:
+        if all([args.exportjson is None, args.importdatabase is None, args.importjson is None, args.importstatus is False, args.update is False]):
+            print 'Expecting subcommand with the maintenance positional argumeent'
+            sys.exit()
+        mylar.MAINTENANCE = True
+    else:
+        mylar.MAINTENANCE = False
 
     if args.verbose:
         mylar.VERBOSE = True
@@ -87,15 +103,6 @@ def main():
 
     # Do an intial setup of the logger.
     logger.initLogger(console=not mylar.QUIET, log_dir=False, init=True, verbose=mylar.VERBOSE)
-
-    #if args.update:
-    #    print('Attempting to update Mylar so things can work again...')
-    #    try:
-    #        versioncheck.update()
-    #    except Exception, e:
-    #        sys.exit('Mylar failed to update.')
-    #    else:
-    #        mylar.shutdown(restart=True)
 
     if args.daemon:
         if sys.platform == 'win32':
@@ -140,18 +147,12 @@ def main():
     else:
         mylar.NOWEEKLY = False
 
-    # Try to create the DATA_DIR if it doesn't exist
-    #if not os.path.exists(mylar.DATA_DIR):
-    #    try:
-    #        os.makedirs(mylar.DATA_DIR)
-    #    except OSError:
-    #        raise SystemExit('Could not create data directory: ' + mylar.DATA_DIR + '. Exiting....')
+    if mylar.MAINTENANCE is False:
+        filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
 
-    filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
-
-    # Make sure the DATA_DIR is writeable
-    if not os.access(mylar.DATA_DIR, os.W_OK):
-        raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
+        # Make sure the DATA_DIR is writeable
+        if not os.access(mylar.DATA_DIR, os.W_OK):
+            raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
 
     # Put the database in the DATA_DIR
     mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
@@ -197,22 +198,69 @@ def main():
 
             i += 1
 
-    #from configobj import ConfigObj
-    #mylar.CFG = ConfigObj(mylar.CONFIG_FILE, encoding='utf-8')
-
     # Read config and start logging
-    try:
+    if mylar.MAINTENANCE is False:
         logger.info('Initializing startup sequence....')
+    
+    try:
         mylar.initialize(mylar.CONFIG_FILE)
     except Exception as e:
         print e
         raise SystemExit('FATAL ERROR')
+
 
     # Rename the main thread
     threading.currentThread().name = "MAIN"
 
     if mylar.DAEMON:
         mylar.daemonize()
+
+    if mylar.MAINTENANCE is True and any([args.exportjson, args.importjson, args.update is True, args.importstatus is True]):
+        loggermode = '[MAINTENANCE-MODE]'
+        if args.importstatus: #mylar.MAINTENANCE is True:
+            cs = maintenance.Maintenance('status')
+            cstat = cs.check_status()
+        else:
+            logger.info('%s Initializing maintenance mode' % loggermode)
+
+            if args.update is True:
+                logger.info('%s Attempting to update Mylar so things can work again...' % loggermode)
+                try:
+                    mylar.shutdown(restart=True, update=True, maintenance=True)
+                except Exception as e:
+                    sys.exit('%s Mylar failed to update: %s' % (loggermode, e))
+
+            elif args.importdatabase:
+                #for attempted db import.
+                maintenance_path = args.importdatabase
+                logger.info('%s db path accepted as %s' % (loggermode, maintenance_path))
+                di = maintenance.Maintenance('database-import', file=maintenance_path)
+                d = di.database_import()
+            elif args.importjson:
+                #for attempted file re-import (json format)
+                maintenance_path = args.importjson
+                logger.info('%s file indicated as being in json format - path accepted as %s' % (loggermode, maintenance_path))
+                ij = maintenance.Maintenance('json-import', file=maintenance_path)
+                j = ij.json_import()
+            #elif args.importtext:
+            #    #for attempted file re-import (list format)
+            #    maintenance_path = args.importtext
+            #    logger.info('%s file indicated as being in list format - path accepted as %s' % (loggermode, maintenance_path))
+            #    it = maintenance.Maintenance('list-import', file=maintenance_path)
+            #    t = it.list_import()
+            elif args.exportjson:
+                #for export of db comicid's in json format
+                maintenance_path = args.exportjson
+                logger.info('%s file indicated as being written to json format - destination accepted as %s' % (loggermode, maintenance_path))
+                ej = maintenance.Maintenance('json-export', output=maintenance_path)
+                j = ej.json_export()
+            else:
+                logger.info('%s Not a valid command: %s' % (loggermode, maintenance_info))
+                sys.exit()
+            logger.info('%s Exiting Maintenance mode' % (loggermode))
+
+        #possible option to restart automatically after maintenance has completed...
+        sys.exit()
 
     # Force the http port if neccessary
     if args.port:

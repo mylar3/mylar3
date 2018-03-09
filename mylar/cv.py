@@ -557,11 +557,15 @@ def Getissue(issueid, dom, type):
     else:
         try:
             image = dom.getElementsByTagName('super_url')[0].firstChild.wholeText
-            image_alt = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
         except:
             image = None
+        try:
+            image_alt = dom.getElementsByTagName('small_url')[0].firstChild.wholeText
+        except:
+            image_alt = None
 
-        return image
+        return {'image':     image,
+                'image_alt': image_alt}
 
 def GetSeriesYears(dom):
     #used by the 'add a story arc' option to individually populate the Series Year for each series within the given arc.

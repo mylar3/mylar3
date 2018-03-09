@@ -48,6 +48,7 @@ import mylar.config
 PROG_DIR = None
 DATA_DIR = None
 FULL_PATH = None
+MAINTENANCE = False
 LOG_DIR = None
 LOGTYPE = 'log'
 ARGS = None
@@ -151,7 +152,7 @@ SCHED = BackgroundScheduler({
 def initialize(config_file):
     with INIT_LOCK:
 
-        global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
+        global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
                DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
@@ -173,38 +174,11 @@ def initialize(config_file):
         # Start the logger, silence console logging if we need to
         logger.initLogger(console=not QUIET, log_dir=CONFIG.LOG_DIR, verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
 
-        #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
-        import socket
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(('8.8.8.8', 80))
-            LOCAL_IP = s.getsockname()[0]
-            s.close()
-            logger.info('Successfully discovered local IP and locking it in as : ' + str(LOCAL_IP))
-        except:
-            logger.warn('Unable to determine local IP - this might cause problems when downloading (maybe use host_return in the config.ini)')
-            LOCAL_IP = CONFIG.HTTP_HOST
-
-
-        # verbatim back the logger being used since it's now started.
-        if LOGTYPE == 'clog':
-            logprog = 'Concurrent Rotational Log Handler'
-        else:
-            logprog = 'Rotational Log Handler (default)'
-
-        logger.fdebug('Logger set to use : ' + logprog)
-        if LOGTYPE == 'log' and OS_DETECT == 'Windows':
-            logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
-            logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
-
-        logger.info('Config GIT Branch: %s' % CONFIG.GIT_BRANCH)
-
-        # Get the currently installed version - returns None, 'win32' or the git hash
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION, CONFIG.GIT_BRANCH = versioncheck.getVersion()
+
         #versioncheck.getVersion()
         #config_write()
-
         if CURRENT_VERSION is not None:
             hash = CURRENT_VERSION[:7]
         else:
@@ -213,9 +187,72 @@ def initialize(config_file):
         if CONFIG.GIT_BRANCH == 'master':
             vers = 'M'
         elif CONFIG.GIT_BRANCH == 'development':
-           vers = 'D'
+            vers = 'D'
         else:
            vers = 'NONE'
+
+        if MAINTENANCE is False:
+            #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
+            import socket
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(('8.8.8.8', 80))
+                LOCAL_IP = s.getsockname()[0]
+                s.close()
+                logger.info('Successfully discovered local IP and locking it in as : ' + str(LOCAL_IP))
+            except:
+                logger.warn('Unable to determine local IP - this might cause problems when downloading (maybe use host_return in the config.ini)')
+                LOCAL_IP = CONFIG.HTTP_HOST
+
+
+            # verbatim back the logger being used since it's now started.
+            if LOGTYPE == 'clog':
+                logprog = 'Concurrent Rotational Log Handler'
+            else:
+                logprog = 'Rotational Log Handler (default)'
+
+            logger.fdebug('Logger set to use : ' + logprog)
+            if LOGTYPE == 'log' and OS_DETECT == 'Windows':
+                logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
+                logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
+
+            logger.info('Config GIT Branch: %s' % CONFIG.GIT_BRANCH)
+
+            # Initialize the database
+            logger.info('Checking to see if the database has all tables....')
+            try:
+                dbcheck()
+            except Exception, e:
+                logger.error('Cannot connect to the database: %s' % e)
+
+            # Check for new versions (autoupdate)
+            if CONFIG.CHECK_GITHUB_ON_STARTUP:
+                try:
+                    LATEST_VERSION = versioncheck.checkGithub()
+                except:
+                    LATEST_VERSION = CURRENT_VERSION
+            else:
+                LATEST_VERSION = CURRENT_VERSION
+#
+            if CONFIG.AUTO_UPDATE:
+                if CURRENT_VERSION != LATEST_VERSION and INSTALL_TYPE != 'win' and COMMITS_BEHIND > 0:
+                    logger.info('Auto-updating has been enabled. Attempting to auto-update.')
+#                    SIGNAL = 'update'
+
+            #check for syno_fix here
+            if CONFIG.SYNO_FIX:
+                parsepath = os.path.join(DATA_DIR, 'bs4', 'builder', '_lxml.py')
+                if os.path.isfile(parsepath):
+                    print ("found bs4...renaming appropriate file.")
+                    src = os.path.join(parsepath)
+                    dst = os.path.join(DATA_DIR, 'bs4', 'builder', 'lxml.py')
+                    try:
+                        shutil.move(src, dst)
+                    except (OSError, IOError):
+                        logger.error('Unable to rename file...shutdown Mylar and go to ' + src.encode('utf-8') + ' and rename the _lxml.py file to lxml.py')
+                        logger.error('NOT doing this will result in errors when adding / refreshing a series')
+                else:
+                    logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
         USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
 
@@ -225,42 +262,6 @@ def initialize(config_file):
         todaydate = datetime.datetime.today()
         CURRENT_WEEKNUMBER = todaydate.strftime("%U")
         CURRENT_YEAR = todaydate.strftime("%Y")
-
-        # Initialize the database
-        logger.info('Checking to see if the database has all tables....')
-        try:
-            dbcheck()
-        except Exception, e:
-            logger.error('Cannot connect to the database: %s' % e)
-
-        # Check for new versions (autoupdate)
-        if CONFIG.CHECK_GITHUB_ON_STARTUP:
-            try:
-                LATEST_VERSION = versioncheck.checkGithub()
-            except:
-                LATEST_VERSION = CURRENT_VERSION
-        else:
-            LATEST_VERSION = CURRENT_VERSION
-#
-        if CONFIG.AUTO_UPDATE:
-            if CURRENT_VERSION != LATEST_VERSION and INSTALL_TYPE != 'win' and COMMITS_BEHIND > 0:
-                logger.info('Auto-updating has been enabled. Attempting to auto-update.')
-#                SIGNAL = 'update'
-
-        #check for syno_fix here
-        if CONFIG.SYNO_FIX:
-            parsepath = os.path.join(DATA_DIR, 'bs4', 'builder', '_lxml.py')
-            if os.path.isfile(parsepath):
-                print ("found bs4...renaming appropriate file.")
-                src = os.path.join(parsepath)
-                dst = os.path.join(DATA_DIR, 'bs4', 'builder', 'lxml.py')
-                try:
-                    shutil.move(src, dst)
-                except (OSError, IOError):
-                    logger.error('Unable to rename file...shutdown Mylar and go to ' + src.encode('utf-8') + ' and rename the _lxml.py file to lxml.py')
-                    logger.error('NOT doing this will result in errors when adding / refreshing a series')
-            else:
-                logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
         #set the default URL for ComicVine API here.
         CVURL = 'https://comicvine.gamespot.com/api/'
@@ -272,10 +273,10 @@ def initialize(config_file):
         if CONFIG.LOCMOVE:
             helpers.updateComicLocation()
 
-
         #Ordering comics here
-        logger.info('Remapping the sorting to allow for new additions.')
-        COMICSORT = helpers.ComicSort(sequence='startup')
+        if mylar.MAINTENANCE is False:
+            logger.info('Remapping the sorting to allow for new additions.')
+            COMICSORT = helpers.ComicSort(sequence='startup')
 
         # Store the original umask
         UMASK = os.umask(0)
@@ -1164,10 +1165,11 @@ def halt():
                     os._exit(0)
             _INITIALIZED = False
 
-def shutdown(restart=False, update=False):
+def shutdown(restart=False, update=False, maintenance=False):
 
-    cherrypy.engine.exit()
-    halt()
+    if maintenance is False:
+        cherrypy.engine.exit()
+        halt()
 
     if not restart and not update:
         logger.info('Mylar is shutting down...')
@@ -1185,9 +1187,12 @@ def shutdown(restart=False, update=False):
     if restart:
         logger.info('Mylar is restarting...')
         popen_list = [sys.executable, FULL_PATH]
-        popen_list += ARGS
-#        if '--nolaunch' not in popen_list:
-#            popen_list += ['--nolaunch']
+        if 'maintenance' not in ARGS:
+            popen_list += ARGS
+        else:
+            for x in ARGS:
+                if all([x != 'maintenance', x != '-u']):
+                    popen_list += x
         logger.info('Restarting Mylar with ' + str(popen_list))
         subprocess.Popen(popen_list, cwd=os.getcwd())
 
