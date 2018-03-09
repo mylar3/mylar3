@@ -98,8 +98,18 @@ def findComic(name, mode, issue, limityear=None, type=None):
             else:
                 name = name.replace(x, ' ', cnt)
 
+    originalname = name
+    if '+' in name:
+       name = re.sub('\+', 'PLUS', name)
+
     pattern = re.compile(ur'\w+', re.UNICODE)
     name = pattern.findall(name)
+
+    if '+' in originalname:
+        y = []
+        for x in name:
+            y.append(re.sub("PLUS", "%2B", x))
+        name = y
 
     if limityear is None: limityear = 'None'
 
