@@ -430,7 +430,7 @@ class OPDS(object):
                 thumbnail = None
                 if issuebook:
                     if 'DateAdded' in issuebook.keys():
-                        if 'DateAdded' is None:
+                        if issuebook['DateAdded'] is None:
                             title = escape('%03d: %s #%s - %s (In stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['ReleaseDate']))
                             image = issuebook['ImageURL_ALT']
                             thumbnail = issuebook['ImageURL']
