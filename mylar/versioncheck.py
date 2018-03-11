@@ -163,8 +163,8 @@ def checkGithub():
         response = requests.get(url, verify=True)
         git = response.json()
         mylar.LATEST_VERSION = git['sha']
-    except:
-        logger.warn('Could not get the latest commit from github')
+    except Exception as e:
+        logger.warn('[ERROR] Could not get the latest commit from github: %s' % e)
         mylar.COMMITS_BEHIND = 0
         return mylar.CURRENT_VERSION
 
@@ -177,8 +177,8 @@ def checkGithub():
             response = requests.get(url, verify=True)
             git = response.json()
             mylar.COMMITS_BEHIND = git['total_commits']
-        except:
-            logger.warn('Could not get commits behind from github')
+        except Exception as e:
+            logger.warn('[ERROR] Could not get commits behind from github: %s' % e)
             mylar.COMMITS_BEHIND = 0
             return mylar.CURRENT_VERSION
 
