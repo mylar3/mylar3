@@ -21,10 +21,12 @@ import logger
 
 class Process(object):
 
-    def __init__(self, nzb_name, nzb_folder, failed=False):
+    def __init__(self, nzb_name, nzb_folder, failed=False, issueid=None, comicid=None):
         self.nzb_name = nzb_name
         self.nzb_folder = nzb_folder
         self.failed = failed
+        self.issueid = issueid
+        self.comicid = comicid
 
     def post_process(self):
         if self.failed == '0':
@@ -36,8 +38,8 @@ class Process(object):
         retry_outside = False
 
         if self.failed is False:
-            PostProcess = mylar.PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder, queue=queue)
-            if any([self.nzb_name == 'Manual Run', self.nzb_name == 'Manual+Run']):
+            PostProcess = mylar.PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder, self.issueid, queue=queue, comicid=self.comicid)
+            if any([self.nzb_name == 'Manual Run', self.nzb_name == 'Manual+Run', self.issueid is not None]):
                 threading.Thread(target=PostProcess.Process).start()
             else:
                 thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")

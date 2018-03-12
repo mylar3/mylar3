@@ -114,17 +114,19 @@ class FileChecker(object):
 
         if self.file:
             runresults = self.parseit(self.dir, self.file)
-            return {'parse_status':   runresults['parse_status'],
-                    'sub':            runresults['sub'],
-                    'comicfilename':  runresults['comicfilename'],
-                    'comiclocation':  runresults['comiclocation'],
-                    'series_name':    runresults['series_name'],
-                    'series_volume':  runresults['series_volume'],
-                    'alt_series':     runresults['alt_series'],
-                    'alt_issue':      runresults['alt_issue'],
-                    'issue_year':     runresults['issue_year'],
-                    'issue_number':   runresults['issue_number'],
-                    'scangroup':      runresults['scangroup']
+            return {'parse_status':        runresults['parse_status'],
+                    'sub':                 runresults['sub'],
+                    'comicfilename':       runresults['comicfilename'],
+                    'comiclocation':       runresults['comiclocation'],
+                    'series_name':         runresults['series_name'],
+                    'series_name_decoded': runresults['series_name_decoded'],
+                    'series_volume':       runresults['series_volume'],
+                    'alt_series':          runresults['alt_series'],
+                    'alt_issue':           runresults['alt_issue'],
+                    'issue_year':          runresults['issue_year'],
+                    'issue_number':        runresults['issue_number'],
+                    'scangroup':           runresults['scangroup'],
+                    'reading_order':       runresults['reading_order']
                     }
         else:
             filelist = self.traverse_directories(self.dir)

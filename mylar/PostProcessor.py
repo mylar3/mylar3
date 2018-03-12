@@ -44,7 +44,7 @@ class PostProcessor(object):
     FOLDER_NAME = 2
     FILE_NAME = 3
 
-    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None):
+    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None, comicid=None):
         """
         Creates a new post processor with the given file path and optionally an NZB name.
 
@@ -71,6 +71,15 @@ class PostProcessor(object):
         self.extensions = ('.cbr', '.cbz', '.pdf')
         self.failed_files = 0
         self.log = ''
+        if issueid is not None:
+            self.issueid = issueid
+        else:
+            self.issueid = None
+
+        if comicid is not None:
+            self.comicid = comicid
+        else:
+            self.comicid = None
 
     def _log(self, message, level=logger.message):  #level=logger.MESSAGE):
         """
@@ -203,7 +212,7 @@ class PostProcessor(object):
                 logger.fdebug('File Option: %s [META-ENABLED: %s]' % (mylar.CONFIG.FILE_OPTS, mylar.CONFIG.ENABLE_META))
                 logger.fdebug('odir: %s [filename: %s][self.nzb_folder: %s]' % (odir, filename, self.nzb_folder))
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
-                if all([sub_path is not None, sub_path != self.nzb_folder]):
+                if all([sub_path is not None, sub_path != self.nzb_folder, self.issueid is not None]):
                     logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
                     orig_folder = sub_path
                 else:
@@ -343,16 +352,27 @@ class PostProcessor(object):
 
             self.oneoffinlist = False
 
-            if self.nzb_name == 'Manual Run':
-                logger.fdebug (module + ' Manual Run initiated')
-                #Manual postprocessing on a folder.
-                #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
-                flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
-                filelist = flc.listFiles()
-                if filelist['comiccount'] == 0: # is None:
-                    logger.warn('There were no files located - check the debugging logs if you think this is in error.')
-                    return
-                logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
+            if any([self.nzb_name == 'Manual Run', self.issueid is not None, self.comicid is not None]):
+                if all([self.issueid is None, self.comicid is not None]) or self.nzb_name == 'Manual Run':
+                    if self.comicid is not None:
+                        logger.fdebug('%s Now post-processing pack directly against ComicID: %s' % (module, self.comicid))
+                    else:
+                        logger.fdebug(module + ' Manual Run initiated')
+                    #Manual postprocessing on a folder.
+                    #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
+                    flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
+                    filelist = flc.listFiles()
+                    if filelist['comiccount'] == 0: # is None:
+                        logger.warn('There were no files located - check the debugging logs if you think this is in error.')
+                        return
+                    logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
+                else:
+                    logger.fdebug('%s Now post-processing directly against IssueID: %s' % (module, self.issueid))
+                    flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
+                    fl = flc.listFiles()
+                    filelist = {}
+                    filelist['comiclist'] = [fl]
+                    filelist['comiccount'] = len(filelist['comiclist'])
 
                 #preload the entire ALT list in here.
                 alt_list = []
@@ -369,7 +389,6 @@ class PostProcessor(object):
                 manual_arclist = []
 
                 for fl in filelist['comiclist']:
-
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
                     mod_seriesname = as_dinfo['mod_seriesname']
@@ -399,8 +418,11 @@ class PostProcessor(object):
                     if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
                         loopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
 
-                    tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
-                    comicseries = myDB.select(tmpsql, tuple(loopchk))
+                    if any([self.issueid is not None, self.comicid is not None]):
+                        comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
+                    else:
+                        tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
+                        comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if comicseries is None:
                         logger.error(module + ' No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?')
@@ -606,7 +628,10 @@ class PostProcessor(object):
                                         if watchmatch['sub']:
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
                                         else:
-                                            clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                            if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
+                                                clocation = watchmatch['comiclocation']
+                                            else:
+                                                clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
                                         manual_list.append({"ComicLocation":   clocation,
                                                             "ComicID":         cs['ComicID'],
                                                             "IssueID":         issuechk['IssueID'],
@@ -1018,7 +1043,7 @@ class PostProcessor(object):
                                 logger.fdebug(module + '[SUCCESSFUL MATCH: ' + ofv['ComicName'] + '-' + ofv['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                                 break
 
-            if any([self.nzb_name != 'Manual Run', self.oneoffinlist is True]):
+            if any([self.nzb_name != 'Manual Run', self.oneoffinlist is True]) and all([self.issueid is None, self.comicid is None]):
                 ppinfo = []
                 if self.oneoffinlist is False:
                     nzbname = self.nzb_name
@@ -1162,7 +1187,7 @@ class PostProcessor(object):
                         logger.info('[PPINFO-POST-PROCESSING-ATTEMPT] %s' % pp)
                         self.nzb_or_oneoff_pp(tinfo=pp)
 
-            if self.nzb_name == 'Manual Run':
+            if any([self.nzb_name == 'Manual Run', self.issueid is not None, self.comicid is not None]):
                 #loop through the hits here.
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
                     logger.info(module + ' No matches for Manual Run ... exiting.')
@@ -1174,7 +1199,7 @@ class PostProcessor(object):
                     logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
 
                 i = 0
-                logger.info('manual list: %s' % manual_list)
+
                 for ml in manual_list:
                     i+=1
                     comicid = ml['ComicID']
@@ -1210,9 +1235,15 @@ class PostProcessor(object):
                         dupthis = None
 
                 if self.failed_files == 0:
-                    logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
+                    if self.comicid is not None:
+                        logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                    else:
+                        logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                 else:
-                    logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues [FAILED: ' + str(self.failed_files) + ']')
+                    if self.comicid is not None:
+                        logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                    else:
+                        logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
                 return
             else:
                 pass
@@ -1473,7 +1504,7 @@ class PostProcessor(object):
             elif len(manual_arclist) > 0:
                 logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
             i = 0
-            logger.info('manual list: %s' % manual_list)
+
             for ml in manual_list:
                 i+=1
                 comicid = ml['ComicID']

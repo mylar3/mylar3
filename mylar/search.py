@@ -1274,7 +1274,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         #find the pack range.
                         pack_issuelist = entry['issues']
                         issueid_info = helpers.issue_find_ids(ComicName, ComicID, pack_issuelist, IssueNumber)
-                        logger.info('issueid_info:' + str(issueid_info))
                         if issueid_info['valid'] == True:
                             logger.info('Issue Number ' + IssueNumber + ' exists within pack. Continuing.')
                         else:
@@ -2493,7 +2492,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #since this is torrentspecific snatch, the vars will be different than nzb snatches.
             #torrent_info{'folder','name',['total_filesize','label','hash','files','time_started'}
             t_hash = rcheck['hash']
-            rcheck['torrent_filename'] = nzbname
+            rcheck.update({'torrent_filename': nzbname})
             if any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.AUTO_SNATCH:
                 mylar.SNATCHED_QUEUE.put(rcheck['hash'])
             elif any([mylar.USE_RTORRENT, mylar.USE_DELUGE]) and mylar.CONFIG.LOCAL_TORRENT_PP:
