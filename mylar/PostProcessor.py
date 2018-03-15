@@ -212,7 +212,7 @@ class PostProcessor(object):
                 logger.fdebug('File Option: %s [META-ENABLED: %s]' % (mylar.CONFIG.FILE_OPTS, mylar.CONFIG.ENABLE_META))
                 logger.fdebug('odir: %s [filename: %s][self.nzb_folder: %s]' % (odir, filename, self.nzb_folder))
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
-                if all([sub_path is not None, sub_path != self.nzb_folder, self.issueid is not None]):
+                if all([sub_path is not None, sub_path != self.nzb_folder]): #, self.issueid is not None]):
                     logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
                     orig_folder = sub_path
                 else:
