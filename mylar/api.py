@@ -358,7 +358,7 @@ class Api(object):
             comicid = kwargs['comicid']
 
         if 'apc_version' not in kwargs:
-            fp = process.Process(self.nzb_name, self.nzb_folder, failed=failed, issueid=issueid, comicid=comicid)
+            fp = process.Process(self.nzb_name, self.nzb_folder, issueid=issueid, failed=failed, comicid=comicid)
             self.data = fp.post_process()
         else:
             logger.info('[API] Api Call from ComicRN detected - initiating script post-processing.')

@@ -211,10 +211,15 @@ class PostProcessor(object):
             if cacheonly is False:
                 logger.fdebug('File Option: %s [META-ENABLED: %s]' % (mylar.CONFIG.FILE_OPTS, mylar.CONFIG.ENABLE_META))
                 logger.fdebug('odir: %s [filename: %s][self.nzb_folder: %s]' % (odir, filename, self.nzb_folder))
+                logger.fdebug('sub_path: %s [cacheonly: %s][del_nzbdir: %s]' % (sub_path, cacheonly, del_nzbdir))
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
                 if all([sub_path is not None, sub_path != self.nzb_folder]): #, self.issueid is not None]):
-                    logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
-                    orig_folder = sub_path
+                    if self.issueid is None:
+                        logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
+                        orig_folder = sub_path
+                    else:
+                        logger.fdebug('Direct post-processing was performed against specific issueid. Using supplied filepath for deletion.')
+                        orig_folder = self.nzb_folder
                 else:
                     orig_folder = self.nzb_folder
 
@@ -367,7 +372,10 @@ class PostProcessor(object):
                         return
                     logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
                 else:
-                    logger.fdebug('%s Now post-processing directly against IssueID: %s' % (module, self.issueid))
+                    if self.comicid is None:
+                         cid = myDB.selectone('SELECT ComicID FROM issues where IssueID=?', [str(self.issueid)]).fetchone()
+                         self.comicid = cid[0]
+                    logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
                     flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
                     fl = flc.listFiles()
                     filelist = {}
@@ -1235,8 +1243,10 @@ class PostProcessor(object):
                         dupthis = None
 
                 if self.failed_files == 0:
-                    if self.comicid is not None:
+                    if all([self.comicid is not None, self.issueid is None]):
                         logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
+                    if self.issueid is not None:
+                        logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, manual_list[0]['ComicName'], manual_list[0]['IssueNumber']))
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                 else:
