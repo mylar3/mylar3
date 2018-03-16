@@ -3036,6 +3036,8 @@ def script_env(mode, vars):
                     os.environ['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
         elif 'nzbinfo' in vars:
             os.environ['mylar_release_id'] = vars['nzbinfo']['id']
+            if 'client_id' in vars['nzbinfo']:
+                os.environ['mylar_client_id'] = vars['nzbinfo']['client_id']
             os.environ['mylar_release_nzbname'] = vars['nzbinfo']['nzbname']
             os.environ['mylar_release_link'] = vars['nzbinfo']['link']
             os.environ['mylar_release_nzbpath'] = vars['nzbinfo']['nzbpath']

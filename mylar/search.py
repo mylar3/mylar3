@@ -2697,8 +2697,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
                 clientmode = 'nzbget'
+                client_id = None
             elif mylar.USE_SABNZBD:
                 clientmode = 'sabnzbd'
+                client_id = sendtosab['nzo_id']
 
             if comicinfo[0]['pack'] is False:
                 pnumbers = None
@@ -2708,6 +2710,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 plist= '|'.join(comicinfo[0]['pack_issuelist'])
             snatch_vars = {'nzbinfo':        {'link':           link,
                                               'id':             nzbid,
+                                              'client_id':      client_id,
                                               'nzbname':        nzbname,
                                               'nzbpath':        nzbpath},
                            'comicinfo':      {'comicname':      comicinfo[0]['ComicName'],
