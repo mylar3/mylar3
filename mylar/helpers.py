@@ -2786,22 +2786,23 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
                 else:
                     downlocation = torrent_info['files'][0].encode('utf-8')
 
-            os.environ['downlocation'] = re.sub("'", "\\'",downlocation)
+            autosnatch_env = os.environ.copy()
+            autosnatch_env['downlocation'] = re.sub("'", "\\'",downlocation)
 
             #these are pulled from the config and are the ssh values to use to retrieve the data
-            os.environ['host'] = mylar.CONFIG.PP_SSHHOST
-            os.environ['port'] = mylar.CONFIG.PP_SSHPORT
-            os.environ['user'] = mylar.CONFIG.PP_SSHUSER
-            os.environ['localcd'] = mylar.CONFIG.PP_SSHLOCALCD
+            autosnatch_env['host'] = mylar.CONFIG.PP_SSHHOST
+            autosnatch_env['port'] = mylar.CONFIG.PP_SSHPORT
+            autosnatch_env['user'] = mylar.CONFIG.PP_SSHUSER
+            autosnatch_env['localcd'] = mylar.CONFIG.PP_SSHLOCALCD
             #bash won't accept None, so send check and send empty strings for the 2 possible None values if needed
             if mylar.CONFIG.PP_SSHKEYFILE is not None:
-                os.environ['keyfile'] = mylar.CONFIG.PP_SSHKEYFILE
+                autosnatch_env['keyfile'] = mylar.CONFIG.PP_SSHKEYFILE
             else:
-                os.environ['keyfile'] = ''
+                autosnatch_env['keyfile'] = ''
             if mylar.CONFIG.PP_SSHPASSWD is not None:
-                os.environ['passwd'] = mylar.CONFIG.PP_SSHPASSWD
+                autosnatch_env['passwd'] = mylar.CONFIG.PP_SSHPASSWD
             else:
-                os.environ['passwd'] = ''
+                autosnatch_env['passwd'] = ''
 
 
             #downlocation = re.sub("\'", "\\'", downlocation)
@@ -2810,7 +2811,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             script_cmd = shlex.split(curScriptName, posix=False) # + [downlocation]
             logger.fdebug(u"Executing command " +str(script_cmd))
             try:
-                p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
+                p = subprocess.Popen(script_cmd, env=dict(autosnatch_env), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
                 out, err = p.communicate()
                 logger.fdebug(u"Script result: " + out)
             except OSError, e:
@@ -3010,70 +3011,71 @@ def nzb_monitor(queue):
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
     #var = dictionary containing variables to pass
+    mylar_env = os.environ.copy()
     if mode == 'on-snatch':
         runscript = mylar.CONFIG.SNATCH_SCRIPT
         if 'torrentinfo' in vars:
             if 'hash' in vars['torrentinfo']:
-                os.environ['mylar_release_hash'] = vars['torrentinfo']['hash'] 
+                mylar_env['mylar_release_hash'] = vars['torrentinfo']['hash'] 
             if 'torrent_filename' in vars['torrentinfo']:
-                os.environ['mylar_torrent_filename'] = vars['torrentinfo']['torrent_filename']
+                mylar_env['mylar_torrent_filename'] = vars['torrentinfo']['torrent_filename']
             if 'name' in vars['torrentinfo']:
-                os.environ['mylar_release_name'] = vars['torrentinfo']['name']
+                mylar_env['mylar_release_name'] = vars['torrentinfo']['name']
             if 'folder' in vars['torrentinfo']:
-                os.environ['mylar_release_folder'] = vars['torrentinfo']['folder']
+                mylar_env['mylar_release_folder'] = vars['torrentinfo']['folder']
             if 'label' in vars['torrentinfo']:
-                os.environ['mylar_release_label'] = vars['torrentinfo']['label']
+                mylar_env['mylar_release_label'] = vars['torrentinfo']['label']
             if 'total_filesize' in vars['torrentinfo']:
-                os.environ['mylar_release_filesize'] = str(vars['torrentinfo']['total_filesize'])
+                mylar_env['mylar_release_filesize'] = str(vars['torrentinfo']['total_filesize'])
             if 'time_started' in vars['torrentinfo']:
-                os.environ['mylar_release_start'] = str(vars['torrentinfo']['time_started'])
+                mylar_env['mylar_release_start'] = str(vars['torrentinfo']['time_started'])
             if 'filepath' in vars['torrentinfo']:
-                os.environ['mylar_torrent_file'] = str(vars['torrentinfo']['filepath'])
+                mylar_env['mylar_torrent_file'] = str(vars['torrentinfo']['filepath'])
             else:
                 try:
-                    os.environ['mylar_release_files'] = "|".join(vars['torrentinfo']['files'])
+                    mylar_env['mylar_release_files'] = "|".join(vars['torrentinfo']['files'])
                 except TypeError:
-                    os.environ['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
+                    mylar_env['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
         elif 'nzbinfo' in vars:
-            os.environ['mylar_release_id'] = vars['nzbinfo']['id']
+            mylar_env['mylar_release_id'] = vars['nzbinfo']['id']
             if 'client_id' in vars['nzbinfo']:
-                os.environ['mylar_client_id'] = vars['nzbinfo']['client_id']
-            os.environ['mylar_release_nzbname'] = vars['nzbinfo']['nzbname']
-            os.environ['mylar_release_link'] = vars['nzbinfo']['link']
-            os.environ['mylar_release_nzbpath'] = vars['nzbinfo']['nzbpath']
+                mylar_env['mylar_client_id'] = vars['nzbinfo']['client_id']
+            mylar_env['mylar_release_nzbname'] = vars['nzbinfo']['nzbname']
+            mylar_env['mylar_release_link'] = vars['nzbinfo']['link']
+            mylar_env['mylar_release_nzbpath'] = vars['nzbinfo']['nzbpath']
             if 'blackhole' in vars['nzbinfo']:
-                os.environ['mylar_release_blackhole'] = vars['nzbinfo']['blackhole']
-        os.environ['mylar_release_provider'] = vars['provider']
+                mylar_env['mylar_release_blackhole'] = vars['nzbinfo']['blackhole']
+        mylar_env['mylar_release_provider'] = vars['provider']
         if 'comicinfo' in vars:
             try:
-                os.environ['mylar_comicid'] = vars['comicinfo']['comicid']  #comicid/issueid are unknown for one-offs (should be fixable tho)
+                mylar_env['mylar_comicid'] = vars['comicinfo']['comicid']  #comicid/issueid are unknown for one-offs (should be fixable tho)
             except:
                 pass
             try:
-                os.environ['mylar_issueid'] = vars['comicinfo']['issueid']
+                mylar_env['mylar_issueid'] = vars['comicinfo']['issueid']
             except:
                 pass
-            os.environ['mylar_comicname'] = vars['comicinfo']['comicname']
-            os.environ['mylar_issuenumber'] = str(vars['comicinfo']['issuenumber'])
+            mylar_env['mylar_comicname'] = vars['comicinfo']['comicname']
+            mylar_env['mylar_issuenumber'] = str(vars['comicinfo']['issuenumber'])
             try:
-                os.environ['mylar_comicvolume'] = str(vars['comicinfo']['volume'])
-            except:
-                pass
-            try:
-                os.environ['mylar_seriesyear'] = str(vars['comicinfo']['seriesyear'])
+                mylar_env['mylar_comicvolume'] = str(vars['comicinfo']['volume'])
             except:
                 pass
             try:
-                os.environ['mylar_issuedate'] = str(vars['comicinfo']['issuedate'])
+                mylar_env['mylar_seriesyear'] = str(vars['comicinfo']['seriesyear'])
+            except:
+                pass
+            try:
+                mylar_env['mylar_issuedate'] = str(vars['comicinfo']['issuedate'])
             except:
                 pass
 
-        os.environ['mylar_release_pack'] = str(vars['pack'])
+        mylar_env['mylar_release_pack'] = str(vars['pack'])
         if vars['pack'] is True:
-            os.environ['mylar_release_pack_numbers'] = vars['pack_numbers']
-            os.environ['mylar_release_pack_issuelist'] = vars['pack_issuelist']
-        os.environ['mylar_method'] = vars['method']
-        os.environ['mylar_client'] = vars['clientmode']
+            mylar_env['mylar_release_pack_numbers'] = vars['pack_numbers']
+            mylar_env['mylar_release_pack_issuelist'] = vars['pack_issuelist']
+        mylar_env['mylar_method'] = vars['method']
+        mylar_env['mylar_client'] = vars['clientmode']
 
     elif mode == 'post-process':
         #to-do
@@ -3099,7 +3101,7 @@ def script_env(mode, vars):
     script_cmd = shlex.split(curScriptName)
     logger.fdebug(u"Executing command " +str(script_cmd))
     try:
-        subprocess.call(script_cmd, env=dict(os.environ))
+        subprocess.call(script_cmd, env=dict(mylar_env))
     except OSError, e:
         logger.warn(u"Unable to run extra_script: " + str(script_cmd))
         return False
