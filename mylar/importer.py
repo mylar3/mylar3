@@ -87,7 +87,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     myDB.upsert("comics", newValueDict, controlValueDict)
 
     #run the re-sortorder here in order to properly display the page
-    if pullupd is None:
+    if all([pullupd is None, calledfrom != 'maintenance']):
         helpers.ComicSort(comicorder=mylar.COMICSORT, imported=comicid)
 
     # we need to lookup the info for the requested ComicID in full now
@@ -318,7 +318,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
     #comicsort here...
     #run the re-sortorder here in order to properly display the page
-    if pullupd is None:
+    if all([pullupd is None, calledfrom != 'maintenance']):
         helpers.ComicSort(sequence='update')
 
     if CV_NoYearGiven == 'no':
