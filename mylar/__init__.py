@@ -191,6 +191,13 @@ def initialize(config_file):
         else:
            vers = 'NONE'
 
+        # Initialize the database
+        logger.info('Checking to see if the database has all tables....')
+        try:
+            dbcheck()
+        except Exception, e:
+            logger.error('Cannot connect to the database: %s' % e)
+
         if MAINTENANCE is False:
             #try to get the local IP using socket. Get this on every startup so it's at least current for existing session.
             import socket
@@ -217,13 +224,6 @@ def initialize(config_file):
                 logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
 
             logger.info('Config GIT Branch: %s' % CONFIG.GIT_BRANCH)
-
-            # Initialize the database
-            logger.info('Checking to see if the database has all tables....')
-            try:
-                dbcheck()
-            except Exception, e:
-                logger.error('Cannot connect to the database: %s' % e)
 
             # Check for new versions (autoupdate)
             if CONFIG.CHECK_GITHUB_ON_STARTUP:
