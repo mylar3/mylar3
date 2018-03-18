@@ -395,7 +395,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
     else:
         #if it's at this point and the refresh is None, odds are very good that it's already up-to-date so let it flow thru
         if mylar.CONFIG.PULL_REFRESH is None:
-            mylar.CONFIG.PULL_REFRESH = datetime.datetime.today()
+            mylar.CONFIG.PULL_REFRESH = datetime.datetime.today().replace(second=0,microsecond=0)
             #update the PULL_REFRESH 
             #mylar.config_write()
         logger.fdebug('pull_refresh: ' + str(mylar.CONFIG.PULL_REFRESH))
@@ -454,7 +454,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
                 logger.fdebug('hours: ' + str(hours) + ' -- forcecheck: ' + str(forcecheck))
                 if hours > 2 or forcecheck == 'yes':
                     logger.fdebug('weekinfo:' + str(weekinfo))
-                    mylar.CONFIG.PULL_REFRESH = datetime.datetime.today()
+                    mylar.CONFIG.PULL_REFRESH = datetime.datetime.today().replace(second=0,microsecond=0)
                     #update the PULL_REFRESH
                     #mylar.config_write()
                     chkitout = mylar.locg.locg(weeknumber=str(weekinfo['weeknumber']),year=str(weekinfo['year']))
