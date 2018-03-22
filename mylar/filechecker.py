@@ -120,6 +120,7 @@ class FileChecker(object):
                     'comiclocation':       runresults['comiclocation'],
                     'series_name':         runresults['series_name'],
                     'series_name_decoded': runresults['series_name_decoded'],
+                    'dynamic_name':        runresults['dynamic_name'],
                     'series_volume':       runresults['series_volume'],
                     'alt_series':          runresults['alt_series'],
                     'alt_issue':           runresults['alt_issue'],
@@ -918,6 +919,10 @@ class FileChecker(object):
 
             if issue_number is None or series_name is None:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
+                if series_name is not None:
+                    dreplace = self.dynamic_replace(series_name)['mod_seriesname']
+                else:
+                    dreplace = None
                 return {'parse_status':        'failure',
                         'sub':                 path_list,
                         'comicfilename':       filename,
@@ -926,12 +931,14 @@ class FileChecker(object):
                         'series_name_decoded': series_name_decoded,
                         'alt_series':          alt_series,
                         'alt_issue':           alt_issue,
+                        'dynamic_name':        dreplace,
                         'issue_number':        issue_number,
                         'justthedigits':       issue_number, #redundant but it's needed atm
                         'series_volume':       issue_volume,
                         'issue_year':          issue_year,
                         'annual_comicid':      None,
-                        'scangroup':           scangroup}
+                        'scangroup':           scangroup,
+                        'reading_order':       None}
 
             if self.justparse:
                 return {'parse_status':           'success',
@@ -1107,7 +1114,7 @@ class FileChecker(object):
                         'scangroup':       series_info['scangroup']}
 
             else:
-                logger.info('[NO MATCH] ' + filename + ' [WATCHLIST:' + self.watchcomic + ']')
+                #logger.fdebug('[NO MATCH] ' + filename + ' [WATCHLIST:' + self.watchcomic + ']')
                 return {'process_status': 'fail',
                         'comicfilename':  filename,
                         'sub':            series_info['sub'],

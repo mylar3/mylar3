@@ -569,6 +569,12 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
     else:
         tsearch = tsearch_seriesname + "%"
 
+    if seriesname == '0-Day Comics Pack - %s' % (issue[:4]):
+        #call the helper to get the month
+        tsearch += 'vol%s' % issue[5:7]
+        tsearch += '%'
+        tsearch += '#%s' % issue[8:10]
+        tsearch += '%'
     logger.fdebug('tsearch : ' + tsearch)
     AS_Alt = []
     tresults = []
@@ -581,7 +587,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
 
     logger.fdebug('seriesname_alt:' + str(seriesname_alt))
     if seriesname_alt is None or seriesname_alt == 'None':
-        if tresults is None:
+        if not tresults:
             logger.fdebug('no Alternate name given. Aborting search.')
             return "no results"
     else:
@@ -618,8 +624,8 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
             if mylar.CONFIG.ENABLE_PUBLIC and nzbprov == 'Public Torrents':
                 tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [AS_Alternate])
 
-    if tresults is None:
-        logger.fdebug('torrent search returned no results for ' + seriesname)
+    if not tresults:
+        logger.fdebug('torrent search returned no results for %s' % seriesname)
         return "no results"
 
     extensions = ('cbr', 'cbz')

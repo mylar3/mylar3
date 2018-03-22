@@ -3033,9 +3033,9 @@ def script_env(mode, vars):
                 mylar_env['mylar_torrent_file'] = str(vars['torrentinfo']['filepath'])
             else:
                 try:
-                    mylar_env['mylar_release_files'] = "|".join(vars['torrentinfo']['files'])
+                    mylar_env['mylar_release_files'] = '|'.join(vars['torrentinfo']['files'])
                 except TypeError:
-                    mylar_env['mylar_release_files'] = "|".join(json.dumps(vars['torrentinfo']['files']))
+                    mylar_env['mylar_release_files'] = '|'.join(json.dumps(vars['torrentinfo']['files']))
         elif 'nzbinfo' in vars:
             mylar_env['mylar_release_id'] = vars['nzbinfo']['id']
             if 'client_id' in vars['nzbinfo']:
@@ -3048,11 +3048,17 @@ def script_env(mode, vars):
         mylar_env['mylar_release_provider'] = vars['provider']
         if 'comicinfo' in vars:
             try:
-                mylar_env['mylar_comicid'] = vars['comicinfo']['comicid']  #comicid/issueid are unknown for one-offs (should be fixable tho)
+                if vars['comicinfo']['comicid'] is not None:
+                    mylar_env['mylar_comicid'] = vars['comicinfo']['comicid']  #comicid/issueid are unknown for one-offs (should be fixable tho)
+                else:
+                    mylar_env['mylar_comicid'] = 'None'
             except:
                 pass
             try:
-                mylar_env['mylar_issueid'] = vars['comicinfo']['issueid']
+                if vars['comicinfo']['issueid'] is not None:
+                    mylar_env['mylar_issueid'] = vars['comicinfo']['issueid']
+                else:
+                    mylar_env['mylar_issueid'] = 'None'
             except:
                 pass
             mylar_env['mylar_comicname'] = vars['comicinfo']['comicname']
@@ -3072,8 +3078,10 @@ def script_env(mode, vars):
 
         mylar_env['mylar_release_pack'] = str(vars['pack'])
         if vars['pack'] is True:
-            mylar_env['mylar_release_pack_numbers'] = vars['pack_numbers']
-            mylar_env['mylar_release_pack_issuelist'] = vars['pack_issuelist']
+            if vars['pack_numbers'] is not None:
+                mylar_env['mylar_release_pack_numbers'] = vars['pack_numbers']
+            if vars['pack_issuelist'] is not None:
+                mylar_env['mylar_release_pack_issuelist'] = vars['pack_issuelist']
         mylar_env['mylar_method'] = vars['method']
         mylar_env['mylar_client'] = vars['clientmode']
 
@@ -3349,9 +3357,10 @@ def stupidchk():
     mylar.EN_OOMICS = ens[0][0]
 
 def newznab_test(name, host, ssl, apikey):
-    params = {'t':       'caps',
+    from xml.dom.minidom import parseString, Element
+    params = {'t':       'search',
               'apikey':  apikey,
-              'o':       json}
+              'o':       'xml'}
 
     if host[:-1] == '/':
         host = host + 'api'
@@ -3364,7 +3373,21 @@ def newznab_test(name, host, ssl, apikey):
         logger.warn('Unable to connect: %s' % e)
         return
     else:
-        logger.info('Connected - Status code returned: %s' % r.status_code)
+        try:
+            data = parseString(r.content)
+        except Exception as e:
+            logger.warn('error %s' % e)
+
+        try:
+            error_code = data.getElementsByTagName('error')[0].attributes['code'].value
+        except Exception as e:
+            logger.info('Connected - Status code returned: %s' % r.status_code)
+            return True
+        else:
+            code = error_code
+            description = data.getElementsByTagName('error')[0].attributes['description'].value
+            logger.info('[ERROR:%s] - %s' % (code, description))
+            return False
 
 def get_free_space(folder):
     min_threshold = 100000000 #threshold for minimum amount of freespace available (#100mb)
@@ -3633,6 +3656,46 @@ def publisherImages(publisher):
                           'publisher_imageW':      '0'}
 
     return comicpublisher
+
+def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
+    import db
+    myDB = db.DBConnection()
+    watchlist = listLibrary()
+    matchlist = []
+    #get the weeknumber/year for the pulldate
+    dt = datetime.datetime.strptime(pulldate, '%Y-%m-%d')
+    weeknumber = dt.strftime("%U")
+    year = dt.strftime("%Y")
+    for f in filelist:
+        file = re.sub(folder, '', f).strip()
+        pp = mylar.filechecker.FileChecker(justparse=True, file=file)
+        parsedinfo = pp.listFiles()
+        if parsedinfo['parse_status'] == 'success':
+            dyncheck = re.sub('[\|\s]', '', parsedinfo['dynamic_name'].lower()).strip()
+            check = myDB.selectone('SELECT * FROM weekly WHERE DynamicName=? AND weeknumber=? AND year=? AND STATUS<>"Downloaded"', [dyncheck, weeknumber, year]).fetchone()
+            if check is not None:
+                logger.fdebug('[%s] found match: %s #%s' % (file, check['COMIC'], check['ISSUE']))
+                matchlist.append({'comicname':     check['COMIC'],
+                                  'issue':         check['ISSUE'],
+                                  'comicid':       check['ComicID'],
+                                  'issueid':       check['IssueID'],
+                                  'dynamicname':   check['DynamicName']})
+        else:
+            logger.fdebug('[%s] unable to match to the pull: %s' % (file, parsedinfo))
+
+    if len(matchlist) > 0:
+        for x in matchlist:
+            if all([x['comicid'] not in watchlist, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is False]):
+                oneoff = True
+                mode = 'pullwant'
+            elif all([x['comicid'] not in watchlist, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
+                continue
+            else:
+                oneoff = False
+                mode = 'want'
+            mylar.updater.nzblog(x['issueid'], nzbname, x['comicname'], id=nzbid, prov=prov, oneoff=oneoff)
+            mylar.updater.foundsearch(x['comicid'], x['issueid'], mode=mode, provider=prov, hash=hash)
+
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename

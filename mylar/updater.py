@@ -790,7 +790,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
 
             myDB.upsert("snatched", newsnatchValues, snatchedupdate)
 
-        elif mode != 'pullwant':         
+        elif mode != 'pullwant':
             if modcomicname:
                 IssueNum = issue['Issue_Number']
             else:

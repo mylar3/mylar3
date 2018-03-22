@@ -85,6 +85,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'WEEKFOLDER_FORMAT': (int, 'Weekly', 0),
     'INDIE_PUB': (int, 'Weekly', 75),
     'BIGGIE_PUB': (int, 'Weekly', 55),
+    'PACK_0DAY_WATCHLIST_ONLY': (bool, 'Weekly', True),
 
     'HTTP_PORT' : (int, 'Interface', 8090),
     'HTTP_HOST' : (str, 'Interface', '0.0.0.0'),

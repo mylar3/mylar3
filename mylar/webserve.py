@@ -2332,9 +2332,14 @@ class WebInterface(object):
                     for r in results:
                         rr = dict(r)
                         snatchit = [x['hash'] for x in chkthis if r['ISSUEID'] == x['IssueID']]
-                        if snatchit:
-                            logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (r['ComicName'], ''.join(snatchit)))
-                            rr['hash'] = ''.join(snatchit)
+                        try:
+                            if snatchit:
+                                logger.fdebug('[%s] Discovered previously snatched torrent not downloaded. Marking for manual auto-snatch retrieval: %s' % (r['ComicName'], ''.join(snatchit)))
+                                rr['hash'] = ''.join(snatchit)
+                            else:
+                                rr['hash'] = None
+                        except:
+                            rr['hash'] = None
                         endresults.append(rr)
                     results = endresults
 
@@ -4640,55 +4645,23 @@ class WebInterface(object):
             ffs = alt_search.find('##')
             ffs_alt.append(alt_search[:ffs])
             ffs_alt_st = str(ffs_alt[0])
-            logger.fdebug("ffs_alt: " + str(ffs_alt[0]))
 
         ffs_test = alt_search.split('##')
         if len(ffs_test) > 0:
-            logger.fdebug("ffs_test names: " + str(len(ffs_test)))
             ffs_count = len(ffs_test)
             n=1
             while (n < ffs_count):
                 ffs_alt.append(ffs_test[n])
-                logger.fdebug("adding : " + str(ffs_test[n]))
-               #print("ffs_alt : " + str(ffs_alt))
                 ffs_alt_st = str(ffs_alt_st) + "..." + str(ffs_test[n])
                 n+=1
             asearch = ffs_alt
         else:
             asearch = alt_search
 
-#        ffs_alt = []
-#        if '+' in alt_search:
-            #find first +
-#            ffs = alt_search.find('+')
-#            ffs_alt.append(alt_search[:ffs])
-#            ffs_alt_st = str(ffs_alt[0])
-#            print("ffs_alt: " + str(ffs_alt[0]))
-
-            # split the entire string by the delimter +
-#            ffs_test = alt_search.split('+')
-#            if len(ffs_test) > 0:
-#                print("ffs_test names: " + str(len(ffs_test)))
-#                ffs_count = len(ffs_test)
-#                n=1
-#                while (n < ffs_count):
-#                    ffs_alt.append(ffs_test[n])
-#                    print("adding : " + str(ffs_test[n]))
-                    #print("ffs_alt : " + str(ffs_alt))
-#                    ffs_alt_st = str(ffs_alt_st) + "..." + str(ffs_test[n])
-#                    n+=1
-#            asearch = ffs_alt
-#        else:
-#            asearch = alt_search
         asearch = str(alt_search)
 
         controlValueDict = {'ComicID': ComicID}
         newValues = {"ComicLocation":        com_location}
-                     #"QUALalt_vers":         qual_altvers,
-                     #"QUALScanner":          qual_scanner,
-                     #"QUALtype":             qual_type,
-                     #"QUALquality":          qual_quality
-                     #}
         if asearch is not None:
             if re.sub(r'\s', '', asearch) == '':
                 newValues['AlternateSearch'] = "None"
@@ -4731,22 +4704,18 @@ class WebInterface(object):
             newValues['AlternateFileName'] = str(alt_filename)
 
         #force the check/creation of directory com_location here
-        if os.path.isdir(str(com_location)):
-            logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
-        else:
-            logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
-            #try:
-            #    os.makedirs(str(com_location))
-            #    logger.info(u"Directory successfully created at: " + str(com_location))
-            #except OSError:
-            #    logger.error(u"Could not create comicdir : " + str(com_location))
-            if mylar.CONFIG.CREATE_FOLDERS is True:
+        if mylar.CONFIG.CREATE_FOLDERS is True:
+            if os.path.isdir(str(com_location)):
+                logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
+            else:
+                logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
                 checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
                 if not checkdirectory:
                     logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
                     return
 
         myDB.upsert("comics", newValues, controlValueDict)
+        logger.fdebug('Updated Series options!') 
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     comic_config.exposed = True
 
@@ -5321,12 +5290,12 @@ class WebInterface(object):
 
     def testnewznab(self, name, host, ssl, apikey):
         result = helpers.newznab_test(name, host, ssl, apikey)
-
-        if result == '200':
-            return "Successfully tested %s - valid api response received" % name
+        if result is True:
+            logger.info('Successfully tested %s [%s] - valid api response received' % (name, host))
+            return 'Successfully tested %s!' % name
         else:
-            logger.warn('Testing failed to %s [HOST:%s][SSL:%s][APIKEY:%s]' % (name, host, ssl))
-            return "Error testing newznab data"
+            logger.warn('Testing failed to %s [HOST:%s][SSL:%s]' % (name, host, ssl))
+            return 'Error - failed running test for %s' % name
     testnewznab.exposed = True
 
 
@@ -5381,6 +5350,11 @@ class WebInterface(object):
             ti += '<tr><td><center>Seedtime: ' + torrent_info['seedtime'] + '</center></td</tr>'
             ti += '</table>'
 
+            logger.info('torrent_info:%s' % torrent_info)
+            #commenting out the next 2 lines will return the torrent information to the screen
+            #fp = mylar.process.Process(torrent_info['filepath'], torrent_info['dst_folder'], issueid=torrent_info['issueid'], failed=failed)
+            #fp.post_process()
+
         else:
             torrent_name = 'Not Found'
             ti = 'Torrent not found (' + str(torrent_hash)
@@ -5401,6 +5375,13 @@ class WebInterface(object):
         logger.info('Hash: ' + thehash)
 
     get_the_hash.exposed = True
+
+    def download_0day(self, week):
+        logger.info('Now attempting to search for 0-day pack for week: %s' % week)
+        #week contains weekinfo['midweek'] = YYYY-mm-dd of Wednesday of the given week's pull
+        foundcom, prov = search.search_init('0-Day Comics Pack - %s.%s' % (week[:4],week[5:]), None, week[:4], None, None, week, week, None, allow_packs=True, oneoff=True)
+
+    download_0day.exposed = True
 
     def test_32p(self):
         import auth32p
