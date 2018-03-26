@@ -400,8 +400,10 @@ class PostProcessor(object):
 
                 manual_list = []
                 manual_arclist = []
+                oneoff_issuelist = []
 
                 for fl in filelist['comiclist']:
+                    self.matched = False
                     as_d = filechecker.FileChecker()
                     as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
                     mod_seriesname = as_dinfo['mod_seriesname']
@@ -661,6 +663,7 @@ class PostProcessor(object):
                                     continue
 
                         logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
+                        self.matched = True
                         continue #break
 
 
@@ -860,13 +863,92 @@ class PostProcessor(object):
                                                                            "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
                                                                            "ComicName":       k})
                                                     logger.info(module + '[SUCCESSFUL MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Match verified for ' + arcmatch['comicfilename'])
+                                                    self.matched = True
                                                     break
                                             else:
                                                 logger.fdebug(module + '[NON-MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
 
                             i+=1
 
-                logger.fdebug(module + ' There are ' + str(len(manual_list)) + ' files found that match on your watchlist, ' + str(int(filelist['comiccount'] - len(manual_list))) + ' do not match anything.')
+                    if self.matched is False:
+                        #one-off manual pp'd of torrents
+                        if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
+                            pass
+                        else:
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE (s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            if not oneofflist:
+                                continue
+                            else:
+                                logger.fdebug(module + '[ONEOFF-SELECTION][self.nzb_name: %s]' % self.nzb_name)
+                                oneoffvals = []
+                                for ofl in oneofflist:
+                                    logger.info('[ONEOFF-SELECTION] ofl: %s' % ofl)
+                                    oneoffvals.append({"ComicName":       ofl['ComicName'],
+                                                       "ComicPublisher":  ofl['PUBLISHER'],
+                                                       "Issue_Number":    ofl['Issue_Number'],
+                                                       "AlternateSearch": None,
+                                                       "ComicID":         ofl['ComicID'],
+                                                       "IssueID":         ofl['IssueID'],
+                                                       "WatchValues": {"SeriesYear":   None,
+                                                                       "LatestDate":   None,
+                                                                       "ComicVersion": None,
+                                                                       "Publisher":    ofl['PUBLISHER'],
+                                                                       "Total":        None,
+                                                                       "ComicID":      ofl['ComicID'],
+                                                                       "IsArc":        False}})
+
+                                #this seems redundant to scan in all over again...
+                                #for fl in filelist['comiclist']:
+                                for ofv in oneoffvals:
+                                    logger.info('[ONEOFF-SELECTION] ofv: %s' % ofv)
+                                    wm = filechecker.FileChecker(watchcomic=ofv['ComicName'], Publisher=ofv['ComicPublisher'], AlternateSearch=None, manual=ofv['WatchValues'])
+                                    #if fl['sub'] is not None:
+                                    #    pathtofile = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename'])
+                                    #else:
+                                    #    pathtofile = os.path.join(fl['comiclocation'], fl['comicfilename'])
+                                    watchmatch = wm.matchIT(fl)
+                                    if watchmatch['process_status'] == 'fail':
+                                        nm+=1
+                                        continue
+                                    else:
+                                        temploc= watchmatch['justthedigits'].replace('_', ' ')
+                                        temploc = re.sub('[\#\']', '', temploc)
+
+                                    logger.info('watchmatch: %s' % watchmatch)
+                                    if 'annual' in temploc.lower():
+                                        biannchk = re.sub('-', '', temploc.lower()).strip()
+                                        if 'biannual' in biannchk:
+                                            logger.fdebug(module + ' Bi-Annual detected.')
+                                            fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                        else:
+                                            fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                            logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(ofv['ComicID']))
+                                        annchk = "yes"
+                                    else:
+                                        fcdigit = helpers.issuedigits(temploc)
+
+                                    if fcdigit == helpers.issuedigits(ofv['Issue_Number']):
+                                        if watchmatch['sub']:
+                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                        else:
+                                            clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                        oneoff_issuelist.append({"ComicLocation":   clocation,
+                                                                 "ComicID":         ofv['ComicID'],
+                                                                 "IssueID":         ofv['IssueID'],
+                                                                 "IssueNumber":     ofv['Issue_Number'],
+                                                                 "ComicName":       ofv['ComicName'],
+                                                                 "One-Off":         True})
+                                        self.oneoffinlist = True
+                                    else:
+                                        logger.fdebug(module + ' No corresponding issue # in dB found for %s # %s' % (ofv['ComicName'],ofv['Issue_Number']))
+                                        continue
+
+                                    logger.fdebug(module + '[SUCCESSFUL MATCH: ' + ofv['ComicName'] + '-' + ofv['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
+                                    self.matched = True
+                                    break
+
+
+                logger.fdebug('%s There are %s files found that match on your watchlist, %s files are considered one-off\'s, and %s files do not match anything' % (module, len(manual_list), len(oneoff_issuelist), int(filelist['comiccount']) - len(manual_list)))
 
                 delete_arc = []
                 if len(manual_arclist) > 0:
@@ -986,78 +1068,6 @@ class PostProcessor(object):
                         myDB.upsert("storyarcs", newVal, ctrlVal)
 
                         logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
-
-                else:
-                    #one-off manual pp'd of torrents
-                    if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
-                        pass
-                    else:
-                        oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE (s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
-                        if oneofflist is None:
-                            logger.fdebug(module + ' No one-off\'s have ever been snatched using mylar.')
-                        else:
-                            oneoffvals = []
-                            oneoff_issuelist = []
-                            nm = 0
-                            for ofl in oneofflist:
-                                oneoffvals.append({"ComicName":       ofl['ComicName'],
-                                                   "ComicPublisher":  ofl['PUBLISHER'],
-                                                   "Issue_Number":    ofl['Issue_Number'],
-                                                   "AlternateSearch": None,
-                                                   "ComicID":         ofl['ComicID'],
-                                                   "IssueID":         ofl['IssueID'],
-                                                   "WatchValues": {"SeriesYear":   None,
-                                                                   "LatestDate":   None,
-                                                                   "ComicVersion": None,
-                                                                   "Publisher":    ofl['PUBLISHER'],
-                                                                   "Total":        None,
-                                                                   "ComicID":      ofl['ComicID'],
-                                                                   "IsArc":        False}})
-
-                            for fl in filelist['comiclist']:
-                                #logger.info('fl: %s' % fl)
-                                for ofv in oneoffvals:
-                                    #logger.info('ofv: %s' % ofv)
-                                    wm = filechecker.FileChecker(watchcomic=ofv['ComicName'], Publisher=ofv['ComicPublisher'], AlternateSearch=None, manual=ofv['WatchValues'])
-                                    watchmatch = wm.matchIT(fl)
-                                    if watchmatch['process_status'] == 'fail':
-                                        nm+=1
-                                        continue
-                                    else:
-                                        temploc= watchmatch['justthedigits'].replace('_', ' ')
-                                        temploc = re.sub('[\#\']', '', temploc)
-
-                                    logger.info('watchmatch: %s' % watchmatch)
-                                    if 'annual' in temploc.lower():
-                                        biannchk = re.sub('-', '', temploc.lower()).strip()
-                                        if 'biannual' in biannchk:
-                                            logger.fdebug(module + ' Bi-Annual detected.')
-                                            fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
-                                        else:
-                                            fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                            logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(ofv['ComicID']))
-                                        annchk = "yes"
-                                    else:
-                                        fcdigit = helpers.issuedigits(temploc)
-
-                                    if fcdigit == helpers.issuedigits(ofv['Issue_Number']):
-                                        if watchmatch['sub']:
-                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
-                                        else:
-                                            clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
-                                        oneoff_issuelist.append({"ComicLocation":   clocation,
-                                                                 "ComicID":         ofv['ComicID'],
-                                                                 "IssueID":         ofv['IssueID'],
-                                                                 "IssueNumber":     ofv['Issue_Number'],
-                                                                 "ComicName":       ofv['ComicName'],
-                                                                 "One-Off":         True})
-                                        self.oneoffinlist = True
-                                    else:
-                                        logger.fdebug(module + ' No corresponding issue # in dB found for %s # %s' % (ofv['ComicName'],ofv['Issue_Number']))
-                                        continue
-
-                                    logger.fdebug(module + '[SUCCESSFUL MATCH: ' + ofv['ComicName'] + '-' + ofv['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
-                                    break
 
             if any([self.nzb_name != 'Manual Run', self.oneoffinlist is True]) and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
@@ -1508,7 +1518,10 @@ class PostProcessor(object):
 
                     return self.queue.put(self.valreturn)
 
+                else:
+                    manual_list = tinfo
         else:
+            logger.info("WHOOPS")
             manual_list = manual
 
         if self.nzb_name == 'Manual Run':
