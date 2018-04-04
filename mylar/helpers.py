@@ -3716,7 +3716,8 @@ def file_ops(path,dst,arc=False,one_off=False):
         try:
             shutil.copy( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
-        except:
+        except Exception as e:
+            logger.error('[%s] error : %s' % (action_op, e))
             return False
         return True
 
@@ -3724,7 +3725,8 @@ def file_ops(path,dst,arc=False,one_off=False):
         try:
             shutil.move( path , dst )
 #        if crc_check == mylar.filechecker.crc(dst):
-        except:
+        except Exception as e:
+            logger.error('[MOVE] error : %s' % e)
             return False
         return True
 
@@ -3749,7 +3751,8 @@ def file_ops(path,dst,arc=False,one_off=False):
                             shutil.copy( path, dst )
                             logger.fdebug('Successfully copied file to : ' + dst) 
                             return True
-                        except:
+                        except Exception as e:
+                            logger.error('[COPY] error : %s' % e)
                             return False
                     else:
                         logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - Intervention is required if you wish to continue using hardlinks.')
@@ -3784,7 +3787,8 @@ def file_ops(path,dst,arc=False,one_off=False):
                     try:
                         shutil.copy( dst, path )
                         logger.fdebug('Successfully copied file [' + dst + ' --> ' + path + ']')
-                    except:
+                    except Exception as e:
+                        logger.error('[COPY] error : %s' % e)
                         return False
 
                 return True
