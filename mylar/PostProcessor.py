@@ -1045,8 +1045,8 @@ class PostProcessor(object):
                             fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True)
                             if not fileoperation:
                                 raise OSError
-                        except (OSError, IOError):
-                            logger.fdebug(module + '[ONE-OFF MODE][' + mylar.CONFIG.ARC_FILEOPS.upper() + '] Failure ' + grab_src + ' - check directories and manually re-run.')
+                        except Exception as e:
+                            logger.error('%s [ONE-OFF MODE] Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
                             return
 
                         #tidyup old path
@@ -1474,9 +1474,9 @@ class PostProcessor(object):
                         fileoperation = helpers.file_ops(grab_src, grab_dst)
                         if not fileoperation:
                             raise OSError
-                    except (OSError, IOError):
-                        logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-                        self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src + " - check directories and manually re-run.")
+                    except Exception as e:
+                        logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, grab_src, e))
+                        self._log("Failed to %s %s: %s" % (mylar.CONFIG.FILE_OPTS, grab_src, e))
                         return
 
                     #tidyup old path
@@ -2086,11 +2086,11 @@ class PostProcessor(object):
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
-                except (OSError, IOError):
-                    self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src  + " - check directories and manually re-run.")
+                except Exception as e:
+                    self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src  + " - check log for exact error.")
                     self._log("Post-Processing ABORTED.")
-                    logger.warn(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-                    logger.warn(module + ' Post-Processing ABORTED')
+                    logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, src, e))
+                    logger.error(module + ' Post-Processing ABORTED')
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
@@ -2121,9 +2121,9 @@ class PostProcessor(object):
                     fileoperation = helpers.file_ops(src, dst)
                     if not fileoperation:
                         raise OSError
-                except (OSError, IOError):
-                    logger.fdebug(module + ' Failed to ' + mylar.CONFIG.FILE_OPTS + ' ' + src + ' - check directories and manually re-run.')
-                    logger.fdebug(module + ' Post-Processing ABORTED.')
+                except Exception as e:
+                    logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, src, e))
+                    logger.error(module + ' Post-Processing ABORTED.')
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
@@ -2225,8 +2225,8 @@ class PostProcessor(object):
                             fileoperation = helpers.file_ops(grab_src, grab_dst, arc=True)
                             if not fileoperation:
                                 raise OSError
-                        except (OSError, IOError):
-                            logger.fdebug(module + '[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] Failure ' + src + ' - check directories and manually re-run.')
+                        except Exception as e:
+                            logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
                             return
 
                         #delete entry from nzblog table in case it was forced via the Story Arc Page
