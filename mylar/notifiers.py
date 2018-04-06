@@ -205,16 +205,25 @@ class NMA:
 # No extra care has been put into API friendliness at the moment (read: https://pushover.net/api#friendly)
 class PUSHOVER:
 
-    def __init__(self, test_apikey=None, test_userkey=None):
-        self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
+    def __init__(self, test_apikey=None, test_userkey=None, test_device=None):
+        if all([test_apikey is None, test_userkey is None, test_device is None]):
+            self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
+        else:
+            self.PUSHOVER_URL = 'https://api.pushover.net/1/users/validate.json'
         self.enabled = mylar.CONFIG.PUSHOVER_ENABLED
         if test_apikey is None:
             if mylar.CONFIG.PUSHOVER_APIKEY is None or mylar.CONFIG.PUSHOVER_APIKEY == 'None':
-                self.apikey = 'a1KZ1L7d8JKdrtHcUR6eFoW2XGBmwG'
+                logger.warn('No Pushover Apikey is present. Fix it')
+                return False
             else:
                 self.apikey = mylar.CONFIG.PUSHOVER_APIKEY
         else:
             self.apikey = test_apikey
+
+        if test_device is None:
+            self.device = mylar.CONFIG.PUSHOVER_DEVICE
+        else:
+            self.device = test_device
 
         if test_userkey is None:
             self.userkey = mylar.CONFIG.PUSHOVER_USERKEY
@@ -244,10 +253,21 @@ class PUSHOVER:
                 'title': event,
                 'priority': mylar.CONFIG.PUSHOVER_PRIORITY}
 
+        if all([self.device is not None, self.device != 'None']):
+            data.update({'device': self.device})
+
         r = self._session.post(self.PUSHOVER_URL, data=data, verify=True)
 
         if r.status_code == 200:
-            logger.info(module + ' PushOver notifications sent.')
+            try:
+                response = r.json()
+                if 'devices' in response:
+                    logger.info('%s PushOver notifications sent. Available devices: %s' % (module, response))
+                else:
+                    logger.info('%s PushOver notifications sent.' % module)
+            except Exception as e:
+                logger.warn('%s[ERROR] - %s' % (module, e))
+
             return True
         elif r.status_code >= 400 and r.status_code < 500:
             logger.error(module + ' PushOver request failed: %s' % r.content)

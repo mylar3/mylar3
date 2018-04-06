@@ -395,6 +395,7 @@
                                 </div>
 
                                 <div align="center" class="row">
+                                     <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
                                      <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
                                 </div>
@@ -403,20 +404,20 @@
                        <fieldset id="nzbget_options">
                                 <div class="row">
                                     <label>NZBGet Host:</label>
-                                    <input type="text" name="nzbget_host" value="${config['nzbget_host']}" size="30">
+                                    <input type="text" id="nzbget_host" name="nzbget_host" value="${config['nzbget_host']}" size="30">
                                     <small>usually http://localhost</small>
                                 </div>
                                 <div class="row">
                                     <label>NZBGet Port:</label>
-                                    <input type="text" name="nzbget_port" value="${config['nzbget_port']}" size="36">
+                                    <input type="text" id="nzbget_port" name="nzbget_port" value="${config['nzbget_port']}" size="36">
                                 </div>
                                 <div class="row">
                                     <label>NZBGet Username:</label>
-                                    <input type="text" name="nzbget_username" value="${config['nzbget_user']}" size="20">
+                                    <input type="text" id="nzbget_username" name="nzbget_username" value="${config['nzbget_user']}" size="20">
                                 </div>
                                 <div class="row">
                                     <label>NZBGet Password:</label>
-                                    <input type="password" name="nzbget_password" value="${config['nzbget_pass']| h}" size="20">
+                                    <input type="password" id="nzbget_password" name="nzbget_password" value="${config['nzbget_pass']| h}" size="20">
                                </div>
                                 <div class="row">
                                     <label>NZBGet Download Directory</label>
@@ -445,6 +446,12 @@
                             <div class="row checkbox left clearfix">
                                 <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling<label>
                                 <small>The category label above is used to when completed download handling is enabled</small>
+                            </div>
+
+                            <div align="center" class="row">
+                                 <img name="nzbget_statusicon" id="nzbget_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                 <input type="button" value="Test NZBGet" id="test_nzbget" style="float:center" /></br>
+                                 <input type="text" name="nzbgetstatus" style="text-align:center; font-size:11px;" id="nzbgetstatus" size="50" DISABLED />
                             </div>
                          
                          </fieldset>
@@ -595,6 +602,7 @@
                                         <small>Automatically start torrent on successful loading within rtorrent client</small>
                                 </div>
                                 <div class="row">
+                                        <img name="rtorrent_statusicon" id="rtorrent_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Connection" id="rtorrent_test" />
                                 </div>
                         </fieldset>
@@ -692,7 +700,7 @@
                 		</div>
                 		<div class="config">
                                         <div class="row checkbox">
-                                            <input type="checkbox" name="nzbsu_verify" value="1" ${config['nzbsu_verify']} /><label>Verify SSL</label>
+                                            <input type="checkbox" name="nzbsu_verify" id="nzbsu_verify" value="1" ${config['nzbsu_verify']} /><label>Verify SSL</label>
                                         </div>
                                         <div class="row">
                                             <label>NZB.SU UID</label>
@@ -701,8 +709,12 @@
                                         </div>
 	                		<div class="row">
 	                		 	<label>NZB.SU API</label>
-                                                <input type="text" name="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
+                                                <input type="text" name="nzbsu_apikey" id="nzbsu_apikey" value="${config['nzbsu_api']}" size="36">
                   		        </div>
+                                        <div>
+                                                <img name="nzbsu_statusicon" id="nzbsu_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <input type="button" class="newznabtest" value="Test Connection" id="test_nzbsu" name="test_nzbsu" style="float:right;margin-right:10px;" />
+                                        </div>
                 		</div>
                 	</fieldset>
 
@@ -712,12 +724,16 @@
                                 </div>
                                 <div class="config">
                                         <div class="row checkbox">
-                                             <input id="dognzb_verify" type="checkbox" name="dognzb_verify" value="1" ${config['dognzb_verify']} /><label>Verify SSL</label>
+                                             <input id="dognzb_verify" type="checkbox" name="dognzb_verify" id="dognzb_verify" value="1" ${config['dognzb_verify']} /><label>Verify SSL</label>
                                         </div>
                                         <div class="row">
                                                 <label>DOGNZB API</label>
-                                                <input type="text" name="dognzb_apikey" value="${config['dognzb_api']}" size="36">
-                                         </div>
+                                                <input type="text" name="dognzb_apikey" id="dognzb_apikey" value="${config['dognzb_api']}" size="36">
+                                        </div>
+                                        <div>
+                                                 <img name="dognzb_statusicon" id="dognzb_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                 <input type="button" class="newznabtest" value="Test Connection" id="test_dognzb" name="test_dognzb" style="float:right;margin-right:10px;" />
+                                        </div>
                                 </div>
                         </fieldset>
 
@@ -780,6 +796,7 @@
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
                                                 <div align="center" class="row">
+                                                    <img name="test32p_statusicon" id="test32p_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                     <input type="button" value="Test Connection" id="test_32p" style="float:center" /></br>
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
                                                 </div>
@@ -797,24 +814,51 @@
                                          <div class="row checkbox left clearfix">
                                                 <input type="checkbox" id="enable_torznab" onclick="initConfigCheckbox($(this));" name="enable_torznab" value=1 ${config['enable_torznab']} /><label>Enable Torznab</label>
                                          </div>
-                                         <div class="config">
-                                            <div class="row">
-                                                <label>Torznab Name</label>
-                                                <input type="text" name="torznab_name" value="${config['torznab_name']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Torznab Host</label>
-                                                <input type="text" name="torznab_host" value="${config['torznab_host']}" size="30">
-                                            </div>
-                                            <div class="row">
-                                                <label>Torznab API</label>
-                                                <input type="text" name="torznab_apikey" value="${config['torznab_apikey']}" size="36">
-                                            </div>
-                                            <div class="row">
-                                                <label>Torznab Category</label>
-                                                <input type="text" name="torznab_category" value="${config['torznab_category']}" size="12">
-                                            </div>
-                                        </div>
+                                         <div id="torznab_providers">
+                                            <%
+                                                  torznab_number = 1
+                                            %>
+                                            %for torznab in config['extra_torznabs']:
+                                                <%
+                                                    if torznab[4] == '1' or torznab[4] == 1:
+                                                        torznab_enabled = "checked"
+                                                    else:
+                                                        torznab_enabled = ""
+
+                                                %>
+
+                                                <div class="config" id="torznab${torznab_number}">
+                                                    <div class="row">
+                                                        <label>Torznab Name</label>
+                                                        <input type="text" name="torznab_name${torznab_number}" id="torznab_name${torznab_number}" value="${torznab[0]}" size="30">
+                                                    </div>
+                                                    <div class="row">
+                                                        <label>Torznab Host</label>
+                                                        <input type="text" name="torznab_host${torznab_number}" id="torznab_host${torznab_number}" value="${torznab[1]}" size="30">
+                                                    </div>
+                                                    <div class="row">
+                                                        <label>Torznab API</label>
+                                                        <input type="text" name="torznab_apikey${torznab_number}" id="torznab_apikey${torznab_number}" value="${torznab[2]}" size="36">
+                                                    </div>
+                                                    <div class="row">
+                                                        <label>Torznab Category</label>
+                                                        <input type="text" name="torznab_category${torznab_number}" id="torznab_category${torznab_number}" value="${torznab[3]}" size="12">
+                                                    </div>
+                                                    <div class="row checkbox">
+                                                        <input id="torznab_enabled${torznab_number}" type="checkbox" name="torznab_enabled${torznab_number}" value="1" ${torznab_enabled} /><label>Enabled</label>
+                                                        <img name="torznabstatus${torznab_number}" id="torznabstatus${torznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                       <input type="button" class="torznabtest" value="Test ${torznab[0]}" id="torznab_test${torznab_number}" name="torznab_test${torznab_number}" style="float:right;margin-right:10px;" />
+                                                    </div>
+                                                    <div class="row">
+                                                        <input type="button" class="remove" id="torznab${torznab_number}" value="Remove ${torznab[0]}">
+                                                    </div>
+                                                </div>
+                                                <%
+                                                     torznab_number += 1
+                                                %>
+                                            %endfor
+                                            <input type="button" value="Add Torznab" class="add_torznab" id="add_torznab" />
+                                         </div>
                                 </div>
                         </fieldset>
 
@@ -864,9 +908,9 @@
                                                 <small>( only needed for RSS feed )</small>
                                             </div>
                                             <div class="row checkbox">
-                                                <input id="newznab_enabled" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
-                                                <input type="button" value="Test ${newznab[0]}" name="${newznab_number}" id="newznabtest" style="float:center" />
-                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/checkmark.png" style="vertical-align: middle; margin: 3px; margin-top: -1px; display: none" height="10" width="10">
+                                                <input id="newznab_enabled${newznab_number}" type="checkbox" name="newznab_enabled${newznab_number}" value="1" ${newznab_enabled} /><label>Enabled</label>
+                                                <img name="newznabstatus${newznab_number}" id="newznabstatus${newznab_number}" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
+                                                <input type="button" class="newznabtest" value="Test ${newznab[0]}" id="newznab_test${newznab_number}" name="newznab_test${newznab_number}" style="float:right;margin-right:10px;" />
                                             </div>
                                             <div class="row">
                                                 <input type="button" class="remove" id="newznab${newznab_number}" value="Remove ${newznab[0]}">
@@ -903,9 +947,9 @@
                         <fieldset>
                                 <legend>Quality</legend>
                                 <div class="row radio left clearfix">
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
-<input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
+                                     <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="1" ${config['pref_qual_1']} /><label>cbr</label>
+                                     <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="2" ${config['pref_qual_2']} /><label>cbz</label>
+                                     <input type="radio" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="preferred_quality" value="0" ${config['pref_qual_0']} /><label>Whichever - just get it</label>
                                 </div>
                         </fieldset>
                         <fieldset>
@@ -1209,7 +1253,7 @@
                                                  </div>
                                                  <div id="prowloptions">
                                                      <div class="row">
-                                                         <label>API key</label><input type="text" name="prowl_keys" value="${config['prowl_keys']}" size="50">
+                                                         <label>API key</label><input type="text" id="prowl_keys" name="prowl_keys" value="${config['prowl_keys']}" size="50">
                                                      </div>
                                                      <div class="row checkbox">
                                                          <input type="checkbox" name="prowl_onsnatch" value="1" ${config['prowl_onsnatch']} /><label>Notify on snatch?</label>
@@ -1219,6 +1263,7 @@
                                                          <input type="text" name="prowl_priority" value="${config['prowl_priority']}" size="2">
                                                      </div>
                                                      <div class="row">
+                                                         <img name="prowl_statusicon" id="prowl_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                                          <input type="button" value="Test PROWL" id="prowl_test" />
                                                      </div>
                                                  </div>
@@ -1263,6 +1308,7 @@
                                 </select>
                             </div>
                             <div align="center" class="row">
+                                 <img name="nma_statusicon" id="nma_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test NMA" id="nma_test" style="float:center" /></br>
                                  <input type="text" name="nmastatus" style="text-align:center; font-size:11px;" id="nmastatus" size="55" DISABLED />
                             </div>
@@ -1281,6 +1327,9 @@
                              <div class="row">
                                  <label>User key</label><input type="text" name="pushover_userkey" id="pushover_userkey" value="${config['pushover_userkey']}" size="50">
                              </div>
+                             <div class="row">
+                                 <label>Device</label><input type="text" title="Specific Device ID to push notifications to" name="pushover_device" id="pushover_device" value="${config['pushover_device']}" size="50">
+                             </div>
                              <div class="row checkbox">
                                  <input type="checkbox" name="pushover_onsnatch" value="1" ${config['pushover_onsnatch']} /><label>Notify on snatch?</label>
                              </div>
@@ -1289,6 +1338,7 @@
                                  <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
                              </div>
                             <div align="center" class="row">
+                                 <img name="pushover_statusicon" id="pushover_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Pushover" id="pushover_test" style="float:center" /></br>
                                  <input type="text" name="pushoverstatus" style="text-align:center; font-size:11px;" id="pushoverstatus" size="55" DISABLED />
                             </div>
@@ -1308,6 +1358,7 @@
                                     <label>Boxcar Token</label>
                                     <input type="text" name="boxcar_token" value="${config['boxcar_token']}" size="30">
                                     <div class="row">
+                                        <img name="boxcar_statusicon" id="boxcar_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Boxcar" id="boxcar_test" />
                                    </div>
                             </div>
@@ -1339,6 +1390,7 @@
                                         <small>Send to all subscribers of the channel with this tag (Optional)</small>
                                     </div>
                                     <div align="center" class="row">
+                                        <img name="pushbullet_statusicon" id="pushbullet_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                         <input type="button" value="Test Pushbullet" id="pushbullet_test" style="float:center" /></br>
                                         <input type="text" name="pbstatus" style="text-align:center; font-size:11px;" id="pbstatus" size="55" DISABLED />
                                    </div>
@@ -1361,6 +1413,7 @@
                                  <input type="checkbox" name="telegram_onsnatch" value="1" ${config['telegram_onsnatch']} /><label>Notify on snatch?</label>
                              </div>
                              <div align="center" class="row">
+                                 <img name="telegram_statusicon" id="telegram_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                  <input type="button" value="Test Telegram" id="telegram_test" style="float:center" /></br>
                                  <input type="text" name="telegramstatus" style="text-align:center; font-size:11px;" id="telegramstatus" size="55" DISABLED />
                              </div>
@@ -1380,6 +1433,7 @@
                                 <input type="checkbox" name="slack_onsnatch" value="1" ${config['slack_onsnatch']} /><label>Notify on snatch?</label>
                             </div>
                             <div align="center" class="row">
+                                <img name="slack_statusicon" id="slack_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                 <input type="button" value="Test Slack" id="slack_test" style="float:center" /></br>
                                 <input type="text" name="slackstatus" style="text-align:center; font-size:11px;" id="slackstatus" size="55" DISABLED />
                             </div>
@@ -1820,6 +1874,7 @@
                 });
 
                 var deletedNewznabs = 0;
+                var deletedTorznabs = 0;
 
                 $(".remove").click(function() {
                     $(this).parent().parent().remove();
@@ -1843,6 +1898,7 @@
                 };
 
                 $("#test_32p").click(function(){
+                    var imagechk = document.getElementById("test32p_statusicon");
                     $.get('test_32p',
                         function(data){
                             if (data.error != undefined) {
@@ -1854,14 +1910,26 @@
                             inkd = numberWithCommas(inkd);
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#test_sab').click(function () {
-                    var sabhost = document.getElementById('sab_host').value;
-                    var sabuser = document.getElementById('sab_username').value;
-                    var sabpass = document.getElementById('sab_password').value;
-                    var sabapi = document.getElementById('sab_apikey').value;
+                    var imagechk = document.getElementById("sabnzbd_statusicon");
+                    var sabhost = document.getElementById("sab_host").value;
+                    var sabuser = document.getElementById("sab_username").value;
+                    var sabpass = document.getElementById("sab_password").value;
+                    var sabapi = document.getElementById("sab_apikey").value;
                     $.get("SABtest",
                         { sabhost: sabhost, sabusername: sabuser, sabpassword: sabpass, sabapikey: sabapi },
                         function(data){
@@ -1870,8 +1938,44 @@
                                 return;
                             }
                             $('#sabstatus').val(data);
-                            // $('#sab_apikey').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#test_nzbget').click(function () {
+                    var imagechk = document.getElementById("nzbget_statusicon");
+                    var nzbhost = document.getElementById("nzbget_host").value;
+                    var nzbport = document.getElementById("nzbget_port").value;
+                    var nzbuser = document.getElementById("nzbget_username").value;
+                    var nzbpass = document.getElementById("nzbget_password").value;
+                    $.get("NZBGet_test",
+                        { nzbhost: nzbhost, nzbport: nzbport, nzbusername: nzbuser, nzbpassword: nzbpass },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#nzbgetstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
@@ -1929,16 +2033,32 @@
 
                 $("#add_newznab").click(function() {
                     var intId = $("#newznab_providers > div").size() + deletedNewznabs + 1;
-                    var formfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
-                    var removeButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
-                    removeButton.click(function() {
+                    var newzformfields = $("<div class=\"config\" id=\"newznab" + intId + "\"><div class=\"row\"><label>Newznab Name</label><input type=\"text\" id=\"newznab_name" + intId + "\" name=\"newznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab Host</label><input type=\"text\" id=\"newznab_host" + intId + "\" name=\"newznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input type=\"checkbox\" id=\"newznab_verify" + intId + "\" name=\"newznab_verify" + intId + "\" value=\"0\" checked /><label>Verify SSL</label></div><div class=\"row\"><label>Newznab API</label><input type=\"text\" id=\"newznab_api" + intId + "\" name=\"newznab_api" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Newznab UID</label><input type=\"text\" id=\"newznab_uid" + intId + "\" name=\"newznab_uid" + intId + "\" size=\"15\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"newznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var newztestButton = $("<div class=\"row\"><img name=\"newznabstatus" + intId + "\" id=\"newznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"newznabtest\" value=\"Test\" id=\"newznab_test" + intId + "\"  name=\"newznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var newzremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
+                    newzremoveButton.click(function() {
                         $(this).parent().remove();
                         deletedNewznabs = deletedNewznabs + 1;
-
                     });
-                    formfields.append(removeButton);
-                    formfields.append("</div>");
-                    $("#add_newznab").before(formfields);
+                    newzformfields.append(newztestButton);
+                    newzformfields.append(newzremoveButton);
+                    newzformfields.append("</div>");
+                    $("#add_newznab").before(newzformfields);
+                });
+
+                $("#add_torznab").click(function() {
+                    var intId = $("#torznab_providers > div").size() + deletedTorznabs + 1;
+                    var torformfields = $("<div class=\"config\" id=\"torznab" + intId + "\"><div class=\"row\"><label>Torznab Name</label><input type=\"text\" id=\"torznab_name" + intId + "\" name=\"torznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Host</label><input type=\"text\" id=\"torznab_host" + intId + "\" name=\"torznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row\"><label>Torznab API</label><input type=\"text\" id=\"torznab_apikey" + intId + "\" name=\"torznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Category</label><input type=\"text\" id=\"torznab_category" + intId + "\" name=\"torznab_category" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"torznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
+                    var torremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
+                    torremoveButton.click(function() {
+                        $(this).parent().remove();
+                        deletedTorznabs = deletedTorznabs + 1;
+                    });
+                    torformfields.append(tortestButton);
+                    torformfields.append(torremoveButton);
+                    torformfields.append("</div>");
+                    $("#add_torznab").before(torformfields);
                 });
 
                 function addAction() {
@@ -1946,14 +2066,14 @@
                 };
 
                 $('#rtorrent_test').click(function () {
-                    var host = document.getElementById('rtorrent_host').value;
-                    var username = document.getElementById('rtorrent_username').value;
-                    var password = document.getElementById('rtorrent_password').value;
-                    var auth = document.getElementById('rtorrent_authentication').value;
-                    var verify = document.getElementById('rtorrent_verify').value;
-                    var ssl = document.getElementById('rtorrent_ssl').value;
-                    var rpc_url = document.getElementById('rtorrent_rpc_url').value;
-                    alert(host);
+                    var imagechk = document.getElementById("rtorrent_statusicon");
+                    var host = document.getElementById("rtorrent_host").value;
+                    var username = document.getElementById("rtorrent_username").value;
+                    var password = document.getElementById("rtorrent_password").value;
+                    var auth = document.getElementById("rtorrent_authentication").value;
+                    var verify = document.getElementById("rtorrent_verify").value;
+                    var ssl = document.getElementById("rtorrent_ssl").value;
+                    var rpc_url = document.getElementById("rtorrent_rpc_url").value;
                     $.get("testrtorrent",
                         { host: host, username: username, password: password, auth: auth, verify: verify, ssl: ssl, rpc_url: rpc_url },
                         function(data){
@@ -1963,16 +2083,40 @@
                             }
                             //$('#rtorrentstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
-                $('#newznabtest').click(function () {
-                    var newznab = document.getElementById("newznabtest").getAttribute("name");
-                    var name = document.getElementById("newznab_name"+newznab).value;
-                    var host = document.getElementById("newznab_host"+newznab).value;;
-                    var ssl = document.getElementById("newznab_verify"+newznab).value;
-                    var apikey = document.getElementById("newznab_api"+newznab).value;
+                $(".newznabtest").click(function () {
+                    var newznab = this.attributes["name"].value.replace('newznab_test', '');
+                    if ( newznab.indexOf("test_dognzb") > -1) {
+                        var imagechk = document.getElementById("dognzb_statusicon");
+                        var name = 'DOGnzb';
+                        var host = 'https://api.dognzb.cr';
+                        var ssl = document.getElementById("dognzb_verify").value;
+                        var apikey = document.getElementById("dognzb_apikey").value;
+                    } else if ( newznab.indexOf("test_nzbsu") > -1) {
+                        var imagechk = document.getElementById("nzbsu_statusicon");
+                        var name = 'nzb.su';
+                        var host = 'https://api.nzb.su';
+                        var ssl = document.getElementById("nzbsu_verify").value;
+                        var apikey = document.getElementById("nzbsu_apikey").value;
+                    } else {
+                        var imagechk = document.getElementById("newznabstatus"+newznab);
+                        var name = document.getElementById("newznab_name"+newznab).value;
+                        var host = document.getElementById("newznab_host"+newznab).value;;
+                        var ssl = document.getElementById("newznab_verify"+newznab).value;
+                        var apikey = document.getElementById("newznab_api"+newznab).value;
+                    }
                     $.get("testnewznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
                         function(data){
@@ -1980,14 +2124,50 @@
                                 alert(data.error);
                                 return;
                             }
-                            document.getElementById("newznabstatus" + newznab).style.display = "inline";
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $(".torznabtest").click(function () {
+                    var torznab = this.attributes["name"].value.replace('torznab_test', '');
+                    var imagechk = document.getElementById("tornabstatus"+torznab);
+                    var name = document.getElementById("torznab_name"+torznab).value;
+                    var host = document.getElementById("torznab_host"+torznab).value;
+                    var apikey = document.getElementById("torznab_api"+torznab).value;
+                    $.get("testtorznab",
+                        { name: name, host: host, ssl: ssl, apikey: apikey },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#nma_test').click(function () {
-                    var apikey = document.getElementById('nma_apikey').value;
+                    var imagechk = document.getElementById("nma_statusicon");
+                    var apikey = document.getElementById("nma_apikey").value;
                     $.get("testNMA",
                         { apikey: apikey },
                         function(data){
@@ -1997,21 +2177,50 @@
                             }
                             $('#nmastatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#prowl_test').click(function () {
+                    var imagechk = document.getElementById("prowl_statusicon");
+                    var apikey = document.getElementById("prowl_keys");
                     $.get("testprowl",
-                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                        { apikey: apikey },
+                        function (data) {
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#pushover_test').click(function () {
-                    var apikey = document.getElementById('pushover_apikey').value;
-                    var userkey = document.getElementById('pushover_userkey').value;
+                    var imagechk = document.getElementById("pushover_statusicon");
+                    var apikey = document.getElementById("pushover_apikey").value;
+                    var userkey = document.getElementById("pushover_userkey").value;
+                    var device = document.getElementById("pushover_device").value;
                     $.get("testpushover",
-                        { apikey: apikey, userkey: userkey },
+                        { apikey: apikey, userkey: userkey , device: device},
                         function(data){
                             if (data.error != undefined) {
                                 alert(data.error);
@@ -2019,18 +2228,47 @@
                             }
                             $('#pushoverstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#boxcar_test').click(function () {
+                    var imagechk = document.getElementById("boxcar_statusicon");
+                    var token = document.getElementById("boxcar_token");
                     $.get("testboxcar",
-                        function (data) { $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>"); });
+                        { token: token },
+                        function (data) {
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            $('#pushoverstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#pushbullet_test').click(function () {
-                    var apikey = document.getElementById('pushbullet_apikey').value;
+                    var imagechk = document.getElementById("pushbullet_statusicon");
+                    var apikey = document.getElementById("pushbullet_apikey").value;
                     $.get("testpushbullet",
                         { apikey: apikey },
                         function(data){
@@ -2040,13 +2278,23 @@
                             }
                             $('#pbstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#telegram_test').click(function () {
-                    var userid = document.getElementById('telegram_userid').value;
-                    var token = document.getElementById('telegram_token').value;
+                    var imagechk = document.getElementById("telegram_statusicon");
+                    var userid = document.getElementById("telegram_userid").value;
+                    var token = document.getElementById("telegram_token").value;
                     $.get("testtelegram",
                         { userid: userid, token: token },
                         function(data){
@@ -2056,12 +2304,22 @@
                             }
                             $('#telegramstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
                     });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 
                 $('#slack_test').click(function () {
-                    var webhook_url = document.getElementById('slack_webhook_url').value;
+                    var imagechk = document.getElementById("slack_statusicon");
+                    var webhook_url = document.getElementById("slack_webhook_url").value;
                     $.get("testslack",
                         { webhook_url: webhook_url },
                         function(data){
@@ -2071,7 +2329,16 @@
                             }
                             $('#slackstatus').val(data);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
-                        });
+                            if ( data.indexOf("Successfully") > -1){
+                               imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
                     $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
                 });
 

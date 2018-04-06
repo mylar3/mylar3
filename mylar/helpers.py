@@ -2959,6 +2959,31 @@ def latestdate_update():
         logger.info('updating latest date for : ' + a['ComicID'] + ' to ' + a['LatestDate'] + ' #' + a['LatestIssue'])
         myDB.upsert("comics", newVal, ctrlVal)
 
+def postprocess_main(queue):
+    while True:
+        if mylar.APILOCK is True:
+            time.sleep(5)
+
+        elif mylar.APILOCK is False and queue.qsize() >= 1: #len(queue) > 1:
+            item = queue.get(True)
+            logger.info('Now loading from post-processing queue: %s' % item)
+            if item == 'exit':
+                logger.info('Cleaning up workers for shutdown')
+                break
+
+            if mylar.APILOCK is False:
+                pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
+                pp = pprocess.post_process()
+                time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
+
+            if mylar.APILOCK is True:
+                logger.info('Another item is post-processing still...')
+                time.sleep(15)
+                #mylar.PP_QUEUE.put(item)
+        else:
+            time.sleep(5)
+
+
 def worker_main(queue):
     while True:
         item = queue.get(True)

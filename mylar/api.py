@@ -330,6 +330,7 @@ class Api(object):
         return
 
     def _forceProcess(self, **kwargs):
+
         if 'nzb_name' not in kwargs:
             self.data = self._error_with_message('Missing parameter: nzb_name')
             return
@@ -358,8 +359,16 @@ class Api(object):
             comicid = kwargs['comicid']
 
         if 'apc_version' not in kwargs:
-            fp = process.Process(self.nzb_name, self.nzb_folder, issueid=issueid, failed=failed, comicid=comicid, apicall=True)
-            self.data = fp.post_process()
+            logger.info('Received API Request for PostProcessing %s [%s]. Queueing...' % (self.nzb_name, self.nzb_folder))
+            mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,
+                                'nzb_folder':  self.nzb_folder,
+                                'issueid':     issueid,
+                                'failed':      failed,
+                                'comicid':     comicid,
+                                'apicall':     True})
+            self.data = 'Successfully submitted request for post-processing for %s' % self.nzb_name
+            #fp = process.Process(self.nzb_name, self.nzb_folder, issueid=issueid, failed=failed, comicid=comicid, apicall=True)
+            #self.data = fp.post_process()
         else:
             logger.info('[API] Api Call from ComicRN detected - initiating script post-processing.')
             fp = webserve.WebInterface()

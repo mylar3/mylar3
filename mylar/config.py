@@ -114,6 +114,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
 
     'LOG_DIR' : (str, 'Logs', None),
     'MAX_LOGSIZE' : (int, 'Logs', 10000000),
+    'MAX_LOGFILES': (int, 'Logs', 5),
     'LOG_LEVEL': (int, 'Logs', 0),
 
     'GIT_PATH' : (str, 'Git', None),
@@ -151,6 +152,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PUSHOVER_ENABLED': (bool, 'PUSHOVER', False),
     'PUSHOVER_PRIORITY': (int, 'PUSHOVER', 0),
     'PUSHOVER_APIKEY': (str, 'PUSHOVER', None),
+    'PUSHOVER_DEVICE': (str, 'PUSHOVER', None),
     'PUSHOVER_USERKEY': (str, 'PUSHOVER', None),
     'PUSHOVER_ONSNATCH': (bool, 'PUSHOVER', False),
 
@@ -227,6 +229,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'EXTRA_NEWZNABS': (str, 'Newznab', ""),
 
     'ENABLE_TORZNAB': (bool, 'Torznab', False),
+    'EXTRA_TORZNABS': (str, 'Torznab', ""),
     'TORZNAB_NAME': (str, 'Torznab', None),
     'TORZNAB_HOST': (str, 'Torznab', None),
     'TORZNAB_APIKEY': (str, 'Torznab', None),
@@ -365,7 +368,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 7
+            self.newconfig = 8
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -479,11 +482,16 @@ class Config(object):
     def read(self):
         self.config_vals()
         setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
+        setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
         if any([self.CONFIG_VERSION == 0, self.CONFIG_VERSION < self.newconfig]):
             try:
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
-                logger.warn('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+                print('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+            if self.newconfig == 8:
+                print('Attempting to update configuration..')
+                #torznab multiple entries merged into extra_torznabs value
+                self.config_update()
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
             print('Updating config to newest version : %s' % self.newconfig)
@@ -492,6 +500,25 @@ class Config(object):
             self.provider_sequence()
         self.configure()
         return self
+
+    def config_update(self):
+        if self.newconfig == 8:
+            print('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
+            print('Checking for existing torznab configuration...')
+            if not any([self.TORZNAB_NAME is None, self.TORZNAB_HOST is None, self.TORZNAB_APIKEY is None, self.TORZNAB_CATEGORY is None]):
+                torznabs =[(self.TORZNAB_NAME, self.TORZNAB_HOST, self.TORZNAB_APIKEY, self.TORZNAB_CATEGORY, str(int(self.ENABLE_TORZNAB)))]
+                setattr(self, 'EXTRA_TORZNABS', torznabs)
+                config.set('Torznab', 'EXTRA_TORZNABS', str(torznabs))
+                print('Successfully converted existing torznab for multiple configuration allowance. Removing old references.')
+            else:
+                print('No existing torznab configuration found. Just removing config references at this point..')
+            config.remove_option('Torznab', 'torznab_name')
+            config.remove_option('Torznab', 'torznab_host')
+            config.remove_option('Torznab', 'torznab_apikey')
+            config.remove_option('Torznab', 'torznab_category')
+            config.remove_option('Torznab', 'torznab_verify')
+            print('Successfully removed old entries.')
+        print('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
         """ Check if INI section exists, if not create it """
@@ -579,7 +606,7 @@ class Config(object):
         Given a big bunch of key value pairs, apply them to the ini.
         """
         for name, value in kwargs.items():
-            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('Torznab')]):
+            if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit()]):
                 key, definition_type, section, ini_key, default = self._define(name)
                 if definition_type == str:
                     try:
@@ -643,6 +670,8 @@ class Config(object):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
         config.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(self.EXTRA_NEWZNABS)))
+        config.set('Torznab', 'extra_torznabs', ', '.join(self.write_extras(self.EXTRA_TORZNABS)))
+
         ###this should be moved elsewhere...
         if type(self.BLACKLISTED_PUBLISHERS) != list:
             if self.BLACKLISTED_PUBLISHERS is None:
@@ -853,6 +882,10 @@ class Config(object):
         extra_newznabs = zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6)
         return extra_newznabs
 
+    def get_extra_torznabs(self):
+        extra_torznabs = zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*5)
+        return extra_torznabs
+
     def provider_sequence(self):
         PR = []
         PR_NUM = 0
@@ -872,11 +905,8 @@ class Config(object):
         if self.EXPERIMENTAL:
             PR.append('Experimental')
             PR_NUM +=1
-        if self.ENABLE_TORZNAB:
-            PR.append('Torznab')
-            PR_NUM +=1
 
-        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental', 'Torznab']
+        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
@@ -890,6 +920,19 @@ class Config(object):
                     PPR.append(en_name)
                     PR_NUM +=1
 
+        if self.ENABLE_TORZNAB:
+            for ets in self.EXTRA_TORZNABS:
+                if str(ets[4]) == '1': # if torznabs are enabled
+                    if ets[0] == "":
+                        et_name = ets[1]
+                    else:
+                        et_name = ets[0]
+                    if et_name.endswith("\""):
+                        et_name = re.sub("\"", "", str(et_name)).strip()
+                    PR.append(et_name)
+                    PPR.append(et_name)
+                    PR_NUM +=1
+
         if self.PROVIDER_ORDER is not None:
             try:
                 PRO_ORDER = zip(*[iter(self.PROVIDER_ORDER.split(', '))]*2)
@@ -901,7 +944,7 @@ class Config(object):
                 POR = ', '.join(PO)
                 PRO_ORDER = zip(*[iter(POR.split(', '))]*2)
 
-            logger.fdebug('Original provider_order sequence: %s' % self.PROVIDER_ORDER)
+            logger.fdebug(u"Original provider_order sequence: %s" % self.PROVIDER_ORDER)
 
             #if provider order exists already, load it and then append to end any NEW entries.
             logger.fdebug('Provider sequence already pre-exists. Re-loading and adding/remove any new entries')
@@ -990,7 +1033,7 @@ class Config(object):
 
     def write_extras(self, value):
         flattened = []
-        for item in value: #self.EXTRA_NEWZNABS:
+        for item in value:
             for i in item:
                 try:
                     if "\"" in i and " \"" in i:

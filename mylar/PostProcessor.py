@@ -62,8 +62,12 @@ class PostProcessor(object):
         if queue:
             self.queue = queue
 
+        if mylar.APILOCK is True:
+            return {'status':  'IN PROGRESS'}
+
         if apicall is True:
             self.apicall = True
+            mylar.APILOCK = True
         else:
             self.apicall = False
 
@@ -86,7 +90,7 @@ class PostProcessor(object):
         else:
             self.comicid = None
 
-    def _log(self, message, level=logger.message):  #level=logger.MESSAGE):
+    def _log(self, message, level=logger): #.message):  #level=logger.MESSAGE):
         """
         A wrapper for the internal logger which also keeps track of messages and saves them to a string for sabnzbd post-processing logging functions.
 
@@ -641,8 +645,10 @@ class PostProcessor(object):
 
                                     if datematch == 'True':
                                         if watchmatch['sub']:
+                                            logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, watchmatch['sub'], watchmatch['comiclocation']))
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
                                         else:
+                                            logger.fdebug('%s[CLOCATION] %s' % (module, watchmatch['comiclocation']))
                                             if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
                                                 clocation = watchmatch['comiclocation']
                                             else:
@@ -1272,6 +1278,8 @@ class PostProcessor(object):
                         logger.info('%s post-processing of pack completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
                     else:
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
+                if mylar.APILOCK is True:
+                    mylar.APILOCK = False
                 return
             else:
                 pass
@@ -2283,7 +2291,8 @@ class PostProcessor(object):
                                            "mode": 'stop',
                                            "issueid": issueid,
                                            "comicid": comicid})
-
+                    if self.apicall is True:
+                        self.sendnotify(series, issueyear, issuenumOG, annchk, module)
                     return self.queue.put(self.valreturn)
 
             self.sendnotify(series, issueyear, issuenumOG, annchk, module)

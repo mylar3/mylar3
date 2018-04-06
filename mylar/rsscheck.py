@@ -546,7 +546,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
     if any([comicid is None, comicid == 'None', oneoff is True]):
         pass
     else:
-        logger.fdebug('ComicID: ' + str(comicid))
+        #logger.fdebug('ComicID: ' + str(comicid))
         snm = myDB.selectone("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
         if snm is None:
             logger.fdebug('Invalid ComicID of ' + str(comicid) + '. Aborting search.')
@@ -575,7 +575,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
         tsearch += '%'
         tsearch += '#%s' % issue[8:10]
         tsearch += '%'
-    logger.fdebug('tsearch : ' + tsearch)
+    #logger.fdebug('tsearch : ' + tsearch)
     AS_Alt = []
     tresults = []
     tsearch = '%' + tsearch
@@ -585,7 +585,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
     if mylar.CONFIG.ENABLE_PUBLIC and nzbprov == 'Public Torrents':
         tresults += myDB.select("SELECT * FROM rssdb WHERE Title like ? AND (Site='DEM' OR Site='WWT')", [tsearch])
 
-    logger.fdebug('seriesname_alt:' + str(seriesname_alt))
+    #logger.fdebug('seriesname_alt:' + str(seriesname_alt))
     if seriesname_alt is None or seriesname_alt == 'None':
         if not tresults:
             logger.fdebug('no Alternate name given. Aborting search.')
@@ -639,43 +639,22 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
 
         #torsplit = torTITLE.split(' ')
         if mylar.CONFIG.PREFERRED_QUALITY == 1:
-            if 'cbr' in torTITLE:
-                logger.fdebug('Quality restriction enforced [ cbr only ]. Accepting result.')
-            else:
-                logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
+            if 'cbr' not in torTITLE:
+                #logger.fdebug('Quality restriction enforced [ cbr only ]. Rejecting result.')
                 continue
         elif mylar.CONFIG.PREFERRED_QUALITY == 2:
-            if 'cbz' in torTITLE:
-                logger.fdebug('Quality restriction enforced [ cbz only ]. Accepting result.')
-            else:
-                logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
+            if 'cbz' not in torTITLE:
+                #logger.fdebug('Quality restriction enforced [ cbz only ]. Rejecting result.')
                 continue
-        logger.fdebug('tor-Title: ' + torTITLE)
+        #logger.fdebug('tor-Title: ' + torTITLE)
         #logger.fdebug('there are ' + str(len(torsplit)) + ' sections in this title')
         i=0
         if nzbprov is not None:
             if nzbprov != tor['Site'] and not any([mylar.CONFIG.ENABLE_PUBLIC, tor['Site'] != 'WWT', tor['Site'] != 'DEM']):
-                logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
+                #logger.fdebug('this is a result from ' + str(tor['Site']) + ', not the site I am looking for of ' + str(nzbprov))
                 continue
         #0 holds the title/issue and format-type.
 
-#--- this was for old cbt feeds, no longer used for 32p
-#        while (i < len(torsplit)):
-#            #we'll rebuild the string here so that it's formatted accordingly to be passed back to the parser.
-#            logger.fdebug('section(' + str(i) + '): ' + torsplit[i])
-#            #remove extensions
-#            titletemp = torsplit[i]
-#            titletemp = re.sub('cbr', '', titletemp)
-#            titletemp = re.sub('cbz', '', titletemp)
-#            titletemp = re.sub('none', '', titletemp)
-
-#            if i == 0:
-#                rebuiltline = titletemp
-#            else:
-#                rebuiltline = rebuiltline + ' (' + titletemp + ')'
-#            i+=1
-#        logger.fdebug('rebuiltline is :' + rebuiltline)
-#----
         seriesname_mod = seriesname
         foundname_mod = torTITLE #torsplit[0]
         seriesname_mod = re.sub("\\band\\b", " ", seriesname_mod.lower())
@@ -696,39 +675,22 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
         formatrem_torsplit = re.sub('[\-]', ' ', formatrem_torsplit)  #we replace the - with space so we'll get hits if differnces
         formatrem_torsplit = re.sub('[\/]', ' ', formatrem_torsplit)  #not necessary since if has a /, should be removed in above line
         formatrem_torsplit = re.sub('\s+', ' ', formatrem_torsplit)
-        logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())
-        logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())
+        #logger.fdebug(str(len(formatrem_torsplit)) + ' - formatrem_torsplit : ' + formatrem_torsplit.lower())
+        #logger.fdebug(str(len(formatrem_seriesname)) + ' - formatrem_seriesname :' + formatrem_seriesname.lower())
 
         if formatrem_seriesname.lower() in formatrem_torsplit.lower() or any(x.lower() in formatrem_torsplit.lower() for x in AS_Alt):
-            logger.fdebug('matched to : ' + torTITLE)
-            logger.fdebug('matched on series title: ' + seriesname)
+            #logger.fdebug('matched to : ' + torTITLE)
+            #logger.fdebug('matched on series title: ' + seriesname)
             titleend = formatrem_torsplit[len(formatrem_seriesname):]
             titleend = re.sub('\-', '', titleend)   #remove the '-' which is unnecessary
             #remove extensions
             titleend = re.sub('cbr', '', titleend)
             titleend = re.sub('cbz', '', titleend)
             titleend = re.sub('none', '', titleend)
-            logger.fdebug('titleend: ' + titleend)
+            #logger.fdebug('titleend: ' + titleend)
 
             sptitle = titleend.split()
             extra = ''
-
-            #the title on 32P has a mix-mash of crap...ignore everything after cbz/cbr to cleanit
-            #ctitle = torTITLE.find('cbr')
-            #if ctitle == 0:
-            #    ctitle = torTITLE.find('cbz')
-            #    if ctitle == 0:
-            #        ctitle = torTITLE.find('none')
-            #        if ctitle == 0:
-            #            logger.fdebug('cannot determine title properly - ignoring for now.')
-            #            continue
-            #cttitle = torTITLE[:ctitle]
-
-#            if tor['Site'] == '32P':
-#                st_pub = rebuiltline.find('(')
-#                if st_pub < 2 and st_pub != -1:
-#                    st_end = rebuiltline.find(')')
-#                    rebuiltline = rebuiltline[st_end +1:]
 
             tortheinfo.append({
                           'title':   torTITLE, #cttitle,

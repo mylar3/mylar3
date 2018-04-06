@@ -51,6 +51,8 @@ FULL_PATH = None
 MAINTENANCE = False
 LOG_DIR = None
 LOGTYPE = 'log'
+LOG_LANG = 'en'
+LOGLIST = []
 ARGS = None
 SIGNAL = None
 SYS_ENCODING = None
@@ -61,7 +63,6 @@ DAEMON = False
 PIDFILE= None
 CREATEPID = False
 QUIET=False
-LOG_LEVEL = 0
 MAX_LOGSIZE = 5000000
 SAFESTART = False
 NOWEEKLY = False
@@ -120,10 +121,10 @@ SNPOOL = None
 NZBPOOL = None
 SNATCHED_QUEUE = Queue.Queue()
 NZB_QUEUE = Queue.Queue()
+PP_QUEUE = Queue.Queue()
 COMICSORT = None
 PULLBYFILE = None
 CFG = None
-LOG_LIST = []
 CURRENT_WEEKNUMBER = None
 CURRENT_YEAR = None
 INSTALL_TYPE = None
@@ -133,6 +134,7 @@ LATEST_VERSION = None
 COMMITS_BEHIND = None
 LOCAL_IP = None
 DOWNLOAD_APIKEY = None
+APILOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.01"
@@ -153,11 +155,11 @@ def initialize(config_file):
     with INIT_LOCK:
 
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
-               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
+               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
-               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, \
+               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LEVEL, LOG_LANG, APILOCK, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO
 
         cc = mylar.config.Config(config_file)
@@ -168,11 +170,11 @@ def initialize(config_file):
         if _INITIALIZED:
             return False
 
-        #set up the default values here if they're wrong.
-        #cc.configure()
-
         # Start the logger, silence console logging if we need to
-        logger.initLogger(console=not QUIET, log_dir=CONFIG.LOG_DIR, verbose=VERBOSE) #logger.mylar_log.initLogger(verbose=VERBOSE)
+        if mylar.LOG_LANG == 'en':
+            logger.initLogger(console=not QUIET, log_dir=CONFIG.LOG_DIR, verbose=VERBOSE)
+        else:
+            logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL)
 
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION, CONFIG.GIT_BRANCH = versioncheck.getVersion()
@@ -407,6 +409,11 @@ def start():
                 elif CONFIG.NZB_DOWNLOADER == 1:
                     logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically....')
 
+            if all([CONFIG.POST_PROCESSING is True, CONFIG.API_ENABLED is True]):
+                logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
+                PPPOOL = threading.Thread(target=helpers.postprocess_main, args=(PP_QUEUE,), name="POST-PROCESS-QUEUE")
+                PPPOOL.start()
+                logger.info('[POST-PROCESS-QUEUE] Succesfully started Post-Processing Queuer....')
 
             helpers.latestdate_fix()
 

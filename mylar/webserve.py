@@ -2732,8 +2732,10 @@ class WebInterface(object):
         valid_readingorder = None
         #validate input here for reading order.
         try:
-            if int(readingorder) > 0:
+            if int(readingorder) >= 0:
                 valid_readingorder = int(readingorder)
+            if valid_readingorder == 0:
+                valid_readingorder = 1
         except ValueError:
             logger.error('Non-Numeric/Negative readingorder submitted. Rejecting due to sequencing error.')
             return
@@ -2749,44 +2751,64 @@ class WebInterface(object):
             return
 
         new_readorder = []
-        for rc in readchk:
-            if issuearcid == rc['IssueArcID']:
-                oldreadorder = int(rc['ReadingOrder'])
-                new_readorder.append({'IssueArcID':   issuearcid,
-                                      'IssueID':      rc['IssueID'],
-                                      'ReadingOrder': valid_readingorder})
-            else:
-                if int(rc['ReadingOrder']) >= valid_readingorder:
-                    reading_seq = int(rc['ReadingOrder']) + 1
+        oldreading_seq = None
+        logger.fdebug('[%s] Issue to renumber sequence from : %s' % (issuearcid, valid_readingorder))
+        reading_seq = 1
+        for rc in sorted(readchk, key=itemgetter('ReadingOrder'), reverse=False):
+            if str(issuearcid) == str(rc['IssueArcID']):
+                logger.fdebug('new order sequence detected at #: %s' % valid_readingorder)
+                if valid_readingorder > int(rc['ReadingOrder']):
+                    oldreading_seq = int(rc['ReadingOrder'])
                 else:
-                    reading_seq = int(rc['ReadingOrder']) - 1
-                    if reading_seq == 0:
-                        reading_seq = 1
-
-                new_readorder.append({'IssueArcID':   rc['IssueArcID'],
-                                      'IssueID':      rc['IssueID'],
-                                      'ReadingOrder': reading_seq})
+                    oldreading_seq = int(rc['ReadingOrder']) + 1
+                reading_seq = valid_readingorder
+                issueid = rc['IssueID']
+                IssueArcID = issuearcid
+            elif int(rc['ReadingOrder']) < valid_readingorder:
+                logger.fdebug('keeping issue sequence of order #: %s' % rc['ReadingOrder'])
+                reading_seq = int(rc['ReadingOrder'])
+                issueid = rc['IssueID']
+                IssueArcID = rc['IssueArcID']
+            elif int(rc['ReadingOrder']) >= valid_readingorder:
+                if oldreading_seq is not None:
+                    if valid_readingorder <= len(readchk):
+                        reading_seq = int(rc['ReadingOrder'])
+                        #reading_seq = oldreading_seq
+                    else:
+                        #valid_readingorder
+                        if valid_readingorder < old_reading_seq:
+                            logger.info('2')
+                            reading_seq = int(rc['ReadingOrder'])
+                        else:
+                            logger.info('3')
+                            reading_seq = oldreading_seq +1
+                    logger.fdebug('old sequence discovered at %s to %s' % (oldreading_seq, reading_seq))
+                    oldreading_seq = None
+                elif int(rc['ReadingOrder']) == valid_readingorder:
+                    reading_seq = valid_readingorder +1
+                else:
+                    reading_seq +=1 #valid_readingorder + (int(rc['ReadingOrder']) - valid_readingorder) +1
+                issueid = rc['IssueID']
+                IssueArcID = rc['IssueArcID']
+                logger.fdebug('reordering existing sequence as lower sequence has changed. Altering from %s to %s' % (rc['ReadingOrder'], reading_seq))
+            new_readorder.append({'IssueArcID':   IssueArcID,
+                                  'IssueID':      issueid,
+                                  'ReadingOrder': reading_seq})
 
         #we resequence in the following way:
         #  everything before the new reading number stays the same
         #  everything after the new reading order gets incremented
         #  add in the new reading order at the desired sequence
         #  check for empty spaces (missing numbers in sequence) and fill them in.
-        logger.fdebug(new_readorder)
-        newrl = 0
+        logger.fdebug('new reading order: %s' % new_readorder)
+        #newrl = 0
         for rl in sorted(new_readorder, key=itemgetter('ReadingOrder'), reverse=False):
-            if rl['ReadingOrder'] - 1 != newrl:
-                rorder = newrl + 1
-                logger.fdebug(rl['IssueID'] + ' - changing reading order seq to : ' + str(rorder))
-            else:
-                rorder = rl['ReadingOrder']
-                logger.fdebug(rl['IssueID'] + ' - setting reading order seq to : ' + str(rorder))
 
             rl_ctrl = {"IssueID":           rl['IssueID'],
                        "IssueArcID":        rl['IssueArcID'],
                        "StoryArcID":        storyarcid}
-            r1_new = {"ReadingOrder":       rorder}
-            newrl = rorder
+
+            r1_new = {"ReadingOrder":       rl['ReadingOrder']}
 
             myDB.upsert("storyarcs", r1_new, rl_ctrl)
 
@@ -3516,7 +3538,7 @@ class WebInterface(object):
     ReadMassCopy.exposed = True
 
     def logs(self):
-        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOG_LIST)
+        return serve_template(templatename="logs.html", title="Log", lineList=mylar.LOGLIST)
     logs.exposed = True
 
     def config_dump(self):
@@ -3524,7 +3546,7 @@ class WebInterface(object):
     config_dump.exposed = True
 
     def clearLogs(self):
-        mylar.LOG_LIST = []
+        mylar.LOGLIST = []
         logger.info("Web logs cleared")
         raise cherrypy.HTTPRedirect("logs")
     clearLogs.exposed = True
@@ -3544,9 +3566,9 @@ class WebInterface(object):
 
         filtered = []
         if sSearch == "" or sSearch == None:
-            filtered = mylar.LOG_LIST[::]
+            filtered = mylar.LOGLIST[::]
         else:
-            filtered = [row for row in mylar.LOG_LIST for column in row if sSearch.lower() in column.lower()]
+            filtered = [row for row in mylar.LOGLIST for column in row if sSearch.lower() in column.lower()]
         sortcolumn = 0
         if iSortCol_0 == '1':
             sortcolumn = 2
@@ -3558,7 +3580,7 @@ class WebInterface(object):
         rows = [[row[0], row[2], row[1]] for row in rows]
         return json.dumps({
             'iTotalDisplayRecords': len(filtered),
-            'iTotalRecords': len(mylar.LOG_LIST),
+            'iTotalRecords': len(mylar.LOGLIST),
             'aaData': rows,
         })
     getLog.exposed = True
@@ -4465,10 +4487,7 @@ class WebInterface(object):
                     "dognzb_verify": helpers.checked(mylar.CONFIG.DOGNZB_VERIFY),
                     "experimental": helpers.checked(mylar.CONFIG.EXPERIMENTAL),
                     "enable_torznab": helpers.checked(mylar.CONFIG.ENABLE_TORZNAB),
-                    "torznab_name": mylar.CONFIG.TORZNAB_NAME,
-                    "torznab_host": mylar.CONFIG.TORZNAB_HOST,
-                    "torznab_apikey": mylar.CONFIG.TORZNAB_APIKEY,
-                    "torznab_category": mylar.CONFIG.TORZNAB_CATEGORY,
+                    "extra_torznabs": sorted(mylar.CONFIG.EXTRA_TORZNABS, key=itemgetter(4), reverse=True),
                     "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
@@ -4541,6 +4560,7 @@ class WebInterface(object):
                     "pushover_onsnatch": helpers.checked(mylar.CONFIG.PUSHOVER_ONSNATCH),
                     "pushover_apikey": mylar.CONFIG.PUSHOVER_APIKEY,
                     "pushover_userkey": mylar.CONFIG.PUSHOVER_USERKEY,
+                    "pushover_device": mylar.CONFIG.PUSHOVER_DEVICE,
                     "pushover_priority": mylar.CONFIG.PUSHOVER_PRIORITY,
                     "boxcar_enabled": helpers.checked(mylar.CONFIG.BOXCAR_ENABLED),
                     "boxcar_onsnatch": helpers.checked(mylar.CONFIG.BOXCAR_ONSNATCH),
@@ -4823,6 +4843,28 @@ class WebInterface(object):
 
                 mylar.CONFIG.EXTRA_NEWZNABS.append((newznab_name, newznab_host, newznab_verify, newznab_api, newznab_uid, newznab_enabled))
 
+        mylar.CONFIG.EXTRA_TORZNABS = []
+
+        for kwarg in [x for x in kwargs if x.startswith('torznab_name')]:
+            if kwarg.startswith('torznab_name'):
+                torznab_number = kwarg[12:]
+                torznab_name = kwargs['torznab_name' + torznab_number]
+                if torznab_name == "":
+                    torznab_name = kwargs['torznab_host' + torznab_number]
+                    if torznab_name == "":
+                        continue
+                torznab_host = helpers.clean_url(kwargs['torznab_host' + torznab_number])
+                torznab_api = kwargs['torznab_apikey' + torznab_number]
+                torznab_category = kwargs['torznab_category' + torznab_number]
+                try:
+                    torznab_enabled = str(kwargs['torznab_enabled' + torznab_number])
+                except KeyError:
+                    torznab_enabled = '0'
+
+                del kwargs[kwarg]
+
+                mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_api, torznab_category, torznab_enabled))
+
         mylar.CONFIG.process_kwargs(kwargs)
 
         #this makes sure things are set to the default values if they're not appropriately set.
@@ -4921,6 +4963,45 @@ class WebInterface(object):
             logger.error('You do not have anything stated for SAB Host. Please correct and try again.')
             return "Invalid SABnzbd host specified"
     SABtest.exposed = True
+
+    def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None):
+        if nzbhost is None:
+            nzbhost = mylar.CONFIG.NZBGET_HOST
+        if nzbport is None:
+            nzbport = mylar.CONFIG.NZBGET_PORT
+        if nzbusername is None:
+            nzbusername = mylar.CONFIG.NZBGET_USERNAME
+        if nzbpassword is None:
+            nzbpassword = mylar.CONFIG.NZBGET_PASSWORD
+
+        logger.fdebug('Now attempting to test NZBGet connection')
+
+        if nzbusername is None or nzbpassword is None:
+            logger.error('No Username / Password provided for NZBGet credentials. Unable to test API key')
+            return "Invalid Username/Password provided"
+
+        logger.info('Now testing connection to NZBGet @ %s:%s' % (nzbhost, nzbport))
+        if nzbhost[:5] == 'https':
+            protocol = 'https'
+            nzbgethost = nzbhost[8:]
+        elif nzbhost[:4] == 'http':
+            protocol = 'http'
+            nzbgethost = nzbhost[7:]
+
+        nzb_url = '%s://%s:%s@%s:%s/xmlrpc' % (protocol, nzbusername, nzbpassword, nzbgethost, nzbport)
+        logger.info('nzb_url: %s' % nzb_url)
+        import xmlrpclib
+        nzbserver = xmlrpclib.ServerProxy(nzb_url)
+
+        try:
+            r = nzbserver.status()
+        except Exception as e:
+            logger.warn('Error fetching data: %s' % e)
+            return 'Unable to retrieve data from NZBGet'
+
+        logger.info('Successfully verified connection to NZBGet at %s:%s' % (nzbgethost, nzbport))
+        return "Successfully verified connection to NZBGet"
+    NZBGet_test.exposed = True
 
     def shutdown(self):
         mylar.SIGNAL = 'shutdown'
@@ -5231,8 +5312,8 @@ class WebInterface(object):
             return "Error sending test message to Boxcar"
     testboxcar.exposed = True
 
-    def testpushover(self, apikey, userkey):
-        pushover = notifiers.PUSHOVER(test_apikey=apikey, test_userkey=userkey)
+    def testpushover(self, apikey, userkey, device):
+        pushover = notifiers.PUSHOVER(test_apikey=apikey, test_userkey=userkey, test_device=device)
         result = pushover.test_notify()
         if result == True:
             return "Successfully sent PushOver test -  check to make sure it worked"

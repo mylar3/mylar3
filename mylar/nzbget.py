@@ -37,7 +37,7 @@ class NZBGet(object):
         self.nzb_url = '%s://%s:%s@%s:%s/xmlrpc' % (protocol, mylar.CONFIG.NZBGET_USERNAME, mylar.CONFIG.NZBGET_PASSWORD, nzbget_host, mylar.CONFIG.NZBGET_PORT)
         self.server = xmlrpclib.ServerProxy(self.nzb_url)
 
-    def sender(self, filename):
+    def sender(self, filename, test=False):
         if mylar.CONFIG.NZBGET_PRIORITY:
             if any([mylar.CONFIG.NZBGET_PRIORITY == 'Default', mylar.CONFIG.NZBGET_PRIORITY == 'Normal']):
                 nzbgetpriority = 0

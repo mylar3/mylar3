@@ -44,7 +44,7 @@ class RTorrent(object):
                                    mylar.CONFIG.RTORRENT_SSL,
                                    mylar.CONFIG.RTORRENT_RPC_URL,
                                    mylar.CONFIG.RTORRENT_CA_BUNDLE):
-            logger.error('could not connect to %s, exiting', mylar.CONFIG.RTORRENT_HOST)
+            logger.error('[ERROR] Could not connect to %s -  exiting' % mylar.CONFIG.RTORRENT_HOST)
             sys.exit(-1)
 
     def main(self, torrent_hash=None, filepath=None, check=False):
@@ -52,13 +52,13 @@ class RTorrent(object):
         torrent = self.client.find_torrent(torrent_hash)
         if torrent:
             if check:
-                logger.fdebug('Successfully located torrent %s by hash on client. Detailed statistics to follow', torrent_hash)
+                logger.fdebug('Successfully located torrent %s by hash on client. Detailed statistics to follow' % torrent_hash)
             else:
-                logger.warn("%s Torrent already exists. Not downloading at this time.", torrent_hash)
+                logger.warn("%s Torrent already exists. Not downloading at this time." % torrent_hash)
                 return
         else:
             if check:
-                logger.warn('Unable to locate torrent with a hash value of %s', torrent_hash)
+                logger.warn('Unable to locate torrent with a hash value of %s' % torrent_hash)
                 return
 
         if filepath:
@@ -76,7 +76,7 @@ class RTorrent(object):
 
         torrent = self.client.find_torrent(torrent_hash)
         if torrent is None:
-            logger.warn("Couldn't find torrent with hash: %s", torrent_hash)
+            logger.warn('Couldn\'t find torrent with hash: %s' % torrent_hash)
             sys.exit(-1)
 
         torrent_info = self.client.get_torrent(torrent)
@@ -84,18 +84,18 @@ class RTorrent(object):
             return torrent_info
 
         if torrent_info['completed']:
-            logger.fdebug("Directory: %s", torrent_info['folder'])
-            logger.fdebug("Name: %s", torrent_info['name'])
-            logger.fdebug("FileSize: %s", helpers.human_size(torrent_info['total_filesize']))
-            logger.fdebug("Completed: %s", torrent_info['completed'])
-            logger.fdebug("Downloaded: %s", helpers.human_size(torrent_info['download_total']))
-            logger.fdebug("Uploaded: %s", helpers.human_size(torrent_info['upload_total']))
-            logger.fdebug("Ratio: %s", torrent_info['ratio'])
-            #logger.info("Time Started: %s", torrent_info['time_started'])
-            logger.fdebug("Seeding Time: %s", helpers.humanize_time(int(time.time()) - torrent_info['time_started']))
+            logger.fdebug('Directory: %s' % torrent_info['folder'])
+            logger.fdebug('Name: %s' % torrent_info['name'])
+            logger.fdebug('FileSize: %s' % helpers.human_size(torrent_info['total_filesize']))
+            logger.fdebug('Completed: %s' % torrent_info['completed'])
+            logger.fdebug('Downloaded: %s' % helpers.human_size(torrent_info['download_total']))
+            logger.fdebug('Uploaded: %s' % helpers.human_size(torrent_info['upload_total']))
+            logger.fdebug('Ratio: %s' % torrent_info['ratio'])
+            #logger.info('Time Started: %s' % torrent_info['time_started'])
+            logger.fdebug('Seeding Time: %s' % helpers.humanize_time(int(time.time()) - torrent_info['time_started']))
 
             if torrent_info['label']:
-                logger.fdebug("Torrent Label: %s", torrent_info['label'])
+                logger.fdebug('Torrent Label: %s' % torrent_info['label'])
 
         #logger.info(torrent_info)
         return torrent_info
@@ -106,5 +106,5 @@ class RTorrent(object):
         metainfo = bencode.decode(torrent_file.read())
         info = metainfo['info']
         thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
-        logger.fdebug('Hash: ' + thehash)
+        logger.fdebug('Hash: %s' % thehash)
         return thehash

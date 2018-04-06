@@ -62,6 +62,18 @@ def main():
     if not mylar.SYS_ENCODING or mylar.SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
         mylar.SYS_ENCODING = 'UTF-8'
 
+    #setup logger for non-english
+    try:
+        language = locale.getdefaultlocale()[0][:2]
+    except:
+        language = 'en'
+
+    mylar.LOG_LANG = language
+    if language != 'en':
+        print 'language detected as non-English. Forcing specific logging module - errors WILL NOT be captured in the logs'
+    else:
+        print 'log language set to %s' % mylar.LOG_LANG
+
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Automated Comic Book Downloader')
     subparsers = parser.add_subparsers(title='Subcommands', dest='maintenance')
@@ -98,11 +110,21 @@ def main():
 
     if args.verbose:
         mylar.VERBOSE = True
-    if args.quiet:
+        #print 'Verbose/Debugging mode enabled...'
+        #mylar.LOG_LEVEL = 2
+    elif args.quiet:
         mylar.QUIET = True
+        #print 'Quiet mode enabled...'
+        #mylar.LOG_LEVEL = 0
+    else:
+        #print 'Normal logging mode enabled...'
+        #mylar.LOG_LEVEL = 1
+        mylar.VERBOSE = False
 
     # Do an intial setup of the logger.
-    logger.initLogger(console=not mylar.QUIET, log_dir=False, init=True, verbose=mylar.VERBOSE)
+    if mylar.LOG_LANG == 'en':
+        logger.initLogger(console=not mylar.QUIET, log_dir=False, init=True, verbose=mylar.VERBOSE)
+    #logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL)
 
     if args.daemon:
         if sys.platform == 'win32':
@@ -125,7 +147,7 @@ def main():
             except IOError, e:
                 raise SystemExit("Unable to write PID file: %s [%d]" % (e.strerror, e.errno))
         else:
-            logger.warn("Not running in daemon mode. PID file creation disabled.")
+            print("Not running in daemon mode. PID file creation disabled.")
 
     if args.datadir:
         mylar.DATA_DIR = args.datadir
@@ -147,15 +169,25 @@ def main():
     else:
         mylar.NOWEEKLY = False
 
+    # Put the database in the DATA_DIR
+    mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
+
+    # Read config and start logging
+    if mylar.MAINTENANCE is False:
+        print('Initializing startup sequence....')
+
+    #try:
+    mylar.initialize(mylar.CONFIG_FILE)
+    #except Exception as e:
+    #    print e
+    #    raise SystemExit('FATAL ERROR')
+
     if mylar.MAINTENANCE is False:
         filechecker.validateAndCreateDirectory(mylar.DATA_DIR, True)
 
         # Make sure the DATA_DIR is writeable
         if not os.access(mylar.DATA_DIR, os.W_OK):
             raise SystemExit('Cannot write to the data directory: ' + mylar.DATA_DIR + '. Exiting...')
-
-    # Put the database in the DATA_DIR
-    mylar.DB_FILE = os.path.join(mylar.DATA_DIR, 'mylar.db')
 
     # backup the db and configs before they load.
     if args.backup:
@@ -197,17 +229,6 @@ def main():
                     raise
 
             i += 1
-
-    # Read config and start logging
-    if mylar.MAINTENANCE is False:
-        logger.info('Initializing startup sequence....')
-    
-    try:
-        mylar.initialize(mylar.CONFIG_FILE)
-    except Exception as e:
-        print e
-        raise SystemExit('FATAL ERROR')
-
 
     # Rename the main thread
     threading.currentThread().name = "MAIN"

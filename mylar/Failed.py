@@ -65,7 +65,7 @@ class FailedProcessor(object):
         if queue: self.queue = queue
         self.valreturn = []
 
-    def _log(self, message, level=logger.message):
+    def _log(self, message, level=logger): #.message):
         """
         A wrapper for the internal logger which also keeps track of messages and saves them to a string
 
