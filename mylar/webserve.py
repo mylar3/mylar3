@@ -3552,11 +3552,24 @@ class WebInterface(object):
     clearLogs.exposed = True
 
     def toggleVerbose(self):
-        mylar.VERBOSE = not mylar.VERBOSE
-        logger.initLogger(console=not mylar.QUIET,
-            log_dir=mylar.CONFIG.LOG_DIR, verbose=mylar.VERBOSE)
-        logger.info("Verbose toggled, set to %s", mylar.VERBOSE)
-        logger.debug("If you read this message, debug logging is available")
+        if mylar.LOG_LEVEL != 2:
+            mylar.LOG_LEVEL = 2
+        else:
+            mylar.LOG_LEVEL = 1
+        if logger.LOG_LANG.startswith('en'):
+            logger.initLogger(console=not mylar.QUIET, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
+        else:
+            logger.mylar_log.stopLogger()
+            logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=mylar.CONFIG.LOG_DIR, max_logsize=mylar.CONFIG.MAX_LOGSIZE, max_logfiles=mylar.CONFIG.MAX_LOGFILES)
+        #mylar.VERBOSE = not mylar.VERBOSE
+        #logger.initLogger(console=not mylar.QUIET,
+        #    log_dir=mylar.CONFIG.LOG_DIR, verbose=mylar.VERBOSE)
+        if mylar.LOG_LEVEL == 2:
+            logger.info("Verbose (DEBUG) logging is enabled")
+            logger.debug("If you can read this message, debug logging is now working")
+        else:
+            logger.info("normal (INFO) logging is now enabled")
+
         raise cherrypy.HTTPRedirect("logs")
     toggleVerbose.exposed = True
 
@@ -4602,6 +4615,7 @@ class WebInterface(object):
                     "prog_dir": mylar.PROG_DIR,
                     "cache_dir": mylar.CONFIG.CACHE_DIR,
                     "config_file": mylar.CONFIG_FILE,
+                    "lang": '%s.%s' % (logger.LOG_LANG,logger.LOG_CHARSET),
                     "branch_history": 'None',
 #                    "branch_history" : br_hist,
                     "log_dir": mylar.CONFIG.LOG_DIR,

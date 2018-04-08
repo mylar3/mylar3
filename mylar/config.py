@@ -115,7 +115,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'LOG_DIR' : (str, 'Logs', None),
     'MAX_LOGSIZE' : (int, 'Logs', 10000000),
     'MAX_LOGFILES': (int, 'Logs', 5),
-    'LOG_LEVEL': (int, 'Logs', 0),
+    'LOG_LEVEL': (int, 'Logs', 1),
 
     'GIT_PATH' : (str, 'Git', None),
     'GIT_USER' : (str, 'Git', 'evilhero'),
@@ -479,7 +479,7 @@ class Config(object):
                 elif k == 'MINIMAL_INI':
                     config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
-    def read(self):
+    def read(self, startup=False):
         self.config_vals()
         setattr(self, 'EXTRA_NEWZNABS', self.get_extra_newznabs())
         setattr(self, 'EXTRA_TORZNABS', self.get_extra_torznabs())
@@ -498,6 +498,16 @@ class Config(object):
             self.writeconfig()
         else:
             self.provider_sequence()
+
+        if startup is True:
+            # Start the logger, silence console logging if we need to
+            if logger.LOG_LANG.startswith('en'):
+                logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
+            else:
+                if self.LOG_LEVEL != mylar.LOG_LEVEL:
+                    print('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL))
+                logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
+
         self.configure()
         return self
 
@@ -695,6 +705,7 @@ class Config(object):
             logger.warn("Error writing configuration file: %s", e)
 
     def configure(self, update=False):
+
         try:
             if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):
                 self.SAB_HOST = 'http://' + self.SAB_HOST

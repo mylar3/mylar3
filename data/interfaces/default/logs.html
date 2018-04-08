@@ -8,9 +8,11 @@
     <div id="subhead_container">
         <div id="subhead_menu">
             <a id="menu_link_delete" href="#" onclick="doAjaxCall('clearLogs',$(this),'table')" data-success="All logs cleared">Clear Log</a>
-            <a id="menu_link_edit" href="toggleVerbose">Toggle Debug Log
-            %if mylar.VERBOSE:
+            <a id="menu_link_edit" href="toggleVerbose">Toggle Debug Logging
+            %if mylar.LOG_LEVEL < 2:
               ON 
+            %else:
+              OFF
             %endif
             </a>
         </div>

@@ -15,24 +15,30 @@
 
 import os
 import sys
-import logging
+import inspect
 import traceback
 import threading
 import platform
+import locale
 import mylar
-
-from logging import getLogger, WARN, ERROR, INFO, DEBUG, StreamHandler, Formatter, Handler
-
 from mylar import helpers
+import logging
+from logging import getLogger, WARN, ERROR, INFO, DEBUG, StreamHandler, Formatter, Handler
+from lib.six import PY2
 
+#setup logger for non-english (this doesnt carry thru, so check here too)
 try:
-    if mylar.LOG_LANG == 'en':
-        pass
+    localeinfo = locale.getdefaultlocale()
+    language = localeinfo[0]
+    charset = localeinfo[1]
 except:
-    mylar.LOG_LANG = 'en'
+    language = 'en'
+    charset = 'UTF-8'
 
+LOG_LANG = language
+LOG_CHARSET = charset
 
-if mylar.LOG_LANG != 'en':
+if not LOG_LANG.startswith('en'):
     # Simple rotating log handler that uses RotatingFileHandler
     class RotatingLogger(object):
 
@@ -55,7 +61,7 @@ if mylar.LOG_LANG != 'en':
             sys.__excepthook__(exc_type, exc_value, None)
             return
 
-        def initLogger(self, loglevel=1):
+        def initLogger(self, loglevel=1, log_dir=None, max_logsize=None, max_logfiles=None):
             import sys
             sys.excepthook = RotatingLogger.handle_exception
 
@@ -66,7 +72,7 @@ if mylar.LOG_LANG != 'en':
             lg = logging.getLogger('mylar')
             lg.setLevel(logging.DEBUG)
 
-            self.filename = os.path.join(mylar.CONFIG.LOG_DIR, self.filename)
+            self.filename = os.path.join(log_dir, self.filename)
 
             #concurrentLogHandler/0.8.7 (to deal with windows locks)
             #since this only happens on windows boxes, if it's nix/mac use the default logger.
@@ -87,8 +93,8 @@ if mylar.LOG_LANG != 'en':
 
             filehandler = RFHandler(
                 self.filename,
-                maxBytes=mylar.CONFIG.MAX_LOGSIZE,
-                backupCount=mylar.CONFIG.MAX_LOGFILES)
+                maxBytes=max_logsize,
+                backupCount=max_logfiles)
 
             filehandler.setLevel(logging.DEBUG)
 
@@ -130,7 +136,7 @@ if mylar.LOG_LANG != 'en':
                 message = safe_unicode(message)
                 message = message.encode(mylar.SYS_ENCODING)
             if level != 'DEBUG' or mylar.LOG_LEVEL >= 2:
-                mylar.LOGLIST.insert(0, (helpers.now(), message, threadname))
+                mylar.LOGLIST.insert(0, (helpers.now(), message, level, threadname))
                 if len(mylar.LOGLIST) > 2500:
                     del mylar.LOGLIST[-1]
 
@@ -189,8 +195,7 @@ else:
             message = message.replace("\n", "<br />")
             mylar.LOGLIST.insert(0, (helpers.now(), message, record.levelname, record.threadName))
 
-
-    def initLogger(console=False, log_dir=False, init=False, verbose=False):
+    def initLogger(console=False, log_dir=False, init=False, loglevel=1, max_logsize=None, max_logfiles=5):
         #concurrentLogHandler/0.8.7 (to deal with windows locks)
         #since this only happens on windows boxes, if it's nix/mac use the default logger.
         if platform.system() == 'Windows':
@@ -208,13 +213,11 @@ else:
             mylar.LOGTYPE = 'log'
             from logging.handlers import RotatingFileHandler as RFHandler
 
-        if init is True:
-            max_size = 1000000 #1 MB
+        if all([init is True, max_logsize is None]):
+            max_logsize = 1000000 #1 MB
         else:
-            if mylar.CONFIG.MAX_LOGSIZE:
-                max_size = mylar.CONFIG.MAX_LOGSIZE
-            else:
-                max_size = 1000000 # 1 MB
+            if max_logsize is None:
+                max_logsize = 1000000 # 1 MB
 
         """
         Setup logging for Mylar. It uses the logger instance with the name
@@ -245,16 +248,13 @@ else:
         # Configure the logger to accept all messages
         logger.propagate = False
 
-        #1 is WARN level, 2 is ERROR
         if init is True:
-            logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+            logger.setLevel(logging.INFO)
         else:
-            if mylar.CONFIG.LOG_LEVEL == 1:
-                logger.setLevel(logging.DEBUG if verbose else logging.WARN)
-            elif mylar.CONFIG.LOG_LEVEL == 2:
-                logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
-            else:
-                logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+            if loglevel == 1:  #normal
+                logger.setLevel(logging.INFO)
+            elif loglevel >= 2:   #verbose
+                logger.setLevel(logging.DEBUG)
 
         # Add list logger
         loglist_handler = LogListHandler()
@@ -265,8 +265,11 @@ else:
         if log_dir:
             filename = os.path.join(log_dir, 'mylar.log')
             file_formatter = Formatter('%(asctime)s - %(levelname)-7s :: %(name)s.%(funcName)s.%(lineno)s : %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
-            file_handler = RFHandler(filename, "a", maxBytes=max_size, backupCount=mylar.CONFIG.MAX_LOGFILES)
-            file_handler.setLevel(logging.DEBUG)
+            file_handler = RFHandler(filename, "a", maxBytes=max_logsize, backupCount=max_logfiles)
+            if loglevel == 1:  #normal
+                file_handler.setLevel(logging.INFO)
+            elif loglevel >= 2:   #verbose
+                file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(file_formatter)
 
             logger.addHandler(file_handler)
@@ -276,7 +279,10 @@ else:
             console_formatter = logging.Formatter('%(asctime)s - %(levelname)s :: %(name)s.%(funcName)s.%(lineno)s : %(threadName)s : %(message)s', '%d-%b-%Y %H:%M:%S')
             console_handler = logging.StreamHandler()
             console_handler.setFormatter(console_formatter)
-            console_handler.setLevel(logging.DEBUG)
+            if loglevel == 1:  #normal
+                console_handler.setLevel(logging.INFO)
+            elif loglevel >= 2:   #verbose
+                console_handler.setLevel(logging.DEBUG)
 
             logger.addHandler(console_handler)
 

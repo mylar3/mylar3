@@ -62,17 +62,10 @@ def main():
     if not mylar.SYS_ENCODING or mylar.SYS_ENCODING in ('ANSI_X3.4-1968', 'US-ASCII', 'ASCII'):
         mylar.SYS_ENCODING = 'UTF-8'
 
-    #setup logger for non-english
-    try:
-        language = locale.getdefaultlocale()[0][:2]
-    except:
-        language = 'en'
-
-    mylar.LOG_LANG = language
-    if language != 'en':
-        print 'language detected as non-English. Forcing specific logging module - errors WILL NOT be captured in the logs'
+    if not logger.LOG_LANG.startswith('en'):
+        print 'language detected as non-English (%s). Forcing specific logging module - errors WILL NOT be captured in the logs' % logger.LOG_LANG
     else:
-        print 'log language set to %s' % mylar.LOG_LANG
+        print 'log language set to %s' % logger.LOG_LANG
 
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Automated Comic Book Downloader')
@@ -109,22 +102,14 @@ def main():
         mylar.MAINTENANCE = False
 
     if args.verbose:
-        mylar.VERBOSE = True
-        #print 'Verbose/Debugging mode enabled...'
-        #mylar.LOG_LEVEL = 2
+        print 'Verbose/Debugging mode enabled...'
+        mylar.LOG_LEVEL = 2
     elif args.quiet:
         mylar.QUIET = True
-        #print 'Quiet mode enabled...'
-        #mylar.LOG_LEVEL = 0
+        print 'Quiet logging mode enabled...'
+        mylar.LOG_LEVEL = 0
     else:
-        #print 'Normal logging mode enabled...'
-        #mylar.LOG_LEVEL = 1
-        mylar.VERBOSE = False
-
-    # Do an intial setup of the logger.
-    if mylar.LOG_LANG == 'en':
-        logger.initLogger(console=not mylar.QUIET, log_dir=False, init=True, verbose=mylar.VERBOSE)
-    #logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL)
+        mylar.LOG_LEVEL = 1
 
     if args.daemon:
         if sys.platform == 'win32':

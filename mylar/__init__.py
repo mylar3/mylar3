@@ -40,7 +40,6 @@ import cherrypy
 
 from mylar import logger, versioncheckit, rsscheckit, searchit, weeklypullit, PostProcessor, updater, helpers
 
-from mylar import versioncheck, logger
 import mylar.config
 
 #these are the globals that are runtime-based (ie. not config-valued at all)
@@ -52,13 +51,15 @@ MAINTENANCE = False
 LOG_DIR = None
 LOGTYPE = 'log'
 LOG_LANG = 'en'
+LOG_CHARSET = 'UTF-8'
+LOG_LEVEL = 1
 LOGLIST = []
 ARGS = None
 SIGNAL = None
 SYS_ENCODING = None
 OS_DETECT = platform.system()
 USER_AGENT = None
-VERBOSE = False
+#VERBOSE = False
 DAEMON = False
 PIDFILE= None
 CREATEPID = False
@@ -159,22 +160,16 @@ def initialize(config_file):
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
-               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LEVEL, LOG_LANG, APILOCK, \
+               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, LOG_LEVEL, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO
 
         cc = mylar.config.Config(config_file)
-        CONFIG = cc.read()
+        CONFIG = cc.read(startup=True)
 
         assert CONFIG is not None
 
         if _INITIALIZED:
             return False
-
-        # Start the logger, silence console logging if we need to
-        if mylar.LOG_LANG == 'en':
-            logger.initLogger(console=not QUIET, log_dir=CONFIG.LOG_DIR, verbose=VERBOSE)
-        else:
-            logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL)
 
         # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
         CURRENT_VERSION, CONFIG.GIT_BRANCH = versioncheck.getVersion()
