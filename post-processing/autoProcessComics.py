@@ -4,7 +4,7 @@ import ConfigParser
 import urllib2
 import urllib
 try:
-    import requests2
+    import requests
     use_requests = True
 except ImportError:
     print "Requests module not found on system. I'll revert so this will work, but you probably should install "
