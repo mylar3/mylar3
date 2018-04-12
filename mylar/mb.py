@@ -93,6 +93,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
             tehstart = m.start()
             tehend = m.end()
             if any([x == 'the', x == 'and']):
+                if len(name) == tehend:
+                    tehend =-1
                 if not all([tehstart == 0, name[tehend] == ' ']) or not all([tehstart != 0, name[tehstart-1] == ' ', name[tehend] == ' ']):
                     continue
             else:
