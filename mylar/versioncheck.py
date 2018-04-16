@@ -44,12 +44,15 @@ def runGit(args):
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=mylar.PROG_DIR)
             output, err = p.communicate()
             #logger.debug('Git output: %s' % output)
-        except OSError as e:
-            logger.fdebug('Command %s didn\'t work [%s]' % (cmd, e))
+        except Exception as e:
+            logger.error('Command %s didn\'t work [%s]' % (cmd, e))
             continue
+        else:
+            if all([err is not None, err != '']):
+                logger.error('Encountered error: %s' % err)
 
         if 'not found' in output or "not recognized as an internal or external command" in output:
-            logger.fdebug('Unable to find git with command ' + cmd)
+            logger.error('[%s] Unable to find git with command: %s' % (output, cmd))
             output = None
         elif 'fatal:' in output or err:
             logger.error('Error: %s' % err)
@@ -96,20 +99,24 @@ def getVersion():
         else:
             branch = None
 
-            branch_name, err = runGit('branch --contains ' + cur_commit_hash) #rev-parse --abbrev-ref HEAD')
-            for line in branch_name.split('\n'):
-                if '*' in line:
-                    branch = re.sub('[\*\n]','',line).strip()
-                    break
-
-            if not branch and mylar.CONFIG.GIT_BRANCH:
-                logger.warn('Unable to retrieve branch name [' + branch + '] from git. Setting branch to configuration value of : ' + mylar.CONFIG.GIT_BRANCH)
-                branch = mylar.CONFIG.GIT_BRANCH
-            if not branch:
-                logger.warn('Could not retrieve branch name [' + branch + '] form git. Defaulting to Master.')
+            branch_name, err = runGit('branch --contains %s' % cur_commit_hash)
+            if not branch_name:
+                logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
                 branch = 'master'
             else:
-                logger.info('Branch detected & set to : ' + branch)
+                for line in branch_name.split('\n'):
+                    if '*' in line:
+                        branch = re.sub('[\*\n]','',line).strip()
+                        break
+
+                if not branch and mylar.CONFIG.GIT_BRANCH:
+                    logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, mylar.CONFIG.GIT_BRANCH))
+                    branch = mylar.CONFIG.GIT_BRANCH
+                if not branch:
+                    logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
+                    branch = 'master'
+                else:
+                    logger.info('Branch detected & set to : %s' % branch)
 
         return cur_commit_hash, branch
 
@@ -154,11 +161,12 @@ def getVersion():
 
             logger.warn('Unable to determine which commit is currently being run. Defaulting to Master branch.')
 
-def checkGithub():
+def checkGithub(current_version=None):
+    if current_version is None:
+        current_version = mylar.CURRENT_VERSION
 
     # Get the latest commit available from github
     url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
-    logger.info ('Retrieving latest version information from github')
     try:
         response = requests.get(url, verify=True)
         git = response.json()
@@ -169,9 +177,9 @@ def checkGithub():
         return mylar.CURRENT_VERSION
 
     # See how many commits behind we are
-    if mylar.CURRENT_VERSION:
-        logger.fdebug('Comparing currently installed version [' + mylar.CURRENT_VERSION + '] with latest github version [' + mylar.LATEST_VERSION +']')
-        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.CONFIG.GIT_USER, mylar.CURRENT_VERSION, mylar.LATEST_VERSION)
+    if current_version is not None:
+        logger.fdebug('Comparing currently installed version [%s] with latest github version [%s]' % (current_version, mylar.LATEST_VERSION))
+        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
 
         try:
             response = requests.get(url, verify=True)
@@ -276,6 +284,39 @@ def update():
         try:
             with open(version_path, 'w') as f:
                 f.write(str(mylar.LATEST_VERSION))
-        except IOError, e:
-            logger.error("Unable to write current version to version.txt, update not complete: " +ex(e))
+        except IOError as e:
+            logger.error("Unable to write current version to version.txt, update not complete: %s" % ex(e))
             return
+
+def versionload():
+
+    mylar.CURRENT_VERSION, mylar.CONFIG.GIT_BRANCH = getVersion()
+
+    if mylar.CURRENT_VERSION is not None:
+        hash = mylar.CURRENT_VERSION[:7]
+    else:
+        hash = "unknown"
+
+    if mylar.CONFIG.GIT_BRANCH == 'master':
+        vers = 'M'
+    elif mylar.CONFIG.GIT_BRANCH == 'development':
+        vers = 'D'
+    else:
+        vers = 'NONE'
+
+    mylar.USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
+
+    logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
+
+    if mylar.CONFIG.CHECK_GITHUB_ON_STARTUP:
+        try:
+            mylar.LATEST_VERSION = checkGithub() #(CURRENT_VERSION)
+        except:
+            mylar.LATEST_VERSION = mylar.CURRENT_VERSION
+    else:
+        mylar.LATEST_VERSION = mylar.CURRENT_VERSION
+
+    if mylar.CONFIG.AUTO_UPDATE:
+        if mylar.CURRENT_VERSION != mylar.LATEST_VERSION and mylar.INSTALL_TYPE != 'win' and mylar.COMMITS_BEHIND > 0:
+             logger.info('Auto-updating has been enabled. Attempting to auto-update.')
+             #SIGNAL = 'update'

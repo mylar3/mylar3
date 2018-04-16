@@ -307,7 +307,9 @@ def main():
     # Try to start the server.
     webstart.initialize(web_config)
 
-    #logger.info('Starting Mylar on port: %i' % http_port)
+    #check for version here after web server initialized so it doesn't try to repeatidly hit github
+    #for version info if it's already running
+    versioncheck.versionload()
 
     if mylar.CONFIG.LAUNCH_BROWSER and not args.nolaunch:
         mylar.launch_browser(mylar.CONFIG.HTTP_HOST, http_port, mylar.CONFIG.HTTP_ROOT)

@@ -171,23 +171,6 @@ def initialize(config_file):
         if _INITIALIZED:
             return False
 
-        # Also sets INSTALL_TYPE variable to 'win', 'git' or 'source'
-        CURRENT_VERSION, CONFIG.GIT_BRANCH = versioncheck.getVersion()
-
-        #versioncheck.getVersion()
-        #config_write()
-        if CURRENT_VERSION is not None:
-            hash = CURRENT_VERSION[:7]
-        else:
-            hash = "unknown"
-
-        if CONFIG.GIT_BRANCH == 'master':
-            vers = 'M'
-        elif CONFIG.GIT_BRANCH == 'development':
-            vers = 'D'
-        else:
-           vers = 'NONE'
-
         # Initialize the database
         logger.info('Checking to see if the database has all tables....')
         try:
@@ -220,22 +203,6 @@ def initialize(config_file):
                 logger.fdebug('ConcurrentLogHandler package not installed. Using builtin log handler for Rotational logs (default)')
                 logger.fdebug('[Windows Users] If you are experiencing log file locking and want this auto-enabled, you need to install Python Extensions for Windows ( http://sourceforge.net/projects/pywin32/ )')
 
-            logger.info('Config GIT Branch: %s' % CONFIG.GIT_BRANCH)
-
-            # Check for new versions (autoupdate)
-            if CONFIG.CHECK_GITHUB_ON_STARTUP:
-                try:
-                    LATEST_VERSION = versioncheck.checkGithub()
-                except:
-                    LATEST_VERSION = CURRENT_VERSION
-            else:
-                LATEST_VERSION = CURRENT_VERSION
-#
-            if CONFIG.AUTO_UPDATE:
-                if CURRENT_VERSION != LATEST_VERSION and INSTALL_TYPE != 'win' and COMMITS_BEHIND > 0:
-                    logger.info('Auto-updating has been enabled. Attempting to auto-update.')
-#                    SIGNAL = 'update'
-
             #check for syno_fix here
             if CONFIG.SYNO_FIX:
                 parsepath = os.path.join(DATA_DIR, 'bs4', 'builder', '_lxml.py')
@@ -251,7 +218,6 @@ def initialize(config_file):
                 else:
                     logger.info('Synology Parsing Fix already implemented. No changes required at this time.')
 
-        USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
 
         CV_HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
 
