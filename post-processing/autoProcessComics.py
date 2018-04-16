@@ -11,7 +11,7 @@ except ImportError:
     print "requests to bypass this in the future (ie. pip install requests)"
     use_requests = False
 
-apc_version = "2.01"
+apc_version = "2.02"
 
 def processEpisode(dirName, nzbName=None):
     print "Your ComicRN.py script is outdated. I'll force this through, but Failed Download Handling and possible enhancements/fixes will not work and could cause errors."
@@ -79,7 +79,7 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
         else:
             print 'statuscode: %s' % pp.status_code
             result = pp.content
-            print pp.content
+            print result
     else:
         url += "?" + urllib.urlencode(params)
         print "Opening URL:", url
@@ -93,7 +93,7 @@ def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
             for line in result:
                 print line
 
-    if any("Post Processing SUCCESSFUL" in s for s in result):
+    if any("Post Processing SUCCESSFUL" in s for s in result.split('\n')):
         return 0
     else:
         return 1
