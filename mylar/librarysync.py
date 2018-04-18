@@ -252,9 +252,11 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                     urllink = f.readline()
 
                 if urllink:
-                    cid = urllink.split('/')
-                    if '4050-' in cid[-2]:
-                        cvinfo_CID = re.sub('4050-', '', cid[-2]).strip()
+                    cid = urllink.strip()
+                    pattern = re.compile(r"^.*?\b(49|4050)-(?P<num>\d{2,})\b.*$", re.I)
+                    match = pattern.match(cid)
+                    if match:
+                        cvinfo_CID = match.group("num")
                         logger.info('CVINFO file located within directory. Attaching everything in directory that is valid to ComicID: ' + str(cvinfo_CID))
                         #store the location of the cvinfo so it's applied to the correct directory (since we're scanning multile direcorties usually)
                         cvscanned_loc = os.path.dirname(comlocation)
