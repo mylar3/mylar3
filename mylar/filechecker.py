@@ -200,7 +200,7 @@ class FileChecker(object):
             watchmatch['comiclist'] = comiclist
 
         if len(self.failed_files) > 0:
-            logger.info('FAILED FILES: %s', self.failed_files)
+            logger.info('FAILED FILES: %s' % self.failed_files)
        
         return watchmatch
 
