@@ -31,9 +31,14 @@ try:
     localeinfo = locale.getdefaultlocale()
     language = localeinfo[0]
     charset = localeinfo[1]
-except:
-    language = 'en'
-    charset = 'UTF-8'
+    if any([language is None, charset is None]):
+        raise AttributeError
+except AttributeError:
+    #if it's set to None (ie. dockerized) - default to en_US.UTF-8.
+    if language is None:
+        language = 'en_US'
+    if charset is None:
+        charset = 'UTF-8'
 
 LOG_LANG = language
 LOG_CHARSET = charset
