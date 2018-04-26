@@ -139,7 +139,7 @@ class FileChecker(object):
                 if filename.startswith('.'):
                     continue
 
-                #logger.info('[FILENAME]: ' + filename)
+                logger.info('[FILENAME]: ' + filename)
                 runresults = self.parseit(self.dir, filename, filedir)
                 if runresults:
                     try:
