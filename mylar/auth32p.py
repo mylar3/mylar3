@@ -170,23 +170,28 @@ class info32p(object):
     def searchit(self):
         chk_id = None
         #logger.info('searchterm: %s' % self.searchterm)
-        series_search = self.searchterm['series']
         #self.searchterm is a tuple containing series name, issue number, volume and publisher.
+        series_search = self.searchterm['series']
+        issue_search = self.searchterm['issue']
+        volume_search = self.searchterm['volume']
+
         if series_search.startswith('0-Day Comics Pack'):
+            #issue = '21' = WED, #volume='2' = 2nd month
             torrentid = 22247 #2018
-            issue_search = self.searchterm['issue'] #'21'  #Wed
-            volume_search = self.searchterm['volume'] #'2'  #2nd month
             publisher_search = None #'2'  #2nd month
             comic_id = None
+        elif self.searchterm['torrentid_32p'] is not None:
+            torrentid = self.searchterm['torrentid_32p']
+            comic_id = self.searchterm['id']
+            publisher_search = self.searchterm['publisher']
         else:
+            torrentid = None
             comic_id = self.searchterm['id']
 
             annualize = False
             if 'annual' in series_search.lower():
                 series_search = re.sub(' annual', '', series_search.lower()).strip()
                 annualize = True
-            issue_search = self.searchterm['issue']
-            volume_search = self.searchterm['volume']
             publisher_search = self.searchterm['publisher']
             spl = [x for x in self.publisher_list if x in publisher_search]
             for x in spl:
@@ -250,7 +255,7 @@ class info32p(object):
             pdata = []
             pubmatch = False
 
-            if series_search.startswith('0-Day Comics Pack'):
+            if any([series_search.startswith('0-Day Comics Pack'), torrentid is not None]):
                 data.append({"id":      torrentid,
                              "series":  series_search})
             else:
@@ -308,11 +313,14 @@ class info32p(object):
                     dataset += pdata
                 logger.fdebug(str(len(dataset)) + ' series match the tile being searched for on 32P...')
 
-            if all([chk_id is None, not series_search.startswith('0-Day Comics Pack')]) and any([len(data) == 1, len(pdata) == 1]):
+            if all([chk_id is None, not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None]) and any([len(data) == 1, len(pdata) == 1]):
                 #update the 32p_reference so we avoid doing a url lookup next time
                 helpers.checkthe_id(comic_id, dataset)
             else:
-                logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
+                if all([not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None]):
+                    pass
+                else:
+                    logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
 
             results32p = []
             resultlist = {}

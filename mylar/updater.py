@@ -1556,6 +1556,7 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
     if module is None:
         module = '[FILE-RESCAN]'
     myDB = db.DBConnection()
+    filetable = 'issues'
     if any([havefiles is None, havefiles == '+1']):
         if havefiles is None:
             hf = myDB.selectone("SELECT Have, Total FROM comics WHERE ComicID=?", [ComicID]).fetchone()
@@ -1565,6 +1566,7 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
             hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN issues as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
             if hf is None:
                 hf = myDB.selectone("SELECT a.Have, a.Total, b.Status as IssStatus FROM comics AS a INNER JOIN annuals as b ON a.ComicID=b.ComicID WHERE b.IssueID=?", [issueid]).fetchone()
+                filetable = 'annuals'
             totalfiles = int(hf['Total'])
             logger.fdebug('totalfiles: %s' % totalfiles)
             logger.fdebug('status: %s' % hf['IssStatus'])
@@ -1585,4 +1587,4 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
         controlValueStat = {"IssueID":     issueid,
                             "ComicID":     ComicID}
         newValueStat = {"ComicSize":       os.path.getsize(file)}
-        myDB.upsert("issues", newValueStat, controlValueStat)
+        myDB.upsert(filetable, newValueStat, controlValueStat)

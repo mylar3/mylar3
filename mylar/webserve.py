@@ -187,6 +187,7 @@ class WebInterface(object):
                     "delete_dir":                     helpers.checked(mylar.CONFIG.DELETE_REMOVE_DIR),
                     "allow_packs":                    helpers.checked(int(allowpacks)),
                     "corrected_seriesyear":           comic['ComicYear'],
+                    "torrentid_32p":                  comic['TorrentID_32P'],
                     "totalissues":                    totalissues,
                     "haveissues":                     haveissues,
                     "percent":                        percent,
@@ -285,7 +286,13 @@ class WebInterface(object):
                 logger.error('Unable to perform required story-arc search for : [arc: ' + name + '][mode: ' + mode + ']')
                 return
 
-        searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
+        try:
+            searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
+        except Exception as e:
+            logger.error('Unable to retrieve results from ComicVine: %s' % e)
+            if mylar.COMICVINE_API is None:
+                logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
+                return
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, serinfo=serinfo)
     searchit.exposed = True
 
@@ -1371,6 +1378,7 @@ class WebInterface(object):
             AllowPacks= cdname['AllowPacks']
             ComicVersion = cdname['ComicVersion']
             ComicName = cdname['ComicName']
+            TorrentID_32p = cdname['TorrentID_32P']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -1416,7 +1424,7 @@ class WebInterface(object):
         #Publisher = miy['ComicPublisher']
         #UseAFuzzy = miy['UseFuzzy']
         #ComicVersion = miy['ComicVersion']
-        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks)
+        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks, torrentid_32p=TorrentID_32p)
         if foundcom['status'] is True:
             # file check to see if issue exists and update 'have' count
             if IssueID is not None:
@@ -4670,8 +4678,13 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % comicid)
     manual_annual_add.exposed = True
 
-    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None):
+    def comic_config(self, com_location, ComicID, alt_search=None, fuzzy_year=None, comic_version=None, force_continuing=None, alt_filename=None, allow_packs=None, corrected_seriesyear=None, torrentid_32p=None):
         myDB = db.DBConnection()
+        chk1 = myDB.selectone('SELECT ComicLocation FROM comics WHERE ComicID=?', [ComicID]).fetchone()
+        if chk1 is None:
+            orig_location = com_location
+        else:
+            orig_location = chk1['ComicLocation']
 #--- this is for multiple search terms............
 #--- works, just need to redo search.py to accomodate multiple search terms
         ffs_alt = []
@@ -4732,22 +4745,31 @@ class WebInterface(object):
         else:
             newValues['AllowPacks'] = 1
 
+        newValues['TorrentID_32P'] = torrentid_32p
+
         if alt_filename is None or alt_filename == 'None':
             newValues['AlternateFileName'] = "None"
         else:
             newValues['AlternateFileName'] = str(alt_filename)
 
         #force the check/creation of directory com_location here
-        if mylar.CONFIG.CREATE_FOLDERS is True:
+        if any([mylar.CONFIG.CREATE_FOLDERS is True, os.path.isdir(orig_location)]):
             if os.path.isdir(str(com_location)):
                 logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
             else:
-                logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
-                checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
-                if not checkdirectory:
-                    logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                    return
-
+                if orig_location != com_location:
+                    logger.fdebug('Renaming existing location [%s] to new location: %s' % (orig_location, com_location))
+                    try:
+                        os.rename(orig_location, com_location)
+                    except Exception as e:
+                        logger.warn('Unable to rename existing directory: %s' % e)
+                        return
+                else:
+                    logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
+                    checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
+                    if not checkdirectory:
+                        logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                        return
         myDB.upsert("comics", newValues, controlValueDict)
         logger.fdebug('Updated Series options!') 
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
@@ -4900,82 +4922,77 @@ class WebInterface(object):
         if sabapikey is None:
             sabapikey = mylar.CONFIG.SAB_APIKEY
         logger.fdebug('Now attempting to test SABnzbd connection')
-        if mylar.USE_SABNZBD:
 
-            #if user/pass given, we can auto-fill the API ;)
-            if sabusername is None or sabpassword is None:
-                logger.error('No Username / Password provided for SABnzbd credentials. Unable to test API key')
-                return "Invalid Username/Password provided"
-            logger.fdebug('testing connection to SABnzbd @ ' + sabhost)
-            if sabhost.endswith('/'):
-                sabhost = sabhost
-            else:
-                sabhost = sabhost + '/'
+        #if user/pass given, we can auto-fill the API ;)
+        if sabusername is None or sabpassword is None:
+            logger.error('No Username / Password provided for SABnzbd credentials. Unable to test API key')
+            return "Invalid Username/Password provided"
+        logger.fdebug('testing connection to SABnzbd @ ' + sabhost)
+        if sabhost.endswith('/'):
+            sabhost = sabhost
+        else:
+            sabhost = sabhost + '/'
 
-            querysab = sabhost + 'api'
-            payload = {'mode':    'get_config',
-                       'section': 'misc',
-                       'output':  'json',
-                       'keyword': 'api_key',
-                       'apikey':   sabapikey}
+        querysab = sabhost + 'api'
+        payload = {'mode':    'get_config',
+                   'section': 'misc',
+                   'output':  'json',
+                   'keyword': 'api_key',
+                   'apikey':   sabapikey}
 
-            if sabhost.startswith('https'):
-                verify = True
-            else:
+        if sabhost.startswith('https'):
+            verify = True
+        else:
+            verify = False
+
+        try:
+            r = requests.get(querysab, params=payload, verify=verify)
+        except Exception, e:
+            logger.warn('Error fetching data from %s: %s' % (querysab, e))
+            if requests.exceptions.SSLError:
+                logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
+                try:
+                    from requests.packages.urllib3 import disable_warnings
+                    disable_warnings()
+                except:
+                    logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
+
                 verify = False
 
-            try:
-                r = requests.get(querysab, params=payload, verify=verify)
-            except Exception, e:
-                logger.warn('Error fetching data from %s: %s' % (querysab, e))
-                if requests.exceptions.SSLError:
-                    logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
-                    try:
-                        from requests.packages.urllib3 import disable_warnings
-                        disable_warnings()
-                    except:
-                        logger.warn('Unable to disable https warnings. Expect some spam if using https nzb providers.')
-
-                    verify = False
-
-                    try:
-                        r = requests.get(querysab, params=payload, verify=verify)
-                    except Exception, e:
-                        logger.warn('Error fetching data from %s: %s' % (sabhost, e))
-                        return 'Unable to retrieve data from SABnzbd'
-                else:
+                try:
+                    r = requests.get(querysab, params=payload, verify=verify)
+                except Exception, e:
+                    logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                     return 'Unable to retrieve data from SABnzbd'
-
-
-            logger.info('status code: ' + str(r.status_code))
-
-            if str(r.status_code) != '200':
-                logger.warn('Unable to properly query SABnzbd @' + sabhost + ' [Status Code returned: ' + str(r.status_code) + ']')
-                data = False
             else:
-                data = r.json()
+                return 'Unable to retrieve data from SABnzbd'
 
-            try:
-                q_apikey = data['config']['misc']['api_key']
-            except:
-                logger.error('Error detected attempting to retrieve SAB data using FULL APIKey')
-                if all([sabusername is not None, sabpassword is not None]):
-                    try:
-                        sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
-                        q_apikey = sp.sab_get()
-                    except Exception, e:
-                        logger.warn('Error fetching data from %s: %s' % (sabhost, e))
-                    if q_apikey is None:
-                        return "Invalid APIKey provided"
 
-            mylar.CONFIG.SAB_APIKEY = q_apikey
-            logger.info('APIKey provided is the FULL APIKey which is the correct key. You still need to SAVE the config for the changes to be applied.')
+        logger.info('status code: ' + str(r.status_code))
 
-            logger.info('Connection to SABnzbd tested sucessfully')
-            return "Successfully verified APIkey"
+        if str(r.status_code) != '200':
+            logger.warn('Unable to properly query SABnzbd @' + sabhost + ' [Status Code returned: ' + str(r.status_code) + ']')
+            data = False
         else:
-            logger.error('You do not have anything stated for SAB Host. Please correct and try again.')
-            return "Invalid SABnzbd host specified"
+            data = r.json()
+
+        try:
+            q_apikey = data['config']['misc']['api_key']
+        except:
+            logger.error('Error detected attempting to retrieve SAB data using FULL APIKey')
+            if all([sabusername is not None, sabpassword is not None]):
+                try:
+                    sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
+                    q_apikey = sp.sab_get()
+                except Exception, e:
+                    logger.warn('Error fetching data from %s: %s' % (sabhost, e))
+                if q_apikey is None:
+                    return "Invalid APIKey provided"
+
+        mylar.CONFIG.SAB_APIKEY = q_apikey
+        logger.info('APIKey provided is the FULL APIKey which is the correct key. You still need to SAVE the config for the changes to be applied.')
+        logger.info('Connection to SABnzbd tested sucessfully')
+        return "Successfully verified APIkey"
     SABtest.exposed = True
 
     def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None):

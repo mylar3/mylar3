@@ -224,12 +224,20 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                   '$VolumeN':       comicVol.upper(),
                   '$Annual':        'Annual'
                   }
-
-        if mylar.CONFIG.FOLDER_FORMAT == '':
-            comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
-        else:
-            comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
-
+        try:
+            if mylar.CONFIG.FOLDER_FORMAT == '':
+                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
+            else:
+                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
+        except Exception as e:
+            if 'TypeError' in e:
+                if mylar.CONFIG.DESTINATION_DIR is None:
+                    logger.error('[ERROR] %s' % e)
+                    logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
+                    return
+            logger.error('[ERROR] %s' % e)
+            logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
+            return
 
         #comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
         if mylar.CONFIG.DESTINATION_DIR == "":
@@ -269,7 +277,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         ComicImage = helpers.replacetheslash(PRComicImage)
 
         #if the comic cover local is checked, save a cover.jpg to the series folder.
-        if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
+        if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True]):
             try:
                 comiclocal = os.path.join(comlocation, 'cover.jpg')
                 shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
