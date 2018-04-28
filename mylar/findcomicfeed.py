@@ -105,7 +105,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
         regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
-        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day']
+        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day']
 
         for entry in keyPair:
             title = entry['title']
