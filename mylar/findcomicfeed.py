@@ -11,37 +11,44 @@ import unicodedata
 import urllib
 
 def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
-    #searchName = "Uncanny Avengers"
-    #searchIssue = "01"
-    #searchYear = "2012"
-    if searchName.lower().startswith('the '):
-        searchName = searchName[4:]
     cName = searchName
-    #clean up searchName due to webparse.
-    searchName = searchName.replace("%20", " ")
-    if "," in searchName:
-        searchName = searchName.replace(",", "")
-    #logger.fdebug("name:" + str(searchName))
-    #logger.fdebug("issue:" + str(searchIssue))
-    #logger.fdebug("year:" + str(searchYear))
+
+    #clean up searchName due to webparse/redudant naming that would return too specific of results.
+    commons = ['and', 'the', '&', '-']
+    for x in commons:
+        cnt = 0
+        for m in re.finditer(x, searchName.lower()):
+            cnt +=1
+            tehstart = m.start()
+            tehend = m.end()
+            if any([x == 'the', x == 'and']):
+                if len(searchName) == tehend:
+                    tehend =-1
+                if all([tehstart == 0, searchName[tehend] == ' ']) or all([tehstart != 0, searchName[tehstart-1] == ' ', searchName[tehend] == ' ']):
+                    searchName = searchName.replace(x, ' ', cnt)
+                else:
+                    continue
+            else:
+                searchName = searchName.replace(x, ' ', cnt)
+
+    searchName = re.sub('\s+', ' ', searchName)
+    searchName = re.sub("[\,\:|'%20']", "", searchName).strip()
+    logger.fdebug("searchname: %s" % searchName)
+    logger.fdebug("issue: %s" % searchIssue)
+    logger.fdebug("year: %s" % searchYear)
     encodeSearch = urllib.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
-    joinSearch = "+".join(splitSearch) +"+" +searchIssue
-    searchIsOne = "0" +searchIssue
-    searchIsTwo = "00" +searchIssue
-
-    if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
-    elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
+    if len(searchIssue) == 1:
+        loop = 3
+    elif len(searchIssue) == 2:
+        loop = 2
+    else:
+        loop = 1
 
     if "-" in searchName:
         searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
-
-    regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?')
-
-
-    #logger.fdebug('searchName:' + searchName)
-    #logger.fdebug('regexName:' + regexName)
+    regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?') 
 
     if mylar.CONFIG.USE_MINSIZE:
         size_constraints = "minsize=" + str(mylar.CONFIG.MINSIZE)
@@ -55,13 +62,29 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         max_age = "&age=" + str(mylar.CONFIG.USENET_RETENTION)
 
     feeds = []
-    feed1 = "http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch
-    feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
-    time.sleep(3)
-    if mylar.CONFIG.ALTEXPERIMENTAL:
-        feed2 = "http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch
-        feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
+    i = 1
+    while (i <= loop):
+        if i == 1:
+            searchmethod = searchIssue
+        elif i == 2:
+            searchmethod = '0' + searchIssue
+        elif i == 3:
+            searchmethod = '00' + searchIssue
+        else:
+            break
+        logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
+        joinSearch = "+".join(splitSearch) + "+" +searchmethod
+
+        if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
+        elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
+
+        feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
         time.sleep(3)
+        if mylar.CONFIG.ALTEXPERIMENTAL:
+            feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
+            time.sleep(3)
+
+        i+=1
 
     entries = []
     mres = {}
@@ -76,8 +99,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         regList = []
         countUp = 0
 
-        #logger.fdebug(str(totNum) + " results")
-
         while countUp < totNum:
      	    urlParse = feed.entries[countUp].enclosures[0]
 	    #keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
@@ -87,8 +108,6 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                             "length":    urlParse["length"],
                             "pubdate":   feed.entries[countUp].updated})
             countUp=countUp +1
-        #logger.fdebug('keypair: ' + str(keyPair))
-
 
         # thanks to SpammyHagar for spending the time in compiling these regEx's!
 

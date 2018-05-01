@@ -104,7 +104,15 @@
                                                  ${weekly['COMIC']}
                                              %endif
                                         %else:
-                                             <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
+                                             %if weekly['HAVEIT'] == 'OneOff':
+                                                 %if all([weekly['COMICID'] != '', weekly['COMICID'] is not None]):
+                                                     <a href="${weekly['LINK']}" target="_blank">${weekly['COMIC']}</a>
+                                                 %else:
+                                                     ${weekly['COMIC']}
+                                                 %endif
+                                             %else:
+                                                 <a href="comicDetails?ComicID=${weekly['COMICID']}">${weekly['COMIC']}</a>
+                                             %endif
                                         %endif
                                         %if weekly['VOLUME'] is not None:
                                             &nbspV${weekly['VOLUME']}
