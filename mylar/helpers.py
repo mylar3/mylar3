@@ -2134,7 +2134,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
                         #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
                         #quick rescan of files in dir, then rerun the dup check again...
                         mylar.updater.forceRescan(ComicID)
-                        chk1 = duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
+                        chk1 = duplicate_filecheck(filename, ComicID, IssueID, StoryArcID, rtnval)
                         rtnval = chk1
             else:
                 rtnval = {'action':  "dupe_file",
