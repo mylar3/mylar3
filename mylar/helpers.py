@@ -2075,11 +2075,12 @@ def incr_snatched(ComicID):
     myDB.upsert("comics", newVal, newCtrl)
     return
 
-def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
+def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, rtnval=None):
     #filename = the filename in question that's being checked against
     #comicid = the comicid of the series that's being checked for duplication
     #issueid = the issueid of the issue that's being checked for duplication
     #storyarcid = the storyarcid of the issue that's being checked for duplication.
+    #rtnval = the return value of a previous duplicate_filecheck that's re-running against new values
     #
     import db
     myDB = db.DBConnection()
@@ -2124,14 +2125,17 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None):
                     mylar.updater.dbUpdate(ComicIDList=cid, calledfrom='dupechk')
                     return duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
                 else:
-                    rtnval = {'action':  "dont_dupe"}
-                    #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
-                    #quick rescan of files in dir, then rerun the dup check again...
-                    mylar.updater.forceRescan(ComicID)
-                    chk1 = duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
-                    if chk1['action'] == 'dont_dupe':
-                        logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
-                    rtnval = chk1
+                    if rtnval is not None:
+                        if rtnval['action'] == 'dont_dupe':
+                            logger.fdebug('[DUPECHECK] File is Archived but no file can be located within the db at the specified location. Assuming this was a manual archival and will not post-process this issue.')
+                        return rtnval
+                    else:
+                        rtnval = {'action':  "dont_dupe"}
+                        #file is Archived, but no entry exists in the db for the location. Assume Archived, and don't post-process.
+                        #quick rescan of files in dir, then rerun the dup check again...
+                        mylar.updater.forceRescan(ComicID)
+                        chk1 = duplicate_filecheck(filename, ComicID, IssueID, StoryArcID)
+                        rtnval = chk1
             else:
                 rtnval = {'action':  "dupe_file",
                           'to_dupe': os.path.join(series['ComicLocation'], dupchk['Location'])}
@@ -3357,6 +3361,11 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                             nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
                             jobstore.modify(next_run_time=nextrun_date)
                             nextrun_date = nextrun_date.replace(microsecond=0)
+                        else:
+                            # if the rss is enabled after startup, we have to re-set it up...
+                            nextrun_stamp = utctimestamp() + (int(mylar.CONFIG.RSS_CHECKINTERVAL) * 60)
+                            nextrun_date = datetime.datetime.utcfromtimestamp(nextrun_stamp)
+                            mylar.SCHED_RSS_LAST = last_run_completed
 
                     logger.fdebug('ReScheduled job: %s to %s' % (job, nextrun_date))
                     lastrun_comp = datetime.datetime.utcfromtimestamp(last_run_completed)
