@@ -57,6 +57,8 @@ class wwt(object):
                 pagelist = resultpages.findAll("a")
             except:
                 logger.info('No results found for %s' % self.query)
+                return
+
             pages = []
             for p in pagelist:
                 if p['href'] not in pages:
