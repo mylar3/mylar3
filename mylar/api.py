@@ -169,7 +169,7 @@ class Api(object):
         if mylar.CONFIG.ANNUALS_ON:
             annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + self.id + '"')
         else:
-            annuals = None
+            annuals = []
 
         self.data = {'comic': comic, 'issues': issues, 'annuals': annuals}
         return
