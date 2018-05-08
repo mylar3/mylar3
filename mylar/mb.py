@@ -74,7 +74,12 @@ def pullsearch(comicapi, comicquery, offset, type):
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
 
-    dom = parseString(r.content) #(data)
+    try:
+        dom = parseString(r.content) #(data)
+    except ExpatError:
+        logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
+        return
+
     return dom
 
 def findComic(name, mode, issue, limityear=None, type=None):

@@ -60,6 +60,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         comlocation = None
         oldcomversion = None
         series_status = 'Loading'
+        lastissueid = None
     else:
         if chkwant is not None:
             logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
@@ -73,6 +74,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
+        lastissueid = dbcomic['LatestIssueID']
+
         if not latestissueinfo:
             latestissueinfo = []
             latestissueinfo.append({"latestiss": dbcomic['LatestIssue'],
@@ -268,23 +271,28 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             comicIssues = str(int(comic['ComicIssues']) + 1)
 
     if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is False:
-        covercheck = helpers.getImage(comicid, comic['ComicImage'])
-        if covercheck == 'retry':
-            logger.info('Attempting to retrieve alternate comic image for the series.')
-            covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
-
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
+        if os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is True:
+            logger.fdebug('Cover already exists for series. Not redownloading.')
+        else:
+            covercheck = helpers.getImage(comicid, comic['ComicImage'])
+            if covercheck == 'retry':
+                logger.info('Attempting to retrieve alternate comic image for the series.')
+                covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
 
-        #if the comic cover local is checked, save a cover.jpg to the series folder.
-        if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True]):
-            try:
-                comiclocal = os.path.join(comlocation, 'cover.jpg')
-                shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
-                if mylar.CONFIG.ENFORCE_PERMS:
-                    filechecker.setperms(comiclocal)
-            except IOError as e:
-                logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
+            PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
+            ComicImage = helpers.replacetheslash(PRComicImage)
+
+            #if the comic cover local is checked, save a cover.jpg to the series folder.
+            if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True]):
+                try:
+                    comiclocal = os.path.join(comlocation, 'cover.jpg')
+                    shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
+                    if mylar.CONFIG.ENFORCE_PERMS:
+                        filechecker.setperms(comiclocal)
+                except IOError as e:
+                    logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
     else:
         ComicImage = None
 
@@ -354,36 +362,13 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if anndata:
             manualAnnual(annchk=anndata)
 
-    #let's download the image...
-    if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is True:
-        ls = helpers.issuedigits(importantdates['LatestIssue'])
-        imagetopull = myDB.selectone('SELECT issueid from issues where ComicID=? AND Int_IssueNumber=?', [comicid, ls]).fetchone()
-        imageurl = mylar.cv.getComic(comicid, 'image', issueid=imagetopull[0])
-        covercheck = helpers.getImage(comicid, imageurl['image'])
-        if covercheck == 'retry':
-            logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')
-            if imageurl['image_alt'] is not None:
-                covercheck = helpers.getImage(comicid, imageurl['image_alt'])
-            else:
-                if not os.path.isfile(os.path.join(mylar.CACHE_DIR, str(comicid) + '.jpg')):
-                    logger.fdebug('Failed to retrieve issue image, possibly because not available. Reverting back to series image.')
-                    covercheck = helpers.getImage(comicid, comic['ComicImage'])
-        PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
-        ComicImage = helpers.replacetheslash(PRComicImage)
-
-        #if the comic cover local is checked, save a cover.jpg to the series folder.
-        if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
-            try:
-                comiclocal = os.path.join(comlocation, 'cover.jpg')
-                shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
-                if mylar.CONFIG.ENFORCE_PERMS:
-                    filechecker.setperms(comiclocal)
-            except IOError as e:
-                logger.error('Unable to save cover into series directory (%s) at this time' % comiclocal)
-        myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})
+    if all([mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is True, lastissueid != importantdates['LatestIssueID']]):
+        image_it(comicid, importantdates['LatestIssueID'], comlocation, comic['ComicImage'])
+    else:
+        logger.fdebug('no update required - lastissueid [%s] = latestissueid [%s]' % (lastissueid, importantdates['LatestIssueID']))
 
     if (mylar.CONFIG.CVINFO or (mylar.CONFIG.CV_ONLY and mylar.CONFIG.CVINFO)) and os.path.isdir(comlocation):
-        if not os.path.exists(os.path.join(comlocation, "cvinfo")) or mylar.CONFIG.CV_ONETIMER:
+        if os.path.isfile(os.path.join(comlocation, "cvinfo")) is False:
             with open(os.path.join(comlocation, "cvinfo"), "w") as text_file:
                 text_file.write(str(comic['ComicURL']))
 
@@ -1094,6 +1079,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     #let's start issue #'s at 0 -- thanks to DC for the new 52 reboot! :)
     latestiss = "0"
     latestdate = "0000-00-00"
+    latestissueid = None
     firstiss = "10000000"
     firstdate = "2099-00-00"
     #print ("total issues:" + str(iscnt))
@@ -1103,7 +1089,6 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         while (n <= iscnt):
             try:
                 firstval = issued['issuechoice'][n]
-                #print firstval
             except IndexError:
                 break
             try:
@@ -1112,7 +1097,6 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 cleanname = 'None'
             issid = str(firstval['Issue_ID'])
             issnum = firstval['Issue_Number']
-            #logger.info("issnum: " + str(issnum))
             issname = cleanname
             issdate = str(firstval['Issue_Date'])
             storedate = str(firstval['Store_Date'])
@@ -1133,7 +1117,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
                 elif u'\xbd' in issnum:
                     int_issnum = .5 * 1000
-                    logger.info('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
+                    logger.fdebug('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
                 elif u'\xbc' in issnum:
                     int_issnum = .25 * 1000
                 elif u'\xbe' in issnum:
@@ -1178,7 +1162,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                         x = float(issnum)
                         #validity check
                         if x < 0:
-                            logger.info('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
+                            logger.fdebug('I have encountered a negative issue #: ' + str(issnum) + '. Trying to accomodate.')
                             logger.fdebug('value of x is : ' + str(x))
                             int_issnum = (int(x) *1000) - 1
                         else: raise ValueError
@@ -1247,12 +1231,18 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             #logger.fdebug('latest date: ' + str(latestdate))
             #logger.fdebug('first date: ' + str(firstdate))
             #logger.fdebug('issue date: ' + str(firstval['Issue_Date']))
-            if firstval['Issue_Date'] >= latestdate:
+            #logger.fdebug('issue date: ' + storedate)
+            if any([firstval['Issue_Date'] >= latestdate, storedate >= latestdate]):
                 #logger.fdebug('date check hit for issue date > latestdate')
                 if int_issnum > helpers.issuedigits(latestiss):
                     #logger.fdebug('assigning latest issue to : ' + str(issnum))
                     latestiss = issnum
-                latestdate = str(firstval['Issue_Date'])
+                    latestissueid = issid
+                if firstval['Issue_Date'] != '0000-00-00':
+                    latestdate = str(firstval['Issue_Date'])
+                else:
+                    latestdate = storedate
+
             if firstval['Issue_Date'] < firstdate and firstval['Issue_Date'] != '0000-00-00':
                 firstiss = issnum
                 firstdate = str(firstval['Issue_Date'])
@@ -1349,6 +1339,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     "ComicPublished":  publishfigure,
                     "NewPublish":      newpublish,
                     "LatestIssue":     latestiss,
+                    "LatestIssueID":   latestissueid,
                     "LatestDate":      latestdate,
                     "LastUpdated":     helpers.now()
                    }
@@ -1358,6 +1349,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
 
     importantdates = {}
     importantdates['LatestIssue'] = latestiss
+    importantdates['LatestIssueID'] = latestissueid
     importantdates['LatestDate'] = latestdate
     importantdates['LastPubDate'] = lastpubdate
     importantdates['SeriesStatus'] = 'Active'
@@ -1545,3 +1537,32 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                     logger.fdebug('[IMPORTER-ANNUAL] - Issue count is wrong')
 
          #if this is called from the importer module, return the weeklyissue_check
+
+def image_it(comicid, latestissueid, comlocation, ComicImage):
+    #alternate series covers download latest image...
+
+    imageurl = mylar.cv.getComic(comicid, 'image', issueid=latestissueid) 
+    covercheck = helpers.getImage(comicid, imageurl['image'])
+    if covercheck == 'retry':
+        logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')
+        if imageurl['image_alt'] is not None:
+            covercheck = helpers.getImage(comicid, imageurl['image_alt'])
+        else:
+            if not os.path.isfile(os.path.join(mylar.CACHE_DIR, str(comicid) + '.jpg')):
+                logger.fdebug('Failed to retrieve issue image, possibly because not available. Reverting back to series image.')
+                covercheck = helpers.getImage(comicid, ComicImage)
+    PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
+    ComicImage = helpers.replacetheslash(PRComicImage)
+
+    #if the comic cover local is checked, save a cover.jpg to the series folder.
+    if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True]):
+        try:
+            comiclocal = os.path.join(comlocation, 'cover.jpg')
+            shutil.copyfile(os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg'), comiclocal)
+            if mylar.CONFIG.ENFORCE_PERMS:
+                filechecker.setperms(comiclocal)
+        except IOError as e:
+            logger.error('Unable to save cover into series directory (%s) at this time' % comiclocal)
+
+    myDB = db.DBConnection()
+    myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})
