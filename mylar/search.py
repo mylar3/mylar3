@@ -2081,7 +2081,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 return foundNZB
             if foundNZB['status'] is True:
                 logger.fdebug("I found " + comic['ComicName'] + ' #:' + str(result['Issue_Number']))
-                updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, SARC=result['SARC'], IssueArcID=result['IssueArcID'], hash=foundNZB['info']['t_hash'])
+                updater.foundsearch(ComicID, actissueid, mode=mode, provider=prov, SARC=SARC, IssueArcID=IssueArcID, hash=foundNZB['info']['t_hash'])
 
     else:
         if rsscheck:
