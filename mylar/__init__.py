@@ -1087,7 +1087,7 @@ def csv_load():
                     try:
                         shutil.copy(os.path.join(DATA_DIR, "custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
                     except (OSError, IOError):
-                        logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure _sample.csv is present and/or check permissions.')
+                        logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure custom_exceptions_sample.csv is present and/or check permissions.')
                         return
                 else:
                     logger.error('Could not locate ' + str(EXCEPTIONS[i]) + ' file. Make sure it is in datadir: ' + DATA_DIR)
