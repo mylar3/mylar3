@@ -77,37 +77,38 @@ if not LOG_LANG.startswith('en'):
             lg = logging.getLogger('mylar')
             lg.setLevel(logging.DEBUG)
 
-            self.filename = os.path.join(log_dir, self.filename)
+            if log_dir is not None:
+                self.filename = os.path.join(log_dir, self.filename)
 
-            #concurrentLogHandler/0.8.7 (to deal with windows locks)
-            #since this only happens on windows boxes, if it's nix/mac use the default logger.
-            if mylar.OS_DETECT == 'Windows':
-                #set the path to the lib here - just to make sure it can detect cloghandler & portalocker.
-                import sys
-                sys.path.append(os.path.join(mylar.PROG_DIR, 'lib'))
+                #concurrentLogHandler/0.8.7 (to deal with windows locks)
+                #since this only happens on windows boxes, if it's nix/mac use the default logger.
+                if mylar.OS_DETECT == 'Windows':
+                    #set the path to the lib here - just to make sure it can detect cloghandler & portalocker.
+                    import sys
+                    sys.path.append(os.path.join(mylar.PROG_DIR, 'lib'))
 
-                try:
-                    from ConcurrentLogHandler.cloghandler import ConcurrentRotatingFileHandler as RFHandler
-                    mylar.LOGTYPE = 'clog'
-                except ImportError:
+                    try:
+                        from ConcurrentLogHandler.cloghandler import ConcurrentRotatingFileHandler as RFHandler
+                        mylar.LOGTYPE = 'clog'
+                    except ImportError:
+                        mylar.LOGTYPE = 'log'
+                        from logging.handlers import RotatingFileHandler as RFHandler
+                else:
                     mylar.LOGTYPE = 'log'
                     from logging.handlers import RotatingFileHandler as RFHandler
-            else:
-                mylar.LOGTYPE = 'log'
-                from logging.handlers import RotatingFileHandler as RFHandler
 
-            filehandler = RFHandler(
-                self.filename,
-                maxBytes=max_logsize,
-                backupCount=max_logfiles)
+                filehandler = RFHandler(
+                    self.filename,
+                    maxBytes=max_logsize,
+                    backupCount=max_logfiles)
 
-            filehandler.setLevel(logging.DEBUG)
+                filehandler.setLevel(logging.DEBUG)
 
-            fileformatter = logging.Formatter('%(asctime)s - %(levelname)-7s :: %(message)s', '%d-%b-%Y %H:%M:%S')
+                fileformatter = logging.Formatter('%(asctime)s - %(levelname)-7s :: %(message)s', '%d-%b-%Y %H:%M:%S')
 
-            filehandler.setFormatter(fileformatter)
-            lg.addHandler(filehandler)
-            self.filehandler = filehandler
+                filehandler.setFormatter(fileformatter)
+                lg.addHandler(filehandler)
+                self.filehandler = filehandler
 
             if loglevel:
                 consolehandler = logging.StreamHandler()

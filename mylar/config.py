@@ -500,6 +500,17 @@ class Config(object):
             self.provider_sequence()
 
         if startup is True:
+            if self.LOG_DIR is None:
+                self.LOG_DIR = os.path.join(mylar.DATA_DIR, 'logs')
+
+            if not os.path.exists(self.LOG_DIR):
+                try:
+                    os.makedirs(self.LOG_DIR)
+                except OSError:
+                    if not mylar.QUIET:
+                        self.LOG_DIR = None
+                        print('Unable to create the log directory. Logging to screen only.')
+
             # Start the logger, silence console logging if we need to
             if logger.LOG_LANG.startswith('en'):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
