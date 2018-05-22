@@ -3085,9 +3085,6 @@ class WebInterface(object):
                            "IssueDate":     AD['Issue_Date'],
                            "ReleaseDate":   AD['Store_Date']}
 
-                logger.info('CTRLWRITE TO: ' + str(newCtrl))
-                logger.info('WRITING: ' + str(newVals))
-
                 myDB.upsert("storyarcs", newVals, newCtrl)
 
 
@@ -3959,11 +3956,21 @@ class WebInterface(object):
                                 'srid':          SRID}
                     self.addbyid(comicinfo['ComicID'], calledby=True, imported=imported, ogcname=comicinfo['ComicName'], nothread=True)
 
-                    #status update.
-                    ctrlVal = {"ComicID":     comicinfo['ComicID']}
-                    newVal = {"Status":       'Imported',
-                              "SRID":         SRID}
-                    myDB.upsert("importresults", newVal, ctrlVal)
+                    #if move files wasn't used - we need to update status at this point.
+                    #if mylar.CONFIG.IMP_MOVE is False:
+                    #    #status update.
+                    #    for f in files:
+                    #        ctrlVal = {"ComicID":     comicinfo['ComicID'],
+                    #                   "impID":       f['import_id']}
+                    #        newVal = {"Status":            'Imported',
+                    #                  "SRID":              SRID,
+                    #                  "ComicFilename":     f['comicfilename'],
+                    #                  "ComicLocation":     f['comiclocation'],
+                    #                  "Volume":            comicinfo['Volume'],
+                    #                  "IssueNumber":       comicinfo['IssueNumber'],
+                    #                  "ComicName":         comicinfo['ComicName'],
+                    #                  "DynamicName":       comicinfo['DynamicName']}
+                    #        myDB.upsert("importresults", newVal, ctrlVal)
                     logger.info('[IMPORT] Successfully verified import sequence data for : ' + comicinfo['ComicName'] + '. Currently adding to your watchlist.')
                     RemoveIDS.append(comicinfo['ComicID'])
 
@@ -4229,7 +4236,6 @@ class WebInterface(object):
                     newVal = {"SRID":         SRID,
                               "Status":       'Importing',
                               "ComicName":    ComicName}
-
                 myDB.upsert("importresults", newVal, ctrlVal)
 
                 if resultset == 0:
@@ -5007,10 +5013,6 @@ class WebInterface(object):
 
         logger.fdebug('Now attempting to test NZBGet connection')
 
-        if nzbusername is None or nzbpassword is None:
-            logger.error('No Username / Password provided for NZBGet credentials. Unable to test API key')
-            return "Invalid Username/Password provided"
-
         logger.info('Now testing connection to NZBGet @ %s:%s' % (nzbhost, nzbport))
         if nzbhost[:5] == 'https':
             protocol = 'https'
@@ -5019,8 +5021,18 @@ class WebInterface(object):
             protocol = 'http'
             nzbgethost = nzbhost[7:]
 
-        nzb_url = '%s://%s:%s@%s:%s/xmlrpc' % (protocol, nzbusername, nzbpassword, nzbgethost, nzbport)
-        logger.info('nzb_url: %s' % nzb_url)
+        url = '%s://'
+        nzbparams = protocol,
+        if all([nzbusername is not None, nzbpassword is not None]):
+            url = url + '%s:%s@'
+            nzbparams = nzbparams + (nzbusername, nzbpassword)
+        elif nzbusername is not None:
+            url = url + '%s@'
+            nzbparams = nzbparams + (nzbusername,)
+        url = url + '%s:%s/xmlrpc'
+        nzbparams = nzbparams + (nzbgethost, nzbport,)
+        nzb_url = (url % nzbparams)
+
         import xmlrpclib
         nzbserver = xmlrpclib.ServerProxy(nzb_url)
 
@@ -5029,7 +5041,6 @@ class WebInterface(object):
         except Exception as e:
             logger.warn('Error fetching data: %s' % e)
             return 'Unable to retrieve data from NZBGet'
-
         logger.info('Successfully verified connection to NZBGet at %s:%s' % (nzbgethost, nzbport))
         return "Successfully verified connection to NZBGet"
     NZBGet_test.exposed = True

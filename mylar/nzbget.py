@@ -34,8 +34,21 @@ class NZBGet(object):
         elif mylar.CONFIG.NZBGET_HOST[:4] == 'http':
             protocol = "http"
             nzbget_host = mylar.CONFIG.NZBGET_HOST[7:]
-        self.nzb_url = '%s://%s:%s@%s:%s/xmlrpc' % (protocol, mylar.CONFIG.NZBGET_USERNAME, mylar.CONFIG.NZBGET_PASSWORD, nzbget_host, mylar.CONFIG.NZBGET_PORT)
-        self.server = xmlrpclib.ServerProxy(self.nzb_url)
+        url = '%s://'
+        val = (protocol,)
+        if mylar.CONFIG.NZBGET_USERNAME is not None:
+            url = url + '%s:'
+            val = val + (mylar.CONFIG.NZBGET_USERNAME,)
+        if mylar.CONFIG.NZBGET_PASSWORD is not None:
+            url = url + '%s'
+            val = val + (mylar.CONFIG.NZBGET_PASSWORD,)
+        if any([mylar.CONFIG.NZBGET_USERNAME, mylar.CONFIG.NZBGET_PASSWORD]):
+            url = url + '@%s:%s/xmlrpc'
+        else:
+            url = url + '%s:%s/xmlrpc'
+        val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
+        self.nzb_url = (url % val)
+        self.server = xmlrpclib.ServerProxy(self.nzb_url) #,allow_none=True)
 
     def sender(self, filename, test=False):
         if mylar.CONFIG.NZBGET_PRIORITY:
@@ -59,7 +72,11 @@ class NZBGet(object):
         nzbcontent64 = standard_b64encode(nzbcontent)
         try:
             logger.fdebug('sending now to %s' % self.nzb_url)
-            sendresponse = self.server.append(filename, nzbcontent64, mylar.CONFIG.NZBGET_CATEGORY, nzbgetpriority, False, False, '', 0, 'SCORE')
+            if mylar.CONFIG.NZBGET_CATEGORY is None:
+                nzb_category = ''
+            else:
+                nzb_category = mylar.CONFIG.NZBGET_CATEGORY
+            sendresponse = self.server.append(filename, nzbcontent64, nzb_category, nzbgetpriority, False, False, '', 0, 'SCORE')
         except Exception as e:
             logger.warn('uh-oh: %s' % e)
             return {'status': False}

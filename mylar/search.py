@@ -2809,7 +2809,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
                 clientmode = 'nzbget'
-                client_id = None
+                client_id = '%s' % send_to_nzbget['NZBID']
             elif mylar.USE_SABNZBD:
                 clientmode = 'sabnzbd'
                 client_id = sendtosab['nzo_id']
