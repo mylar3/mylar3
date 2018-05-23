@@ -2394,6 +2394,7 @@ class WebInterface(object):
             logger.info('Initiating mass import.')
             cnames = myDB.select("SELECT ComicName, ComicID, Volume, DynamicName from importresults WHERE Status='Not Imported' GROUP BY DynamicName, Volume")
             for cname in cnames:
+                logger.fdebug('Reading data for : %s' % cname)
                 if cname['ComicID']:
                     comicid = cname['ComicID']
                 else:
