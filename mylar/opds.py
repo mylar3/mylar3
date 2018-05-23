@@ -500,18 +500,15 @@ class OPDS(object):
                 if not issue:
                     self.data = self._error_with_message('Issue Not Found')
                     return
-        else:
-            issuetype = 1
-        comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
-        if not comic:
-            self.data = self._error_with_message('Comic Not Found')
-            return
-        if issuetype:
-            self.file = issue['Location']
-            self.filename = os.path.split(issue['Location'])[1]
-        else:
+            comic = myDB.selectone("SELECT * from comics WHERE ComicID=?", (issue['ComicID'],)).fetchone()
+            if not comic:
+                self.data = self._error_with_message('Comic Not Found in Watchlist')
+                return
             self.file = os.path.join(comic['ComicLocation'],issue['Location'])
             self.filename = issue['Location']
+        else:
+            self.file = issue['Location']
+            self.filename = os.path.split(issue['Location'])[1]
         return
 
     def _StoryArcs(self, **kwargs):
