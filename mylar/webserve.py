@@ -2388,21 +2388,25 @@ class WebInterface(object):
     flushImports.exposed = True
 
     def markImports(self, action=None, **args):
+        import unicodedata
         myDB = db.DBConnection()
         comicstoimport = []
         if action == 'massimport':
             logger.info('Initiating mass import.')
             cnames = myDB.select("SELECT ComicName, ComicID, Volume, DynamicName from importresults WHERE Status='Not Imported' GROUP BY DynamicName, Volume")
             for cname in cnames:
-                logger.fdebug('Reading data for : %s' % cname)
                 if cname['ComicID']:
                     comicid = cname['ComicID']
                 else:
                     comicid = None
-                comicstoimport.append({'ComicName':   cname['ComicName'].decode('utf-8', 'replace'),
-                                       'DynamicName': cname['DynamicName'],
-                                       'Volume':      cname['Volume'],
-                                       'ComicID':     comicid})
+                try:
+                    comicstoimport.append({'ComicName':   unicodedata.normalize('NFKD', cname['ComicName']).encode('utf-8', 'ignore').decode('utf-8', 'ignore'),
+                                           'DynamicName': cname['DynamicName'],
+                                           'Volume':      cname['Volume'],
+                                           'ComicID':     comicid})
+                except Exception as e:
+                    logger.warn('[ERROR] There was a problem attempting to queue %s %s [%s] to import (ignoring): %s' % (cname['ComicName'],cname['Volume'],comicid, e))
+
             logger.info(str(len(comicstoimport)) + ' series will be attempted to be imported.')
         else:
             if action == 'importselected':
