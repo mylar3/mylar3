@@ -95,50 +95,50 @@ class SABnzbd(object):
             return self.historycheck(sendresponse)
 
     def historycheck(self, sendresponse):
-            hist_params = {'mode':      'history',
-                           'category':  mylar.CONFIG.SAB_CATEGORY,
-                           'failed':    0,
-                           'output':    'json',
-                           'apikey':    mylar.CONFIG.SAB_APIKEY}
-            hist = requests.get(self.sab_url, params=hist_params, verify=False)
-            historyresponse = hist.json()
-            #logger.info(historyresponse)
-            histqueue = historyresponse['history']
-            found = {'status': False}
-            while found['status'] is False:
-                try:
-                    for hq in histqueue['slots']:
-                        #logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
-                        if hq['nzo_id'] == sendresponse and hq['status'] == 'Completed':
-                            logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
-                            if os.path.isfile(hq['storage']):
-                                logger.info('location found @ %s' % hq['storage'])
-                                found = {'status':   True,
-                                         'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
-                                         'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                         'failed':   False}
-                                break
-                            else:
-                                logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
-                                break
-                        elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
-                            #get the stage / error message and see what we can do
-                            stage = hq['stage_log']
-                            for x in stage[0]:
-                                if 'Failed' in x['actions'] and any([x['name'] == 'Unpack', x['name'] == 'Repair']):
-                                    if 'moving' in x['actions']:
-                                        logger.warn('There was a failure in SABnzbd during the unpack/repair phase that caused a failure: %s' % x['actions'])
-                                    else:
-                                        logger.warn('Failure occured during the Unpack/Repair phase of SABnzbd. This is probably a bad file: %s' % x['actions'])
-                                        if mylar.FAILED_DOWNLOAD_HANDLING is True:
-                                            found = {'status':   True,
-                                                     'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
-                                                     'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                                     'failed':   True}
-                                    break
+        hist_params = {'mode':      'history',
+                       'category':  mylar.CONFIG.SAB_CATEGORY,
+                       'failed':    0,
+                       'output':    'json',
+                       'apikey':    mylar.CONFIG.SAB_APIKEY}
+        hist = requests.get(self.sab_url, params=hist_params, verify=False)
+        historyresponse = hist.json()
+        #logger.info(historyresponse)
+        histqueue = historyresponse['history']
+        found = {'status': False}
+        while found['status'] is False:
+            try:
+                for hq in histqueue['slots']:
+                    #logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
+                    if hq['nzo_id'] == sendresponse and hq['status'] == 'Completed':
+                        logger.info('found matching completed item in history. Job has a status of %s' % hq['status'])
+                        if os.path.isfile(hq['storage']):
+                            logger.info('location found @ %s' % hq['storage'])
+                            found = {'status':   True,
+                                     'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
+                                     'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
+                                     'failed':   False}
                             break
-                except Exception as e:
-                    logger.warn('error %s' % e)
-                    break
+                        else:
+                            logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
+                            break
+                    elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
+                        #get the stage / error message and see what we can do
+                        stage = hq['stage_log']
+                        for x in stage[0]:
+                            if 'Failed' in x['actions'] and any([x['name'] == 'Unpack', x['name'] == 'Repair']):
+                                if 'moving' in x['actions']:
+                                    logger.warn('There was a failure in SABnzbd during the unpack/repair phase that caused a failure: %s' % x['actions'])
+                                else:
+                                    logger.warn('Failure occured during the Unpack/Repair phase of SABnzbd. This is probably a bad file: %s' % x['actions'])
+                                    if mylar.FAILED_DOWNLOAD_HANDLING is True:
+                                        found = {'status':   True,
+                                                 'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
+                                                 'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
+                                                 'failed':   True}
+                                break
+                        break
+            except Exception as e:
+                logger.warn('error %s' % e)
+                break
 
         return found
