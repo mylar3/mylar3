@@ -103,7 +103,7 @@ class NZBGet(object):
             queuedl = [qu for qu in queueinfo if qu['NZBID'] == nzbid]
             if len(queuedl) == 0:
                 logger.warn('Unable to locate item in active queue. Could it be finished already ?')
-                return {'status': False}
+                return self.historycheck(nzbid)
 
             stat = False
             while stat is False:
@@ -120,25 +120,29 @@ class NZBGet(object):
                     logger.fdebug('Download Left: %sMB' % queuedl[0]['RemainingSizeMB'])
                     logger.fdebug('health: %s' % (queuedl[0]['Health']/10))
                     logger.fdebug('destination: %s' % queuedl[0]['DestDir'])
+
             logger.fdebug('File has now downloaded!')
             time.sleep(5)  #wait some seconds so shit can get written to history properly
-            history = self.server.history()
-            found = False
-            hq = [hs for hs in history if hs['NZBID'] == nzbid and 'SUCCESS' in hs['Status']]
-            if len(hq) > 0:
-                logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
-                if hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']:
-                    logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
-                    if os.path.isdir(hq[0]['DestDir']):
-                        logger.fdebug('location found @ %s' % hq[0]['DestDir'])
-                        return {'status':   True,
-                                'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
-                                'location': hq[0]['DestDir'],
-                                'failed':   False}
+            return self.historycheck(nzbid)
 
-                    else:
-                        logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
-                        return {'status': False}
-            else:
-                logger.warn('Could not find completed item in history')
-                return {'status': False}
+    def historycheck(self, nzbid):
+        history = self.server.history()
+        found = False
+        hq = [hs for hs in history if hs['NZBID'] == nzbid and 'SUCCESS' in hs['Status']]
+        if len(hq) > 0:
+            logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
+            if hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']:
+                logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
+                if os.path.isdir(hq[0]['DestDir']):
+                    logger.fdebug('location found @ %s' % hq[0]['DestDir'])
+                    return {'status':   True,
+                            'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
+                            'location': hq[0]['DestDir'],
+                            'failed':   False}
+
+                else:
+                    logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
+                    return {'status': False}
+        else:
+            logger.warn('Could not find completed item in history')
+            return {'status': False}

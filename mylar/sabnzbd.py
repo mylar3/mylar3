@@ -69,7 +69,7 @@ class SABnzbd(object):
             h = requests.get(self.sab_url, params=self.params['queue'], verify=False)
         except Exception as e:
             logger.info('uh-oh: %s' % e)
-            return {'status': False}
+            return self.historycheck(sendresponse)
         else:
             queueresponse = h.json()
             logger.info('successfully queried the queue for status')
@@ -92,6 +92,9 @@ class SABnzbd(object):
                 logger.warn('error: %s' % e)
 
             logger.info('File has now downloaded!')
+            return self.historycheck(sendresponse)
+
+    def historycheck(self, sendresponse):
             hist_params = {'mode':      'history',
                            'category':  mylar.CONFIG.SAB_CATEGORY,
                            'failed':    0,
