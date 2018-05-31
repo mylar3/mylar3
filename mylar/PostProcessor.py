@@ -687,7 +687,7 @@ class PostProcessor(object):
                             mlp.append(x)
                         else:
                             pass
-                    if len(mlp) == 1:
+                    if len(manual_list) == 1 and len(mlp) == 1:
                         manual_list = mlp 
                         #logger.fdebug(module + '[CONFIRMED-FORCE-OVERRIDE] Over-ride of matching taken due to exact name matching of series')
 
