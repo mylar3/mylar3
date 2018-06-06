@@ -17,6 +17,7 @@
 from __future__ import with_statement
 
 import os
+import io
 import sys
 import cherrypy
 import requests
@@ -668,28 +669,38 @@ class WebInterface(object):
         if wantlist is None:
             logger.info("There aren't any issues marked as " + mode + ". Aborting Export.")
             return
-        #write it a wanted_list.csv
+        #write out a wanted_list.csv
         logger.info("gathered data - writing to csv...")
-        except_file = os.path.join(mylar.DATA_DIR, str(mode) + "_list.csv")
-        if os.path.exists(except_file):
+        wanted_file = os.path.join(mylar.DATA_DIR, str(mode) + "_list.csv")
+        if os.path.exists(wanted_file):
             try:
-                 os.remove(except_file)
+                os.remove(wanted_file)
             except (OSError, IOError):
                 pass
 
         wcount=0
-
-        with open(str(except_file), 'w+') as f:
-            headrow = "SeriesName,SeriesYear,IssueNumber,IssueDate,ComicID,IssueID"
-            headerline = headrow.decode('utf-8', 'ignore')
-            f.write('%s\n' % (headerline.encode('ascii', 'replace').strip()))
-            for want in wantlist:
-                wantcomic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [want['ComicID']]).fetchone()
-                exceptln = wantcomic['ComicName'].encode('ascii', 'replace') + "," + str(wantcomic['ComicYear']) + "," + str(want['Issue_Number']) + "," + str(want['IssueDate']) + "," + str(want['ComicID']) + "," + str(want['IssueID'])
-                #logger.fdebug(exceptln)
-                wcount+=1
-                f.write('%s\n' % (exceptln.encode('ascii', 'replace').strip()))
-
+        try:
+            f = io.open(wanted_file, mode="w+", encoding="utf-8")
+        except IOError:
+            logger.info("Error opening {}.  Is it being used by another program?".format(wanted_file))
+            return
+        else:
+            with f:
+                try:
+                    f.write(u"SeriesName,SeriesYear,IssueNumber,IssueDate,ComicID,IssueID\n")
+                    for want in wantlist:
+                        wantcomic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [want['ComicID']]).fetchone()
+                        exceptln = u'{},{},{},{},{},{}\n'.format(wantcomic['ComicName'], wantcomic['ComicYear'],
+                                                                 want['Issue_Number'], want['IssueDate'],
+                                                                 want['ComicID'], want['IssueID'])
+                        wcount += 1
+                        f.write(exceptln)
+                        f.flush()
+                        logger.debug(exceptln)
+                except IOError as Argument:
+                    logger.info("Error writing value to {}.  {}".format(wanted_file, Argument))
+                except Exception as Argument:
+                    logger.info("Unknown error: {}".format(Argument))
         logger.info("Successfully wrote to csv file " + str(wcount) + " entries from your " + mode + " list.")
 
         raise cherrypy.HTTPRedirect("home")
