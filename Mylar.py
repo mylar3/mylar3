@@ -194,7 +194,7 @@ def main():
                 back = os.path.join(backupdir, 'mylar.db')
                 back_1 = os.path.join(backupdir, 'mylar.db.1')
             else:
-                ogfile = config_file
+                ogfile = mylar.CONFIG_FILE
                 back = os.path.join(backupdir, 'config.ini')
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
