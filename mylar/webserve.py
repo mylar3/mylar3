@@ -665,10 +665,11 @@ class WebInterface(object):
     def wanted_Export(self,mode):
         import unicodedata
         myDB = db.DBConnection()
-        wantlist = myDB.select("SELECT * FROM issues WHERE Status=? AND ComicName NOT NULL", [mode])
+        wantlist = myDB.select("select b.ComicName, b.ComicYear, a.Issue_Number, a.IssueDate, a.ComicID, a.IssueID from issues a inner join comics b on a.ComicID=b.ComicID where a.status=? and b.ComicName is not NULL", [mode])
         if wantlist is None:
             logger.info("There aren't any issues marked as " + mode + ". Aborting Export.")
             return
+
         #write out a wanted_list.csv
         logger.info("gathered data - writing to csv...")
         wanted_file = os.path.join(mylar.DATA_DIR, str(mode) + "_list.csv")
@@ -676,32 +677,32 @@ class WebInterface(object):
             try:
                 os.remove(wanted_file)
             except (OSError, IOError):
-                pass
+                wanted_file_new = os.path.join(mylar.DATA_DIR, str(mode) + '_list-1.csv')
+                logger.warn('%s already exists. Writing to: %s' % (wanted_file, wanted_file_new))
+                wanted_file = wanted_file_new
 
         wcount=0
-        try:
-            f = io.open(wanted_file, mode="w+", encoding="utf-8")
-        except IOError:
-            logger.info("Error opening {}.  Is it being used by another program?".format(wanted_file))
-            return
+        with open(wanted_file, 'wb+') as f:
+            try:
+                fieldnames = ['SeriesName','SeriesYear','IssueNumber','IssueDate','ComicID','IssueID']
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                for want in wantlist:
+                    writer.writerow({'SeriesName':   want['ComicName'],
+                                     'SeriesYear':   want['ComicYear'],
+                                     'IssueNumber':  want['Issue_Number'],
+                                     'IssueDate':    want['IssueDate'],
+                                     'ComicID':      want['ComicID'],
+                                     'IssueID':      want['IssueID']})
+                    wcount += 1
+            except IOError as Argument:
+                logger.info("Error writing value to {}.  {}".format(wanted_file, Argument))
+            except Exception as Argument:
+                logger.info("Unknown error: {}".format(Argument))
+        if wcount > 0:
+            logger.info('Successfully wrote to csv file %s entries from your %s list.' % (wcount, mode))
         else:
-            with f:
-                try:
-                    f.write(u"SeriesName,SeriesYear,IssueNumber,IssueDate,ComicID,IssueID\n")
-                    for want in wantlist:
-                        wantcomic = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [want['ComicID']]).fetchone()
-                        exceptln = u'{},{},{},{},{},{}\n'.format(wantcomic['ComicName'], wantcomic['ComicYear'],
-                                                                 want['Issue_Number'], want['IssueDate'],
-                                                                 want['ComicID'], want['IssueID'])
-                        wcount += 1
-                        f.write(exceptln)
-                        f.flush()
-                        logger.debug(exceptln)
-                except IOError as Argument:
-                    logger.info("Error writing value to {}.  {}".format(wanted_file, Argument))
-                except Exception as Argument:
-                    logger.info("Unknown error: {}".format(Argument))
-        logger.info("Successfully wrote to csv file " + str(wcount) + " entries from your " + mode + " list.")
+            logger.info('Nothing written to csv file for your %s list.' % mode)
 
         raise cherrypy.HTTPRedirect("home")
     wanted_Export.exposed = True
@@ -5439,7 +5440,6 @@ class WebInterface(object):
 
 
     def orderThis(self, **kwargs):
-        logger.info('here')
         return
     orderThis.exposed = True
 
