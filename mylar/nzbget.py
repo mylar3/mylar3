@@ -95,7 +95,7 @@ class NZBGet(object):
         try:
             logger.fdebug('Now checking the active queue of nzbget for the download')
             queueinfo = self.server.listgroups()
-        except Expection as e:
+        except Exception as e:
             logger.warn('Error attempting to retrieve active queue listing: %s' % e)
             return {'status': False}
         else:
