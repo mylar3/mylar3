@@ -987,7 +987,7 @@ class PostProcessor(object):
                                 continue
                                 #launch failed download handling here.
                             elif metaresponse.startswith('file not found'):
-                                filename_in_error = os.path.split(metaresponse, '||')[1]
+                                filename_in_error = metaresponse.split('||')[1]
                                 self._log("The file cannot be found in the location provided for metatagging to be used [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
                                 logger.error(module + ' The file cannot be found in the location provided for metatagging to be used [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
                             else:
@@ -1420,7 +1420,7 @@ class PostProcessor(object):
                             logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
                             #launch failed download handling here.
                         elif metaresponse.startswith('file not found'):
-                            filename_in_error = os.path.split(metaresponse, '||')[1]
+                            filename_in_error = metaresponse.split('||')[1]
                             self._log("The file cannot be found in the location provided for metatagging [" + filename_in_error + "]. Please verify it exists, and re-run if necessary.")
                             logger.error(module + ' The file cannot be found in the location provided for metagging [' + filename_in_error + ']. Please verify it exists, and re-run if necessary.')
                         else:
@@ -1950,7 +1950,7 @@ class PostProcessor(object):
                                                "annchk":      annchk})
                     return self.queue.put(self.valreturn)
                 elif pcheck.startswith('file not found'):
-                    filename_in_error = os.path.split(pcheck, '||')[1]
+                    filename_in_error = pcheck.split('||')[1]
                     self._log("The file cannot be found in the location provided [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Aborting.")
                     logger.error(module + ' The file cannot be found in the location provided [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Aborting')
                     self.failed_files +=1
