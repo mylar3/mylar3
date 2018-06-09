@@ -90,10 +90,11 @@ class Maintenance(object):
         for ct in self.dbmylar.execute("SELECT ComicID, ComicLocation FROM comics WHERE ComicLocation like ?", ['%' + os.sep.encode('unicode-escape') + os.sep.encode('unicode-escape') + '%']):
             st = ct[1].find(os.sep.encode('unicode-escape')+os.sep.encode('unicode-escape'))
             if st != -1:
+                rootloc = ct[1][:st]
                 clocation = ct[1][st+2:]
                 if clocation[0] != os.sep.encode('unicode-escape'):
-                    new_path = os.path.join(mylar.CONFIG.DESTINATION_DIR, clocation)
-                    logger.info('[Incorrect slashes in path detected for OS] %s' % os.path.join(mylar.CONFIG.DESTINATION_DIR, ct[1]))
+                    new_path = os.path.join(rootloc, clocation)
+                    logger.info('[Incorrect slashes in path detected for OS] %s' % os.path.join(rootloc, ct[1]))
                     logger.info('[PATH CORRECTION] %s' % new_path)
                     self.comiclist.append({'ComicLocation': new_path,
                                            'ComicID': ct[0]})
