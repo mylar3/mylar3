@@ -89,12 +89,13 @@ def main():
     parser_maintenance.add_argument('-ij', '--importjson', action='store', help='Import a specified json file containing just {"ComicID": "XXXXX"} into current db')
     parser_maintenance.add_argument('-st', '--importstatus', action='store_true', help='Provide current maintenance status')
     parser_maintenance.add_argument('-u', '--update', action='store_true', help='force mylar to perform an update as if in GUI')
+    parser_maintenance.add_argument('-fs', '--fixslashes', action='store_true', help='remove double-slashes from within paths in db')
     #parser_maintenance.add_argument('-it', '--importtext', action='store', help='Import a specified text file into current db')
 
     args = parser.parse_args()
 
     if args.maintenance:
-        if all([args.exportjson is None, args.importdatabase is None, args.importjson is None, args.importstatus is False, args.update is False]):
+        if all([args.exportjson is None, args.importdatabase is None, args.importjson is None, args.importstatus is False, args.update is False, args.fixslashes is False]):
             print 'Expecting subcommand with the maintenance positional argumeent'
             sys.exit()
         mylar.MAINTENANCE = True
@@ -221,7 +222,7 @@ def main():
     if mylar.DAEMON:
         mylar.daemonize()
 
-    if mylar.MAINTENANCE is True and any([args.exportjson, args.importjson, args.update is True, args.importstatus is True]):
+    if mylar.MAINTENANCE is True and any([args.exportjson, args.importjson, args.update is True, args.importstatus is True, args.fixslashes is True]):
         loggermode = '[MAINTENANCE-MODE]'
         if args.importstatus: #mylar.MAINTENANCE is True:
             cs = maintenance.Maintenance('status')
@@ -260,6 +261,11 @@ def main():
                 logger.info('%s file indicated as being written to json format - destination accepted as %s' % (loggermode, maintenance_path))
                 ej = maintenance.Maintenance('json-export', output=maintenance_path)
                 j = ej.json_export()
+            elif args.fixslashes:
+                #for running the fix slashes on the db manually
+                logger.info('%s method indicated as fix slashes' % loggermode)
+                fs = maintenance.Maintenance('fixslashes')
+                j = fs.fix_slashes()
             else:
                 logger.info('%s Not a valid command: %s' % (loggermode, maintenance_info))
                 sys.exit()

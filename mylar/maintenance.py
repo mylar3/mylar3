@@ -84,6 +84,33 @@ class Maintenance(object):
 
         logger.info('[MAINTENANCE-MODE][%s] Successfully exported %s ComicID\'s to json file: %s' % (self.mode.upper(), len(self.comiclist), self.outputfile))
 
+    def fix_slashes(self):
+        self.sql_attachmylar()
+
+        for ct in self.dbmylar.execute("SELECT ComicID, ComicLocation FROM comics WHERE ComicLocation like ?", ['%' + os.sep.encode('unicode-escape') + os.sep.encode('unicode-escape') + '%']):
+            st = ct[1].find(os.sep.encode('unicode-escape')+os.sep.encode('unicode-escape'))
+            if st != -1:
+                clocation = ct[1][st+2:]
+                if clocation[0] != os.sep.encode('unicode-escape'):
+                    new_path = os.path.join(mylar.CONFIG.DESTINATION_DIR, clocation)
+                    logger.info('[Incorrect slashes in path detected for OS] %s' % os.path.join(mylar.CONFIG.DESTINATION_DIR, ct[1]))
+                    logger.info('[PATH CORRECTION] %s' % new_path)
+                    self.comiclist.append({'ComicLocation': new_path,
+                                           'ComicID': ct[0]})
+
+        for cm in self.comiclist:
+            try:
+                self.dbmylar.execute("UPDATE comics SET ComicLocation=? WHERE ComicID=?", (cm['ComicLocation'], cm['ComicID']))
+            except Exception as e:
+                logger.warn('Unable to correct entry: [ComicID:%s] %s [%e]' % (cm['ComicLocation'], cm['ComicID'],e))
+
+        self.sql_closemylar()
+
+        if len(self.comiclist) >0:
+            logger.info('[MAINTENANCE-MODE][%s] Successfully fixed the path slashes for %s series' % (self.mode.upper(), len(self.comiclist)))
+        else:
+            logger.info('[MAINTENANCE-MODE][%s] No series found with incorrect slashes in the path' % self.mode.upper())
+
     def check_status(self):
         try:
             found = False
