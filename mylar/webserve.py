@@ -4007,16 +4007,16 @@ class WebInterface(object):
                 if volume is None or volume == 'None':
                     comic_and_vol = ComicName
                 else:
-                    comic_and_vol = ComicName + ' (' + str(volume) + ')'
-                logger.info('[IMPORT][' + comic_and_vol + '] Now preparing to import. First I need to determine the highest issue, and possible year(s) of the series.')
+                    comic_and_vol = '%s (%s)' % (ComicName, volume)
+                logger.info('[IMPORT][%s] Now preparing to import. First I need to determine the highest issue, and possible year(s) of the series.' % comic_and_vol)
                 if volume is None or volume == 'None':
-                    logger.fdebug('[IMPORT] [none] dynamicname: ' + DynamicName)
+                    logger.fdebug('[IMPORT] [none] dynamicname: %s' % DynamicName)
                     logger.fdebug('[IMPORT] [none] volume: None')
 
                     results = myDB.select("SELECT * FROM importresults WHERE DynamicName=? AND Volume IS NULL AND Status='Not Imported'", [DynamicName])
                 else:
-                    logger.fdebug('[IMPORT] [!none] dynamicname: ' + DynamicName)
-                    logger.fdebug('[IMPORT] [!none] volume: ' + volume)
+                    logger.fdebug('[IMPORT] [!none] dynamicname: %s' % DynamicName)
+                    logger.fdebug('[IMPORT] [!none] volume: %s' % volume)
                     results = myDB.select("SELECT * FROM importresults WHERE DynamicName=? AND Volume=? AND Status='Not Imported'", [DynamicName,volume])
 
                 if not results:
@@ -4067,7 +4067,7 @@ class WebInterface(object):
                         if 'annual' in getiss.lower():
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
                             if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
-                                logger.fdebug('[IMPORT] annual detected with no issue [' + getiss + ']. Skipping this entry for determining series length.')
+                                logger.fdebug('[IMPORT] annual detected with no issue [%s]. Skipping this entry for determining series length.' % getiss)
                                 continue
                         else:
                             if (result['ComicYear'] not in yearRANGE) or all([yearRANGE is None, yearRANGE == 'None']):
@@ -4093,8 +4093,8 @@ class WebInterface(object):
                      raise cherrypy.HTTPRedirect("importResults")
 
                 #figure out # of issues and the year range allowable
-                logger.fdebug('[IMPORT] yearTOP: ' + str(yearTOP))
-                logger.fdebug('[IMPORT] yearRANGE: ' + str(yearRANGE))
+                logger.fdebug('[IMPORT] yearTOP: %s' % yearTOP)
+                logger.fdebug('[IMPORT] yearRANGE: %s' % yearRANGE)
                 if starttheyear is None:
                     if all([yearTOP != None, yearTOP != 'None']):
                         if int(str(yearTOP)) > 0:
@@ -4123,15 +4123,15 @@ class WebInterface(object):
                 #this needs to be reworked / refined ALOT more.
                 #minISSUE = highest issue #, startISSUE = lowest issue #
                 numissues = len(comicstoIMP)
-                logger.fdebug('[IMPORT] number of issues: ' + str(numissues))
+                logger.fdebug('[IMPORT] number of issues: %s' % numissues)
                 ogcname = ComicName
 
                 mode='series'
                 displaycomic = helpers.filesafe(ComicName)
                 displaycomic = re.sub('[\-]','', displaycomic).strip()
                 displaycomic = re.sub('\s+', ' ', displaycomic).strip()
-                logger.fdebug('[IMPORT] displaycomic : ' + displaycomic)
-                logger.fdebug('[IMPORT] comicname : ' + ComicName)
+                logger.fdebug('[IMPORT] displaycomic : %s' % displaycomic)
+                logger.fdebug('[IMPORT] comicname : %s' % ComicName)
                 searchterm = '"' + displaycomic + '"'
                 try:
                     if yearRANGE is None:
@@ -4148,7 +4148,7 @@ class WebInterface(object):
                 type='comic'
 
                 #we now need to cycle through the results until we get a hit on both dynamicname AND year (~count of issues possibly).
-                logger.fdebug('[IMPORT] [' + str(len(sresults)) + '] search results')
+                logger.fdebug('[IMPORT] [%s] search results' % len(sresults))
                 search_matches = []
                 for results in sresults:
                     rsn = filechecker.FileChecker()
@@ -4162,11 +4162,11 @@ class WebInterface(object):
                         totalissues = int(results['issues']) / 12
 
                     totalyear_range = int(result_year) + totalissues    #2000 + (101 / 12) 2000 +8.4 = 2008
-                    logger.fdebug('[IMPORT] [' + str(totalyear_range) + '] Comparing: ' + re.sub('[\|\s]', '', DynamicName.lower()).strip() + ' - TO - ' + re.sub('[\|\s]', '', result_name.lower()).strip())
+                    logger.fdebug('[IMPORT] [%s] Comparing: %s - TO - %s' % (totalyear_range, re.sub('[\|\s]', '', DynamicName.lower()).strip(), re.sub('[\|\s]', '', result_name.lower()).strip()))
                     if any([str(totalyear_range) in results['seriesrange'], result_year in results['seriesrange']]):
-                        logger.fdebug('[IMPORT] LastIssueID: ' + str(results['lastissueid']))
+                        logger.fdebug('[IMPORT] LastIssueID: %s' % results['lastissueid'])
                         if re.sub('[\|\s]', '', DynamicName.lower()).strip() ==  re.sub('[\|\s]', '', result_name.lower()).strip():
-                            logger.fdebug('[IMPORT MATCH] ' + result_name + ' (' + str(result_comicid) + ')')
+                            logger.fdebug('[IMPORT MATCH] %s (%s)' % (result_name, result_comicid))
                             search_matches.append({'comicid':       results['comicid'],
                                                    'series':        results['name'],
                                                    'dynamicseries': result_name,
@@ -4184,13 +4184,13 @@ class WebInterface(object):
 
                 if len(search_matches) == 1:
                     sr = search_matches[0]
-                    logger.info("[IMPORT] There is only one result...automagik-mode enabled for " + sr['series'] + " :: " + str(sr['comicid']))
+                    logger.info('[IMPORT] There is only one result...automagik-mode enabled for %s :: %s' % (sr['series'], sr['comicid']))
                     resultset = 1
                 else:
                     if len(search_matches) == 0 or len(search_matches) is None:
                         logger.fdebug("[IMPORT] no results, removing the year from the agenda and re-querying.")
                         sresults = mb.findComic(searchterm, mode, issue=numissues) #ComicName, mode, issue=numissues)
-                        logger.fdebug('[IMPORT] [' + str(len(sresults)) + '] search results')
+                        logger.fdebug('[IMPORT] [%s] search results' % len(sresults))
                         for results in sresults:
                             rsn = filechecker.FileChecker()
                             rsn_run = rsn.dynamic_replace(results['name'])
@@ -4203,10 +4203,10 @@ class WebInterface(object):
                                 totalissues = int(results['issues']) / 12
 
                             totalyear_range = int(result_year) + totalissues    #2000 + (101 / 12) 2000 +8.4 = 2008
-                            logger.fdebug('[IMPORT][' + str(totalyear_range) + '] Comparing: ' + re.sub('[\|\s]', '', DynamicName.lower()).strip() + ' - TO - ' + re.sub('[\|\s]', '', result_name.lower()).strip())
+                            logger.fdebug('[IMPORT][%s] Comparing: %s - TO - %s' % (totalyear_range, re.sub('[\|\s]', '', DynamicName.lower()).strip(), re.sub('[\|\s]', '', result_name.lower()).strip()))
                             if any([str(totalyear_range) in results['seriesrange'], result_year in results['seriesrange']]):
                                 if re.sub('[\|\s]', '', DynamicName.lower()).strip() ==  re.sub('[\|\s]', '', result_name.lower()).strip():
-                                    logger.fdebug('[IMPORT MATCH] ' + result_name + ' (' + str(result_comicid) + ')')
+                                    logger.fdebug('[IMPORT MATCH] %s (%s)' % (result_name, result_comicid))
                                     search_matches.append({'comicid':       results['comicid'],
                                                            'series':        results['name'],
                                                            'dynamicseries': result_name,
@@ -4224,12 +4224,12 @@ class WebInterface(object):
 
                         if len(search_matches) == 1:
                             sr = search_matches[0]
-                            logger.info("[IMPORT] There is only one result...automagik-mode enabled for " + sr['series'] + " :: " + str(sr['comicid']))
+                            logger.info('[IMPORT] There is only one result...automagik-mode enabled for %s :: %s' % (sr['series'], sr['comicid']))
                             resultset = 1
                         else:
                             resultset = 0
                     else:
-                        logger.info('[IMPORT] Returning results to Select option - there are ' + str(len(search_matches)) + ' possibilities, manual intervention required.')
+                        logger.info('[IMPORT] Returning results to Select option - there are %s possibilities, manual intervention required.' % len(search_matches))
                         resultset = 0
 
                 #generate random Search Results ID to allow for easier access for viewing logs / search results.
