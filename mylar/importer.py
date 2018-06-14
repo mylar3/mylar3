@@ -1037,13 +1037,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
     annualchk = []
     weeklyissue_check = []
     logger.fdebug('issuedata call references...')
-    logger.fdebug('comicid:' + str(comicid))
-    logger.fdebug('comicname:' + comicname)
-    logger.fdebug('comicissues:' + str(comicIssues))
-    logger.fdebug('calledfrom: ' + str(calledfrom))
-    logger.fdebug('issuechk: ' + str(issuechk))
-    logger.fdebug('latestissueinfo: ' + str(latestissueinfo))
-    logger.fdebug('issuetype: ' + str(issuetype))
+    logger.fdebug('comicid: %s' % comicid)
+    logger.fdebug('comicname: %s' % comicname)
+    logger.fdebug('comicissues: %s' % comicIssues)
+    logger.fdebug('calledfrom: %s' % calledfrom)
+    logger.fdebug('issuechk: %s' % issuechk)
+    logger.fdebug('latestissueinfo: %s' % latestissueinfo)
+    logger.fdebug('issuetype: %s' % issuetype)
     #to facilitate independent calls to updateissuedata ONLY, account for data not available and get it.
     #chkType comes from the weeklypulllist - either 'annual' or not to distinguish annuals vs. issues
     if comicIssues is None:

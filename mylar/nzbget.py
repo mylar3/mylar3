@@ -103,7 +103,7 @@ class NZBGet(object):
             queuedl = [qu for qu in queueinfo if qu['NZBID'] == nzbid]
             if len(queuedl) == 0:
                 logger.warn('Unable to locate item in active queue. Could it be finished already ?')
-                return self.historycheck(nzbid)
+                return self.historycheck(nzbinfo)
 
             stat = False
             while stat is False:
@@ -123,9 +123,10 @@ class NZBGet(object):
 
             logger.fdebug('File has now downloaded!')
             time.sleep(5)  #wait some seconds so shit can get written to history properly
-            return self.historycheck(nzbid)
+            return self.historycheck(nzbinfo)
 
-    def historycheck(self, nzbid):
+    def historycheck(self, nzbinfo):
+        nzbid = nzbinfo['NZBID']
         history = self.server.history()
         found = False
         hq = [hs for hs in history if hs['NZBID'] == nzbid and 'SUCCESS' in hs['Status']]
@@ -138,7 +139,10 @@ class NZBGet(object):
                     return {'status':   True,
                             'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
                             'location': hq[0]['DestDir'],
-                            'failed':   False}
+                            'failed':   False,
+                            'issueid':  nzbinfo['issueid'],
+                            'comicid':  nzbinfo['comicid'],
+                            'apicall':  True}
 
                 else:
                     logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])

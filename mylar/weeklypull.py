@@ -962,19 +962,22 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     annualidmatch = [x for x in weeklylist if week['annuallink'] is not None and (int(x['ComicID']) == int(week['annuallink']))]
             #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
             namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
-            #logger.fdebug('rowid: ' + str(week['rowid']))
-            #logger.fdebug('idmatch: ' + str(idmatch))
-            #logger.fdebug('annualidmatch: ' + str(annualidmatch))
-            #logger.fdebug('namematch: ' + str(namematch))
+            logger.fdebug('rowid: ' + str(week['rowid']))
+            logger.fdebug('idmatch: ' + str(idmatch))
+            logger.fdebug('annualidmatch: ' + str(annualidmatch))
+            logger.fdebug('namematch: ' + str(namematch))
             if any([idmatch,namematch,annualidmatch]):
-                if idmatch:
+                if idmatch and not annualidmatch:
                     comicname = idmatch[0]['ComicName'].strip()
                     latestiss = idmatch[0]['latestIssue'].strip()
                     comicid = idmatch[0]['ComicID'].strip()
                     logger.fdebug('[WEEKLY-PULL-ID] Series Match to ID --- ' + comicname + ' [' + comicid + ']')
                 elif annualidmatch:
                     try:
-                        comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
+                        if 'annual' in week['ComicName'].lower():
+                            comicname = annualidmatch[0]['AnnualIDs'][0]['ComicName'].strip()
+                        else:
+                            comicname = week['ComicName']
                     except:
                         comicname = week['ComicName']
                     latestiss = annualidmatch[0]['latestIssue'].strip()
@@ -1150,8 +1153,22 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                         isschk = myDB.selectone('SELECT * FROM annuals where IssueID=?', [issueid]).fetchone()
                         if isschk is None:
                             logger.fdebug('[WEEKLY-PULL] Forcing a refresh of the series to ensure it is current [' + str(comicid) +'].')
-                            cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck')
+                            anncid = None
+                            seriesyear = None
+                            try:
+                                #if the annual/special on the weekly is not a part of the series, pass in the anncomicid so that it can get added.
+                                if all([mylar.CONFIG.ANNUALS_ON is True, annualidmatch[0]['AnnualIDs'][0]['ComicID'] != week['comicid']]):
+                                    anncid = week['comicid']
+                                    seriesyear = annualidmatch[0]['SeriesYear']
+                            except Exception as e:
+                                pass
+
                             #refresh series.
+                            if anncid is None:
+                                cchk = mylar.importer.updateissuedata(comicid, comicname, calledfrom='weeklycheck')
+                            else:
+                                cchk = mylar.importer.manualAnnual(anncid, comicname, seriesyear, comicid)
+
                         else:
                             logger.fdebug('annual issue exists in db already: ' + str(issueid))
                             pass

@@ -120,9 +120,11 @@ USE_UTORRENT = False
 USE_WATCHDIR = False
 SNPOOL = None
 NZBPOOL = None
+SEARCHPOOL = None
 SNATCHED_QUEUE = Queue.Queue()
 NZB_QUEUE = Queue.Queue()
 PP_QUEUE = Queue.Queue()
+SEARCH_QUEUE = Queue.Queue()
 COMICSORT = None
 PULLBYFILE = None
 CFG = None
@@ -136,6 +138,7 @@ COMMITS_BEHIND = None
 LOCAL_IP = None
 DOWNLOAD_APIKEY = None
 APILOCK = False
+SEARCHLOCK = False
 CMTAGGER_PATH = None
 STATIC_COMICRN_VERSION = "1.01"
 STATIC_APC_VERSION = "2.04"
@@ -156,11 +159,11 @@ def initialize(config_file):
     with INIT_LOCK:
 
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
-               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
+               DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, SEARCH_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
-               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, LOG_LEVEL, \
+               MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, LOG_LEVEL, \
                SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO
 
         cc = mylar.config.Config(config_file)
@@ -330,7 +333,7 @@ def start():
             SCHED_RSS_LAST = monitors['rss']
 
             # Start our scheduled background tasks
-            SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=0, minutes=5, timezone='UTC'))
+            SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=5, minutes=5, timezone='UTC'))
 
             #let's do a run at the Wanted issues here (on startup) if enabled.
             ss = searchit.CurrentSearcher()
@@ -369,6 +372,10 @@ def start():
                     logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically....')
                 elif CONFIG.NZB_DOWNLOADER == 1:
                     logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically....')
+
+            logger.info('[SEARCH-QUEUE] Attempting to background load the search queue....')
+            SEARCHPOOL = threading.Thread(target=helpers.search_queue, args=(SEARCH_QUEUE,), name="SEARCH-QUEUE")
+            SEARCHPOOL.start()
 
             if all([CONFIG.POST_PROCESSING is True, CONFIG.API_ENABLED is True]):
                 logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
@@ -1143,6 +1150,18 @@ def halt():
                 except KeyboardInterrupt:
                     SNATCHED_QUEUE.put('exit')
                     SNPOOL.join(5)
+                except AssertionError:
+                    os._exit(0)
+
+
+            if SEARCHPOOL is not None:
+                logger.info('Terminating the search queue thread.')
+                try:
+                    SEARCHPOOL.join(10)
+                    logger.info('Joined pool for termination -  successful')
+                except KeyboardInterrupt:
+                    SEARCH_QUEUE.put('exit')
+                    SEARCHPOOL.join(5)
                 except AssertionError:
                     os._exit(0)
             _INITIALIZED = False

@@ -491,9 +491,9 @@ def storyarcinfo(xmlid):
     except:
         logger.fdebug('Unable to retrieve first issue details. Not caclulating at this time.')
 
-    if (arcdom.getElementsByTagName('image')[0].childNodes[0].nodeValue) is None:
+    try:
         xmlimage = arcdom.getElementsByTagName('super_url')[0].firstChild.wholeText
-    else:
+    except:
         xmlimage = "cache/blankcover.jpg"
 
     try:

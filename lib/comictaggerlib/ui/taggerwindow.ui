@@ -402,14 +402,26 @@
                        </widget>
                       </item>
                       <item row="3" column="0">
-                       <widget class="QLabel" name="label_5">
+                       <widget class="QLabel" name="lblDay">
                         <property name="text">
-                         <string># Issues</string>
+                         <string>Day</string>
                         </property>
                        </widget>
                       </item>
                       <item row="3" column="1">
-                       <widget class="QLineEdit" name="leIssueCount">
+                       <widget class="QLineEdit" name="lePubDay">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>16777215</width>
+                          <height>16777215</height>
+                         </size>
+                        </property>
                         <property name="acceptDrops">
                          <bool>false</bool>
                         </property>
@@ -419,27 +431,44 @@
                        </widget>
                       </item>
                       <item row="4" column="0">
+                       <widget class="QLabel" name="label_5">
+                        <property name="text">
+                         <string># Issues</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="4" column="1">
+                       <widget class="QLineEdit" name="leIssueCount">
+                        <property name="acceptDrops">
+                         <bool>false</bool>
+                        </property>
+                        <property name="inputMethodHints">
+                         <set>Qt::ImhDigitsOnly</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="5" column="0">
                        <widget class="QLabel" name="label_9">
                         <property name="text">
                          <string>Volume</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="4" column="1">
+                      <item row="5" column="1">
                        <widget class="QLineEdit" name="leVolumeNum">
                         <property name="acceptDrops">
                          <bool>false</bool>
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="0">
+                      <item row="6" column="0">
                        <widget class="QLabel" name="label_12">
                         <property name="text">
                          <string># Volumes</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="1">
+                      <item row="6" column="1">
                        <widget class="QLineEdit" name="leVolumeCount">
                         <property name="acceptDrops">
                          <bool>false</bool>
@@ -449,14 +478,14 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="6" column="0">
+                      <item row="7" column="0">
                        <widget class="QLabel" name="label_22">
                         <property name="text">
                          <string>Alt.Issue</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="6" column="1">
+                      <item row="7" column="1">
                        <widget class="QLineEdit" name="leAltIssueNum">
                         <property name="sizePolicy">
                          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -469,14 +498,14 @@
                         </property>
                        </widget>
                       </item>
-                      <item row="7" column="0">
+                      <item row="8" column="0">
                        <widget class="QLabel" name="label_23">
                         <property name="text">
                          <string>Alt. # Issues</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="7" column="1">
+                      <item row="8" column="1">
                        <widget class="QLineEdit" name="leAltIssueCount">
                         <property name="acceptDrops">
                          <bool>false</bool>

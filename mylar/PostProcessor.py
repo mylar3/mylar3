@@ -90,6 +90,8 @@ class PostProcessor(object):
         else:
             self.comicid = None
 
+        self.issuearcid = None
+
     def _log(self, message, level=logger): #.message):  #level=logger.MESSAGE):
         """
         A wrapper for the internal logger which also keeps track of messages and saves them to a string for sabnzbd post-processing logging functions.
@@ -367,9 +369,11 @@ class PostProcessor(object):
             self.oneoffinlist = False
 
             if any([self.nzb_name == 'Manual Run', self.issueid is not None, self.comicid is not None, self.apicall is True]):
-                if all([self.issueid is None, self.comicid is not None, self.apicall is True]) or self.nzb_name == 'Manual Run':
+                if all([self.issueid is None, self.comicid is not None, self.apicall is True]) or self.nzb_name == 'Manual Run' or all([self.apicall is True, self.comicid is None, self.issueid is None, self.nzb_name.startswith('0-Day')]):
                     if self.comicid is not None:
                         logger.fdebug('%s Now post-processing pack directly against ComicID: %s' % (module, self.comicid))
+                    elif all([self.apicall is True, self.issueid is None, self.comicid is None, self.nzb_name.startswith('0-Day')]):
+                        logger.fdebug('%s Now post-processing 0-day pack: %s' % (module, self.nzb_name))
                     else:
                         logger.fdebug(module + ' Manual Run initiated')
                     #Manual postprocessing on a folder.
@@ -381,9 +385,13 @@ class PostProcessor(object):
                         return
                     logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
                 else:
-                    if self.comicid is None:
+                    if all([self.comicid is None, '_' not in self.issueid]):
                          cid = myDB.selectone('SELECT ComicID FROM issues where IssueID=?', [str(self.issueid)]).fetchone()
                          self.comicid = cid[0]
+                    else:
+                         if '_' in self.issueid:
+                             logger.fdebug('Story Arc post-processing request detected.')
+                             self.issuearcid = self.issueid
                     logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
                     flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
                     fl = flc.listFiles()
@@ -402,10 +410,9 @@ class PostProcessor(object):
                                          'AS_Tuple': as_dinfo['AS_Tuple'],
                                          'AS_DyComicName': aldb['DynamicComicName']})
 
-                manual_list = []
                 manual_arclist = []
                 oneoff_issuelist = []
-
+                manual_list = []
                 for fl in filelist['comiclist']:
                     self.matched = False
                     as_d = filechecker.FileChecker()
@@ -416,8 +423,9 @@ class PostProcessor(object):
                         logger.info('%s Alternate series naming detected: %s' % (module, fl['alt_series']))
                         as_sinfo = as_d.dynamic_replace(helpers.conversion(fl['alt_series']))
                         mod_altseriesname = as_sinfo['mod_seriesname']
-                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]):
+                        if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_altseriesname.lower()]):
                             mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
+                            mod_altseriesname = re.sub('special', '', mod_altseriesname, flags=re.I).strip()
                         if not any(re.sub('[\|\s]', '', mod_altseriesname).lower() == x for x in loopchk):
                             loopchk.append(re.sub('[\|\s]', '', mod_altseriesname.lower()))
 
@@ -430,8 +438,9 @@ class PostProcessor(object):
                                 if not any(re.sub('[\|\s]', '', cname.lower()) == x for x in loopchk):
                                     loopchk.append(re.sub('[\|\s]', '', cname.lower()))
 
-                    if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]):
+                    if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_seriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_seriesname.lower()]):
                         mod_seriesname = re.sub('annual', '', mod_seriesname, flags=re.I).strip()
+                        mod_seriesname = re.sub('special', '', mod_seriesname, flags=re.I).strip()
 
                     #make sure we add back in the original parsed filename here.
                     if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in loopchk):
@@ -528,145 +537,158 @@ class PostProcessor(object):
                         else:
                             temploc= watchmatch['justthedigits'].replace('_', ' ')
                             temploc = re.sub('[\#\']', '', temploc)
+                            logger.info('temploc: %s' % temploc)
 
-                            if 'annual' in temploc.lower():
+                            if any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True:
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
                                 if 'biannual' in biannchk:
                                     logger.fdebug(module + ' Bi-Annual detected.')
                                     fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                 else:
-                                    fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                    logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(cs['ComicID']))
+                                    if 'annual' in temploc.lower():
+                                        fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                    else:
+                                        fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
+                                    logger.fdebug(module + ' Annual/Special detected [' + str(fcdigit) +']. ComicID assigned as ' + str(cs['ComicID']))
                                 annchk = "yes"
-                                issuechk = myDB.selectone("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit]).fetchone()
+                                issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                             else:
                                 fcdigit = helpers.issuedigits(temploc)
-                                issuechk = myDB.selectone("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit]).fetchone()
+                                issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
 
                             if issuechk is None:
                                 logger.fdebug(module + ' No corresponding issue # found for ' + str(cs['ComicID']))
                                 continue
                             else:
-                                datematch = "True"
-                                if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
-                                    monthval = issuechk['ReleaseDate']
-                                    watch_issueyear = issuechk['ReleaseDate'][:4]
-                                else:
-                                    monthval = issuechk['IssueDate']
-                                    watch_issueyear = issuechk['IssueDate'][:4]
-
-                                if len(watchmatch) >= 1 and watchmatch['issue_year'] is not None:
-                                    #if the # of matches is more than 1, we need to make sure we get the right series
-                                    #compare the ReleaseDate for the issue, to the found issue date in the filename.
-                                    #if ReleaseDate doesn't exist, use IssueDate
-                                    #if no issue date was found, then ignore.
-                                    logger.fdebug(module + '[ISSUE-VERIFY] Now checking against ' + cs['ComicName'] + '-' + cs['ComicID'])
-                                    issyr = None
-                                    #logger.fdebug(module + ' issuedate:' + str(issuechk['IssueDate']))
-                                    #logger.fdebug(module + ' issuechk: ' + str(issuechk['IssueDate'][5:7]))
-
-                                    #logger.info(module + ' ReleaseDate: ' + str(issuechk['ReleaseDate']))
-                                    #logger.info(module + ' IssueDate: ' + str(issuechk['IssueDate']))
-                                    if issuechk['ReleaseDate'] is not None and issuechk['ReleaseDate'] != '0000-00-00':
-                                        if int(issuechk['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
-                                            datematch = "False"
+                                for isc in issuechk:
+                                    datematch = "True"
+                                    if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
+                                        monthval = isc['ReleaseDate']
+                                        watch_issueyear = isc['ReleaseDate'][:4]
                                     else:
-                                        if int(issuechk['IssueDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issuechk['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
-                                            datematch = "False"
+                                        monthval = isc['IssueDate']
+                                        watch_issueyear = isc['IssueDate'][:4]
 
-                                    if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
-                                        issyr = int(monthval[:4]) + 1
-                                        logger.fdebug(module + '[ISSUE-VERIFY] IssueYear (issyr) is ' + str(issyr))
-                                    elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
-                                        issyr = int(monthval[:4]) - 1
+                                    if len(watchmatch) >= 1 and watchmatch['issue_year'] is not None:
+                                        #if the # of matches is more than 1, we need to make sure we get the right series
+                                        #compare the ReleaseDate for the issue, to the found issue date in the filename.
+                                        #if ReleaseDate doesn't exist, use IssueDate
+                                        #if no issue date was found, then ignore.
+                                        logger.fdebug(module + '[ISSUE-VERIFY] Now checking against ' + cs['ComicName'] + '-' + cs['ComicID'])
+                                        issyr = None
+                                        #logger.fdebug(module + ' issuedate:' + str(isc['IssueDate']))
+                                        #logger.fdebug(module + ' isc: ' + str(isc['IssueDate'][5:7]))
 
-                                    if datematch == "False" and issyr is not None:
-                                        logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issyr) + ' comparing to ' + str(watchmatch['issue_year']) + ' : rechecking by month-check versus year.')
-                                        datematch = "True"
-                                        if int(issyr) != int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
-                                            datematch = "False"
-
-                                else:
-                                    logger.info(module + '[ISSUE-VERIFY] Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
-
-                                if datematch == "True":
-                                    # if we get to here, we need to do some more comparisons just to make sure we have the right volume
-                                    # first we chk volume label if it exists, then we drop down to issue year
-                                    # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
-                                    # then spit out the error message and don't post-process it.
-                                    watch_values = cs['WatchValues']
-                                    #logger.fdebug('WATCH_VALUES:' + str(watch_values))
-                                    if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
-                                        tmp_watchlist_vol = '1'
-                                    else:
-                                        tmp_watchlist_vol = re.sub("[^0-9]", "", watch_values['ComicVersion']).strip()
-                                    if all([watchmatch['series_volume'] != 'None', watchmatch['series_volume'] is not None]):
-                                        tmp_watchmatch_vol = re.sub("[^0-9]","", watchmatch['series_volume']).strip()
-                                        if len(tmp_watchmatch_vol) == 4:
-                                            if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of ' + str(watch_values['SeriesYear']) + ' matched to volume/year label of ' + str(tmp_watchmatch_vol))
-                                            else:
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of ' + str(watch_values['SeriesYear']) + ' DID NOT match to volume/year label of ' + tmp_watchmatch_vol)
+                                        #logger.info(module + ' ReleaseDate: ' + str(isc['ReleaseDate']))
+                                        #logger.info(module + ' IssueDate: ' + str(isc['IssueDate']))
+                                        if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
+                                            if int(isc['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                                 datematch = "False"
-                                        if len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
-                                            if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of ' + str(watch_values['ComicVersion']) + ' matched to volume label of ' + str(watchmatch['series_volume']))
-                                            else:
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of ' + str(watch_values['ComicVersion']) + ' DID NOT match to volume label of ' + str(watchmatch['series_volume']))
-                                                continue
-                                                #datematch = "False"
+                                        else:
+                                            if int(isc['IssueDate'][:4]) < int(x['issue_year']):
+                                               logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                               datematch = "False"
+
+                                        if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                            issyr = int(monthval[:4]) + 1
+                                            logger.fdebug(module + '[ISSUE-VERIFY] IssueYear (issyr) is ' + str(issyr))
+                                        elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
+                                            issyr = int(monthval[:4]) - 1
+
+                                        if datematch == "False" and issyr is not None:
+                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issyr) + ' comparing to ' + str(watchmatch['issue_year']) + ' : rechecking by month-check versus year.')
+                                            datematch = "True"
+                                            if int(issyr) != int(watchmatch['issue_year']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
+                                                datematch = "False"
+
                                     else:
-                                        if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.')
-                                            datematch = "False"
-                                        elif len(watchvals) == 1 and int(tmp_watchlist_vol) == 1:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume MATCH] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates only volume for this series on your watchlist.')
-                                        elif int(tmp_watchlist_vol) > 1:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.')
-                                            datematch = "False"
+                                        logger.info(module + '[ISSUE-VERIFY] Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(isc['IssueID']))
 
-                                    if datematch == "False" and all([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None', watch_issueyear is not None]):
-                                        #now we see if the issue year matches exactly to what we have within Mylar.
-                                        if int(watch_issueyear) == int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Issue Year of ' + str(watch_issueyear) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
-                                            datematch = 'True'
+                                    if datematch == "True":
+                                        # if we get to here, we need to do some more comparisons just to make sure we have the right volume
+                                        # first we chk volume label if it exists, then we drop down to issue year
+                                        # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
+                                        # then spit out the error message and don't post-process it.
+                                        watch_values = cs['WatchValues']
+                                        #logger.fdebug('WATCH_VALUES:' + str(watch_values))
+                                        if any([watch_values['ComicVersion'] is None, watch_values['ComicVersion'] == 'None']):
+                                            tmp_watchlist_vol = '1'
                                         else:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Issue Year of ' + str(watch_issueyear) + ' does NOT match the year found in the filename of : ' + str(watchmatch['issue_year']))
-                                            logger.fdebug(module + '[ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.')
-                                            if issyr is not None:
-                                                if int(issyr) != int(watchmatch['issue_year']):
-                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of ' + str(issyr) + ' is before the modified issue year of ' + str(issyr))
+                                            tmp_watchlist_vol = re.sub("[^0-9]", "", watch_values['ComicVersion']).strip()
+                                        if all([watchmatch['series_volume'] != 'None', watchmatch['series_volume'] is not None]):
+                                            tmp_watchmatch_vol = re.sub("[^0-9]","", watchmatch['series_volume']).strip()
+                                            if len(tmp_watchmatch_vol) == 4:
+                                                if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of ' + str(watch_values['SeriesYear']) + ' matched to volume/year label of ' + str(tmp_watchmatch_vol))
                                                 else:
-                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of ' + str(issyr) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
-                                                    datematch = 'True'
-
-                                    if datematch == 'True':
-                                        if watchmatch['sub']:
-                                            logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, watchmatch['sub'], watchmatch['comiclocation']))
-                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of ' + str(watch_values['SeriesYear']) + ' DID NOT match to volume/year label of ' + tmp_watchmatch_vol)
+                                                    datematch = "False"
+                                            if len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
+                                                if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of ' + str(watch_values['ComicVersion']) + ' matched to volume label of ' + str(watchmatch['series_volume']))
+                                                else:
+                                                    logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of ' + str(watch_values['ComicVersion']) + ' DID NOT match to volume label of ' + str(watchmatch['series_volume']))
+                                                    continue
+                                                    #datematch = "False"
                                         else:
-                                            logger.fdebug('%s[CLOCATION] %s' % (module, watchmatch['comiclocation']))
-                                            if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
-                                                clocation = watchmatch['comiclocation']
+                                            if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.')
+                                                datematch = "False"
+                                            elif len(watchvals) == 1 and int(tmp_watchlist_vol) == 1:
+                                                logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume MATCH] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates only volume for this series on your watchlist.')
+                                            elif int(tmp_watchlist_vol) > 1:
+                                                logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.')
+                                                datematch = "False"
+
+                                        if datematch == "False" and all([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None', watch_issueyear is not None]):
+                                            #now we see if the issue year matches exactly to what we have within Mylar.
+                                            if int(watch_issueyear) == int(watchmatch['issue_year']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Issue Year of ' + str(watch_issueyear) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                                datematch = 'True'
                                             else:
-                                                clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
-                                        manual_list.append({"ComicLocation":   clocation,
-                                                            "ComicID":         cs['ComicID'],
-                                                            "IssueID":         issuechk['IssueID'],
-                                                            "IssueNumber":     issuechk['Issue_Number'],
-                                                            "ComicName":       cs['ComicName'],
-                                                            "Series":          watchmatch['series_name'],
-                                                            "AltSeries":       watchmatch['alt_series'],
-                                                            "One-Off":         False})
+                                                logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Issue Year of ' + str(watch_issueyear) + ' does NOT match the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                                logger.fdebug(module + '[ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.')
+                                                if issyr is not None:
+                                                    if int(issyr) != int(watchmatch['issue_year']):
+                                                        logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of ' + str(issyr) + ' is before the modified issue year of ' + str(issyr))
+                                                    else:
+                                                        logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of ' + str(issyr) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                                        datematch = 'True'
+
+                                        if datematch == 'True':
+                                            if watchmatch['sub']:
+                                                logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, watchmatch['sub'], watchmatch['comiclocation']))
+                                                clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                            else:
+                                                logger.fdebug('%s[CLOCATION] %s' % (module, watchmatch['comiclocation']))
+                                                if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
+                                                    clocation = watchmatch['comiclocation']
+                                                else:
+                                                    clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                            if 'Annual' in isc['ComicName']:
+                                                annualtype = 'Annual'
+                                            elif 'Special' in isc['ComicName']:
+                                                annualtype = 'Special'
+                                            else:
+                                                annualtype = None
+                                            manual_list.append({"ComicLocation":   clocation,
+                                                                "ComicID":         cs['ComicID'],
+                                                                "IssueID":         isc['IssueID'],
+                                                                "IssueNumber":     isc['Issue_Number'],
+                                                                "AnnualType":      annualtype,
+                                                                "ComicName":       cs['ComicName'],
+                                                                "Series":          watchmatch['series_name'],
+                                                                "AltSeries":       watchmatch['alt_series'],
+                                                                "One-Off":         False})
+                                            break
+                                        else:
+                                            logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
+                                            continue
                                     else:
                                         logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                         continue
-                                else:
-                                    logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
-                                    continue
 
                         logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                         self.matched = True
@@ -708,9 +730,13 @@ class PostProcessor(object):
                     ##make sure we add back in the original parsed filename here.
                     #if not any(re.sub('[\|\s]', '', mod_seriesname).lower() == x for x in arcloopchk):
                     #    arcloopchk.append(re.sub('[\|\s]', '', mod_seriesname.lower()))
-
-                    tmpsql = "SELECT * FROM storyarcs WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk))) #len(arcloopchk)))
-                    arc_series = myDB.select(tmpsql, tuple(loopchk)) #arcloopchk))
+                    if self.issuearcid is None:
+                        tmpsql = "SELECT * FROM storyarcs WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk))) #len(arcloopchk)))
+                        arc_series = myDB.select(tmpsql, tuple(loopchk)) #arcloopchk))
+                    else:
+                        if self.issuearcid[0] == 'S':
+                            self.issuearcid = self.issuearcid[1:]
+                        arc_series = myDB.select("SELECT * FROM storyarcs WHERE IssueArcID=?", [self.issuearcid])
 
                     if arc_series is None:
                         logger.error(module + ' No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?')
@@ -875,13 +901,13 @@ class PostProcessor(object):
                                                 logger.fdebug(module + '[NON-MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
 
                             i+=1
-
                     if self.matched is False:
                         #one-off manual pp'd of torrents
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
                             pass
                         else:
-                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE (s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
                                 continue
                             else:
@@ -1075,7 +1101,7 @@ class PostProcessor(object):
 
                         logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
-            if any([self.nzb_name != 'Manual Run', self.oneoffinlist is True]) and all([self.issueid is None, self.comicid is None, self.apicall is False]):
+            if all([self.nzb_name != 'Manual Run', self.oneoffinlist is True]) and not self.nzb_name.startswith('0-Day') and self.issuearcid is None: # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
                 if self.oneoffinlist is False:
                     nzbname = self.nzb_name
@@ -1149,14 +1175,19 @@ class PostProcessor(object):
                                        'oneoff':        self.oneoff})
 
                     elif all([self.oneoff is not None, issueid[0] == 'S']):
-                        logger.info('should be here')
                         issuearcid = re.sub('S', '', issueid).strip()
                         oneinfo = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if oneinfo is None:
                             logger.warn('Unable to locate issue as previously snatched arc issue - it might be something else...')
                             self._log('Unable to locate issue as previously snatched arc issue - it might be something else...')
                         else:
-                            logger.info('adding stuff')
+                            #reverse lookup the issueid here to see if it possible exists on watchlist...
+                            tmplookup = myDB.selectone('SELECT * FROM comics WHERE ComicID=?', [oneinfo['ComicID']]).fetchone()
+                            if tmplookup is not None:
+                                logger.fdebug('[WATCHLIST-DETECTION-%s] Processing as Arc, detected on watchlist - will PP for both.' % tmplookup['ComicName'])
+                                self.oneoff = False
+                            else:
+                                self.oneoff = True
                             ppinfo.append({'comicid':       oneinfo['ComicID'],
                                            'comicname':     oneinfo['ComicName'],
                                            'issuenumber':   oneinfo['IssueNumber'],
@@ -1164,8 +1195,7 @@ class PostProcessor(object):
                                            'comiclocation': None,
                                            'issueid':       issueid, #need to keep it so the 'S' is present to denote arc.
                                            'sarc':          sarc,
-                                           'oneoff':        True})
-                            self.oneoff = True
+                                           'oneoff':        self.oneoff})
 
 
                     if all([len(ppinfo) == 0, self.oneoff is not None, mylar.CONFIG.ALT_PULL == 2]):
@@ -1270,7 +1300,10 @@ class PostProcessor(object):
                     if all([self.comicid is not None, self.issueid is None]):
                         logger.info('%s post-processing of pack completed for %s issues.' % (module, i))
                     if self.issueid is not None:
-                        logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, manual_list[0]['ComicName'], manual_list[0]['IssueNumber']))
+                        if ml['AnnualType'] is not None:
+                            logger.info('%s direct post-processing of issue completed for %s %s #%s.' % (module, ml['ComicName'], ml['AnnualType'], ml['IssueNumber']))
+                        else:
+                            logger.info('%s direct post-processing of issue completed for %s #%s.' % (module, ml['ComicName'], ml['IssueNumber']))
                     else:
                         logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
                 else:
@@ -1292,6 +1325,7 @@ class PostProcessor(object):
             issueid = tinfo['issueid']
             comicid = tinfo['comicid']
             comicname = tinfo['comicname']
+            issuearcid = None
             issuenumber = tinfo['issuenumber']
             publisher = tinfo['publisher']
             sarc = tinfo['sarc']
@@ -1311,6 +1345,16 @@ class PostProcessor(object):
                     #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
                     if 'S' in issueid:
                         sandwich = issueid
+                        if oneoff is False:
+                            onechk = myDB.selectone('SELECT * FROM storyarcs WHERE IssueArcID=?', [re.sub('S','', issueid).strip()]).fetchone()
+                            if onechk is not None:
+                                issuearcid = onechk['IssueArcID']
+                                issuenzb = myDB.selectone('SELECT * FROM issues WHERE IssueID=? AND ComicName NOT NULL', [onechk['IssueID']]).fetchone()
+                                if issuenzb is None:
+                                    issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [onechk['IssueID']]).fetchone()
+                            if issuenzb is not None:
+                                issueid = issuenzb['IssueID']
+                                logger.fdebug('Reverse lookup discovered watchlisted series [issueid: %s] - adjusting so we can PP both properly.' % issueid)
                     elif 'G' in issueid or '-' in issueid:
                         sandwich = 1
                     elif any([oneoff is True, issueid >= '900000', issueid == '1']):
@@ -1330,12 +1374,12 @@ class PostProcessor(object):
                 logger.info(module + ' issuenzb found.')
                 if helpers.is_number(issueid):
                     sandwich = int(issuenzb['IssueID'])
-            if sandwich is not None and helpers.is_number(sandwich):
+            if all([sandwich is not None, helpers.is_number(sandwich), sarc is None]):
                 if sandwich < 900000:
                     # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
                     pass
             else:
-                if any([oneoff is True, issuenzb is None]) or all([sandwich is not None, 'S' in sandwich]) or int(sandwich) >= 900000:
+                if any([oneoff is True, issuenzb is None]) or all([sandwich is not None, 'S' in str(sandwich), oneoff is True]) or int(sandwich) >= 900000:
                     # this has no issueID, therefore it's a one-off or a manual post-proc.
                     # At this point, let's just drop it into the Comic Location folder and forget about it..
                     if sandwich is not None and 'S' in sandwich:
@@ -1527,9 +1571,35 @@ class PostProcessor(object):
                     return self.queue.put(self.valreturn)
 
                 else:
-                    manual_list = tinfo
+                    try:
+                        len(manual_arclist)
+                    except:
+                        manual_arclist = []
+
+                    if tinfo['comiclocation'] is None:
+                        cloc = self.nzb_folder
+                    else:
+                        cloc = tinfo['comiclocation']
+
+                    clocation = cloc
+                    if os.path.isdir(cloc):
+                        for root, dirnames, filenames in os.walk(cloc, followlinks=True):
+                            for filename in filenames:
+                                if filename.lower().endswith(self.extensions):
+                                    clocation = os.path.join(root, filename)
+
+                    manual_list = {'ComicID':       tinfo['comicid'],
+                                   'IssueID':       tinfo['issueid'],
+                                   'ComicLocation': clocation,
+                                   'SARC':          tinfo['sarc'],
+                                   'IssueArcID':    issuearcid,
+                                   'ComicName':     tinfo['comicname'],
+                                   'IssueNumber':   tinfo['issuenumber'],
+                                   'Publisher':     tinfo['publisher'],
+                                   'OneOff':        tinfo['oneoff']}
+
+
         else:
-            logger.info("WHOOPS")
             manual_list = manual
 
         if self.nzb_name == 'Manual Run':
@@ -1608,7 +1678,11 @@ class PostProcessor(object):
                             return self.queue.put(self.valreturn)
 
             if dupthis['action'] == "write" or dupthis['action'] == 'dupe_src':
-                return self.Process_next(comicid, issueid, issuenumOG)
+                if manual_list is None:
+                    return self.Process_next(comicid, issueid, issuenumOG)
+                else:
+                    logger.info('Post-processing issue is found in more than one destination - let us do this!')
+                    return self.Process_next(comicid, issueid, issuenumOG, manual_list)
             else:
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop',
@@ -1628,7 +1702,7 @@ class PostProcessor(object):
             if ml is not None and mylar.CONFIG.SNATCHEDTORRENT_NOTIFY:
                 snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=? OR provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'TPSE', 'DEM', 'WWT', '32P']).fetchone()
                 if snatchnzb is None:
-                    logger.fdebug(module + ' Was not downloaded with Mylar and the usage of torrents. Disabling torrent manual post-processing completion notification.')
+                    logger.fdebug(module + ' Was not snatched as a torrent. Disabling torrent manual post-processing completion notification.')
                 else:
                     logger.fdebug(module + ' Was downloaded from ' + snatchnzb['Provider'] + '. Enabling torrent manual post-processing completion notification.')
                     snatchedtorrent = True
@@ -2168,12 +2242,14 @@ class PostProcessor(object):
             #update snatched table to change status to Downloaded
             if annchk == "no":
                 updater.foundsearch(comicid, issueid, down=downtype, module=module, crc=crcvalue)
-                dispiss = 'issue: ' + issuenumOG
+                dispiss = 'issue: %s' % issuenumOG
                 updatetable = 'issues'
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module, crc=crcvalue)
-                if 'annual' not in series.lower():
-                    dispiss = 'annual issue: ' + issuenumOG
+                if 'annual' in issuenzb['ComicName'].lower(): #series.lower():
+                    dispiss = 'Annual issue: %s' % issuenumOG
+                elif 'special' in issuenzb['ComicName'].lower():
+                    dispiss = 'Special issue: %s' % issuenumOG
                 else:
                     dispiss = issuenumOG
                 updatetable = 'annuals'
@@ -2292,10 +2368,10 @@ class PostProcessor(object):
                                            "issueid": issueid,
                                            "comicid": comicid})
                     if self.apicall is True:
-                        self.sendnotify(series, issueyear, issuenumOG, annchk, module)
+                        self.sendnotify(series, issueyear, dispiss, annchk, module)
                     return self.queue.put(self.valreturn)
 
-            self.sendnotify(series, issueyear, issuenumOG, annchk, module)
+            self.sendnotify(series, issueyear, dispiss, annchk, module)
 
             logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
             self._log(u"Post Processing SUCCESSFUL! ")
@@ -2317,15 +2393,9 @@ class PostProcessor(object):
                 prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
         else:
             if issueyear is None:
-                if 'annual' not in series.lower():
-                    prline = series + ' Annual - issue #' + issuenumOG
-                else:
-                    prline = series + ' - issue #' + issuenumOG
+                prline = '%s - %s' %(series, issuenumOG)
             else:
-                if 'annual' not in series.lower():
-                    prline = series + ' Annual (' + issueyear + ') - issue #' + issuenumOG
-                else:
-                    prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
+                prline = '%s (%s) - %s' %(series, issueyear, issuenumOG)
 
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 

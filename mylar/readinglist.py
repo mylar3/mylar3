@@ -75,8 +75,12 @@ class Readinglist(object):
                 dspinfo = comicname + ' #' + comicissue
                 if annualize:
                     if mylar.CONFIG.ANNUALS_ON:
-                        comicissue = 'Annual ' + readlist['Issue_Number']
-                        dspinfo = comicname + ' Annual #' + readlist['Issue_Number']
+                        if 'annual' in readlist['ComicName'].lower():
+                            comicissue = 'Annual ' + readlist['Issue_Number']
+                            dspinfo = comicname + ' Annual #' + readlist['Issue_Number']
+                        elif 'special' in readlist['ComicName'].lower():
+                            comicissue = 'Special ' + readlist['Issue_Number']
+                            dspinfo = comicname + ' Special #' + readlist['Issue_Number']
                     else:
                         comicname = comicinfo['ComicName'] + ' Annual'
                         dspinfo = comicname + ' #' + comicissue

@@ -386,11 +386,11 @@
                                 </div>
 
                                 <div class="row checkbox left clearfix">
-                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this));" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
-                                    <div id="completedinfo">
+                                    <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this);" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                    <div id="sabcompletedinfo">
                                        <div class="row">
                                            <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           ComicRN script cannot be used with the same category / Category above has to be set within SABnzbd</small>
+                                           ComicRN script cannot be used with this enabled</small>
                                        </div>
                                     </div>
                                 </div>
@@ -445,8 +445,13 @@
                                               </div>
 
                             <div class="row checkbox left clearfix">
-                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this));" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling<label>
-                                <small>The category label above is used to when completed download handling is enabled</small>
+                                <input type="checkbox" id="nzbget_client_post_processing" onclick="initConfigCheckbox($this);" name="nzbget_client_post_processing" value="1" ${config['nzbget_client_post_processing']} /><label>Enable Completed Download Handling</label>
+                                <div id="nzbgetcompletedinfo">
+                                   <div class="row">
+                                       <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
+                                       ComicRN script cannot be used with this enabled</small>
+                                   </div>
+                                </div>
                             </div>
 
                             <div align="center" class="row">
@@ -1509,21 +1514,40 @@
                 });
                 if ($("#sab_client_post_processing").is(":checked"))
                         {
-                                $("#completedinfo").show();
+                                $("#sabcompletedinfo").show();
                         }
                 else
                         {
-                                $("#completedinfo").hide();
+                                $("#sabcompletedinfo").hide();
                         }
 
                 $("#sab_client_post_processing").click(function(){
                         if ($("#sab_client_post_processing").is(":checked"))
                         {
-                                $("#completedinfo").slideDown();
+                                $("#sabcompletedinfo").slideDown();
                         }
                         else
                         {
-                                $("#completedinfo").slideUp();
+                                $("#sabcompletedinfo").slideUp();
+                        }
+                });
+                if ($("#nzbget_client_post_processing").is(":checked"))
+                        {
+                                $("#nzbgetcompletedinfo").show();
+                        }
+                else
+                        {
+                                $("#nzbgetcompletedinfo").hide();
+                        }
+
+                $("#nzbget_client_post_processing").click(function(){
+                        if ($("#nzbget_client_post_processing").is(":checked"))
+                        {
+                                $("#nzbgetcompletedinfo").slideDown();
+                        }
+                        else
+                        {
+                                $("#nzbgetcompletedinfo").slideUp();
                         }
                 });
                 if ($("#opds_enable").is(":checked"))
@@ -1911,7 +1935,7 @@
                             inkd = numberWithCommas(inkd);
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
-                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
                                 imagechk.src = "interfaces/default/images/success.png";

@@ -408,12 +408,12 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
         hours = (absdiff.days * 24 * 60 * 60 + absdiff.seconds) / 3600.0
         #logger.fdebug('hours: ' + str(hours))
 
-    if 'annual' in ComicName.lower():
+    if any(['annual' in ComicName.lower(), 'special' in ComicName.lower()]):
         if mylar.CONFIG.ANNUALS_ON:
             logger.info('checking: ' + str(ComicID) + ' -- issue#: ' + str(IssueNumber))
             issuechk = myDB.selectone("SELECT * FROM annuals WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
         else:
-            logger.fdebug('Annual detected, but annuals not enabled. Ignoring result.')
+            logger.fdebug('Non-standard issue detected (annual/special/etc), but Annual Integration is not enabled. Ignoring result.')
             return
     else:
         issuechk = myDB.selectone("SELECT * FROM issues WHERE ComicID=? AND Issue_Number=?", [ComicID, IssueNumber]).fetchone()
@@ -842,6 +842,13 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
             if pullinfo is not None:
                 newValue['weeknumber'] = pullinfo['weeknumber']
                 newValue['year'] = pullinfo['year']
+            else:
+                try:
+                    newValue['weeknumber'] = chkit['weeknumber']
+                    newValue['year'] = chkit['year']
+                except:
+                    pass
+
             myDB.upsert("oneoffhistory", newValue, ctlVal)
 
         logger.info(module + ' Updated the status (Snatched) complete for ' + ComicName + ' Issue: ' + str(IssueNum))

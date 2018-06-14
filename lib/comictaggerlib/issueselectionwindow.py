@@ -1,177 +1,190 @@
-"""
-A PyQT4 dialog to select specific issue from list
-"""
+"""A PyQT4 dialog to select specific issue from list"""
 
-"""
-Copyright 2012-2014  Anthony Beville
+# Copyright 2012-2014 Anthony Beville
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-import sys
-import os
-import re
+#import sys
+#import os
+#import re
+
 from PyQt4 import QtCore, QtGui, uic
-
-from PyQt4.QtCore import QUrl, pyqtSignal, QByteArray
-from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
+#from PyQt4.QtCore import QUrl, pyqtSignal, QByteArray
+#from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from  imagefetcher import  ImageFetcher
 from settings import ComicTaggerSettings
 from issuestring import IssueString
 from coverimagewidget import CoverImageWidget
-import utils
+from comictaggerlib.ui.qtutils import reduceWidgetFontSize
+#from imagefetcher import ImageFetcher
+#import utils
+
 
 class IssueNumberTableWidgetItem(QtGui.QTableWidgetItem):
-	def __lt__(self, other):
-		selfStr = self.data(QtCore.Qt.DisplayRole).toString()
-		otherStr = other.data(QtCore.Qt.DisplayRole).toString()
-		return (IssueString(selfStr).asFloat() <
-		        IssueString(otherStr).asFloat())
+
+    def __lt__(self, other):
+        selfStr = self.data(QtCore.Qt.DisplayRole).toString()
+        otherStr = other.data(QtCore.Qt.DisplayRole).toString()
+        return (IssueString(selfStr).asFloat() <
+                IssueString(otherStr).asFloat())
+
 
 class IssueSelectionWindow(QtGui.QDialog):
-	
-	volume_id = 0
-	
-	def __init__(self, parent, settings, series_id, issue_number):
-		super(IssueSelectionWindow, self).__init__(parent)
-		
-		uic.loadUi(ComicTaggerSettings.getUIFile('issueselectionwindow.ui' ), self)
 
-		self.coverWidget = CoverImageWidget( self.coverImageContainer, CoverImageWidget.AltCoverMode )
-		gridlayout = QtGui.QGridLayout( self.coverImageContainer )
-		gridlayout.addWidget( self.coverWidget )
-		gridlayout.setContentsMargins(0,0,0,0)
+    volume_id = 0
 
-		utils.reduceWidgetFontSize( self.twList )		
-		utils.reduceWidgetFontSize( self.teDescription, 1 )
+    def __init__(self, parent, settings, series_id, issue_number):
+        super(IssueSelectionWindow, self).__init__(parent)
 
-		self.setWindowFlags(self.windowFlags() |
-									  QtCore.Qt.WindowSystemMenuHint |
-									  QtCore.Qt.WindowMaximizeButtonHint)		
+        uic.loadUi(
+            ComicTaggerSettings.getUIFile('issueselectionwindow.ui'), self)
 
-		self.series_id  = series_id
-		self.settings = settings
-		self.url_fetch_thread = None
-		
-		if issue_number is None or issue_number == "":
-			self.issue_number = 1
-		else:
-			self.issue_number = issue_number
+        self.coverWidget = CoverImageWidget(
+            self.coverImageContainer, CoverImageWidget.AltCoverMode)
+        gridlayout = QtGui.QGridLayout(self.coverImageContainer)
+        gridlayout.addWidget(self.coverWidget)
+        gridlayout.setContentsMargins(0, 0, 0, 0)
 
-		self.initial_id = None
-		self.performQuery()
-		
-		self.twList.resizeColumnsToContents()	
-		self.twList.currentItemChanged.connect(self.currentItemChanged)	
-		self.twList.cellDoubleClicked.connect(self.cellDoubleClicked)
-		
-		#now that the list has been sorted, find the initial record, and select it
-		if self.initial_id is None:
-			self.twList.selectRow( 0 )
-		else:
-			for r in range(0, self.twList.rowCount()):
-				issue_id, b = self.twList.item( r, 0 ).data( QtCore.Qt.UserRole ).toInt()
-				if (issue_id == self.initial_id):
-					self.twList.selectRow( r )
-					break
-					
-	def performQuery( self ):
+        reduceWidgetFontSize(self.twList)
+        reduceWidgetFontSize(self.teDescription, 1)
 
-		QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setWindowFlags(self.windowFlags() |
+                            QtCore.Qt.WindowSystemMenuHint |
+                            QtCore.Qt.WindowMaximizeButtonHint)
 
-		try:
-			comicVine = ComicVineTalker()
-			volume_data = comicVine.fetchVolumeData( self.series_id )
-			self.issue_list = comicVine.fetchIssuesByVolume( self.series_id )
-		except ComicVineTalkerException as e:
-			QtGui.QApplication.restoreOverrideCursor()
-			if e.code == ComicVineTalkerException.RateLimit:
-				QtGui.QMessageBox.critical(self, self.tr("Comic Vine Error"), ComicVineTalker.getRateLimitMessage())
-			else:	
-				QtGui.QMessageBox.critical(self, self.tr("Network Issue"), self.tr("Could not connect to ComicVine to list issues!"))
-			return
+        self.series_id = series_id
+        self.settings = settings
+        self.url_fetch_thread = None
 
-		while self.twList.rowCount() > 0:
-			self.twList.removeRow(0)
+        if issue_number is None or issue_number == "":
+            self.issue_number = 1
+        else:
+            self.issue_number = issue_number
 
-		self.twList.setSortingEnabled(False)
+        self.initial_id = None
+        self.performQuery()
 
-		row = 0
-		for record in self.issue_list: 
-			self.twList.insertRow(row)
-			
-			item_text = record['issue_number']  
-			item = IssueNumberTableWidgetItem(item_text)			
-			item.setData( QtCore.Qt.ToolTipRole, item_text )
-			item.setData( QtCore.Qt.UserRole ,record['id'])
-			item.setData(QtCore.Qt.DisplayRole, item_text)
-			item.setFlags(QtCore.Qt.ItemIsSelectable| QtCore.Qt.ItemIsEnabled)
-			self.twList.setItem(row, 0, item)
-			
-			item_text = record['cover_date']
-			if item_text is None:
-				item_text = ""
-			#remove the day of "YYYY-MM-DD"
-			parts = item_text.split("-")
-			if len(parts) > 1:
-				item_text = parts[0] + "-" + parts[1]
-				
-			item = QtGui.QTableWidgetItem(item_text)			
-			item.setData( QtCore.Qt.ToolTipRole, item_text )
-			item.setFlags(QtCore.Qt.ItemIsSelectable| QtCore.Qt.ItemIsEnabled)
-			self.twList.setItem(row, 1, item)
+        self.twList.resizeColumnsToContents()
+        self.twList.currentItemChanged.connect(self.currentItemChanged)
+        self.twList.cellDoubleClicked.connect(self.cellDoubleClicked)
 
-			item_text = record['name']
-			if item_text is None:
-				item_text = ""				
-			item = QtGui.QTableWidgetItem(item_text)			
-			item.setData( QtCore.Qt.ToolTipRole, item_text )
-			item.setFlags(QtCore.Qt.ItemIsSelectable| QtCore.Qt.ItemIsEnabled)
-			self.twList.setItem(row, 2, item)
-			
-			if IssueString(record['issue_number']).asString().lower() == IssueString(self.issue_number).asString().lower():
-				self.initial_id = record['id']
-			
-			row += 1
-			
-		self.twList.setSortingEnabled(True)
-		self.twList.sortItems( 0 , QtCore.Qt.AscendingOrder )
+        # now that the list has been sorted, find the initial record, and
+        # select it
+        if self.initial_id is None:
+            self.twList.selectRow(0)
+        else:
+            for r in range(0, self.twList.rowCount()):
+                issue_id, b = self.twList.item(
+                    r, 0).data(QtCore.Qt.UserRole).toInt()
+                if (issue_id == self.initial_id):
+                    self.twList.selectRow(r)
+                    break
 
-		QtGui.QApplication.restoreOverrideCursor()		
+    def performQuery(self):
 
-	def cellDoubleClicked( self, r, c ):
-		self.accept()
-			
-	def currentItemChanged( self, curr, prev ):
+        QtGui.QApplication.setOverrideCursor(
+            QtGui.QCursor(QtCore.Qt.WaitCursor))
 
-		if curr is None:
-			return
-		if prev is not None and prev.row() == curr.row():
-				return
-		
-		self.issue_id, b = self.twList.item( curr.row(), 0 ).data( QtCore.Qt.UserRole ).toInt()
+        try:
+            comicVine = ComicVineTalker()
+            volume_data = comicVine.fetchVolumeData(self.series_id)
+            self.issue_list = comicVine.fetchIssuesByVolume(self.series_id)
+        except ComicVineTalkerException as e:
+            QtGui.QApplication.restoreOverrideCursor()
+            if e.code == ComicVineTalkerException.RateLimit:
+                QtGui.QMessageBox.critical(
+                    self,
+                    self.tr("Comic Vine Error"),
+                    ComicVineTalker.getRateLimitMessage())
+            else:
+                QtGui.QMessageBox.critical(
+                    self,
+                    self.tr("Network Issue"),
+                    self.tr("Could not connect to Comic Vine to list issues!"))
+            return
 
-		# list selection was changed, update the the issue cover
-		for record in self.issue_list: 
-			if record['id'] == self.issue_id:				
-				self.issue_number = record['issue_number']
-				self.coverWidget.setIssueID( int(self.issue_id) )
-				if record['description'] is None:
-					self.teDescription.setText ( "" )
-				else:	
-					self.teDescription.setText ( record['description'] )
-				
-				break
-		
+        while self.twList.rowCount() > 0:
+            self.twList.removeRow(0)
+
+        self.twList.setSortingEnabled(False)
+
+        row = 0
+        for record in self.issue_list:
+            self.twList.insertRow(row)
+
+            item_text = record['issue_number']
+            item = IssueNumberTableWidgetItem(item_text)
+            item.setData(QtCore.Qt.ToolTipRole, item_text)
+            item.setData(QtCore.Qt.UserRole, record['id'])
+            item.setData(QtCore.Qt.DisplayRole, item_text)
+            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+            self.twList.setItem(row, 0, item)
+
+            item_text = record['cover_date']
+            if item_text is None:
+                item_text = ""
+            # remove the day of "YYYY-MM-DD"
+            parts = item_text.split("-")
+            if len(parts) > 1:
+                item_text = parts[0] + "-" + parts[1]
+
+            item = QtGui.QTableWidgetItem(item_text)
+            item.setData(QtCore.Qt.ToolTipRole, item_text)
+            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+            self.twList.setItem(row, 1, item)
+
+            item_text = record['name']
+            if item_text is None:
+                item_text = ""
+            item = QtGui.QTableWidgetItem(item_text)
+            item.setData(QtCore.Qt.ToolTipRole, item_text)
+            item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
+            self.twList.setItem(row, 2, item)
+
+            if IssueString(
+                    record['issue_number']).asString().lower() == IssueString(
+                    self.issue_number).asString().lower():
+                self.initial_id = record['id']
+
+            row += 1
+
+        self.twList.setSortingEnabled(True)
+        self.twList.sortItems(0, QtCore.Qt.AscendingOrder)
+
+        QtGui.QApplication.restoreOverrideCursor()
+
+    def cellDoubleClicked(self, r, c):
+        self.accept()
+
+    def currentItemChanged(self, curr, prev):
+
+        if curr is None:
+            return
+        if prev is not None and prev.row() == curr.row():
+            return
+
+        self.issue_id, b = self.twList.item(
+            curr.row(), 0).data(QtCore.Qt.UserRole).toInt()
+
+        # list selection was changed, update the the issue cover
+        for record in self.issue_list:
+            if record['id'] == self.issue_id:
+                self.issue_number = record['issue_number']
+                self.coverWidget.setIssueID(int(self.issue_id))
+                if record['description'] is None:
+                    self.teDescription.setText("")
+                else:
+                    self.teDescription.setText(record['description'])
+
+                break

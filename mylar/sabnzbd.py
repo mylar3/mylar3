@@ -16,6 +16,7 @@
 
 import urllib
 import requests
+import ntpath
 import os
 import sys
 import re
@@ -69,7 +70,7 @@ class SABnzbd(object):
             h = requests.get(self.sab_url, params=self.params['queue'], verify=False)
         except Exception as e:
             logger.info('uh-oh: %s' % e)
-            return self.historycheck(sendresponse)
+            return self.historycheck(self.params)
         else:
             queueresponse = h.json()
             logger.info('successfully queried the queue for status')
@@ -92,9 +93,10 @@ class SABnzbd(object):
                 logger.warn('error: %s' % e)
 
             logger.info('File has now downloaded!')
-            return self.historycheck(sendresponse)
+            return self.historycheck(self.params)
 
-    def historycheck(self, sendresponse):
+    def historycheck(self, nzbinfo):
+        sendresponse = nzbinfo['nzo_id']
         hist_params = {'mode':      'history',
                        'category':  mylar.CONFIG.SAB_CATEGORY,
                        'failed':    0,
@@ -114,9 +116,12 @@ class SABnzbd(object):
                         if os.path.isfile(hq['storage']):
                             logger.info('location found @ %s' % hq['storage'])
                             found = {'status':   True,
-                                     'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
+                                     'name':     ntpath.basename(hq['storage']), #os.pathre.sub('.nzb', '', hq['nzb_name']).strip(),
                                      'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                     'failed':   False}
+                                     'failed':   False,
+                                     'issueid':  nzbinfo['issueid'],
+                                     'comicid':  nzbinfo['comicid'],
+                                     'apicall':  True}
                             break
                         else:
                             logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
@@ -134,7 +139,10 @@ class SABnzbd(object):
                                         found = {'status':   True,
                                                  'name':     re.sub('.nzb', '', hq['nzb_name']).strip(),
                                                  'location': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
-                                                 'failed':   True}
+                                                 'failed':   True,
+                                                 'issueid':  sendresponse['issueid'],
+                                                 'comicid':  sendresponse['comicid'],
+                                                 'apicall':  True}
                                 break
                         break
             except Exception as e:
