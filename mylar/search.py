@@ -1877,7 +1877,6 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
         logger.info('A search is currently in progress....queueing this up again to try in a bit.')
         return {'status': 'IN PROGRESS'}
 
-    mylar.SEARCHLOCK = True
     myDB = db.DBConnection()
 
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
@@ -1887,8 +1886,9 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
             if rsscheck:
                 logger.info(u"Initiating RSS Search Scan at the scheduled interval of " + str(mylar.CONFIG.RSS_CHECKINTERVAL) + " minutes.")
+                mylar.SEARCHLOCK = True
             else:
-                logger.info(u"Initiating Search scan at the scheduled interval of " + str(mylar.CONFIG.SEARCH_INTERVAL) + " minutes.")
+                logger.info(u"Initiating check to add Wanted items to Search Queue....")
 
             myDB = db.DBConnection()
 
@@ -1967,10 +1967,6 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         logger.fdebug('Issue is already in a Downloaded / Snatched status.')
                         continue
 
-                if rsscheck is None:
-                    mylar.SEARCH_QUEUE.put({'issueid': result['IssueID'], 'comicid': result['ComicID']})
-                    continue
-
                 OneOff = False
                 storyarc_watchlist = False
                 comic = myDB.selectone("SELECT * from comics WHERE ComicID=? AND ComicName != 'None'", [result['ComicID']]).fetchone()
@@ -1990,7 +1986,6 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     if result['IssueDate'] is None or result['IssueDate'] == '0000-00-00':
                         logger.fdebug('ComicID: ' + str(result['ComicID']) + ' has invalid Date data. Skipping searching for this series.')
                         continue
-
 
                 foundNZB = "none"
                 AllowPacks = False
@@ -2021,6 +2016,12 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 else:
                     ComicYear = str(result['IssueDate'])[:4]
 
+                if rsscheck is None:
+                    logger.info('adding: ComicID:%s  IssueiD: %s' % (result['ComicID'], result['IssueID']))
+                    mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID']})
+                    continue
+
+
                 mode = result['mode']
                 foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p)
                 if foundNZB['status'] is True:
@@ -2031,7 +2032,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 if mylar.SEARCHLOCK is True:
                     mylar.SEARCHLOCK = False
             else:
-                logger.info('Completed API Search scan')
+                logger.info('Completed Queueing API Search scan')
 
 
         else:
