@@ -51,10 +51,13 @@ from issuestring import IssueString
 from settings import ComicTaggerSettings
 
 try:
+    import requests
+except:
+    try:
         lib_path = os.path.join(ComicTaggerSettings.baseDir(), '..')
         sys.path.append(lib_path)
         import requests
-except ImportError:
+    except ImportError:
         print "Unable to use requests module. This is a CRITICAL error and ComicTagger cannot proceed. Exiting."
 
 class CVTypeID:
