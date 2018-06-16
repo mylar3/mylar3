@@ -148,5 +148,5 @@ class NZBGet(object):
                     logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
                     return {'status': False}
         else:
-            logger.warn('Could not find completed item in history')
+            logger.warn('Could not find completed NZBID %s in history' % nzbid)
             return {'status': False}
