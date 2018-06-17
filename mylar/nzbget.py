@@ -102,7 +102,7 @@ class NZBGet(object):
             logger.fdebug('valid queue result returned. Analyzing...')
             queuedl = [qu for qu in queueinfo if qu['NZBID'] == nzbid]
             if len(queuedl) == 0:
-                logger.warn('Unable to locate item in active queue. Could it be finished already ?')
+                logger.warn('Unable to locate NZBID %s in active queue. Could it be finished already ?' % nzbid)
                 return self.historycheck(nzbinfo)
 
             stat = False
