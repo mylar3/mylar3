@@ -3051,7 +3051,7 @@ def nzb_monitor(queue):
            break
 
         if nzstat['status'] is False:
-            logger.info('Something went wrong - maybe you should retry things. I will requeue up this item for post-processing...')
+            logger.info('Could not find NZBID %s in the downloader\'s queue. I will requeue this item for post-processing...' % item['NZBID'])
             time.sleep(5)
             mylar.NZB_QUEUE.put(item)
         elif nzstat['status'] is True:
