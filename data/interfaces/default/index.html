@@ -110,7 +110,8 @@
 	function initThisPage() {
 		$('#series_table').dataTable(
                         {
-			        "destroy": true,
+			        "sDom": '<"top"flip<"clear">>rt<"bottom"ip<"clear">>',
+				"destroy": true,
                                 "columnDefs": [
                                      { "orderable": false, "targets": [5, 7, 10] },
                                      { "visible": false, "targets": [5, 7, 10] },
