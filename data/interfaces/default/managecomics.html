@@ -93,28 +93,31 @@
 
 <%def name="javascriptIncludes()">
 	<script src="js/libs/jquery.dataTables.min.js"></script>
+        <script src="js/libs/full_numbers_no_ellipses.js"></script>
 	<script>
         function initThisPage() {
-                $('#manage_comic').dataTable(
-                        {
-                                "bDestroy": true,
-                                "aoColumnDefs": [
-                                  { 'bSortable': false, 'aTargets': [ 0, 1 ] }
-                                ],
-                                "aLengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
-                                "oLanguage": {
-                                        "sLengthMenu":"Show _MENU_ results per page",
-                                        "sEmptyTable": "No results",
-                                        "sInfo":"Showing _START_ to _END_ of _TOTAL_ results",
-                                        "sInfoEmpty":"Showing 0 to 0 of 0 results",
-                                        "sInfoFiltered":"(filtered from _MAX_ total results)",
-                                        "sSearch" : ""},
-                                "bStateSave": true,
-                                "iDisplayLength": 25,
-                                "sPaginationType": "full_numbers",
-                                "aaSorting": [[2, 'desc'],[3, 'desc']]
-                        });
-                        resetFilters("comic");
+                $.fn.DataTable.ext.pager.numbers_length = 5;
+                $('#manage_comic').dataTable( {
+                        "destroy": true,
+                        "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                        "deferRender": true,
+                        "columnDefs": [
+                            { 'bSortable': false, 'aTargets': [ 0, 1 ] },
+                            { 'order': [[2, 'desc'],[3, 'desc']] }
+                        ],
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, 'All' ]],
+                        "language": {
+                                "lengthMenu":"Show _MENU_ results per page",
+                                "emptyTable": "No results",
+                                "info":"Showing _START_ to _END_ of _TOTAL_ results",
+                                "infoEmpty":"Showing 0 to 0 of 0 results",
+                                "infoFiltered":"(filtered from _MAX_ total results)",
+                                "search" : ""},
+                        "stateSave": true,
+                        "pageLength": 25,
+                        "pagingType": "simple_numbers"
+                });
+                resetFilters("comic");
         }
 
         $(document).ready(function(){

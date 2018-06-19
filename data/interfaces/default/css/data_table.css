@@ -555,14 +555,16 @@ td.details {
 	border: 2px solid #A19B9E;
 }
 
-.paging_full_numbers {
+.paging_full_numbers, .paging_simple_numbers {
 	width: 400px;
 	height: 22px;
 	line-height: 22px;
 }
 
 .paging_full_numbers .paginate_button,
- 	.paging_full_numbers .paginate_active {
+ 	.paging_full_numbers .paginate_active, 
+        .paging_simple_numbers .paginate_button,
+        .paging_simple_numbers .paginate_active {
 	background: none repeat scroll 0 0 #F3F3F3;
 	   border-radius: 5px 5px 5px 5px;
 	   margin: 0 0 0 5px;
@@ -573,11 +575,11 @@ td.details {
 	*cursor: hand;
 }
 
-.paging_full_numbers .paginate_button:hover {
+.paging_full_numbers .paginate_button:hover, .paging_simple_numbers .paginate_button:hover {
 	background-color: #e2e2e2;
 }
 
-.paging_full_numbers .paginate_active {
+.paging_full_numbers .paginate_active, .paging_simple_numbers .paginate_active {
 	background-color: #4183C4;
 	color: #FFF;
 }

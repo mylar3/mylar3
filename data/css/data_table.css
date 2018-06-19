@@ -264,14 +264,17 @@ td.details {
 	border: 2px solid #A19B9E;
 }
 
-.paging_full_numbers {
+.paging_full_numbers,
+        .paging_simple_numbers {
 	width: 400px;
 	height: 22px;
 	line-height: 22px;
 }
 
 .paging_full_numbers span.paginate_button,
- 	.paging_full_numbers span.paginate_active {
+ 	.paging_full_numbers span.paginate_active,
+        .paging_simple_numbers span.paginate_button,
+        .paging_simple_numbers span.paginate_active {
 	border: 1px solid #aaa;
 	-webkit-border-radius: 5px;
 	-moz-border-radius: 5px;
@@ -281,15 +284,18 @@ td.details {
 	*cursor: hand;
 }
 
-.paging_full_numbers span.paginate_button {
+.paging_full_numbers span.paginate_button,
+        .paging_simple_numbers span.paginate_button {
 	background-color: #fff;
 }
 
-.paging_full_numbers span.paginate_button:hover {
+.paging_full_numbers span.paginate_button:hover,
+        .paging_simple_numbers span.paginate_button:hover {
 	background-color: #ccc;
 }
 
-.paging_full_numbers span.paginate_active {
+.paging_full_numbers span.paginate_active,
+        .paging_simple_numbers span.paginate_active {
 	background-color: #99B3FF;
 }
 
