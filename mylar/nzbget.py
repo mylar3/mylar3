@@ -127,26 +127,53 @@ class NZBGet(object):
 
     def historycheck(self, nzbinfo):
         nzbid = nzbinfo['NZBID']
-        history = self.server.history()
+        history = self.server.history(True)
         found = False
-        hq = [hs for hs in history if hs['NZBID'] == nzbid and 'SUCCESS' in hs['Status']]
+        destdir = None
+        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or 'COPY' in hs['Status'])]
         if len(hq) > 0:
             logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
-            if hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']:
+            if all(['SUCCESS' in hq[0]['Status'], hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']]):
                 logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
                 if os.path.isdir(hq[0]['DestDir']):
-                    logger.fdebug('location found @ %s' % hq[0]['DestDir'])
-                    return {'status':   True,
-                            'name':     re.sub('.nzb', '', hq[0]['NZBName']).strip(),
-                            'location': hq[0]['DestDir'],
-                            'failed':   False,
-                            'issueid':  nzbinfo['issueid'],
-                            'comicid':  nzbinfo['comicid'],
-                            'apicall':  True}
+                    destdir = hq[0]['DestDir']
+                    logger.fdebug('location found @ %s' % destdir)
+            elif all(['COPY' in hq[0]['Status'], int(hq[0]['FileSizeMB']) > 0, hq[0]['DeleteStatus'] == 'COPY']):
+                config = self.server.config()
+                cDestDir = None
+                for x in config:
+                    if x['Name'] == 'TempDir':
+                        cTempDir = x['Value']
+                    elif x['Name'] == 'DestDir':
+                        cDestDir = x['Value']
+                    if cDestDir is not None:
+                        break
 
-                else:
-                    logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
-                    return {'status': False}
+                if cTempDir in hq[0]['DestDir']:
+                    destdir2 = re.sub(cTempDir, cDestDir, hq[0]['DestDir']).strip()
+                    if not destdir2.endswith(os.sep):
+                        destdir2 = destdir2 + os.sep
+                    destdir = os.path.join(destdir2, hq[0]['Name'])
+                    logger.fdebug('NZBGET Destination dir set to: %s' % destdir)
+            else:
+                logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
+                return {'status': False}
+
+            if mylar.CONFIG.NZBGET_DIRECTORY is not None:
+                destdir2 = mylar.CONFIG.NZBGET_DIRECTORY
+                if not destdir2.endswith(os.sep):
+                    destdir = destdir2 + os.sep
+                destdir = os.path.join(destdir2, hq[0]['Name'])
+                logger.fdebug('NZBGet Destination folder set via config to: %s' % destdir)
+
+            if destdir is not None:
+                return {'status':   True,
+                       'name':     re.sub('.nzb', '', hq[0]['Name']).strip(),
+                       'location': destdir,
+                       'failed':   False,
+                       'issueid':  nzbinfo['issueid'],
+                       'comicid':  nzbinfo['comicid'],
+                       'apicall':  True}
         else:
             logger.warn('Could not find completed NZBID %s in history' % nzbid)
             return {'status': False}

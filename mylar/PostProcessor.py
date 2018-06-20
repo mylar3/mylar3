@@ -393,11 +393,15 @@ class PostProcessor(object):
                              logger.fdebug('Story Arc post-processing request detected.')
                              self.issuearcid = self.issueid
                     logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
-                    flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
-                    fl = flc.listFiles()
-                    filelist = {}
-                    filelist['comiclist'] = [fl]
-                    filelist['comiccount'] = len(filelist['comiclist'])
+                    if self.nzb_name.lower().endswith(self.extensions):
+                        flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
+                        fl = flc.listFiles()
+                        filelist = {}
+                        filelist['comiclist'] = [fl]
+                        filelist['comiccount'] = len(filelist['comiclist'])
+                    else:
+                        flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
+                        filelist = flc.listFiles()
 
                 #preload the entire ALT list in here.
                 alt_list = []
@@ -586,7 +590,7 @@ class PostProcessor(object):
                                                 logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                                 datematch = "False"
                                         else:
-                                            if int(isc['IssueDate'][:4]) < int(x['issue_year']):
+                                            if int(isc['IssueDate'][:4]) < int(watchmatch['issue_year']):
                                                logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                                datematch = "False"
 
@@ -1101,7 +1105,7 @@ class PostProcessor(object):
 
                         logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
-            if all([self.nzb_name != 'Manual Run', self.oneoffinlist is True]) and not self.nzb_name.startswith('0-Day') and self.issuearcid is None: # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
+            if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or self.oneoffinlist is True) and not self.nzb_name.startswith('0-Day') and self.issuearcid is None: # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
                 if self.oneoffinlist is False:
                     nzbname = self.nzb_name
@@ -1320,7 +1324,8 @@ class PostProcessor(object):
     def nzb_or_oneoff_pp(self, tinfo=None, manual=None):
         module = self.module
         myDB = db.DBConnection()
-        if manual is None:
+        manual_list = None
+        if tinfo is not None: #manual is None:
             sandwich = None
             issueid = tinfo['issueid']
             comicid = tinfo['comicid']
