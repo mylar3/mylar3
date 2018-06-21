@@ -2378,10 +2378,8 @@ def issue_status(IssueID):
                 return False
 
     if any([isschk['Status'] == 'Downloaded', isschk['Status'] == 'Snatched']):
-        logger.info('returning true')
         return True
     else:
-        logger.info('returning false')
         return False
 
 def crc(filename):
@@ -3007,7 +3005,6 @@ def search_queue(queue):
 
             if mylar.SEARCHLOCK is False:
                 ss_queue = mylar.search.searchforissue(item['issueid'])
-                logger.info('ss_queue return: %s' % ss_queue)
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
             if mylar.APILOCK is True:
