@@ -17,7 +17,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger
+from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, readinglist
 import simplejson as simplejson
 import cherrypy
 from xml.sax.saxutils import escape
@@ -39,6 +39,7 @@ class OPDS(object):
         self.cmd = None
         self.PAGE_SIZE=30
         self.img = None
+        self.issue_id = None
         self.file = None
         self.filename = None
         self.kwargs = None
@@ -82,6 +83,8 @@ class OPDS(object):
             if self.img:
                 return serve_file(path=self.img, content_type='image/jpeg')
             if self.file and self.filename:
+                if self.issue_id:
+                    readinglist.Readinglist(IssueID=self.issue_id).markasRead()
                 return serve_download(path=self.file, name=self.filename)
             if isinstance(self.data, basestring):
                 return self.data
@@ -434,7 +437,7 @@ class OPDS(object):
                             title = escape('%03d: %s #%s - %s (In stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['ReleaseDate']))
                             image = issuebook['ImageURL_ALT']
                             thumbnail = issuebook['ImageURL']
-                        else:    
+                        else:
                             title = escape('%03d: %s #%s - %s (Added to Mylar %s, in stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['DateAdded'], issuebook['ReleaseDate']))
                             image = issuebook['ImageURL_ALT']
                             thumbnail = issuebook['ImageURL']
@@ -504,9 +507,11 @@ class OPDS(object):
             if not comic:
                 self.data = self._error_with_message('Comic Not Found in Watchlist')
                 return
+            self.issue_id = issue['IssueID']
             self.file = os.path.join(comic['ComicLocation'],issue['Location'])
             self.filename = issue['Location']
         else:
+            self.issue_id = issue['IssueID']
             self.file = issue['Location']
             self.filename = os.path.split(issue['Location'])[1]
         return
@@ -572,7 +577,7 @@ class OPDS(object):
         myDB = db.DBConnection()
         links = []
         entries = []
-        rlist = self._dic_from_query("SELECT * from readlist")
+        rlist = self._dic_from_query("SELECT * from readlist where status!='Read'")
         readlist = []
         for book in rlist:
             fileexists = False
@@ -602,7 +607,7 @@ class OPDS(object):
                         issue['image'] = None
                         issue['thumbnail'] = None
                         issue['updated'] =  annualentry['IssueDate']
-            if not os.path.isfile(fileloc):
+            if not os.path.isfile(issue['fileloc']):
                 fileexists = False
             if fileexists:
                 readlist.append(issue)
