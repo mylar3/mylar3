@@ -1871,7 +1871,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
     if rsscheck == 'yes':
         while mylar.SEARCHLOCK is True:
-            time.wait(5)
+            time.sleep(5)
 
     if mylar.SEARCHLOCK is True:
         logger.info('A search is currently in progress....queueing this up again to try in a bit.')
