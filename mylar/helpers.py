@@ -3439,9 +3439,10 @@ def newznab_test(name, host, ssl, apikey):
         host = host + 'api'
     else:
         host = host + '/api'
+    headers = {'User-Agent': str(mylar.USER_AGENT)}
     logger.info('host: %s' % host)
     try:
-        r = requests.get(host, params=params, verify=bool(ssl))
+        r = requests.get(host, params=params, headers=headers, verify=bool(ssl))
     except Exception as e:
         logger.warn('Unable to connect: %s' % e)
         return

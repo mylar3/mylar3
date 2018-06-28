@@ -5436,7 +5436,7 @@ class WebInterface(object):
             logger.info('Successfully tested %s [%s] - valid api response received' % (name, host))
             return 'Successfully tested %s!' % name
         else:
-            logger.warn('Testing failed to %s [HOST:%s][SSL:%s]' % (name, host, ssl))
+            logger.warn('Testing failed to %s [HOST:%s][SSL:%s]' % (name, host, bool(ssl)))
             return 'Error - failed running test for %s' % name
     testnewznab.exposed = True
 
