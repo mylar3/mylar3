@@ -2235,7 +2235,7 @@ class WebInterface(object):
         mylarRoot = mylar.CONFIG.DESTINATION_DIR
         import db
         myDB = db.DBConnection()
-        jobresults = myDB.select('SELECT * FROM jobhistory')
+        jobresults = myDB.select('SELECT DISTINCT * FROM jobhistory')
         if jobresults is not None:
             tmp = []
             for jb in jobresults:

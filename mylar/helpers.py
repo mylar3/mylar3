@@ -3240,7 +3240,7 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             monitor_newstatus = 'Waiting'
             monitor_nextrun = None
 
-            job_info = myDB.select('select * from jobhistory')
+            job_info = myDB.select('SELECT DISTINCT * FROM jobhistory')
             #set default values if nothing has been ran yet
             for ji in job_info:
                 if 'update' in ji['JobName'].lower():
