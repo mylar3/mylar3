@@ -1156,8 +1156,8 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                             anncid = None
                             seriesyear = None
                             try:
+                                if all([mylar.CONFIG.ANNUALS_ON is True, len(annualidmatch[0]['AnnualIDs']) == 0]) or all([mylar.CONFIG.ANNUALS_ON is True, annualidmatch[0]['AnnualIDs'][0]['ComicID'] != week['comicid']]):
                                 #if the annual/special on the weekly is not a part of the series, pass in the anncomicid so that it can get added.
-                                if all([mylar.CONFIG.ANNUALS_ON is True, annualidmatch[0]['AnnualIDs'][0]['ComicID'] != week['comicid']]):
                                     anncid = week['comicid']
                                     seriesyear = annualidmatch[0]['SeriesYear']
                             except Exception as e:
