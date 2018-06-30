@@ -180,7 +180,7 @@ class info32p(object):
             torrentid = 22247 #2018
             publisher_search = None #'2'  #2nd month
             comic_id = None
-        elif self.searchterm['torrentid_32p'] is not None:
+        elif all([self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']):
             torrentid = self.searchterm['torrentid_32p']
             comic_id = self.searchterm['id']
             publisher_search = self.searchterm['publisher']
@@ -313,11 +313,11 @@ class info32p(object):
                     dataset += pdata
                 logger.fdebug(str(len(dataset)) + ' series match the tile being searched for on 32P...')
 
-            if all([chk_id is None, not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None]) and any([len(data) == 1, len(pdata) == 1]):
+            if all([chk_id is None, not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']) and any([len(data) == 1, len(pdata) == 1]):
                 #update the 32p_reference so we avoid doing a url lookup next time
                 helpers.checkthe_id(comic_id, dataset)
             else:
-                if all([not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None]):
+                if all([not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']):
                     pass
                 else:
                     logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
