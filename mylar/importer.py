@@ -1277,13 +1277,13 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
         lastpubdate = 'Present'
         publishfigure = str(SeriesYear) + ' - ' + str(lastpubdate)
     else:
-        if calledfrom == 'weeklycheck':
-            if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
-                logger.fdebug('initiating issue updating - info & status')
-                issue_collection(issuedata, nostatus='False')
-            else:
-                logger.fdebug('initiating issue updating - just the info')
-                issue_collection(issuedata, nostatus='True')
+        #if calledfrom == 'weeklycheck':
+        if len(issuedata) >= 1 and not calledfrom  == 'dbupdate':
+            logger.fdebug('initiating issue updating - info & status')
+            issue_collection(issuedata, nostatus='False')
+        else:
+            logger.fdebug('initiating issue updating - just the info')
+            issue_collection(issuedata, nostatus='True')
 
         styear = str(SeriesYear)
 

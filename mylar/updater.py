@@ -568,7 +568,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
             #if ComicID[:1] == "G": mylar.importer.GCDimport(ComicID,pullupd='yes')
             #else: mylar.importer.addComictoDB(ComicID,mismatch,pullupd='yes')
 
-        if 'annual' in ComicName.lower():
+        if any(['annual' in ComicName.lower(), 'special' in ComicName.lower()]):
             myDB.upsert("annuals", values, control)
         else:
             myDB.upsert("issues", values, control)
@@ -914,7 +914,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
         logger.info(module + ' Updating Status (' + downstatus + ') now complete for ' + ComicName + ' issue: ' + IssueNum)
     return
 
-def forceRescan(ComicID, archive=None, module=None):
+def forceRescan(ComicID, archive=None, module=None, recheck=False):
     if module is None:
         module = ''
     module += '[FILE-RESCAN]'
@@ -1068,7 +1068,7 @@ def forceRescan(ComicID, archive=None, module=None):
  
         temploc = re.sub('[\#\']', '', temploc)
         logger.fdebug(module + ' temploc: ' + temploc)
-        if 'annual' not in temploc.lower():
+        if all(['annual' not in temploc.lower(), 'special' not in temploc.lower()]):
             #remove the extension here
             extensions = ('.cbr', '.cbz', '.cb7')
             if temploc.lower().endswith(extensions):
@@ -1242,6 +1242,7 @@ def forceRescan(ComicID, archive=None, module=None):
                 old_status = reann['Status']
 
                 fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
+                fcdigit = helpers.issuedigits(re.sub('special', '', temploc.lower()).strip())
 
                 if int(fcdigit) == int_iss and ANNComicID is not None:
                     logger.fdebug(module + ' [' + str(ANNComicID) + '] Annual match - issue : ' + str(int_iss))
@@ -1364,17 +1365,17 @@ def forceRescan(ComicID, archive=None, module=None):
             writeit = True
             try:
                 if mylar.CONFIG.ANNUALS_ON:
-                    if 'annual' in temploc.lower():
+                    if any(['annual' in temploc.lower(), 'special' in temploc.lower()]):
                         if reann is None:
-                            logger.fdebug(module + ' Annual present in location, but series does not have any annuals attached to it - Ignoring')
+                            logger.fdebug(module + ' Annual/Special present in location, but series does not have any annuals attached to it - Ignoring')
                             writeit = False
                         else:
                             iss_id = reann['IssueID']
                     else:
                         iss_id = reiss['IssueID']
                 else:
-                    if 'annual' in temploc.lower():
-                        logger.fdebug(module + ' Annual support not enabled, but annual issue present within directory. Ignoring annual.')
+                    if any(['annual' in temploc.lower(), 'special' in temploc.lower()]):
+                        logger.fdebug(module + ' Annual support not enabled, but annual/special issue present within directory. Ignoring issue.')
                         writeit = False
                     else:
                         iss_id = reiss['IssueID']
@@ -1550,7 +1551,7 @@ def forceRescan(ComicID, archive=None, module=None):
         logger.warn(module + ' It looks like you have physical issues in the series directory, but are forcing these issues to an Archived Status. Adjusting have counts.')
         havefiles = havefiles - arcfiles
 
-    thetotals = totals(ComicID, havefiles, combined_total, module)
+    thetotals = totals(ComicID, havefiles, combined_total, module, recheck=recheck)
     totalarc = arcfiles + archivedissues
 
     #enforce permissions
@@ -1559,7 +1560,7 @@ def forceRescan(ComicID, archive=None, module=None):
         filechecker.setperms(rescan['ComicLocation'])
     logger.info(module + ' I have physically found ' + str(foundcount) + ' issues, ignored ' + str(ignorecount) + ' issues, snatched ' + str(snatchedcount) + ' issues, and accounted for ' + str(totalarc) + ' in an Archived state [ Total Issue Count: ' + str(havefiles) + ' / ' + str(combined_total) + ' ]')
 
-def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, file=None):
+def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, file=None, recheck=False):
     if module is None:
         module = '[FILE-RESCAN]'
     myDB = db.DBConnection()
@@ -1578,7 +1579,17 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
             logger.fdebug('totalfiles: %s' % totalfiles)
             logger.fdebug('status: %s' % hf['IssStatus'])
             if hf['IssStatus'] != 'Downloaded':
-                havefiles = int(hf['Have']) +1
+                try:
+                    havefiles = int(hf['Have']) +1
+                    if havefiles > totalfiles and recheck is False:
+                        recheck = True
+                        return forceRescan(ComicID, recheck=recheck)
+                except TypeError:
+                    if totalfiles == 1:
+                        havefiles = 1
+                    else:
+                        logger.warn('Total issues for this series [ComiciD:%s/IssueID:%] is not 1 when it should be. This is probably a mistake and the series should be refreshed.' % (ComicID, IssueID))
+                        havefiles = 0
                 logger.fdebug('incremented havefiles: %s' % havefiles)
             else:
                 havefiles = int(hf['Have'])

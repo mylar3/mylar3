@@ -1909,6 +1909,7 @@ class WebInterface(object):
             myDB.action('DELETE FROM weekly WHERE weeknumber=? and year=?', [int(weeknumber), int(year)])
             logger.info("Deleted existing pull-list data for week %s, %s. Now Recreating the Pull-list..." % (weeknumber, year))
         weeklypull.pullit(forcecheck, weeknumber, year)
+        weeklypull.future_check()
     pullrecreate.exposed = True
 
     def upcoming(self):
@@ -2106,7 +2107,6 @@ class WebInterface(object):
                 #remove old entry from upcoming so it won't try to continually download again.
                 logger.fdebug('[DELETE] - ' + mvup['ComicName'] + ' issue #: ' + str(mvup['IssueNumber']))
                 deleteit = myDB.action("DELETE from upcoming WHERE ComicName=? AND IssueNumber=?", [mvup['ComicName'], mvup['IssueNumber']])
-
 
         return serve_template(templatename="upcoming.html", title="Upcoming", upcoming=upcoming, issues=issues, ann_list=ann_list, futureupcoming=futureupcoming, future_nodata_upcoming=future_nodata_upcoming, futureupcoming_count=futureupcoming_count, upcoming_count=upcoming_count, wantedcount=wantedcount, isCounts=isCounts)
     upcoming.exposed = True

@@ -3007,7 +3007,7 @@ def search_queue(queue):
                 ss_queue = mylar.search.searchforissue(item['issueid'])
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
-            if mylar.APILOCK is True:
+            if mylar.SEARCHLOCK is True:
                 logger.fdebug('[SEARCH-QUEUE] Another item is currently being searched....')
                 time.sleep(15)
         else:

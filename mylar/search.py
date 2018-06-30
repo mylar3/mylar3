@@ -1784,7 +1784,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         links = entry['link']
                     searchresult = searcher(nzbprov, nzbname, mylar.COMICINFO, links, IssueID, ComicID, tmpprov, newznab=newznab_host, torznab=torznab_host, rss=RSS)
 
-                    if searchresult == 'downloadchk-fail':
+                    if searchresult == 'downloadchk-fail' or searchresult == 'double-pp':
                         foundc['status'] = False
                         continue
                     elif searchresult == 'torrent-fail' or searchresult == 'nzbget-fail' or searchresult == 'sab-fail' or searchresult == 'blackhole-fail':
@@ -2718,8 +2718,8 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if mylar.USE_NZBGET:
             ss = nzbget.NZBGet()
             send_to_nzbget = ss.sender(nzbpath)
-            if send_to_nzbget['status'] is True:
-                if mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True:
+            if mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True:
+                if send_to_nzbget['status'] is True:
                     send_to_nzbget['comicid'] = ComicID
                     if IssueID is not None:
                         send_to_nzbget['issueid'] = IssueID
@@ -2727,9 +2727,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                         send_to_nzbget['issueid'] = 'S' + IssueArcID
                     send_to_nzbget['apicall'] = True
                     mylar.NZB_QUEUE.put(send_to_nzbget)
-            else:
-                logger.warn('Unable to send nzb file to NZBGet. There was a parameter error as there are no values present: %s' % nzbget_params)
-                return "nzbget-fail"
+                elif send_to_nzbget['status'] == 'double-pp':
+                    return send_to_nzbget['status']
+                else:
+                    logger.warn('Unable to send nzb file to NZBGet. There was a parameter error as there are no values present: %s' % nzbget_params)
+                    return "nzbget-fail"
 
             if send_to_nzbget['status'] is True:
                 logger.info("Successfully sent nzb to NZBGet!")
@@ -2862,6 +2864,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                     sendtosab['apicall'] = True
                     logger.info('sendtosab: %s' % sendtosab)
                     mylar.NZB_QUEUE.put(sendtosab)
+                elif sendtosab['status'] == 'double-pp':
+                    return sendtosab['status']
+                elif sendtosab['status'] is False:
+                    return "sab-fail"
             else:
                 logger.warn('Unable to send nzb file to SABnzbd. There was a parameter error as there are no values present: %s' % sab_params)
                 mylar.DOWNLOAD_APIKEY = None
@@ -2889,7 +2895,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                                               'client_id':      client_id,
                                               'nzbname':        nzbname,
                                               'nzbpath':        nzbpath},
-                           'comicinfo':      {'comicname':      comicinfo[0]['ComicName'],
+                           'comicinfo':      {'comicname':      comicinfo[0]['ComicName'].encode('utf-8'),
                                               'volume':         comicinfo[0]['ComicVolume'],
                                               'comicid':        ComicID,
                                               'issueid':        IssueID,

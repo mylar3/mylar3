@@ -85,7 +85,10 @@
                                               issueid = issue['IssueID']
                                       except:
                                           lineheader = None
-                                          issuenumber = issue['Issue_Number']
+                                          try:
+                                              issuenumber = issue['Issue_Number']
+                                          except:
+                                              issuenumber = issue['IssueNumber']
                                           issueid = issue['IssueID']
 
                                       if any(d['IssueID'] == str(issue['IssueID']) for d in ann_list):

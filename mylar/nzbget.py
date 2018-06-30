@@ -106,6 +106,7 @@ class NZBGet(object):
                 return self.historycheck(nzbinfo)
 
             stat = False
+            double_pp = False
             while stat is False:
                 time.sleep(10)
                 queueinfo = self.server.listgroups()
@@ -114,6 +115,26 @@ class NZBGet(object):
                     logger.fdebug('Item is no longer in active queue. It should be finished by my calculations')
                     stat = True
                 else:
+                    if 'comicrn' in queuedl[0]['PostInfoText'].lower():
+                        double_pp = True
+
+                    if all([len(queuedl[0]['ScriptStatuses']) > 0, double_pp is False]):
+                        for x in queuedl[0]['ScriptStatuses']:
+                            if 'comicrn' in x['Name'].lower():
+                                double_pp = True
+                                break
+
+                    if all([len(queuedl[0]['Parameters']) > 0, double_pp is False]):
+                        for x in queuedl[0]['Parameters']:
+                            if all(['comicrn' in x['Name'].lower(), x['Value'] == 'yes']):
+                                double_pp = True
+                                break
+
+                    if double_pp is True:
+                        logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
+                        logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove ComicRN from your category script in NZBGet.')
+                        return {'status': 'double-pp', 'failed': False}
+
                     logger.fdebug('status: %s' % queuedl[0]['Status'])
                     logger.fdebug('name: %s' % queuedl[0]['NZBName'])
                     logger.fdebug('FileSize: %sMB' % queuedl[0]['FileSizeMB'])
@@ -130,9 +151,27 @@ class NZBGet(object):
         history = self.server.history(True)
         found = False
         destdir = None
+        double_pp = False
         hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or 'COPY' in hs['Status'])]
         if len(hq) > 0:
             logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
+            if len(hq[0]['ScriptStatuses']) > 0:
+                for x in hq[0]['ScriptStatuses']:
+                    if 'comicrn' in x['Name'].lower():
+                        double_pp = True
+                        break
+
+            if all([len(hq[0]['Parameters']) > 0, double_pp is False]):
+                for x in hq[0]['Parameters']:
+                    if all(['comicrn' in x['Name'].lower(), x['Value'] == 'yes']):
+                        double_pp = True
+                        break
+
+            if double_pp is True:
+                logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
+                logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove ComicRN from your category script in NZBGet.')
+                return {'status': 'double-pp', 'failed': False}
+
             if all(['SUCCESS' in hq[0]['Status'], hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']]):
                 logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
                 if os.path.isdir(hq[0]['DestDir']):
