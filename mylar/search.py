@@ -2950,9 +2950,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
 def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
 
     if IssueNumber is not None:
-        snline = modcomicname + ' (' + comyear + ') - Issue #' + IssueNumber + ' snatched!'
+        snline = '%s (%s) #%s snatched!' % (modcomicname, comyear, IssueNumber)
     else:
-        snline = modcomicname + ' (' + comyear + ') snatched!'
+        snline = '%s (%s) snatched!' % (modcomicname, comyear)
 
     if mylar.CONFIG.PROWL_ENABLED and mylar.CONFIG.PROWL_ONSNATCH:
         logger.info(u"Sending Prowl notification")
@@ -2977,7 +2977,7 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
     if mylar.CONFIG.TELEGRAM_ENABLED and mylar.CONFIG.TELEGRAM_ONSNATCH:
         logger.info(u"Sending Telegram notification")
         telegram = notifiers.TELEGRAM()
-        telegram.notify(snline, nzbname)
+        telegram.notify(snline)
     if mylar.CONFIG.SLACK_ENABLED and mylar.CONFIG.SLACK_ONSNATCH:
         logger.info(u"Sending Slack notification")
         slack = notifiers.SLACK()

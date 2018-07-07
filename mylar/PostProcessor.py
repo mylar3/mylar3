@@ -2247,16 +2247,16 @@ class PostProcessor(object):
             #update snatched table to change status to Downloaded
             if annchk == "no":
                 updater.foundsearch(comicid, issueid, down=downtype, module=module, crc=crcvalue)
-                dispiss = 'issue: %s' % issuenumOG
+                dispiss = '#%s' % issuenumOG
                 updatetable = 'issues'
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module, crc=crcvalue)
                 if 'annual' in issuenzb['ComicName'].lower(): #series.lower():
-                    dispiss = 'Annual issue: %s' % issuenumOG
+                    dispiss = 'Annual #%s' % issuenumOG
                 elif 'special' in issuenzb['ComicName'].lower():
-                    dispiss = 'Special issue: %s' % issuenumOG
+                    dispiss = 'Special #%s' % issuenumOG
                 else:
-                    dispiss = issuenumOG
+                    dispiss = '#%s' % issuenumOG
                 updatetable = 'annuals'
 
             #new method for updating status after pp
@@ -2391,16 +2391,10 @@ class PostProcessor(object):
 
     def sendnotify(self, series, issueyear, issuenumOG, annchk, module):
 
-        if annchk == "no":
-            if issueyear is None:
-                prline = series + ' - issue #' + issuenumOG
-            else:
-                prline = series + ' (' + issueyear + ') - issue #' + issuenumOG
+        if issueyear is None:
+            prline = '%s %s' % (series, issuenumOG)
         else:
-            if issueyear is None:
-                prline = '%s - %s' %(series, issuenumOG)
-            else:
-                prline = '%s (%s) - %s' %(series, issueyear, issuenumOG)
+            prline = '%s (%s) %s' % (series, issueyear, issuenumOG)
 
         prline2 = 'Mylar has downloaded and post-processed: ' + prline
 
