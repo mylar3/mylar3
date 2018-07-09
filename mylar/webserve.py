@@ -2427,22 +2427,38 @@ class WebInterface(object):
             if action == 'importselected':
                 logger.info('importing selected series.')
                 for k,v in args.items():
-                    #k = Comicname[Volume]
+                    #k = Comicname[Volume]|ComicID
                     #v = DynamicName
                     Volst = k.find('[')
-                    volume = re.sub('[\[\]]', '', k[Volst:]).strip()
+                    comicid_st = k.find('|')
+                    if comicid_st == -1:
+                        comicid = None
+                        volume = re.sub('[\[\]]', '', k[Volst:]).strip()
+                    else:
+                        comicid = k[comicid_st+1:]
+                        if comicid == 'None':
+                            comicid = None
+                        volume = re.sub('[\[\]]', '', k[Volst:comicid_st]).strip()
                     ComicName = k[:Volst].strip()
                     DynamicName = v
                     cid = ComicName.decode('utf-8', 'replace')
                     comicstoimport.append({'ComicName': cid,
                                            'DynamicName': DynamicName,
                                            'Volume':    volume,
-                                           'ComicID':   None})
+                                           'ComicID':   comicid})
 
             elif action == 'removeimport':
                 for k,v in args.items():
                     Volst = k.find('[')
-                    volume = re.sub('[\[\]]', '', k[Volst:]).strip()
+                    comicid_st = k.find('|')
+                    if comicid_st == -1:
+                        comicid = None
+                        volume = re.sub('[\[\]]', '', k[Volst:]).strip()
+                    else:
+                        comicid = k[comicid_st+1:]
+                        if comicid == 'None':
+                            comicid = None
+                        volume = re.sub('[\[\]]', '', k[Volst:comicid_st]).strip()
                     ComicName = k[:Volst].strip()
                     DynamicName = v
                     if volume is None or volume == 'None':

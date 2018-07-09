@@ -106,7 +106,7 @@
 
                                             %>
                                         <tr class="${result['Status']} grade${grade}">
-                                            <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}[${result['Volume']}]" value="${result['DynamicName']}" class="checkbox" />
+                                            <td id="select"><input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="${result['ComicName']}[${result['Volume']}]|${result['ComicID']}" value="${result['DynamicName']}" class="checkbox" />
                                             <td id="comicname">${displayline}
                                                 %if result['Status'] != 'Imported':
                                                    <a href="#issue-box" onclick="return runMetaIssue('${result['ComicName'] |u}','${result['DynamicName']}','${result['Volume']}');" class="issue-window"><img src="interfaces/default/images/files.png" height="15 width="15" title="View files in this group" class="highqual" /></a>
@@ -139,7 +139,7 @@
                                                     [<a href="#" title="Import ${result['ComicName']} into your watchlist" onclick="doAjaxCall('preSearchit?ComicName=${result['ComicName']| u}&displaycomic=${displayname| u}&comicid=${result['ComicID']}&volume=${result['Volume']}&dynamicname=${result['DynamicName']}&displayline=${displayline| u}',$(this),'table')" data-success="Imported ${result['ComicName']}">Import</a>]
                                                 %endif
                                                 [<a href="deleteimport?ComicName=${result['ComicName']| u}&volume=${result['Volume']}&DynamicName=${result['DynamicName']}&Status=${result['Status']}">Remove</a>]
-                                                %if result['SRID'] is not None and result['Status'] != 'Imported':
+                                                %if all([result['SRID'] is not None, result['Status'] != 'Imported', result['Status'] != 'No Results']):
                                                      [<a title="Manual intervention is required - more than one result when attempting to import" href="importresults_popup?SRID=${result['SRID']}&ComicName=${result['ComicName'] |u}&imported=yes&ogcname=${result['ComicName'] |u}&DynamicName=${result['DynamicName']}&Volume=${result['Volume']}">Select</a>]
                                                 %endif
                                             </td>
