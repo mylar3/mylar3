@@ -84,7 +84,10 @@ class OPDS(object):
                 return serve_file(path=self.img, content_type='image/jpeg')
             if self.file and self.filename:
                 if self.issue_id:
-                    readinglist.Readinglist(IssueID=self.issue_id).markasRead()
+                    try:
+                        readinglist.Readinglist(IssueID=self.issue_id).markasRead()
+                    except:
+                        logger.fdebug('No reading list found to update.)
                 return serve_download(path=self.file, name=self.filename)
             if isinstance(self.data, basestring):
                 return self.data
