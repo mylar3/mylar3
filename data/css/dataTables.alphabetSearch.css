@@ -1,0 +1,83 @@
+div.alphabet {
+	clear:both;
+	position:relative;
+	margin:0.5em 0;
+}
+
+@media screen and (max-width:963px){
+	div.alphabet {
+		text-align:center;
+	}
+}
+
+div.alphabet ul {
+	display:inline-block;
+	margin:0;
+	padding:0;
+	list-style:none;
+}
+
+div.alphabet li {
+	display:inline-block;
+}
+
+div.alphabet a {
+	display:inline-block;
+	cursor:pointer;
+	text-align:center;
+	text-decoration:none;
+	box-sizing:content-box;
+	padding:0.2em 0.1em;
+	min-width:1.3em;
+	color:#333 !important;
+	border:1px solid transparent;
+	border-radius:2px;
+}
+
+div.alphabet a:hover {
+	color:#FFF !important;
+	border:1px solid #111;
+	background-color:#585858;
+	background:linear-gradient(to bottom, #585858 0%, #111 100%);
+}
+
+div.alphabet a:active {
+	outline:none;
+	background-color:#2b2b2b;
+	background:linear-gradient(to bottom, #2b2b2b 0%, #0c0c0c 100%);
+	box-shadow:inset 0 0 3px #111;
+} 
+
+div.alphabet a.empty {
+	color:#888 !important;
+}
+
+div.alphabet a.active,
+div.alphabet a.active.empty {
+	color:#333 !important;
+	border:1px solid #979797;
+	background-color:#FFF;
+	background:linear-gradient(to bottom, #fff 0%, #dcdcdc 100%)
+}
+
+div.alphabet .alphabet-info-display {
+	margin-right:0.5em;
+}
+
+div.alphabet div.alphabet-info {
+	position:absolute;
+	border:1px solid #111;
+	background-color:#585858;
+	background:linear-gradient(to bottom, #585858 0%, #111 100%);
+	border-radius:2px;
+	color:#FFF;
+	margin-top:0.2em;
+	padding:0.2em 0.4em;
+	text-align:center;
+	opacity:0;
+	z-index:9999;
+}
+
+tr.alphabet-group, tr.alphabet-group:hover {
+	background-color:rgba(0,0,0,0.15) !important;
+}

@@ -101,18 +101,20 @@
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/default/css/data_table.css">
+        <link type="text/css" href="css/dataTables.alphabetSearch.css" rel="stylesheet">
 </%def>
 
 <%def name="javascriptIncludes()">
         <script src="js/libs/jquery.dataTables.min.js"></script>
         <script src="js/libs/full_numbers_no_ellipses.js"></script>
+        <script src="js/dataTables.alphabetSearch.min.js"></script>
 	<script>
 
 	function initThisPage() {
                 $.fn.DataTable.ext.pager.numbers_length = 3;
-		$('#series_table').dataTable( {
+		var table = $('#series_table').dataTable( {
 		        "destroy": true,
-                        "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                        "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                         "columnDefs": [
                              { "orderable": false, "targets": [5, 7, 10] },
                              { "visible": false, "targets": [5, 7, 10] },
@@ -132,7 +134,10 @@
                                 "search" : ""},
                         "stateSave": true,
                         "pageLength": 25,
-                        "pagingType": "simple_numbers"
+                        "pagingType": "simple_numbers",
+                        alphabetSearch: {
+                            column:1
+                        }
 		});
                 resetFilters("comic");
 	}
