@@ -2727,25 +2727,33 @@ class WebInterface(object):
         #bannerwidth = 263
         filepath = None
         sb = 'cache/storyarcs/' + str(arcinfo[0]['CV_ArcID']) + '-banner'
-        dir = os.listdir(os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs'))
-        for fname in dir:
-            if str(arcinfo[0]['CV_ArcID']) in fname:
-                storyarcbanner = sb
-                filepath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs', fname)
-        #        if any(['H' in fname, 'W' in fname]):
-        #            if 'H' in fname:
-        #                bannerheight = int(fname[fname.find('H')+1:fname.find('.')])
-        #            elif 'W' in fname:
-        #                bannerwidth = int(fname[fname.find('W')+1:fname.find('.')])
+        storyarc_imagepath = os.path.join(mylar.CONFIG.CACHE_DIR, 'storyarcs')
+        if not os.path.exists(storyarc_imagepath):
+            try:
+                os.mkdir(storyarc_imagepath)
+            except:
+                logger.warn('Unable to create storyarc image directory @ %s' % storyarc_imagepath)
 
-        #            if any([bannerwidth != 263, 'W' in fname]):
-        #                #accomodate poster size
-        #                storyarcbanner += 'W' + str(bannerheight)
-        #            else:
-        #                #for actual banner width (ie. 960x280)
-        #                storyarcbanner += 'H' + str(bannerheight)
-                storyarcbanner += os.path.splitext(fname)[1] + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
-                break
+        if os.path.exists(storyarc_imagepath):
+            dir = os.listdir(storyarc_imagepath)
+            for fname in dir:
+                if str(arcinfo[0]['CV_ArcID']) in fname:
+                    storyarcbanner = sb
+                    filepath = os.path.join(storyarc_imagepath, fname)
+           #        if any(['H' in fname, 'W' in fname]):
+           #            if 'H' in fname:
+           #                bannerheight = int(fname[fname.find('H')+1:fname.find('.')])
+           #            elif 'W' in fname:
+           #                bannerwidth = int(fname[fname.find('W')+1:fname.find('.')])
+
+           #            if any([bannerwidth != 263, 'W' in fname]):
+           #                #accomodate poster size
+           #                storyarcbanner += 'W' + str(bannerheight)
+           #            else:
+           #                #for actual banner width (ie. 960x280)
+           #                storyarcbanner += 'H' + str(bannerheight)
+                    storyarcbanner += os.path.splitext(fname)[1] + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
+                    break
 
         template = 'storyarc_detail.html'
         if filepath is not None:
