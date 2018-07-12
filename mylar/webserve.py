@@ -4395,38 +4395,26 @@ class WebInterface(object):
     def pretty_git(self, br_history):
         #in order to 'prettify' the history log for display, we need to break it down so it's line by line.
         br_split = br_history.split("\n")  #split it on each commit
+        commit = []
         for br in br_split:
-            br_commit_st = br.find('-')  #first - will represent end of commit numeric
-            br_commit = br[:br_commit_st].strip()
-            br_time_en = br.replace('-', 'XXX', 1).find('-')  #2nd - is end of time datestamp
-            br_time = br[br_commit_st +1:br_time_en].strip()
-            print 'COMMIT:' + str(br_commit)
-            print 'TIME:' + str(br_time)
-            commit_split = br.split() #split it by space to break it further down..
-            tag_chk = False
-            statline = ''
-            commit = []
-            for cs in commit_split:
-                if tag_chk == True:
-                    if 'FIX:' in cs or 'IMP:' in cs:
-                        commit.append({"commit":    br_commit,
-                                       "time":      br_time,
-                                       "stat":      tag_status,
-                                       "line":      statline})
-                        print commit
-                        tag_chk == False
-                        statline = ''
-                    else:
-                        statline += str(cs) + ' '
-                else:
-                    if 'FIX:' in cs:
-                        tag_status = 'FIX'
-                        tag_chk = True
-                        print 'status: ' + str(tag_status)
-                    elif 'IMP:' in cs:
-                        tag_status = 'IMPROVEMENT'
-                        tag_chk = True
-                        print 'status: ' + str(tag_status)
+            commit_st = br.find('-')
+            commitno = br[:commit_st].strip()
+            time_end = br.find('-',commit_st+1)
+            time = br[commit_st+1:time_end].strip()
+            author_end = br.find('-', time_end+1)
+            author = br[time_end+1:author_end].strip()
+            desc = br[author_end+1:].strip()
+            if len(desc) > 103:
+                desc = '<span title="%s">%s...</span>' % (desc, desc[:103])
+            if author != 'evilhero':
+                pr_tag = True
+                dspline = '[%s][PR] %s {<span style="font-size:11px">%s/%s</span>}'
+            else:
+                pr_tag = False
+                dspline = '[%s] %s {<span style="font-size:11px">%s/%s</span>}'
+            commit.append(dspline % ("<a href='https://github.com/evilhero/mylar/commit/" + commitno + "'>"+commitno+"</a>", desc, time, author))
+
+        return '<br />\n'.join(commit)
 
     pretty_git.exposed = True
     #---
@@ -4435,13 +4423,16 @@ class WebInterface(object):
         interface_list = [name for name in os.listdir(interface_dir) if os.path.isdir(os.path.join(interface_dir, name))]
 #----
 # to be implemented in the future.
-#        branch_history, err = mylar.versioncheck.runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 4")
-#        #here we pass the branch_history to the pretty_git module to break it down
-#        if branch_history:
-#            self.pretty_git(branch_history)
-#            br_hist = branch_history.replace("\n", "<br />\n")
-#        else:
-#            br_hist = err
+        if mylar.INSTALL_TYPE == 'git':
+            branch_history, err = mylar.versioncheck.runGit("log --pretty=format:'%h - %cr - %an - %s' -n 5")
+            #here we pass the branch_history to the pretty_git module to break it down
+            if branch_history:
+                br_hist = self.pretty_git(branch_history)
+                #br_hist = branch_history.replace("\n", "<br />\n")
+            else:
+                br_hist = err
+        else:
+            br_hist = 'This would be a nice place to see revision history...'
 #----
         myDB = db.DBConnection()
         CCOMICS = myDB.select("SELECT COUNT(*) FROM comics")
@@ -4665,8 +4656,7 @@ class WebInterface(object):
                     "cache_dir": mylar.CONFIG.CACHE_DIR,
                     "config_file": mylar.CONFIG_FILE,
                     "lang": '%s.%s' % (logger.LOG_LANG,logger.LOG_CHARSET),
-                    "branch_history": 'None',
-#                    "branch_history" : br_hist,
+                    "branch_history" : br_hist,
                     "log_dir": mylar.CONFIG.LOG_DIR,
                     "opds_enable": helpers.checked(mylar.CONFIG.OPDS_ENABLE),
                     "opds_authentication": helpers.checked(mylar.CONFIG.OPDS_AUTHENTICATION),
