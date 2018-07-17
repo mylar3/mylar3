@@ -228,6 +228,7 @@
                                     </div>
                                     <div id="opdsoptions">
                                         <div class="row_checkbox">
+                                            <small>Access the OPDS server at http://mylarhost/opds/ - keep in mind your scheme (http or https), your hostname, port, and any http_root you may have set. </small></br> 
                                             <input id="opds_authentication" type="checkbox" name="opds_authentication" value="1" ${config['opds_authentication']} /><label>OPDS Requires Credentials</label>
                                             <%
                                                  opds_notes = "Require authentication for OPDS.  If checked\nyou will need to provide a username/password.\nThe service user name will work (if set).  Additionally,\nyou can provide a user with only OPDS access below.\nNOTE: If this is not checked, OPDS will be available\nwithout a password."
