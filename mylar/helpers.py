@@ -3539,7 +3539,7 @@ def getImage(comicid, url, issueid=None):
         statinfo = os.stat(coverfile)
         coversize = statinfo.st_size
 
-    if int(coversize) < 30000 or str(r.status_code) != '200':
+    if int(coversize) < 10000 or str(r.status_code) != '200':
         if str(r.status_code) != '200':
             logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
         else:
