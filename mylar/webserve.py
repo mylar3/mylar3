@@ -291,7 +291,7 @@ class WebInterface(object):
             searchresults = sorted(searchresults, key=itemgetter('comicyear', 'issues'), reverse=True)
         except Exception as e:
             logger.error('Unable to retrieve results from ComicVine: %s' % e)
-            if mylar.COMICVINE_API is None:
+            if mylar.CONFIG.COMICVINE_API is None:
                 logger.error('You NEED to set a ComicVine API key prior to adding anything. It\'s Free - Go get one!')
                 return
         return serve_template(templatename="searchresults.html", title='Search Results for: "' + name + '"', searchresults=searchresults, type=type, imported=None, ogcname=None, name=name, serinfo=serinfo)
