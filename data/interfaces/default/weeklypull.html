@@ -29,11 +29,7 @@
            <table width="100%" align="center">
               <tr>
               <td style="vertical-align: middle; text-align: right">
-                  %if mylar.CONFIG.RESET_PULLIST_PAGINATION is True:
-                    <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                  %else:
-                    <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}" title="PPrevious Week (${weekinfo['prev_weeknumber']})">
-                  %endif
+                  <a href="pullist?week=${weekinfo['prev_weeknumber']}&year=${weekinfo['prev_year']}" title="Previous Week (${weekinfo['prev_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
                       <img src="interfaces/default/images/prev.gif" width="16" height="18" Alt="Previous"/>
                   </a>
               </td>
@@ -45,11 +41,7 @@
               %endif
               </td>
               <td style="vertical-align: middle; text-align: left">
-                  %if mylar.CONFIG.RESET_PULLIST_PAGINATION is True:
                     <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}" title="Next Week (${weekinfo['next_weeknumber']})" onclick="$('#pull_table').page('first').draw('page');">
-                  %else:
-                    <a href="pullist?week=${weekinfo['next_weeknumber']}&year=${weekinfo['next_year']}" title="NNext Week (${weekinfo['next_weeknumber']})">
-                  %endif
                       <img src="interfaces/default/images/next.gif" width="16" height="18" Alt="Next"/>
                   </a>
               </td>
