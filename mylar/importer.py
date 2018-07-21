@@ -292,7 +292,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     if mylar.CONFIG.ENFORCE_PERMS:
                         filechecker.setperms(comiclocal)
                 except IOError as e:
-                    logger.error('Unable to save cover (' + str(coverfile) + ') into series directory (' + str(comiclocal) + ') at this time.')
+                    logger.error('Unable to save cover (' + str(comiclocal) + ') into series directory (' + str(comlocation) + ') at this time.')
     else:
         ComicImage = None
 
@@ -1418,8 +1418,6 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 
         annual_types_ignore = {'paperback', 'collecting', 'reprints', 'collected edition', 'print edition', 'tpb', 'available in print', 'collects'}
 
-        if len(sresults) == 1:
-            logger.fdebug('[IMPORTER-ANNUAL] - 1 result')
         if len(sresults) > 0:
             logger.fdebug('[IMPORTER-ANNUAL] - there are ' + str(len(sresults)) + ' results.')
             num_res = 0
