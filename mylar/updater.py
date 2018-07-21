@@ -1242,7 +1242,8 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 old_status = reann['Status']
 
                 fcdigit = helpers.issuedigits(re.sub('annual', '', temploc.lower()).strip())
-                fcdigit = helpers.issuedigits(re.sub('special', '', temploc.lower()).strip())
+                if fcdigit == 999999999999999:
+                    fcdigit = helpers.issuedigits(re.sub('special', '', temploc.lower()).strip())
 
                 if int(fcdigit) == int_iss and ANNComicID is not None:
                     logger.fdebug(module + ' [' + str(ANNComicID) + '] Annual match - issue : ' + str(int_iss))
