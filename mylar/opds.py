@@ -30,6 +30,7 @@ from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
 import datetime
 from mylar.webserve import serve_template
+import re
 
 cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue', 'StoryArc', 'Recent']
 
@@ -119,7 +120,8 @@ class OPDS(object):
         myDB = db.DBConnection()
         feed = {}
         feed['title'] = 'Mylar OPDS'
-        feed['id'] = 'OPDSRoot'
+        currenturi = cherrypy.url()
+        feed['id'] = re.sub('/', ':',  currenturi)
         feed['updated'] = mylar.helpers.now()
         links = []
         entries=[]
