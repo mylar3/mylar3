@@ -269,8 +269,8 @@ class OPDS(object):
             if comic['haveissues'] > 0:
                 entries.append(
                     {
-                        'title': escape('%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
-                        'id': escape('comic:%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
+                        'title': escape('%s (%s) (comicID: %s)' % (comic['ComicName'], comic['ComicYear'], comic['ComicID'])),
+                        'id': escape('comic:%s (%s) [%s]' % (comic['ComicName'], comic['ComicYear'], comic['ComicID'])),
                         'updated': comic['DateAdded'],
                         'content': escape('%s (%s)' % (comic['ComicName'], comic['ComicYear'])),
                         'href': '%s?cmd=Comic&amp;comicid=%s' % (self.opdsroot, quote_plus(comic['ComicID'])),
@@ -385,7 +385,7 @@ class OPDS(object):
                 entries.append(
                     {
                         'title': title,
-                        'id': escape('comic:%s (%s) - %s' % (issue['ComicName'], comic['ComicYear'], issue['Issue_Number'])),
+                        'id': escape('comic:%s (%s) [%s] - %s' % (issue['ComicName'], comic['ComicYear'], comic['ComicID'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
                         'href': '%s?cmd=Issue&amp;issueid=%s&amp;file=%s' % (self.opdsroot, quote_plus(issue['IssueID']),quote_plus(issue['Location'].encode('utf-8'))),
