@@ -483,11 +483,13 @@ class SLACK:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.SLACK_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
         
-    def notify(self, text, attachment_text, module=None):
+    def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
         
+        attachment_text += ' from ' + prov + ' and sent to ' + sent_to
+
         payload = {
 #            "text": text,
 #            "attachments": [

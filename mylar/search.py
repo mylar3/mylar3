@@ -2981,7 +2981,7 @@ def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov)
     if mylar.CONFIG.SLACK_ENABLED and mylar.CONFIG.SLACK_ONSNATCH:
         logger.info(u"Sending Slack notification")
         slack = notifiers.SLACK()
-        slack.notify("Snatched", snline)
+        slack.notify("Snatched", snline, snatched_nzb=nzbname, sent_to=sent_to, prov=nzbprov)
 
     return
 
