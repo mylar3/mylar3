@@ -208,8 +208,10 @@ class PUSHOVER:
     def __init__(self, test_apikey=None, test_userkey=None, test_device=None):
         if all([test_apikey is None, test_userkey is None, test_device is None]):
             self.PUSHOVER_URL = 'https://api.pushover.net/1/messages.json'
+            self.test = False
         else:
             self.PUSHOVER_URL = 'https://api.pushover.net/1/users/validate.json'
+            self.test = True
         self.enabled = mylar.CONFIG.PUSHOVER_ENABLED
         if test_apikey is None:
             if mylar.CONFIG.PUSHOVER_APIKEY is None or mylar.CONFIG.PUSHOVER_APIKEY == 'None':
@@ -236,8 +238,7 @@ class PUSHOVER:
         self._session.headers = {'Content-type': "application/x-www-form-urlencoded"}
 
     def notify(self, event, message=None, snatched_nzb=None, prov=None, sent_to=None, module=None):
-        if not mylar.CONFIG.PUSHOVER_ENABLED:
-            return
+
         if module is None:
             module = ''
         module += '[NOTIFIER]'
@@ -261,23 +262,36 @@ class PUSHOVER:
         if r.status_code == 200:
             try:
                 response = r.json()
-                if 'devices' in response:
-                    logger.info('%s PushOver notifications sent. Available devices: %s' % (module, response))
+                if 'devices' in response and self.test is True:
+                    logger.fdebug('%s Available devices: %s' % (module, response))
+                    if any([self.device is None, self.device == 'None']):
+                        self.device = 'all available devices'
+
+                    r = self._session.post('https://api.pushover.net/1/messages.json', data=data, verify=True)
+                    if r.status_code == 200:
+                        logger.info('%s PushOver notifications sent to %s.' % (module, self.device))
+                    elif r.status_code >=400 and r.status_code < 500:
+                        logger.error('%s PushOver request failed to %s: %s' % (module, self.device, r.content))
+                        return False
+                    else:
+                        logger.error('%s PushOver notification failed serverside.' % module)
+                        return False
                 else:
                     logger.info('%s PushOver notifications sent.' % module)
             except Exception as e:
                 logger.warn('%s[ERROR] - %s' % (module, e))
-
-            return True
+                return False
+            else:
+                return True
         elif r.status_code >= 400 and r.status_code < 500:
-            logger.error(module + ' PushOver request failed: %s' % r.content)
+            logger.error('%s PushOver request failed: %s' % (module, r.content))
             return False
         else:
-            logger.error(module + ' PushOver notification failed serverside.')
+            logger.error('%s PushOver notification failed serverside.' % module)
             return False
 
     def test_notify(self):
-        return self.notify(message='Release the Ninjas!',event='Test Message')
+        return self.notify(event='Test Message', message='Release the Ninjas!')
 
 class BOXCAR:
 
@@ -499,6 +513,6 @@ class SLACK:
 
         logger.info(module + u"Slack notifications sent.")
         return sent_successfuly
-        
+
     def test_notify(self):
         return self.notify('Test Message', 'Release the Ninjas!')
