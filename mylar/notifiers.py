@@ -488,7 +488,10 @@ class SLACK:
             module = ''
         module += '[NOTIFIER]'
         
-        attachment_text += ' from ' + prov + ' and sent to ' + sent_to
+        if sent_to is None:
+            attachment_text += ' from ' + prov
+        else:
+            attachment_text += ' from ' + prov + ' and sent to ' + sent_to
 
         payload = {
 #            "text": text,
