@@ -1707,10 +1707,9 @@ class PostProcessor(object):
             if ml is not None and mylar.CONFIG.SNATCHEDTORRENT_NOTIFY:
                 snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=? OR provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'TPSE', 'DEM', 'WWT', '32P']).fetchone()
                 if snatchnzb is None:
-                    logger.fdebug(module + ' Was not snatched as a torrent. Disabling torrent manual post-processing completion notification.')
+                    logger.fdebug(module + ' Was not snatched as a torrent. Using manual post-processing.')
                 else:
                     logger.fdebug(module + ' Was downloaded from ' + snatchnzb['Provider'] + '. Enabling torrent manual post-processing completion notification.')
-                    snatchedtorrent = True
             if issuenzb is None:
                 issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid, comicid]).fetchone()
                 annchk = "yes"
@@ -2361,20 +2360,16 @@ class PostProcessor(object):
 
             if ml is not None:
                 #we only need to return self.log if it's a manual run and it's not a snatched torrent
-                if snatchedtorrent:
-                    #manual run + snatched torrent
-                    pass
-                else:
-                    #manual run + not snatched torrent (or normal manual-run)
-                    logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
-                    self._log(u"Post Processing SUCCESSFUL! ")
-                    self.valreturn.append({"self.log": self.log,
-                                           "mode": 'stop',
-                                           "issueid": issueid,
-                                           "comicid": comicid})
-                    if self.apicall is True:
-                        self.sendnotify(series, issueyear, dispiss, annchk, module)
-                    return self.queue.put(self.valreturn)
+                #manual run + not snatched torrent (or normal manual-run)
+                logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
+                self._log(u"Post Processing SUCCESSFUL! ")
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop',
+                                       "issueid": issueid,
+                                       "comicid": comicid})
+                if self.apicall is True:
+                    self.sendnotify(series, issueyear, dispiss, annchk, module)
+                return self.queue.put(self.valreturn)
 
             self.sendnotify(series, issueyear, dispiss, annchk, module)
 
