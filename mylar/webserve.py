@@ -5393,7 +5393,8 @@ class WebInterface(object):
         if result == True:
             return "Successfully sent PushOver test -  check to make sure it worked"
         else:
-            return "Error sending test message to Pushover - check your shiet."
+            logger.warn('Last six characters of the test variables used [APIKEY: %s][USERKEY: %s]' % (apikey[-6:], userkey[-6:]))
+            return "Error sending test message to Pushover"
     testpushover.exposed = True
 
     def testpushbullet(self, apikey):
