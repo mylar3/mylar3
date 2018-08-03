@@ -482,16 +482,18 @@ class TELEGRAM:
 class SLACK:
     def __init__(self, test_webhook_url=None):
         self.webhook_url = mylar.CONFIG.SLACK_WEBHOOK_URL if test_webhook_url is None else test_webhook_url
-        
+
     def notify(self, text, attachment_text, snatched_nzb=None, prov=None, sent_to=None, module=None):
         if module is None:
             module = ''
         module += '[NOTIFIER]'
-        
-        if sent_to is None:
-            attachment_text += ' from ' + prov
+
+        if all([sent_to is not None, prov is not None]):
+            attachment_text += ' from %s and sent to %s' % (prov, sent_to)
+        elif sent_to is None:
+            attachment_text += ' from %s' % prov
         else:
-            attachment_text += ' from ' + prov + ' and sent to ' + sent_to
+            pass
 
         payload = {
 #            "text": text,
