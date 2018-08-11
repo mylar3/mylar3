@@ -635,7 +635,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     if host_torznab[len(host_torznab)-1:len(host_torznab)] == '/':
                         torznab_fix = host_torznab[:-1]
                     else:
-                        torznab_fix = host.torznab
+                        torznab_fix = host_torznab
                     findurl = str(torznab_fix) + "?t=search&q=" + str(comsearch)
                     if category_torznab is not None:
                         findurl += "&cat=" + str(category_torznab)
