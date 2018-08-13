@@ -17,11 +17,12 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, readinglist
+from mylar import db, mb, importer, search, PostProcessor, versioncheck, logger, readinglist, helpers
 import simplejson as simplejson
 import cherrypy
 from xml.sax.saxutils import escape
 import os
+import glob
 import urllib2
 from urllib import urlencode, quote_plus
 import cache
@@ -32,7 +33,7 @@ import datetime
 from mylar.webserve import serve_template
 import re
 
-cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'Comic', 'Publisher', 'Issue', 'StoryArc', 'Recent']
+cmd_list = ['root', 'Publishers', 'AllTitles', 'StoryArcs', 'ReadList', 'OneOffs', 'Comic', 'Publisher', 'Issue', 'StoryArc', 'Recent', 'deliverFile']
 
 class OPDS(object):
 
@@ -198,7 +199,20 @@ class OPDS(object):
                     'rel': 'subsection',
                 }
             )
-
+        gbd = mylar.CONFIG.GRABBAG_DIR + '/*'
+        oneofflist = glob.glob(gbd)
+        if len(oneofflist) > 0:
+            entries.append(
+                {
+                    'title': 'One-Offs (%s)' % len(oneofflist),
+                    'id': 'OneOffs',
+                    'updated': mylar.helpers.now(),
+                    'content': 'OneOffs',
+                    'href': '%s?cmd=OneOffs' % self.opdsroot,
+                    'kind': 'navigation',
+                    'rel': 'subsection',
+                }
+            )
         feed['links'] = links
         feed['entries'] = entries
         self.data = feed
@@ -491,7 +505,16 @@ class OPDS(object):
         self.data = feed
         return
 
-
+    def _deliverFile(self, **kwargs):
+        logger.fdebug("_deliverFile: kwargs: %s" % kwargs)
+        if 'file' not in kwargs:
+            self.data = self._error_with_message('No file provided')
+        elif 'filename' not in kwargs:
+            self.data = self._error_with_message('No filename provided')
+        else:
+            self.filename = os.path.split(str(kwargs['file']))[1]
+            self.file = str(kwargs['file'])
+        return 
 
     def _Issue(self, **kwargs):
         if 'issueid' not in kwargs:
@@ -574,6 +597,71 @@ class OPDS(object):
         feed['entries'] = entries
         self.data = feed
         return
+
+    def _OneOffs(self, **kwargs):
+        index = 0
+        if 'index' in kwargs:
+            index = int(kwargs['index'])
+        links = []
+        entries = []
+        flist = []
+        book = ''
+        gbd = str(mylar.CONFIG.GRABBAG_DIR + '/*').encode('utf-8')
+        flist = glob.glob(gbd)
+        readlist = []
+        for book in flist:
+            issue = {}
+            fileexists = True
+            book = book.encode('utf-8')
+            issue['Title'] = book
+            issue['IssueID'] = book
+            issue['fileloc'] = book
+            issue['filename'] = book
+            issue['image'] =  None
+            issue['thumbnail'] = None
+            issue['updated'] =  helpers.now()
+            if not os.path.isfile(issue['fileloc']):
+                fileexists = False
+            if fileexists:
+                readlist.append(issue)
+        if len(readlist) > 0:
+            if index <= len(readlist):
+                subset = readlist[index:(index + self.PAGE_SIZE)]
+                for issue in subset:
+                    metainfo = None
+                    metainfo = [{'writer': None,'summary': ''}]
+                    entries.append(
+                        {
+                            'title': escape(issue['Title']),
+                            'id': escape('comic:%s' % issue['IssueID']),
+                            'updated': issue['updated'],
+                            'content': escape('%s' % (metainfo[0]['summary'])),
+                            'href': '%s?cmd=deliverFile&amp;file=%s&amp;filename=%s' % (self.opdsroot, quote_plus(issue['fileloc']), quote_plus(issue['filename'])),
+                            'kind': 'acquisition',
+                            'rel': 'file',
+                            'author': metainfo[0]['writer'],
+                            'image': issue['image'],
+                            'thumbnail': issue['thumbnail'],
+                        }
+                    )
+
+            feed = {}
+            feed['title'] = 'Mylar OPDS - One-Offs'
+            feed['id'] = escape('OneOffs')
+            feed['updated'] = mylar.helpers.now()
+            links.append(getLink(href=self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='start', title='Home'))
+            links.append(getLink(href='%s?cmd=OneOffs' % self.opdsroot,type='application/atom+xml; profile=opds-catalog; kind=navigation',rel='self'))
+            if len(readlist) > (index + self.PAGE_SIZE):
+                links.append(
+                    getLink(href='%s?cmd=OneOffs&amp;index=%s' % (self.opdsroot, index+self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='next'))
+            if index >= self.PAGE_SIZE:
+                links.append(
+                    getLink(href='%s?cmd=Read&amp;index=%s' % (self.opdsroot, index-self.PAGE_SIZE), type='application/atom+xml; profile=opds-catalog; kind=navigation', rel='previous'))
+
+            feed['links'] = links
+            feed['entries'] = entries
+            self.data = feed
+            return
 
     def _ReadList(self, **kwargs):
         index = 0
