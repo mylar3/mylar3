@@ -4455,6 +4455,10 @@ class WebInterface(object):
                       "COUNT_HAVES": COUNT_HAVES,
                       "COUNT_ISSUES": COUNT_ISSUES,
                       "COUNT_SIZE": COUNT_SIZE}
+        DLPROVSTATS = myDB.select("SELECT Provider, COUNT(Provider) AS Frequency FROM NZBLOG GROUP BY Provider ORDER BY Frequency DESC")
+        dlprovstats = ''
+        for row, val in enumerate(DLPROVSTATS):
+            dlprovstats += ("%s: %s snatches</br>" % (DLPROVSTATS[row]['Provider'], DLPROVSTATS[row]['Frequency']))
 
         if mylar.SCHED_RSS_LAST is None:
             rss_sclast = 'Unknown'
@@ -4670,7 +4674,8 @@ class WebInterface(object):
                     "opds_authentication": helpers.checked(mylar.CONFIG.OPDS_AUTHENTICATION),
                     "opds_username": mylar.CONFIG.OPDS_USERNAME,
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
-                    "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO)
+                    "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO),
+                    "dlstats": dlprovstats
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
