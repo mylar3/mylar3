@@ -72,7 +72,6 @@ function bin ( data ) {
                 letter = data[i].charAt(13).toUpperCase();
                 if ( !letter.match(/^[A-Z]/) ) {
                         bins['nonalpha']++;
-                        alert("letter matched nonalpha! bincnt now " + bins['nonalpha']);
                 }
                 else if ( bins[letter] ) {
                         bins[letter]++;
