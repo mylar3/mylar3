@@ -101,7 +101,7 @@
 
 <%def name="headIncludes()">
         <link rel="stylesheet" href="interfaces/default/css/data_table.css">
-        <link type="text/css" href="css/alphabetSearch.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/alphabetSearch.css">
 </%def>
 
 <%def name="javascriptIncludes()">
@@ -114,7 +114,7 @@
                 $.fn.DataTable.ext.pager.numbers_length = 3;
 		var table = $('#series_table').dataTable( {
                         "destroy": true,
-                          "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
+                        "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                         "columnDefs": [
                              { "orderable": false, "targets": [5, 7, 10] },
                              { "visible": false, "targets": [5, 7, 10] },
