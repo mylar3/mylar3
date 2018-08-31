@@ -694,28 +694,46 @@ class PostProcessor(object):
                                         logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                         continue
 
-                        logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
-                        self.matched = True
-                        continue #break
-
-
-                    mlp = []
-
-                    xmld = filechecker.FileChecker()
-                    #mod_seriesname = as_dinfo['mod_seriesname']
-                    for x in manual_list:
-                        xmld1 = xmld.dynamic_replace(helpers.conversion(x['ComicName']))
+                        xmld = filechecker.FileChecker()
+                        xmld1 = xmld.dynamic_replace(helpers.conversion(cs['ComicName']))
                         xseries = xmld1['mod_seriesname'].lower()
-                        xmld2 = xmld.dynamic_replace(helpers.conversion(x['Series']))
+                        xmld2 = xmld.dynamic_replace(helpers.conversion(watchmatch['series_name']))
                         xfile = xmld2['mod_seriesname'].lower()
-                        if re.sub('\|', '', xseries).strip() == re.sub('\|', '', xfile).strip():
-                            #logger.fdebug(module + '[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (x['ComicName'], x['ComicID']))
-                            mlp.append(x)
+
+                        if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                            logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, watchmatch['series_name'], cs['ComicID']))
+                            self.matched = True
                         else:
-                            pass
-                    if len(manual_list) == 1 and len(mlp) == 1:
-                        manual_list = mlp 
-                        #logger.fdebug(module + '[CONFIRMED-FORCE-OVERRIDE] Over-ride of matching taken due to exact name matching of series')
+                            continue #break
+
+                        if datematch == 'True':
+                            logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
+                            break
+                    #mlp = []
+
+                    #xmld = filechecker.FileChecker()
+                    #if len(manual_list) > 1:
+                    #    #in case the manual pp matches on more than one series in the watchlist, drop back down to exact name matching to see if we can narrow
+                    #    #the matches down further to the point where there's only one exact match. Not being able to match specifically when there is more than
+                    #    #one item in the manual list that's matched to the same file will result in a dupe_src error and/or mistakingly PP'ing against the
+                    #    #wrong series.
+                    #    for x in manual_list:
+                    #        xmld1 = xmld.dynamic_replace(helpers.conversion(x['ComicName']))
+                    #        xseries = xmld1['mod_seriesname'].lower()
+                    #        xmld2 = xmld.dynamic_replace(helpers.conversion(x['Series']))
+                    #        xfile = xmld2['mod_seriesname'].lower()
+                    #        #logger.info('[xseries:%s][xfile:%s]' % (xseries,xfile))
+                    #        if re.sub('\|', '', xseries).strip() == re.sub('\|', '', xfile).strip():
+                    #            logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, x['ComicName'], x['ComicID']))
+                    #            mlp.append(x)
+                    #        else:
+                    #            pass
+                    #    if len(mlp) == 1:
+                    #        manual_list = mlp 
+                    #        logger.fdebug('%s[CONFIRMED-FORCE-OVERRIDE] Over-ride of matching taken due to exact name matching of series' % module)
+                    #    else:
+                    #        logger.warn('%s[CONFIRMATION-PROBLEM] Unable to determine proper match for series as more than one successful match came up.' % module)
+
 
                     #we should setup for manual post-processing of story-arc issues here
                     #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
@@ -918,7 +936,7 @@ class PostProcessor(object):
                                 logger.fdebug(module + '[ONEOFF-SELECTION][self.nzb_name: %s]' % self.nzb_name)
                                 oneoffvals = []
                                 for ofl in oneofflist:
-                                    logger.info('[ONEOFF-SELECTION] ofl: %s' % ofl)
+                                    #logger.info('[ONEOFF-SELECTION] ofl: %s' % ofl)
                                     oneoffvals.append({"ComicName":       ofl['ComicName'],
                                                        "ComicPublisher":  ofl['PUBLISHER'],
                                                        "Issue_Number":    ofl['Issue_Number'],
@@ -936,7 +954,7 @@ class PostProcessor(object):
                                 #this seems redundant to scan in all over again...
                                 #for fl in filelist['comiclist']:
                                 for ofv in oneoffvals:
-                                    logger.info('[ONEOFF-SELECTION] ofv: %s' % ofv)
+                                    #logger.info('[ONEOFF-SELECTION] ofv: %s' % ofv)
                                     wm = filechecker.FileChecker(watchcomic=ofv['ComicName'], Publisher=ofv['ComicPublisher'], AlternateSearch=None, manual=ofv['WatchValues'])
                                     #if fl['sub'] is not None:
                                     #    pathtofile = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename'])
@@ -1388,12 +1406,14 @@ class PostProcessor(object):
                     # this has no issueID, therefore it's a one-off or a manual post-proc.
                     # At this point, let's just drop it into the Comic Location folder and forget about it..
                     if sandwich is not None and 'S' in sandwich:
-                        self._log("One-off STORYARC mode enabled for Post-Processing for " + sarc)
-                        logger.info(module + ' One-off STORYARC mode enabled for Post-Processing for ' + sarc)
+                        self._log("One-off STORYARC mode enabled for Post-Processing for %s" % sarc)
+                        logger.info('%s One-off STORYARC mode enabled for Post-Processing for %s' % (module, sarc))
                     else:
                         self._log("One-off mode enabled for Post-Processing. All I'm doing is moving the file untouched into the Grab-bag directory.")
-                        logger.info(module + ' One-off mode enabled for Post-Processing. Will move into Grab-bag directory.')
-                        self._log("Grab-Bag Directory set to : " + mylar.CONFIG.GRABBAG_DIR)
+                        if mylar.CONFIG.GRABBAG_DIR is None:
+                            mylar.CONFIG.GRABBAG_DIR = os.path.join(mylar.CONFIG.DESTINATION_DIR, 'Grabbag')
+                        logger.info('%s One-off mode enabled for Post-Processing. Will move into Grab-bag directory: %s' % (module, mylar.CONFIG.GRABBAG_DIR))
+                        self._log("Grab-Bag Directory set to : %s" % mylar.CONFIG.GRABBAG_DIR)
                         grdst = mylar.CONFIG.GRABBAG_DIR
 
                     odir = location
@@ -2358,22 +2378,22 @@ class PostProcessor(object):
                 seriesmetadata['seriesmeta'] = seriesmeta
                 self._run_extra_scripts(nzbn, self.nzb_folder, filen, folderp, seriesmetadata)
 
-            if ml is not None:
-                #we only need to return self.log if it's a manual run and it's not a snatched torrent
-                #manual run + not snatched torrent (or normal manual-run)
-                logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
-                self._log(u"Post Processing SUCCESSFUL! ")
-                self.valreturn.append({"self.log": self.log,
-                                       "mode": 'stop',
-                                       "issueid": issueid,
-                                       "comicid": comicid})
-                if self.apicall is True:
-                    self.sendnotify(series, issueyear, dispiss, annchk, module)
-                return self.queue.put(self.valreturn)
+            #if ml is not None:
+            #    #we only need to return self.log if it's a manual run and it's not a snatched torrent
+            #    #manual run + not snatched torrent (or normal manual-run)
+            #    logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
+            #    self._log(u"Post Processing SUCCESSFUL! ")
+            #    self.valreturn.append({"self.log": self.log,
+            #                           "mode": 'stop',
+            #                           "issueid": issueid,
+            #                           "comicid": comicid})
+            #    #if self.apicall is True:
+            #    self.sendnotify(series, issueyear, dispiss, annchk, module)
+            #    return self.queue.put(self.valreturn)
 
             self.sendnotify(series, issueyear, dispiss, annchk, module)
 
-            logger.info(module + ' Post-Processing completed for: ' + series + ' ' + dispiss)
+            logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
             self._log(u"Post Processing SUCCESSFUL! ")
 
             self.valreturn.append({"self.log": self.log,

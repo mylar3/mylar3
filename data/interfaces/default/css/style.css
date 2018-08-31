@@ -1960,6 +1960,7 @@ DIV.progress-container > DIV
 }
 #upcoming_table th#type,
 #wanted_table th#type,
+#wanted_table th#tier,
 #searchresults_table th#score {
   min-width: 75px;
   text-align: center;
@@ -2010,6 +2011,7 @@ DIV.progress-container > DIV
 }
 #upcoming_table td#type,
 #wanted_table td#type,
+#wanted_table td#tier,
 #searchresults_table td#score {
   min-width: 75px;
   text-align: center;

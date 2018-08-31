@@ -74,6 +74,7 @@ if not LOG_LANG.startswith('en'):
             logging.getLogger('apscheduler.threadpool').setLevel(logging.WARN)
             logging.getLogger('apscheduler.scheduler').propagate = False
             logging.getLogger('apscheduler.threadpool').propagate = False
+            logging.getLogger('cherrypy').propagate = False
             lg = logging.getLogger('mylar')
             lg.setLevel(logging.DEBUG)
 
@@ -238,7 +239,7 @@ else:
         logging.getLogger('apscheduler.threadpool').setLevel(logging.WARN)
         logging.getLogger('apscheduler.scheduler').propagate = False
         logging.getLogger('apscheduler.threadpool').propagate = False
-
+        logging.getLogger('cherrypy').propagate = False
 
         # Close and remove old handlers. This is required to reinit the loggers
         # at runtime

@@ -1916,7 +1916,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                         'SARC':          None,
                                         'StoryArcID':    None,
                                         'IssueArcID':    None,
-                                        'mode':          'want'
+                                        'mode':          'want',
+                                        'DateAdded':     iss['DateAdded']
                                        })
                 elif stloop == 2:
                     if mylar.CONFIG.SEARCH_STORYARCS is True or rsscheck:
@@ -1934,7 +1935,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                             'SARC':          iss['StoryArc'],
                                             'StoryArcID':    iss['StoryArcID'],
                                             'IssueArcID':    iss['IssueArcID'],
-                                            'mode':          'story_arc'
+                                            'mode':          'story_arc',
+                                            'DateAdded':     iss['DateAdded']
                                            })
                             cnt+=1
                         logger.info('Storyarcs to be searched for : %s' % cnt)
@@ -1952,7 +1954,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                         'SARC':          None,
                                         'StoryArcID':    None,
                                         'IssueArcID':    None,
-                                        'mode':          'want_ann'
+                                        'mode':          'want_ann',
+                                        'DateAdded':     iss['DateAdded']
                                        })
                 stloop-=1
 
@@ -2020,7 +2023,22 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 else:
                     ComicYear = str(result['IssueDate'])[:4]
 
-                if rsscheck is None:
+                if result['DateAdded'] is None:
+                    DA = datetime.datetime.today()
+                    DateAdded = DA.strftime('%Y-%m-%d')
+                    if result['mode'] == 'want':
+                        table = 'issues'
+                    elif result['mode'] == 'want_ann':
+                        table = 'annuals'
+                    elif result['mode'] == 'story_arc':
+                        table = 'storyarcs'
+                    logger.fdebug('%s #%s did not have a DateAdded recorded, setting it : %s' % (comic['ComicName'], result['Issue_Number'], DateAdded))
+                    myDB.upsert(table, {'DateAdded': DateAdded}, {'IssueID': result['IssueID']})
+
+                else:
+                    DateAdded = result['DateAdded']
+
+                if rsscheck is None and DateAdded >= mylar.SEARCH_TIER_DATE:
                     logger.info('adding: ComicID:%s  IssueiD: %s' % (result['ComicID'], result['IssueID']))
                     mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID']})
                     continue

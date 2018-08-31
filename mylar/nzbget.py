@@ -107,6 +107,7 @@ class NZBGet(object):
 
             stat = False
             double_pp = False
+            double_type = None
             while stat is False:
                 time.sleep(10)
                 queueinfo = self.server.listgroups()
@@ -117,22 +118,37 @@ class NZBGet(object):
                 else:
                     if 'comicrn' in queuedl[0]['PostInfoText'].lower():
                         double_pp = True
+                        double_type = 'ComicRN'
+                    elif 'nzbtomylar' in queuedl[0]['PostInfoText'].lower():
+                        double_pp = True
+                        double_type = 'nzbToMylar'
 
                     if all([len(queuedl[0]['ScriptStatuses']) > 0, double_pp is False]):
                         for x in queuedl[0]['ScriptStatuses']:
                             if 'comicrn' in x['Name'].lower():
                                 double_pp = True
+                                double_type = 'ComicRN'
+                                break
+                            elif 'nzbtomylar' in x['Name'].lower():
+                                double_pp = True
+                                double_type = 'nzbToMylar'
                                 break
 
                     if all([len(queuedl[0]['Parameters']) > 0, double_pp is False]):
                         for x in queuedl[0]['Parameters']:
                             if all(['comicrn' in x['Name'].lower(), x['Value'] == 'yes']):
                                 double_pp = True
+                                double_type = 'ComicRN'
+                                break
+                            elif all(['nzbtomylar' in x['Name'].lower(), x['Value'] == 'yes']):
+                                double_pp = True
+                                double_type = 'nzbToMylar'
                                 break
 
+
                     if double_pp is True:
-                        logger.warn('ComicRN has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.')
-                        logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove ComicRN from your category script in NZBGet.')
+                        logger.warn('%s has been detected as being active for this category & download. Completed Download Handling will NOT be performed due to this.' % double_type)
+                        logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove %s from your category script in NZBGet.' % double_type)
                         return {'status': 'double-pp', 'failed': False}
 
                     logger.fdebug('status: %s' % queuedl[0]['Status'])
@@ -152,7 +168,7 @@ class NZBGet(object):
         found = False
         destdir = None
         double_pp = False
-        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or 'COPY' in hs['Status'])]
+        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or ('COPY' in hs['Status'] and 'DELETED' not in hq[0]['Status']))]
         if len(hq) > 0:
             logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
             if len(hq[0]['ScriptStatuses']) > 0:

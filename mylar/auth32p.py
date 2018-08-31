@@ -104,7 +104,7 @@ class info32p(object):
                 all_script2 = soup.find_all("link", {"rel": "alternate"})
 
                 authfound = False
-                logger.info('%s Atttempting to integrate with all of your 32P Notification feeds.' % self.module)
+                logger.info('%s Attempting to integrate with all of your 32P Notification feeds.' % self.module)
 
                 #get inkdrop count ...
                 #user_info = soup.find_all(attrs={"class": "stat"})

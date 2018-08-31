@@ -114,6 +114,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         elif pickfeed == "999":    #WWT rss feed
             feed = mylar.WWTURL + 'rss.php?cat=132,50'
             feedtype = ' from the New Releases RSS Feed from WorldWideTorrents'
+            verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
         elif int(pickfeed) >= 7 and feedinfo is not None:
             #personal 32P notification feeds.
             #get the info here
@@ -135,24 +136,35 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         elif pickfeed == '1' or pickfeed == '4' or int(pickfeed) > 7:
             picksite = '32P'
 
-        if all([pickfeed != '4', pickfeed != '3', pickfeed != '5', pickfeed != '999']):
+        if all([pickfeed != '4', pickfeed != '3', pickfeed != '5']):
             payload = None
 
             ddos_protection = round(random.uniform(0,15),2)
             time.sleep(ddos_protection)
 
+            logger.info('Now retrieving feed from %s [%s]' % (picksite,feed))
             try:
+                headers = {'Accept-encoding': 'gzip',
+                           'User-Agent':       mylar.CV_HEADERS['User-Agent']}
                 cf_cookievalue = None
                 scraper = cfscrape.create_scraper()
-                if pickfeed == '2':
-                    cf_cookievalue, cf_user_agent = scraper.get_tokens(feed)
-                    headers = {'Accept-encoding': 'gzip',
-                               'User-Agent':       cf_user_agent}
+                if pickfeed == '999':
+                    if all([pickfeed == '999', mylar.WWT_CF_COOKIEVALUE is None]):
+                        try:
+                            cf_cookievalue, cf_user_agent = scraper.get_tokens(feed, user_agent=mylar.CV_HEADERS['User-Agent'])
+                        except Exception as e:
+                            logger.warn('[WWT-RSSFEED] Unable to retrieve RSS properly: %s' % e)
+                            lp+=1
+                            continue
+                        else:
+                            mylar.WWT_CF_COOKIEVALUE = cf_cookievalue
+                            cookievalue = cf_cookievalue
+                    elif pickfeed == '999':
+                        cookievalue = mylar.WWT_CF_COOKIEVALUE
 
-                if cf_cookievalue:
-                    r = scraper.get(feed, verify=verify, cookies=cf_cookievalue, headers=headers)
+                    r = scraper.get(feed, verify=verify, cookies=cookievalue, headers=headers)
                 else:
-                    r = scraper.get(feed, verify=verify)
+                    r = scraper.get(feed, verify=verify, headers=headers)
             except Exception, e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
                 lp+=1
@@ -188,12 +200,12 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             #DEMONOID SEARCH RESULT (parse)
             pass
         elif pickfeed == "999":
-            try:
-                feedme = feedparser.parse(feed)
-            except Exception, e:
-                logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
-                lp+=1
-                continue
+            #try:
+            #    feedme = feedparser.parse(feed)
+            #except Exception, e:
+            #    logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
+            #    lp+=1
+            #    continue
 
             #WWT / FEED
             for entry in feedme.entries:
@@ -233,9 +245,11 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                             tmpsz_end = tmp1 + 2
                             tmpsz_st += 7
                     else:
+                        tmpsz = tmpsz[:80]  #limit it to the first 80 so it doesn't pick up alt covers mistakingly
                         tmpsz_st = tmpsz.rfind('|')
                         if tmpsz_st != -1:
-                            tmpsize = tmpsz[tmpsz_st:tmpsz_st+14]
+                            tmpsz_end = tmpsz.find('<br />', tmpsz_st)
+                            tmpsize = tmpsz[tmpsz_st:tmpsz_end] #st+14]
                             if any(['GB' in tmpsize, 'MB' in tmpsize, 'KB' in tmpsize, 'TB' in tmpsize]):
                                 tmp1 = tmpsz.find('MB', tmpsz_st)
                                 if tmp1 == -1:
@@ -260,7 +274,6 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     elif 'TB' in tmpsz[tmpsz_st:tmpsz_end]:
                         szform = 'TB'
                         sz = 'T'
-
                     tsize = helpers.human2bytes(str(tmpsz[tmpsz_st:tmpsz.find(szform, tmpsz_st) -1]) + str(sz))
 
                     #timestamp is in YYYY-MM-DDTHH:MM:SS+TZ :/
@@ -278,9 +291,10 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     feeddata.append({
                                     'site':     picksite,
                                     'title':    feedme.entries[i].title,
-                                    'link':     str(urlparse.urlparse(feedme.entries[i].link)[2].rpartition('/')[0].rsplit('/',2)[2]),
+                                    'link':     str(re.sub('genid=', '', urlparse.urlparse(feedme.entries[i].link)[4]).strip()),
+                                    #'link':     str(urlparse.urlparse(feedme.entries[i].link)[2].rpartition('/')[0].rsplit('/',2)[2]),
                                     'pubdate':  pdate,
-                                    'size':     tsize,
+                                    'size':     tsize
                                     })
 
                 #32p / FEEDS
@@ -942,7 +956,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             wwt_referrer = 'http' + mylar.WWTURL[5:]
 
         headers = {'Accept-encoding': 'gzip',
-                   'User-Agent':      str(mylar.USER_AGENT),
+                   'User-Agent':      mylar.CV_HEADERS['User-Agent'],
                    'Referer':         wwt_referrer}
 
         logger.fdebug('Grabbing torrent [id:' + str(linkit) + '] from url:' + str(url))
@@ -978,8 +992,11 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                     return "fail"
         try:
             scraper = cfscrape.create_scraper()
-            if cf_cookievalue:
-                r = scraper.get(url, params=payload, cookies=cf_cookievalue, verify=verify, stream=True, headers=headers)
+            if site == 'WWT':
+                if mylar.WWT_CF_COOKIEVALUE is None:
+                    cf_cookievalue, cf_user_agent = s.get_tokens(newurl, user_agent=mylar.CV_HEADERS['User-Agent'])
+                    mylar.WWT_CF_COOKIEVALUE = cf_cookievalue
+                r = scraper.get(url, params=payload, cookies=mylar.WWT_CF_COOKIEVALUE, verify=verify, stream=True, headers=headers)
             else:
                 r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers)
             #r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)

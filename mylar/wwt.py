@@ -22,7 +22,7 @@ import time
 import sys
 import datetime
 from datetime import timedelta
-
+import lib.cfscrape as cfscrape
 
 import mylar
 from mylar import logger, helpers
@@ -43,9 +43,13 @@ class wwt(object):
                   'incldead': 0,
                   'lang': 0}
 
-        with requests.Session() as s:
+        with cfscrape.create_scraper() as s:
             newurl = self.url + 'torrents-search.php'
-            r = s.get(newurl, params=params, verify=True)
+            if mylar.WWT_CF_COOKIEVALUE is None:
+                cf_cookievalue, cf_user_agent = s.get_tokens(newurl, user_agent=mylar.CV_HEADERS['User-Agent'])
+                mylar.WWT_CF_COOKIEVALUE = cf_cookievalue
+
+            r = s.get(newurl, params=params, verify=True, cookies=mylar.WWT_CF_COOKIEVALUE, headers=mylar.CV_HEADERS)
 
             if not r.status_code == 200:
                 return

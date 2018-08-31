@@ -21,6 +21,7 @@
         <div id="checkboxControls" style="float: right; vertical-align: middle; margin: 5px 3px 3px 3px;">
           <div style="padding-bottom: 5px;">
             <label for="Wanted" class="checkbox inline Wanted"><input type="checkbox" id="Wanted" checked="checked" /> Wanted: <b>${isCounts['Wanted']}</b></label>
+            <label for="WantedTier" class="checkbox inline WantedTier">Tiered: <b>${isCounts['WantedTier']}</b></label>
             %if mylar.CONFIG.UPCOMING_SNATCHED is True:
                 %if int(isCounts['Snatched']) > 0:
                     <label for="Snatched" class="checkbox inline Snatched"><input type="checkbox" id="Snatched" checked="checked" /> Snatched: <b>${isCounts['Snatched']}</b></label>
@@ -46,7 +47,7 @@
                 </select>
                 <input type="hidden" value="Go">
           </div>
-
+                <small style="float: right; vertical-align: middle;">Date shown in SearchTier is when the issue was added to the Wanted list</small>
 		<table class="display" id="wanted_table">
 		<thead>
 			<tr>
@@ -54,6 +55,7 @@
 				<th id="comicname">Comic</th>
 				<th id="issuenumber">Issue</th>
 				<th id="reldate">Release Date</th>
+                                <th id="tier">SearchTier</th>
 				<th id="options">Options</th>
 			</tr>
 		</thead>
@@ -62,12 +64,25 @@
                         <%
                                 if issue['Status'] == 'Wanted':
                                         grade = 'X'
+
+                                        try:
+                                                if issue['DateAdded'] <= mylar.SEARCH_TIER_DATE:
+                                                        tier = "2nd"
+                                                        grade = 'T2'
+                                                else:
+                                                        tier = "1st [%s]" % issue['DateAdded']
+                                                        grade = 'X'
+                                        except:
+                                                tier = "1st [%s]" % issue['DateAdded']
+                                                grade = 'T2'
+
                                 elif issue['Status'] == 'Snatched':
                                         grade = 'C'
                                 elif issue['Status'] == 'Failed':
                                         grade = 'F'
                                 else:
                                         grade = 'Z'
+
                         %>
 
                         <tr class="${issue['Status']} grade${grade}">
@@ -96,6 +111,15 @@
                                       else:
                                           adjcomicname = issue['ComicName']
                                       endif
+
+                                      try:
+                                          if issue['DateAdded'] <= mylar.SEARCH_TIER_DATE:
+                                              tier = "2nd"
+                                          else:
+                                              tier = "1st [%s]" % issue['DateAdded']
+                                      except:
+                                          tier = "1st [%s]" % issue['DateAdded']
+                                      
                                 %>
                                 <td id="select"><input type="checkbox" name="${issueid}" class="checkbox" value="${issueid}"/></td>
 				<td id="comicname">
@@ -107,6 +131,11 @@
                                 </td>
                                 <td id="issuenumber">${issuenumber}</td>
 				<td id="reldate">${issue['IssueDate']}</td>
+                                %if issue['Status'] == 'Wanted':
+  				        <td id="tier" style="text-align:center;">${tier}</td>
+                                %else:
+                                        <td id="tier"></td>
+                                %endif
                                 <td id="options">
 <!--
                                 <a class="menu_link_edit" id="choose_specific_download" title="Choose Specific Download" href="javascript:void(0)" onclick="getAvailableDownloads('${issueid}')"><i class="fa fa-search"></i><img src="interfaces/default/images/magnifier.png" height="25" width="25" class="highqual" /></a>
@@ -131,7 +160,6 @@
 		%endfor
 		</tbody>
 	</table>
-
 	</form>
 	</div>
 

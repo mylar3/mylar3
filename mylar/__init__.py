@@ -22,6 +22,7 @@ import os, sys, subprocess
 
 import threading
 import datetime
+from datetime import timedelta
 import webbrowser
 import sqlite3
 import itertools
@@ -104,6 +105,7 @@ CV_HEADERS = None
 CVURL = None
 DEMURL = None
 WWTURL = None
+WWT_CF_COOKIEVALUE = None
 KEYS_32P = None
 AUTHKEY_32P = None
 FEED_32P = None
@@ -125,6 +127,7 @@ SNATCHED_QUEUE = Queue.Queue()
 NZB_QUEUE = Queue.Queue()
 PP_QUEUE = Queue.Queue()
 SEARCH_QUEUE = Queue.Queue()
+SEARCH_TIER_DATE = None
 COMICSORT = None
 PULLBYFILE = None
 CFG = None
@@ -160,11 +163,11 @@ def initialize(config_file):
 
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
                DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, SEARCH_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
-               IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, \
+               IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, WWT_CF_COOKIEVALUE, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, LOG_LEVEL, \
-               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO
+               SCHED_RSS_LAST, SCHED_WEEKLY_LAST, SCHED_MONITOR_LAST, SCHED_SEARCH_LAST, SCHED_VERSION_LAST, SCHED_DBUPDATE_LAST, COMICINFO, SEARCH_TIER_DATE
 
         cc = mylar.config.Config(config_file)
         CONFIG = cc.read(startup=True)
@@ -228,6 +231,13 @@ def initialize(config_file):
         todaydate = datetime.datetime.today()
         CURRENT_WEEKNUMBER = todaydate.strftime("%U")
         CURRENT_YEAR = todaydate.strftime("%Y")
+
+        if SEARCH_TIER_DATE is None:
+            #tier the wanted listed so anything older than 14 days won't trigger the API during searches.
+            #utc_date = datetime.datetime.utcnow()
+            STD = todaydate - timedelta(days = 14)
+            SEARCH_TIER_DATE = STD.strftime('%Y-%m-%d')
+            logger.fdebug('SEARCH_TIER_DATE set to : %s' % SEARCH_TIER_DATE)
 
         #set the default URL for ComicVine API here.
         CVURL = 'https://comicvine.gamespot.com/api/'
@@ -472,7 +482,7 @@ def dbcheck():
         c.execute('SELECT ReleaseDate from storyarcs')
     except sqlite3.OperationalError:
         try:
-            c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT)')
             c.execute('INSERT INTO storyarcs(StoryArcID, ComicName, IssueNumber, SeriesYear, IssueYEAR, StoryArc, TotalIssues, Status, inCacheDir, Location, IssueArcID, ReadingOrder, IssueID, ComicID, ReleaseDate, IssueDate, Publisher, IssuePublisher, IssueName, CV_ArcID, Int_IssueNumber, DynamicComicName, Volume, Manual) SELECT StoryArcID, ComicName, IssueNumber, SeriesYear, IssueYEAR, StoryArc, TotalIssues, Status, inCacheDir, Location, IssueArcID, ReadingOrder, IssueID, ComicID, StoreDate, IssueDate, Publisher, IssuePublisher, IssueName, CV_ArcID, Int_IssueNumber, DynamicComicName, Volume, Manual FROM readinglist')
             c.execute('DROP TABLE readinglist')
         except sqlite3.OperationalError:
@@ -486,7 +496,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, annuallink TEXT, rowid INTEGER PRIMARY KEY)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT, DateAdded TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
@@ -650,7 +660,6 @@ def dbcheck():
         c.execute('SELECT ImageURL_ALT from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ImageURL_ALT TEXT')
-
 
     ## -- ImportResults Table --
 
@@ -829,6 +838,7 @@ def dbcheck():
         c.execute('SELECT OneOff from nzblog')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE nzblog ADD COLUMN OneOff TEXT')
+
     ## -- Annuals Table --
 
     try:
@@ -877,6 +887,10 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN IssueDate_Edit TEXT')
 
+    try:
+        c.execute('SELECT DateAdded from annuals')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE annuals ADD COLUMN DateAdded TEXT')
 
     ## -- Snatched Table --
 
@@ -964,6 +978,11 @@ def dbcheck():
         c.execute('SELECT Manual from storyarcs')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE storyarcs ADD COLUMN Manual TEXT')
+
+    try:
+        c.execute('SELECT DateAdded from storyarcs')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE storyarcs ADD COLUMN DateAdded TEXT')
 
     ## -- searchresults Table --
     try:

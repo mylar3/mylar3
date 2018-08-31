@@ -2042,6 +2042,7 @@ class WebInterface(object):
         isCounts[1] = 0   #1 wanted
         isCounts[2] = 0   #2 snatched
         isCounts[3] = 0   #3 failed
+        isCounts[4] = 0   #3 wantedTier
 
         ann_list = []
 
@@ -2060,7 +2061,8 @@ class WebInterface(object):
             ann_list += annuals_list
             issues += annuals_list
 
-        issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
+        issues_tmp1 = sorted(issues, key=itemgetter('DateAdded'), reverse=True)
+        issues_tmp = sorted(issues_tmp1, key=itemgetter('ReleaseDate'), reverse=True)
         issues = sorted(issues_tmp, key=itemgetter('Status'), reverse=True)
 
         for curResult in issues:
@@ -2070,17 +2072,21 @@ class WebInterface(object):
                    continue
                 else:
                     if seas in curResult['Status'].lower():
-                        sconv = baseissues[seas]
-                        isCounts[sconv]+=1
+                        if all([curResult['DateAdded'] <= mylar.SEARCH_TIER_DATE, curResult['Status'] == 'Wanted']):
+                            isCounts[4]+=1
+                        else:
+                            sconv = baseissues[seas]
+                            isCounts[sconv]+=1
                         continue
 
         isCounts = {"Wanted": str(isCounts[1]),
                     "Snatched": str(isCounts[2]),
                     "Failed": str(isCounts[3]),
-                    "StoryArcs": str(len(arcs))}
+                    "StoryArcs": str(len(arcs)),
+                    "WantedTier": str(isCounts[4])}
 
         iss_cnt = int(isCounts['Wanted'])
-        wantedcount = iss_cnt # + ann_cnt
+        wantedcount = iss_cnt + int(isCounts['WantedTier']) # + ann_cnt
 
         #let's straightload the series that have no issue data associated as of yet (ie. new series) from the futurepulllist
         future_nodata_upcoming = myDB.select("SELECT * FROM futureupcoming WHERE IssueNumber='1' OR IssueNumber='0'")

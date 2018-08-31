@@ -21,7 +21,7 @@
 	<div id="paddingheader">
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_gear.png" alt="settings"/>Settings</h1>
 	</div>
-	<form action="configUpdate" method="post" class="form" id="configUpdate">
+	<form action="configUpdate" method="post" id="configUpdate">
 	<div id="tabs">
 		<ul>
                         <li><a href="#tabs-1">Information</a></li>
@@ -1464,10 +1464,10 @@
         <input type="button" value="Save Changes" onclick="doAjaxCall('configUpdate',$(this),'tabs',true);return false;" data-success="Changes saved successfully">
         <div class="message">
         	<p><span class="ui-icon ui-icon-info" style="float: left; margin-right: .3em;"></span>Web Interface changes require a restart to take effect</p>
-		</div>
+	</div>
 
-      </form>
- </div>
+     </div>
+    </form>
 </%def>
 
 <%def name="javascriptIncludes()">

@@ -962,10 +962,10 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                     annualidmatch = [x for x in weeklylist if week['annuallink'] is not None and (int(x['ComicID']) == int(week['annuallink']))]
             #The above will auto-match against ComicID if it's populated on the pullsite, otherwise do name-matching.
             namematch = [ab for ab in weeklylist if ab['DynamicName'] == week['dynamicname']]
-            logger.fdebug('rowid: ' + str(week['rowid']))
-            logger.fdebug('idmatch: ' + str(idmatch))
-            logger.fdebug('annualidmatch: ' + str(annualidmatch))
-            logger.fdebug('namematch: ' + str(namematch))
+            #logger.fdebug('rowid: ' + str(week['rowid']))
+            #logger.fdebug('idmatch: ' + str(idmatch))
+            #logger.fdebug('annualidmatch: ' + str(annualidmatch))
+            #logger.fdebug('namematch: ' + str(namematch))
             if any([idmatch,namematch,annualidmatch]):
                 if idmatch and not annualidmatch:
                     comicname = idmatch[0]['ComicName'].strip()
