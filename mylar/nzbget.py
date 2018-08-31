@@ -188,7 +188,7 @@ class NZBGet(object):
                 logger.warn('Either disable Completed Download Handling for NZBGet within Mylar, or remove ComicRN from your category script in NZBGet.')
                 return {'status': 'double-pp', 'failed': False}
 
-            if all(['SUCCESS' in hq[0]['Status'], hq[0]['DownloadedSizeMB'] == hq[0]['FileSizeMB']]):
+            if all(['SUCCESS' in hq[0]['Status'], (hq[0]['FileSizeMB']*.95) <= hq[0]['DownloadedSizeMB'] <= (hq[0]['FileSizeMB']*1.05)]):
                 logger.fdebug('%s has final file size of %sMB' % (hq[0]['Name'], hq[0]['DownloadedSizeMB']))
                 if os.path.isdir(hq[0]['DestDir']):
                     destdir = hq[0]['DestDir']
