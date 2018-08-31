@@ -101,8 +101,21 @@
                         <div>${config['branch_history']}</div>
                 </fieldset>
                 <fieldset>
-                    <legend>Provider Usage</legend>
-                        <div>${config['dlstats']}</div>
+                    <div class="row">
+                        <label style="font-size:16px;font-weight:bold;">Provider Usage (${config['dltotals']})</label>
+                        <a href="#" onclick="show_stats();"><span style="vertical-align:bottom;text-align:center;float:right;">Show Stats</span></a>
+                    </div>
+                    <div id="stats" style="display:none">
+                    </br>
+                    %for dl in config['dlstats']:
+                        <%
+                            dlline = '%s: %s snatches' % (dl[0], dl[1])
+                            if dl[0] == 'newznab':
+                                dlline += '<small>  (*erroneous collection data)</small>'
+                        %>
+                        ${dlline}</br>
+                    %endfor
+                    </div>
                 </fieldset>
                </td>
             </tr>
@@ -341,7 +354,7 @@
                                     <label>SABnzbd Password:</label>
                                     <input type="password" name="sab_password" id="sab_password" value="${config['sab_pass']| h}" size="20">
                                 </div>
-                                <div Class="row">
+                                <div class="row">
                                      <div class="populatesab">
                                         <label>SABnzbd API:</label>
                                         <input type="text" name="sab_apikey" id="sab_apikey" value="${config['sab_api']}" size="28">
@@ -1483,6 +1496,15 @@
                 document.getElementById("auth_options").style.display = "initial";
             } else {
                 document.getElementById("auth_options").style.display = "none";
+            }
+        }
+        function show_stats()
+        {
+            var x = document.getElementById("stats");
+            if (x.style.display === "none") {
+                x.style.display = "block";
+            } else {
+                x.style.display = "none";
             }
         }
         </script>

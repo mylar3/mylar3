@@ -367,7 +367,11 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 prov_count+=1
 
             if findit['status'] is True:
-                srchloop = 4 
+                if searchprov == 'newznab':
+                    searchprov = newznab_host[0].rstrip() + ' (newznab)'
+                elif searchprov == 'torznab':
+                    searchprov = torznab_host[0].rstrip() + ' (torznab)'
+                srchloop = 4
                 break
             elif srchloop == 2 and (cmloopit -1 >= 1):
                 time.sleep(30)  #pause for 30s to not hammmer api's

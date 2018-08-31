@@ -4455,10 +4455,42 @@ class WebInterface(object):
                       "COUNT_HAVES": COUNT_HAVES,
                       "COUNT_ISSUES": COUNT_ISSUES,
                       "COUNT_SIZE": COUNT_SIZE}
-        DLPROVSTATS = myDB.select("SELECT Provider, COUNT(Provider) AS Frequency FROM NZBLOG GROUP BY Provider ORDER BY Frequency DESC")
-        dlprovstats = ''
-        for row, val in enumerate(DLPROVSTATS):
-            dlprovstats += ("%s: %s snatches</br>" % (DLPROVSTATS[row]['Provider'], DLPROVSTATS[row]['Frequency']))
+        DLPROVSTATS = myDB.select("SELECT Provider, COUNT(Provider) AS Frequency FROM Snatched WHERE Status = 'Snatched' AND Provider is NOT NULL GROUP BY Provider ORDER BY Frequency DESC")
+        freq = dict()
+        freq_tot = 0
+        for row in DLPROVSTATS:
+            if any(['CBT' in row['Provider'], '32P' in row['Provider'], 'ComicBT' in row['Provider']]):
+                try:
+                    tmpval = freq['32P']
+                    freq.update({'32P': tmpval + row['Frequency']})
+                except:
+                    freq.update({'32P': row['Frequency']})
+            elif 'KAT' in row['Provider']:
+                try:
+                    tmpval = freq['KAT']
+                    freq.update({'KAT': tmpval + row['Frequency']})
+                except:
+                    freq.update({'KAT': row['Frequency']})
+            elif 'experimental' in row['Provider']:
+                try:
+                    tmpval = freq['Experimental']
+                    freq.update({'Experimental': tmpval + row['Frequency']})
+                except:
+                    freq.update({'Experimental': row['Frequency']})
+
+
+            elif [True for x in freq if re.sub("\(newznab\)", "", str(row['Provider'])).strip() in x]:
+                try:
+                    tmpval = freq[re.sub("\(newznab\)", "", row['Provider']).strip()]
+                    freq.update({re.sub("\(newznab\)", "", row['Provider']).strip(): tmpval + row['Frequency']})
+                except:
+                    freq.update({re.sub("\(newznab\)", "", row['Provider']).strip(): row['Frequency']})
+            else:
+                freq.update({re.sub("\(newznab\)", "", row['Provider']).strip(): row['Frequency']})
+
+            freq_tot += row['Frequency']
+
+        dlprovstats = sorted(freq.iteritems(), key=itemgetter(1), reverse=True)
 
         if mylar.SCHED_RSS_LAST is None:
             rss_sclast = 'Unknown'
@@ -4675,7 +4707,8 @@ class WebInterface(object):
                     "opds_username": mylar.CONFIG.OPDS_USERNAME,
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
                     "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO),
-                    "dlstats": dlprovstats
+                    "dlstats": dlprovstats,
+                    "dltotals": freq_tot
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
