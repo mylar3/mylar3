@@ -142,7 +142,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             ddos_protection = round(random.uniform(0,15),2)
             time.sleep(ddos_protection)
 
-            logger.info('Now retrieving feed from %s [%s]' % (picksite,feed))
+            logger.info('Now retrieving feed from %s' % picksite)
             try:
                 headers = {'Accept-encoding': 'gzip',
                            'User-Agent':       mylar.CV_HEADERS['User-Agent']}

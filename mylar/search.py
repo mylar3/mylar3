@@ -1068,7 +1068,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                 fndcomicversion = None
                 for ct in ctchk:
-                    if any([ct.lower().startswith('v') and ct[1:].isdigit(), ct.lower()[:3] == 'vol', volfound == True]):
+                    if any([ct.lower().startswith('v') and ct[1:].isdigit(), ct.lower()[:3] == 'vol' and (len(ct) == 3 or ct[3:].isdigit()), volfound == True]):
                         if volfound == True:
                             logger.fdebug('Split Volume label detected [' + ct + '] - ie. Vol 4. Attempting to adust.')
                             if ct.isdigit():
@@ -1083,6 +1083,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 logger.fdebug('Newly finished reformed cleantitle (with NO volume label): ' + cleantitle)
                                 volfound == False
                         tmpsplit = ct
+                        #re.sub(r'\W+','', tmpsplit[tmpsplit.find('vol')+3]) == '']
                         if tmpsplit.lower().startswith('vol'):
                             logger.fdebug('volume detected - stripping and re-analzying for volume label.')
                             origvol = tmpsplit
