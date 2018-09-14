@@ -789,7 +789,7 @@ def fullmonth(monthno):
     monthconv = None
 
     for numbs in basmonths:
-        if numbs in str(int(monthno)):
+        if int(numbs) == int(monthno):
             monthconv = basmonths[numbs]
 
     return monthconv
@@ -3773,6 +3773,20 @@ def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
                 mode = 'want'
             mylar.updater.nzblog(x['issueid'], nzbname, x['comicname'], id=nzbid, prov=prov, oneoff=oneoff)
             mylar.updater.foundsearch(x['comicid'], x['issueid'], mode=mode, provider=prov, hash=hash)
+
+
+def DateAddedFix():
+    import db
+    myDB = db.DBConnection()
+    DA_A = datetime.datetime.today()
+    DateAdded = DA_A.strftime('%Y-%m-%d')
+    issues = myDB.select("SELECT IssueID FROM issues WHERE Status='Wanted' and DateAdded is NULL")
+    for da in issues:
+        myDB.upsert("issues", {'DateAdded': DateAdded}, {'IssueID': da[0]})
+    annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL")
+    for an in annuals:
+        myDB.upsert("annuals", {'DateAdded': DateAdded}, {'IssueID': an[0]})
+
 
 
 def file_ops(path,dst,arc=False,one_off=False):

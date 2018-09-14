@@ -2022,6 +2022,10 @@ class WebInterface(object):
 
         futureupcoming = sorted(futureupcoming, key=itemgetter('IssueDate', 'ComicName', 'IssueNumber'), reverse=True)
 
+
+        #fix None DateAdded points here
+        helpers.DateAddedFix()
+
         issues = myDB.select("SELECT * from issues WHERE Status='Wanted'")
         if mylar.CONFIG.UPCOMING_STORYARCS is True:
             arcs = myDB.select("SELECT * from storyarcs WHERE Status='Wanted'")
@@ -2061,9 +2065,9 @@ class WebInterface(object):
             ann_list += annuals_list
             issues += annuals_list
 
-        issues_tmp1 = sorted(issues, key=itemgetter('DateAdded'), reverse=True)
-        issues_tmp = sorted(issues_tmp1, key=itemgetter('ReleaseDate'), reverse=True)
-        issues = sorted(issues_tmp, key=itemgetter('Status'), reverse=True)
+        issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
+        issues_tmp1 = sorted(issues_tmp, key=itemgetter('DateAdded'), reverse=True)
+        issues = sorted(issues_tmp1, key=itemgetter('Status'), reverse=True)
 
         for curResult in issues:
             baseissues = {'wanted': 1, 'snatched': 2, 'failed': 3}
