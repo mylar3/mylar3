@@ -101,6 +101,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'HOST_RETURN' : (str, 'Interface', None),
     'AUTHENTICATION' : (int, 'Interface', 0),
     'LOGIN_TIMEOUT': (int, 'Interface', 43800),
+    'ALPHAINDEX': (bool, 'Interface', True),
 
     'API_ENABLED' : (bool, 'API', False),
     'API_KEY' : (str, 'API', None),
