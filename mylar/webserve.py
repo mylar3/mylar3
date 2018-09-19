@@ -70,7 +70,7 @@ class WebInterface(object):
 
     def home(self):
         comics = helpers.havetotals()
-        return serve_template(templatename="index.html", title="Home", comics=comics)
+        return serve_template(templatename="index.html", title="Home", comics=comics, alphaindex=mylar.CONFIG.ALPHAINDEX)
     home.exposed = True
 
     def comicDetails(self, ComicID):
@@ -4718,7 +4718,8 @@ class WebInterface(object):
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
                     "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO),
                     "dlstats": dlprovstats,
-                    "dltotals": freq_tot
+                    "dltotals": freq_tot,
+                    "alphaindex": mylar.CONFIG.ALPHAINDEX
                }
         return serve_template(templatename="config.html", title="Settings", config=config, comicinfo=comicinfo)
     config.exposed = True
@@ -4928,7 +4929,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'nma_enabled', 'nma_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'opds_enable', 'opds_authentication', 'opds_metainfo']
+                           'opds_enable', 'opds_authentication', 'opds_metainfo', 'alphaindex']
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
