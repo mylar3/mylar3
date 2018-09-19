@@ -112,7 +112,9 @@
 
 	function initThisPage() {
                 $.fn.DataTable.ext.pager.numbers_length = 3;
-		var table = $('#series_table').dataTable( {
+		 var alphaindex = "${alphaindex}"; 
+                 if (alphaindex == "True") {
+                     var table = $('#series_table').dataTable( {
                         "destroy": true,
                         "sDom": '<"clear"Af><"clear"lp><"clear">rt<"clear"ip>',
                         "columnDefs": [
@@ -131,15 +133,42 @@
                                 "info":"Showing _START_ to _END_ of _TOTAL_ results",
                                 "infoEmpty":"Showing 0 to 0 of 0 results",
                                 "infoFiltered":"(filtered from _MAX_ total results)",
-                                "search" : ""},
+                                "search" : ""
+			},
                         "stateSave": true,
                         "pageLength": 25,
                         "pagingType": "simple_numbers",
-                        alphabetSearch: {
-                            column:1
-                        }
-		});
-                resetFilters("comic");
+                        alphabetSearch: { column:1 }
+		     });
+                 } else {
+                     var table = $('#series_table').dataTable( {
+                         "destroy": true,
+                         "sDom": '<"clear"f><"clear"lp><"clear">rt<"clear"ip>',
+                         "columnDefs": [
+                              { "orderable": false, "targets": [5, 7, 10] },
+                              { "visible": false, "targets": [5, 7, 10] },
+                              { "type": 'num', "targets": 5 },
+                              { "type": 'num', "targets": 7 },
+                              { "orderData": [ 5, 7 ], "targets": 6 },
+                              { "orderData": 10, "targets": 9 },
+                              { "order": [[7, 'asc'],[1, 'asc']] }
+                         ],
+                         "lengthMenu": [[10, 15, 25, 50, 100, 200, -1], [10, 15, 25, 50, 100, 200, 'All' ]],
+                         "language": {
+                                 "lengthMenu":"Show _MENU_ results per page",
+				 "emptyTable": "No results",
+                                 "info":"Showing _START_ to _END_ of _TOTAL_ results",
+                                 "infoEmpty":"Showing 0 to 0 of 0 results",
+                                 "infoFiltered":"(filtered from _MAX_ total results)",
+                                 "search" : ""
+                         },
+                         "stateSave": true,
+                         "pageLength": 25,
+                         "pagingType": "simple_numbers",
+                         alphabetSearch: { column: 1 }
+                     });
+                 }
+                 resetFilters("comic");
 	}
 	
 	$(document).ready(function(){
