@@ -168,16 +168,16 @@ class ComicTaggerSettings:
                 # see if it's in the path of unix user
                 if utils.which("rar") is not None:
                     self.rar_exe_path = utils.which("rar")
-            if self.rar_exe_path != "":
-                self.save()
+            #if self.rar_exe_path != "":
+            #    self.save()
 
         if self.unrar_exe_path == "":
             if platform.system() != "Windows":
                 # see if it's in the path of unix user
                 if utils.which("unrar") is not None:
                     self.unrar_exe_path = utils.which("unrar")
-            if self.unrar_exe_path != "":
-                self.save()
+            #if self.unrar_exe_path != "":
+            #    self.save()
 
         # make sure unrar/rar programs are now in the path for the UnRAR class to
         # use

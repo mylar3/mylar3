@@ -51,6 +51,7 @@ class Readinglist(object):
                 logger.error(self.module + ' Cannot locate IssueID - aborting..')
                 return
             else:
+                logger.fdebug('%s Successfully found annual for %s' % (self.module, readlist['ComicID']))
                 annualize = True
         comicinfo = myDB.selectone("SELECT * from comics where ComicID=?", [readlist['ComicID']]).fetchone()
         logger.info(self.module + ' Attempting to add issueid ' + readlist['IssueID'])
@@ -71,19 +72,19 @@ class Readinglist(object):
 
             if not locpath is None:
                 comicissue = readlist['Issue_Number']
-                comicname = comicinfo['ComicName']
+                if annualize is True:
+                    comicname = readlist['ReleaseComicName']
+                else:
+                    comicname = comicinfo['ComicName']
                 dspinfo = comicname + ' #' + comicissue
-                if annualize:
-                    if mylar.CONFIG.ANNUALS_ON:
-                        if 'annual' in readlist['ComicName'].lower():
+                if annualize is True:
+                    if mylar.CONFIG.ANNUALS_ON is True:
+                        dspinfo = comicname + ' #' + readlist['Issue_Number']
+                        if 'annual' in comicname.lower():
                             comicissue = 'Annual ' + readlist['Issue_Number']
-                            dspinfo = comicname + ' Annual #' + readlist['Issue_Number']
-                        elif 'special' in readlist['ComicName'].lower():
+                        elif 'special' in comicname.lower():
                             comicissue = 'Special ' + readlist['Issue_Number']
-                            dspinfo = comicname + ' Special #' + readlist['Issue_Number']
-                    else:
-                        comicname = comicinfo['ComicName'] + ' Annual'
-                        dspinfo = comicname + ' #' + comicissue
+
                 ctrlval = {"IssueID":       self.IssueID}
                 newval = {"DateAdded":      helpers.today(),
                           "Status":         "Added",

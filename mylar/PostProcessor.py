@@ -557,6 +557,7 @@ class PostProcessor(object):
                                 annchk = "yes"
                                 issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                             else:
+                                annchk = "no"
                                 fcdigit = helpers.issuedigits(temploc)
                                 issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
 
@@ -671,12 +672,18 @@ class PostProcessor(object):
                                                     clocation = watchmatch['comiclocation']
                                                 else:
                                                     clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
-                                            if 'Annual' in isc['ComicName']:
-                                                annualtype = 'Annual'
-                                            elif 'Special' in isc['ComicName']:
-                                                annualtype = 'Special'
+                                            annualtype = None
+                                            if annchk == 'yes':
+                                                if 'Annual' in isc['ReleaseComicName']:
+                                                    annualtype = 'Annual'
+                                                elif 'Special' in isc['ReleaseComicName']:
+                                                    annualtype = 'Special'
                                             else:
-                                                annualtype = None
+                                                if 'Annual' in isc['ComicName']:
+                                                    annualtype = 'Annual'
+                                                elif 'Special' in isc['ComicName']:
+                                                    annualtype = 'Special'
+
                                             manual_list.append({"ComicLocation":   clocation,
                                                                 "ComicID":         cs['ComicID'],
                                                                 "IssueID":         isc['IssueID'],
@@ -2270,13 +2277,14 @@ class PostProcessor(object):
                 updatetable = 'issues'
             else:
                 updater.foundsearch(comicid, issueid, mode='want_ann', down=downtype, module=module, crc=crcvalue)
-                if 'annual' in issuenzb['ComicName'].lower(): #series.lower():
+                if 'annual' in issuenzb['ReleaseComicName'].lower(): #series.lower():
                     dispiss = 'Annual #%s' % issuenumOG
-                elif 'special' in issuenzb['ComicName'].lower():
+                elif 'special' in issuenzb['ReleaseComicName'].lower():
                     dispiss = 'Special #%s' % issuenumOG
                 else:
                     dispiss = '#%s' % issuenumOG
                 updatetable = 'annuals'
+            logger.fdebug('[annchk:%s] issue to update: %s' % (annchk, dispiss))
 
             #new method for updating status after pp
             if os.path.isfile(dst):

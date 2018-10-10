@@ -45,7 +45,7 @@ def ctmain():
     if opts.cv_api_key:
         if opts.cv_api_key != settings.cv_api_key:
             settings.cv_api_key = opts.cv_api_key
-            settings.save()
+            #settings.save()
     if opts.only_set_key:
         print("Key set")
         return

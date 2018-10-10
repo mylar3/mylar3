@@ -56,7 +56,7 @@ class tehMain():
                     logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on Demonoid / WorldWideTorrents.')
                     #rsscheck.torrents(pickfeed='3')   #TP.SE RSS Check (has to be page-parsed)
                     rsscheck.torrents(pickfeed='Public')    #TPSE = DEM RSS Check + WWT RSS Check
-                if mylar.CONFIG.ENABLE_32P:
+                if mylar.CONFIG.ENABLE_32P is True:
                     logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on 32P.')
                     if mylar.CONFIG.MODE_32P == 0:
                         logger.fdebug('[RSS-FEEDS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
@@ -75,7 +75,7 @@ class tehMain():
                                 if feedinfo != "disable":
                                     pass
                                 else:
-                                    mylar.CONFIG.ENABLE_32P = 0
+                                    mylar.CONFIG.ENABLE_32P = False
                                     #mylar.config_write()
                             else:
                                 feedinfo = mylar.FEEDINFO_32P

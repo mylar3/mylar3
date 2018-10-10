@@ -76,10 +76,10 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         logger.info("Annual/Special issue search detected. Appending to issue #")
         #anything for mode other than None indicates an annual.
         if all(['annual' not in ComicName.lower(), 'special' not in ComicName.lower()]):
-            ComicName = ComicName + " annual"
+            ComicName = ComicName + " Annual"
 
         if all([AlternateSearch is not None, AlternateSearch != "None", 'special' not in ComicName.lower()]):
-            AlternateSearch = AlternateSearch + " annual"
+            AlternateSearch = AlternateSearch + " Annual"
 
     if mode == 'pullwant' or IssueID is None:
         #one-off the download.
