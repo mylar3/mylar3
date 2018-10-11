@@ -4461,10 +4461,16 @@ class WebInterface(object):
         COUNT_HAVES = CHAVES[0][0]
         COUNT_ISSUES = CISSUES[0][0]
         COUNT_SIZE = helpers.human_size(CSIZE[0][0])
+        CCONTCOUNT = 0
+        cti = helpers.havetotals()
+        for cchk in cti:
+            if cchk['recentstatus'] is 'Continuing':
+                CCONTCOUNT += 1
         comicinfo = {"COUNT_COMICS": COUNT_COMICS,
                       "COUNT_HAVES": COUNT_HAVES,
                       "COUNT_ISSUES": COUNT_ISSUES,
-                      "COUNT_SIZE": COUNT_SIZE}
+                      "COUNT_SIZE": COUNT_SIZE,
+                      "CCONTCOUNT": CCONTCOUNT}
         DLPROVSTATS = myDB.select("SELECT Provider, COUNT(Provider) AS Frequency FROM Snatched WHERE Status = 'Snatched' AND Provider is NOT NULL GROUP BY Provider ORDER BY Frequency DESC")
         freq = dict()
         freq_tot = 0
