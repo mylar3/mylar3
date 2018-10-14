@@ -542,6 +542,7 @@ class PostProcessor(object):
                             temploc= watchmatch['justthedigits'].replace('_', ' ')
                             temploc = re.sub('[\#\']', '', temploc)
                             logger.info('temploc: %s' % temploc)
+                            datematch = "False"
 
                             if any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True:
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
