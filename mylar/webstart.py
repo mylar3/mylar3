@@ -163,7 +163,7 @@ def initialize(options):
                          'tools.auth_basic.realm': 'Mylar OPDS',
                          'tools.auth_basic.checkpassword': cherrypy.lib.auth_basic.checkpassword_dict(user_list)}
     else:
-        conf['/opds'] = {'tools.auth_basic.on': False}
+        conf['/opds'] = {'tools.auth_basic.on': False, 'tools.auth.on': False}
 
     # Prevent time-outs
     cherrypy.engine.timeout_monitor.unsubscribe()
