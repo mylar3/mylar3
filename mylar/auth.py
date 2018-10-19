@@ -158,6 +158,7 @@ class AuthController(object):
         sess = cherrypy.session
         username = sess.get(SESSION_KEY, None)
         sess[SESSION_KEY] = None
+        return self.get_loginform("", from_page=from_page)
         if username:
             cherrypy.request.login = None
             self.on_logout(username)
