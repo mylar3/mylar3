@@ -710,6 +710,8 @@ class PostProcessor(object):
 
                         if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
                             logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, watchmatch['series_name'], cs['ComicID']))
+                            if len(manual_list) > 1:
+                                manual_list = [item for item in manual_list if all([item['ComicID'] == cs['ComicID'], item['AnnualType'] is not None]) or all([item['ComicID'] == cs['ComicID'], item['ComicLocation'] == clocation]) or all([item['ComicID'] != cs['ComicID'], item['ComicLocation'] != clocation])]
                             self.matched = True
                         else:
                             continue #break
