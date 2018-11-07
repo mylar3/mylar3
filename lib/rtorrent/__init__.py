@@ -74,8 +74,13 @@ class RTorrent:
                              if m.is_retriever() and m.is_available(self)]
 
         m = rtorrent.rpc.Multicall(self)
-        m.add("d.multicall", view, "d.get_hash=",
-              *[method.rpc_call + "=" for method in retriever_methods])
+        if Connection._get_client_version_tuple >= .97:
+            MCFirstArg = ""
+            m.add("d.multicall2", MCFirstArg, view, "d.hash=",
+                  *[method.rpc_call + "=" for method in retriever_methods])
+        else:
+            m.add("d.multicall", view, "d.get_hash=",
+                  *[method.rpc_call + "=" for method in retriever_methods])
 
         results = m.call()[0]  # only sent one call, only need first result
 
@@ -116,16 +121,31 @@ class RTorrent:
             elif verbose:
                 func_name = "load_verbose"
             else:
-                func_name = "load"
+                if Connection._get_client_version_tuple >= .97:
+                    func_name= "load.normal"
+                else:
+                    func_name = "load"
         elif file_type in ["file", "raw"]:
             if start and verbose:
-                func_name = "load_raw_start_verbose"
+                if Connection._get_client_version_tuple >= .97:
+                    func_name = "load.raw_start_verbose"
+                else:
+                    func_name = "load_raw_start_verbose"
             elif start:
-                func_name = "load_raw_start"
+                if Connection._get_client_version_tuple >= .97:
+                    func_name = "load.raw_start"
+                else:
+                    func_name = "load_raw_start"
             elif verbose:
-                func_name = "load_raw_verbose"
+                if Connection._get_client_version_tuple >= .97:
+                    func_name = "load.raw_verbose"
+                else:
+                    func_name = "load_raw_verbose"
             else:
-                func_name = "load_raw"
+                if Connection._get_client_version_tuple >= .97:
+                    func_name = "load.raw"
+                else:
+                    func_name = "load_raw"
 
         return(func_name)
 
@@ -136,38 +156,78 @@ class RTorrent:
         info_hash = info_hash.upper()
 
         func_name = self._get_load_function("url", start, verbose)
-
         # load magnet
-        getattr(p, func_name)(magneturl)
+        if Connection._get_client_version_tuple >= .97:
+            target = ""
+            getattr(p, func_name)(target, magneturl)
+        else:
+            getattr(p, func_name)(magneturl)
 
+        magnet = False
         if verify_load:
             i = 0
             torrent = None
             while i < verify_retries:
-                for tor in self.get_torrents():
-                    if tor.info_hash != info_hash:
-                        continue
-                    else:
-                        torrent = tor
+                if Connection._get_client_version_tuple >= .97:
+                    for m in self.get_torrents():
+                        # This block finds the magnet that was just added, starts it, breaks
+                        # out of the for loop, and then out of the while loop.
+                        # If it can't find the magnet, magnet won't get defined.
+                        if m.info_hash == info_hash:
+                            magnet = m
+                            magnet.start()
+                            i += 999
+                            break
+                else:
+                    for tor in self.get_torrents():
+                        if tor.info_hash != info_hash:
+                            continue
+                        else:
+                            torrent = tor
                         break
-                if torrent is not None:
-                    break
+                    if torrent is not None:
+                        break
+                    time.sleep(1)
+                    i += 1
+
+        if Connection._get_client_version_tuple >= .97:
+            # If torrent hasn't been defined, sleep for a second and check again.
+            if not magnet:
                 time.sleep(1)
                 i += 1
-
+            # This bit waits for the magnet to be resolved into an actual
+            # torrent, and then starts it.
+            torrent = False
+        else:
             # Resolve magnet to torrent
             torrent.start()
-
             assert info_hash in [t.info_hash for t in self.torrents],\
                 "Adding magnet was unsuccessful."
 
-            i = 0
-            while i < verify_retries:
+        i = 0
+        while i < verify_retries:
+            if Connection._get_client_version_tuple >= .97:
+                for t in self.get_torrents():
+                    if t.info_hash == info_hash:
+                        if str(info_hash) not in str(t.name):
+                            torrent = t
+                            torrent.start()
+                            i += 999
+                            break
+                if not torrent:
+                    time.sleep(1)
+                    i += 1
+
+            else:
                 for torrent in self.get_torrents():
                     if torrent.info_hash == info_hash:
                         if str(info_hash) not in str(torrent.name):
                             time.sleep(1)
                             i += 1
+
+        if Connection._get_client_version_tuple >= .97:
+            assert info_hash in [t.info_hash for t in self.torrents],\
+                "Adding magnet was unsuccessful."
 
         return(torrent)
 
@@ -213,7 +273,11 @@ class RTorrent:
         func_name = self._get_load_function("raw", start, verbose)
 
         # load torrent
-        getattr(p, func_name)(torrent)
+        if Connection._get_client_version_tuple >= .97:
+            target = ""
+            getattr(p, func_name)(target, torrent)
+        else:
+            getattr(p, func_name)(torrent)
 
         if verify_load:
             i = 0
