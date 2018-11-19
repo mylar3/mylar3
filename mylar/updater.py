@@ -1486,9 +1486,10 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
     ignorecount = 0
     if mylar.CONFIG.IGNORE_HAVETOTAL:   # if this is enabled, will increase Have total as if in Archived Status
-        ignores = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
-        if int(ignores[0][0]) > 0:
-            ignorecount = ignores[0][0]
+        ignoresi = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresa = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignorecount = int(ignoresi[0][0]) + int(ignoresa[0][0])
+        if ignorecount > 0:
             havefiles = havefiles + ignorecount
             logger.fdebug(module + ' Adjusting have total to ' + str(havefiles) + ' because of this many Ignored files:' + str(ignorecount))
 
