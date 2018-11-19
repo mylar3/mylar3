@@ -52,6 +52,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ZERO_LEVEL_N': (str, 'General', None),
     'LOWERCASE_FILENAMES': (bool, 'General', False),
     'IGNORE_HAVETOTAL': (bool, 'General', False),
+    'IGNORE_TOTAL': (bool, 'General', False),
     'SNATCHED_HAVETOTAL': (bool, 'General', False),
     'FAILED_DOWNLOAD_HANDLING': (bool, 'General', False),
     'FAILED_AUTO': (bool, 'General',False),
@@ -72,6 +73,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'CREATE_FOLDERS': (bool, 'General', True),
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
     'SHOW_ICONS': (bool, 'General', False),
+    'FORMAT_BOOKTYPE': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -807,6 +809,11 @@ class Config(object):
             self.AUTHENTICATION = 1
         elif all([self.HTTP_USERNAME is None, self.HTTP_PASSWORD is None]):
             self.AUTHENTICATION = 0
+
+        if all([self.IGNORE_TOTAL is True, self.IGNORE_HAVETOTAL is True]):
+            self.IGNORE_TOTAL = False
+            self.IGNORE_HAVETOTAL = False
+            logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
 
         #comictagger - force to use included version if option is enabled.
         if self.ENABLE_META:

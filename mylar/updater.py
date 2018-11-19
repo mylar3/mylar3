@@ -1546,7 +1546,15 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         havefiles = havefiles + archivedissues  #arcfiles already tallied in havefiles in above segment
 
     #combined total for dispay total purposes only.
-    combined_total = iscnt + anncnt #(rescan['Total'] + anncnt)
+    combined_total = iscnt + anncnt
+    if mylar.CONFIG.IGNORE_TOTAL:   # if this is enabled, will increase Have total as if in Archived Status
+        ignoresa = myDB.select("SELECT count(*) FROM issues WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignoresb = myDB.select("SELECT count(*) FROM annuals WHERE ComicID=? AND Status='Ignored'", [ComicID])
+        ignorecnt = ignoresa[0][0] + ignoresb[0][0]
+
+        if ignorecnt > 0:
+            combined_total -= ignorecnt
+            logger.fdebug('%s Reducing total comics in series from %s to %s because of %s ignored files.' % (module, (iscnt+anncnt), combined_total, ignorecnt))
 
     #quick check
     if havefiles > combined_total:
