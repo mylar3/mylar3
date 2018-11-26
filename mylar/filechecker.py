@@ -1061,7 +1061,7 @@ class FileChecker(object):
 
                     else:
                         loopchk = []
-                    logger.info('loopchk: ' + str(loopchk))
+                    #logger.info('loopchk: ' + str(loopchk))
 
                     #if the names match up, and enable annuals isn't turned on - keep it all together.
                     if re.sub('\|', '', nspace_watchcomic.lower()).strip() == re.sub('\|', '', nspace_seriesname.lower()).strip() and enable_annual == False:
@@ -1207,7 +1207,8 @@ class FileChecker(object):
             #logger.fdebug('watch dynamic handlers recognized : ' + str(watchdynamic_handlers_match))
             watchdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in self.watchcomic.lower()]
             #logger.fdebug('watch dynamic replacements recognized : ' + str(watchdynamic_replacements_match))
-            mod_watchcomic = re.sub('[\s\_\.\s+\#]', '', self.watchcomic)
+            mod_watchcomic = re.sub('[\s\s+\_\.]', '%$', self.watchcomic)
+            mod_watchcomic = re.sub('[\#]', '', mod_watchcomic)
             mod_find = []
             wdrm_find = []
             if any([watchdynamic_handlers_match, watchdynamic_replacements_match]):
@@ -1220,7 +1221,7 @@ class FileChecker(object):
                             spacer = ''
                             for i in range(0, len(wdhm)):
                                 spacer+='|'
-                            mod_watchcomic = mod_watchcomic[:mf] + spacer + mod_watchcomic[mf+len(wdhm):]
+                            mod_watchcomic = mod_watchcomic[:mf] + spacer + mod_watchcomic[mf+1:]
 
                 for wdrm in watchdynamic_replacements_match:
                     wdrm_find.extend([m.start() for m in re.finditer(wdrm.lower(), mod_watchcomic.lower())])
