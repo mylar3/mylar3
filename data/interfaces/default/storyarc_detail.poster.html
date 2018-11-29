@@ -34,10 +34,8 @@
                  <tr/><tr>
                  <td id="mainimg">
                    <fieldset>
-                       <div id="artistImg">
+                      <div id="aristImg">
                           <img src="${storyarcbanner}" onload="resizeimage('${bannerwidth}')" height="400" width="${bannerwidth}" id="banner" style="text-decoration: none;position: relative;top:0px;right:0px;left:0px;"/>
-                       </div>
-                   </fieldset>
                                  <%
                                          if arcdetail['percent'] == 101:
                                                  css = '<div class=\"progress-container warning\">'
@@ -48,9 +46,11 @@
 
                                   %>
                    <div style="display:table;margin:auto;position:relative;top:0px;"><span title="${arcdetail['percent']}"></span>${css}<div style="width:${arcdetail['percent']}%"><span class="progressbar-front-text">${arcdetail['Have']}/${arcdetail['Total']}</span></div></div></div>
+                   </div>
+                   </fieldset>
                  </td>
                  <td width="100%" padding="5px" style="vertical-align:bottom;">
-                     <div style="display:inline;position:relative;text-color:black;top:-200px;margin:0 auto;">
+                     <div style="display:inline;position:relative;text-color:black;top:-150px;margin:0 auto;">
                          <center><h1>${storyarcname}</h1>(${spanyears})</center>
                      </div>
 
@@ -81,7 +81,7 @@
                     </form>
                    </div>
                         <%
-                             optpos = '<div style=\"display:block;float:right;position:relative;right:20px;top:50px;\">'
+                             optpos = '<div style=\"display:block;float:right;position:relative;right:20px;top:-10px;\">'
                          %>
                      ${optpos}
                          <form action="downloadBanner" method="GET">

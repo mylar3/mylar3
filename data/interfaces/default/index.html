@@ -69,10 +69,24 @@
                                 except:
                                     pass
 
+                                comicline = comicname
+
+                                comictype = comic['ComicType']
+                                try:
+                                    if any([comictype == 'None', comictype is None, comictype == 'Print']):
+                                        comictype = None
+                                    else:
+                                        comictype = comictype
+                                except:
+                                    comictype = None
+
+                                if comictype is not None:
+                                    comicline += '  [%s]' % (comictype)
+
 			%>
 			<tr class="grade${grade}">
 				<td id="publisher"><span title="${comicpub}"></span>${comicpub}</td>
-                                <td id="name"><span title="${comicname}"></span><a title="${comic['ComicName']}" href="comicDetails?ComicID=${comic['ComicID']}">${comicname}</a></td>
+                                <td id="name"><span title="${comicname}"></span><a title="${comic['ComicName']}" href="comicDetails?ComicID=${comic['ComicID']}">${comicline}</a></td>
                                 <td id="year"><span title="${comic['ComicYear']}"></span>${comic['ComicYear']}</td>
 				<td id="issue"><span title="${comic['LatestIssue']}"></span># ${comic['LatestIssue']}</td>
                                 <td id="published">${comic['LatestDate']}</td>

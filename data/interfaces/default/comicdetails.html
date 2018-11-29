@@ -1,7 +1,7 @@
 <%inherit file="base.html"/>
 <%!
-        import os
-        from mylar import db
+        import os, re
+        from mylar import db, helpers
 	import mylar
 %>
 
@@ -112,10 +112,41 @@
                                       if comic['Type'] == 'None' or comic['Type'] is None or comic['Type'] == 'Print':
                                           comictype = 'Print'
                                       else:
-                                          comictype = 'Digital'
+                                          comictype = comic['Type']
                                 %>
                                 <div>
-                                    <label><big>Edition: </big><norm>${comictype}</norm></label>
+                                    <label><big>Edition: </big><norm>${comictype}</norm>
+                                    <% 
+                                        if comicConfig['issue_list'] is not None:
+                                            cnt = 0
+                                            line = ''
+                                            for x in comicConfig['issue_list']:
+                                                if x['comicid'] is not None:
+                                                    cid = helpers.listLibrary(x['comicid'])
+                                                    try:
+                                                        if cid[re.sub('4050-', '', x['comicid']).strip()]['comicid']:
+                                                            watch = "<a href='comicDetails?ComicID=%s' title='In Watchlist'>%s</a>" % (cid[re.sub('4050-', '', x['comicid']).strip()]['comicid'], x['series'])
+                                                    except:
+                                                            watch = "%s" % (x['series'])
+                                                else:
+                                                    watch = x['series']
+                                                if cnt == 0:
+                                                    if x['issues'] is not None:
+                                                        line += "<span style='display:inline-block;'>%s %s</span>" % (watch, x['issues'])
+                                                    else:
+                                                        line += "<span style='display:inline-block;'>%s</span>" % watch
+                                                else:
+                                                    if x['issues'] is not None:
+                                                        line += " / <span style='display:inline-block;'>%s %s</span>" % (watch, x['issues'])
+                                                    else:
+                                                        line += " / <span style='display:inline-block;'>%s</span>" % watch
+                                                cnt+=1
+
+                                    %>
+                                    %if comicConfig['issue_list'] is not None:
+                                        ( Collects: ${line} )
+                                    %endif
+                                    </label>
                                 </div>
                                 <div>
                                     <label><big>Last Updated: </big>
@@ -326,7 +357,15 @@
                                     endif
                                 %>
                                 <td id="issuename">${issuename}</td>
-                                <td class="edit" title="Publication Date (click to edit)" id="${issue['ComicID']}.${issue['IssueID']}">${issue['IssueDate']}</td>
+                                <%
+                                    issdate = issue['IssueDate']
+                                    dateline = "Publication Date (click to edit)"
+                                    if all([issue['DigitalDate'] != '0000-00-00', issue['DigitalDate'] is not None]):
+                                        dateline += "\nDigital Release: %s" % issue['DigitalDate']
+                                        issdate += "**"
+                                    endif
+                                %>
+                                <td class="edit" title="${dateline}" id="${issue['ComicID']}.${issue['IssueID']}">${issdate}</td>
                                 <td id="status">${issue['Status']}
                                 %if issue['Status'] == 'Downloaded' or issue['Status'] == 'Archived':
                                     <%Csize = mylar.helpers.human_size(issue['ComicSize'])%>
@@ -480,7 +519,15 @@
                                 <td id="aint_issuenumber">${annual_Number}</td>
                                 <td id="aissuenumber">${annual['Issue_Number']}</td>
                                 <td id="aissuename">${annual['IssueName']}</td>
-                                <td id="areldate">${annual['IssueDate']}</td>
+                                <%
+                                    anndate = annual['IssueDate']
+                                    dateline = ""
+                                    if all([annual['DigitalDate'] != '0000-00-00', annual['DigitalDate'] is not None]):
+                                        dateline += "\nDigital Release: %s" % annual['DigitalDate']
+                                        anndate += "**"
+                                    endif
+                                %>
+                                <td title="${dateline}" id="areldate">${anndate}</td>
                                 <td id="astatus">${annual['Status']}
                                 %if annual['Status'] == 'Downloaded' or annual['Status'] == 'Archived':
                                     <%Csize = mylar.helpers.human_size(annual['ComicSize'])%>

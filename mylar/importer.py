@@ -22,6 +22,7 @@ import sys
 import shlex
 import datetime
 import re
+import json
 import urllib
 import urllib2
 import shutil
@@ -204,17 +205,23 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         publisher = re.sub('!', '', comic['ComicPublisher']) # thanks Boom!
         publisher = helpers.filesafe(publisher)
         year = SeriesYear
-        if comicVol is None:
+        booktype = comic['Type']
+        if booktype == 'Print' or all([comic['Type'] != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
+            chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
+            chunk_b = re.compile(r'\s+')
+            chunk_folder_format = chunk_b.sub(' ', chunk_fb)
+        else:
+            chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
+
+        if any([comicVol is None, comic['Type'] != 'Print']):
             comicVol = 'None'
         #if comversion is None, remove it so it doesn't populate with 'None'
         if comicVol == 'None':
-            chunk_f_f = re.sub('\$VolumeN', '', mylar.CONFIG.FOLDER_FORMAT)
+            chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
             chunk_f = re.compile(r'\s+')
             chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
             logger.fdebug('No version # found for series, removing from folder format')
             logger.fdebug("new folder format: " + str(chunk_folder_format))
-        else:
-            chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
 
         #do work to generate folder path
 
@@ -225,12 +232,14 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                   '$publisher':     publisher.lower(),
                   '$VolumeY':       'V' + str(year),
                   '$VolumeN':       comicVol.upper(),
-                  '$Annual':        'Annual'
+                  '$Annual':        'Annual',
+                  '$Type':          booktype
                   }
         try:
             if mylar.CONFIG.FOLDER_FORMAT == '':
                 comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
             else:
+                chunk_folder_format = re.sub('[()|[]]', '', chunk_folder_format).strip()
                 comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
         except Exception as e:
             if 'TypeError' in e:
@@ -308,6 +317,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     tmpseriesname = as_dinfo['mod_seriesname']
     dynamic_seriesname = re.sub('[\|\s]','', tmpseriesname.lower()).strip()
 
+    if comic['Issue_List'] != 'None':
+        issue_list = json.dumps(comic['Issue_List'])
+    else:
+        issue_list = None
+
     controlValueDict = {"ComicID":        comicid}
     newValueDict = {"ComicName":          comic['ComicName'],
                     "ComicSortName":      sortname,
@@ -327,6 +341,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
                     "Type":               comic['Type'],
+                    "Collects":           issue_list,
                     "DateAdded":          helpers.today(),
                     "Status":             "Loading"}
 
@@ -887,6 +902,7 @@ def issue_collection(issuedata, nostatus):
                             "Issue_Number":       issue['Issue_Number'],
                             "IssueDate":          issue['IssueDate'],
                             "ReleaseDate":        issue['ReleaseDate'],
+                            "DigitalDate":        issue['DigitalDate'],
                             "Int_IssueNumber":    issue['Int_IssueNumber'],
                             "ImageURL":           issue['ImageURL'],
                             "ImageURL_ALT":       issue['ImageURL_ALT']
@@ -1005,6 +1021,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                                    'IssueName':        cleanname,
                                    'IssueDate':        str(firstval['Issue_Date']),
                                    'ReleaseDate':      str(firstval['Store_Date']),
+                                   'DigitalDate':      str(firstval['Digital_Date']),
                                    'Status':           astatus,
                                    'ReleaseComicName': sr['ComicName']})
                     n+=1
@@ -1018,6 +1035,7 @@ def manualAnnual(manual_comicid=None, comicname=None, comicyear=None, comicid=No
                        "Int_IssueNumber":  helpers.issuedigits(ann['Issue_Number']),
                        "IssueDate":        ann['IssueDate'],
                        "ReleaseDate":      ann['ReleaseDate'],
+                       "DigitalDate":      ann['DigitalDate'],
                        "IssueName":        ann['IssueName'],
                        "ComicID":          ann['ComicID'],   #this is the series ID
                        "ReleaseComicID":   ann['ReleaseComicID'],  #this is the series ID for the annual(s)
@@ -1100,6 +1118,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             issname = cleanname
             issdate = str(firstval['Issue_Date'])
             storedate = str(firstval['Store_Date'])
+            digitaldate = str(firstval['Digital_Date'])
             int_issnum = None
             if issnum.isdigit():
                 int_issnum = int(issnum) * 1000
@@ -1264,6 +1283,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                               "Issue_Number":       issnum,
                               "IssueDate":          issdate,
                               "ReleaseDate":        storedate,
+                              "DigitalDate":        digitaldate,
                               "Int_IssueNumber":    int_issnum,
                               "ImageURL":           firstval['Image'],
                               "ImageURL_ALT":       firstval['ImageALT']})
@@ -1467,6 +1487,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                             issname = cleanname
                             issdate = str(firstval['Issue_Date'])
                             stdate = str(firstval['Store_Date'])
+                            digdate = str(firstval['Digital_Date'])
                             int_issnum = helpers.issuedigits(issnum)
 
                             iss_exists = myDB.selectone('SELECT * from annuals WHERE IssueID=?', [issid]).fetchone()
@@ -1494,6 +1515,7 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
                                                 "Int_IssueNumber":  int_issnum,
                                                 "IssueDate":        issdate,
                                                 "ReleaseDate":      stdate,
+                                                "DigitalDate":      digdate,
                                                 "IssueName":        issname,
                                                 "ComicID":          comicid,
                                                 "IssueID":          issid,

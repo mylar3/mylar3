@@ -190,7 +190,7 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
                 else:
                     tmpidlist += '|' + str(comicidlist[i])
                 in_cnt +=1
-            logger.info('tmpidlist: ' + str(tmpidlist))
+            logger.fdebug('tmpidlist: ' + str(tmpidlist))
 
             searched = pulldetails(None, 'import', offset=0, comicidlist=tmpidlist)
 
@@ -287,6 +287,8 @@ def GetComicInfo(comicid, dom, safechk=None):
     #the description field actually holds the Volume# - so let's grab it
     try:
         descchunk = dom.getElementsByTagName('description')[0].firstChild.wholeText
+        desc_soup = Soup(descchunk, "html.parser")
+        desclinks = desc_soup.findAll('a')
         comic_desc = drophtml(descchunk)
         desdeck +=1
     except:
@@ -312,25 +314,86 @@ def GetComicInfo(comicid, dom, safechk=None):
         comic['Aliases'] = 'None'
 
     comic['ComicVersion'] = 'None' #noversion'
-    #logger.info('comic_desc:' + comic_desc)
-    #logger.info('comic_deck:' + comic_deck)
-    #logger.info('desdeck: ' + str(desdeck))
 
     #figure out if it's a print / digital edition.
     comic['Type'] = 'None'
     if comic_deck != 'None':
-        if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower()]):
+        if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'hardcover' in comic_deck.lower()]):
             if 'print' in comic_deck.lower():
                 comic['Type'] = 'Print'
             elif 'digital' in comic_deck.lower():
-                comic['Type'] = 'Digital'    
+                comic['Type'] = 'Digital'
+            elif 'paperback' in comic_deck.lower():
+                comic['Type'] = 'TPB'
+            elif 'hardcover' in comic_deck.lower():
+                comic['Type'] = 'HC'
+
     if comic_desc != 'None' and comic['Type'] == 'None':
         if 'print' in comic_desc[:60].lower() and 'print edition can be found' not in comic_desc.lower():
             comic['Type'] = 'Print'
         elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
             comic['Type'] = 'Digital'
+        elif all(['paperback' in comic_desc[:60].lower(), 'paperback can be found' not in comic_desc.lower()]) or 'collects' in comic_desc[:60].lower():
+            comic['Type'] = 'TPB'
+        elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
+            comic['Type'] = 'HC'
         else:
             comic['Type'] = 'Print'
+
+    if all([comic_desc != 'None', 'trade paperback' in comic_desc[:30].lower(), 'collecting' in comic_desc[:40].lower()]):
+        #ie. Trade paperback collecting Marvel Team-Up #9-11, 48-51, 72, 110 & 145.
+        first_collect = comic_desc.lower().find('collecting')
+        #logger.info('first_collect: %s' % first_collect)
+        #logger.info('comic_desc: %s' % comic_desc)
+        #logger.info('desclinks: %s' % desclinks)
+        issue_list = []
+        for fc in desclinks:
+            #logger.info('fc: %s'  % fc)
+            fc_id = fc['data-ref-id']
+            #logger.info('fc_id: %s'  % fc_id)
+            fc_name = fc.findNext(text=True)
+            #logger.info('fc_name: %s'  % fc_name)
+            if fc_id.startswith('4000'):
+                fc_cid = None
+                fc_isid = fc_id
+                iss_start = fc_name.find('#')
+                issuerun = fc_name[iss_start:].strip()
+                fc_name = fc_name[:iss_start].strip()
+            elif fc_id.startswith('4050'):
+                fc_cid = fc_id
+                fc_isid = None
+                issuerun = fc.next_sibling
+                lines = re.sub("[^0-9]", ' ', issuerun).strip().split(' ')
+                if len(lines) > 0:
+                    for x in sorted(lines, reverse=True):
+                        srchline = issuerun.rfind(x)
+                        if srchline != -1:
+                            try:
+                                if issuerun[srchline+len(x)] == ',' or issuerun[srchline+len(x)] == '.' or issuerun[srchline+len(x)] == ' ':
+                                    issuerun = issuerun[:srchline+len(x)]
+                                    break
+                            except:
+                                continue
+                if issuerun.endswith('.') or issuerun.endswith(','):
+                    #logger.fdebug('Changed issuerun from %s to %s' % (issuerun, issuerun[:-1]))
+                    issuerun = issuerun[:-1]
+                if issuerun.endswith(' and '):
+                    issuerun = issuerun[:-4].strip()
+                elif issuerun.endswith(' and'):
+                    issuerun = issuerun[:-3].strip()
+
+                #    except:
+                #        pass
+            issue_list.append({'series':   fc_name,
+                               'comicid':  fc_cid,
+                               'issueid':  fc_isid,
+                               'issues':   issuerun})
+            #first_collect = cis
+
+        logger.info('Collected issues in volume: %s' % issue_list)
+        comic['Issue_List'] = issue_list
+    else:
+        comic['Issue_List'] = 'None'
 
     while (desdeck > 0):
         if desdeck == 1:
@@ -412,19 +475,7 @@ def GetComicInfo(comicid, dom, safechk=None):
 
     comic['FirstIssueID'] = dom.getElementsByTagName('id')[0].firstChild.wholeText
 
-#    print ("fistIss:" + str(comic['FirstIssueID']))
-#    comicchoice.append({
-#        'ComicName':              comic['ComicName'],
-#        'ComicYear':              comic['ComicYear'],
-#        'Comicid':                comicid,
-#        'ComicURL':               comic['ComicURL'],
-#        'ComicIssues':            comic['ComicIssues'],
-#        'ComicImage':             comic['ComicImage'],
-#        'ComicVolume':            ParseVol,
-#        'ComicPublisher':         comic['ComicPublisher']
-#        })
-
-#    comic['comicchoice'] = comicchoice
+    #logger.info('comic: %s' % comic)
     return comic
 
 def GetIssuesInfo(comicid, dom, arcid=None):
@@ -496,6 +547,19 @@ def GetIssuesInfo(comicid, dom, arcid=None):
             except:
                 tempissue['StoreDate'] = '0000-00-00'
             try:
+                digital_desc = subtrack.getElementsByTagName('description')[0].firstChild.wholeText
+            except:
+                tempissue['DigitalDate'] = '0000-00-00'
+            else:
+                tempissue['DigitalDate'] = '0000-00-00'
+                if all(['digital' in digital_desc.lower()[-90:], 'print' in digital_desc.lower()[-90:]]):
+                    #get the digital date of issue here...
+                    mff = mylar.filechecker.FileChecker()
+                    vlddate = mff.checkthedate(digital_desc[-90:], fulldate=True)
+                    #logger.fdebug('vlddate: %s' % vlddate)
+                    if vlddate:
+                        tempissue['DigitalDate'] = vlddate
+            try:
                 tempissue['Issue_Number'] = subtrack.getElementsByTagName('issue_number')[0].firstChild.wholeText
             except:
                 logger.fdebug('No Issue Number available - Trade Paperbacks, Graphic Novels and Compendiums are not supported as of yet.')
@@ -517,6 +581,7 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                     'Issue_Number':            tempissue['Issue_Number'],
                     'Issue_Date':              tempissue['CoverDate'],
                     'Store_Date':              tempissue['StoreDate'],
+                    'Digital_Date':            tempissue['DigitalDate'],
                     'Issue_Name':              tempissue['Issue_Name'],
                     'Image':                   tempissue['ComicImage'],
                     'ImageALT':                tempissue['ComicImageALT']
@@ -531,6 +596,7 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                     'Issue_Number':            tempissue['Issue_Number'],
                     'Issue_Date':              tempissue['CoverDate'],
                     'Store_Date':              tempissue['StoreDate'],
+                    'Digital_Date':            tempissue['DigitalDate'],
                     'Issue_Name':              tempissue['Issue_Name']
                     })
 
@@ -538,6 +604,7 @@ def GetIssuesInfo(comicid, dom, arcid=None):
                 firstdate = tempissue['CoverDate']
         n-= 1
 
+    #logger.fdebug('issue_info: %s' % issuech)
     #issue['firstdate'] = firstdate
     return issuech, firstdate
 
@@ -817,8 +884,7 @@ def GetImportList(results):
     return serieslist
 
 def drophtml(html):
-    from bs4 import BeautifulSoup
-    soup = BeautifulSoup(html, "html.parser")
+    soup = Soup(html, "html.parser")
 
     text_parts = soup.findAll(text=True)
     #print ''.join(text_parts)

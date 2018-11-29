@@ -373,7 +373,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                     xmltype = 'Print'
                                 elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
                                     xmltype = 'Digital'
-                                elif 'paperback' in xmldesc[:60].lower() and 'paperback can be found' not in xmldesc.lower():
+                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or 'collects' in xmldesc.lower():
                                     xmltype = 'TPB'
                                 elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
                                     xmltype = 'HC'
@@ -458,8 +458,8 @@ def storyarcinfo(xmlid):
 
     try:
         logger.fdebug('story_arc ascension')
-        issuecount = len( arcdom.getElementsByTagName('issue') )
         issuedom = arcdom.getElementsByTagName('issue')
+        issuecount = len( issuedom ) #arcdom.getElementsByTagName('issue') )
         isc = 0
         arclist = ''
         ordernum = 1

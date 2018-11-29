@@ -129,6 +129,10 @@
                                         %if weekly['SERIESYEAR'] is not None:
                                             &nbsp(${weekly['SERIESYEAR']})
                                         %endif
+
+                                        %if weekly['FORMAT'] == 'Digital':
+                                            &nbsp[${weekly['FORMAT']}]
+                                        %endif
                                         </td>
                                         <td class="comicnumber">${weekly['ISSUE']}</td>
                                         %if weekly['AUTOWANT']:

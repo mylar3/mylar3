@@ -569,11 +569,28 @@ class PostProcessor(object):
                                 for isc in issuechk:
                                     datematch = "True"
                                     if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
-                                        monthval = isc['ReleaseDate']
-                                        watch_issueyear = isc['ReleaseDate'][:4]
+                                        try:
+                                            if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
+                                                monthval = isc['DigitalDate']
+                                                watch_issueyear = isc['DigitalDate'][:4]
+                                            else:
+                                                monthval = isc['ReleaseDate']
+                                                watch_issueyear = isc['ReleaseDate'][:4]
+                                        except:
+                                            monthval = isc['ReleaseDate']
+                                            watch_issueyear = isc['ReleaseDate'][:4]
+
                                     else:
-                                        monthval = isc['IssueDate']
-                                        watch_issueyear = isc['IssueDate'][:4]
+                                        try:
+                                            if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
+                                                monthval = isc['DigitalDate']
+                                                watch_issueyear = isc['DigitalDate'][:4]
+                                            else:
+                                                monthval = isc['IssueDate']
+                                                watch_issueyear = isc['IssueDate'][:4]
+                                        except:
+                                            monthval = isc['IssueDate']
+                                            watch_issueyear = isc['IssueDate'][:4]
 
                                     if len(watchmatch) >= 1 and watchmatch['issue_year'] is not None:
                                         #if the # of matches is more than 1, we need to make sure we get the right series
@@ -587,7 +604,12 @@ class PostProcessor(object):
 
                                         #logger.info(module + ' ReleaseDate: ' + str(isc['ReleaseDate']))
                                         #logger.info(module + ' IssueDate: ' + str(isc['IssueDate']))
-                                        if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
+                                        if isc['DigitalDate'] is not None and isc['DigitalDate'] != '0000-00-00':
+                                            if int(isc['DigitalDate'][:4]) < int(watchmatch['issue_year']):
+                                                logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['DigitalDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                                datematch = "False"
+
+                                        elif isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
                                             if int(isc['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
                                                 logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
                                                 datematch = "False"
@@ -1285,9 +1307,13 @@ class PostProcessor(object):
                 #loop through the hits here.
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
                     logger.info(module + ' No matches for Manual Run ... exiting.')
+                    if mylar.APILOCK is True:
+                        mylar.APILOCK = False
                     return
                 elif len(manual_arclist) > 0 and len(manual_list) == 0:
                     logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                    if mylar.APILOCK is True:
+                        mylar.APILOCK = False
                     return
                 elif len(manual_arclist) > 0:
                     logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')

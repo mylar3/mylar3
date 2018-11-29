@@ -482,21 +482,21 @@ def dbcheck():
         c.execute('SELECT ReleaseDate from storyarcs')
     except sqlite3.OperationalError:
         try:
-            c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT)')
+            c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT)')
             c.execute('INSERT INTO storyarcs(StoryArcID, ComicName, IssueNumber, SeriesYear, IssueYEAR, StoryArc, TotalIssues, Status, inCacheDir, Location, IssueArcID, ReadingOrder, IssueID, ComicID, ReleaseDate, IssueDate, Publisher, IssuePublisher, IssueName, CV_ArcID, Int_IssueNumber, DynamicComicName, Volume, Manual) SELECT StoryArcID, ComicName, IssueNumber, SeriesYear, IssueYEAR, StoryArc, TotalIssues, Status, inCacheDir, Location, IssueArcID, ReadingOrder, IssueID, ComicID, StoreDate, IssueDate, Publisher, IssuePublisher, IssueName, CV_ArcID, Int_IssueNumber, DynamicComicName, Volume, Manual FROM readinglist')
             c.execute('DROP TABLE readinglist')
         except sqlite3.OperationalError:
             logger.warn('Unable to update readinglist table to new storyarc table format.')
 
     c.execute('CREATE TABLE IF NOT EXISTS comics (ComicID TEXT UNIQUE, ComicName TEXT, ComicSortName TEXT, ComicYear TEXT, DateAdded TEXT, Status TEXT, IncludeExtras INTEGER, Have INTEGER, Total INTEGER, ComicImage TEXT, ComicPublisher TEXT, ComicLocation TEXT, ComicPublished TEXT, NewPublish TEXT, LatestIssue TEXT, LatestDate TEXT, Description TEXT, QUALalt_vers TEXT, QUALtype TEXT, QUALscanner TEXT, QUALquality TEXT, LastUpdated TEXT, AlternateSearch TEXT, UseFuzzy TEXT, ComicVersion TEXT, SortOrder INTEGER, DetailURL TEXT, ForceContinuing INTEGER, ComicName_Filesafe TEXT, AlternateFileName TEXT, ComicImageURL TEXT, ComicImageALTURL TEXT, DynamicComicName TEXT, AllowPacks TEXT, Type TEXT, Corrected_SeriesYear TEXT, TorrentID_32P TEXT, LatestIssueID TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT, ImageURL TEXT, ImageURL_ALT TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS issues (IssueID TEXT, ComicName TEXT, IssueName TEXT, Issue_Number TEXT, DateAdded TEXT, Status TEXT, Type TEXT, ComicID TEXT, ArtworkURL Text, ReleaseDate TEXT, Location TEXT, IssueDate TEXT, DigitalDate TEXT, Int_IssueNumber INT, ComicSize TEXT, AltIssueNumber TEXT, IssueDate_Edit TEXT, ImageURL TEXT, ImageURL_ALT TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS snatched (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Size INTEGER, DateAdded TEXT, Status TEXT, FolderName TEXT, ComicID TEXT, Provider TEXT, Hash TEXT, crc TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS upcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Status TEXT, DisplayComicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS nzblog (IssueID TEXT, NZBName TEXT, SARC TEXT, PROVIDER TEXT, ID TEXT, AltNZBName TEXT, OneOff TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, annuallink TEXT, rowid INTEGER PRIMARY KEY)')
+    c.execute('CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, annuallink TEXT, format TEXT, rowid INTEGER PRIMARY KEY)')
     c.execute('CREATE TABLE IF NOT EXISTS importresults (impID TEXT, ComicName TEXT, ComicYear TEXT, Status TEXT, ImportDate TEXT, ComicFilename TEXT, ComicLocation TEXT, WatchMatch TEXT, DisplayName TEXT, SRID TEXT, ComicID TEXT, IssueID TEXT, Volume TEXT, IssueNumber TEXT, DynamicName TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS readlist (IssueID TEXT, ComicName TEXT, Issue_Number TEXT, Status TEXT, DateAdded TEXT, Location TEXT, inCacheDir TEXT, SeriesYear TEXT, ComicID TEXT, StatusChange TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT, DateAdded TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS annuals (IssueID TEXT, Issue_Number TEXT, IssueName TEXT, IssueDate TEXT, Status TEXT, ComicID TEXT, GCDComicID TEXT, Location TEXT, ComicSize TEXT, Int_IssueNumber INT, ComicName TEXT, ReleaseDate TEXT, DigitalDate TEXT, ReleaseComicID TEXT, ReleaseComicName TEXT, IssueDate_Edit TEXT, DateAdded TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS rssdb (Title TEXT UNIQUE, Link TEXT, Pubdate TEXT, Site TEXT, Size TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS futureupcoming (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, IssueDate TEXT, Publisher TEXT, Status TEXT, DisplayComicName TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS failed (ID TEXT, Status TEXT, ComicID TEXT, IssueID TEXT, Provider TEXT, ComicName TEXT, Issue_Number TEXT, NZBName TEXT, DateFailed TEXT)')
@@ -505,6 +505,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS oneoffhistory (ComicName TEXT, IssueNumber TEXT, ComicID TEXT, IssueID TEXT, Status TEXT, weeknumber TEXT, year TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT)')
     conn.commit
     c.close
 
@@ -620,6 +621,11 @@ def dbcheck():
         c.execute('ALTER TABLE comics ADD COLUMN LatestIssueID TEXT')
 
     try:
+        c.execute('SELECT Collects from comics')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE comics ADD COLUMN Collects CLOB')
+
+    try:
         c.execute('SELECT DynamicComicName from comics')
         if CONFIG.DYNAMIC_UPDATE < 3:
             dynamic_upgrade = True
@@ -660,6 +666,11 @@ def dbcheck():
         c.execute('SELECT ImageURL_ALT from issues')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE issues ADD COLUMN ImageURL_ALT TEXT')
+
+    try:
+        c.execute('SELECT DigitalDate from issues')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE issues ADD COLUMN DigitalDate TEXT')
 
     ## -- ImportResults Table --
 
@@ -812,6 +823,11 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE weekly ADD COLUMN annuallink TEXT')
 
+    try:
+        c.execute('SELECT format from weekly')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE weekly ADD COLUMN format TEXT')
+
     ## -- Nzblog Table --
 
     try:
@@ -891,6 +907,11 @@ def dbcheck():
         c.execute('SELECT DateAdded from annuals')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE annuals ADD COLUMN DateAdded TEXT')
+
+    try:
+        c.execute('SELECT DigitalDate from annuals')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE annuals ADD COLUMN DigitalDate TEXT')
 
     ## -- Snatched Table --
 
@@ -983,6 +1004,11 @@ def dbcheck():
         c.execute('SELECT DateAdded from storyarcs')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE storyarcs ADD COLUMN DateAdded TEXT')
+
+    try:
+        c.execute('SELECT DigitalDate from storyarcs')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE storyarcs ADD COLUMN DigitalDate TEXT')
 
     ## -- searchresults Table --
     try:

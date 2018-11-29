@@ -26,6 +26,7 @@ from datetime import timedelta, date
 import re
 import json
 import copy
+import ntpath
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -179,6 +180,13 @@ class WebInterface(object):
         else:
             comicImage = comic['ComicImage']
         comicpublisher = helpers.publisherImages(comic['ComicPublisher'])
+
+        if comic['Collects'] is not None:
+            issues_list = json.loads(comic['Collects'])
+        else:
+            issues_list = None
+        #logger.info('issues_list: %s' % issues_list)
+
         comicConfig = {
                     "fuzzy_year0":                    helpers.radio(int(usethefuzzy), 0),
                     "fuzzy_year1":                    helpers.radio(int(usethefuzzy), 1),
@@ -196,6 +204,7 @@ class WebInterface(object):
                     "publisher_image_alt":            comicpublisher['publisher_image_alt'],
                     "publisher_imageH":               comicpublisher['publisher_imageH'],
                     "publisher_imageW":               comicpublisher['publisher_imageW'],
+                    "issue_list":                     issues_list,
                     "ComicImage":                     comicImage + '?' + datetime.datetime.now().strftime('%y-%m-%d %H:%M:%S')
                }
 
@@ -223,6 +232,7 @@ class WebInterface(object):
                                      "Int_IssueNumber":   ann['Int_IssueNumber'],
                                      "IssueName":         issuename,
                                      "IssueDate":         ann['IssueDate'],
+                                     "DigitalDate":       ann['DigitalDate'],
                                      "Status":            ann['Status'],
                                      "Location":          ann['Location'],
                                      "ComicID":           ann['ComicID'],
@@ -574,6 +584,7 @@ class WebInterface(object):
                     st_issueid = str(storyarcid) + "_" + str(random.randint(1000,9999))
                 issnum = arcval['Issue_Number']
                 issdate = str(arcval['Issue_Date'])
+                digitaldate = str(arcval['Digital_Date'])
                 storedate = str(arcval['Store_Date'])
 
                 int_issnum = helpers.issuedigits(issnum)
@@ -603,6 +614,7 @@ class WebInterface(object):
                                   "Issue_Number":       issnum,
                                   "IssueDate":          issdate,
                                   "ReleaseDate":        storedate,
+                                  "DigitalDate":        digitaldate,
                                   "ReadingOrder":       readingorder, #n +1,
                                   "Int_IssueNumber":    int_issnum,
                                   "Manual":             manual_mod})
@@ -644,7 +656,8 @@ class WebInterface(object):
                            "TotalIssues":       storyarcissues,
                            "ReadingOrder":      AD['ReadingOrder'],
                            "IssueDate":         AD['IssueDate'],
-                           "ReleaseDate":         AD['ReleaseDate'],
+                           "ReleaseDate":       AD['ReleaseDate'],
+                           "DigitalDate":       AD['DigitalDate'],
                            "SeriesYear":        seriesYear,
                            "IssuePublisher":    issuePublisher,
                            "CV_ArcID":          arcid,
@@ -657,8 +670,10 @@ class WebInterface(object):
         logger.fdebug(module + ' Now searching your watchlist for matches belonging to this story arc.')
         self.ArcWatchlist(storyarcid)
         if arcrefresh:
+            logger.info('%s Successfully Refreshed %s' % (module, storyarcname))
             return
         else:
+            logger.info('%s Successfully Added %s' % (module, storyarcname))
             raise cherrypy.HTTPRedirect("detailStoryArc?StoryArcID=%s&StoryArcName=%s" % (storyarcid, storyarcname))
     addStoryArc.exposed = True
 
@@ -898,6 +913,8 @@ class WebInterface(object):
         if comic['ComicName'] is None: ComicName = "None"
         else: ComicName = comic['ComicName']
         seriesdir = comic['ComicLocation']
+        seriesyear = comic['ComicYear']
+        seriesvol = comic['ComicVersion']
         logger.info(u"Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
@@ -912,10 +929,12 @@ class WebInterface(object):
                     shutil.rmtree(seriesdir)
                 except:
                     logger.warn('Unable to remove directory after removing series from Mylar.')
+                else:
+                    logger.info('Successfully removed directory: %s' % (seriesdir))
             else:
                 logger.warn('Unable to remove directory as it does not exist in : ' + seriesdir)
             myDB.action('DELETE from readlist WHERE ComicID=?', [ComicID])
-
+        logger.info('Successful deletion of %s %s (%s) from your watchlist' % (ComicName, seriesvol, seriesyear))
         helpers.ComicSort(sequence='update')
         raise cherrypy.HTTPRedirect("home")
     deleteSeries.exposed = True
@@ -1682,7 +1701,8 @@ class WebInterface(object):
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "HASH":    None,
-                                           "AUTOWANT": False
+                                           "AUTOWANT": False,
+                                           "FORMAT":   weekly['format']
                                          })
                     else:
                         if any(x['ComicName'].lower() == weekly['COMIC'].lower() for x in autowant):
@@ -1698,7 +1718,8 @@ class WebInterface(object):
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "HASH":    None,
-                                           "AUTOWANT": True
+                                           "AUTOWANT": True,
+                                           "FORMAT":   weekly['format']
                                          })
                         else:
                             weeklyresults.append({
@@ -1713,7 +1734,8 @@ class WebInterface(object):
                                            "HAVEIT":  haveit,
                                            "LINK":    linkit,
                                            "HASH":    None,
-                                           "AUTOWANT": False
+                                           "AUTOWANT": False,
+                                           "FORMAT":   weekly['format']
                                          })
 
                     if tmp_status == 'Wanted':
@@ -2817,6 +2839,9 @@ class WebInterface(object):
         logger.fdebug('[%s] Issue to renumber sequence from : %s' % (issuearcid, valid_readingorder))
         reading_seq = 1
         for rc in sorted(readchk, key=itemgetter('ReadingOrder'), reverse=False):
+            filename = None
+            if rc['Location'] is not None:
+                filename = ntpath.basename(rc['Location'])
             if str(issuearcid) == str(rc['IssueArcID']):
                 logger.fdebug('new order sequence detected at #: %s' % valid_readingorder)
                 if valid_readingorder > int(rc['ReadingOrder']):
@@ -2839,10 +2864,8 @@ class WebInterface(object):
                     else:
                         #valid_readingorder
                         if valid_readingorder < old_reading_seq:
-                            logger.info('2')
                             reading_seq = int(rc['ReadingOrder'])
                         else:
-                            logger.info('3')
                             reading_seq = oldreading_seq +1
                     logger.fdebug('old sequence discovered at %s to %s' % (oldreading_seq, reading_seq))
                     oldreading_seq = None
@@ -2855,7 +2878,8 @@ class WebInterface(object):
                 logger.fdebug('reordering existing sequence as lower sequence has changed. Altering from %s to %s' % (rc['ReadingOrder'], reading_seq))
             new_readorder.append({'IssueArcID':   IssueArcID,
                                   'IssueID':      issueid,
-                                  'ReadingOrder': reading_seq})
+                                  'ReadingOrder': reading_seq,
+                                  'filename':     filename})
 
         #we resequence in the following way:
         #  everything before the new reading number stays the same
@@ -2865,6 +2889,14 @@ class WebInterface(object):
         logger.fdebug('new reading order: %s' % new_readorder)
         #newrl = 0
         for rl in sorted(new_readorder, key=itemgetter('ReadingOrder'), reverse=False):
+
+            if rl['filename'] is not None:
+                try:
+                    if int(rl['ReadingOrder']) != int(rl['filename'][:rl['filename'].find('-')]) and mylar.CONFIG.READ2FILENAME is True:
+                        logger.fdebug('Order-Change: %s TO %s' % (int(rl['filename'][:rl['filename'].find('-')]), int(rl['ReadingOrder'])))
+                    logger.fdebug('%s to %s' % (rl['filename'], helpers.renamefile_readingorder(rl['ReadingOrder']) + '-' + rl['filename'][rl['filename'].find('-')+1:]))
+                except:
+                    pass
 
             rl_ctrl = {"IssueID":           rl['IssueID'],
                        "IssueArcID":        rl['IssueArcID'],
@@ -3156,7 +3188,8 @@ class WebInterface(object):
             logger.info("No Story Arcs to search")
         else:
             #cycle through the story arcs here for matches on the watchlist
-            arcdir = helpers.filesafe(ArcWatch[0]['StoryArc'])
+            arcname = ArcWatch[0]['StoryArc']
+            arcdir = helpers.filesafe(arcname)
             arcpub = ArcWatch[0]['Publisher']
             if arcpub is None:
                 arcpub = ArcWatch[0]['IssuePublisher']
@@ -3441,6 +3474,8 @@ class WebInterface(object):
                             myDB.upsert("storyarcs", newVal, ctrlVal)
                             logger.info("Marked " + issue['ComicName'] + " :# " + issue['Issue_Number'] + " as " + issue['Status'])
 
+            arcstats = self.storyarc_main(StoryArcID)
+            logger.info('[STORY-ARCS] Completed Missing/Recheck Files for %s [%s / %s]' % (arcname, arcstats['Have'], arcstats['TotalIssues']))
             return
 
     ArcWatchlist.exposed = True

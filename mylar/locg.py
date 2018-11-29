@@ -83,12 +83,13 @@ def locg(pulldate=None,weeknumber=None,year=None):
                          'annuallink': x['link'],
                          'year':       x['year'],
                          'volume':     x['volume'],
-                         'seriesyear': x['seriesyear']})
+                         'seriesyear': x['seriesyear'],
+                         'format':     x['type']})
             shipdate = x['shipdate']
 
         myDB = db.DBConnection()
 
-        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, annuallink text, rowid INTEGER PRIMARY KEY)")
+        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, annuallink text, format text, rowid INTEGER PRIMARY KEY)")
 
         #clear out the upcoming table here so they show the new values properly.
         if pulldate == '00000000':
@@ -123,7 +124,8 @@ def locg(pulldate=None,weeknumber=None,year=None):
                             'ANNUALLINK':  x['annuallink'],
                             'YEAR':        x['year'],
                             'VOLUME':      x['volume'],
-                            'SERIESYEAR':  x['seriesyear']}
+                            'SERIESYEAR':  x['seriesyear'],
+                            'FORMAT':      x['format']}
             myDB.upsert("weekly", newValueDict, controlValueDict)
 
         logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for the week of: ' + str(weeknumber))

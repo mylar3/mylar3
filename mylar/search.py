@@ -38,7 +38,7 @@ from base64 import b16encode, b32decode
 from operator import itemgetter
 from wsgiref.handlers import format_date_time
 
-def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None, oneoff=False, manual=False, torrentid_32p=None):
+def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, IssueID, AlternateSearch=None, UseFuzzy=None, ComicVersion=None, SARC=None, IssueArcID=None, mode=None, rsscheck=None, ComicID=None, manualsearch=None, filesafe=None, allow_packs=None, oneoff=False, manual=False, torrentid_32p=None, digitaldate=None):
 
     mylar.COMICINFO = []
     unaltered_ComicName = None
@@ -313,7 +313,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     prov_count+=1
                     continue
                 if searchmode == 'rss':
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate)
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
                             chkthealt = AlternateSearch.split('##')
@@ -323,7 +323,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             for calt in chkthealt:
                                 AS_Alternate = re.sub('##', '', calt)
                                 logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate))
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=AS_Alternate, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host)
+                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=AS_Alternate, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate)
                                 if findit['status'] is True:
                                     break
                             if findit['status'] is True:
@@ -333,7 +333,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                         break
 
                 else:
-                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p)
+                    findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate)
                     if all([searchprov == '32P', checked_once is False]) or all([searchprov == 'Public Torrents', checked_once is False]):
                         checked_once = True
                     if findit['status'] is False:
@@ -345,7 +345,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             for calt in chkthealt:
                                 AS_Alternate = re.sub('##', '', calt)
                                 logger.info(u"Alternate Search pattern detected...re-adjusting to : " + str(AS_Alternate))
-                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p)
+                                findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate)
                                 if findit['status'] is True:
                                     break
                             if findit['status'] is True:
@@ -409,7 +409,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     return findit, 'None'
 
-def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None, oneoff=False, cmloopit=None, manual=False, torznab_host=None, torrentid_32p=None):
+def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, nzbprov, prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host=None, ComicVersion=None, SARC=None, IssueArcID=None, RSS=None, ComicID=None, issuetitle=None, unaltered_ComicName=None, allow_packs=None, oneoff=False, cmloopit=None, manual=False, torznab_host=None, torrentid_32p=None, digitaldate=None):
 
     if any([allow_packs is None, allow_packs == 'None', allow_packs == 0, allow_packs == '0']) and all([mylar.CONFIG.ENABLE_TORRENT_SEARCH, mylar.CONFIG.ENABLE_32P]):
         allow_packs = False
@@ -927,8 +927,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             continue
                         else:
                             stdate = IssueDate
+                        logger.fdebug('issue date used is : %s' % stdate)
                     else:
                         stdate = StoreDate
+                        logger.fdebug('store date used is : %s' % stdate)
+                    logger.fdebug('date used is : %s' % stdate)
 
                     postdate_int = None
                     if nzbprov == '32P' and RSS == 'no':
@@ -959,42 +962,70 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.warn('Unable to parse posting date from provider result set for :' + entry['title'])
                             continue
 
-                    #convert it to a Thu, 06 Feb 2014 00:00:00 format
-                    issue_converted = datetime.datetime.strptime(stdate.rstrip(), '%Y-%m-%d')
-                    issue_convert = issue_converted + datetime.timedelta(days=-1)
-                    # to get past different locale's os-dependent dates, let's convert it to a generic datetime format
-                    try:
-                        stamp = time.mktime(issue_convert.timetuple())
-                        issconv = format_date_time(stamp)
-                    except OverflowError:
-                        logger.fdebug('Error attempting to convert the timestamp into a generic format. Probably due to the epoch limiation.')
-                        issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
-                    #convert it to a tuple
-                    econv = email.utils.parsedate_tz(issconv)
-                    econv2 = datetime.datetime(*econv[:6])
-                    #convert it to a numeric and drop the GMT/Timezone
-                    try:
-                        issuedate_int = time.mktime(econv[:len(econv) -1])
-                    except OverflowError:
-                        logger.fdebug('Unable to convert timestamp to integer format. Forcing things through.')
-                        isyear = econv[1]
-                        epochyr = '1970'
-                        if int(isyear) <= int(epochyr):
-                            tm = datetime.datetime(1970, 1, 1)
-                            issuedate_int = int(time.mktime(tm.timetuple()))
+                    if all([digitaldate != '0000-00-00', digitaldate is not None]):
+                        i = 0
+                    else:
+                        digitaldate_int = '00000000'
+                        i = 1
+
+                    while i <= 1:
+                        logger.info('i: %s' % i)
+                        if i == 0:
+                            usedate = digitaldate
                         else:
-                            continue
+                            usedate = stdate
+                        logger.fdebug('usedate: %s' % usedate)
+                        #convert it to a Thu, 06 Feb 2014 00:00:00 format
+                        issue_converted = datetime.datetime.strptime(usedate.rstrip(), '%Y-%m-%d')
+                        issue_convert = issue_converted + datetime.timedelta(days=-1)
+                        # to get past different locale's os-dependent dates, let's convert it to a generic datetime format
+                        try:
+                            stamp = time.mktime(issue_convert.timetuple())
+                            issconv = format_date_time(stamp)
+                        except OverflowError:
+                            logger.fdebug('Error attempting to convert the timestamp into a generic format. Probably due to the epoch limiation.')
+                            issconv = issue_convert.strftime('%a, %d %b %Y %H:%M:%S')
+                        #convert it to a tuple
+                        econv = email.utils.parsedate_tz(issconv)
+                        econv2 = datetime.datetime(*econv[:6])
+                        #convert it to a numeric and drop the GMT/Timezone
+                        try:
+                            usedate_int = time.mktime(econv[:len(econv) -1])
+                        except OverflowError:
+                            logger.fdebug('Unable to convert timestamp to integer format. Forcing things through.')
+                            isyear = econv[1]
+                            epochyr = '1970'
+                            if int(isyear) <= int(epochyr):
+                                tm = datetime.datetime(1970, 1, 1)
+                                usedate_int = int(time.mktime(tm.timetuple()))
+                            else:
+                               continue
+                        if i == 0:
+                            digitaldate_int = usedate_int
+                            digconv2 = econv2
+                        else:
+                            issuedate_int = usedate_int
+                            issconv2 = econv2
+                        i+=1
+
                     try:
                         #try new method to get around issues populating in a diff timezone thereby putting them in a different day.
-                        if dateconv2.date() < econv2.date():
-                            logger.fdebug('[CONV]pubdate: %s  < storedate: %s' % (dateconv2.date(), econv2.date()))
+                        #logger.info('digitaldate: %s' % digitaldate)
+                        #logger.info('dateconv2: %s' % dateconv2.date())
+                        #logger.info('digconv2: %s' % digconv2.date())
+                        if digitaldate != '0000-00-00' and dateconv2.date() >= digconv2.date():
+                            logger.fdebug(str(pubdate) + ' is after DIGITAL store date of ' + str(digitaldate))
+                        elif dateconv2.date() < issconv2.date():
+                            logger.fdebug('[CONV]pubdate: %s  < storedate: %s' % (dateconv2.date(), issconv2.date()))
                             logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
                             continue
                         else:
                             logger.fdebug(str(pubdate) + ' is after store date of ' + str(stdate))
                     except:
                         #if the above fails, drop down to the integer compare method as a failsafe.
-                        if postdate_int < issuedate_int:
+                        if digitaldate != '0000-00-00' and postdate_int >= digitaldate_int:
+                            logger.fdebug(str(pubdate) + ' is after DIGITAL store date of ' + str(digitaldate))
+                        elif postdate_int < issuedate_int:
                             logger.fdebug('[INT]pubdate: %s  < storedate: %s' % (postdate_int, issuedate_int))
                             logger.fdebug(str(pubdate) + ' is before store date of ' + str(stdate) + '. Ignoring search result as this is not the right issue.')
                             continue
@@ -1311,10 +1342,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                        #need to convert dates to just be yyyy-mm-dd and do comparison, time operator in the below calc as well which probably throws off$
                         F_ComicVersion = '1'
                         if postdate_int is not None:
-                            if postdate_int >= issuedate_int and nzbprov == '32P':
+                            if digitaldate != '0000-00-00' and all([postdate_int >= digitaldate_int, nzbprov == '32P']):
+                                logger.fdebug('32P torrent discovery. Posting date (' + str(pubdate) + ') is after DIGITAL store date (' + str(digitaldate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
+                                F_ComicVersion = D_ComicVersion
+                            elif all([postdate_int >= issuedate_int, nzbprov == '32P']):
                                 logger.fdebug('32P torrent discovery. Posting date (' + str(pubdate) + ') is after store date (' + str(stdate) + '), forcing volume label to be the same as series label (0-Day Enforcement): v' + str(F_ComicVersion) + ' --> v' + str(S_ComicVersion))
                                 F_ComicVersion = D_ComicVersion
-
+                            else:
+                                pass
                     logger.fdebug("FCVersion: " + str(F_ComicVersion))
                     logger.fdebug("DCVersion: " + str(D_ComicVersion))
                     logger.fdebug("SCVersion: " + str(S_ComicVersion))
@@ -1914,6 +1949,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                         'Issue_Number':  iss['Issue_Number'],
                                         'IssueDate':     iss['IssueDate'],
                                         'StoreDate':     iss['ReleaseDate'],
+                                        'DigitalDate':   iss['DigitalDate'],
                                         'SARC':          None,
                                         'StoryArcID':    None,
                                         'IssueArcID':    None,
@@ -1933,6 +1969,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                             'Issue_Number':  iss['IssueNumber'],
                                             'IssueDate':     iss['IssueDate'],
                                             'StoreDate':     iss['ReleaseDate'],
+                                            'DigitalDate':   iss['DigitalDate'],
                                             'SARC':          iss['StoryArc'],
                                             'StoryArcID':    iss['StoryArcID'],
                                             'IssueArcID':    iss['IssueArcID'],
@@ -1952,6 +1989,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                                         'Issue_Number':  iss['Issue_Number'],
                                         'IssueDate':     iss['IssueDate'],
                                         'StoreDate':     iss['ReleaseDate'],   #need to replace with Store date
+                                        'DigitalDate':   iss['DigitalDate'],
                                         'SARC':          None,
                                         'StoryArcID':    None,
                                         'IssueArcID':    None,
@@ -1991,7 +2029,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 else:
                     storyarc_watchlist = True
                 if result['StoreDate'] == '0000-00-00' or result['StoreDate'] is None:
-                    if result['IssueDate'] is None or result['IssueDate'] == '0000-00-00':
+                    if any([result['IssueDate'] is None, result['IssueDate'] == '0000-00-00']) and result['DigitalDate'] == '0000-00-00':
                         logger.fdebug('ComicID: ' + str(result['ComicID']) + ' has invalid Date data. Skipping searching for this series.')
                         continue
 
@@ -2018,6 +2056,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
                 IssueDate = result['IssueDate']
                 StoreDate = result['StoreDate']
+                DigitalDate = result['DigitalDate']
 
                 if result['IssueDate'] is None:
                     ComicYear = SeriesYear
@@ -2046,7 +2085,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
 
                 mode = result['mode']
-                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p)
+                foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate)
                 if foundNZB['status'] is True:
                     updater.foundsearch(result['ComicID'], result['IssueID'], mode=mode, provider=prov, SARC=result['SARC'], IssueArcID=result['IssueArcID'], hash=foundNZB['info']['t_hash'])
 
@@ -2093,6 +2132,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 actissueid = None
                 IssueDate = result['IssueDate']
                 StoreDate = result['ReleaseDate']
+                DigitalDate = result['DigitalDate']
                 TorrentID_32p = None
             elif mode == 'pullwant':
                 ComicName = result['COMIC']
@@ -2109,6 +2149,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 TorrentID_32p = None
                 IssueDate = result['SHIPDATE']
                 StoreDate = IssueDate
+                DigitalDate = '0000-00-00'
             else:
                 comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
                 if mode == 'want_ann':
@@ -2126,6 +2167,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 ComicVersion = comic['ComicVersion']
                 IssueDate = result['IssueDate']
                 StoreDate = result['ReleaseDate']
+                DigitalDate = result['DigitalDate']
                 SARC = None
                 IssueArcID = None
                 actissueid = issueid
@@ -2138,7 +2180,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
             else:
                 IssueYear = str(IssueDate)[:4]
 
-            foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p)
+            foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate)
             if manual is True:
                 return foundNZB
             if foundNZB['status'] is True:
@@ -2192,7 +2234,7 @@ def searchIssueIDList(issuelist):
             else:
                 AllowPacks = False
 
-            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks, torrentid_32p=TorrentID_32p)
+            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks, torrentid_32p=TorrentID_32p, digitaldate=issue['DigitalDate'])
             if foundNZB['status'] is True:
                 updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
         logger.info('Completed search request.')

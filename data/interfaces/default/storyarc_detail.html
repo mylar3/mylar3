@@ -14,7 +14,7 @@
 			<a id="menu_link_delete" href="#">Remove Read</a>
 			<a id="menu_link_delete" href="#">Clear File Cache</a>
                         <a id="menu_link_refresh" onclick="doAjaxCall('SearchArcIssues?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for Missing StoryArc Issues">Search for Missing</a>
-                        <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist">Search for Watchlist matches</a>
+                        <a id="menu_link_refresh" onclick="doAjaxCall('ArcWatchlist?StoryArcID=${storyarcid}',$(this),'table')" data-success="Now searching for matches on Watchlist & Rechecking files">Search for Watchlist matches/Recheck Files</a>
                         %if cvarcid:
                             <a id="menu_link_refresh" onclick="doAjaxCall('addStoryArc_thread?arcid=${storyarcid}&cvarcid=${cvarcid}&storyarcname=${storyarcname}&arcrefresh=True',$(this),'table')" data-success="Refreshed Story Arc">Refresh Story Arc</a>
                         %endif
@@ -110,6 +110,9 @@
            </table>
           </div>
          </div>
+
+        <button type="button" onclick="">Finalize & Rename</button>
+
 	<table class="display" id="arc_detail">
 		<thead>
 			<tr>

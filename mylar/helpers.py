@@ -1424,7 +1424,8 @@ def havetotals(refreshit=None):
                            "percent":         percent,
                            "totalissues":     totalissues,
                            "haveissues":      haveissues,
-                           "DateAdded":       comic['LastUpdated']})
+                           "DateAdded":       comic['LastUpdated'],
+                           "ComicType":       comic['Type']})
 
         return comics
 
@@ -1842,17 +1843,22 @@ def listPull(weeknumber, year):
         library[row['ComicID']] = row['ComicID']
     return library
 
-def listLibrary():
+def listLibrary(comicid=None):
     import db
     library = {}
     myDB = db.DBConnection()
-    list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+    if comicid is None:
+        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+    else:
+        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+
     for row in list:
         library[row['ComicID']] = {'comicid':        row['ComicID'],
                                    'status':         row['Status']}
         if row['ReleaseComicID'] is not None:
             library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
                                               'status':    row['Status']}
+
     return library
 
 def listStoryArcs():

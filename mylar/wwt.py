@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import lib.requests as requests
+import requests
 from bs4 import BeautifulSoup, UnicodeDammit
 import urlparse
 import re
