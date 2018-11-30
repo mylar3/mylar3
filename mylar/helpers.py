@@ -1848,16 +1848,25 @@ def listLibrary(comicid=None):
     library = {}
     myDB = db.DBConnection()
     if comicid is None:
-        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+        if mylar.CONFIG.ANNUALS_ON is True:
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid group by a.comicid")
+        else:
+            list = myDB.select("SELECT comicid, status FROM Comics group by comicid")
     else:
-        list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+        if mylar.CONFIG.ANNUALS_ON is True:
+            list = myDB.select("SELECT a.comicid, b.releasecomicid, a.status FROM Comics AS a LEFT JOIN annuals AS b on a.comicid=b.comicid WHERE a.comicid=? group by a.comicid", [re.sub('4050-', '', comicid).strip()])
+        else:
+            list = myDB.select("SELECT comicid, status FROM Comics WHERE comicid=? group by comicid", [re.sub('4050-', '', comicid).strip()])
 
     for row in list:
         library[row['ComicID']] = {'comicid':        row['ComicID'],
                                    'status':         row['Status']}
-        if row['ReleaseComicID'] is not None:
-            library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
-                                              'status':    row['Status']}
+        try:
+            if row['ReleaseComicID'] is not None:
+                library[row['ReleaseComicID']] = {'comicid':   row['ComicID'],
+                                                  'status':    row['Status']}
+        except:
+            pass
 
     return library
 
