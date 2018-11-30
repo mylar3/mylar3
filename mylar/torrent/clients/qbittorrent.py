@@ -10,11 +10,11 @@ from lib.qbittorrent import client
 class TorrentClient(object):
     def __init__(self):
         self.conn = None
-		
+
     def connect(self, host, username, password):
         if self.conn is not None:
             return self.connect
-	
+
         if not host:
             return {'status': False}
 
@@ -31,7 +31,7 @@ class TorrentClient(object):
                 logger.error('Could not connect to qBittorrent ' + host)
             else:
                 return self.client
-	
+
     def find_torrent(self, hash):
         logger.debug('Finding Torrent hash: ' + hash)
         torrent_info = self.get_torrent(hash)
@@ -53,10 +53,10 @@ class TorrentClient(object):
 
 
     def load_torrent(self, filepath):
-        
+
         if not filepath.startswith('magnet'):
             logger.info('filepath to torrent file set to : ' + filepath)
-                
+
         if self.client._is_authenticated is True:
             logger.info('Checking if Torrent Exists!')
 
@@ -81,18 +81,30 @@ class TorrentClient(object):
                 #multiple copies of the same issues that's already downloaded
             else:
                 logger.info('Torrent not added yet, trying to add it now!')
+                if any([mylar.CONFIG.QBITTORRENT_FOLDER is None, mylar.CONFIG.QBITTORRENT_FOLDER == '', mylar.CONFIG.QBITTORRENT_FOLDER == 'None']):
+                    down_dir = None
+                else:
+                    down_dir = mylar.CONFIG.QBITTORRENT_FOLDER
+                    logger.info('Forcing Download location to: %s' % down_dir)
+
                 if filepath.startswith('magnet'):
                     try:
-                        tid = self.client.download_from_link(filepath, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        if down_dir is not None:
+                            tid = self.client.download_from_link(filepath, savepath=str(down_dir), category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        else:
+                            tid = self.client.download_from_link(filepath, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
                     except Exception as e:
                         logger.debug('Torrent not added')
                         return {'status': False}
                     else:
-                        logger.debug('Successfully submitted for add as a magnet. Verifying item is now on client.')   
+                        logger.debug('Successfully submitted for add as a magnet. Verifying item is now on client.')
                 else:
                     try:
                         torrent_content = open(filepath, 'rb')
-                        tid = self.client.download_from_file(torrent_content, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        if down_dir is not None:
+                            tid = self.client.download_from_file(torrent_content, savepath=str(down_dir), category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        else:
+                            tid = self.client.download_from_file(torrent_content, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
                     except Exception as e:
                         logger.debug('Torrent not added')
                         return {'status': False}
