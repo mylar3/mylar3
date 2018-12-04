@@ -53,9 +53,12 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
     #    pickfeed = '2'
     #    loopit = 1
     loopit = 1
+
     if pickfeed == 'Public':
-        #we need to cycle through both DEM + WWT feeds
-        loopit = 2
+        pickfeed = '999'
+    #    since DEM is dead, just remove the loop entirely
+    #    #we need to cycle through both DEM + WWT feeds
+    #    loopit = 2
 
     lp = 0
     totalcount = 0

@@ -30,7 +30,7 @@ from mylar import logger, helpers
 class wwt(object):
 
     def __init__(self, name, issue):
-        self.url = 'https://worldwidetorrents.me/'
+        self.url = mylar.WWTURL
         self.query = name + ' ' + str(int(issue)) #'Batman White Knight'
         logger.info('query set to : %s' % self.query)
         pass
