@@ -694,7 +694,7 @@ class FileChecker(object):
                                     logger.info('GRAPHIC NOVEL DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
                                     booktype = 'GN'
                                 else:
-                                    if e != 'could not convert string to float':
+                                    if 'could not convert string to float' not in str(e):
                                         logger.fdebug('[%s] Error detecting issue # - ignoring this result : %s' % (e, sf))
 
                             volumeprior = False
