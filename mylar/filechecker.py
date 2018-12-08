@@ -694,7 +694,8 @@ class FileChecker(object):
                                     logger.info('GRAPHIC NOVEL DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
                                     booktype = 'GN'
                                 else:
-                                    logger.info('[%s] Error detecting issue # - ignoring this result : %s' % (e, sf))
+                                    if e != 'could not convert string to float':
+                                        logger.fdebug('[%s] Error detecting issue # - ignoring this result : %s' % (e, sf))
 
                             volumeprior = False
                             volumeprior_label = None
@@ -1082,17 +1083,18 @@ class FileChecker(object):
                         'reading_order':          reading_order}
 
             series_info = {}
-            series_info = {'sub':                   path_list,
-                          'comicfilename':          filename,
-                          'comiclocation':          self.dir,
-                          'series_name':            series_name,
-                          'series_name_decoded':    series_name_decoded,
-                          'alt_series':             alt_series,
-                          'alt_issue':              alt_issue,
-                          'series_volume':          issue_volume,
-                          'issue_year':             issue_year,
-                          'issue_number':           issue_number,
-                          'scangroup':              scangroup}
+            series_info = {'sub':                    path_list,
+                           'type':                   re.sub('\.','', filetype).strip(),
+                           'comicfilename':          filename,
+                           'comiclocation':          self.dir,
+                           'series_name':            series_name,
+                           'series_name_decoded':    series_name_decoded,
+                           'alt_series':             alt_series,
+                           'alt_issue':              alt_issue,
+                           'series_volume':          issue_volume,
+                           'issue_year':             issue_year,
+                           'issue_number':           issue_number,
+                           'scangroup':              scangroup}
 
             return self.matchIT(series_info)
 
