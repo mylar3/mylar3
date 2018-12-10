@@ -1445,7 +1445,7 @@ class FileChecker(object):
         return {'AS_Alt':   AS_Alt,
                 'AS_Tuple': AS_Tuple}
     
-    def checkthedate(self, txt, fulldate=False):
+    def checkthedate(self, txt, fulldate=False, cnt=0):
     #    txt='''\
     #    Jan 19, 1990
     #    January 19, 1990
@@ -1457,8 +1457,9 @@ class FileChecker(object):
     #    January1990'''
 
         fmts = ('%Y','%b %d, %Y','%B %d, %Y','%B %d %Y','%m/%d/%Y','%m/%d/%y','(%m/%d/%Y)','%b %Y','%B%Y','%b %d,%Y','%m-%Y','%B %Y','%Y-%m-%d','%Y-%m','%Y%m')
-
+        mnths = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
         parsed=[]
+
         if fulldate is False:
             for e in txt.splitlines():
                 for fmt in fmts:
@@ -1470,14 +1471,36 @@ class FileChecker(object):
                         pass
         else:
             for e in txt.split():
-                logger.info('word: %s' % e)
-                for fmt in fmts:
-                    try:
-                        t = dt.datetime.strptime(e, fmt)
-                        parsed.append((e, fmt, t))
-                        break
-                    except ValueError as err:
-                        pass
+                if cnt == 0:
+                    for x in mnths:
+                        mnth = re.sub('\.', '', e.lower())
+                        if x.lower() in mnth and len(mnth) <= 4:
+                            add_date = x + ' '
+                            cnt+=1
+                            break
+
+                elif cnt == 1:
+                    issnumb = re.sub(',', '', e).strip()
+                    if issnumb.isdigit() and int(issnumb) < 31:
+                        add_date += issnumb + ', '
+                        cnt+=1
+                elif cnt == 2:
+                    possyear = helpers.cleanhtml(re.sub('\.', '', e).strip())
+                    if possyear.isdigit() and int(possyear) > 1970 and int(possyear) < 2020:
+                        add_date += possyear
+                        cnt +=1
+                if cnt == 3:
+                    return self.checkthedate(add_date, fulldate=False, cnt=-1)
+
+
+                if cnt <= 0:
+                    for fmt in fmts:
+                        try:
+                            t = dt.datetime.strptime(e, fmt)
+                            parsed.append((e, fmt, t))
+                            break
+                        except ValueError as err:
+                            pass
 
         # check that all the cases are handled        
         success={t[0] for t in parsed}
@@ -1485,13 +1508,13 @@ class FileChecker(object):
             if e not in success:
                 pass #print e    
 
-        dateyear = None
+        dateline = None
 
         #logger.info('parsed: %s' % parsed)
 
         for t in parsed:
-        #    logger.fdebug('"{:20}" => "{:20}" => {}'.format(*t) 
-            if fulldate is False:
+            #logger.fdebug('"{:20}" => "{:20}" => {}'.format(*t))
+            if fulldate is False and cnt != -1:
                 dateline = t[2].year
             else:
                 dateline = t[2].strftime('%Y-%m-%d')
