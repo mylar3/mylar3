@@ -109,10 +109,13 @@
                                     <label><big>Status: </big><norm>${comic['Status']}</norm></label>
                                 </div>
                                 <%
-                                      if comic['Type'] == 'None' or comic['Type'] is None or comic['Type'] == 'Print':
+                                      if any([comic['Type'] == 'None', comic['Type'] is None, comic['Type'] == 'Print']) and comic['Corrected_Type'] != 'TPB':
                                           comictype = 'Print'
                                       else:
-                                          comictype = comic['Type']
+                                          if comic['Corrected_Type'] is not None:
+                                              comictype = comic['Corrected_Type']
+                                          else:
+                                              comictype = comic['Type']
                                 %>
                                 <div>
                                     <label><big>Edition: </big><norm>${comictype}</norm>
@@ -213,6 +216,11 @@
                                    <label>Forcibly Mark as Continuing</label>
                                    <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_continuing" value="2" ${comicConfig['force_continuing']} />
                                    <a href="#" title="Will forcibly mark this series as 'Continuing' regardless of actual status"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
+                                </div>
+                                <div class="row checkbox right clearfix">
+                                   <label>Forcibly Mark series as TPB/GN</label>
+                                   <input type="checkbox" style="vertical-align: bottom; margin: 3px; margin-top: -3px;" name="force_type" value="2" ${comicConfig['force_type']} />
+                                   <a href="#" title="Will forcibly mark this series as TPB/GN in those instances where it assumes it's a normal issue-based series"><img src="interfaces/default/images/info32.png" height="16" alt="" /></a>
                                 </div>
                                 %if any([comic['ComicYear'] == '2099',comic['ComicYear'] == '0000', comic['ComicYear'] == '', comic['Corrected_SeriesYear']]):
                                     <div class="row">

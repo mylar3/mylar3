@@ -32,7 +32,7 @@ import cherrypy
 import requests
 
 import mylar
-from mylar import logger, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
+from mylar import logger, filers, helpers, db, mb, cv, parseit, filechecker, search, updater, moveit, comicbookdb
 
 
 def is_exists(comicid):
@@ -49,7 +49,7 @@ def is_exists(comicid):
         return False
 
 
-def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None):
+def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=None, calledfrom=None, annload=None, chkwant=None, issuechk=None, issuetype=None, latestissueinfo=None, csyear=None, fixed_type=None):
     myDB = db.DBConnection()
 
     controlValueDict = {"ComicID":     comicid}
@@ -58,7 +58,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if dbcomic is None:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
-        comlocation = None
+        if all([imported, mylar.CONFIG.IMP_PATHS is True]):
+            comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
+        else:
+            comlocation = None
         oldcomversion = None
         series_status = 'Loading'
         lastissueid = None
@@ -113,6 +116,9 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         sortname = comic['ComicName']
 
+    comic['Corrected_Type'] = fixed_type
+    if fixed_type is not None and fixed_type != comic['Type']:
+        logger.info('Forced Comic Type to : %s' % comic['Corrected_Type'])
 
     logger.info('Now adding/updating: ' + comic['ComicName'])
     #--Now that we know ComicName, let's try some scraping
@@ -197,67 +203,16 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     comicname_filesafe = helpers.filesafe(u_comicnm)
 
     if comlocation is None:
-        comicdir = comicname_filesafe
-        series = comicdir
-        if series[-1:] == '.':
-            series[:-1]
 
-        publisher = re.sub('!', '', comic['ComicPublisher']) # thanks Boom!
-        publisher = helpers.filesafe(publisher)
-        year = SeriesYear
-        booktype = comic['Type']
-        if booktype == 'Print' or all([comic['Type'] != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
-            chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
-            chunk_b = re.compile(r'\s+')
-            chunk_folder_format = chunk_b.sub(' ', chunk_fb)
-        else:
-            chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
+        comic_values = {'ComicName':        comic['ComicName'], 
+                        'ComicPublisher':   comic['ComicPublisher'],
+                        'ComicYear':        SeriesYear,
+                        'ComicVersion':     comicVol,
+                        'Type':             comic['Type'],
+                        'Corrected_Type':   comic['Corrected_Type']}
 
-        if any([comicVol is None, comic['Type'] != 'Print']):
-            comicVol = 'None'
-        #if comversion is None, remove it so it doesn't populate with 'None'
-        if comicVol == 'None':
-            chunk_f_f = re.sub('\$VolumeN', '', chunk_folder_format)
-            chunk_f = re.compile(r'\s+')
-            chunk_folder_format = chunk_f.sub(' ', chunk_f_f)
-            logger.fdebug('No version # found for series, removing from folder format')
-            logger.fdebug("new folder format: " + str(chunk_folder_format))
-
-        #do work to generate folder path
-
-        values = {'$Series':        series,
-                  '$Publisher':     publisher,
-                  '$Year':          year,
-                  '$series':        series.lower(),
-                  '$publisher':     publisher.lower(),
-                  '$VolumeY':       'V' + str(year),
-                  '$VolumeN':       comicVol.upper(),
-                  '$Annual':        'Annual',
-                  '$Type':          booktype
-                  }
-        try:
-            if mylar.CONFIG.FOLDER_FORMAT == '':
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, comicdir, " (" + SeriesYear + ")")
-            else:
-                chunk_folder_format = re.sub('[()|[]]', '', chunk_folder_format).strip()
-                comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
-        except Exception as e:
-            if 'TypeError' in e:
-                if mylar.CONFIG.DESTINATION_DIR is None:
-                    logger.error('[ERROR] %s' % e)
-                    logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
-                    return
-            logger.error('[ERROR] %s' % e)
-            logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
-            return
-
-        #comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + comicdir + " (" + comic['ComicYear'] + ")"
-        if mylar.CONFIG.DESTINATION_DIR == "":
-            logger.error('There is no Comic Location Path specified - please specify one in Config/Web Interface.')
-            return
-        if mylar.CONFIG.REPLACE_SPACES:
-            #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
-            comlocation = comlocation.replace(' ', mylar.CONFIG.REPLACE_CHAR)
+        dothedew = filers.FileHandlers(comic=comic_values)
+        comlocation = dothedew.folder_create()
 
     #moved this out of the above loop so it will chk for existance of comlocation in case moved
     #if it doesn't exist - create it (otherwise will bugger up later on)
@@ -341,6 +296,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
                     "Type":               comic['Type'],
+                    "Corrected_Type":     comic['Corrected_Type'],
                     "Collects":           issue_list,
                     "DateAdded":          helpers.today(),
                     "Status":             "Loading"}

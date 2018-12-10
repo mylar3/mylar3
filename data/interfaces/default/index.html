@@ -71,12 +71,15 @@
 
                                 comicline = comicname
 
-                                comictype = comic['ComicType']
+                                comictype = comic['Type']
                                 try:
-                                    if any([comictype == 'None', comictype is None, comictype == 'Print']):
+                                    if any([comictype == 'None', comictype is None, comictype == 'Print']) and comic['Corrected_Type'] != 'TPB':
                                         comictype = None
                                     else:
-                                        comictype = comictype
+                                        if comic['Corrected_Type'] is not None:
+                                            comictype = comic['Corrected_Type']
+                                        else:
+                                            comictype = comictype
                                 except:
                                     comictype = None
 

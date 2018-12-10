@@ -62,6 +62,7 @@
                                      %endif                                                                       
                                 </div>
 				<form action="comicScan" method="GET" id="comicScan">
+                                   <fieldset>
 					<legend>Scan Comic Library</legend>
 					<p><strong>Where are the comics you want scanned in located?</strong></p>
 					<p>You can put in any directory, and it will scan for comics</br>
@@ -73,35 +74,41 @@
 					</p>	
 					<br/>
 					<div class="row">
-                                        <label for="">Path to directory</label>
-                                        %if mylar.CONFIG.COMIC_DIR:
-                                            <input type="text" value="${mylar.CONFIG.COMIC_DIR}" name="path" size="70" />
-                                        %else:
-                                            <input type="text" value="Enter a Comic Directory to scan" onfocus="if
-                                            (this.value==this.defaultValue) this.value='';" name="path" size="70" />
-                                        %endif
+                                           <label for="">Path to directory</label>
+                                           %if mylar.CONFIG.COMIC_DIR:
+                                               <input type="text" value="${mylar.CONFIG.COMIC_DIR}" name="path" size="70" />
+                                           %else:
+                                               <input type="text" value="Enter a Comic Directory to scan" onfocus="if
+                                               (this.value==this.defaultValue) this.value='';" name="path" size="70" />
+                                           %endif
                                         </div>
                                         <div class="row checkbox">
-                                           <input type="checkbox" name="autoadd" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)}><label>Auto-add new series</label>
+                                           <input type="checkbox" name="autoadd" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)} /><label>Auto-add new series</label>
                                         </div>
                                         <div class="row checkbox">
-                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.CONFIG.IMP_METADATA)}><label>Use existing Metadata</label>
+                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.CONFIG.IMP_METADATA)} /><label>Use existing Metadata</label>
                                              <small>Use existing Metadata to better locate series for import</small>
                                         </div>
                                         <div class="row checkbox">
-                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" onclick="initConfigCheckbox($this));" id="imp_move" value="1" ${checked(mylar.CONFIG.IMP_MOVE)}><label>Move files into corresponding Series directory</label>
-                                           <small>Leaving this unchecked will not move anything, but will mark the issues as Archived</small>
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imps" value="1" ${checked(mylar.CONFIG.IMP_MOVE)} /><label>Move files</label>
+                                           <small>Unchecked will not move anything, but will mark the issues as Archived</small>
+                                           </br>
                                         </div>
-                                        <div class="config">
-                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.CONFIG.IMP_RENAME)}><label>Rename Files </label>
-                                               <small>Rename files to configuration settings</small>
+                                        <div id="move_options" class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.CONFIG.IMP_RENAME)} /><label>Rename Files</label>
+                                           <small>Rename files to configuration settings</small>
+                                        </div>
+                                        <div id="path_options" class="row checkbox">
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_paths" id="imp_paths" value="1" ${checked(mylar.CONFIG.IMP_PATHS)} /><label>Set import paths to series location paths</label>
+                                               <small>Use the folder paths during import as the series location path</small>
                                         </div>
                                         <br/>
-                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted." data-error="Unable to start the scan. Check the logs.">
-                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully" data-error="Unable to save settings. Check the logs.">
+                                      <input type="button" value="Save Changes and Scan" onclick="addScanAction();doAjaxCall('comicScan',$(this),'tabs',true);return true;" data-success="Import Scan now submitted." data-error="Unable to start the scan. Check the logs." />
+                                      <input type="button" value="Save Changes without Scanning Library" onclick="doAjaxCall('comicScan',$(this),'tabs',true);return false;" data-success="Changes Saved Successfully" data-error="Unable to save settings. Check the logs." />
                                       %if mylar.IMPORTBUTTON:
                                           <input type="button" value="Import Results Management" style="float: right;" onclick="location.href='importResults';" />
                                       %endif
+                                   </fieldset>
                               </form>
 		</div>
                 <div id="tabs-2" class="configtable">
@@ -278,9 +285,31 @@
             }
         };
         function initThisPage() {
+                if ($("#imps").is(":checked"))
+                        {
+                                $("#move_options").show();
+                                $("#path_options").hide();
+                        }
+                else
+                        {
+                                $("#path_options").show();
+                                $("#move_options").hide();
+                        }
+
+                $("#imps").click(function(){
+                        if ($("#imps").is(":checked"))
+                        {
+                                $("#move_options").slideDown();
+                                $("#path_options").slideUp();
+                        }
+                        else
+                        {
+                                $("#path_options").slideDown();
+                                $("#move_options").slideUp();
+                        }
+                });
                 jQuery( "#tabs" ).tabs();
 		initActions();
-                initConfigCheckbox("#imp_move");
                 startTime();
 	};
 	$(document).ready(function() {

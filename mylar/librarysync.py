@@ -57,17 +57,19 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
     cbz_retry = 0
 
     mylar.IMPORT_STATUS = 'Now attempting to parse files for additional information'
-
+    myDB = db.DBConnection()
     #mylar.IMPORT_PARSED_COUNT #used to count what #/totalfiles the filename parser is currently on
     for r, d, f in os.walk(dir):
         for files in f:
             mylar.IMPORT_FILES +=1
-            if 'cvinfo' in files:
-                cv_location.append(r)
-                logger.fdebug('CVINFO found: ' + os.path.join(r))
             if any(files.lower().endswith('.' + x.lower()) for x in extensions):
-                comic = files
                 comicpath = os.path.join(r, files)
+                if mylar.CONFIG.IMP_PATHS is True:
+                    if myDB.select('SELECT * FROM comics JOIN issues WHERE issues.Status="Downloaded" AND ComicLocation=? AND issues.Location=?', [r.decode(mylar.SYS_ENCODING, 'replace'), files.decode(mylar.SYS_ENCODING, 'replace')]):
+                        logger.info('Skipped known issue path: %s' % comicpath)
+                        continue
+
+                comic = files
                 comicsize = os.path.getsize(comicpath)
                 logger.fdebug('Comic: ' + comic + ' [' + comicpath + '] - ' + str(comicsize) + ' bytes')
 
@@ -148,6 +150,10 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                         cbz_retry +=1
                     continue
 
+            if 'cvinfo' in files:
+                cv_location.append(r)
+                logger.fdebug('CVINFO found: ' + os.path.join(r))
+
     mylar.IMPORT_TOTALFILES = comiccnt
     logger.info('I have successfully discovered & parsed a total of ' + str(comiccnt) + ' files....analyzing now')
     logger.info('I have not been able to determine what ' + str(len(failure_list)) + ' files are')
@@ -156,8 +162,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
     mylar.IMPORT_STATUS = 'Successfully parsed ' + str(comiccnt) + ' files'
     #return queue.put(valreturn)
 
-    logger.fdebug(utter_failure_list)
-    myDB = db.DBConnection()
+    if len(utter_failure_list) > 0:
+        logger.fdebug('Failure list: %s' % utter_failure_list)
 
     #let's load in the watchlist to see if we have any matches.
     logger.info("loading in the watchlist to see if a series is being watched already...")
@@ -504,7 +510,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
     for x in issueid_list:
         reverse_issueids.append(x['issueid'])
 
-    vals = None
+    vals = []
     if len(reverse_issueids) > 0:
         mylar.IMPORT_STATUS = 'Now Reverse looking up ' + str(len(reverse_issueids)) + ' IssueIDs to get the ComicIDs'
         vals = mylar.cv.getComic(None, 'import', comicidlist=reverse_issueids)
@@ -601,6 +607,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
              import_cv_ids = 0
     else:
         import_cv_ids = 0
+        cvimport_comicids = None
                     
     return {'import_by_comicids':  import_by_comicids, 
             'import_count':        len(import_by_comicids),

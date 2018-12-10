@@ -582,9 +582,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         #logger.fdebug('comicid: %s' % ComicID)
         if RSS == "yes":
             if nzbprov == '32P' or nzbprov == 'Public Torrents':
-                cmname = re.sub("%20", " ", str(comsrc))
-                logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + ComicName + " : " + str(mod_isssearch))
-                bb = rsscheck.torrentdbsearch(ComicName, mod_isssearch, ComicID, nzbprov, oneoff)
+                if all([nzbprov == '32P', mylar.CONFIG.ENABLE_32P is True]) or nzbprov == 'Public Torrents':
+                    cmname = re.sub("%20", " ", str(comsrc))
+                    logger.fdebug("Sending request to [" + str(nzbprov) + "] RSS for " + ComicName + " : " + str(mod_isssearch))
+                    bb = rsscheck.torrentdbsearch(ComicName, mod_isssearch, ComicID, nzbprov, oneoff)
+                else:
+                    bb = 'no results'
             else:
                 cmname = re.sub("%20", " ", str(comsrc))
                 logger.fdebug("Sending request to RSS for " + str(findcomic) + " : " + str(mod_isssearch) + " (" + str(ComicYear) + ")")
@@ -594,6 +597,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     nzbprov_fix = name_torznab
                 else: nzbprov_fix = nzbprov
                 bb = rsscheck.nzbdbsearch(findcomic, mod_isssearch, ComicID, nzbprov_fix, ComicYear, ComicVersion, oneoff)
+            if bb == 'disable':
+                helpers.disable_provider('32P')
+                bb = 'no results'
             if bb is None:
                 bb = 'no results'
         #this is the API calls
@@ -612,7 +618,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #then we call the ajax against the id and issue# and volume (if exists)
                     a = auth32p.info32p(searchterm=searchterm)
                     bb = a.searchit()
-                    if bb is None:
+                    if bb == 'disable':
+                        helpers.disable_provider('32P')
+                        bb = 'no results'
+                    elif bb is None:
                         bb = 'no results'
                 else:
                     bb = "no results"
@@ -2688,6 +2697,9 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         logger.fdebug("ComicName:" + ComicName)
         logger.fdebug("link:" + link)
         logger.fdebug("Torrent Provider:" + nzbprov)
+        if all([mylar.CONFIG.ENABLE_32P is False, nzbprov == '32P']):
+            logger.fdebug('32P is disabled - not attempting to download item')
+            return "torrent-fail"
 
         rcheck = rsscheck.torsend2client(ComicName, IssueNumber, comyear, link, nzbprov, nzbid)  #nzbid = hash for usage with public torrents
         if rcheck == "fail":

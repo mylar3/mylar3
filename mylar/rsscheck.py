@@ -14,7 +14,7 @@ import random
 from StringIO import StringIO
 
 import mylar
-from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent
+from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers
 import torrent.clients.transmission as transmission
 import torrent.clients.deluge as deluge
 import torrent.clients.qbittorrent as qbittorrent
@@ -82,7 +82,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
 
         feedtype = None
 
-        if pickfeed == "1" and mylar.CONFIG.ENABLE_32P:  # 32pages new releases feed.
+        if pickfeed == "1" and mylar.CONFIG.ENABLE_32P is True:  # 32pages new releases feed.
             feed = 'https://32pag.es/feeds.php?feed=torrents_all&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey']
             feedtype = ' from the New Releases RSS Feed for comics'
             verify = bool(mylar.CONFIG.VERIFY_32P)
@@ -118,7 +118,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
             feed = mylar.WWTURL + 'rss.php?cat=132,50'
             feedtype = ' from the New Releases RSS Feed from WorldWideTorrents'
             verify = bool(mylar.CONFIG.PUBLIC_VERIFY)
-        elif int(pickfeed) >= 7 and feedinfo is not None:
+        elif int(pickfeed) >= 7 and feedinfo is not None and mylar.CONFIG.ENABLE_32P is True:
             #personal 32P notification feeds.
             #get the info here
             feed = 'https://32pag.es/feeds.php?feed=' + feedinfo['feed'] + '&user=' + feedinfo['user'] + '&auth=' + feedinfo['auth'] + '&passkey=' + feedinfo['passkey'] + '&authkey=' + feedinfo['authkey'] + '&name=' + feedinfo['feedname']
@@ -864,6 +864,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
     if site == '32P':
         url = 'https://32pag.es/torrents.php'
 
+        if mylar.CONFIG.ENABLE_32P is False:
+            return "fail"
+
         if mylar.CONFIG.VERIFY_32P == 1 or mylar.CONFIG.VERIFY_32P == True:
             verify = True
         else:
@@ -891,8 +894,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
                 if feedinfo == "disable":
-                    mylar.CONFIG.ENABLE_32P = 0
-                    #mylar.config_write()
+                    helpers.disable_provider('32P')
                     return "fail"
                 if mylar.CONFIG.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
                     logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
@@ -1014,8 +1016,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                     feedinfo = feed32p.authenticate()
 
                     if feedinfo == "disable":
-                        mylar.CONFIG.ENABLE_32P = 0
-                        #mylar.config_write()
+                        helpers.disable_provider('32P')
                         return "fail"
 
                     logger.debug('[TOR2CLIENT-32P] Creating CF Scraper')

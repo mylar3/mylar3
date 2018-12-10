@@ -1,0 +1,45 @@
+<%inherit file="base.html"/>
+<%
+        import mylar
+%>
+
+<%def name="headIncludes()">
+</%def>
+
+<%def name="body()">
+        <div id="paddingheader">
+                <h1 class="clearfix">${title}</h1></br>
+        </div>
+            <div style="position:relative; width:960px; height:0px; margin:10px auto;">
+                <% 
+                    format_len = len(file_format)
+                %>
+                <form action="previewRename" type="GET">
+                    <div style="position:absolute; top:-20px; right:0px;">
+                       <label>File Format (Applied):</label>
+                       <input type="text" name="file_format" value="${file_format}" size="${format_len}"><input type="image" src="interfaces/default/images/submit.png" height="25" width="25" class="highqual" />
+                       <input type="hidden" name="comicid" value="${comicid}" />
+                    </div>
+                </form>
+            </div>
+            <div>
+            <table cellpadding="5" cellspacing="5">
+            <thead>
+             <tr>
+              <th id="issueid">IssueID</th>
+              <th id="originalname" width="500" style="text-align:center">Original Name</th>
+              <th id="renamed" width="500" style="text-align:center">Renamed</th>
+             </tr>
+            </thead>
+            <tbody>
+            %for ti in resultlist:
+              <tr>
+                <td id="issueid">${ti['issueid']}</td>
+                <td id="originalname" width="500" style="text-align:center">${ti['original']}</td>
+                <td id="renamed" width="500" style="text-align:center">${ti['new']}</td>
+              </tr>
+            %endfor
+            </tbody>
+            </table>
+            </div>
+</%def>

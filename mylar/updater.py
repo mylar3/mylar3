@@ -36,7 +36,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
         if mylar.CONFIG.UPDATE_ENDED:
             logger.info('Updating only Continuing Series (option enabled) - this might cause problems with the pull-list matching for rebooted series')
             comiclist = []
-            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
+            completelist = myDB.select('SELECT LatestDate, ComicPublished, ForceContinuing, NewPublish, LastUpdated, ComicID, ComicName, Corrected_SeriesYear, Corrected_Type, ComicYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, LatestDate ASC')
             for comlist in completelist:
                 if comlist['LatestDate'] is None:
                     recentstatus = 'Loading'
@@ -65,15 +65,16 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                                       "ComicID":               comlist['ComicID'],
                                       "ComicName":             comlist['ComicName'],
                                       "ComicYear":             comlist['ComicYear'],
-                                      "Corrected_SeriesYear":  comlist['Corrected_SeriesYear']})
+                                      "Corrected_SeriesYear":  comlist['Corrected_SeriesYear'],
+                                      "Corrected_Type":        comlist['Corrected_Type']})
 
         else:
-            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
+            comiclist = myDB.select('SELECT LatestDate, LastUpdated, ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type from comics WHERE Status="Active" or Status="Loading" order by LastUpdated DESC, latestDate ASC')
     else:
         comiclist = []
         comiclisting = ComicIDList
         for cl in comiclisting:
-            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear, LastUpdated from comics WHERE ComicID=? order by LastUpdated DESC, LatestDate ASC', [cl])
+            comiclist += myDB.select('SELECT ComicID, ComicName, ComicYear, Corrected_SeriesYear, Corrected_Type, LastUpdated from comics WHERE ComicID=? order by LastUpdated DESC, LatestDate ASC', [cl])
 
     if all([sched is False, calledfrom is None]):
         logger.info('Starting update for %i active comics' % len(comiclist))
@@ -86,6 +87,10 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     for comic in sorted(comiclist, key=operator.itemgetter('LastUpdated'), reverse=True):
         dspyear = comic['ComicYear']
         csyear = None
+        fixed_type = None
+
+        if comic['Corrected_Type'] is not None:
+            fixed_type = comic['Corrected_Type']
 
         if comic['Corrected_SeriesYear'] is not None:
             csyear = comic['Corrected_SeriesYear']
@@ -180,7 +185,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                 logger.fdebug("Refreshing the series and pulling in new data using only CV.")
 
                 if whack == False:
-                    chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear)
+                    chkstatus = mylar.importer.addComictoDB(ComicID, mismatch, calledfrom='dbupdate', annload=annload, csyear=csyear, fixed_type=fixed_type)
                     if chkstatus['status'] == 'complete':
                         #delete the data here if it's all valid.
                         logger.fdebug("Deleting all old issue data to make sure new data is clean...")
@@ -692,7 +697,8 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
     if chkd is None:
         pass
     else:
-        if chkd['AltNZBName'] is None or chkd['AltNZBName'] == '':
+        altnames = chkd['AltNZBName']
+        if any([altnames is None, altnameas == '']):
             #we need to wipe the entry so we can re-update with the alt-nzbname if required
             myDB.action('DELETE FROM nzblog WHERE IssueID=? and Provider=?', [IssueID, prov])
             logger.fdebug('Deleted stale entry from nzblog for IssueID: ' + str(IssueID) + ' [' + prov + ']')
@@ -925,6 +931,12 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         altnames = rescan['AlternateSearch'] + '##'
     else:
         altnames = ''
+
+    if all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital']) or rescan['Corrected_Type'] == 'TPB':
+        booktype = 'TPB'
+    else:
+        booktype = None
+
     annscan = myDB.select('SELECT * FROM annuals WHERE ComicID=?', [ComicID])
     if annscan is None:
         pass
@@ -964,9 +976,13 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         files_arc = arcval.listFiles()
         fca.append(files_arc)
         comiccnt = int(files_arc['comiccount'])
+
     fcb = []
     fc = {}
-    #if len(fca) > 0:
+
+    is_cnt = myDB.select("SELECT COUNT(*) FROM issues WHERE ComicID=?", [ComicID])
+    iscnt = is_cnt[0][0]
+
     for ca in fca:
         i = 0
         while True:
@@ -974,16 +990,18 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 cla = ca['comiclist'][i]
             except (IndexError, KeyError) as e:
                 break
+            if booktype == 'TPB' and iscnt > 1:
+                just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
+            else:
+                just_the_digits = cla['JusttheDigits']
             fcb.append({"ComicFilename":   cla['ComicFilename'],
                         "ComicLocation":   cla['ComicLocation'],
                         "ComicSize":       cla['ComicSize'],
-                        "JusttheDigits":   cla['JusttheDigits'],
+                        "JusttheDigits":   just_the_digits,
                         "AnnualComicID":   cla['AnnualComicID']})
             i+=1
+
     fc['comiclist'] = fcb
-    is_cnt = myDB.select("SELECT COUNT(*) FROM issues WHERE ComicID=?", [ComicID])
-    iscnt = is_cnt[0][0]
-    #iscnt = rescan['Total']
 
     havefiles = 0
     if mylar.CONFIG.ANNUALS_ON:

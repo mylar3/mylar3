@@ -343,27 +343,29 @@ def start():
             SCHED_RSS_LAST = monitors['rss']
 
             # Start our scheduled background tasks
-            SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=5, minutes=5, timezone='UTC'))
+            if UPDATER_STATUS != 'Paused':
+                SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=5, minutes=5, timezone='UTC'))
 
             #let's do a run at the Wanted issues here (on startup) if enabled.
-            ss = searchit.CurrentSearcher()
-            if CONFIG.NZB_STARTUP_SEARCH:
-                SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.utcnow(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
-            else:
-                if SCHED_SEARCH_LAST is not None:
-                    search_timestamp = float(SCHED_SEARCH_LAST)
-                    logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % datetime.datetime.utcfromtimestamp(search_timestamp))
+            if SEARCH_STATUS != 'Paused':
+                ss = searchit.CurrentSearcher()
+                if CONFIG.NZB_STARTUP_SEARCH:
+                    SCHED.add_job(func=ss.run, id='search', next_run_time=datetime.datetime.utcnow(), name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
                 else:
-                    search_timestamp = helpers.utctimestamp() + (int(CONFIG.SEARCH_INTERVAL) *60)
+                    if SCHED_SEARCH_LAST is not None:
+                        search_timestamp = float(SCHED_SEARCH_LAST)
+                        logger.fdebug('[AUTO-SEARCH] Search last run @ %s' % datetime.datetime.utcfromtimestamp(search_timestamp))
+                    else:
+                        search_timestamp = helpers.utctimestamp() + (int(CONFIG.SEARCH_INTERVAL) *60)
 
-                duration_diff = (helpers.utctimestamp() - search_timestamp)/60
-                if duration_diff >= int(CONFIG.SEARCH_INTERVAL):
-                    logger.fdebug('[AUTO-SEARCH]Auto-Search set to a delay of one minute before initialization as it has been %s minutes since the last run' % duration_diff)
-                    SCHED.add_job(func=ss.run, id='search', name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
-                else:
-                    search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
-                    logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s every %s minutes' % (search_diff, CONFIG.SEARCH_INTERVAL))
-                    SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                    duration_diff = (helpers.utctimestamp() - search_timestamp)/60
+                    if duration_diff >= int(CONFIG.SEARCH_INTERVAL):
+                        logger.fdebug('[AUTO-SEARCH]Auto-Search set to a delay of one minute before initialization as it has been %s minutes since the last run' % duration_diff)
+                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
+                    else:
+                        search_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + ((int(CONFIG.SEARCH_INTERVAL) * 60)  - (duration_diff*60)))
+                        logger.fdebug('[AUTO-SEARCH] Scheduling next run @ %s every %s minutes' % (search_diff, CONFIG.SEARCH_INTERVAL))
+                        SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=search_diff, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
 
             if all([CONFIG.ENABLE_TORRENTS, CONFIG.AUTO_SNATCH, OS_DETECT != 'Windows']) and any([CONFIG.TORRENT_DOWNLOADER == 2, CONFIG.TORRENT_DOWNLOADER == 4]):
                 logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to background load....')
@@ -420,17 +422,18 @@ def start():
             ws = weeklypullit.Weekly()
             duration_diff = (weektimestamp - weekly_timestamp)/60
 
-            if abs(duration_diff) >= weekly_interval/60:
-                logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % abs(duration_diff/60))
-                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
-            else:
-                weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
-                logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
-                SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+            if WEEKLY_STATUS != 'Paused':
+                if abs(duration_diff) >= weekly_interval/60:
+                    logger.info('[WEEKLY] Weekly Pull-Update initializing immediately as it has been %s hours since the last run' % abs(duration_diff/60))
+                    SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=datetime.datetime.utcnow(), trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
+                else:
+                    weekly_diff = datetime.datetime.utcfromtimestamp(weektimestamp + (weekly_interval - (duration_diff * 60)))
+                    logger.fdebug('[WEEKLY] Scheduling next run for @ %s every %s hours' % (weekly_diff, weektimer))
+                    SCHED.add_job(func=ws.run, id='weekly', name='Weekly Pullist', next_run_time=weekly_diff, trigger=IntervalTrigger(hours=weektimer, minutes=0, timezone='UTC'))
 
             #initiate startup rss feeds for torrents/nzbs here...
             rs = rsscheckit.tehMain()
-            if CONFIG.ENABLE_RSS:
+            if CONFIG.ENABLE_RSS is True:
                 logger.info('[RSS-FEEDS] Initiating startup-RSS feed checks.')
                 if SCHED_RSS_LAST is not None:
                     rss_timestamp = float(SCHED_RSS_LAST)
@@ -444,13 +447,16 @@ def start():
                     rss_diff = datetime.datetime.utcfromtimestamp(helpers.utctimestamp() + (int(CONFIG.RSS_CHECKINTERVAL) * 60) - (duration_diff * 60))
                     logger.fdebug('[RSS-FEEDS] Scheduling next run for @ %s every %s minutes' % (rss_diff, CONFIG.RSS_CHECKINTERVAL))
                     SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], next_run_time=rss_diff, trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
-            #else:
+            else:
+                 RSS_STATUS = 'Paused'
             #    SCHED.add_job(func=rs.run, id='rss', name='RSS Feeds', args=[True], trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.RSS_CHECKINTERVAL), timezone='UTC'))
             #    SCHED.pause_job('rss')
 
             if CONFIG.CHECK_GITHUB:
                 vs = versioncheckit.CheckVersion()
                 SCHED.add_job(func=vs.run, id='version', name='Check Version', trigger=IntervalTrigger(hours=0, minutes=CONFIG.CHECK_GITHUB_INTERVAL, timezone='UTC'))
+            else:
+                VERSION_STATUS = 'Paused'
 
             ##run checkFolder every X minutes (basically Manual Run Post-Processing)
             if CONFIG.ENABLE_CHECK_FOLDER:
@@ -460,6 +466,8 @@ def start():
                     SCHED.add_job(func=fm.run, id='monitor', name='Folder Monitor', trigger=IntervalTrigger(hours=0, minutes=int(CONFIG.DOWNLOAD_SCAN_INTERVAL), timezone='UTC'))
                 else:
                     logger.error('[FOLDER MONITOR] You need to specify a monitoring time for the check folder option to work')
+            else:
+                MONITOR_STATUS = 'Paused'
 
             logger.info('Firing up the Background Schedulers now....')
             try:

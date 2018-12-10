@@ -821,6 +821,18 @@ def updateComicLocation():
 
                 publisher = re.sub('!', '', dl['ComicPublisher']) # thanks Boom!
                 year = dl['ComicYear']
+
+                if dl['Corrected_Type'] is not None:
+                    booktype = dl['Corrected_Type']
+                else:
+                    booktype = dl['Type']
+                if booktype == 'Print' or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
+                    chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
+                    chunk_b = re.compile(r'\s+')
+                    chunk_folder_format = chunk_b.sub(' ', chunk_fb)
+                else:
+                    chunk_folder_format = mylar.CONFIG.FOLDER_FORMAT
+
                 comversion = dl['ComicVersion']
                 if comversion is None:
                     comversion = 'None'
@@ -841,7 +853,8 @@ def updateComicLocation():
                           '$publisher':     publisher.lower(),
                           '$VolumeY':       'V' + str(year),
                           '$VolumeN':       comversion,
-                          '$Annual':        'Annual'
+                          '$Annual':        'Annual',
+                          '$Type':          booktype
                           }
 
                 #set the paths here with the seperator removed allowing for cross-platform altering.
@@ -1425,7 +1438,8 @@ def havetotals(refreshit=None):
                            "totalissues":     totalissues,
                            "haveissues":      haveissues,
                            "DateAdded":       comic['LastUpdated'],
-                           "ComicType":       comic['Type']})
+                           "Type":            comic['Type'],
+                           "Corrected_Type":   comic['Corrected_Type']})
 
         return comics
 
@@ -3226,7 +3240,8 @@ def disable_provider(site, newznab=False):
             mylar.CONFIG.DOGNZB = False
         elif site == 'experimental':
             mylar.CONFIG.EXPERIMENTAL = False
-
+        elif site == '32P':
+            mylar.CONFIG.ENABLE_32P = False
 
 def date_conversion(originaldate):
     c_obj_date = datetime.datetime.strptime(originaldate, "%Y-%m-%d %H:%M:%S")
@@ -3244,7 +3259,10 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
         if job is None:
             dbupdate_newstatus = 'Waiting'
             dbupdate_nextrun = None
-            rss_newstatus = 'Waiting'
+            if mylar.CONFIG.ENABLE_RSS is True:
+                rss_newstatus = 'Waiting'
+            else:
+                rss_newstatus = 'Paused'
             rss_nextrun = None
             weekly_newstatus = 'Waiting'
             weekly_nextrun = None
@@ -3252,7 +3270,10 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
             search_nextrun = None
             version_newstatus = 'Waiting'
             version_nextrun = None
-            monitor_newstatus = 'Waiting'
+            if mylar.CONFIG.ENABLE_CHECK_FOLDER is True:
+                monitor_newstatus = 'Waiting'
+            else:
+                monitor_newstatus = 'Paused'
             monitor_nextrun = None
 
             job_info = myDB.select('SELECT DISTINCT * FROM jobhistory')
@@ -3262,31 +3283,37 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                     if mylar.SCHED_DBUPDATE_LAST is None:
                         mylar.SCHED_DBUPDATE_LAST = ji['prev_run_timestamp']
                     dbupdate_newstatus = ji['status']
+                    mylar.UPDATER_STATUS = dbupdate_newstatus
                     dbupdate_nextrun = ji['next_run_timestamp']
                 elif 'search' in ji['JobName'].lower():
                     if mylar.SCHED_SEARCH_LAST is None:
                         mylar.SCHED_SEARCH_LAST = ji['prev_run_timestamp']
                     search_newstatus = ji['status']
+                    mylar.SEARCH_STATUS = search_newstatus
                     search_nextrun = ji['next_run_timestamp']
                 elif 'rss' in ji['JobName'].lower():
                     if mylar.SCHED_RSS_LAST is None:
                         mylar.SCHED_RSS_LAST = ji['prev_run_timestamp']
                     rss_newstatus = ji['status']
+                    mylar.RSS_STATUS = rss_newstatus
                     rss_nextrun = ji['next_run_timestamp']
                 elif 'weekly' in ji['JobName'].lower():
                     if mylar.SCHED_WEEKLY_LAST is None:
                         mylar.SCHED_WEEKLY_LAST = ji['prev_run_timestamp']
                     weekly_newstatus = ji['status']
+                    mylar.WEEKLY_STATUS = weekly_newstatus
                     weekly_nextrun = ji['next_run_timestamp']
                 elif 'version' in ji['JobName'].lower():
                     if mylar.SCHED_VERSION_LAST is None:
                         mylar.SCHED_VERSION_LAST = ji['prev_run_timestamp']
                     version_newstatus = ji['status']
+                    mylar.VERSION_STATUS = version_newstatus
                     version_nextrun = ji['next_run_timestamp']
                 elif 'monitor' in ji['JobName'].lower():
                     if mylar.SCHED_MONITOR_LAST is None:
                         mylar.SCHED_MONITOR_LAST = ji['prev_run_timestamp']
                     monitor_newstatus = ji['status']
+                    mylar.MONITOR_STATUS = monitor_newstatus
                     monitor_nextrun = ji['next_run_timestamp']
 
             monitors = {'weekly': mylar.SCHED_WEEKLY_LAST,
@@ -3305,21 +3332,27 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
                 elif 'update' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_DBUPDATE_LAST
                     newstatus = dbupdate_newstatus
+                    mylar.UPDATER_STATUS = newstatus
                 elif 'search' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_SEARCH_LAST
                     newstatus = search_newstatus
+                    mylar.SEARCH_STATUS = newstatus
                 elif 'rss' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_RSS_LAST
                     newstatus = rss_newstatus
+                    mylar.RSS_STATUS = newstatus
                 elif 'weekly' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_WEEKLY_LAST
                     newstatus = weekly_newstatus
+                    mylar.WEEKLY_STATUS = newstatus
                 elif 'version' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_VERSION_LAST
                     newstatus = version_newstatus
+                    mylar.VERSION_STATUS = newstatus
                 elif 'monitor' in jobinfo.lower():
                     prev_run_timestamp = mylar.SCHED_MONITOR_LAST
                     newstatus = monitor_newstatus
+                    mylar.MONITOR_STATUS = newstatus
 
                 jobname = jobinfo[:jobinfo.find('(')-1].strip()
                 #logger.fdebug('jobinfo: %s' % jobinfo)
