@@ -698,7 +698,7 @@ def nzblog(IssueID, NZBName, ComicName, SARC=None, IssueArcID=None, id=None, pro
         pass
     else:
         altnames = chkd['AltNZBName']
-        if any([altnames is None, altnameas == '']):
+        if any([altnames is None, altnames == '']):
             #we need to wipe the entry so we can re-update with the alt-nzbname if required
             myDB.action('DELETE FROM nzblog WHERE IssueID=? and Provider=?', [IssueID, prov])
             logger.fdebug('Deleted stale entry from nzblog for IssueID: ' + str(IssueID) + ' [' + prov + ']')
@@ -932,7 +932,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
-    if all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital']) or rescan['Corrected_Type'] == 'TPB':
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital']) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
         booktype = 'TPB'
     else:
         booktype = None

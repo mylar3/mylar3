@@ -318,7 +318,7 @@ def GetComicInfo(comicid, dom, safechk=None):
     #figure out if it's a print / digital edition.
     comic['Type'] = 'None'
     if comic_deck != 'None':
-        if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'hardcover' in comic_deck.lower()]):
+        if any(['print' in comic_deck.lower(), 'digital' in comic_deck.lower(), 'paperback' in comic_deck.lower(), 'one shot' in re.sub('-', '', comic_deck.lower()).strip(), 'hardcover' in comic_deck.lower()]):
             if 'print' in comic_deck.lower():
                 comic['Type'] = 'Print'
             elif 'digital' in comic_deck.lower():
@@ -327,6 +327,8 @@ def GetComicInfo(comicid, dom, safechk=None):
                 comic['Type'] = 'TPB'
             elif 'hardcover' in comic_deck.lower():
                 comic['Type'] = 'HC'
+            elif 'oneshot' in re.sub('-', '', comic_deck.lower()).strip():
+                comic['Type'] = 'One-Shot'
 
     if comic_desc != 'None' and comic['Type'] == 'None':
         if 'print' in comic_desc[:60].lower() and 'print edition can be found' not in comic_desc.lower():
@@ -337,6 +339,8 @@ def GetComicInfo(comicid, dom, safechk=None):
             comic['Type'] = 'TPB'
         elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
             comic['Type'] = 'HC'
+        elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and 'can be found' not in comic_desc.lower():
+            comic['Type'] = 'One-Shot'
         else:
             comic['Type'] = 'Print'
 

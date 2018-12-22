@@ -481,7 +481,7 @@ class PostProcessor(object):
                         wv_comicpublisher = wv['ComicPublisher']
                         wv_alternatesearch = wv['AlternateSearch']
                         wv_comicid = wv['ComicID']
-                        if all([wv['Type'] != 'Print', wv['Type'] != 'Digital']) or wv['Corrected_Type'] == 'TPB':
+                        if (all([wv['Type'] != 'Print', wv['Type'] != 'Digital']) and wv['Corrected_Type'] != 'Print') or wv['Corrected_Type'] == 'TPB':
                             wv_type = 'TPB'
                         else:
                             wv_type = None
@@ -554,15 +554,18 @@ class PostProcessor(object):
                             continue
                         else:
                             if cs['WatchValues']['Type'] == 'TPB' and cs['WatchValues']['Total'] > 1:
-                                just_the_digits = re.sub('[^0-9]', '', watchmatch['seriesvolume']).strip()
+                                just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
                             else:
                                 just_the_digits = watchmatch['justthedigits']
-                            temploc= just_the_digits.replace('_', ' ')
-                            temploc = re.sub('[\#\']', '', temploc)
-                            logger.fdebug('temploc: %s' % temploc)
+                            if just_the_digits is not None:
+                                temploc= just_the_digits.replace('_', ' ')
+                                temploc = re.sub('[\#\']', '', temploc)
+                                logger.fdebug('temploc: %s' % temploc)
+                            else:
+                                temploc = None
                             datematch = "False"
 
-                            if any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True:
+                            if temploc is not None and (any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True):
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
                                 if 'biannual' in biannchk:
                                     logger.fdebug(module + ' Bi-Annual detected.')
@@ -577,8 +580,11 @@ class PostProcessor(object):
                                 issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                             else:
                                 annchk = "no"
-                                fcdigit = helpers.issuedigits(temploc)
-                                issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                if temploc is not None:
+                                    fcdigit = helpers.issuedigits(temploc)
+                                    issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
+                                else:
+                                    issuechk = myDB.select("SELECT * from issues WHERE ComicID=?", [cs['ComicID']])
 
                             if not issuechk:
                                 logger.fdebug('%s No corresponding issue #%s found for %s' % (module, temploc, cs['ComicID']))

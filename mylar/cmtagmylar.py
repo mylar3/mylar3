@@ -216,6 +216,15 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
                     tmpfilename = re.sub('\(Original deleted\)', '', tmpfilename).strip()
                 tmpf = tmpfilename.decode('utf-8')
                 filepath = os.path.join(comicpath, tmpf)
+                if filename.lower() != tmpf.lower() and tmpf.endswith('(1).cbz'):
+                    logger.fdebug('New filename [%s] is named incorrectly due to duplication during metatagging - Making sure it\'s named correctly [%s].' % (tmpf, filename))
+                    tmpfilename = filename
+                    filepath_new = os.path.join(comicpath, tmpfilename)
+                    try:
+                        os.rename(filepath, filepath_new)
+                        filepath = filepath_new
+                    except:
+                        logger.warn('%s unable to rename file to accomodate metatagging cbz to the same filename' % module)
                 if not os.path.isfile(filepath):
                     logger.fdebug(module + 'Trying utf-8 conversion.')
                     tmpf = tmpfilename.encode('utf-8')

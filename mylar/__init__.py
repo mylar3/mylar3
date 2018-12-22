@@ -344,7 +344,8 @@ def start():
 
             # Start our scheduled background tasks
             if UPDATER_STATUS != 'Paused':
-                SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=5, minutes=5, timezone='UTC'))
+                SCHED.add_job(func=updater.dbUpdate, id='dbupdater', name='DB Updater', args=[None,None,True], trigger=IntervalTrigger(hours=0, minutes=5, timezone='UTC'))
+                logger.info('DB Updater sccheduled to fire every 5 minutes')
 
             #let's do a run at the Wanted issues here (on startup) if enabled.
             if SEARCH_STATUS != 'Paused':

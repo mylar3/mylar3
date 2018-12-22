@@ -189,6 +189,8 @@ class WebInterface(object):
 
         if comic['Corrected_Type'] == 'TPB':
             force_type = 1
+        elif comic['Corrected_Type'] == 'Print':
+            force_type = 2
         else:
             force_type = 0
 
@@ -1418,6 +1420,7 @@ class WebInterface(object):
             ComicVersion = cdname['ComicVersion']
             ComicName = cdname['ComicName']
             TorrentID_32p = cdname['TorrentID_32P']
+            Type = cdname['Type']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -1463,7 +1466,7 @@ class WebInterface(object):
         #Publisher = miy['ComicPublisher']
         #UseAFuzzy = miy['UseFuzzy']
         #ComicVersion = miy['ComicVersion']
-        s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue})
+        s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue, 'type': Type})
 #        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks, torrentid_32p=TorrentID_32p)
 #        if foundcom['status'] is True:
 #            # file check to see if issue exists and update 'have' count
@@ -4696,6 +4699,7 @@ class WebInterface(object):
                     "extra_torznabs": sorted(mylar.CONFIG.EXTRA_TORZNABS, key=itemgetter(4), reverse=True),
                     "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
+                    "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
                     "enable_rss": helpers.checked(mylar.CONFIG.ENABLE_RSS),
                     "rss_checkinterval": mylar.CONFIG.RSS_CHECKINTERVAL,
                     "rss_last": rss_sclast,
@@ -4932,8 +4936,10 @@ class WebInterface(object):
         else:
             newValues['ForceContinuing'] = 1
 
-        if force_type is not None:
+        if force_type == '1':
             newValues['Corrected_Type'] = 'TPB'
+        elif force_type == '2':
+            newValues['Corrected_Type'] = 'Print'
         else:
             newValues['Corrected_Type'] = None
 
@@ -5051,7 +5057,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'nma_enabled', 'nma_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'opds_enable', 'opds_authentication', 'opds_metainfo']
+                           'opds_enable', 'opds_authentication', 'opds_metainfo'] #, 'enable_ddl']
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -6007,9 +6013,9 @@ class WebInterface(object):
             if sresults is not None:
                 updater.foundsearch(dsr['ComicID'], dsr['IssueID'], mode='series', provider=dsr['tmpprov'], hash=sresults['t_hash'])
         except:
-            return json.dumps({'result': 'failure'})
+            return False #json.dumps({'result': 'failure'})
         else:
-            return json.dumps({'result': 'success'})
+            return True #json.dumps({'result': 'success'})
 
     download_specific_release.exposed = True
 

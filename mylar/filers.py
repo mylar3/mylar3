@@ -71,7 +71,7 @@ class FileHandlers(object):
         else:
             booktype = self.comic['Type']
 
-        if booktype == 'Print' or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
+        if any([booktype is None, booktype == 'None', booktype == 'Print']) or all([booktype != 'Print', mylar.CONFIG.FORMAT_BOOKTYPE is False]):
             chunk_fb = re.sub('\$Type', '', mylar.CONFIG.FOLDER_FORMAT)
             chunk_b = re.compile(r'\s+')
             chunk_folder_format = chunk_b.sub(' ', chunk_fb)

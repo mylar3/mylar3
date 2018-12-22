@@ -65,6 +65,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         oldcomversion = None
         series_status = 'Loading'
         lastissueid = None
+        aliases = None
     else:
         if chkwant is not None:
             logger.fdebug('ComicID: ' + str(comicid) + ' already exists. Not adding from the future pull list at this time.')
@@ -79,6 +80,8 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         newValueDict = {"Status":   "Loading"}
         comlocation = dbcomic['ComicLocation']
         lastissueid = dbcomic['LatestIssueID']
+        aliases = dbcomic['AlternateSearch']
+        logger.info('aliases currently: %s' % aliases)
 
         if not latestissueinfo:
             latestissueinfo = []
@@ -277,6 +280,20 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         issue_list = None
 
+    if comic['Aliases'] != 'None':
+        if all([aliases is not None, aliases != 'None']):
+            for x in aliases.split('##'):
+                aliaschk = [x for y in comic['Aliases'].split('##') if y == x]
+                if aliaschk and x not in aliases.split('##'):
+                    aliases += '##' + ''.join(x)
+                else:
+                    if x not in aliases.split('##'):
+                        aliases += '##' + x
+        else:
+            aliases = comic['Aliases']
+    else:
+        aliases = aliases
+
     controlValueDict = {"ComicID":        comicid}
     newValueDict = {"ComicName":          comic['ComicName'],
                     "ComicSortName":      sortname,
@@ -292,7 +309,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "ComicPublisher":     comic['ComicPublisher'],
 #                    "Description":       Cdesc, #.dencode('utf-8', 'replace'),
                     "DetailURL":          comic['ComicURL'],
-#                    "AlternateSearch":    comic['Aliases'],
+                    "AlternateSearch":    aliases,
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
                     "Type":               comic['Type'],

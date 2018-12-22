@@ -147,7 +147,7 @@ class NMA:
         if snatched_nzb:
             if snatched_nzb[-1] == '\.': snatched_nzb = snatched_nzb[:-1]
             event = snline
-            description = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and has sent it to " + sent_to
+            description = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and " + sent_to
         else:
             event = prline
             description = prline2
@@ -246,7 +246,7 @@ class PUSHOVER:
         if snatched_nzb:
             if snatched_nzb[-1] == '\.': 
                 snatched_nzb = snatched_nzb[:-1]
-            message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and has sent it to " + sent_to
+            message = "Mylar has snatched: " + snatched_nzb + " from " + prov + " and " + sent_to
 
         data = {'token': mylar.CONFIG.PUSHOVER_APIKEY,
                 'user': mylar.CONFIG.PUSHOVER_USERKEY,
@@ -359,7 +359,7 @@ class BOXCAR:
         # if no username was given then use the one from the config
         if snatched_nzb:
             title = snline
-            message = "Mylar has snatched: " + snatched_nzb + " and has sent it to " + sent_to
+            message = "Mylar has snatched: " + snatched_nzb + " and " + sent_to
         else:
             title = prline
             message = prline2
@@ -412,7 +412,7 @@ class PUSHBULLET:
             if snatched:
                 if snatched[-1] == '.': snatched = snatched[:-1]
                 event = snline
-                message = "Mylar has snatched: " + snatched + " from " + prov + " and has sent it to " + sent_to
+                message = "Mylar has snatched: " + snatched + " from " + prov + " and " + sent_to
             else:
                 event = prline + ' complete!'
                 message = prline2
@@ -489,7 +489,7 @@ class SLACK:
         module += '[NOTIFIER]'
 
         if all([sent_to is not None, prov is not None]):
-            attachment_text += ' from %s and sent to %s' % (prov, sent_to)
+            attachment_text += ' from %s and %s' % (prov, sent_to)
         elif sent_to is None:
             attachment_text += ' from %s' % prov
         else:

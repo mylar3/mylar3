@@ -32,10 +32,10 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
                 searchName = searchName.replace(x, ' ', cnt)
 
     searchName = re.sub('\s+', ' ', searchName)
-    searchName = re.sub("[\,\:|'%20']", "", searchName).strip()
-    logger.fdebug("searchname: %s" % searchName)
-    logger.fdebug("issue: %s" % searchIssue)
-    logger.fdebug("year: %s" % searchYear)
+    searchName = re.sub("[\,\:]", "", searchName).strip()
+    #logger.fdebug("searchname: %s" % searchName)
+    #logger.fdebug("issue: %s" % searchIssue)
+    #logger.fdebug("year: %s" % searchYear)
     encodeSearch = urllib.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 

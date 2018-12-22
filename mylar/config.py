@@ -280,6 +280,10 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_PUBLIC': (bool, 'Torrents', False),
     'PUBLIC_VERIFY': (bool, 'Torrents', True),
 
+    'ENABLE_DDL': (bool, 'DDL', False),
+    'ALLOW_PACKS': (bool, 'DDL', False),
+    'DDL_LOCATION': (str, 'DDL', None),
+
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
     'PP_SSHHOST': (str, 'AutoSnatch', None),
@@ -839,6 +843,9 @@ class Config(object):
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
+        if self.DDL_LOCATION is None:
+            self.DDL_LOCATION = self.CACHE_DIR
+
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)
 
@@ -949,7 +956,11 @@ class Config(object):
             PR.append('Experimental')
             PR_NUM +=1
 
-        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental']
+        if self.ENABLE_DDL:
+            PR.append('DDL')
+            PR_NUM +=1
+
+        PPR = ['32p', 'public torrents', 'nzb.su', 'dognzb', 'Experimental', 'DDL']
         if self.NEWZNAB:
             for ens in self.EXTRA_NEWZNABS:
                 if str(ens[5]) == '1': # if newznabs are enabled
