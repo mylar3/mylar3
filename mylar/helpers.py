@@ -2894,15 +2894,29 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
     torrent_info['snatch_status'] = snatch_status
     return torrent_info
 
-def weekly_info(week=None, year=None):
+def weekly_info(week=None, year=None, current=None):
     #find the current week and save it as a reference point.
     todaydate = datetime.datetime.today()
     current_weeknumber = todaydate.strftime("%U")
-
+    if current is not None:
+        c_weeknumber = int(current[:current.find('-')])
+        c_weekyear = int(current[current.find('-')+1:])
+    else:
+        c_weeknumber = week
+        c_weekyear = year
 
     if week:
         weeknumber = int(week)
         year = int(year)
+
+        #monkey patch for 2018/2019 - week 52/week 0
+        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
+            weeknumber = 0
+            year = 2019
+        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
+            weeknumber = 51
+            year = 2018
+
         #view specific week (prev_week, next_week)
         startofyear = date(year,1,1)
         week0 = startofyear - timedelta(days=startofyear.isoweekday())
@@ -2913,11 +2927,20 @@ def weekly_info(week=None, year=None):
     else:
         #find the given week number for the current day
         weeknumber = current_weeknumber
+        year = todaydate.strftime("%Y")
+
+        #monkey patch for 2018/2019 - week 52/week 0
+        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2018]):
+            weeknumber = 0
+            year = 2019
+        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
+            weeknumber = 51
+            year = 2018
+
         stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
         startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
         midweek = startweek + timedelta(days = 3)
         endweek = startweek + timedelta(days = 6)
-        year = todaydate.strftime("%Y")
 
     prev_week = int(weeknumber) - 1
     prev_year = year

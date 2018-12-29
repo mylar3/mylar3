@@ -1279,6 +1279,10 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
             issue_collection(issuedata, nostatus='True')
 
         styear = str(SeriesYear)
+        if firstdate is not None:
+            if SeriesYear != firstdate[:4]:
+                logger.fdebug('Series start date (%s) crosses over into different year (%s) - assuming store date of first issue (%s) as Start Year (even though CV will say previous year - it\'s all gravy).' % (SeriesYear, firstdate[:4], firstdate))
+                styear = str(firstdate[:4])
 
         if firstdate[5:7] == '00':
             stmonth = "?"

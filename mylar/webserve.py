@@ -1420,7 +1420,7 @@ class WebInterface(object):
             ComicVersion = cdname['ComicVersion']
             ComicName = cdname['ComicName']
             TorrentID_32p = cdname['TorrentID_32P']
-            Type = cdname['Type']
+            BookType = cdname['Type']
             controlValueDict = {"IssueID": IssueID}
             newStatus = {"Status": "Wanted"}
             if mode == 'want':
@@ -1466,7 +1466,7 @@ class WebInterface(object):
         #Publisher = miy['ComicPublisher']
         #UseAFuzzy = miy['UseFuzzy']
         #ComicVersion = miy['ComicVersion']
-        s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue, 'type': Type})
+        s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue, 'booktype': BookType})
 #        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks, torrentid_32p=TorrentID_32p)
 #        if foundcom['status'] is True:
 #            # file check to see if issue exists and update 'have' count
@@ -1613,7 +1613,7 @@ class WebInterface(object):
             return
     pullSearch.exposed = True
 
-    def pullist(self, week=None, year=None, generateonly=False):
+    def pullist(self, week=None, year=None, generateonly=False, current=None):
         myDB = db.DBConnection()
         autowant = []
         if generateonly is False:
@@ -1628,7 +1628,7 @@ class WebInterface(object):
         weeklyresults = []
         wantedcount = 0
 
-        weekinfo = helpers.weekly_info(week, year)
+        weekinfo = helpers.weekly_info(week, year, current)
 
         popit = myDB.select("SELECT * FROM sqlite_master WHERE name='weekly' and type='table'")
         if popit:
