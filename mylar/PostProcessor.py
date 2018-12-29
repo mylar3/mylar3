@@ -459,7 +459,7 @@ class PostProcessor(object):
                         comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if not comicseries or orig_seriesname != mod_seriesname:
-                        if all(['special' in mod_seriesname.lower(), mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
+                        if all(['special' in orig_seriesname.lower(), mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
                             if not any(re.sub('[\|\s]', '', orig_seriesname).lower() == x for x in loopchk):
                                 loopchk.append(re.sub('[\|\s]', '', orig_seriesname.lower()))
                                 tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
