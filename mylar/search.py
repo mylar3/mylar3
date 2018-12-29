@@ -1704,7 +1704,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     mylar.SEARCHLOCK = False
             else:
                 logger.info('Completed Queueing API Search scan')
-
+                if mylar.SEARCHLOCK is True:
+                    mylar.SEARCHLOCK = False
 
         else:
             result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
@@ -1723,6 +1724,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                         oneoff = True
                         if result is None:
                             logger.fdebug("Unable to locate IssueID - you probably should delete/refresh the series.")
+                            mylar.SEARCHLOCK = False
                             return
 
             allow_packs = False
@@ -1794,6 +1796,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
             foundNZB, prov = search_init(ComicName, IssueNumber, str(IssueYear), SeriesYear, Publisher, IssueDate, StoreDate, actissueid, AlternateSearch, UseFuzzy, ComicVersion, SARC=SARC, IssueArcID=IssueArcID, mode=mode, rsscheck=rsscheck, ComicID=ComicID, filesafe=Comicname_filesafe, allow_packs=allow_packs, oneoff=oneoff, manual=manual, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype)
             if manual is True:
+                mylar.SEARCHLOCK = False
                 return foundNZB
             if foundNZB['status'] is True:
                 logger.fdebug('I found %s #%s' % (ComicName, IssueNumber))
