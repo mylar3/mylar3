@@ -564,7 +564,7 @@ class FileChecker(object):
                                                   'validcountchk': validcountchk})
 
                 #now we try to find the series title &/or volume lablel.
-                if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
+                if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower(), 'part' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
                     if any([ split_file[split_file.index(sf)].isdigit(), split_file[split_file.index(sf)][3:].isdigit(), split_file[split_file.index(sf)][1:].isdigit() ]):
                         volume = re.sub("[^0-9]", "", sf)
                         if volumeprior:
@@ -589,7 +589,7 @@ class FileChecker(object):
                         volumeprior_label = sf
                         sep_volume = True
                         logger.fdebug('volume label detected, but vol. number is not adjacent, adjusting scope to include number.')
-                    elif 'volume' in sf.lower():
+                    elif 'volume' in sf.lower() or all(['part' in sf.lower(), len(sf) == 4]):
                         volume = re.sub("[^0-9]", "", sf)
                         if volume.isdigit():
                             volume_found['volume'] = volume
