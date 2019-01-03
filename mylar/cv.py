@@ -340,7 +340,24 @@ def GetComicInfo(comicid, dom, safechk=None):
         elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
             comic['Type'] = 'HC'
         elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and 'can be found' not in comic_desc.lower():
+            i = 0
             comic['Type'] = 'One-Shot'
+            while i < 2:
+                if i == 0:
+                    cbd = 'one-shot'
+                elif i == 1:
+                    cbd = 'one shot'
+                tmp1 = comic_desc[:60].lower().find(cbd)
+                if tmp1 != -1:
+                    tmp2 = comic_desc[:60].lower().find('preceding')
+                    if tmp2 != -1:
+                        logger.fdebug('FAKE NEWS: caught incorrect reference to one-shot. Forcing to Print')
+                        comic['Type'] = 'Print'
+                        break
+                    else:
+                        i+=1
+                else:
+                    i+=1
         else:
             comic['Type'] = 'Print'
 
