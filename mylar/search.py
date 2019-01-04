@@ -1095,9 +1095,14 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
                 if parsed_comic['parse_status'] == 'success':
-                    fcomic = filechecker.FileChecker(watchcomic=ComicName)
-                    filecomic = fcomic.matchIT(parsed_comic)
-                    logger.fdebug('match_check: %s' % filecomic)
+                    try:
+                        fcomic = filechecker.FileChecker(watchcomic=ComicName)
+                        filecomic = fcomic.matchIT(parsed_comic)
+                    except Exception as e:
+                        logger.error('[PARSE-ERROR]: %s' % e)
+                        continue
+                    else:
+                        logger.fdebug('match_check: %s' % filecomic)
                 else:
                     logger.fdebug('Unable to parse name properly: %s' % filecomic)
 
@@ -1652,6 +1657,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     UseFuzzy = None
                     ComicVersion = comic['Volume']
                     TorrentID_32p = None
+                    booktype = None
                 else:
                     Comicname_filesafe = comic['ComicName_Filesafe']
                     SeriesYear = comic['ComicYear']
@@ -1660,6 +1666,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     UseFuzzy = comic['UseFuzzy']
                     ComicVersion = comic['ComicVersion']
                     TorrentID_32p = comic['TorrentID_32P']
+                    booktype = comic['Type']
                     if any([comic['AllowPacks'] == 1, comic['AllowPacks'] == '1']):
                         AllowPacks = True
 
@@ -1689,9 +1696,8 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 
                 if rsscheck is None and DateAdded >= mylar.SEARCH_TIER_DATE:
                     logger.info('adding: ComicID:%s  IssueiD: %s' % (result['ComicID'], result['IssueID']))
-                    mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID'], 'booktype': comic['Type']})
+                    mylar.SEARCH_QUEUE.put({'comicname': comic['ComicName'], 'seriesyear': SeriesYear, 'issuenumber': result['Issue_Number'], 'issueid': result['IssueID'], 'comicid': result['ComicID'], 'booktype': booktype})
                     continue
-
 
                 mode = result['mode']
                 foundNZB, prov = search_init(comic['ComicName'], result['Issue_Number'], str(ComicYear), SeriesYear, Publisher, IssueDate, StoreDate, result['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=result['SARC'], IssueArcID=result['IssueArcID'], mode=mode, rsscheck=rsscheck, ComicID=result['ComicID'], filesafe=Comicname_filesafe, allow_packs=AllowPacks, oneoff=OneOff, torrentid_32p=TorrentID_32p, digitaldate=DigitalDate, booktype=booktype)

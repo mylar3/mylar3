@@ -932,7 +932,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
     else:
         altnames = ''
 
-    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital']) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
+    if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
         booktype = 'TPB'
     else:
         booktype = None
