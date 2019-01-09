@@ -285,6 +285,7 @@ def GetComicInfo(comicid, dom, safechk=None):
 
     desdeck = 0
     #the description field actually holds the Volume# - so let's grab it
+    desc_soup = None
     try:
         descchunk = dom.getElementsByTagName('description')[0].firstChild.wholeText
         desc_soup = Soup(descchunk, "html.parser")
@@ -368,12 +369,21 @@ def GetComicInfo(comicid, dom, safechk=None):
         #logger.info('comic_desc: %s' % comic_desc)
         #logger.info('desclinks: %s' % desclinks)
         issue_list = []
+        micdrop = []
+        if desc_soup is not None:
+            #if it's point form bullets, ignore it cause it's not the current volume stuff.
+            test_it = desc_soup.find('ul')
+            if test_it:
+                for x in test_it.findAll('a'):
+                    micdrop.append(x['data-ref-id'])
+
         for fc in desclinks:
             #logger.info('fc: %s'  % fc)
             fc_id = fc['data-ref-id']
             #logger.info('fc_id: %s'  % fc_id)
+            if fc_id in micdrop:
+                continue
             fc_name = fc.findNext(text=True)
-            #logger.info('fc_name: %s'  % fc_name)
             if fc_id.startswith('4000'):
                 fc_cid = None
                 fc_isid = fc_id

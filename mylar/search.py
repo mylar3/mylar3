@@ -379,8 +379,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     if IssueNumber is not None:
                         issuedisplay = IssueNumber
                     else:
-                        issuedisplay = StoreDate[5:]
-                    logger.info('Could not find Issue %s of %s (%s) using %s [%s]' % (issuedisplay, ComicName, SeriesYear, searchprov, searchmode))
+                        if any([booktype == 'One-Shot', booktype == 'TPB']):
+                            issuedisplay = None
+                        else:
+                            issuedisplay = StoreDate[5:]
+                    if issuedisplay is None:
+                        logger.info('Could not find %s (%s) using %s [%s]' % (ComicName, SeriesYear, searchprov, searchmode))
+                    else:
+                        logger.info('Could not find Issue %s of %s (%s) using %s [%s]' % (issuedisplay, ComicName, SeriesYear, searchprov, searchmode))
                 prov_count+=1
 
             if findit['status'] is True:
@@ -1345,8 +1351,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.fdebug("integer value of issue we have found : %s" % comintIss)
                         else:
                             comintIss = 11111111111
+
+                        #do this so that we don't touch the actual value but just use it for comparisons
+                        if parsed_comic['issue_number'] is None:
+                            pc_in = None
+                        else:
+                            pc_in = int(parsed_comic['issue_number'])
+
                         #issue comparison now as well
-                        if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, parsed_comic['issue_number'] is None]):
+                        if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
                             nowrite = False
                             if all([nzbprov == 'torznab', 'worldwidetorrents' in entry['link']]):
                                 nzbid = generate_id(nzbprov, entry['id'])

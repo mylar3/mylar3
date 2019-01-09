@@ -49,6 +49,7 @@ class FileChecker(object):
             self.og_watchcomic = watchcomic
             self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? sepearte since it affects the regex.
             self.watchcomic = re.sub(u'\u2014', ' - ', watchcomic).strip()  #replace the \u2014 with a normal - because this world is f'd up enough to have something like that.
+            self.watchcomic = re.sub(u'\u2013', ' - ', watchcomic).strip()  #replace the \u2013 with a normal - because again, people are dumb.
             self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
         else:
             self.watchcomic = None
@@ -97,7 +98,7 @@ class FileChecker(object):
             self.pp_mode = False
 
         self.failed_files = []
-        self.dynamic_handlers = ['/','-',':','\'',',','&','?','!','+','(',')','\u2014']
+        self.dynamic_handlers = ['/','-',':','\'',',','&','?','!','+','(',')','\u2014','\u2013']
         self.dynamic_replacements = ['and','the']
         self.rippers = ['-empire','-empire-hd','minutemen-','-dcp']
 
@@ -1355,6 +1356,7 @@ class FileChecker(object):
                             mod_watchcomic = mod_watchcomic[:wd] + spacer + mod_watchcomic[wd+len(wdrm):]
 
         series_name = re.sub(u'\u2014', ' - ', series_name)
+        series_name = re.sub(u'\u2013', ' - ', series_name)
         seriesdynamic_handlers_match = [x for x in self.dynamic_handlers if x.lower() in series_name.lower()]
         #logger.fdebug('series dynamic handlers recognized : ' + str(seriesdynamic_handlers_match))
         seriesdynamic_replacements_match = [x for x in self.dynamic_replacements if x.lower() in series_name.lower()]
