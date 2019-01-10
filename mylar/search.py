@@ -805,6 +805,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         done = False
         log2file = ""
         pack0day = False
+        pack_warning = False
         if not bb == "no results":
             for entry in bb['entries']:
                 #logger.fdebug('entry: %s' % entry)  #<--- uncomment this to see what the search result(s) are
@@ -827,6 +828,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         else:
                             logger.fdebug('The search result issue [%s] does not match up for some reason to our search result [%s]' % (entry['issues'], findcomiciss))
                             continue
+                    elif any([entry['pack'] == '1', entry['pack'] == '2']) and allow_packs is False:
+                        if pack_warning is False:
+                            logger.fdebug('(possibly more than one) Pack detected, but option not enabled for this series. Ignoring subsequent pack results (to enable: on the series details page -> Edit Settings -> Enable Pack Downloads)')
+                            pack_warning = True
+                        continue
 
                 logger.fdebug("checking search result: " + entry['title'])
                 #some nzbsites feel that comics don't deserve a nice regex to strip the crap from the header, the end result is that we're

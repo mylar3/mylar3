@@ -553,10 +553,19 @@ class PostProcessor(object):
                             nm+=1
                             continue
                         else:
-                            if cs['WatchValues']['Type'] == 'TPB' and cs['WatchValues']['Total'] > 1:
-                                just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
-                            else:
-                                just_the_digits = watchmatch['justthedigits']
+                            try:
+                                if cs['WatchValues']['Type'] == 'TPB' and cs['WatchValues']['Total'] > 1:
+                                    if watchmatch['series_volume'] is not None:
+                                        just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
+                                    else:
+                                        just_the_digits = re.sub('[^0-9]', '', watchmatch['justthedigits']).strip()
+                                else:
+                                    just_the_digits = watchmatch['justthedigits']
+                            except Exception as e:
+                                logger.warn('[Exception: %s] Unable to properly match up/retrieve issue number (or volume) for this [CS: %s] [WATCHMATCH: %s]' % (e, cs, watchmatch))
+                                nm+=1
+                                continue
+
                             if just_the_digits is not None:
                                 temploc= just_the_digits.replace('_', ' ')
                                 temploc = re.sub('[\#\']', '', temploc)
