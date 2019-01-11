@@ -1305,7 +1305,7 @@ class FileChecker(object):
                     tcrc = helpers.crc(os.path.join(dirname, fname).decode(mylar.SYS_ENCODING))
                     crcchk = [x for x in pp_crclist if tcrc == x['crc']]
                     if crcchk:
-                        #logger.fdebug('%s Already post-processed this item %s - Ignoring' % fname)
+                        #logger.fdebug('[FILECHECKEER] Already post-processed this item %s - Ignoring' % fname)
                         continue
 
                 if os.path.splitext(fname)[1].lower().endswith(comic_ext):

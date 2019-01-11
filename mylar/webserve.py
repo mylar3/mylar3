@@ -1379,6 +1379,7 @@ class WebInterface(object):
             controlValueDict = {"IssueArcID": IssueArcID}
             newStatus = {"Status": "Wanted"}
             myDB.upsert("storyarcs", newStatus, controlValueDict)
+            logger.info('[STORY-ARCS] Now Queuing %s (%s) #%s for search' % (ComicName, ComicYear, ComicIssue))
             s = mylar.SEARCH_QUEUE.put({'issueid': IssueArcID, 'comicname': ComicName, 'seriesyear': ComicYear, 'comicid': ComicID, 'issuenumber': ComicIssue})
             #foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=ReleaseDate, IssueID=None, AlternateSearch=None, UseFuzzy=None, ComicVersion=dateload['Volume'], SARC=SARC, IssueArcID=IssueArcID)
             #if foundcom['status'] is True:
@@ -1399,7 +1400,7 @@ class WebInterface(object):
             except:
                 ComicYear == now.year
             if Publisher == 'COMICS': Publisher = None
-            logger.info(u"Marking " + ComicName + " " + ComicIssue + " as wanted...")
+            logger.info('Now Queuing %s %s for search' % (ComicName, ComicIssue))
             s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': ComicYear, 'comicid': ComicID, 'issuenumber': ComicIssue})
             #foundcom, prov = search.search_init(ComicName=ComicName, IssueNumber=ComicIssue, ComicYear=ComicYear, SeriesYear=None, Publisher=Publisher, IssueDate=IssueDate, StoreDate=IssueDate, IssueID=IssueID, ComicID=ComicID, AlternateSearch=None, mode=mode, UseFuzzy=None, ComicVersion=ComicVersion, allow_packs=False, manual=manual)
             if manual is True:
@@ -1466,6 +1467,12 @@ class WebInterface(object):
         #Publisher = miy['ComicPublisher']
         #UseAFuzzy = miy['UseFuzzy']
         #ComicVersion = miy['ComicVersion']
+        if BookType == 'TPB':
+            logger.info('[%s] Now Queueing %s (%s) for search' % (BookType, ComicName, SeriesYear))
+        elif ComicIssue is None:
+            logger.info('Now Queueing %s (%s) for search' % (ComicName, SeriesYear))
+        else:
+            logger.info('Now Queueing %s (%s) #%s for search' % (ComicName, SeriesYear, ComicIssue))
         s = mylar.SEARCH_QUEUE.put({'issueid': IssueID, 'comicname': ComicName, 'seriesyear': SeriesYear, 'comicid': ComicID, 'issuenumber': ComicIssue, 'booktype': BookType})
 #        foundcom, prov = search.search_init(ComicName, ComicIssue, ComicYear, SeriesYear, Publisher, issues['IssueDate'], storedate, IssueID, AlternateSearch, UseAFuzzy, ComicVersion, mode=mode, ComicID=ComicID, manualsearch=manualsearch, filesafe=ComicName_Filesafe, allow_packs=AllowPacks, torrentid_32p=TorrentID_32p)
 #        if foundcom['status'] is True:
@@ -2407,7 +2414,7 @@ class WebInterface(object):
                 logger.info('[%s] Now force submitting job for jobid %s' % (jb, jobid))
                 if any([jobid == 'rss', jobid == 'weekly', jobid =='search', jobid == 'version', jobid == 'updater', jobid == 'monitor']):
                     jb.modify(next_run_time=datetime.datetime.utcnow())
-                break
+                    break
     schedulerForceCheck.exposed = True
 
     def manageComics(self):

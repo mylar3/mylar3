@@ -778,19 +778,20 @@ class PostProcessor(object):
                                     logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
                                     continue
 
-                        xmld = filechecker.FileChecker()
-                        xmld1 = xmld.dynamic_replace(helpers.conversion(cs['ComicName']))
-                        xseries = xmld1['mod_seriesname'].lower()
-                        xmld2 = xmld.dynamic_replace(helpers.conversion(watchmatch['series_name']))
-                        xfile = xmld2['mod_seriesname'].lower()
+                        if datematch == 'True':
+                            xmld = filechecker.FileChecker()
+                            xmld1 = xmld.dynamic_replace(helpers.conversion(cs['ComicName']))
+                            xseries = xmld1['mod_seriesname'].lower()
+                            xmld2 = xmld.dynamic_replace(helpers.conversion(watchmatch['series_name']))
+                            xfile = xmld2['mod_seriesname'].lower()
 
-                        if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
-                            logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, watchmatch['series_name'], cs['ComicID']))
-                            if len(manual_list) > 1:
-                                manual_list = [item for item in manual_list if all([item['IssueID'] == isc['IssueID'], item['AnnualType'] is not None]) or all([item['IssueID'] == isc['IssueID'], item['ComicLocation'] == clocation]) or all([item['IssueID'] != isc['IssueID'], item['ComicLocation'] != clocation])]
-                            self.matched = True
-                        else:
-                            continue #break
+                            if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
+                                logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, watchmatch['series_name'], cs['ComicID']))
+                                if len(manual_list) > 1:
+                                    manual_list = [item for item in manual_list if all([item['IssueID'] == isc['IssueID'], item['AnnualType'] is not None]) or all([item['IssueID'] == isc['IssueID'], item['ComicLocation'] == clocation]) or all([item['IssueID'] != isc['IssueID'], item['ComicLocation'] != clocation])]
+                                self.matched = True
+                            else:
+                                continue #break
 
                         if datematch == 'True':
                             logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
@@ -1020,7 +1021,7 @@ class PostProcessor(object):
                             oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
-                                continue
+                                pass #continue
                             else:
                                 logger.fdebug(module + '[ONEOFF-SELECTION][self.nzb_name: %s]' % self.nzb_name)
                                 oneoffvals = []
@@ -1089,7 +1090,6 @@ class PostProcessor(object):
                                     logger.fdebug(module + '[SUCCESSFUL MATCH: ' + ofv['ComicName'] + '-' + ofv['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
                                     self.matched = True
                                     break
-
 
                 logger.fdebug('%s There are %s files found that match on your watchlist, %s files are considered one-off\'s, and %s files do not match anything' % (module, len(manual_list), len(oneoff_issuelist), int(filelist['comiccount']) - len(manual_list)))
 
