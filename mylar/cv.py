@@ -343,6 +343,7 @@ def GetComicInfo(comicid, dom, safechk=None):
         elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and 'can be found' not in comic_desc.lower():
             i = 0
             comic['Type'] = 'One-Shot'
+            avoidwords = ['preceding', 'after the special']
             while i < 2:
                 if i == 0:
                     cbd = 'one-shot'
@@ -350,15 +351,14 @@ def GetComicInfo(comicid, dom, safechk=None):
                     cbd = 'one shot'
                 tmp1 = comic_desc[:60].lower().find(cbd)
                 if tmp1 != -1:
-                    tmp2 = comic_desc[:60].lower().find('preceding')
-                    if tmp2 != -1:
-                        logger.fdebug('FAKE NEWS: caught incorrect reference to one-shot. Forcing to Print')
-                        comic['Type'] = 'Print'
-                        break
-                    else:
-                        i+=1
-                else:
-                    i+=1
+                    for x in avoidwords:
+                        tmp2 = comic_desc[:tmp1].lower().find(x)
+                        if tmp2 != -1:
+                            logger.fdebug('FAKE NEWS: caught incorrect reference to one-shot. Forcing to Print')
+                            comic['Type'] = 'Print'
+                            i = 3
+                            break
+                i+=1
         else:
             comic['Type'] = 'Print'
 
