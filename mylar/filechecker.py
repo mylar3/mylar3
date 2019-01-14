@@ -1149,7 +1149,9 @@ class FileChecker(object):
 
             if mylar.CONFIG.ANNUALS_ON and 'special' not in nspace_watchcomic.lower():
                 if 'special' in series_name.lower():
-                    justthedigits = 'Special ' + series_info['issue_number']
+                    justthedigits = 'Special'
+                    if series_info['issue_number'] is not None:
+                        justthedigits += ' %s' % series_info['issue_number']
                     nspace_seriesname = re.sub('special', '', nspace_seriesname.lower()).strip()
                     nspace_seriesname_decoded = re.sub('special', '', nspace_seriesname_decoded.lower()).strip()
                 if alt_series is not None and 'special' in alt_series.lower():

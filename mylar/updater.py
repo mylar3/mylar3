@@ -933,7 +933,10 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
         altnames = ''
 
     if (all([rescan['Type'] != 'Print', rescan['Type'] != 'Digital', rescan['Type'] != 'None', rescan['Type'] is not None]) and rescan['Corrected_Type'] != 'Print') or rescan['Corrected_Type'] == 'TPB':
-        booktype = 'TPB'
+        if rescan['Type'] == 'One-Shot' and rescan['Corrected_Type'] is None:
+            booktype = 'One-Shot'
+        else:
+            booktype = 'TPB'
     else:
         booktype = None
 
@@ -990,15 +993,23 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 cla = ca['comiclist'][i]
             except (IndexError, KeyError) as e:
                 break
-            if booktype == 'TPB' and iscnt > 1:
-                just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
+
+            try:
+                if all([booktype == 'TPB', iscnt > 1]) or all([booktype == 'One-Shot', iscnt == 1]):
+                    if cla['SeriesVolume'] is not None:
+                        just_the_digits = re.sub('[^0-9]', '', cla['SeriesVolume']).strip()
+                    else:
+                        just_the_digits = re.sub('[^0-9]', '', cla['JusttheDigits']).strip()
+                else:
+                    just_the_digits = cla['JusttheDigits']
+            except Exception as e:
+                logger.warn('[Exception: %s] Unable to properly match up/retrieve issue number (or volume) for this [CS: %s]' % (e,cla))
             else:
-                just_the_digits = cla['JusttheDigits']
-            fcb.append({"ComicFilename":   cla['ComicFilename'],
-                        "ComicLocation":   cla['ComicLocation'],
-                        "ComicSize":       cla['ComicSize'],
-                        "JusttheDigits":   just_the_digits,
-                        "AnnualComicID":   cla['AnnualComicID']})
+                fcb.append({"ComicFilename":   cla['ComicFilename'],
+                            "ComicLocation":   cla['ComicLocation'],
+                            "ComicSize":       cla['ComicSize'],
+                            "JusttheDigits":   just_the_digits,
+                            "AnnualComicID":   cla['AnnualComicID']})
             i+=1
 
     fc['comiclist'] = fcb
@@ -1082,10 +1093,13 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 return
             else:
                 break
-        temploc = tmpfc['JusttheDigits'].replace('_', ' ')
- 
-        temploc = re.sub('[\#\']', '', temploc)
-        logger.fdebug(module + ' temploc: ' + temploc)
+        if tmpfc['JusttheDigits'] is not None:
+            temploc= tmpfc['JusttheDigits'].replace('_', ' ')
+            temploc = re.sub('[\#\']', '', temploc)
+            logger.fdebug('temploc: %s' % temploc)
+        else:
+            temploc = None
+
         if all(['annual' not in temploc.lower(), 'special' not in temploc.lower()]):
             #remove the extension here
             extensions = ('.cbr', '.cbz', '.cb7')
