@@ -26,7 +26,16 @@ import time
 import StringIO
 
 from natsort import natsorted
-from rarfile import rarfile
+
+try:
+    site_root = os.path.dirname(os.path.realpath(__file__))
+    parent_root = os.path.abspath(os.path.join(site_root, os.pardir))
+    lib_path = os.path.abspath(os.path.join(parent_root, os.pardir))
+    if lib_path not in sys.path:
+        sys.path.append(lib_path)
+    from rarfile import rarfile
+except:
+    from lib.rarfile import rarfile
 
 if platform.system() == "Windows":
     import _subprocess
