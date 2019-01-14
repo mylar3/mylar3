@@ -393,17 +393,24 @@ class PostProcessor(object):
                          if '_' in self.issueid:
                              logger.fdebug('Story Arc post-processing request detected.')
                              self.issuearcid = self.issueid
-                    logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
-                    if self.nzb_name.lower().endswith(self.extensions):
-                        flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
-                        fl = flc.listFiles()
-                        filelist = {}
-                        filelist['comiclist'] = [fl]
-                        filelist['comiccount'] = len(filelist['comiclist'])
+                             self.issueid = None
+                             logger.fdebug('%s Now post-processing directly against StoryArcs -  ComicID: %s / IssueArcID: %s' % (module, self.comicid, self.issuearcid))
+                    if self.issueid is not None:
+                        logger.fdebug('%s Now post-processing directly against ComicID: %s / IssueID: %s' % (module, self.comicid, self.issueid))
+                    if self.issuearcid is None:
+                        if self.nzb_name.lower().endswith(self.extensions):
+                            flc = filechecker.FileChecker(self.nzb_folder, file=self.nzb_name, pp_mode=True)
+                            fl = flc.listFiles()
+                            filelist = {}
+                            filelist['comiclist'] = [fl]
+                            filelist['comiccount'] = len(filelist['comiclist'])
+                        else:
+                            flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
+                            filelist = flc.listFiles()
                     else:
-                        flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
-                        filelist = flc.listFiles()
-
+                        filelist = {}
+                        filelist['comiclist'] =  []
+                        filelist['comiccount'] = 0
                 #preload the entire ALT list in here.
                 alt_list = []
                 alt_db = myDB.select("SELECT * FROM Comics WHERE AlternateSearch != 'None'")
@@ -885,9 +892,10 @@ class PostProcessor(object):
                         from collections import defaultdict
                         res = defaultdict(list)
                         for acv in arcvals:
-                            res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
-                                                          "WatchValues":   acv['WatchValues']})
-
+                            acv_check = [x for x in manual_list if x['ComicID'] == acv['WatchValues']['ComicID']]
+                            if acv_check:
+                                res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
+                                                              "WatchValues":   acv['WatchValues']})
                     if len(res) > 0:
                         logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
                     for k,v in res.items():
@@ -1091,7 +1099,8 @@ class PostProcessor(object):
                                     self.matched = True
                                     break
 
-                logger.fdebug('%s There are %s files found that match on your watchlist, %s files are considered one-off\'s, and %s files do not match anything' % (module, len(manual_list), len(oneoff_issuelist), int(filelist['comiccount']) - len(manual_list)))
+                if filelist['comiccount'] > 0:
+                    logger.fdebug('%s There are %s files found that match on your watchlist, %s files are considered one-off\'s, and %s files do not match anything' % (module, len(manual_list), len(oneoff_issuelist), int(filelist['comiccount']) - len(manual_list)))
 
                 delete_arc = []
                 if len(manual_arclist) > 0:
@@ -1212,7 +1221,7 @@ class PostProcessor(object):
 
                         logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
 
-            if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or self.oneoffinlist is True) and not self.nzb_name.startswith('0-Day') and self.issuearcid is None: # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
+            if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or (self.oneoffinlist is True or all([self.issuearcid is not None, self.issueid is None]))) and not self.nzb_name.startswith('0-Day'): # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
                 if self.oneoffinlist is False:
                     nzbname = self.nzb_name
@@ -1363,7 +1372,8 @@ class PostProcessor(object):
             if any([self.nzb_name == 'Manual Run', self.issueid is not None, self.comicid is not None, self.apicall is True]):
                 #loop through the hits here.
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
-                    logger.info(module + ' No matches for Manual Run ... exiting.')
+                    if self.nzb_name == 'Manual Run':
+                        logger.info(module + ' No matches for Manual Run ... exiting.')
                     if mylar.APILOCK is True:
                         mylar.APILOCK = False
                     return
