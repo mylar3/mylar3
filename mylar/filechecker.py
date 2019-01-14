@@ -347,7 +347,6 @@ class FileChecker(object):
                             logger.fdebug('[MINI-DECIMAL SERIES] MAX ISSUES IN SERIES: %s' % x)
                             spf.append('(of %s)' % x)
                     except Exception as e:
-                        logger.error('Exception: %s' % e)
                         spf.append(x)
 
                 elif x  == ')':
@@ -365,8 +364,6 @@ class FileChecker(object):
                             spf[wrdcnt -1] = newline
                             #wrdcnt =-1
                     except Exception as e:
-                        logger.error('[ERROR] %s' % e)
-                        logger.warn('this should not be passed: %s' % x)
                         spf.append(x)
                 else:
                     spf.append(x)
