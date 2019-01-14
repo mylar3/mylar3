@@ -50,16 +50,22 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
         searchName = searchName.replace("-", '((\\s)?[-:])?(\\s)?')
     regexName = searchName.replace(" ", '((\\s)?[-:])?(\\s)?') 
 
-    if mylar.CONFIG.USE_MINSIZE:
-        size_constraints = "minsize=" + str(mylar.CONFIG.MINSIZE)
+    if mylar.CONFIG.USE_MINSIZE is True:
+        minsize = str(mylar.CONFIG.MINSIZE)
     else:
-        size_constraints = "minsize=10"
+        minsize = '10'
+    size_constraints = "&minsize=" + minsize
 
-    if mylar.CONFIG.USE_MAXSIZE:
-        size_constraints = size_constraints + "&maxsize=" + str(mylar.CONFIG.MAXSIZE)
+    if mylar.CONFIG.USE_MAXSIZE is True:
+        maxsize = str(mylar.CONFIG.MAXSIZE)
+    else:
+        maxsize = '0'
+    size_constraints += "&maxsize=" + maxsize
 
-    if mylar.CONFIG.USENET_RETENTION != None:
-        max_age = "&age=" + str(mylar.CONFIG.USENET_RETENTION)
+    if mylar.CONFIG.USENET_RETENTION is not None:
+        max_age = "&maxage=" + str(mylar.CONFIG.USENET_RETENTION)
+    else:
+        max_age = "&maxage=0"
 
     feeds = []
     i = 1
@@ -72,18 +78,19 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
             searchmethod = '00' + searchIssue
         else:
             break
-        logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
+
         joinSearch = "+".join(splitSearch) + "+" +searchmethod
+
+        logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
 
         if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
         elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
 
-        feeds.append(feedparser.parse("http://nzbindex.nl/rss/alt.binaries.comics.dcp/?sort=agedesc&" + str(size_constraints) + str(max_age) + "&dq=%s&max=50&more=1" %joinSearch))
-        time.sleep(3)
+        feeds.append(feedparser.parse("http://beta.nzbindex.com/search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=85" % (joinSearch, max_age, size_constraints)))
+        time.sleep(5)
         if mylar.CONFIG.ALTEXPERIMENTAL:
-            feeds.append(feedparser.parse("http://nzbindex.nl/rss/?dq=%s&g[]=41&g[]=510&sort=agedesc&hidespam=0&max=&more=1" %joinSearch))
-            time.sleep(3)
-
+            feeds.append(feedparser.parse("http://beta.nzbindex.com/search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=86" % (joinSearch, max_age, size_constraints)))
+            time.sleep(5)
         i+=1
 
     entries = []
@@ -124,7 +131,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
 
         regexList=[regEx, regExOne, regExTwo, regExThree, regExFour, regExFive]
 
-        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day']
+        except_list=['releases', 'gold line', 'distribution', '0-day', '0 day', '0day', 'o-day']
 
         for entry in keyPair:
             title = entry['title']
