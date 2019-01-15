@@ -1093,12 +1093,17 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                 return
             else:
                 break
+
         if tmpfc['JusttheDigits'] is not None:
             temploc= tmpfc['JusttheDigits'].replace('_', ' ')
             temploc = re.sub('[\#\']', '', temploc)
             logger.fdebug('temploc: %s' % temploc)
         else:
-            temploc = None
+            #assume 1 if not given
+            if any([booktype == 'TPB', booktype == 'One-Shot']):
+                temploc = '1'
+            else:
+                temploc = None
 
         if all(['annual' not in temploc.lower(), 'special' not in temploc.lower()]):
             #remove the extension here
@@ -1123,7 +1128,11 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                 fnd_iss_except = 'None'
 
-                fcdigit = helpers.issuedigits(temploc)
+                if temploc is not None:
+                    fcdigit = helpers.issuedigits(temploc)
+                elif any([booktype == 'TPB', booktype == 'One-Shot']) and temploc is None:
+                    fcdigit = helpers.issuedigits('1')
+
                 if int(fcdigit) == int_iss:
                     logger.fdebug(module + ' [' + str(reiss['IssueID']) + '] Issue match - fcdigit: ' + str(fcdigit) + ' ... int_iss: ' + str(int_iss))
 
