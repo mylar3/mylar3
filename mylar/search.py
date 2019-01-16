@@ -330,10 +330,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     #sure it's not disabled (it gets auto-disabled on maxing out the API hits)
                     prov_count+=1
                     continue
-                elif all([searchprov == '32P', checked_once is True]) or all ([searchprov == 'Public Torrents', checked_once is True]) or all([searchprov == 'experimental', checked_once is True]) or all([searchprov == 'DDL', checked_once is True]):
+                elif all([searchprov == '32P', checked_once is True]) or all([searchprov == 'DDL', checked_once is True]) or all ([searchprov == 'Public Torrents', checked_once is True]) or all([searchprov == 'experimental', checked_once is True]) or all([searchprov == 'DDL', checked_once is True]):
                     prov_count+=1
                     continue
                 if searchmode == 'rss':
+                    if searchprov.lower() == 'ddl':
+                        prov_count+=1
+                        continue
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype)
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
@@ -355,7 +358,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
                 else:
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype)
-                    if all([searchprov == '32P', checked_once is False]) or all([searchprov == 'Public Torrents', checked_once is False]) or all([searchprov == 'experimental', checked_once is False]):
+                    if all([searchprov == '32P', checked_once is False]) or all([searchprov.lower() == 'ddl', checked_once is False]) or all([searchprov == 'Public Torrents', checked_once is False]) or all([searchprov == 'experimental', checked_once is False]):
                         checked_once = True
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
