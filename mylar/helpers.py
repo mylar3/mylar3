@@ -1092,8 +1092,16 @@ def issuedigits(issnum):
                                 a+=1
                             int_issnum = (int(issno) * 1000) + ordtot
                     elif invchk == "true":
-                        logger.fdebug('this does not have an issue # that I can parse properly.')
-                        return 999999999999999
+                        if any([issnum.lower() == 'fall', issnum.lower() == 'spring', issnum.lower() == 'summer', issnum.lower() == 'winter']):
+                            inu = 0
+                            ordtot = 0
+                            while (inu < len(issnum)):
+                                ordtot += ord(issnum[inu].lower())  #lower-case the letters for simplicty
+                                inu+=1
+                            int_issnum = ordtot
+                        else:
+                            logger.fdebug('this does not have an issue # that I can parse properly.')
+                            return 999999999999999
                     else:
                         if issnum == '9-5':
                             issnum = u'9\xbd'

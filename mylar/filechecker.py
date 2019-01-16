@@ -390,7 +390,7 @@ class FileChecker(object):
             lastmod_position = 0
             booktype = 'issue'
             #exceptions that are considered alpha-numeric issue numbers
-            exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU')
+            exceptions = ('NOW', 'AI', 'AU', 'X', 'A', 'B', 'C', 'INH', 'MU', 'SUMMER', 'SPRING', 'FALL', 'WINTER')
 
             #unicode characters, followed by int value 
     #        num_exceptions = [{iss:u'\xbd',val:.5},{iss:u'\xbc',val:.25}, {iss:u'\xe',val:.75}, {iss:u'\221e',val:'infinity'}]
@@ -444,7 +444,14 @@ class FileChecker(object):
                                                           'position':     split_file.index(sf),
                                                           'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
                                                           'validcountchk': validcountchk})
- 
+                        else:
+                            test_position = modfilename[self.char_file_position(modfilename, sf,lastmod_position)-1]
+                            if test_position == '#':
+                                possible_issuenumbers.append({'number':       sf,
+                                                              'position':     split_file.index(sf),
+                                                              'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
+                                                              'validcountchk': validcountchk})
+
                 if sf == 'XCV':
 #  new 2016-09-19 \ attempt to check for XCV which replaces any unicode above
                     for x in list(wrds):

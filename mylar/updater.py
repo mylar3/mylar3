@@ -1119,6 +1119,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
             while True:
                 try:
                     reiss = reissues[n]
+                    int_iss = None
                 except IndexError:
                     break
                 int_iss = helpers.issuedigits(reiss['Issue_Number'])
