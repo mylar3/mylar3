@@ -60,14 +60,14 @@
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Show Downloaded Story Arc Issues on ReadingList tab</label><br/>
                          <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" /><label>Enforce Renaming/MetaTagging options (if enabled)</label><br/>
 -->
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} /><label>Prepend Reading# to filename</label><br/>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="read2filename" id="read2filename" value="1" ${checked(mylar.CONFIG.READ2FILENAME)} disabled/><label>Prepend Reading# to filename</label><br/>
                          <%
                                if mylar.CONFIG.STORYARCDIR:
                                    carcdir = 'StoryArc'
                                else:
                                    carcdir = 'GrabBag'
                          %>
-                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} /><label>Copy watchlisted issues to ${carcdir} Directory</label>
+                         <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="copy2arcdir" id="copy2arcdir" value="1" ${checked(mylar.CONFIG.COPY2ARCDIR)} disabled /><label>Copy watchlisted issues to ${carcdir} Directory</label>
 
                        <input type="hidden" name="StoryArcID" value="${storyarcid}">
                        <input type="hidden" name="StoryArcName" value="${storyarcname}">
@@ -75,7 +75,10 @@
                     </fieldset>
                     </form>
                      <div style="display:block;position:relative;top:10px;">
+                        &nbsp;
+<!--
                         <input type="submit" value="Update"/>
+-->
                      </div>
                      <div style="display:block;float:right;position:relative;text-color:black;top:-130px;">
                          <h1><p style="display:inline;float:right;">${storyarcname}</h1>
@@ -111,8 +114,9 @@
           </div>
          </div>
 
+<!--
         <button type="button" onclick="">Finalize & Rename</button>
-
+-->
 	<table class="display" id="arc_detail">
 		<thead>
 			<tr>
