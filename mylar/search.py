@@ -16,7 +16,7 @@
 from __future__ import division
 
 import mylar
-from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p, sabnzbd, nzbget, wwt #, getcomics
+from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p, sabnzbd, nzbget, wwt, getcomics
 
 import feedparser
 import requests
@@ -181,10 +181,14 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
     IssDt = str(IssueDate)[5:7]
-    if IssDt == "12" or IssDt == "11" or IssDt == "01" or IssDt == "02" or IssDt == "03":
+    if any([IssDt == "12", IssDt == "11", IssDt == "01", IssDt == "02", IssDt == "03"]):
          IssDateFix = IssDt
     else:
          IssDateFix = "no"
+         if StoreDate is not None:
+             StDt = str(StoreDate)[5:7]
+             if any([StDt == "10", StDt == "12", StDt == "11", StDt == "01", StDt == "02", StDt == "03"]):
+                 IssDateFix = StDt
 
     searchcnt = 0
     srchloop = 1
@@ -615,9 +619,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         if nzbprov == 'ddl':
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug('Sending request to DDL site for : %s %s' % (findcomic, isssearch))
-            #b = getcomics.GC(query=findcomic + ' ' + isssearch)
-            #bb = b.search()
-            logger.info('bb returned from DDL: %s' % bb)
+            b = getcomics.GC(query=findcomic + ' ' + isssearch)
+            bb = b.search()
+            #logger.info('bb returned from DDL: %s' % bb)
         elif RSS == "yes":
             if nzbprov == '32P' or nzbprov == 'Public Torrents':
                 cmname = re.sub("%20", " ", str(comsrc))
@@ -2293,9 +2297,16 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         sendsite = ggc.loadsite(os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + nzbid), link)
         ddl_it = ggc.parse_downloadresults(os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + nzbid))
         logger.info("ddl status response: %s" % ddl_it)
-        if ddl_it[0]['status'] == 'success':
-            nzbname = ddl_it[0]['filename']
-            logger.info('Successfully retrieved %s from DDL site' % (nzbname))
+        if ddl_it['status'] == 'success':
+            nzbname = ddl_it['filename']
+            logger.info('Successfully retrieved %s from DDL site. Now submitting for post-processing...' % (nzbname))
+            mylar.PP_QUEUE.put({'nzb_name':    nzbname,
+                                'nzb_folder':  mylar.CONFIG.DDL_LOCATION,
+                                'issueid':     IssueID,
+                                'failed':      False,
+                                'comicid':     ComicID,
+                                'apicall':     True})
+
         sent_to = "is downloading it directly via DDL"
 
     elif mylar.USE_BLACKHOLE and all([nzbprov != '32P', nzbprov != 'WWT', nzbprov != 'DEM', nzbprov != 'torznab']):
