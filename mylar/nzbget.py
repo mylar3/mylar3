@@ -228,7 +228,8 @@ class NZBGet(object):
                        'failed':   False,
                        'issueid':  nzbinfo['issueid'],
                        'comicid':  nzbinfo['comicid'],
-                       'apicall':  True}
+                       'apicall':  True,
+                       'ddl':      False}
         else:
             logger.warn('Could not find completed NZBID %s in history' % nzbid)
             return {'status': False}

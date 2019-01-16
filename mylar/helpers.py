@@ -3040,7 +3040,10 @@ def postprocess_main(queue):
                 break
 
             if mylar.APILOCK is False:
-                pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
+                try:
+                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'], item['ddl'])
+                except:
+                    pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
                 pp = pprocess.post_process()
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
 
@@ -3122,7 +3125,8 @@ def nzb_monitor(queue):
                                     'failed':       nzstat['failed'],
                                     'issueid':      nzstat['issueid'],
                                     'comicid':      nzstat['comicid'],
-                                    'apicall':      nzstat['apicall']})
+                                    'apicall':      nzstat['apicall'],
+                                    'ddl':          False})
                 #cc = process.Process(nzstat['name'], nzstat['location'], failed=nzstat['failed'])
                 #nzpp = cc.post_process()
             except Exception as e:

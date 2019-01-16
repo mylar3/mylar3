@@ -1463,10 +1463,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         links = entry['link']
                     searchresult = searcher(nzbprov, nzbname, mylar.COMICINFO, links, IssueID, ComicID, tmpprov, newznab=newznab_host, torznab=torznab_host, rss=RSS)
 
-                    if searchresult == 'downloadchk-fail' or searchresult == 'double-pp':
+                    if any([searchresult == 'downloadchk-fail', searchresult == 'double-pp']):
                         foundc['status'] = False
                         continue
-                    elif searchresult == 'torrent-fail' or searchresult == 'nzbget-fail' or searchresult == 'sab-fail' or searchresult == 'blackhole-fail':
+                    elif any([searchresult == 'torrent-fail', searchresult == 'nzbget-fail', searchresult == 'sab-fail', searchresult == 'blackhole-fail', searchresult == 'ddl-fail']):
                         foundc['status'] = False
                         return foundc
 
@@ -1498,9 +1498,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         if 'Public Torrents' in tmpprov and any([nzbprov == 'WWT', nzbprov == 'DEM']):
             tmpprov = re.sub('Public Torrents', nzbprov, tmpprov)
         foundcomic.append("yes")
-
-        if mylar.COMICINFO[0]['pack']:
-            issinfo = mylar.COMICINFO[0]['pack_issuelist']
+        logger.info('mylar.COMICINFO: %s' % mylar.COMICINFO)
+        if mylar.COMICINFO[0]['pack'] is True:
+            try:
+                issinfo = mylar.COMICINFO[0]['pack_issuelist']
+            except:
+                issinfo = mylar.COMICINFO['pack_issuelist']
             if issinfo is not None:
                 #we need to get EVERY issue ID within the pack and update the log to reflect that they're being downloaded via a pack.
                 logger.fdebug("Found matching comic within pack...preparing to send to Updater with IssueIDs: " + str(issueid_info) + " and nzbname of " + str(nzbname))
@@ -2307,7 +2310,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                                 'issueid':     IssueID,
                                 'failed':      False,
                                 'comicid':     ComicID,
-                                'apicall':     True})
+                                'apicall':     True,
+                                'ddl':         True})
+        else:
+            logger.info('Failed to retrieve %s from the DDL site.' %s (nzbname))
+            return "ddl-fail"
 
         sent_to = "is downloading it directly via DDL"
 

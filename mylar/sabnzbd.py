@@ -131,7 +131,8 @@ class SABnzbd(object):
                                      'failed':   False,
                                      'issueid':  nzbinfo['issueid'],
                                      'comicid':  nzbinfo['comicid'],
-                                     'apicall':  True}
+                                     'apicall':  True,
+                                     'ddl':      False}
                             break
                         else:
                             logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
@@ -152,7 +153,8 @@ class SABnzbd(object):
                                                  'failed':   True,
                                                  'issueid':  sendresponse['issueid'],
                                                  'comicid':  sendresponse['comicid'],
-                                                 'apicall':  True}
+                                                 'apicall':  True,
+                                                 'ddl':      False}
                                 break
                         break
 

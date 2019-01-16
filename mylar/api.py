@@ -358,6 +358,11 @@ class Api(object):
         else:
             comicid = kwargs['comicid']
 
+        if 'ddl' not in kwargs:
+            ddl = False
+        else:
+            ddl = True
+
         if 'apc_version' not in kwargs:
             logger.info('Received API Request for PostProcessing %s [%s]. Queueing...' % (self.nzb_name, self.nzb_folder))
             mylar.PP_QUEUE.put({'nzb_name':    self.nzb_name,
@@ -365,7 +370,8 @@ class Api(object):
                                 'issueid':     issueid,
                                 'failed':      failed,
                                 'comicid':     comicid,
-                                'apicall':     True})
+                                'apicall':     True,
+                                'ddl':         ddl})
             self.data = 'Successfully submitted request for post-processing for %s' % self.nzb_name
             #fp = process.Process(self.nzb_name, self.nzb_folder, issueid=issueid, failed=failed, comicid=comicid, apicall=True)
             #self.data = fp.post_process()

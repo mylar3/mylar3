@@ -134,6 +134,7 @@ class GC(object):
                 series = option_find
             elif 'Year' in option_find:
                 year = option_find.findNext(text=True)
+                year = re.sub('|', '', year).strip()
             else:
                 if 'Size' in prev_option:
                     size = option_find #.findNext(text=True)
@@ -141,7 +142,7 @@ class GC(object):
                     break
             i+=1
 
-        logger.fdebug('%s [%s] / %s' % (series, year, size))
+        logger.fdebug('Now downloading: %s [%s] / %s ... this can take a while (go get some take-out)...' % (series, year, size))
 
         link = None
         for f in soup.findAll("div", {"class": "aio-pulse"}):

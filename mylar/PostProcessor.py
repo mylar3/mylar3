@@ -45,7 +45,7 @@ class PostProcessor(object):
     FOLDER_NAME = 2
     FILE_NAME = 3
 
-    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None, comicid=None, apicall=False):
+    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None, comicid=None, apicall=False ,dll=False):
         """
         Creates a new post processor with the given file path and optionally an NZB name.
 
@@ -71,6 +71,11 @@ class PostProcessor(object):
             mylar.APILOCK = True
         else:
             self.apicall = False
+
+        if ddl is True:
+            self.ddl = True
+        else:
+            self.ddl = False
 
         if mylar.CONFIG.FILE_OPTS == 'copy':
             self.fileop = shutil.copy
@@ -344,27 +349,31 @@ class PostProcessor(object):
             self._log("nzb folder: " + self.nzb_folder)
             logger.fdebug(module + ' nzb name: ' + self.nzb_name)
             logger.fdebug(module + ' nzb folder: ' + self.nzb_folder)
-            if mylar.USE_SABNZBD==0:
-                logger.fdebug(module + ' Not using SABnzbd')
-            elif mylar.USE_SABNZBD != 0 and self.nzb_name == 'Manual Run':
-                logger.fdebug(module + ' Not using SABnzbd : Manual Run')
-            else:
-                # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
-                if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                    self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-                    logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
+            if self.ddl is False:
+                if mylar.USE_SABNZBD==0:
+                    logger.fdebug(module + ' Not using SABnzbd')
+                elif mylar.USE_SABNZBD != 0 and self.nzb_name == 'Manual Run':
+                    logger.fdebug(module + ' Not using SABnzbd : Manual Run')
+                else:
+                    # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
+                    if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
+                        self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                        logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
 
-            if mylar.USE_NZBGET==1:
-                if self.nzb_name != 'Manual Run':
-                    logger.fdebug(module + ' Using NZBGET')
-                    logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
-                # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
-                if self.nzb_name == 'Manual Run':
-                    logger.fdebug(module + ' Manual Run Post-Processing enabled.')
-                elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
-                    logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
-                    self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-                    logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
+                if mylar.USE_NZBGET==1:
+                    if self.nzb_name != 'Manual Run':
+                        logger.fdebug(module + ' Using NZBGET')
+                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                    # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
+                    if self.nzb_name == 'Manual Run':
+                        logger.fdebug(module + ' Manual Run Post-Processing enabled.')
+                    elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
+                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                        self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                        logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
+            else:
+                logger.fdebug('%s Now performing post-processing of %s sent from DDL' % (module, nzb_name))
+
             myDB = db.DBConnection()
 
             self.oneoffinlist = False
