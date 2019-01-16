@@ -1023,7 +1023,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         i = 1
 
                     while i <= 1:
-                        logger.info('i: %s' % i)
                         if i == 0:
                             usedate = digitaldate
                         else:
