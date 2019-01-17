@@ -45,7 +45,7 @@ class PostProcessor(object):
     FOLDER_NAME = 2
     FILE_NAME = 3
 
-    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None, comicid=None, apicall=False ,ddl=False):
+    def __init__(self, nzb_name, nzb_folder, issueid=None, module=None, queue=None, comicid=None, apicall=False, ddl=False):
         """
         Creates a new post processor with the given file path and optionally an NZB name.
 
@@ -372,7 +372,7 @@ class PostProcessor(object):
                         self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
                         logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
             else:
-                logger.fdebug('%s Now performing post-processing of %s sent from DDL' % (module, nzb_name))
+                logger.fdebug('%s Now performing post-processing of %s sent from DDL' % (module, self.nzb_name))
 
             myDB = db.DBConnection()
 
