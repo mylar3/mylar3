@@ -37,7 +37,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
 import logger
-from mylar import sabnzbd, nzbget, process
+from mylar import sabnzbd, nzbget, process, getcomics
 
 def multikeysort(items, columns):
 
@@ -3026,6 +3026,38 @@ def latestdate_update():
         ctrlVal = {'ComicID':           a['ComicID']}
         logger.info('updating latest date for : ' + a['ComicID'] + ' to ' + a['LatestDate'] + ' #' + a['LatestIssue'])
         myDB.upsert("comics", newVal, ctrlVal)
+
+def ddl_downloader(queue):
+    while True:
+        if mylar.DDL_LOCK is True:
+            time.sleep(5)
+
+        elif mylar.DDL_LOCK is False and queue.qsize() >= 1:
+            item = queue.get(True)
+            logger.info('Now loading request from DDL queue: %s (%s)' % item['series'])
+            if item == 'exit':
+                logger.info('Cleaning up workers for shutdown')
+                break
+
+            ddz = getcomics.GC()
+            ddzstat = ddz.downloadit(item['link'], item['mainlink'])
+
+            if all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is True]):
+                logger.info('%s successfully downloaded - now initiating post-processing.' % (ddzstat['filename']))
+                try:
+                    mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
+                                        'nzb_folder':   ddzstat['path'],
+                                        'failed':       False,
+                                        'issueid':      item['issueid'],
+                                        'comicid':      item['comicid'],
+                                        'apicall':      True,
+                                        'ddl':          True})
+                except Exception as e:
+                    logger.info('process error: %s [%s]' %(e, ddzstat))
+            elif mylar.CONFIG.POST_PROCESSING is True:
+                logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % os.path.join(ddzstat['path'],ddzstat['filename']))
+            else:
+                logger.info('[Status: %s] Failed to download: %s ' % (ddzstat['success'], ddzstat))
 
 def postprocess_main(queue):
     while True:

@@ -17,7 +17,6 @@
 from StringIO import StringIO
 import urllib
 from threading import Thread
-from Queue import Queue
 import os
 import sys
 import re
@@ -28,20 +27,22 @@ import json
 from bs4 import BeautifulSoup
 import requests
 import cfscrape
+import logger
 import mylar
-from mylar import logger
 
 class GC(object):
 
-    def __init__(self, query):
-
-        self.queue = Queue()
+    def __init__(self, query=None, issueid=None, comicid=None):
 
         self.valreturn = []
 
         self.url = 'https://getcomics.info'
 
         self.query = query
+
+        self.comicid = comicid
+ 
+        self.issueid = issueid
 
         self.local_filename = os.path.join(mylar.CONFIG.CACHE_DIR, "getcomics.html")
 
@@ -94,7 +95,7 @@ class GC(object):
                 option_find = option_find.findNext(text=True)
                 if 'Year' in option_find:
                     year = option_find.findNext(text=True)
-                    year = re.sub('|', '', year).strip()
+                    year = re.sub('\|', '', year).strip()
                 else:
                     size = option_find.findNext(text=True)
                     if 'MB' in size:
@@ -118,10 +119,8 @@ class GC(object):
         results['entries'] = resultlist
 
         return results
-        #self.loadsite(title, link)
-        #self.parse_downloadresults(title)
 
-    def parse_downloadresults(self, title):
+    def parse_downloadresults(self, title, mainlink):
 
         soup = BeautifulSoup(open(title+'.html'), 'html.parser')
         orig_find = soup.find("p", {"style": "text-align: center;"})
@@ -191,56 +190,61 @@ class GC(object):
 
         if link is None:
             logger.warn('Unable to retrieve any valid immediate download links. They might not exist.')
-            return
+            return {'success':  False}
 
         for x in links:
             logger.fdebug('[%s] %s - %s' % (x['site'], x['volume'], x['link']))
 
-        thread_ = Thread(target=self.downloadit, args=[link])
-        thread_.start()
-        thread_.join()
-        chk = self.queue.get()
-        while True:
-            if chk[0]['mode'] == 'stop':
-                return {"filename": chk[0]['filename'],
-                        "status":   'fail'}
-            elif chk[0]['mode'] == 'success':
-                try:
-                    if os.path.isfile(os.path.join(mylar.CONFIG.DDL_LOCATION, chk[0]['filename'])):
-                        logger.fdebug('Finished downloading %s [%s]' % (path, size))
-                except:
-                    pass
-                return {"filename": chk[0]['filename'],
-                        "status":   'success'}
+        mylar.DDL_QUEUE.put({'link':     link,
+                             'mainlink': mainlink,
+                             'series':   series,
+                             'year':     year,
+                             'size':     size,
+                             'comicid':  self.comicid,
+                             'issueid':  self.issueid})
 
-    def downloadit(self, link):
+        return {'success': True}
+
+    def downloadit(self, link, mainlink):
+        if mylar.DDL_LOCK is True:
+            logger.fdebug('[DDL] Another item is currently downloading via DDL. Only one item can be downloaded at a time using DDL. Patience.')
+            return
+        else:
+            mylar.DDL_LOCK = True
+
         filename = None
         try:
-            t = requests.get(link, verify=True, cookies=self.cf_cookievalue, headers=self.headers, stream=True)
+            with cfscrape.create_scraper() as s:
+                cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers)
+                t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True)
 
-            filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
+                filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
 
-            path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
-            if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
-                buf = StringIO(t.content)
-                f = gzip.GzipFile(fileobj=buf)
+                if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
+                    buf = StringIO(t.content)
+                    f = gzip.GzipFile(fileobj=buf)
 
+                with open(path, 'wb') as f:
+                    for chunk in t.iter_content(chunk_size=1024):
+                        if chunk: # filter out keep-alive new chunks
+                            f.write(chunk)
+                            f.flush()
 
-            with open(path, 'wb') as f:
-                for chunk in t.iter_content(chunk_size=1024):
-                    if chunk: # filter out keep-alive new chunks
-                        f.write(chunk)
-                        f.flush()
-        except:
-            self.valreturn.append({"mode": "stop",
-                                   "filename": filename})
-            return self.queue.put(self.valreturn)
+        except exception as e:
+            logger.error('[ERROR] %s' % e)
+            mylar.DDL_LOCK = False
+            return ({"success":  False,
+                     "filename": filename,
+                     "path":     None})
 
         else:
-            self.valreturn.append({"mode": "success",
-                                   "filename": filename})
-            return self.queue.put(self.valreturn)
+            mylar.DDL_LOCK = False
+            if os.path.isfile(path):
+                return ({"success":  True,
+                         "filename": filename,
+                         "path":     path})
 
     def issue_list(self, pack):
         #packlist = [x.strip() for x in pack.split(',)]

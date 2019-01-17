@@ -2298,20 +2298,12 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     sent_to = None
     t_hash = None
     if mylar.CONFIG.ENABLE_DDL is True and nzbprov == 'ddl':
-        ggc = getcomics.GC('nope')
+        ggc = getcomics.GC(issueid=IssueID, comicid=ComicID)
         sendsite = ggc.loadsite(os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + nzbid), link)
-        ddl_it = ggc.parse_downloadresults(os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + nzbid))
+        ddl_it = ggc.parse_downloadresults(os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + nzbid), link)
         logger.info("ddl status response: %s" % ddl_it)
-        if ddl_it['status'] == 'success':
-            nzbname = ddl_it['filename']
-            logger.info('Successfully retrieved %s from DDL site. Now submitting for post-processing...' % (nzbname))
-            mylar.PP_QUEUE.put({'nzb_name':    nzbname,
-                                'nzb_folder':  mylar.CONFIG.DDL_LOCATION,
-                                'issueid':     IssueID,
-                                'failed':      False,
-                                'comicid':     ComicID,
-                                'apicall':     True,
-                                'ddl':         True})
+        if ddl_it['success'] is True:
+            logger.info('Successfully snatched %s from DDL site. It is currently being queued to download in position %s' % (nzbname, mylar.DDL_QUEUE.qsize()))
         else:
             logger.info('Failed to retrieve %s from the DDL site.' %s (nzbname))
             return "ddl-fail"
