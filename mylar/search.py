@@ -44,7 +44,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     unaltered_ComicName = None
     if filesafe:
         if filesafe != ComicName and mode != 'want_ann':
-            logger.info('[SEARCH] Special Characters exist within Series Title. Enabling search-safe Name : ' + filesafe)
+            logger.info('[SEARCH] Special Characters exist within Series Title. Enabling search-safe Name : %s' % filesafe)
             if AlternateSearch is None or AlternateSearch == 'None':
                 AlternateSearch = filesafe
             else:
@@ -60,7 +60,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if Publisher:
         if Publisher == 'IDW Publishing':
             Publisher = 'IDW'
-        logger.fdebug('Publisher is : ' + Publisher)
+        logger.fdebug('Publisher is : %s' % Publisher)
 
     if IssueArcID and not IssueID:
         issuetitle = helpers.get_issue_title(IssueArcID)
@@ -68,7 +68,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         issuetitle = helpers.get_issue_title(IssueID)
 
     if issuetitle:
-        logger.info('Issue Title given as : ' + issuetitle)
+        logger.fdebug('Issue Title given as : %s' % issuetitle)
     else:
         logger.fdebug('Issue Title not found. Setting to None.')
 
@@ -91,8 +91,8 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
         oneoff = True
     if SARC:
         logger.fdebug("Story-ARC Search parameters:")
-        logger.fdebug("Story-ARC: " + str(SARC))
-        logger.fdebug("IssueArcID: " + str(IssueArcID))
+        logger.fdebug("Story-ARC: %s" % SARC)
+        logger.fdebug("IssueArcID: %s" % IssueArcID)
 
     torprovider = []
     torp = 0
@@ -177,7 +177,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     prov_order, torznab_info, newznab_info = provider_sequence(nzbprovider, torprovider, newznab_hosts, torznab_hosts, ddlprovider)
     # end provider order sequencing
-    logger.info('search provider order is ' + str(prov_order))
+    logger.fdebug('search provider order is ' + str(prov_order))
 
     #fix for issue dates between Nov-Dec/(Jan-Feb-Mar)
     IssDt = str(IssueDate)[5:7]
@@ -424,7 +424,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchprov = mylar.TMP_PROV
         return findit, searchprov
     else:
-        logger.info('findit: %s' % findit)
+        logger.fdebug('findit: %s' % findit)
         #if searchprov == '32P':
         #    pass
         if manualsearch is None:

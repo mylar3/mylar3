@@ -612,8 +612,10 @@ class PostProcessor(object):
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=?", [cs['ComicID']])
 
                             if not issuechk:
-                                logger.fdebug('%s No corresponding issue #%s found for %s' % (module, temploc, cs['ComicID']))
-
+                                try:
+                                    logger.fdebug('%s No corresponding issue #%s found for %s' % (module, temploc, cs['ComicID']))
+                                except:
+                                    continue
                                 #check the last refresh date of the series, and if > than an hr try again:
                                 c_date = cs['LastUpdated']
                                 if c_date is None:
