@@ -3034,7 +3034,7 @@ def ddl_downloader(queue):
 
         elif mylar.DDL_LOCK is False and queue.qsize() >= 1:
             item = queue.get(True)
-            logger.info('Now loading request from DDL queue: %s (%s)' % item['series'])
+            logger.info('Now loading request from DDL queue: %s' % item['series'])
             if item == 'exit':
                 logger.info('Cleaning up workers for shutdown')
                 break
