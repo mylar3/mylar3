@@ -4545,7 +4545,7 @@ class WebInterface(object):
 #----
 # to be implemented in the future.
         if mylar.INSTALL_TYPE == 'git':
-            branch_history, err = mylar.versioncheck.runGit("log --pretty=format:'%h - %cr - %an - %s' -n 5")
+            branch_history, err = mylar.versioncheck.runGit('log --pretty=format:"%h - %cr - %an - %s" -n 5')
             #here we pass the branch_history to the pretty_git module to break it down
             if branch_history:
                 br_hist = self.pretty_git(branch_history)
@@ -4649,6 +4649,7 @@ class WebInterface(object):
                     "sab_priority": mylar.CONFIG.SAB_PRIORITY,
                     "sab_directory": mylar.CONFIG.SAB_DIRECTORY,
                     "sab_to_mylar": helpers.checked(mylar.CONFIG.SAB_TO_MYLAR),
+                    "sab_version": mylar.CONFIG.SAB_VERSION,
                     "sab_client_post_processing": helpers.checked(mylar.CONFIG.SAB_CLIENT_POST_PROCESSING),
                     "nzbget_host": mylar.CONFIG.NZBGET_HOST,
                     "nzbget_port": mylar.CONFIG.NZBGET_PORT,
@@ -5168,7 +5169,12 @@ class WebInterface(object):
         else:
             verify = False
 
+        version = 'Unknown'
         try:
+            v = requests.get(querysab, params={'mode': 'version'}, verify=verify)
+            if str(v.status_code) == '200':
+                logger.fdebug('sabnzbd version: %s' % v.content)
+                version = v.text
             r = requests.get(querysab, params=payload, verify=verify)
         except Exception, e:
             logger.warn('Error fetching data from %s: %s' % (querysab, e))
@@ -5183,6 +5189,10 @@ class WebInterface(object):
                 verify = False
 
                 try:
+                    v = requests.get(querysab, params={'mode': 'version'}, verify=verify)
+                    if str(v.status_code) == '200':
+                        logger.fdebug('sabnzbd version: %s' % v.text)
+                        version = v.text
                     r = requests.get(querysab, params=payload, verify=verify)
                 except Exception, e:
                     logger.warn('Error fetching data from %s: %s' % (sabhost, e))
@@ -5191,7 +5201,7 @@ class WebInterface(object):
                 return 'Unable to retrieve data from SABnzbd'
 
 
-        logger.info('status code: ' + str(r.status_code))
+        logger.fdebug('status code: ' + str(r.status_code))
 
         if str(r.status_code) != '200':
             logger.warn('Unable to properly query SABnzbd @' + sabhost + ' [Status Code returned: ' + str(r.status_code) + ']')
@@ -5215,7 +5225,9 @@ class WebInterface(object):
         mylar.CONFIG.SAB_APIKEY = q_apikey
         logger.info('APIKey provided is the FULL APIKey which is the correct key. You still need to SAVE the config for the changes to be applied.')
         logger.info('Connection to SABnzbd tested sucessfully')
-        return "Successfully verified APIkey"
+        mylar.CONFIG.SAB_VERSION = version
+        return json.dumps({"status": "Successfully verified APIkey.", "version": str(version)})
+
     SABtest.exposed = True
 
     def NZBGet_test(self, nzbhost=None, nzbport=None, nzbusername=None, nzbpassword=None):

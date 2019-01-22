@@ -397,20 +397,36 @@
                                     </div>
                                 </div>
 
-                                <div class="row checkbox left clearfix">
+                                <div class="row checkbox left clearfix" id="sab_cdh" style="display:unset;">
                                     <input type="checkbox" id="sab_client_post_processing" onclick="initConfigCheckbox($this);" name="sab_client_post_processing" value="1" ${config['sab_client_post_processing']} /><label>Enable Completed Download Handling</label>
                                     <div id="sabcompletedinfo">
                                        <div class="row">
                                            <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
-                                           ComicRN script cannot be used with this enabled</small>
+                                           ComicRN script cannot be used with this enabled & required SAB version > 0.8.0</small>
                                        </div>
                                     </div>
                                 </div>
-
+                                <div class="row checkbox left clearfix" id="sab_nocdh" style="display:none;">
+                                    <div>
+                                       <div class="row">
+                                           <small class="heading"><span style="float: left; margin-right: .3em; margin-top: 4px;" class="ui-icon ui-icon-info"></span>
+                                           Completed Download Handling is not available as your version of SABnzbd is not above 0.8.0</small>
+                                       </div>
+                                    </div>
+                                </div>
                                 <div align="center" class="row">
                                      <img name="sabnzbd_statusicon" id="sabnzbd_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                      <input type="button" value="Test SABnzbd" id="test_sab" style="float:center" /></br>
                                      <input type="text" name="sabstatus" style="text-align:center; font-size:11px;" id="sabstatus" size="50" DISABLED />
+                                     <div name="sabversion" id="sabversion" style="font-size:11px;" align="center">
+                                        <%
+                                               if mylar.CONFIG.SAB_VERSION is not None:
+                                                   sabv = 'last tested version: %s' % mylar.CONFIG.SAB_VERSION
+                                               else:
+                                                   sabv = ''
+                                        %>
+                                        <span>${sabv}</span>
+                                     </div>
                                 </div>
 
                        </fieldset>
@@ -1949,7 +1965,9 @@
                 function numberWithCommas(x) {
                         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
                 };
-
+                function numberWithDecimals(x) {
+                        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                };
                 $("#test_32p").click(function(){
                     var imagechk = document.getElementById("test32p_statusicon");
                     $.get('test_32p',
@@ -1990,8 +2008,26 @@
                                 alert(data.error);
                                 return;
                             }
-                            $('#sabstatus').val(data);
-                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            var obj = JSON.parse(data);
+                            var versionsab = obj['version'];
+                            vsab = numberWithDecimals(versionsab);
+                            alert(vsab);
+                            $('#sabstatus').val(obj['status']);
+                            $('#sabversion span').text('SABnzbd version: '+versionsab);
+                            if ( vsab < "0.8.0" ){
+                                scdh = document.getElementById("sab_cdh");
+                                scdh.style.display = "none";
+                                nocdh = document.getElementById("sab_nocdh");
+                                nocdh.style.display = "unset";
+                                scdh_line = document.getElementById("sab_client_post_processing");
+                                scdh_line.value = 0;
+                            } else {
+                                scdh = document.getElementById("sab_cdh");
+                                scdh.style.display = "unset";
+                                nocdh = document.getElementById("sab_nocdh");
+                                nocdh.style.display = "none";
+                            }
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";
                                 imagechk.src = "interfaces/default/images/success.png";

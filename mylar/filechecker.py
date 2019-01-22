@@ -50,7 +50,8 @@ class FileChecker(object):
             self.watchcomic = re.sub('\?', '', watchcomic).strip()  #strip the ? sepearte since it affects the regex.
             self.watchcomic = re.sub(u'\u2014', ' - ', watchcomic).strip()  #replace the \u2014 with a normal - because this world is f'd up enough to have something like that.
             self.watchcomic = re.sub(u'\u2013', ' - ', watchcomic).strip()  #replace the \u2013 with a normal - because again, people are dumb.
-            self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
+            if type(self.watchcomic) != str:
+                self.watchcomic = unicodedata.normalize('NFKD', self.watchcomic).encode('ASCII', 'ignore')
         else:
             self.watchcomic = None
 
@@ -107,7 +108,6 @@ class FileChecker(object):
         self.AS_Alt = AS_Alternates['AS_Alt']
         self.AS_Tuple = AS_Alternates['AS_Tuple']
 
-
     def listFiles(self):
         comiclist = []
         watchmatch = {}
@@ -122,6 +122,7 @@ class FileChecker(object):
                     'comiclocation':       runresults['comiclocation'],
                     'series_name':         runresults['series_name'],
                     'series_name_decoded': runresults['series_name_decoded'],
+                    'issueid':             runresults['issueid'],
                     'dynamic_name':        runresults['dynamic_name'],
                     'series_volume':       runresults['series_volume'],
                     'alt_series':          runresults['alt_series'],
@@ -159,6 +160,7 @@ class FileChecker(object):
                                     'comiclocation':       runresults['comiclocation'],
                                     'series_name':         runresults['series_name'],
                                     'series_name_decoded': runresults['series_name_decoded'],
+                                    'issueid':             runresults['issueid'],
                                     'alt_series':          runresults['alt_series'],
                                     'alt_issue':           runresults['alt_issue'],
                                     'dynamic_name':        runresults['dynamic_name'],
@@ -179,6 +181,7 @@ class FileChecker(object):
                                      'IssueYear':               runresults['issue_year'],
                                      'JusttheDigits':           runresults['justthedigits'],
                                      'AnnualComicID':           runresults['annual_comicid'],
+                                     'issueid':                 runresults['issueid'],
                                      'scangroup':               runresults['scangroup']
                                      })
                         comiccnt +=1
@@ -194,6 +197,7 @@ class FileChecker(object):
                                                   'alt_issue':      runresults['alt_issue'],
                                                   'issue_year':     runresults['issue_year'],
                                                   'issue_number':   runresults['issue_number'],
+                                                  'issueid':        runresults['issueid'],
                                                   'scangroup':      runresults['scangroup']
                                                   })
 
@@ -282,6 +286,16 @@ class FileChecker(object):
                             cnt +=1
 
                     modfilename = modfilename.replace('()','').strip()
+
+            issueid = None
+            x = modfilename.find('[__')
+            if x != -1:
+                y = modfilename.find('__]', x)
+                if y != -1:
+                    issueid = modfilename[x+3:y]
+                    logger.fdebug('issueid: %s' % issueid)
+                    modfilename = '%s %s'.strip() % (modfilename[:x], modfilename[y+3:])
+                    logger.fdebug('issueid %s removed successsfully: %s' % (issueid, modfilename))
 
             #here we take a snapshot of the current modfilename, the intent is that we will remove characters that match
             #as we discover them - namely volume, issue #, years, etc
@@ -1059,6 +1073,7 @@ class FileChecker(object):
                             'comiclocation':       self.dir,
                             'series_name':         series_name,
                             'series_name_decoded': series_name_decoded,
+                            'issueid':             issueid,
                             'alt_series':          alt_series,
                             'alt_issue':           alt_issue,
                             'dynamic_name':        dreplace,
@@ -1078,6 +1093,7 @@ class FileChecker(object):
                         'comiclocation':          self.dir,
                         'series_name':            series_name,
                         'series_name_decoded':    series_name_decoded,
+                        'issueid':                issueid,
                         'alt_series':             alt_series,
                         'alt_issue':              alt_issue,
                         'dynamic_name':           self.dynamic_replace(series_name)['mod_seriesname'],
@@ -1094,6 +1110,7 @@ class FileChecker(object):
                            'comiclocation':          self.dir,
                            'series_name':            series_name,
                            'series_name_decoded':    series_name_decoded,
+                           'issueid':                issueid,
                            'alt_series':             alt_series,
                            'alt_issue':              alt_issue,
                            'series_volume':          issue_volume,
@@ -1259,6 +1276,7 @@ class FileChecker(object):
                         'alt_series':      series_info['alt_series'],
                         'alt_issue':       series_info['alt_issue'],
                         'issue_year':      series_info['issue_year'],
+                        'issueid':         series_info['issueid'],
                         'justthedigits':   justthedigits,
                         'annual_comicid':  annual_comicid,
                         'scangroup':       series_info['scangroup']}
@@ -1270,11 +1288,12 @@ class FileChecker(object):
                         'sub':            series_info['sub'],
                         'comiclocation':  series_info['comiclocation'],
                         'series_name':    series_info['series_name'],
-                        'alt_series':      series_info['alt_series'],
-                        'alt_issue':       series_info['alt_issue'],
+                        'alt_series':     series_info['alt_series'],
+                        'alt_issue':      series_info['alt_issue'],
                         'issue_number':   series_info['issue_number'],
                         'series_volume':  series_info['series_volume'],
                         'issue_year':     series_info['issue_year'],
+                        'issueid':        series_info['issueid'],
                         'scangroup':      series_info['scangroup']}
 
 

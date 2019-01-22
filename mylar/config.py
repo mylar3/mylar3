@@ -208,6 +208,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SAB_PRIORITY': (str, 'SABnzbd', "Default"),
     'SAB_TO_MYLAR': (bool, 'SABnzbd', False),
     'SAB_DIRECTORY': (str, 'SABnzbd', None),
+    'SAB_VERSION': (str, 'SABnzbd', None),
     'SAB_CLIENT_POST_PROCESSING': (bool, 'SABnzbd', False),   #0/False: ComicRN.py, #1/True: Completed Download Handling
 
     'NZBGET_HOST': (str, 'NZBGet', None),
@@ -795,7 +796,6 @@ class Config(object):
             mylar.RSS_STATUS = 'Waiting'
         elif self.ENABLE_RSS is False and mylar.RSS_STATUS == 'Waiting':
             mylar.RSS_STATUS = 'Paused'
-        logger.info('self.enable_rss is %s [%s]' % (self.ENABLE_RSS, mylar.RSS_STATUS))
 
         if not helpers.is_number(self.CHMOD_DIR):
             logger.fdebug("CHMOD Directory value is not a valid numeric - please correct. Defaulting to 0777")
@@ -874,6 +874,12 @@ class Config(object):
             elif self.SAB_PRIORITY == "3": self.SAB_PRIORITY = "High"
             elif self.SAB_PRIORITY == "4": self.SAB_PRIORITY = "Paused"
             else: self.SAB_PRIORITY = "Default"
+
+        if self.SAB_VERSION is not None:
+            config.set('SABnzbd', 'sab_version', self.SAB_VERSION)
+            if int(re.sub("[^0-9]", '', self.SAB_VERSION).strip()) < int(re.sub("[^0-9]", '', '0.8.0').strip()) and self.SAB_CLIENT_POST_PROCESSING is True:
+                logger.warn('Your SABnzbd client is less than 0.8.0, and does not support Completed Download Handling which is enabled. Disabling CDH.')
+                self.SAB_CLIENT_POST_PROCESSING = False
 
         mylar.USE_WATCHDIR = False
         mylar.USE_UTORRENT = False

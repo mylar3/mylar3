@@ -350,15 +350,18 @@ class PostProcessor(object):
             logger.fdebug(module + ' nzb name: ' + self.nzb_name)
             logger.fdebug(module + ' nzb folder: ' + self.nzb_folder)
             if self.ddl is False:
-                if mylar.USE_SABNZBD==0:
-                    logger.fdebug(module + ' Not using SABnzbd')
-                elif mylar.USE_SABNZBD != 0 and self.nzb_name == 'Manual Run':
-                    logger.fdebug(module + ' Not using SABnzbd : Manual Run')
-                else:
-                    # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
-                    if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                        self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-                        logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
+                if mylar.USE_SABNZBD==1:
+                    if self.nzb_name != 'Manual Run':
+                        logger.fdebug(module + ' Using SABnzbd')
+                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+
+                    if self.nzb_name == 'Manual Run':
+                        logger.fdebug(module + ' Manual Run Post-Processing enabled.')
+                    else:
+                        # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
+                        if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
+                            self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                            logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
 
                 if mylar.USE_NZBGET==1:
                     if self.nzb_name != 'Manual Run':
@@ -471,8 +474,50 @@ class PostProcessor(object):
                     if any([self.issueid is not None, self.comicid is not None]):
                         comicseries = myDB.select('SELECT * FROM comics WHERE ComicID=?', [self.comicid])
                     else:
-                        tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
-                        comicseries = myDB.select(tmpsql, tuple(loopchk))
+                        if fl['issueid'] is not None:
+                            logger.info('issueid detected in filename: %s' % fl['issueid'])
+                            csi = myDB.selectone('SELECT i.ComicID, i.IssueID, i.Issue_Number, c.ComicName FROM comics as c JOIN issues as i ON c.ComicID = i.ComicID WHERE i.IssueID=?', [fl['issueid']]).fetchone()
+                            if csi is None:
+                                csi = myDB.selectone('SELECT i.ComicID as comicid, i.IssueID, i.Issue_Number, a.ReleaseComicName, c.ComicName FROM comics as c JOIN annuals as a ON c.ComicID = a.ComicID WHERE a.IssueID=?', [fl['issueid']]).fetchone()
+                                if csi is not None:
+                                    annchk = 'yes'
+                                else:
+                                    continue
+                            else:
+                                annchk = 'no'
+                            if fl['sub']:
+                                logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, fl['sub'], fl['comiclocation']))
+                                clocation = os.path.join(fl['comiclocation'], fl['sub'], helpers.conversion(fl['comicfilename']))
+                            else:
+                                logger.fdebug('%s[CLOCATION] %s' % (module, fl['comiclocation']))
+                                clocation = os.path.join(fl['comiclocation'],helpers.conversion(fl['comicfilename']))
+                            annualtype = None
+                            if annchk == 'yes':
+                                if 'Annual' in csi['ReleaseComicName']:
+                                    annualtype = 'Annual'
+                                elif 'Special' in csi['ReleaseComicName']:
+                                    annualtype = 'Special'
+                            else:
+                                if 'Annual' in csi['ComicName']:
+                                    annualtype = 'Annual'
+                                elif 'Special' in csi['ComicName']:
+                                    annualtype = 'Special'
+                            manual_list.append({"ComicLocation":   clocation,
+                                                "ComicID":         csi['ComicID'],
+                                                "IssueID":         csi['IssueID'],
+                                                "IssueNumber":     csi['Issue_Number'],
+                                                "AnnualType":      annualtype,
+                                                "ComicName":       csi['ComicName'],
+                                                "Series":          fl['series_name'],
+                                                "AltSeries":       fl['alt_series'],
+                                                "One-Off":         False,
+                                                "ForcedMatch":     True})
+                            logger.info('manual_list: %s' % manual_list)
+                            break
+
+                        else:
+                            tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
+                            comicseries = myDB.select(tmpsql, tuple(loopchk))
 
                     if not comicseries or orig_seriesname != mod_seriesname:
                         if all(['special' in orig_seriesname.lower(), mylar.CONFIG.ANNUALS_ON, orig_seriesname != mod_seriesname]):
@@ -787,7 +832,8 @@ class PostProcessor(object):
                                                             "ComicName":       cs['ComicName'],
                                                             "Series":          watchmatch['series_name'],
                                                             "AltSeries":       watchmatch['alt_series'],
-                                                            "One-Off":         False})
+                                                            "One-Off":         False,
+                                                            "ForcedMatch":     False})
                                         break
                                     else:
                                         logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
@@ -894,7 +940,7 @@ class PostProcessor(object):
                                                                 "ComicVersion":     'v' + str(av['SeriesYear']),
                                                                 "Publisher":        av['IssuePublisher'],
                                                                 "Total":            av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
-                                                                "ComicID":          av['ComicID'],
+                                                                "Type":             av['Type'],
                                                                 "IsArc":            True}
                                             })
 
@@ -923,28 +969,50 @@ class PostProcessor(object):
                                 if arcmatch['process_status'] == 'fail':
                                     nm+=1
                                 else:
-                                    temploc= arcmatch['justthedigits'].replace('_', ' ')
-                                    temploc = re.sub('[\#\']', '', temploc)
-                                    if helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                    try:
+                                        if v[i]['ArcValues']['Type'] == 'TPB' and v[i]['ArcValues']['Total'] > 1:
+                                            if watchmatch['series_volume'] is not None:
+                                                just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
+                                            else:
+                                                just_the_digits = re.sub('[^0-9]', '', arcmatch['justthedigits']).strip()
+                                        else:
+                                            just_the_digits = arcmatch['justthedigits']
+                                    except Exception as e:
+                                        logger.warn('[Exception: %s] Unable to properly match up/retrieve issue number (or volume) for this [CS: %s] [WATCHMATCH: %s]' % (e, v[i]['ArcValues'], v[i]['WatchValues']))
+                                        nm+=1
+                                        continue
+
+                                    if just_the_digits is not None:
+                                        temploc= just_the_digits.replace('_', ' ')
+                                        temploc = re.sub('[\#\']', '', temploc)
+                                        logger.fdebug('temploc: %s' % temploc)
+                                    else:
+                                        temploc = None
+
+                                    if temploc is not None and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                         #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
-                                    if 'annual' in temploc.lower():
-                                        biannchk = re.sub('-', '', temploc.lower()).strip()
-                                        if 'biannual' in biannchk:
-                                            logger.fdebug(module + ' Bi-Annual detected.')
-                                            fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
-                                        else:
-                                            fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                            logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(v[i]['WatchValues']['ComicID']))
-                                        annchk = "yes"
-                                        issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
                                     else:
-                                        fcdigit = helpers.issuedigits(temploc)
-                                        issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
+                                        if 'annual' in temploc.lower():
+                                            biannchk = re.sub('-', '', temploc.lower()).strip()
+                                            if 'biannual' in biannchk:
+                                                logger.fdebug(module + ' Bi-Annual detected.')
+                                                fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                            else:
+                                                fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(v[i]['WatchValues']['ComicID']))
+                                            annchk = "yes"
+                                            issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
+                                        else:
+                                            fcdigit = helpers.issuedigits(temploc)
+                                            issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
 
                                     if issuechk is None:
-                                        logger.fdebug(module + ' No corresponding issue # found for ' + str(v[i]['WatchValues']['ComicID']))
+                                        try:
+                                            logger.fdebug(module + ' No corresponding issue # found for ' + str(v[i]['WatchValues']['ComicID']))
+                                        except:
+                                            continue
                                     else:
                                         datematch = "True"
                                         if len(arcmatch) >= 1 and arcmatch['issue_year'] is not None:
@@ -1037,7 +1105,7 @@ class PostProcessor(object):
                         if all(['0-Day Week' in self.nzb_name, mylar.CONFIG.PACK_0DAY_WATCHLIST_ONLY is True]):
                             pass
                         else:
-                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
+                            oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.format, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             #oneofflist = myDB.select("select s.Issue_Number, s.ComicName, s.IssueID, s.ComicID, s.Provider, w.PUBLISHER, w.weeknumber, w.year from snatched as s inner join nzblog as n on s.IssueID = n.IssueID and s.Hash is not NULL inner join weekly as w on s.IssueID = w.IssueID WHERE n.OneOff = 1;") #(s.Provider ='32P' or s.Provider='WWT' or s.Provider='DEM') AND n.OneOff = 1;")
                             if not oneofflist:
                                 pass #continue
@@ -1057,6 +1125,7 @@ class PostProcessor(object):
                                                                        "ComicVersion": None,
                                                                        "Publisher":    ofl['PUBLISHER'],
                                                                        "Total":        None,
+                                                                       "Type":         ofl['format'],
                                                                        "ComicID":      ofl['ComicID'],
                                                                        "IsArc":        False}})
 
@@ -1074,23 +1143,41 @@ class PostProcessor(object):
                                         nm+=1
                                         continue
                                     else:
-                                        temploc= watchmatch['justthedigits'].replace('_', ' ')
-                                        temploc = re.sub('[\#\']', '', temploc)
+                                        try:
+                                            if ofv['WatchValues']['Type'] is not None and ofv['WatchValues']['Total'] > 1:
+                                                if watchmatch['series_volume'] is not None:
+                                                    just_the_digits = re.sub('[^0-9]', '', watchmatch['series_volume']).strip()
+                                                else:
+                                                    just_the_digits = re.sub('[^0-9]', '', watchmatch['justthedigits']).strip()
+                                            else:
+                                                just_the_digits = watchmatch['justthedigits']
+                                        except Exception as e:
+                                            logger.warn('[Exception: %s] Unable to properly match up/retrieve issue number (or volume) for this [CS: %s] [WATCHMATCH: %s]' % (e, cs, watchmatch))
+                                            nm+=1
+                                            continue
+
+                                        if just_the_digits is not None:
+                                            temploc= just_the_digits.replace('_', ' ')
+                                            temploc = re.sub('[\#\']', '', temploc)
+                                            logger.fdebug('temploc: %s' % temploc)
+                                        else:
+                                            temploc = None
 
                                     logger.info('watchmatch: %s' % watchmatch)
-                                    if 'annual' in temploc.lower():
-                                        biannchk = re.sub('-', '', temploc.lower()).strip()
-                                        if 'biannual' in biannchk:
-                                            logger.fdebug(module + ' Bi-Annual detected.')
-                                            fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                    if temploc is not None:
+                                        if 'annual' in temploc.lower():
+                                            biannchk = re.sub('-', '', temploc.lower()).strip()
+                                            if 'biannual' in biannchk:
+                                                logger.fdebug(module + ' Bi-Annual detected.')
+                                                fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
+                                            else:
+                                                fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(ofv['ComicID']))
+                                            annchk = "yes"
                                         else:
-                                            fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                            logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(ofv['ComicID']))
-                                        annchk = "yes"
-                                    else:
-                                        fcdigit = helpers.issuedigits(temploc)
+                                            fcdigit = helpers.issuedigits(temploc)
 
-                                    if fcdigit == helpers.issuedigits(ofv['Issue_Number']):
+                                    if temploc is not None and fcdigit == helpers.issuedigits(ofv['Issue_Number']) or all([temploc is None, helpers.issuedigits(ofv['Issue_Number']) == '1']):
                                         if watchmatch['sub']:
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
                                         else:
@@ -2260,6 +2347,16 @@ class PostProcessor(object):
                     nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?\"\']', '', nfilename)
             nfilename = re.sub('[\/\*]', '-', nfilename)
+            if ml['ForcedMatch'] is True:
+                xyb = nfilename.find('[__')
+                if xyb != -1:
+                    yyb = nfilename.find('__]', xyb)
+                    if yyb != -1:
+                        rem_issueid = nfilename[xyb+3:yyb]
+                        logger.fdebug('issueid: %s' % rem_issueid)
+                        nfilename = '%s %s'.strip() % (nfilename[:xyb], nfilename[yyb+3:])
+                        logger.fdebug('issueid information [%s] removed successsfully: %s' % (rem_issueid, nfilename))
+
             self._log("New Filename: " + nfilename)
             logger.fdebug(module + ' New Filename: ' + nfilename)
 
