@@ -896,7 +896,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     comsize_b = entry['size']
                                 elif entry['site'] == 'DDL':
                                     comsize_b = helpers.human2bytes(entry['size'])
-                            except:
+                            except Exception as e:
+                                logger.warn('[ERROR] %s' % e)
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
 
@@ -1178,7 +1179,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 elif ComVersChk == 0:
                     logger.fdebug("Series version detected as V1 (only series in existance with that title). Bypassing Year/Volume check")
                     yearmatch = "true"
-                elif UseFuzzy == "0" or UseFuzzy == "2" or UseFuzzy is None or IssDateFix != "no":
+                elif any([UseFuzzy == "0", UseFuzzy == "2", UseFuzzy is None, IssDateFix != "no"]) and parsed_comic['issue_year'] is not None:
                     if parsed_comic['issue_year'][:-2] == '19' or parsed_comic['issue_year'][:-2] == '20':
                         logger.fdebug('year detected: %s' % parsed_comic['issue_year'])
                         result_comyear = parsed_comic['issue_year']

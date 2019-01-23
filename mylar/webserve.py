@@ -4545,13 +4545,20 @@ class WebInterface(object):
 #----
 # to be implemented in the future.
         if mylar.INSTALL_TYPE == 'git':
-            branch_history, err = mylar.versioncheck.runGit('log --pretty=format:"%h - %cr - %an - %s" -n 5')
-            #here we pass the branch_history to the pretty_git module to break it down
-            if branch_history:
-                br_hist = self.pretty_git(branch_history)
-                #br_hist = branch_history.replace("\n", "<br />\n")
-            else:
-                br_hist = err
+            try:
+                branch_history, err = mylar.versioncheck.runGit('log --encoding=UTF-8 --pretty=format:"%h - %cr - %an - %s" -n 5')
+                #here we pass the branch_history to the pretty_git module to break it down
+                if branch_history:
+                    br_hist = self.pretty_git(branch_history)
+                    try:
+                        br_hist = u"" + br_hist.decode('utf-8')
+                    except:
+                        br_hist = br_hist
+                else:
+                    br_hist = err
+            except Exception as e:
+                logger.fdebug('[ERROR] Unable to retrieve git revision history for some reason: %s' % e)
+                br_hist = 'This would be a nice place to see revision history...'
         else:
             br_hist = 'This would be a nice place to see revision history...'
 #----
