@@ -105,6 +105,8 @@ class GC(object):
                     if '//' in size:
                         nwsize = size.find('//')
                         size = re.sub('\[', '', size[:nwsize]).strip()
+                    if any([size == '-M', size == '-G']):
+                        size = '0 M'
                 i+=1
             dateline = f.find('time')
             datefull = dateline['datetime']
