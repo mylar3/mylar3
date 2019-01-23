@@ -2347,7 +2347,7 @@ class PostProcessor(object):
                     nfilename = nfilename.replace(' ', mylar.CONFIG.REPLACE_CHAR)
             nfilename = re.sub('[\,\:\?\"\']', '', nfilename)
             nfilename = re.sub('[\/\*]', '-', nfilename)
-            if ml['ForcedMatch'] is True:
+            if ml is not None and ml['ForcedMatch'] is True:
                 xyb = nfilename.find('[__')
                 if xyb != -1:
                     yyb = nfilename.find('__]', xyb)
