@@ -98,14 +98,15 @@ class GC(object):
                     year = re.sub('\|', '', year).strip()
                 else:
                     size = option_find.findNext(text=True)
-                    if 'MB' in size:
-                        size = re.sub('MB', 'M', size).strip()
-                    elif 'GB' in size:
-                        size = re.sub('GB', 'G', size).strip()
-                    if '//' in size:
-                        nwsize = size.find('//')
-                        size = re.sub('\[', '', size[:nwsize]).strip()
-                    if any([size == '-M', size == '-G']):
+                    if all([re.sub(':', '', size).strip() != 'Size', len(re.sub('[^0-9]', '', size).strip()) > 0]):
+                        if 'MB' in size:
+                            size = re.sub('MB', 'M', size).strip()
+                        elif 'GB' in size:
+                            size = re.sub('GB', 'G', size).strip()
+                        if '//' in size:
+                            nwsize = size.find('//')
+                            size = re.sub('\[', '', size[:nwsize]).strip()
+                    else:
                         size = '0 M'
                 i+=1
             dateline = f.find('time')

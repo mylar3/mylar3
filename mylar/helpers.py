@@ -183,12 +183,15 @@ def human2bytes(s):
     num = re.sub(',', '', s[:-1])
     #assert num.isdigit() and letter in symbols
     #use below assert statement to handle sizes with decimal places
-    assert float(num) and letter in symbols
-    num = float(num)
-    prefix = {symbols[0]: 1}
-    for i, s in enumerate(symbols[1:]):
-        prefix[s] = 1 << (i +1) *10
-    return int(num * prefix[letter])
+    if num != '0':
+        assert float(num) and letter in symbols
+        num = float(num)
+        prefix = {symbols[0]: 1}
+        for i, s in enumerate(symbols[1:]):
+            prefix[s] = 1 << (i +1) *10
+        return int(num * prefix[letter])
+    else:
+        return 0
 
 def replace_all(text, dic):
     for i, j in dic.iteritems():
