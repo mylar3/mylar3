@@ -374,8 +374,10 @@ def GetComicInfo(comicid, dom, safechk=None):
             #if it's point form bullets, ignore it cause it's not the current volume stuff.
             test_it = desc_soup.find('ul')
             if test_it:
-                for x in test_it.findAll('a'):
-                    micdrop.append(x['data-ref-id'])
+                for x in test_it.findAll('li'):
+                    if any(['Next' in x.findNext(text=True), 'Previous' in x.findNext(text=True)]):
+                        mic_check = x.find('a')
+                        micdrop.append(mic_check['data-ref-id'])
 
         for fc in desclinks:
             #logger.info('fc: %s'  % fc)
@@ -394,17 +396,24 @@ def GetComicInfo(comicid, dom, safechk=None):
                 fc_cid = fc_id
                 fc_isid = None
                 issuerun = fc.next_sibling
-                lines = re.sub("[^0-9]", ' ', issuerun).strip().split(' ')
-                if len(lines) > 0:
-                    for x in sorted(lines, reverse=True):
-                        srchline = issuerun.rfind(x)
-                        if srchline != -1:
-                            try:
-                                if issuerun[srchline+len(x)] == ',' or issuerun[srchline+len(x)] == '.' or issuerun[srchline+len(x)] == ' ':
-                                    issuerun = issuerun[:srchline+len(x)]
-                                    break
-                            except:
-                                continue
+                if issuerun is not None:
+                    lines = re.sub("[^0-9]", ' ', issuerun).strip().split(' ')
+                    if len(lines) > 0:
+                        for x in sorted(lines, reverse=True):
+                            srchline = issuerun.rfind(x)
+                            if srchline != -1:
+                                try:
+                                    if issuerun[srchline+len(x)] == ',' or issuerun[srchline+len(x)] == '.' or issuerun[srchline+len(x)] == ' ':
+                                        issuerun = issuerun[:srchline+len(x)]
+                                        break
+                                except Exception as e:
+                                    logger.warn('[ERROR] %s' % e)
+                                    continue
+                else:
+                    iss_start = fc_name.find('#')
+                    issuerun = fc_name[iss_start:].strip()
+                    fc_name = fc_name[:iss_start].strip()
+
                 if issuerun.endswith('.') or issuerun.endswith(','):
                     #logger.fdebug('Changed issuerun from %s to %s' % (issuerun, issuerun[:-1]))
                     issuerun = issuerun[:-1]
@@ -412,7 +421,8 @@ def GetComicInfo(comicid, dom, safechk=None):
                     issuerun = issuerun[:-4].strip()
                 elif issuerun.endswith(' and'):
                     issuerun = issuerun[:-3].strip()
-
+            else:
+                continue
                 #    except:
                 #        pass
             issue_list.append({'series':   fc_name,
