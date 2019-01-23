@@ -102,6 +102,9 @@ class GC(object):
                         size = re.sub('MB', 'M', size).strip()
                     elif 'GB' in size:
                         size = re.sub('GB', 'G', size).strip()
+                    if '//' in size:
+                        nwsize = size.find('//')
+                        size = re.sub('\[', '', size[:nwsize]).strip()
                 i+=1
             dateline = f.find('time')
             datefull = dateline['datetime']
