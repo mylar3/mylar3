@@ -897,7 +897,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 elif entry['site'] == 'DDL':
                                     comsize_b = helpers.human2bytes(entry['size'])
                             except Exception as e:
-                                logger.warn('[ERROR] %s' % e)
+                                logger.warn('[ERROR] %s [%s]' % (e, entry))
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
 
@@ -1369,7 +1369,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if parsed_comic['issue_number'] is None:
                             pc_in = None
                         else:
-                            pc_in = int(parsed_comic['issue_number'])
+                            pc_in = helpers.issuedigits(parsed_comic['issue_number'])
 
                         #issue comparison now as well
                         if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):

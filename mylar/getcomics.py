@@ -139,7 +139,7 @@ class GC(object):
                 series = option_find
             elif 'Year' in option_find:
                 year = option_find.findNext(text=True)
-                year = re.sub('|', '', year).strip()
+                year = re.sub('\|', '', year).strip()
             else:
                 if 'Size' in prev_option:
                     size = option_find #.findNext(text=True)
@@ -238,7 +238,7 @@ class GC(object):
                             f.write(chunk)
                             f.flush()
 
-        except exception as e:
+        except Exception as e:
             logger.error('[ERROR] %s' % e)
             mylar.DDL_LOCK = False
             return ({"success":  False,
@@ -250,7 +250,7 @@ class GC(object):
             if os.path.isfile(path):
                 return ({"success":  True,
                          "filename": filename,
-                         "path":     path})
+                         "path":     mylar.CONFIG.DDL_LOCATION})
 
     def issue_list(self, pack):
         #packlist = [x.strip() for x in pack.split(',)]
