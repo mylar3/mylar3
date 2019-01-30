@@ -345,35 +345,35 @@ class PostProcessor(object):
 
     def Process(self):
             module = self.module
-            self._log("nzb name: " + self.nzb_name)
-            self._log("nzb folder: " + self.nzb_folder)
-            logger.fdebug(module + ' nzb name: ' + self.nzb_name)
-            logger.fdebug(module + ' nzb folder: ' + self.nzb_folder)
+            self._log('nzb name: %s' % self.nzb_name)
+            self._log('nzb folder: %s' % self.nzb_folder)
+            logger.fdebug('%s nzb name: %s' % (module, self.nzb_name))
+            logger.fdebug('%s nzb folder: %s' % (module, self.nzb_folder))
             if self.ddl is False:
                 if mylar.USE_SABNZBD==1:
                     if self.nzb_name != 'Manual Run':
-                        logger.fdebug(module + ' Using SABnzbd')
-                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                        logger.fdebug('%s Using SABnzbd' % module)
+                        logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
 
                     if self.nzb_name == 'Manual Run':
-                        logger.fdebug(module + ' Manual Run Post-Processing enabled.')
+                        logger.fdebug('%s Manual Run Post-Processing enabled.' % module)
                     else:
                         # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                         if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
                             self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-                            logger.fdebug(module + ' SABnzbd Download folder option enabled. Directory set to : ' + self.nzb_folder)
+                            logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
 
                 if mylar.USE_NZBGET==1:
                     if self.nzb_name != 'Manual Run':
-                        logger.fdebug(module + ' Using NZBGET')
-                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                        logger.fdebug('%s Using NZBGET' % module)
+                        logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
                     # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
                     if self.nzb_name == 'Manual Run':
-                        logger.fdebug(module + ' Manual Run Post-Processing enabled.')
+                        logger.fdebug('%s Manual Run Post-Processing enabled.' % module)
                     elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
-                        logger.fdebug(module + ' NZB name as passed from NZBGet: ' + self.nzb_name)
+                        logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
                         self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
-                        logger.fdebug(module + ' NZBGET Download folder option enabled. Directory set to : ' + self.nzb_folder)
+                        logger.fdebug('%s NZBGET Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
             else:
                 logger.fdebug('%s Now performing post-processing of %s sent from DDL' % (module, self.nzb_name))
 
@@ -806,6 +806,13 @@ class PostProcessor(object):
                                         if watchmatch['sub']:
                                             logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, watchmatch['sub'], watchmatch['comiclocation']))
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                            if not os.path.exists(clocation):
+                                                scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
+                                                if scrubs[:2] == '//' or scrubs[:2] == '\\':
+                                                    scrubs = scrubs[1:]
+                                                    if os.path.exists(scrubs):
+                                                        logger.fdebug('[MODIFIED CLOCATION] %s' % scrubs)
+                                                        clocation = scrubs
                                         else:
                                             logger.fdebug('%s[CLOCATION] %s' % (module, watchmatch['comiclocation']))
                                             if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
@@ -938,6 +945,7 @@ class PostProcessor(object):
                                             "WatchValues":     {"SeriesYear":       av['SeriesYear'],
                                                                 "LatestDate":       av['IssueDate'],
                                                                 "ComicVersion":     'v' + str(av['SeriesYear']),
+                                                                "ComicID":          av['ComicID'],
                                                                 "Publisher":        av['IssuePublisher'],
                                                                 "Total":            av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
                                                                 "Type":             av['Type'],

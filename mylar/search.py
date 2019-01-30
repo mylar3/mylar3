@@ -1113,7 +1113,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
-                if parsed_comic['parse_status'] == 'success':
+                if parsed_comic['parse_status'] == 'success' and (all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
                         filecomic = fcomic.matchIT(parsed_comic)
@@ -1122,8 +1122,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         continue
                     else:
                         logger.fdebug('match_check: %s' % filecomic)
+                elif booktype != parsed_comic['booktype']:
+                    logger.fdebug('Booktypes do not match. Looking for %s, this is a %s. Ignoring this result.' % (booktype, parsed_comic['booktype']))
+                    continue
                 else:
-                    logger.fdebug('Unable to parse name properly: %s' % filecomic)
+                    logger.fdebug('Unable to parse name properly: %s. Ignoring this result' % filecomic)
+                    continue
 
                 #adjust for covers only by removing them entirely...
                 vers4year = "no"

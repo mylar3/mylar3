@@ -130,7 +130,8 @@ class FileChecker(object):
                     'issue_year':          runresults['issue_year'],
                     'issue_number':        runresults['issue_number'],
                     'scangroup':           runresults['scangroup'],
-                    'reading_order':       runresults['reading_order']
+                    'reading_order':       runresults['reading_order'],
+                    'booktype':            runresults['booktype']
                     }
         else:
             filelist = self.traverse_directories(self.dir)
@@ -168,7 +169,8 @@ class FileChecker(object):
                                     'issue_year':          runresults['issue_year'],
                                     'issue_number':        runresults['issue_number'],
                                     'scangroup':           runresults['scangroup'],
-                                    'reading_order':       runresults['reading_order']
+                                    'reading_order':       runresults['reading_order'],
+                                    'booktype':            runresults['booktype']
                                     })
                         else:
                             comiclist.append({
@@ -182,7 +184,8 @@ class FileChecker(object):
                                      'JusttheDigits':           runresults['justthedigits'],
                                      'AnnualComicID':           runresults['annual_comicid'],
                                      'issueid':                 runresults['issueid'],
-                                     'scangroup':               runresults['scangroup']
+                                     'scangroup':               runresults['scangroup'],
+                                     'booktype':                runresults['booktype']
                                      })
                         comiccnt +=1
                     else:
@@ -198,7 +201,8 @@ class FileChecker(object):
                                                   'issue_year':     runresults['issue_year'],
                                                   'issue_number':   runresults['issue_number'],
                                                   'issueid':        runresults['issueid'],
-                                                  'scangroup':      runresults['scangroup']
+                                                  'scangroup':      runresults['scangroup'],
+                                                  'booktype':       runresults['booktype']
                                                   })
 
         watchmatch['comiccount'] = comiccnt
@@ -233,9 +237,9 @@ class FileChecker(object):
                     tmppath = re.sub(path, '', subpath).strip()
 
                 path_list = os.path.normpath(tmppath)
-                if '/' == path_list[0] or '\\' == path_list[0]:
-                    #need to remove any leading slashes so the os join can properly join the components
-                    path_list = path_list[1:]
+                #if '/' == path_list[0] or '\\' == path_list[0]:
+                #    #need to remove any leading slashes so the os join can properly join the components
+                #    path_list = path_list[1:]
                 #path_list = tmppath.split(os.sep)[-1]
                 logger.fdebug('[SUB-PATH] subpath set to : ' + path_list)
 
@@ -1083,6 +1087,7 @@ class FileChecker(object):
                             'issue_year':          issue_year,
                             'annual_comicid':      None,
                             'scangroup':           scangroup,
+                            'booktype':            booktype,
                             'reading_order':       None}
 
             if self.justparse:
@@ -1101,6 +1106,7 @@ class FileChecker(object):
                         'issue_year':             issue_year,
                         'issue_number':           issue_number,
                         'scangroup':              scangroup,
+                        'booktype':               booktype,
                         'reading_order':          reading_order}
 
             series_info = {}
@@ -1116,7 +1122,8 @@ class FileChecker(object):
                            'series_volume':          issue_volume,
                            'issue_year':             issue_year,
                            'issue_number':           issue_number,
-                           'scangroup':              scangroup}
+                           'scangroup':              scangroup,
+                           'booktype':               booktype}
 
             return self.matchIT(series_info)
 
@@ -1279,7 +1286,8 @@ class FileChecker(object):
                         'issueid':         series_info['issueid'],
                         'justthedigits':   justthedigits,
                         'annual_comicid':  annual_comicid,
-                        'scangroup':       series_info['scangroup']}
+                        'scangroup':       series_info['scangroup'],
+                        'booktype':        series_info['booktype']}
 
             else:
                 #logger.fdebug('[NO MATCH] ' + filename + ' [WATCHLIST:' + self.watchcomic + ']')
@@ -1294,7 +1302,8 @@ class FileChecker(object):
                         'series_volume':  series_info['series_volume'],
                         'issue_year':     series_info['issue_year'],
                         'issueid':        series_info['issueid'],
-                        'scangroup':      series_info['scangroup']}
+                        'scangroup':      series_info['scangroup'],
+                        'booktype':       series_info['booktype']}
 
 
     def char_file_position(self, file, findchar, lastpos):
