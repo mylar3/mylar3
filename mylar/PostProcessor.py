@@ -978,7 +978,7 @@ class PostProcessor(object):
                                     nm+=1
                                 else:
                                     try:
-                                        if v[i]['ArcValues']['Type'] == 'TPB' and v[i]['ArcValues']['Total'] > 1:
+                                        if v[i]['WatchValues']['Type'] == 'TPB' and v[i]['ArcValues']['Total'] > 1:
                                             if watchmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
