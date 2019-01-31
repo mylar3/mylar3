@@ -237,10 +237,9 @@ class FileChecker(object):
                     tmppath = re.sub(path, '', subpath).strip()
 
                 path_list = os.path.normpath(tmppath)
-                #if '/' == path_list[0] or '\\' == path_list[0]:
-                #    #need to remove any leading slashes so the os join can properly join the components
-                #    path_list = path_list[1:]
-                #path_list = tmppath.split(os.sep)[-1]
+                if '/' == path_list[0] or '\\' == path_list[0]:
+                    #need to remove any leading slashes so the os join can properly join the components
+                    path_list = path_list[1:]
                 logger.fdebug('[SUB-PATH] subpath set to : ' + path_list)
 
 

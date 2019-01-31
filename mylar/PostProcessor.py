@@ -630,7 +630,7 @@ class PostProcessor(object):
                             if just_the_digits is not None:
                                 temploc= just_the_digits.replace('_', ' ')
                                 temploc = re.sub('[\#\']', '', temploc)
-                                logger.fdebug('temploc: %s' % temploc)
+                                #logger.fdebug('temploc: %s' % temploc)
                             else:
                                 temploc = None
                             datematch = "False"
@@ -993,7 +993,7 @@ class PostProcessor(object):
                                     if just_the_digits is not None:
                                         temploc= just_the_digits.replace('_', ' ')
                                         temploc = re.sub('[\#\']', '', temploc)
-                                        logger.fdebug('temploc: %s' % temploc)
+                                        #logger.fdebug('temploc: %s' % temploc)
                                     else:
                                         temploc = None
 
