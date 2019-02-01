@@ -535,7 +535,7 @@ class PostProcessor(object):
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
                         if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            logger.warn('%s [%s] is either Paused or in an Ended status with 100\% completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear']))
+                            logger.warn('%s [%s] is either Paused or in an Ended status with 100%s completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear'], '%'))
                             continue
                         wv_comicname = wv['ComicName']
                         wv_comicpublisher = wv['ComicPublisher']
