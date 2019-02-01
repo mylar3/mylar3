@@ -731,7 +731,7 @@ class PostProcessor(object):
                                             datematch = "False"
                                     else:
                                         if int(isc['IssueDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (isc['IssueDate'], watchmatch['issue_year']))
+                                            logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (module, isc['IssueDate'], watchmatch['issue_year']))
                                             datematch = "False"
 
                                     if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
@@ -741,7 +741,7 @@ class PostProcessor(object):
                                         issyr = int(monthval[:4]) - 1
 
                                     if datematch == "False" and issyr is not None:
-                                        logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (issyr, watchmatch['issue_year']))
+                                        logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, watchmatch['issue_year']))
                                         datematch = "True"
                                         if int(issyr) != int(watchmatch['issue_year']):
                                             logger.fdebug('%s[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
@@ -1043,11 +1043,11 @@ class PostProcessor(object):
                                                 #if ReleaseDate doesn't exist, use IssueDate
                                                 #if no issue date was found, then ignore.
                                                 issyr = None
-                                                logger.fdebug('issuedate:' + str(isc['IssueDate']))
-                                                logger.fdebug('issuechk: ' + str(isc['IssueDate'][5:7]))
+                                                logger.fdebug('issuedate: %s' % isc['IssueDate'])
+                                                logger.fdebug('issuechk: %s' % isc['IssueDate'][5:7])
 
-                                                logger.fdebug('StoreDate ' + str(isc['ReleaseDate']))
-                                                logger.fdebug('IssueDate: ' + str(isc['IssueDate']))
+                                                logger.fdebug('StoreDate %s' % isc['ReleaseDate'])
+                                                logger.fdebug('IssueDate: %s' % isc['IssueDate'])
                                                 if all([isc['ReleaseDate'] is not None, isc['ReleaseDate'] != '0000-00-00']) or all([isc['IssueDate'] is not None, isc['IssueDate'] != '0000-00-00']):
                                                     if isc['ReleaseDate'] == '0000-00-00':
                                                         datevalue = isc['IssueDate']
@@ -1098,7 +1098,7 @@ class PostProcessor(object):
                                                             clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
                                                         else:
                                                             clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
-                                                        logger.info('[%s %s#] MATCH: %s / %s / %s' % (k, isc['IssueNumber'], clocation, isc['IssueID'], v[i]['ArcValues']['IssueID']))
+                                                        logger.info('[%s #%s] MATCH: %s / %s / %s' % (k, isc['IssueNumber'], clocation, isc['IssueID'], v[i]['ArcValues']['IssueID']))
                                                         if v[i]['ArcValues']['Publisher'] is None:
                                                             arcpublisher = v[i]['ArcValues']['ComicPublisher']
                                                         else:
