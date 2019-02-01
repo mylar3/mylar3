@@ -3,6 +3,7 @@ from collections import OrderedDict
 from operator import itemgetter
 
 import os
+import glob
 import codecs
 import shutil
 import re
@@ -74,6 +75,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ALTERNATE_LATEST_SERIES_COVERS': (bool, 'General', False),
     'SHOW_ICONS': (bool, 'General', False),
     'FORMAT_BOOKTYPE': (bool, 'General', False),
+    'CLEANUP_CACHE': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -771,6 +773,26 @@ class Config(object):
             except OSError:
                 logger.error('[Cache Check] Could not create cache dir. Check permissions of datadir: ' + mylar.DATA_DIR)
 
+        if self.CLEANUP_CACHE is True:
+            logger.fdebug('[Cache Cleanup] Cache Cleanup initiated. Will delete items from cache that are no longer needed.')
+            cache_types = ['*.nzb', '*.torrent', '*.zip', '*.html', 'mylar_*']
+            cntr = 0
+            for x in cache_types:
+                for f in glob.glob(os.path.join(self.CACHE_DIR,x)):
+                    try:
+                        if os.path.isdir(f):
+                            shutil.rmtree(f)
+                        else:
+                            os.remove(f)
+                    except Exception as e:
+                        logger.warn('[ERROR] Unable to remove %s from cache. Could be a possible permissions issue ?' % f)
+                    cntr+=1
+
+            if cntr > 1:
+                logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items')
+            else:
+                logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Nothing to clean!')
+
         if all([self.GRABBAG_DIR is None, self.DESTINATION_DIR is not None]):
             self.GRABBAG_DIR = os.path.join(self.DESTINATION_DIR, 'Grabbag')
             logger.fdebug('[Grabbag Directory] Setting One-Off directory to default location: %s' % self.GRABBAG_DIR)
@@ -843,8 +865,10 @@ class Config(object):
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
-        if self.DDL_LOCATION is None:
+        if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
+            if self.ENABLE_DDL is True:
+                logger.info('Setting DDL Location set to : %s' % self.DDL_LOCATION)
 
         if self.MODE_32P is False and self.RSSFEED_32P is not None:
             mylar.KEYS_32P = self.parse_32pfeed(self.RSSFEED_32P)

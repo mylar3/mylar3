@@ -197,12 +197,12 @@ class PostProcessor(object):
             file_to_move = os.path.split(path_to_move)[1]
 
             if dupeinfo['action'] == 'dupe_src' and mylar.CONFIG.FILE_OPTS == 'move':
-                logger.info('[DUPLICATE-CLEANUP] New File will be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
+                logger.info('[DUPLICATE-CLEANUP] New File will be post-processed. Moving duplicate [%s] to Duplicate Dump Folder for manual intervention.' % path_to_move)
             else:
                 if mylar.CONFIG.FILE_OPTS == 'move':
-                    logger.info('[DUPLICATE-CLEANUP][MOVE-MODE] New File will not be post-processed. Moving duplicate [' + path_to_move + '] to Duplicate Dump Folder for manual intervention.')
+                    logger.info('[DUPLICATE-CLEANUP][MOVE-MODE] New File will not be post-processed. Moving duplicate [%s] to Duplicate Dump Folder for manual intervention.' % path_to_move)
                 else:
-                    logger.info('[DUPLICATE-CLEANUP][COPY-MODE] NEW File will not be post-processed. Retaining file in original location [' + path_to_move + ']')
+                    logger.info('[DUPLICATE-CLEANUP][COPY-MODE] NEW File will not be post-processed. Retaining file in original location [%s]' % path_to_move)
                     return True
 
             #this gets tricky depending on if it's the new filename or the existing filename, and whether or not 'copy' or 'move' has been selected.
@@ -212,10 +212,10 @@ class PostProcessor(object):
                 try:
                     shutil.move(path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 except (OSError, IOError):
-                    logger.warn('[DUPLICATE-CLEANUP] Failed to move ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
+                    logger.warn('[DUPLICATE-CLEANUP] Failed to move  ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
                     return False
 
-                logger.warn('[DUPLICATE-CLEANUP] Successfully moved ' + path_to_move + ' ... to ... ' + os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
+                logger.warn('[DUPLICATE-CLEANUP] Successfully moved  ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
                 return True
 
     def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False, filename=None):
@@ -232,7 +232,7 @@ class PostProcessor(object):
                 #if sub_path exists, then we need to use that in place of self.nzb_folder since the file was in a sub-directory within self.nzb_folder
                 if all([sub_path is not None, sub_path != self.nzb_folder]): #, self.issueid is not None]):
                     if self.issueid is None:
-                        logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: ' + sub_path)
+                        logger.fdebug('Sub-directory detected during cleanup. Will attempt to remove if empty: %s' % sub_path)
                         orig_folder = sub_path
                     else:
                         logger.fdebug('Direct post-processing was performed against specific issueid. Using supplied filepath for deletion.')
@@ -255,9 +255,9 @@ class PostProcessor(object):
 
                 if all([mylar.CONFIG.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', tmp_folder != self.nzb_folder]):
                     if not os.listdir(tmp_folder):
-                        logger.fdebug(self.module + ' Tidying up. Deleting sub-folder location : ' + tmp_folder)
+                        logger.fdebug('%s Tidying up. Deleting sub-folder location : %s' % (self.module, tmp_folder))
                         shutil.rmtree(tmp_folder)
-                        self._log("Removed temporary directory : " + tmp_folder)
+                        self._log("Removed temporary directory : %s" % tmp_folder)
                     else:
                         if filename is not None:
                             if os.path.isfile(os.path.join(tmp_folder,filename)):
@@ -275,13 +275,13 @@ class PostProcessor(object):
                                            logger.warn('%s [%s] Unable to delete original folder location: %s' % (self.module, e, tmp_folder))
                                        else:
                                            logger.fdebug('%s Removed original folder location: %s' % (self.module, tmp_folder))
-                                           self._log("Removed temporary directory : " + tmp_folder)
+                                           self._log("Removed temporary directory : %s" % tmp_folder)
                                     else:
-                                        self._log('Failed to remove temporary directory: ' + tmp_folder)
+                                        self._log('Failed to remove temporary directory: %s' % tmp_folder)
                                         logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
                         else:
                             self._log('Failed to remove temporary directory: ' + tmp_folder)
-                            logger.error(self.module + ' ' + tmp_folder + ' not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.')
+                            logger.error('%s %s not empty. Skipping removal of directory - this will either be caught in further post-processing or it will have to be manually deleted.' % (self.module, tmp_folder))
 
                 elif all([mylar.CONFIG.FILE_OPTS == 'move', self.nzb_name == 'Manual Run', filename is not None]):
                     if os.path.isfile(os.path.join(tmp_folder,filename)):
@@ -293,9 +293,9 @@ class PostProcessor(object):
 
                 elif mylar.CONFIG.FILE_OPTS == 'move' and all([del_nzbdir is True, self.nzb_name != 'Manual Run']): #tmp_folder != self.nzb_folder]):
                     if not os.listdir(tmp_folder):
-                        logger.fdebug(self.module + ' Tidying up. Deleting original folder location : ' + tmp_folder)
+                        logger.fdebug('%s Tidying up. Deleting original folder location : %s' % (self.module, tmp_folder))
                         shutil.rmtree(tmp_folder)
-                        self._log("Removed temporary directory : " + tmp_folder)
+                        self._log("Removed temporary directory : %s" % tmp_folder)
                     else:
                         if filename is not None:
                             if os.path.isfile(os.path.join(tmp_folder,filename)):
@@ -331,15 +331,15 @@ class PostProcessor(object):
                     except OSError:
                         pass
                 if not os.listdir(odir):
-                    logger.fdebug(self.module + ' Tidying up. Deleting temporary cache directory : ' + odir)
+                    logger.fdebug('%s Tidying up. Deleting temporary cache directory : %s' % (self.module, odir))
                     shutil.rmtree(odir)
-                    self._log("Removed temporary directory : " + odir)
+                    self._log("Removed temporary directory : %s" % odir)
                 else:
-                    self._log('Failed to remove temporary directory: ' + odir)
-                    logger.error(self.module + ' ' + odir + ' not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.')
+                    self._log('Failed to remove temporary directory: %s' % odir)
+                    logger.error('%s %s not empty. Skipping removal of temporary cache directory - this will either be caught in further post-processing or have to be manually deleted.' % (self.module, odir))
 
         except (OSError, IOError):
-            logger.fdebug(self.module + ' Failed to remove directory - Processing will continue, but manual removal is necessary')
+            logger.fdebug('%s Failed to remove directory - Processing will continue, but manual removal is necessary' % self.module)
             self._log('Failed to remove temporary directory')
 
 
@@ -388,7 +388,7 @@ class PostProcessor(object):
                     elif all([self.apicall is True, self.issueid is None, self.comicid is None, self.nzb_name.startswith('0-Day')]):
                         logger.fdebug('%s Now post-processing 0-day pack: %s' % (module, self.nzb_name))
                     else:
-                        logger.fdebug(module + ' Manual Run initiated')
+                        logger.fdebug('%s Manual Run initiated' % module)
                     #Manual postprocessing on a folder.
                     #first we get a parsed results list  of the files being processed, and then poll against the sql to get a short list of hits.
                     flc = filechecker.FileChecker(self.nzb_folder, justparse=True, pp_mode=True)
@@ -396,7 +396,7 @@ class PostProcessor(object):
                     if filelist['comiccount'] == 0: # is None:
                         logger.warn('There were no files located - check the debugging logs if you think this is in error.')
                         return
-                    logger.info('I have located ' + str(filelist['comiccount']) + ' files that I should be able to post-process. Continuing...')
+                    logger.info('I have located %s files that I should be able to post-process. Continuing...' % filelist['comiccount'])
                 else:
                     if all([self.comicid is None, '_' not in self.issueid]):
                          cid = myDB.selectone('SELECT ComicID FROM issues where IssueID=?', [str(self.issueid)]).fetchone()
@@ -526,9 +526,8 @@ class PostProcessor(object):
                                 tmpsql = "SELECT * FROM comics WHERE DynamicComicName IN ({seq}) COLLATE NOCASE".format(seq=','.join('?' * len(loopchk)))
                                 comicseries = myDB.select(tmpsql, tuple(loopchk))
                                 if not comicseries:
-                                    logger.error(module + ' No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?')
+                                    logger.error('%s No Series in Watchlist - checking against Story Arcs (just in case). If I do not find anything, maybe you should be running Import?' % module)
                                     break
-
                     watchvals = []
                     for wv in comicseries:
                         logger.info('Now checking: %s [%s]' % (wv['ComicName'], wv['ComicID']))
@@ -536,7 +535,7 @@ class PostProcessor(object):
                         #check for Paused status /
                         #check for Ended status and 100% completion of issues.
                         if wv['Status'] == 'Paused' or (wv['Have'] == wv['Total'] and not any(['Present' in wv['ComicPublished'], helpers.now()[:4] in wv['ComicPublished']])):
-                            logger.warn(wv['ComicName'] + ' [' + wv['ComicYear'] + '] is either Paused or in an Ended status with 100% completion. Ignoring for match.')
+                            logger.warn('%s [%s] is either Paused or in an Ended status with 100% completion. Ignoring for match.' % (wv['ComicName'], wv['ComicYear']))
                             continue
                         wv_comicname = wv['ComicName']
                         wv_comicpublisher = wv['ComicPublisher']
@@ -551,7 +550,7 @@ class PostProcessor(object):
                         wv_publisher = wv['ComicPublisher']
                         wv_total = wv['Total']
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
-                            logger.fdebug('Queuing to Check: ' + wv['ComicName'] + ' [' + str(wv['ComicYear']) + '] -- ' + str(wv['ComicID']))
+                            logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
                         #force it to use the Publication Date of the latest issue instead of the Latest Date (which could be anything)
                         latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
@@ -568,9 +567,9 @@ class PostProcessor(object):
                             latestdate = wv['LatestDate']
 
                         if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
-                            logger.fdebug('Forcing a refresh of series: ' + wv_comicname + ' as it appears to have incomplete issue dates.')
+                            logger.fdebug('Forcing a refresh of series: %s as it appears to have incomplete issue dates.' % wv_comicname)
                             updater.dbUpdate([wv_comicid])
-                            logger.fdebug('Refresh complete for ' + wv_comicname + '. Rechecking issue dates for completion.')
+                            logger.fdebug('Refresh complete for %s. Rechecking issue dates for completion.' % wv_comicname)
                             latestdate = myDB.select('SELECT IssueDate from issues WHERE ComicID=? order by ReleaseDate DESC', [wv['ComicID']])
                             if latestdate:
                                 tmplatestdate = latestdate[0][0]
@@ -587,7 +586,7 @@ class PostProcessor(object):
                             logger.fdebug('Latest Date (after forced refresh) set to :' + str(latestdate))
 
                             if latestdate == '0000-00-00' or latestdate == 'None' or latestdate is None:
-                                logger.fdebug('Unable to properly attain the Latest Date for series: ' + wv_comicname + '. Cannot check against this series for post-processing.')
+                                logger.fdebug('Unable to properly attain the Latest Date for series: %s. Cannot check against this series for post-processing.' % wv_comicname)
                                 continue 
 
                         watchvals.append({"ComicName":       wv_comicname,
@@ -638,14 +637,14 @@ class PostProcessor(object):
                             if temploc is not None and (any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True):
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
                                 if 'biannual' in biannchk:
-                                    logger.fdebug(module + ' Bi-Annual detected.')
+                                    logger.fdebug('%s Bi-Annual detected.' % module)
                                     fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                 else:
                                     if 'annual' in temploc.lower():
                                         fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
                                     else:
                                         fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
-                                    logger.fdebug(module + ' Annual/Special detected [' + str(fcdigit) +']. ComicID assigned as ' + str(cs['ComicID']))
+                                    logger.fdebug('%s Annual/Special detected [%s]. ComicID assigned as %s' % (module, fcdigit, cs['ComicID']))
                                 annchk = "yes"
                                 issuechk = myDB.select("SELECT * from annuals WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                             else:
@@ -714,7 +713,7 @@ class PostProcessor(object):
                                     #compare the ReleaseDate for the issue, to the found issue date in the filename.
                                     #if ReleaseDate doesn't exist, use IssueDate
                                     #if no issue date was found, then ignore.
-                                    logger.fdebug(module + '[ISSUE-VERIFY] Now checking against ' + cs['ComicName'] + '-' + cs['ComicID'])
+                                    logger.fdebug('%s[ISSUE-VERIFY] Now checking against %s - %s' % (module, cs['ComicName'], cs['ComicID']))
                                     issyr = None
                                     #logger.fdebug(module + ' issuedate:' + str(isc['IssueDate']))
                                     #logger.fdebug(module + ' isc: ' + str(isc['IssueDate'][5:7]))
@@ -723,33 +722,33 @@ class PostProcessor(object):
                                     #logger.info(module + ' IssueDate: ' + str(isc['IssueDate']))
                                     if isc['DigitalDate'] is not None and isc['DigitalDate'] != '0000-00-00':
                                         if int(isc['DigitalDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['DigitalDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                            logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year of %s that was discovered in the filename' % (module, isc['DigitalDate'], watchmatch['issue_year']))
                                             datematch = "False"
 
                                     elif isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
                                         if int(isc['ReleaseDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['ReleaseDate']) + ' is before the issue year of ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                            logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year of %s that was discovered in the filename' % (module, isc['ReleaseDate'], watchmatch['issue_year']))
                                             datematch = "False"
                                     else:
                                         if int(isc['IssueDate'][:4]) < int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY] ' + str(isc['IssueDate']) + ' is before the issue year ' + str(watchmatch['issue_year']) + ' that was discovered in the filename')
+                                            logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (isc['IssueDate'], watchmatch['issue_year']))
                                             datematch = "False"
 
                                     if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                         issyr = int(monthval[:4]) + 1
-                                        logger.fdebug(module + '[ISSUE-VERIFY] IssueYear (issyr) is ' + str(issyr))
+                                        logger.fdebug('%s[ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
                                     elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
                                         issyr = int(monthval[:4]) - 1
 
                                     if datematch == "False" and issyr is not None:
-                                        logger.fdebug(module + '[ISSUE-VERIFY] ' + str(issyr) + ' comparing to ' + str(watchmatch['issue_year']) + ' : rechecking by month-check versus year.')
+                                        logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (issyr, watchmatch['issue_year']))
                                         datematch = "True"
                                         if int(issyr) != int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
+                                            logger.fdebug('%s[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
                                             datematch = "False"
 
                                 else:
-                                    logger.info(module + '[ISSUE-VERIFY] Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(cs['ComicID']) + ' / IssueID: ' + str(isc['IssueID']))
+                                    logger.info('%s[ISSUE-VERIFY] Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, cs['ComicID'], isc['IssueID']))
 
                                 if datematch == "True":
                                     # if we get to here, we need to do some more comparisons just to make sure we have the right volume
@@ -766,40 +765,40 @@ class PostProcessor(object):
                                         tmp_watchmatch_vol = re.sub("[^0-9]","", watchmatch['series_volume']).strip()
                                         if len(tmp_watchmatch_vol) == 4:
                                             if int(tmp_watchmatch_vol) == int(watch_values['SeriesYear']):
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of ' + str(watch_values['SeriesYear']) + ' matched to volume/year label of ' + str(tmp_watchmatch_vol))
+                                                logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of %s matched to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                             else:
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of ' + str(watch_values['SeriesYear']) + ' DID NOT match to volume/year label of ' + tmp_watchmatch_vol)
+                                                logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
                                         if len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
                                             if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of ' + str(watch_values['ComicVersion']) + ' matched to volume label of ' + str(watchmatch['series_volume']))
+                                                logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                             else:
-                                                logger.fdebug(module + '[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of ' + str(watch_values['ComicVersion']) + ' DID NOT match to volume label of ' + str(watchmatch['series_volume']))
+                                                logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 continue
                                                 #datematch = "False"
                                     else:
                                         if any([tmp_watchlist_vol is None, tmp_watchlist_vol == 'None', tmp_watchlist_vol == '']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.')
+                                            logger.fdebug('%s[ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
                                             datematch = "False"
                                         elif len(watchvals) == 1 and int(tmp_watchlist_vol) == 1:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume MATCH] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates only volume for this series on your watchlist.')
+                                            logger.fdebug('%s[ISSUE-VERIFY][Lone Volume MATCH] Volume label of %s indicates only volume for this series on your watchlist.' % (module, watch_values['ComicVersion']))
                                         elif int(tmp_watchlist_vol) > 1:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of ' + str(watch_values['ComicVersion']) + ' indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.')
+                                            logger.fdebug('%s[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of %s indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.' % (module, watch_values['ComicVersion']))
                                             datematch = "False"
 
                                     if datematch == "False" and all([watchmatch['issue_year'] is not None, watchmatch['issue_year'] != 'None', watch_issueyear is not None]):
                                         #now we see if the issue year matches exactly to what we have within Mylar.
                                         if int(watch_issueyear) == int(watchmatch['issue_year']):
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Issue Year of ' + str(watch_issueyear) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                            logger.fdebug('%s[ISSUE-VERIFY][Issue Year MATCH] Issue Year of %s is a match to the year found in the filename of : %s' % (module, watch_issueyear, watchmatch['issue_year']))
                                             datematch = 'True'
                                         else:
-                                            logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Issue Year of ' + str(watch_issueyear) + ' does NOT match the year found in the filename of : ' + str(watchmatch['issue_year']))
-                                            logger.fdebug(module + '[ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.')
+                                            logger.fdebug('%s[ISSUE-VERIFY][Issue Year FAILURE] Issue Year of %s does NOT match the year found in the filename of : %s' % (module, watch_issueyear, watchmatch['issue_year']))
+                                            logger.fdebug('%s[ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.' % module)
                                             if issyr is not None:
                                                 if int(issyr) != int(watchmatch['issue_year']):
-                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of ' + str(issyr) + ' is before the modified issue year of ' + str(issyr))
+                                                    logger.fdebug('%s[ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of %s is before the modified issue year of %s' % (module, issyr, watchmatch['issue_year']))
                                                 else:
-                                                    logger.fdebug(module + '[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of ' + str(issyr) + ' is a match to the year found in the filename of : ' + str(watchmatch['issue_year']))
+                                                    logger.fdebug('%s[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of %s is a match to the year found in the filename of : %s' % (module, issyr, watchmatch['issue_year']))
                                                     datematch = 'True'
 
                                     if datematch == 'True':
@@ -843,10 +842,10 @@ class PostProcessor(object):
                                                             "ForcedMatch":     False})
                                         break
                                     else:
-                                        logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
+                                        logger.fdebug('%s[NON-MATCH: %s-%s] Incorrect series - not populating..continuing post-processing' % (module, cs['ComicName'], cs['ComicID']))
                                         continue
                                 else:
-                                    logger.fdebug(module + '[NON-MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
+                                    logger.fdebug('%s[NON-MATCH: %s-%s] Incorrect series - not populating..continuing post-processing' % (module, cs['ComicName'], cs['ComicID']))
                                     continue
 
                         if datematch == 'True':
@@ -865,10 +864,10 @@ class PostProcessor(object):
                                 continue #break
 
                         if datematch == 'True':
-                            logger.fdebug(module + '[SUCCESSFUL MATCH: ' + cs['ComicName'] + '-' + cs['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
+                            logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, cs['ComicName'], cs['ComicID'], helpers.conversion(fl['comicfilename'])))
                             break
                         elif self.matched is True:
-                            logger.warn(module + '[MATCH: %s - %s] We matched by name for this series, but cannot find a corresponding issue number in the series list.' % (cs['ComicName'], cs['ComicID']))
+                            logger.warn('%s[MATCH: %s - %s] We matched by name for this series, but cannot find a corresponding issue number in the series list.' % (module, cs['ComicName'], cs['ComicID']))
 
                     #mlp = []
 
@@ -922,7 +921,7 @@ class PostProcessor(object):
                         arc_series = myDB.select("SELECT * FROM storyarcs WHERE IssueArcID=?", [self.issuearcid])
 
                     if arc_series is None:
-                        logger.error(module + ' No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?')
+                        logger.error('%s No Story Arcs in Watchlist that contain that particular series - aborting Manual Post Processing. Maybe you should be running Import?' % module)
                         return
                     else:
                         arcvals = []
@@ -957,10 +956,14 @@ class PostProcessor(object):
                         from collections import defaultdict
                         res = defaultdict(list)
                         for acv in arcvals:
-                            acv_check = [x for x in manual_list if x['ComicID'] == acv['WatchValues']['ComicID']]
-                            if acv_check:
+                            if len(manual_list) == 0:
                                 res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
                                                               "WatchValues":   acv['WatchValues']})
+                            else:
+                                acv_check = [x for x in manual_list if x['ComicID'] == acv['WatchValues']['ComicID']]
+                                if acv_check:
+                                    res[acv['ComicName']].append({"ArcValues":     acv['ArcValues'],
+                                                                  "WatchValues":   acv['WatchValues']})
                     if len(res) > 0:
                         logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
                     for k,v in res.items():
@@ -978,7 +981,7 @@ class PostProcessor(object):
                                     nm+=1
                                 else:
                                     try:
-                                        if v[i]['WatchValues']['Type'] == 'TPB' and v[i]['ArcValues']['Total'] > 1:
+                                        if all([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Total'] > 1]) or all([v[i]['WatchValues']['Type'] == 'One-Shot', v[i]['WatchValues']['Total'] == 1]):
                                             if watchmatch['series_volume'] is not None:
                                                 just_the_digits = re.sub('[^0-9]', '', arcmatch['series_volume']).strip()
                                             else:
@@ -995,117 +998,128 @@ class PostProcessor(object):
                                         temploc = re.sub('[\#\']', '', temploc)
                                         #logger.fdebug('temploc: %s' % temploc)
                                     else:
-                                        temploc = None
+                                        if any([v[i]['WatchValues']['Type'] == 'TPB', v[i]['WatchValues']['Type'] == 'One-Shot']):
+                                            temploc = '1'
+                                        else:
+                                            temploc = None
 
                                     if temploc is not None and helpers.issuedigits(temploc) != helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
                                         #logger.fdebug('issues dont match. Skipping')
                                         i+=1
                                         continue
                                     else:
-                                        if 'annual' in temploc.lower():
+                                        if temploc is not None and (any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True):
                                             biannchk = re.sub('-', '', temploc.lower()).strip()
                                             if 'biannual' in biannchk:
-                                                logger.fdebug(module + ' Bi-Annual detected.')
+                                                logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
-                                                fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                                logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(v[i]['WatchValues']['ComicID']))
+                                                if 'annual' in temploc.lower():
+                                                    fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
+                                                else:
+                                                    fcdigit = helpers.issuedigits(re.sub('special', '', str(temploc.lower())).strip())
+                                                logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, v[i]['WatchValues']['ComicID']))
                                             annchk = "yes"
                                             issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
                                         else:
-                                            fcdigit = helpers.issuedigits(temploc)
-                                            issuechk = myDB.selectone("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit]).fetchone()
+                                            annchk = "no"
+                                            if temploc is not None:
+                                                fcdigit = helpers.issuedigits(temploc)
+                                                issuechk = myDB.select("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit])
+                                            else:
+                                                issuechk = myDB.select("SELECT * from storyarcs WHERE ComicID=?", [v[i]['WatchValues']['ComicID']])
 
                                     if issuechk is None:
                                         try:
-                                            logger.fdebug(module + ' No corresponding issue # found for ' + str(v[i]['WatchValues']['ComicID']))
+                                            logger.fdebug('%s No corresponding issue # found for %s' % (module, v[i]['WatchValues']['ComicID']))
                                         except:
                                             continue
                                     else:
-                                        datematch = "True"
-                                        if len(arcmatch) >= 1 and arcmatch['issue_year'] is not None:
-                                            #if the # of matches is more than 1, we need to make sure we get the right series
-                                            #compare the ReleaseDate for the issue, to the found issue date in the filename.
-                                            #if ReleaseDate doesn't exist, use IssueDate
-                                            #if no issue date was found, then ignore.
-                                            issyr = None
-                                            logger.fdebug('issuedate:' + str(issuechk['IssueDate']))
-                                            logger.fdebug('issuechk: ' + str(issuechk['IssueDate'][5:7]))
+                                        for isc in issuechk:
+                                            datematch = "True"
+                                            if len(arcmatch) >= 1 and arcmatch['issue_year'] is not None:
+                                                #if the # of matches is more than 1, we need to make sure we get the right series
+                                                #compare the ReleaseDate for the issue, to the found issue date in the filename.
+                                                #if ReleaseDate doesn't exist, use IssueDate
+                                                #if no issue date was found, then ignore.
+                                                issyr = None
+                                                logger.fdebug('issuedate:' + str(isc['IssueDate']))
+                                                logger.fdebug('issuechk: ' + str(isc['IssueDate'][5:7]))
 
-                                            logger.fdebug('StoreDate ' + str(issuechk['ReleaseDate']))
-                                            logger.fdebug('IssueDate: ' + str(issuechk['IssueDate']))
-                                            if all([issuechk['ReleaseDate'] is not None, issuechk['ReleaseDate'] != '0000-00-00']) or all([issuechk['IssueDate'] is not None, issuechk['IssueDate'] != '0000-00-00']):
-                                                if issuechk['ReleaseDate'] == '0000-00-00':
-                                                    datevalue = issuechk['IssueDate']
-                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
-                                                        logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
-                                                        datematch = "False"
+                                                logger.fdebug('StoreDate ' + str(isc['ReleaseDate']))
+                                                logger.fdebug('IssueDate: ' + str(isc['IssueDate']))
+                                                if all([isc['ReleaseDate'] is not None, isc['ReleaseDate'] != '0000-00-00']) or all([isc['IssueDate'] is not None, isc['IssueDate'] != '0000-00-00']):
+                                                    if isc['ReleaseDate'] == '0000-00-00':
+                                                        datevalue = isc['IssueDate']
+                                                        if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                            logger.fdebug('%s %s is before the issue year %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
+                                                            datematch = "False"
+                                                    else:
+                                                        datevalue = isc['ReleaseDate']
+                                                        if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                            logger.fdebug('%s %s is before the issue year of %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
+                                                            datematch = "False"
+
+                                                    monthval = datevalue
+
+                                                    if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                                        issyr = int(monthval[:4]) + 1
+                                                        logger.fdebug('%s IssueYear (issyr) is %s' % (module, issyr))
+                                                    elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
+                                                        issyr = int(monthval[:4]) - 1
+
+                                                    if datematch == "False" and issyr is not None:
+                                                        logger.fdebug('%s %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
+                                                        datematch = "True"
+                                                        if int(issyr) != int(arcmatch['issue_year']):
+                                                            logger.fdebug('%s[.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
+                                                            datematch = "False"
+
                                                 else:
-                                                    datevalue = issuechk['ReleaseDate']
-                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
-                                                        logger.fdebug(module + ' ' + str(datevalue[:4]) + ' is before the issue year of ' + str(arcmatch['issue_year']) + ' that was discovered in the filename')
-                                                        datematch = "False"
+                                                    logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
 
-                                                monthval = datevalue
+                                                logger.fdebug('datematch: %s' % datematch)
+                                                logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
+                                                logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
+                                                if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                                    passit = False
+                                                    if len(manual_list) > 0:
+                                                        if any([ v[i]['ArcValues']['IssueID'] == x['IssueID'] for x in manual_list ]):
+                                                            logger.info('[STORY-ARC POST-PROCESSING] IssueID %s exists in your watchlist. Bypassing Story-Arc post-processing performed later.' % v[i]['ArcValues']['IssueID'])
+                                                            #add in the storyarcid into the manual list so it will perform story-arc functions after normal manual PP is finished.
+                                                            for a in manual_list:
+                                                                if a['IssueID'] == v[i]['ArcValues']['IssueID']:
+                                                                    a['IssueArcID'] = v[i]['ArcValues']['IssueArcID']
+                                                                    break
+                                                            passit = True
+                                                    if passit == False:
+                                                        tmpfilename = helpers.conversion(arcmatch['comicfilename'])
+                                                        if arcmatch['sub']:
+                                                            clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
+                                                        else:
+                                                            clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
+                                                        logger.info('[%s %s#] MATCH: %s / %s / %s' % (k, isc['IssueNumber'], clocation, isc['IssueID'], v[i]['ArcValues']['IssueID']))
+                                                        if v[i]['ArcValues']['Publisher'] is None:
+                                                            arcpublisher = v[i]['ArcValues']['ComicPublisher']
+                                                        else:
+                                                            arcpublisher = v[i]['ArcValues']['Publisher']
 
-                                                if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
-                                                    issyr = int(monthval[:4]) + 1
-                                                    logger.fdebug(module + ' IssueYear (issyr) is ' + str(issyr))
-                                                elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
-                                                    issyr = int(monthval[:4]) - 1
-
-                                                if datematch == "False" and issyr is not None:
-                                                    logger.fdebug(module + ' ' + str(issyr) + ' comparing to ' + str(arcmatch['issue_year']) + ' : rechecking by month-check versus year.')
-                                                    datematch = "True"
-                                                    if int(issyr) != int(arcmatch['issue_year']):
-                                                        logger.fdebug(module + '[.:FAIL:.] Issue is before the modified issue year of ' + str(issyr))
-                                                        datematch = "False"
-
-                                            else:
-                                                logger.info(module + ' Found matching issue # ' + str(fcdigit) + ' for ComicID: ' + str(v[i]['WatchValues']['ComicID']) + ' / IssueID: ' + str(issuechk['IssueID']))
-
-                                            logger.fdebug('datematch: ' + str(datematch))
-                                            logger.fdebug('temploc: ' + str(helpers.issuedigits(temploc)))
-                                            logger.fdebug('arcissue: ' + str(helpers.issuedigits(v[i]['ArcValues']['IssueNumber'])))
-                                            if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
-                                                passit = False
-                                                if len(manual_list) > 0:
-                                                    if any([ v[i]['ArcValues']['IssueID'] == x['IssueID'] for x in manual_list ]):
-                                                        logger.info('[STORY-ARC POST-PROCESSING] IssueID ' + str(v[i]['ArcValues']['IssueID']) + ' exists in your watchlist. Bypassing Story-Arc post-processing performed later.')
-                                                        #add in the storyarcid into the manual list so it will perform story-arc functions after normal manual PP is finished.
-                                                        for a in manual_list:
-                                                            if a['IssueID'] == v[i]['ArcValues']['IssueID']:
-                                                                a['IssueArcID'] = v[i]['ArcValues']['IssueArcID']
-                                                                break
-                                                        passit = True
-                                                if passit == False:
-                                                    tmpfilename = helpers.conversion(arcmatch['comicfilename'])
-                                                    if arcmatch['sub']:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
-                                                    else:
-                                                        clocation = os.path.join(arcmatch['comiclocation'], tmpfilename)
-                                                    logger.info('[' + k + ' #' + issuechk['IssueNumber'] + '] MATCH: ' + clocation + ' / ' + str(issuechk['IssueID']) + ' / ' + str(v[i]['ArcValues']['IssueID']))
-                                                    if v[i]['ArcValues']['Publisher'] is None:
-                                                        arcpublisher = v[i]['ArcValues']['ComicPublisher']
-                                                    else:
-                                                        arcpublisher = v[i]['ArcValues']['Publisher']
-
-                                                    manual_arclist.append({"ComicLocation":   clocation,
-                                                                           "Filename":        tmpfilename,
-                                                                           "ComicID":         v[i]['WatchValues']['ComicID'],
-                                                                           "IssueID":         v[i]['ArcValues']['IssueID'],
-                                                                           "IssueNumber":     v[i]['ArcValues']['IssueNumber'],
-                                                                           "StoryArc":        v[i]['ArcValues']['StoryArc'],
-                                                                           "StoryArcID":      v[i]['ArcValues']['StoryArcID'],
-                                                                           "IssueArcID":      v[i]['ArcValues']['IssueArcID'],
-                                                                           "Publisher":       arcpublisher,
-                                                                           "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
-                                                                           "ComicName":       k})
-                                                    logger.info(module + '[SUCCESSFUL MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Match verified for ' + arcmatch['comicfilename'])
-                                                    self.matched = True
-                                                    break
-                                            else:
-                                                logger.fdebug(module + '[NON-MATCH: ' + k + '-' + v[i]['WatchValues']['ComicID'] + '] Incorrect series - not populating..continuing post-processing')
+                                                        manual_arclist.append({"ComicLocation":   clocation,
+                                                                               "Filename":        tmpfilename,
+                                                                               "ComicID":         v[i]['WatchValues']['ComicID'],
+                                                                               "IssueID":         v[i]['ArcValues']['IssueID'],
+                                                                               "IssueNumber":     v[i]['ArcValues']['IssueNumber'],
+                                                                               "StoryArc":        v[i]['ArcValues']['StoryArc'],
+                                                                               "StoryArcID":      v[i]['ArcValues']['StoryArcID'],
+                                                                               "IssueArcID":      v[i]['ArcValues']['IssueArcID'],
+                                                                               "Publisher":       arcpublisher,
+                                                                               "ReadingOrder":    v[i]['ArcValues']['ReadingOrder'],
+                                                                               "ComicName":       k})
+                                                        logger.info('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, k, v[i]['WatchValues']['ComicID'], arcmatch['comicfilename']))
+                                                        self.matched = True
+                                                        break
+                                                else:
+                                                    logger.fdebug('%s[NON-MATCH: %s-%s] Incorrect series - not populating..continuing post-processing' % (module, k, v[i]['WatchValues']['ComicID']))
 
                             i+=1
                     if self.matched is False:
@@ -1118,7 +1132,7 @@ class PostProcessor(object):
                             if not oneofflist:
                                 pass #continue
                             else:
-                                logger.fdebug(module + '[ONEOFF-SELECTION][self.nzb_name: %s]' % self.nzb_name)
+                                logger.fdebug('%s[ONEOFF-SELECTION][self.nzb_name: %s]' % (module, self.nzb_name))
                                 oneoffvals = []
                                 for ofl in oneofflist:
                                     #logger.info('[ONEOFF-SELECTION] ofl: %s' % ofl)
@@ -1176,11 +1190,11 @@ class PostProcessor(object):
                                         if 'annual' in temploc.lower():
                                             biannchk = re.sub('-', '', temploc.lower()).strip()
                                             if 'biannual' in biannchk:
-                                                logger.fdebug(module + ' Bi-Annual detected.')
+                                                logger.fdebug('%s Bi-Annual detected.' % module)
                                                 fcdigit = helpers.issuedigits(re.sub('biannual', '', str(biannchk)).strip())
                                             else:
                                                 fcdigit = helpers.issuedigits(re.sub('annual', '', str(temploc.lower())).strip())
-                                                logger.fdebug(module + ' Annual detected [' + str(fcdigit) +']. ComicID assigned as ' + str(ofv['ComicID']))
+                                                logger.fdebug('%s Annual detected [%s]. ComicID assigned as %s' % (module, fcdigit, ofv['ComicID']))
                                             annchk = "yes"
                                         else:
                                             fcdigit = helpers.issuedigits(temploc)
@@ -1198,10 +1212,10 @@ class PostProcessor(object):
                                                                  "One-Off":         True})
                                         self.oneoffinlist = True
                                     else:
-                                        logger.fdebug(module + ' No corresponding issue # in dB found for %s # %s' % (ofv['ComicName'],ofv['Issue_Number']))
+                                        logger.fdebug('%s No corresponding issue # in dB found for %s # %s' % (module, ofv['ComicName'], ofv['Issue_Number']))
                                         continue
 
-                                    logger.fdebug(module + '[SUCCESSFUL MATCH: ' + ofv['ComicName'] + '-' + ofv['ComicID'] + '] Match verified for ' + helpers.conversion(fl['comicfilename']))
+                                    logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match Verified for %s' % (module, ofv['ComicName'], ofv['ComicID'], helpers.conversion(fl['comicfilename'])))
                                     self.matched = True
                                     break
 
@@ -1210,11 +1224,11 @@ class PostProcessor(object):
 
                 delete_arc = []
                 if len(manual_arclist) > 0:
-                    logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found ' + str(len(manual_arclist)) + ' issues that belong to Story Arcs. Flinging them into the correct directories.')
+                    logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found %s issues that belong to Story Arcs. Flinging them into the correct directories.' % len(manual_arclist))
                     for ml in manual_arclist:
                         issueid = ml['IssueID']
                         ofilename = orig_filename = ml['ComicLocation']
-                        logger.info('[STORY-ARC POST-PROCESSING] Enabled for ' + ml['StoryArc'])
+                        logger.info('[STORY-ARC POST-PROCESSING] Enabled for %s' % ml['StoryArc'])
 
                         grdst = helpers.arcformat(ml['StoryArc'], helpers.spantheyears(ml['StoryArcID']), ml['Publisher'])
 
@@ -1229,25 +1243,25 @@ class PostProcessor(object):
                                 import cmtagmylar
                                 metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
                             except ImportError:
-                                logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
+                                logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                                 metaresponse = "fail"
 
                             if metaresponse == "fail":
-                                logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...')
+                                logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
                             elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
-                                logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
+                                logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' % module)
                                 continue
                                 #launch failed download handling here.
                             elif metaresponse.startswith('file not found'):
                                 filename_in_error = metaresponse.split('||')[1]
-                                self._log("The file cannot be found in the location provided for metatagging to be used [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...")
-                                logger.error(module + ' The file cannot be found in the location provided for metatagging to be used [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...')
+                                self._log("The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging..." % (filename_in_error))
+                                logger.error('%s The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...' % (module, filename_in_error))
                             else:
                                 odir = os.path.split(metaresponse)[0]
                                 ofilename = os.path.split(metaresponse)[1]
                                 ext = os.path.splitext(metaresponse)[1]
-                                logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
-                                self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
+                                logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
+                                self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
 
                             dfilename = ofilename
                         else:
@@ -1261,11 +1275,11 @@ class PostProcessor(object):
                             src_location = ofilename
                             grab_src = ofilename
 
-                        logger.fdebug(module + ' Source Path : ' + grab_src)
+                        logger.fdebug('%s Source Path : %s' % (module, grab_src))
 
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
-                            logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                            logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
                             self.valreturn.append({"self.log": self.log,
                                                    "mode": 'stop'})
                             return self.queue.put(self.valreturn)
@@ -1275,12 +1289,12 @@ class PostProcessor(object):
                             renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], dfilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
                             if renamed_file:
                                 dfilename = renamed_file['nfilename']
-                                logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
+                                logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, ofilename))
 
                         #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                         if mylar.CONFIG.READ2FILENAME:
 
-                            logger.fdebug(module + ' readingorder#: ' + str(ml['ReadingOrder']))
+                            logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
                             if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
                             elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
                             else: readord = str(ml['ReadingOrder'])
@@ -1288,10 +1302,10 @@ class PostProcessor(object):
 
                         grab_dst = os.path.join(grdst, dfilename)
 
-                        logger.fdebug(module + ' Destination Path : ' + grab_dst)
-                        logger.fdebug(module + ' Source Path : ' + grab_src)
+                        logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
+                        logger.fdebug('%s Source Path : %s' % (module, grab_src))
 
-                        logger.info(module + '[ONE-OFF MODE][' + mylar.CONFIG.ARC_FILEOPS.upper() + '] ' + grab_src + ' into directory : ' + grab_dst)
+                        logger.info('%s[ONE-OFF MODE][%s] %s into directory : %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), grab_src, grab_dst))
                         #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
 
                         try:
@@ -1318,14 +1332,14 @@ class PostProcessor(object):
                         myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', ['S' + str(ml['IssueArcID']),ml['StoryArc']])
                         myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [ml['IssueArcID'],ml['StoryArc']])
 
-                        logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
+                        logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
-                        logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                        logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
 
-                        logger.fdebug(module + ' [' + ml['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
+                        logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
 
             if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or (self.oneoffinlist is True or all([self.issuearcid is not None, self.issueid is None]))) and not self.nzb_name.startswith('0-Day'): # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
@@ -1352,36 +1366,36 @@ class PostProcessor(object):
                     logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
                     nzbname = re.sub('\s', '.', nzbname)
 
-                    logger.fdebug(module + ' After conversions, nzbname is : ' + str(nzbname))
+                    logger.fdebug('%s After conversions, nzbname is : %s' % (module, nzbname))
 #                   if mylar.USE_NZBGET==1:
 #                       nzbname=self.nzb_name
-                    self._log("nzbname: " + str(nzbname))
+                    self._log("nzbname: %s" % nzbname)
 
                     nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
 
                     self.oneoff = False
                     if nzbiss is None:
                         self._log("Failure - could not initially locate nzbfile in my database to rename.")
-                        logger.fdebug(module + ' Failure - could not locate nzbfile initially')
+                        logger.fdebug('%s Failure - could not locate nzbfile initially' % module)
                         # if failed on spaces, change it all to decimals and try again.
                         nzbname = re.sub('[\(\)]', '', str(nzbname))
-                        self._log("trying again with this nzbname: " + str(nzbname))
-                        logger.fdebug(module + ' Trying to locate nzbfile again with nzbname of : ' + str(nzbname))
+                        self._log("trying again with this nzbname: %s" % nzbname)
+                        logger.fdebug('%s Trying to locate nzbfile again with nzbname of : %s' % (module, nzbname))
                         nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
                         if nzbiss is None:
-                            logger.error(module + ' Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
+                            logger.error('%s Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.' % module)
                             #set it up to run manual post-processing on self.nzb_folder
                             self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
                             self.valreturn.append({"self.log": self.log,
                                                    "mode": 'outside'})
                             return self.queue.put(self.valreturn)
                         else:
-                            self._log("I corrected and found the nzb as : " + str(nzbname))
-                            logger.fdebug(module + ' Auto-corrected and found the nzb as : ' + str(nzbname))
+                            self._log("I corrected and found the nzb as : %s" % nzbname)
+                            logger.fdebug('%s Auto-corrected and found the nzb as : %s' % (module, nzbname))
                             #issueid = nzbiss['IssueID']
 
                     issueid = nzbiss['IssueID']
-                    logger.fdebug(module + ' Issueid: ' + str(issueid))
+                    logger.fdebug('%s Issueid: %s' % (module, issueid))
                     sarc = nzbiss['SARC']
                     self.oneoff = nzbiss['OneOff']
                     tmpiss = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [issueid]).fetchone()
@@ -1479,17 +1493,17 @@ class PostProcessor(object):
                 #loop through the hits here.
                 if len(manual_list) == 0 and len(manual_arclist) == 0:
                     if self.nzb_name == 'Manual Run':
-                        logger.info(module + ' No matches for Manual Run ... exiting.')
+                        logger.info('%s No matches for Manual Run ... exiting.' % module)
                     if mylar.APILOCK is True:
                         mylar.APILOCK = False
                     return
                 elif len(manual_arclist) > 0 and len(manual_list) == 0:
-                    logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                    logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
                     if mylar.APILOCK is True:
                         mylar.APILOCK = False
                     return
                 elif len(manual_arclist) > 0:
-                    logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                    logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
 
                 i = 0
 
@@ -1523,7 +1537,7 @@ class PostProcessor(object):
                                 continue
 
                     if any([dupthis['action'] == "write", dupthis['action'] == 'dupe_src']):
-                        stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
+                        stat = ' [%s/%s]' % (i, len(manual_list))
                         self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                         dupthis = None
 
@@ -1569,10 +1583,10 @@ class PostProcessor(object):
             annchk = "no"
             issuenzb = myDB.selectone("SELECT * from issues WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
             if issuenzb is None:
-                logger.info(module + ' Could not detect as a standard issue - checking against annuals.')
+                logger.info('%s Could not detect as a standard issue - checking against annuals.' % module)
                 issuenzb = myDB.selectone("SELECT * from annuals WHERE IssueID=? AND ComicName NOT NULL", [issueid]).fetchone()
                 if issuenzb is None:
-                    logger.info(module + ' issuenzb not found.')
+                    logger.info('%s issuenzb not found.' % module)
                     #if it's non-numeric, it contains a 'G' at the beginning indicating it's a multi-volume
                     #using GCD data. Set sandwich to 1 so it will bypass and continue post-processing.
                     if 'S' in issueid:
@@ -1590,20 +1604,20 @@ class PostProcessor(object):
                     elif 'G' in issueid or '-' in issueid:
                         sandwich = 1
                     elif any([oneoff is True, issueid >= '900000', issueid == '1']):
-                        logger.info(module + ' [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.')
+                        logger.info('%s [ONE-OFF POST-PROCESSING] One-off download detected. Post-processing as a non-watchlist item.' % module)
                         sandwich = None #arbitrarily set it to None just to force one-off downloading below.
                     else:
-                        logger.error(module + ' Unable to locate downloaded file as being initiated via Mylar. Attempting to parse the filename directly and process.')
+                        logger.error('%s Unable to locate downloaded file as being initiated via Mylar. Attempting to parse the filename directly and process.' % module)
                         self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'outside'})
                         return self.queue.put(self.valreturn)
                 else:
-                    logger.info(module + ' Successfully located issue as an annual. Continuing.')
+                    logger.info('%s Successfully located issue as an annual. Continuing.' % module)
                     annchk = "yes"
 
             if issuenzb is not None:
-                logger.info(module + ' issuenzb found.')
+                logger.info('%s issuenzb found.' % module)
                 if helpers.is_number(issueid):
                     sandwich = int(issuenzb['IssueID'])
             if all([sandwich is not None, helpers.is_number(sandwich), sarc is None]):
@@ -1640,12 +1654,12 @@ class PostProcessor(object):
                             for filename in filenames:
                                 if filename.lower().endswith(self.extensions):
                                     ofilename = orig_filename = filename
-                                    logger.fdebug(module + ' Valid filename located as : ' + ofilename)
+                                    logger.fdebug('%s Valid filename located as : %s' % (module, ofilename))
                                     path, ext = os.path.splitext(ofilename)
                                     break
 
                     if ofilename is None:
-                        logger.error(module + ' Unable to post-process file as it is not in a valid cbr/cbz format or cannot be located in path. PostProcessing aborted.')
+                        logger.error('%s Unable to post-process file as it is not in a valid cbr/cbz format or cannot be located in path. PostProcessing aborted.' % module)
                         self._log('Unable to locate downloaded file to rename. PostProcessing aborted.')
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
@@ -1653,10 +1667,10 @@ class PostProcessor(object):
 
                     if sandwich is not None and 'S' in sandwich:
                         issuearcid = re.sub('S', '', issueid)
-                        logger.fdebug(module + ' issuearcid:' + str(issuearcid))
+                        logger.fdebug('%s issuearcid:%s' % (module, issuearcid))
                         arcdata = myDB.selectone("SELECT * FROM storyarcs WHERE IssueArcID=?", [issuearcid]).fetchone()
                         if arcdata is None:
-                            logger.warn(module + ' Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary.')
+                            logger.warn('%s Unable to locate issue within Story Arcs. Cannot post-process at this time - try to Refresh the Arc and manual post-process if necessary.' % module)
                             self._log('Unable to locate issue within Story Arcs in orde to properly assign metadata. PostProcessing aborted.')
                             self.valreturn.append({"self.log": self.log,
                                                    "mode": 'stop'})
@@ -1689,24 +1703,24 @@ class PostProcessor(object):
                             import cmtagmylar
                             metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
                         except ImportError:
-                            logger.warn(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
+                            logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
                             metaresponse = "fail"
 
                         if metaresponse == "fail":
-                            logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...')
+                            logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
                         elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
-                            logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.')
+                            logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' %module)
                             #launch failed download handling here.
                         elif metaresponse.startswith('file not found'):
                             filename_in_error = metaresponse.split('||')[1]
-                            self._log("The file cannot be found in the location provided for metatagging [" + filename_in_error + "]. Please verify it exists, and re-run if necessary.")
-                            logger.error(module + ' The file cannot be found in the location provided for metagging [' + filename_in_error + ']. Please verify it exists, and re-run if necessary.')
+                            self._log("The file cannot be found in the location provided for metatagging [%s]. Please verify it exists, and re-run if necessary." % filename_in_error)
+                            logger.error('%s The file cannot be found in the location provided for metagging [%s]. Please verify it exists, and re-run if necessary.' % (module, filename_in_error))
                         else:
                             odir = os.path.split(metaresponse)[0]
                             ofilename = os.path.split(metaresponse)[1]
                             ext = os.path.splitext(metaresponse)[1]
-                            logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
-                            self._log('Sucessfully wrote metadata to .cbz (' + ofilename + ') - proceeding...')
+                            logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
+                            self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
 
                     dfilename = ofilename
                     if metaresponse:
@@ -1715,12 +1729,12 @@ class PostProcessor(object):
                         src_location = location
 
                     grab_src = os.path.join(src_location, ofilename)
-                    self._log("Source Path : " + grab_src)
-                    logger.info(module + ' Source Path : ' + grab_src)
+                    self._log("Source Path : %s" % grab_src)
+                    logger.info('%s Source Path : ' % (module, grab_src))
 
                     checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                     if not checkdirectory:
-                        logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                        logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
                         return self.queue.put(self.valreturn)
@@ -1730,12 +1744,12 @@ class PostProcessor(object):
                         renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
                         if renamed_file:
                             dfilename = renamed_file['nfilename']
-                            logger.fdebug(module + ' Renaming file to conform to configuration: ' + ofilename)
+                            logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, ofilename))
 
                     if sandwich is not None and 'S' in sandwich:
                         #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
                         if mylar.CONFIG.READ2FILENAME:
-                            logger.fdebug(module + ' readingorder#: ' + str(arcdata['ReadingOrder']))
+                            logger.fdebug('%s readingorder#: %s' % (module, arcdata['ReadingOrder']))
                             if int(arcdata['ReadingOrder']) < 10: readord = "00" + str(arcdata['ReadingOrder'])
                             elif int(arcdata['ReadingOrder']) >= 10 and int(arcdata['ReadingOrder']) <= 99: readord = "0" + str(arcdata['ReadingOrder'])
                             else: readord = str(arcdata['ReadingOrder'])
@@ -1746,10 +1760,10 @@ class PostProcessor(object):
                     else:
                         grab_dst = os.path.join(grdst, ofilename)
 
-                    self._log("Destination Path : " + grab_dst)
+                    self._log("Destination Path : %s" % grab_dst)
 
-                    logger.info(module + ' Destination Path : ' + grab_dst)
-                    logger.info(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + ofilename + ' into directory : ' + grab_dst)
+                    logger.info('%s Destination Path : %s' % (module, grab_dst))
+                    logger.info('%s[%s] %s into directory : %s' % (module, mylar.CONFIG.FILE_OPTS, ofilename, grab_dst))
 
                     try:
                         checkspace = helpers.get_free_space(grdst)
@@ -1773,25 +1787,25 @@ class PostProcessor(object):
                     myDB.action('DELETE from nzblog WHERE issueid=?', [issueid])
 
                     if sandwich is not None and 'S' in sandwich:
-                        logger.info(module + ' IssueArcID is : ' + str(issuearcid))
+                        logger.info('%s IssueArcID is : %s' % (module, issuearcid))
                         ctrlVal = {"IssueArcID":  issuearcid}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
                         myDB.upsert("storyarcs", newVal, ctrlVal)
-                        logger.info(module + ' Updated status to Downloaded')
+                        logger.info('%s Updated status to Downloaded' % module)
 
-                        logger.info(module + ' Post-Processing completed for: [' + sarc + '] ' + grab_dst)
+                        logger.info('%s Post-Processing completed for: [%s] %s' % (module, sarc, grab_dst))
                         self._log(u"Post Processing SUCCESSFUL! ")
                     elif oneoff is True:
-                        logger.info(module + ' IssueID is : ' + str(issueid))
+                        logger.info('%s IssueID is : %s' % (module, issueid))
                         ctrlVal = {"IssueID":  issueid}
                         newVal = {"Status":       "Downloaded"}
-                        logger.info(module + ' Writing to db: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                        logger.info('%s Writing to db: %s -- %s' % (module, newVal, ctrlVal))
                         myDB.upsert("weekly", newVal, ctrlVal)
-                        logger.info(module + ' Updated status to Downloaded')
+                        logger.info('%s Updated status to Downloaded' % module)
                         myDB.upsert("oneoffhistory", newVal, ctrlVal)
-                        logger.info(module + ' Updated history for one-off\'s for tracking purposes')
-                        logger.info(module + ' Post-Processing completed for: [ %s #%s ] %s' % (comicname, issuenumber, grab_dst))
+                        logger.info('%s Updated history for one-off\'s for tracking purposes' % module)
+                        logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log(u"Post Processing SUCCESSFUL! ")
 
                     try:
@@ -1839,13 +1853,13 @@ class PostProcessor(object):
         if self.nzb_name == 'Manual Run':
             #loop through the hits here.
             if len(manual_list) == 0 and len(manual_arclist) == 0:
-                logger.info(module + ' No matches for Manual Run ... exiting.')
+                logger.info('%s No matches for Manual Run ... exiting.' % module)
                 return
             elif len(manual_arclist) > 0 and len(manual_list) == 0:
-                logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
                 return
             elif len(manual_arclist) > 0:
-                logger.info(module + ' Manual post-processing completed for ' + str(len(manual_arclist)) + ' story-arc issues.')
+                logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
             i = 0
 
             for ml in manual_list:
@@ -1881,14 +1895,14 @@ class PostProcessor(object):
                             continue
 
                 if any([dupthis['action'] == "write", dupthis['action'] == 'dupe_src']):
-                    stat = ' [' + str(i) + '/' + str(len(manual_list)) + ']'
+                    stat = ' [%s/%s]' % (i, len(manual_list))
                     self.Process_next(comicid, issueid, issuenumOG, ml, stat)
                     dupthis = None
 
             if self.failed_files == 0:
-                logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues.')
+                logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
             else:
-                logger.info(module + ' Manual post-processing completed for ' + str(i) + ' issues [FAILED: ' + str(self.failed_files) + ']')
+                logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
             return
 
         else:
@@ -1936,18 +1950,18 @@ class PostProcessor(object):
             if ml is not None and mylar.CONFIG.SNATCHEDTORRENT_NOTIFY:
                 snatchnzb = myDB.selectone("SELECT * from snatched WHERE IssueID=? AND ComicID=? AND (provider=? OR provider=? OR provider=? OR provider=?) AND Status='Snatched'", [issueid, comicid, 'TPSE', 'DEM', 'WWT', '32P']).fetchone()
                 if snatchnzb is None:
-                    logger.fdebug(module + ' Was not snatched as a torrent. Using manual post-processing.')
+                    logger.fdebug('%s Was not snatched as a torrent. Using manual post-processing.' % module) 
                 else:
-                    logger.fdebug(module + ' Was downloaded from ' + snatchnzb['Provider'] + '. Enabling torrent manual post-processing completion notification.')
+                    logger.fdebug('%s Was downloaded from %s. Enabling torrent manual post-processing completion notification.' % (module, snatchnzb['Provider']))
             if issuenzb is None:
                 issuenzb = myDB.selectone("SELECT * from annuals WHERE issueid=? and comicid=?", [issueid, comicid]).fetchone()
                 annchk = "yes"
             if annchk == "no":
-                logger.info(module + stat + ' Starting Post-Processing for ' + issuenzb['ComicName'] + ' issue: ' + issuenzb['Issue_Number'])
+                logger.info('%s %s Starting Post-Processing for %s issue: %s' % (module, stat, issuenzb['ComicName'], issuenzb['Issue_Number']))
             else:
-                logger.info(module + stat + ' Starting Post-Processing for ' + issuenzb['ReleaseComicName'] + ' issue: ' + issuenzb['Issue_Number'])
-            logger.fdebug(module + ' issueid: ' + str(issueid))
-            logger.fdebug(module + ' issuenumOG: ' + issuenumOG)
+                logger.info('%s %s Starting Post-Processing for %s issue: %s' % (module, stat, issuenzb['ReleaseComicName'], issuenzb['Issue_Number']))
+            logger.fdebug('%s issueid: %s' % (module, issueid))
+            logger.fdebug('%s issuenumOG: %s' % (module, issuenumOG))
             #issueno = str(issuenum).split('.')[0]
             #new CV API - removed all decimals...here we go AGAIN!
             issuenum = issuenzb['Issue_Number']
@@ -2003,8 +2017,8 @@ class PostProcessor(object):
                     iss = iss_b4dec
                     issdec = int(iss_decval)
                     issueno = str(iss)
-                    self._log("Issue Number: " + str(issueno))
-                    logger.fdebug(module + 'Issue Number: ' + str(issueno))
+                    self._log("Issue Number: %s" % issueno)
+                    logger.fdebug('%s Issue Number: %s' % (module, issueno))
                 else:
                     if len(iss_decval) == 1:
                         iss = iss_b4dec + "." + iss_decval
@@ -2013,8 +2027,8 @@ class PostProcessor(object):
                         iss = iss_b4dec + "." + iss_decval.rstrip('0')
                         issdec = int(iss_decval.rstrip('0')) * 10
                     issueno = iss_b4dec
-                    self._log("Issue Number: " + str(iss))
-                    logger.fdebug(module + ' Issue Number: ' + str(iss))
+                    self._log("Issue Number: %s" % iss)
+                    logger.fdebug('%s Issue Number: %s' % (module, iss))
             else:
                 iss = issuenum
                 issueno = iss
@@ -2027,7 +2041,7 @@ class PostProcessor(object):
                 elif mylar.CONFIG.ZERO_LEVEL_N == "0x": zeroadd = "0"
                 elif mylar.CONFIG.ZERO_LEVEL_N == "00x": zeroadd = "00"
 
-            logger.fdebug(module + ' Zero Suppression set to : ' + str(mylar.CONFIG.ZERO_LEVEL_N))
+            logger.fdebug('%s Zero Suppression set to : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N))
 
             prettycomiss = None
 
@@ -2039,14 +2053,14 @@ class PostProcessor(object):
                     x = float(issueno)
                     #validity check
                     if x < 0:
-                        logger.info('I\'ve encountered a negative issue #: ' + str(issueno) + '. Trying to accomodate.')
-                        prettycomiss = '-' + str(zeroadd) + str(issueno[1:])
+                        logger.info('%s I\'ve encountered a negative issue #: %s. Trying to accomodate' % (module, issueno))
+                        prettycomiss = '-%s%s' % (zeroadd, issueno[1:])
                     elif x >= 0:
                         pass
                     else:
                         raise ValueError
                 except ValueError, e:
-                    logger.warn('Unable to properly determine issue number [' + str(issueno) + '] - you should probably log this on github for help.')
+                    logger.warn('Unable to properly determine issue number [%s] - you should probably log this on github for help.' % issueno)
                     return
 
             if prettycomiss is None and len(str(issueno)) > 0:
@@ -2065,7 +2079,7 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
                 elif int(issueno) >= 10 and int(issueno) < 100:
                     logger.fdebug('issue detected greater than 10, but less than 100')
                     if mylar.CONFIG.ZERO_LEVEL_N == "none":
@@ -2082,7 +2096,7 @@ class PostProcessor(object):
                         prettycomiss = str(zeroadd) + str(iss)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '.Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
                 else:
                     logger.fdebug('issue detected greater than 100')
                     if '.' in iss:
@@ -2091,43 +2105,43 @@ class PostProcessor(object):
                     prettycomiss = str(issueno)
                     if issue_except != 'None':
                         prettycomiss = str(prettycomiss) + issue_except
-                    logger.fdebug('Zero level supplement set to ' + str(mylar.CONFIG.ZERO_LEVEL_N) + '. Issue will be set as : ' + str(prettycomiss))
+                    logger.fdebug('%s Zero level supplement set to %s. Issue will be set as : %s' % (module, mylar.CONFIG.ZERO_LEVEL_N, prettycomiss))
 
             elif len(str(issueno)) == 0:
                 prettycomiss = str(issueno)
-                logger.fdebug('issue length error - cannot determine length. Defaulting to None:  ' + str(prettycomiss))
+                logger.fdebug('issue length error - cannot determine length. Defaulting to None: %s ' % prettycomiss)
 
             if annchk == "yes":
                 self._log("Annual detected.")
-            logger.fdebug(module + ' Pretty Comic Issue is : ' + str(prettycomiss))
+            logger.fdebug('%s Pretty Comic Issue is : %s' % (module, prettycomiss))
             issueyear = issuenzb['IssueDate'][:4]
-            self._log("Issue Year: " + str(issueyear))
-            logger.fdebug(module + ' Issue Year : ' + str(issueyear))
+            self._log("Issue Year: %s" % issueyear)
+            logger.fdebug('%s Issue Year : %s' % (module, issueyear))
             month = issuenzb['IssueDate'][5:7].replace('-', '').strip()
             month_name = helpers.fullmonth(month)
             if month_name is None:
                 month_name = 'None'
             publisher = comicnzb['ComicPublisher']
-            self._log("Publisher: " + publisher)
-            logger.fdebug(module + ' Publisher: ' + publisher)
+            self._log("Publisher: %s" % publisher)
+            logger.fdebug('%s Publisher: %s' % (module, publisher))
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
             series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
-            self._log("Series: " + series)
-            logger.fdebug(module + ' Series: ' + str(series))
+            self._log("Series: %s" % series)
+            logger.fdebug('%s Series: %s' % (module, series))
             if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
                 seriesfilename = series
             else:
                 seriesfilename = comicnzb['AlternateFileName'].encode('ascii', 'ignore').strip()
-                logger.fdebug(module + ' Alternate File Naming has been enabled for this series. Will rename series to : ' + seriesfilename)
+                logger.fdebug('%s Alternate File Naming has been enabled for this series. Will rename series to : %s' % (module, seriesfilename))
             seriesyear = comicnzb['ComicYear']
-            self._log("Year: " + seriesyear)
-            logger.fdebug(module + ' Year: '  + str(seriesyear))
+            self._log("Year: %s" % seriesyear)
+            logger.fdebug('%s Year: %s' % (module, seriesyear))
             comlocation = comicnzb['ComicLocation']
-            self._log("Comic Location: " + comlocation)
-            logger.fdebug(module + ' Comic Location: ' + str(comlocation))
+            self._log("Comic Location: %s" % comlocation)
+            logger.fdebug('%s Comic Location: %s' % (module, comlocation))
             comversion = comicnzb['ComicVersion']
-            self._log("Comic Version: " + str(comversion))
-            logger.fdebug(module + ' Comic Version: ' + str(comversion))
+            self._log("Comic Version: %s" % comversion)
+            logger.fdebug('%s Comic Version: %s' % (module, comversion))
             if comversion is None:
                 comversion = 'None'
             #if comversion is None, remove it so it doesn't populate with 'None'
@@ -2136,7 +2150,7 @@ class PostProcessor(object):
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
                 self._log("No version # found for series - tag will not be available for renaming.")
-                logger.fdebug(module + ' No version # found for series, removing from filename')
+                logger.fdebug('%s No version # found for series, removing from filename' % module)
                 logger.fdebug('%s New format is now: %s' % (module, chunk_file_format))
             else:
                 chunk_file_format = mylar.CONFIG.FILE_FORMAT
@@ -2145,7 +2159,7 @@ class PostProcessor(object):
                 chunk_f_f = re.sub('\$Annual', '', chunk_file_format)
                 chunk_f = re.compile(r'\s+')
                 chunk_file_format = chunk_f.sub(' ', chunk_f_f)
-                logger.fdebug(module + ' Not an annual - removing from filename parameters')
+                logger.fdebug('%s Not an annual - removing from filename parameters' % module)
                 logger.fdebug('%s New format: %s' % (module, chunk_file_format))
 
             else:
@@ -2166,16 +2180,16 @@ class PostProcessor(object):
                     for filename in filenames:
                         if filename.lower().endswith(self.extensions):
                             odir = root
-                            logger.fdebug(module + ' odir (root): ' + odir)
+                            logger.fdebug('%s odir (root): %s' % (module, odir))
                             ofilename = filename
-                            logger.fdebug(module + ' ofilename: ' + ofilename)
+                            logger.fdebug('%s ofilename: %s' % (module, ofilename))
                             path, ext = os.path.splitext(ofilename)
                 try:
                     if odir is None:
-                        logger.fdebug(module + ' No root folder set.')
+                        logger.fdebug('%s No root folder set.' % module)
                         odir = self.nzb_folder
                 except:
-                    logger.error(module + ' unable to set root folder. Forcing it due to some error above most likely.')
+                    logger.error('%s unable to set root folder. Forcing it due to some error above most likely.' % module)
                     if os.path.isfile(self.nzb_folder) and self.nzb_folder.lower().endswith(self.extensions):
                         import ntpath
                         odir, ofilename = ntpath.split(self.nzb_folder)
@@ -2186,13 +2200,13 @@ class PostProcessor(object):
 
                 if ofilename is None:
                     self._log("Unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.")
-                    logger.error(module + ' unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.')
+                    logger.error('%s unable to locate a valid cbr/cbz file. Aborting post-processing for this filename.' % module)
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                logger.fdebug(module + ' odir: ' + odir)
-                logger.fdebug(module + ' ofilename: ' + ofilename)
+                logger.fdebug('%s odir: %s' % (module, odir))
+                logger.fdebug('%s ofilename: %s' % (module, ofilename))
 
 
             #if meta-tagging is not enabled, we need to declare the check as being fail
@@ -2213,7 +2227,7 @@ class PostProcessor(object):
             if mylar.CONFIG.ENABLE_META:
 
                 self._log("Metatagging enabled - proceeding...")
-                logger.fdebug(module + ' Metatagging enabled - proceeding...')
+                logger.fdebug('%s Metatagging enabled - proceeding...' % module)
                 pcheck = "pass"
                 if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                     vol_label = seriesyear
@@ -2228,26 +2242,26 @@ class PostProcessor(object):
                         pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, manual="yes", filename=ml['ComicLocation'])
 
                 except ImportError:
-                    logger.fdebug(module + ' comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/')
-                    logger.fdebug(module + ' continuing with PostProcessing, but I am not using metadata.')
+                    logger.fdebug('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
+                    logger.fdebug('%s continuing with PostProcessing, but I am not using metadata.' % module)
                     pcheck = "fail"
 
                 if pcheck == "fail":
                     self._log("Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...")
-                    logger.fdebug(module + ' Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...')
+                    logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without tagging...' %module)
                     self.failed_files +=1
                     #we need to set this to the cbz file since not doing it will result in nothing getting moved.
                     #not sure how to do this atm
                 elif any([pcheck == "unrar error", pcheck == "corrupt"]):
                     if ml is not None:
                         self._log("This is a corrupt archive - whether CRC errors or it's incomplete. Marking as BAD, and not post-processing.")
-                        logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and not post-processing.')
+                        logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and not post-processing.' % module)
                         self.failed_files +=1
                         self.valreturn.append({"self.log": self.log,
                                                "mode": 'stop'})
                     else:
                         self._log("This is a corrupt archive - whether CRC errors or it's incomplete. Marking as BAD, and retrying a different copy.")
-                        logger.error(module + ' This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.')
+                        logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying a different copy.' % module)
                         self.valreturn.append({"self.log":    self.log,
                                                "mode":        'fail',
                                                "issueid":     issueid,
@@ -2258,8 +2272,8 @@ class PostProcessor(object):
                     return self.queue.put(self.valreturn)
                 elif pcheck.startswith('file not found'):
                     filename_in_error = pcheck.split('||')[1]
-                    self._log("The file cannot be found in the location provided [" + filename_in_error + "]. Please verify it exists, and re-run if necessary. Aborting.")
-                    logger.error(module + ' The file cannot be found in the location provided [' + filename_in_error + ']. Please verify it exists, and re-run if necessary. Aborting')
+                    self._log("The file cannot be found in the location provided [%s]. Please verify it exists, and re-run if necessary. Aborting." % filename_in_error)
+                    logger.error('%s The file cannot be found in the location provided [%s]. Please verify it exists, and re-run if necessary. Aborting' % (module, filename_in_error))
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
@@ -2271,7 +2285,7 @@ class PostProcessor(object):
                     ofilename = os.path.split(pcheck)[1]
                     ext = os.path.splitext(ofilename)[1]
                     self._log("Sucessfully wrote metadata to .cbz - Continuing..")
-                    logger.info(module + ' Sucessfully wrote metadata to .cbz (' + ofilename + ') - Continuing..')
+                    logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
             #Run Pre-script
 
             if mylar.CONFIG.ENABLE_PRE_SCRIPTS:
@@ -2317,21 +2331,21 @@ class PostProcessor(object):
                     pass
                 else:
                     odir, orig_filename = os.path.split(ml['ComicLocation'])
-                logger.fdebug(module + ' ofilename:' + ofilename)
+                logger.fdebug('%s ofilename: %s' % (module, ofilename))
                 if any([ofilename == odir, ofilename == odir[:-1], ofilename == '']):
-                    self._log("There was a problem deciphering the filename/directory - please verify that the filename : [" + ofilename + "] exists in location [" + odir + "]. Aborting.")
-                    logger.error(module + ' There was a problem deciphering the filename/directory - please verify that the filename : [' + ofilename + '] exists in location [' + odir + ']. Aborting.')
+                    self._log("There was a problem deciphering the filename/directory - please verify that the filename : [%s] exists in location [%s]. Aborting." % (ofilename, odir))
+                    logger.error(module + ' There was a problem deciphering the filename/directory - please verify that the filename : [%s] exists in location [%s]. Aborting.' % (ofilename, odir))
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                logger.fdebug(module + ' odir: ' + odir)
-                logger.fdebug(module + ' ofilename: ' + ofilename)
+                logger.fdebug('%s odir: %s' % (module, odir))
+                logger.fdebug('%s ofilename: %s' % (module, ofilename))
                 ext = os.path.splitext(ofilename)[1]
-                logger.fdebug(module + ' ext:' + ext)
+                logger.fdebug('%s ext: %s' % (module, ext))
 
             if ofilename is None or ofilename == '':
-                logger.error(module + ' Aborting PostProcessing - the filename does not exist in the location given. Make sure that ' + self.nzb_folder + ' exists and is the correct location.')
+                logger.error('%s Aborting PostProcessing - the filename does not exist in the location given. Make sure that %s exists and is the correct location.' % (module, self.nzb_folder))
                 self.failed_files +=1
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop'})
@@ -2342,7 +2356,7 @@ class PostProcessor(object):
 
             if mylar.CONFIG.FILE_FORMAT == '' or not mylar.CONFIG.RENAME_FILES:
                 self._log("Rename Files isn't enabled...keeping original filename.")
-                logger.fdebug(module + ' Rename Files is not enabled - keeping original filename.')
+                logger.fdebug('%s Rename Files is not enabled - keeping original filename.' % module)
                 #check if extension is in nzb_name - will screw up otherwise
                 if ofilename.lower().endswith(self.extensions):
                     nfilename = ofilename[:-4]
@@ -2365,13 +2379,13 @@ class PostProcessor(object):
                         nfilename = '%s %s'.strip() % (nfilename[:xyb], nfilename[yyb+3:])
                         logger.fdebug('issueid information [%s] removed successsfully: %s' % (rem_issueid, nfilename))
 
-            self._log("New Filename: " + nfilename)
-            logger.fdebug(module + ' New Filename: ' + nfilename)
+            self._log("New Filename: %s" % nfilename)
+            logger.fdebug('%s New Filename: %s' % (module, nfilename))
 
             src = os.path.join(odir, ofilename)
             checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True, module=module)
             if not checkdirectory:
-                logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
                 self.failed_files +=1
                 self.valreturn.append({"self.log": self.log,
                                        "mode": 'stop'})
@@ -2381,28 +2395,28 @@ class PostProcessor(object):
                 dst = os.path.join(comlocation, (nfilename + ext).lower())
             else:
                 dst = os.path.join(comlocation, (nfilename + ext.lower()))
-            self._log("Source:" + src)
-            self._log("Destination:" +  dst)
-            logger.fdebug(module + ' Source: ' + src)
-            logger.fdebug(module + ' Destination: ' + dst)
+            self._log("Source: %s" % src)
+            self._log("Destination: %s" %  dst)
+            logger.fdebug('%s Source: %s' % (module, src))
+            logger.fdebug('%s Destination: %s' % (module, dst))
 
             if ml is None:
                 #downtype = for use with updater on history table to set status to 'Downloaded'
                 downtype = 'True'
                 #non-manual run moving/deleting...
-                logger.fdebug(module + ' self.nzb_folder: ' + self.nzb_folder)
-                logger.fdebug(module + ' odir: ' + odir)
-                logger.fdebug(module + ' ofilename:' + ofilename)
-                logger.fdebug(module + ' nfilename:' + nfilename + ext)
+                logger.fdebug('%s self.nzb_folder: %s' % (module, self.nzb_folder))
+                logger.fdebug('%s odir: %s' % (module, odir))
+                logger.fdebug('%s ofilename: %s' % (module,  ofilename))
+                logger.fdebug('%s nfilename: %s' % (module, nfilename + ext))
                 if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
-                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename) + ' ..to.. ' + os.path.join(odir, nfilename + ext))
+                        logger.fdebug('%s Renaming %s ..to.. %s' % (module, os.path.join(odir, ofilename), os.path.join(odir, nfilename + ext)))
                     else:
-                        logger.fdebug(module + ' Filename is identical as original, not renaming.')
+                        logger.fdebug('%s Filename is identical as original, not renaming.' % module)
 
                 src = os.path.join(odir, ofilename)
                 try:
-                    self._log("[" + mylar.CONFIG.FILE_OPTS + "] " + src + " - to - " + dst)
+                    self._log("[%s] %s - to - %s" % (mylar.CONFIG.FILE_OPTS, src, dst))
                     checkspace = helpers.get_free_space(comlocation)
                     if checkspace is False:
                         if all([pcheck is not None, pcheck != 'fail']):  # meta was done
@@ -2412,10 +2426,10 @@ class PostProcessor(object):
                     if not fileoperation:
                         raise OSError
                 except Exception as e:
-                    self._log("Failed to " + mylar.CONFIG.FILE_OPTS + " " + src  + " - check log for exact error.")
+                    self._log("Failed to %s %s - check log for exact error." % (mylar.CONFIG.FILE_OPTS, src))
                     self._log("Post-Processing ABORTED.")
                     logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, src, e))
-                    logger.error(module + ' Post-Processing ABORTED')
+                    logger.error('%s Post-Processing ABORTED' % module)
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
@@ -2431,12 +2445,12 @@ class PostProcessor(object):
                 src = os.path.join(odir, ofilename)
                 if mylar.CONFIG.RENAME_FILES:
                     if ofilename != (nfilename + ext):
-                        logger.fdebug(module + ' Renaming ' + os.path.join(odir, ofilename)) #' ..to.. ' + os.path.join(odir, self.nzb_folder, str(nfilename + ext)))
+                        logger.fdebug('%s Renaming %s ..to.. %s' % (module, os.path.join(odir, ofilename), os.path.join(odir, self.nzb_folder, str(nfilename + ext))))
                     else:
-                        logger.fdebug(module + ' Filename is identical as original, not renaming.')
+                        logger.fdebug('%s Filename is identical as original, not renaming.' % module)
 
-                logger.fdebug(module + ' odir src : ' + src)
-                logger.fdebug(module + '[' + mylar.CONFIG.FILE_OPTS + '] ' + src + ' ... to ... ' + dst)
+                logger.fdebug('%s odir src : %s' % (module, src))
+                logger.fdebug('%s[%s] %s ... to ... %s' % (module, mylar.CONFIG.FILE_OPTS, src, dst))
                 try:
                     checkspace = helpers.get_free_space(comlocation)
                     if checkspace is False:
@@ -2448,12 +2462,12 @@ class PostProcessor(object):
                         raise OSError
                 except Exception as e:
                     logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, src, e))
-                    logger.error(module + ' Post-Processing ABORTED.')
+                    logger.error('%s Post-Processing ABORTED.' %module)
                     self.failed_files +=1
                     self.valreturn.append({"self.log": self.log,
                                            "mode": 'stop'})
                     return self.queue.put(self.valreturn)
-                logger.info(module + ' ' + mylar.CONFIG.FILE_OPTS + ' successful to : ' + dst)
+                logger.info('%s %s successful to : %s' % (module, mylar.CONFIG.FILE_OPTS, dst))
 
                 if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
                     self.tidyup(odir, True, subpath, filename=orig_filename)
@@ -2468,8 +2482,8 @@ class PostProcessor(object):
                         os.umask(0)
                         os.chmod(dst.rstrip(), permission)
                     except OSError:
-                        logger.error(module + ' Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : ' + dst)
-                        logger.fdebug(module + ' Continuing post-processing but unable to change file permissions in ' + dst)
+                        logger.error('%s Failed to change file permissions. Ensure that the user running Mylar has proper permissions to change permissions in : %s' % (module,  dst))
+                        logger.fdebug('%s Continuing post-processing but unable to change file permissions in %s' % (module, dst))
 
             #let's reset the fileop to the original setting just in case it's a manual pp run
             if mylar.CONFIG.FILE_OPTS == 'copy':
@@ -2503,7 +2517,7 @@ class PostProcessor(object):
                 ctrlVal = {"IssueID":     issueid}
                 newVal = {"Status":       "Downloaded",
                           "Location":     os.path.basename(dst)}
-                logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                 myDB.upsert(updatetable, newVal, ctrlVal)
 
             try:
@@ -2524,13 +2538,13 @@ class PostProcessor(object):
                         logger.info('grdst:' + grdst)
                         checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                         if not checkdirectory:
-                            logger.warn(module + ' Error trying to validate/create directory. Aborting this process at this time.')
+                            logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
                             self.valreturn.append({"self.log": self.log,
                                                    "mode": 'stop'})
                             return self.queue.put(self.valreturn)
 
                         if mylar.CONFIG.READ2FILENAME:
-                            logger.fdebug(module + ' readingorder#: ' + str(arcinfo['ReadingOrder']))
+                            logger.fdebug('%s readingorder#: %s' % (module, arcinfo['ReadingOrder']))
                             if int(arcinfo['ReadingOrder']) < 10: readord = "00" + str(arcinfo['ReadingOrder'])
                             elif int(arcinfo['ReadingOrder']) >= 10 and int(arcinfo['ReadingOrder']) <= 99: readord = "0" + str(arcinfo['ReadingOrder'])
                             else: readord = str(arcinfo['ReadingOrder'])
@@ -2540,10 +2554,10 @@ class PostProcessor(object):
 
                         grab_dst = os.path.join(grdst, dfilename)
 
-                        logger.fdebug(module + ' Destination Path : ' + grab_dst)
+                        logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
                         grab_src = dst
-                        logger.fdebug(module + ' Source Path : ' + grab_src)
-                        logger.info(module + '[' + mylar.CONFIG.ARC_FILEOPS.upper() + '] ' + str(dst) + ' into directory : ' + str(grab_dst))
+                        logger.fdebug('%s Source Path : %s' % (module, grab_src))
+                        logger.info('%s[%s] %s into directory: %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), dst, grab_dst))
 
                         try:
                             #need to ensure that src is pointing to the series in order to do a soft/hard-link properly
@@ -2561,13 +2575,13 @@ class PostProcessor(object):
                         IssArcID = 'S' + str(ml['IssueArcID'])
                         myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [IssArcID,arcinfo['StoryArc']])
 
-                        logger.fdebug(module + ' IssueArcID: ' + str(ml['IssueArcID']))
+                        logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
                         newVal = {"Status":       "Downloaded",
                                   "Location":     grab_dst}
-                        logger.fdebug('writing: ' + str(newVal) + ' -- ' + str(ctrlVal))
+                        logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
-                        logger.fdebug(module + ' [' + arcinfo['StoryArc'] + '] Post-Processing completed for: ' + grab_dst)
+                        logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, arcinfo['StoryArc'], grab_dst))
 
             except:
                 pass
@@ -2681,9 +2695,9 @@ class FolderCheck():
         #junk the queue as it's not needed for folder monitoring, but needed for post-processing to run without error.
         helpers.job_management(write=True, job='Folder Monitor', current_run=helpers.utctimestamp(), status='Running')
         mylar.MONITOR_STATUS = 'Running'
-        logger.info(self.module + ' Checking folder ' + mylar.CONFIG.CHECK_FOLDER + ' for newly snatched downloads')
+        logger.info('%s Checking folder %s for newly snatched downloads' % (self.module, mylar.CONFIG.CHECK_FOLDER))
         PostProcess = PostProcessor('Manual Run', mylar.CONFIG.CHECK_FOLDER, queue=self.queue)
         result = PostProcess.Process()
-        logger.info(self.module + ' Finished checking for newly snatched downloads')
+        logger.info('%s Finished checking for newly snatched downloads' % self.module)
         helpers.job_management(write=True, job='Folder Monitor', last_run_completed=helpers.utctimestamp(), status='Waiting')
         mylar.MONITOR_STATUS = 'Waiting'

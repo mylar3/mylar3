@@ -21,6 +21,7 @@ from datetime import timedelta, date
 import subprocess
 import requests
 import shlex
+import Queue
 import json
 import re
 import sys
@@ -37,7 +38,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
 import logger
-from mylar import sabnzbd, nzbget, process, getcomics
+from mylar import db, sabnzbd, nzbget, process, getcomics
 
 def multikeysort(items, columns):
 
@@ -266,7 +267,7 @@ def decimal_issue(iss):
     return deciss, dec_except
 
 def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=None, annualize=None, arc=False):
-            import db
+            #import db
             myDB = db.DBConnection()
             comicid = str(comicid)   # it's coming in unicoded...
 
@@ -718,7 +719,7 @@ def ComicSort(comicorder=None, sequence=None, imported=None):
     if sequence:
         # if it's on startup, load the sql into a tuple for use to avoid record-locking
         i = 0
-        import db
+        #import db
         myDB = db.DBConnection()
         comicsort = myDB.select("SELECT * FROM comics ORDER BY ComicSortName COLLATE NOCASE")
         comicorderlist = []
@@ -803,7 +804,7 @@ def updateComicLocation():
     #                  - set NEWCOMDIR = new ComicLocation
     #after running, set ComicLocation to new location in Configuration GUI
 
-    import db
+    #import db
     myDB = db.DBConnection()
     if mylar.CONFIG.NEWCOM_DIR is not None:
         logger.info('Performing a one-time mass update to Comic Location')
@@ -935,7 +936,7 @@ def cleanhtml(raw_html):
 
 
 def issuedigits(issnum):
-    import db
+    #import db
 
     int_issnum = None
 
@@ -1129,7 +1130,7 @@ def issuedigits(issnum):
 
 
 def checkthepub(ComicID):
-    import db
+    #import db
     myDB = db.DBConnection()
     publishers = ['marvel', 'dc', 'darkhorse']
     pubchk = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
@@ -1146,7 +1147,7 @@ def checkthepub(ComicID):
         return mylar.CONFIG.INDIE_PUB
 
 def annual_update():
-    import db
+    #import db
     myDB = db.DBConnection()
     annuallist = myDB.select('SELECT * FROM annuals')
     if annuallist is None:
@@ -1202,7 +1203,7 @@ def renamefile_readingorder(readorder):
     return readord
 
 def latestdate_fix():
-    import db
+    #import db
     datefix = []
     cnupdate = []
     myDB = db.DBConnection()
@@ -1254,7 +1255,7 @@ def latestdate_fix():
     return
 
 def upgrade_dynamic():
-    import db
+    #import db
     dynamic_comiclist = []
     myDB = db.DBConnection()
     #update the comicdb to include the Dynamic Names (and any futher changes as required)
@@ -1293,7 +1294,6 @@ def upgrade_dynamic():
 
 def checkFolder(folderpath=None):
     from mylar import PostProcessor
-    import Queue
 
     queue = Queue.Queue()
     #monitor a selected folder for 'snatched' files that haven't been processed
@@ -1339,7 +1339,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
         return Alternate_Names
 
 def havetotals(refreshit=None):
-        import db
+        #import db
 
         comics = []
         myDB = db.DBConnection()
@@ -1827,7 +1827,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
     return issuedetails
 
 def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
-    import db
+    #import db
     myDB = db.DBConnection()
     if IssueID:
         issue = myDB.selectone('SELECT * FROM issues WHERE IssueID=?', [IssueID]).fetchone()
@@ -1859,7 +1859,7 @@ def int_num(s):
         return float(s)
 
 def listPull(weeknumber, year):
-    import db
+    #import db
     library = {}
     myDB = db.DBConnection()
     # Get individual comics
@@ -1869,7 +1869,7 @@ def listPull(weeknumber, year):
     return library
 
 def listLibrary(comicid=None):
-    import db
+    #import db
     library = {}
     myDB = db.DBConnection()
     if comicid is None:
@@ -1896,7 +1896,7 @@ def listLibrary(comicid=None):
     return library
 
 def listStoryArcs():
-    import db
+    #import db
     library = {}
     myDB = db.DBConnection()
     # Get Distinct Arc IDs
@@ -1910,7 +1910,7 @@ def listStoryArcs():
     return library
 
 def listoneoffs(weeknumber, year):
-    import db
+    #import db
     library = []
     myDB = db.DBConnection()
     # Get Distinct one-off issues from the pullist that have already been downloaded / snatched
@@ -1926,7 +1926,7 @@ def listoneoffs(weeknumber, year):
     return library
 
 def manualArc(issueid, reading_order, storyarcid):
-    import db
+    #import db
     if issueid.startswith('4000-'):
         issueid = issueid[5:]
 
@@ -2062,7 +2062,7 @@ def manualArc(issueid, reading_order, storyarcid):
     return
 
 def listIssues(weeknumber, year):
-    import db
+    #import db
     library = []
     myDB = db.DBConnection()
     # Get individual issues
@@ -2107,7 +2107,7 @@ def listIssues(weeknumber, year):
     return library
 
 def incr_snatched(ComicID):
-    import db
+    #import db
     myDB = db.DBConnection()
     incr_count = myDB.selectone("SELECT Have FROM Comics WHERE ComicID=?", [ComicID]).fetchone()
     logger.fdebug('Incrementing HAVE count total to : ' + str(incr_count['Have'] + 1))
@@ -2123,7 +2123,7 @@ def duplicate_filecheck(filename, ComicID=None, IssueID=None, StoryArcID=None, r
     #storyarcid = the storyarcid of the issue that's being checked for duplication.
     #rtnval = the return value of a previous duplicate_filecheck that's re-running against new values
     #
-    import db
+    #import db
     myDB = db.DBConnection()
 
     logger.info('[DUPECHECK] Duplicate check for ' + filename)
@@ -2401,7 +2401,7 @@ def humanize_time(amount, units = 'seconds'):
     return buf
 
 def issue_status(IssueID):
-    import db
+    #import db
     myDB = db.DBConnection()
 
     IssueID = str(IssueID)
@@ -2435,7 +2435,7 @@ def crc(filename):
     return hashlib.md5(filename).hexdigest()
 
 def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
-    import db
+    #import db
 
     myDB = db.DBConnection()
 
@@ -2562,7 +2562,7 @@ def cleanHost(host, protocol = True, ssl = False, username = None, password = No
     return host
 
 def checkthe_id(comicid=None, up_vals=None):
-    import db
+    #import db
     myDB = db.DBConnection()
     if not up_vals:
         chk = myDB.selectone("SELECT * from ref32p WHERE ComicID=?", [comicid]).fetchone()
@@ -2593,7 +2593,7 @@ def checkthe_id(comicid=None, up_vals=None):
         myDB.upsert("ref32p", newVal, ctrlVal)
 
 def updatearc_locs(storyarcid, issues):
-    import db
+    #import db
     myDB = db.DBConnection()
     issuelist = []
     for x in issues:
@@ -2683,7 +2683,7 @@ def updatearc_locs(storyarcid, issues):
 
 
 def spantheyears(storyarcid):
-    import db
+    #import db
     myDB = db.DBConnection()
 
     totalcnt = myDB.select("SELECT * FROM storyarcs WHERE StoryArcID=?", [storyarcid])
@@ -2747,7 +2747,7 @@ def arcformat(arc, spanyears, publisher):
     return dstloc
 
 def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
-    import db
+    #import db
     from base64 import b16encode, b32decode
 
     #check the status of the issueid to make sure it's in Snatched status and was grabbed via torrent.
@@ -3009,7 +3009,7 @@ def weekly_info(week=None, year=None, current=None):
     return weekinfo
 
 def latestdate_update():
-    import db
+    #import db
     myDB = db.DBConnection()
     ccheck = myDB.select('SELECT a.ComicID, b.IssueID, a.LatestDate, b.ReleaseDate, b.Issue_Number from comics as a left join issues as b on a.comicid=b.comicid where a.LatestDate < b.ReleaseDate or a.LatestDate like "%Unknown%" group by a.ComicID')
     if ccheck is None or len(ccheck) == 0:
@@ -3031,6 +3031,7 @@ def latestdate_update():
         myDB.upsert("comics", newVal, ctrlVal)
 
 def ddl_downloader(queue):
+    myDB = db.DBConnection()
     while True:
         if mylar.DDL_LOCK is True:
             time.sleep(5)
@@ -3042,19 +3043,37 @@ def ddl_downloader(queue):
                 logger.info('Cleaning up workers for shutdown')
                 break
 
+            #write this to the table so we have a record of what's going on.
+            ctrlval = {'id':      item['id']}
+            val = {'status':  'Downloading'}
+            myDB.upsert('ddl_info', val, ctrlval)
+
             ddz = getcomics.GC()
-            ddzstat = ddz.downloadit(item['link'], item['mainlink'])
+            ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'])
+
+            nval = {'status':  'Completed'}
+            myDB.upsert('ddl_info', nval, ctrlval)
 
             if all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is True]):
-                logger.info('%s successfully downloaded - now initiating post-processing.' % (ddzstat['filename']))
                 try:
-                    mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
-                                        'nzb_folder':   ddzstat['path'],
-                                        'failed':       False,
-                                        'issueid':      item['issueid'],
-                                        'comicid':      item['comicid'],
-                                        'apicall':      True,
-                                        'ddl':          True})
+                    if ddzstat['filename'] is None:
+                        logger.info('%s successfully downloaded - now initiating post-processing.' % (os.path.basename(ddzstat['path'])))
+                        mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
+                                            'nzb_folder':   ddzstat['path'],
+                                            'failed':       False,
+                                            'issueid':      None,
+                                            'comicid':      item['comicid'],
+                                            'apicall':      True,
+                                            'ddl':          True})
+                    else:
+                        logger.info('%s successfully downloaded - now initiating post-processing.' % (ddzstat['filename']))
+                        mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
+                                            'nzb_folder':   ddzstat['path'],
+                                            'failed':       False,
+                                            'issueid':      item['issueid'],
+                                            'comicid':      item['comicid'],
+                                            'apicall':      True,
+                                            'ddl':          True})
                 except Exception as e:
                     logger.info('process error: %s [%s]' %(e, ddzstat))
             elif mylar.CONFIG.POST_PROCESSING is True:
@@ -3323,7 +3342,7 @@ def date_conversion(originaldate):
 def job_management(write=False, job=None, last_run_completed=None, current_run=None, status=None):
         jobresults = []
 
-        import db
+        #import db
         myDB = db.DBConnection()
 
         if job is None:
@@ -3540,7 +3559,7 @@ def job_management(write=False, job=None, last_run_completed=None, current_run=N
 
 
 def stupidchk():
-    import db
+    #import db
     myDB = db.DBConnection()
     CCOMICS = myDB.select("SELECT COUNT(*) FROM comics WHERE Status='Active'")
     ens = myDB.select("SELECT COUNT(*) FROM comics WHERE Status='Loading' OR Status='Paused'")
@@ -3854,7 +3873,7 @@ def publisherImages(publisher):
     return comicpublisher
 
 def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
-    import db
+    #import db
     myDB = db.DBConnection()
     watchlist = listLibrary()
     matchlist = []
@@ -3894,7 +3913,7 @@ def lookupthebitches(filelist, folder, nzbname, nzbid, prov, hash, pulldate):
 
 
 def DateAddedFix():
-    import db
+    #import db
     myDB = db.DBConnection()
     DA_A = datetime.datetime.today()
     DateAdded = DA_A.strftime('%Y-%m-%d')
@@ -3904,8 +3923,6 @@ def DateAddedFix():
     annuals = myDB.select("SELECT IssueID FROM annuals WHERE Status='Wanted' and DateAdded is NULL")
     for an in annuals:
         myDB.upsert("annuals", {'DateAdded': DateAdded}, {'IssueID': an[0]})
-
-
 
 def file_ops(path,dst,arc=False,one_off=False):
 #    # path = source path + filename
@@ -4050,7 +4067,6 @@ def file_ops(path,dst,arc=False,one_off=False):
 
     else:
         return False
-
 
 from threading import Thread
 

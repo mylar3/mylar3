@@ -26,8 +26,7 @@ import time
 import Queue
 
 import mylar
-
-from mylar import logger
+import logger
 
 db_lock = threading.Lock()
 mylarQueue = Queue.Queue()

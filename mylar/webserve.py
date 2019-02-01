@@ -645,6 +645,8 @@ class WebInterface(object):
                         seriesYear = cid['SeriesYear']
                         issuePublisher = cid['Publisher']
                         seriesVolume = cid['Volume']
+                        bookType = cid['Type']
+                        seriesAliases = cid['Aliases']
                         if storyarcpublisher is None:
                             #assume that the arc is the same
                             storyarcpublisher = issuePublisher
@@ -670,6 +672,8 @@ class WebInterface(object):
                            "IssuePublisher":    issuePublisher,
                            "CV_ArcID":          arcid,
                            "Int_IssueNumber":   AD['Int_IssueNumber'],
+                           "Type":              bookType,
+                           "Aliases":           seriesAliases,
                            "Manual":            AD['Manual']}
 
                 myDB.upsert("storyarcs", newVals, newCtrl)
@@ -2193,6 +2197,41 @@ class WebInterface(object):
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % [comicid])
 
     annualDelete.exposed = True
+
+    def queueManage(self): # **args):
+        myDB = db.DBConnection()
+        activelist = 'There are currently no items currently downloading via Direct Download (DDL).'
+        active = myDB.selectone("SELECT * FROM DDL_INFO WHERE STATUS = 'Downloading'").fetchone()
+        if active is not None:
+            activelist ={'series':   active['series'],
+                         'year':     active['year'],
+                         'size':     active['size'],
+                         'filename': active['filename'],
+                         'status':   active['status'],
+                         'id':       active['id']}
+
+        resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID WHERE c.status != 'Downloading'")
+        if s_info:
+            resultlist = []
+            for si in s_info:
+                issue = si['Issue_Number']
+                if issue is not None:
+                    issue = '#%s' % issue 
+                resultlist.append({'series':    si['ComicName'],
+                                   'issue':     issue,
+                                   'id':        si['id'],
+                                   'volume':    si['ComicVersion'],
+                                   'year':      si['ComicYear'],
+                                   'size':      si['size'].strip(),
+                                   'comicid':   si['ComicID'],
+                                   'issueid':   si['IssueID'],
+                                   'status':    si['status']})
+
+            logger.info('resultlist: %s' % resultlist)
+        return serve_template(templatename="queue_management.html", title="Queue Management", activelist=activelist, resultlist=resultlist)
+    queueManage.exposed = True
+
 
     def previewRename(self, **args): #comicid=None, comicidlist=None):
         file_format = mylar.CONFIG.FILE_FORMAT
@@ -4104,7 +4143,7 @@ class WebInterface(object):
                     import random
                     SRID = str(random.randint(100000, 999999))
 
-                    logger.info('[IMPORT] Issues found with valid ComicID information for : ' + comicinfo['ComicName'] + ' [' + str(comicinfo['ComicID']) + ']')
+                    logger.info('[IMPORT] Issues found with valid ComicID information for : %s [%s]' % (comicinfo['ComicName'], comicinfo['ComicID']))
                     imported = {'ComicName':     comicinfo['ComicName'],
                                 'DynamicName':   comicinfo['DynamicName'],
                                 'Volume':        comicinfo['Volume'],
@@ -4127,7 +4166,7 @@ class WebInterface(object):
                     #                  "ComicName":         comicinfo['ComicName'],
                     #                  "DynamicName":       comicinfo['DynamicName']}
                     #        myDB.upsert("importresults", newVal, ctrlVal)
-                    logger.info('[IMPORT] Successfully verified import sequence data for : ' + comicinfo['ComicName'] + '. Currently adding to your watchlist.')
+                    logger.info('[IMPORT] Successfully verified import sequence data for : %s. Currently adding to your watchlist.' % comicinfo['ComicName'])
                     RemoveIDS.append(comicinfo['ComicID'])
 
             #we need to remove these items from the comiclist now, so they don't get processed again
@@ -4200,9 +4239,10 @@ class WebInterface(object):
                         else:
                             raise cherrypy.HTTPRedirect("importResults")
                     else:
-                        comicstoIMP.append(result['ComicLocation'])#.decode(mylar.SYS_ENCODING, 'replace'))
+                        #logger.fdebug('result: %s' % result)
+                        comicstoIMP.append(result['ComicLocation']) #.decode(mylar.SYS_ENCODING, 'replace'))
                         getiss = result['IssueNumber']
-                        #logger.info('getiss:' + getiss)
+                        #logger.fdebug('getiss: %s' % getiss)
                         if 'annual' in getiss.lower():
                             tmpiss = re.sub('[^0-9]','', getiss).strip()
                             if any([tmpiss.startswith('19'), tmpiss.startswith('20')]) and len(tmpiss) == 4:
@@ -4217,10 +4257,10 @@ class WebInterface(object):
                             miniss_num = helpers.issuedigits(minISSUE)
                             startiss_num = helpers.issuedigits(startISSUE)
                             if int(getiss_num) > int(miniss_num):
-                                #logger.fdebug('Minimum issue now set to : ' + getiss + ' - it was : ' + minISSUE)
+                                logger.fdebug('Minimum issue now set to : %s - it was %s' % (getiss, minISSUE))
                                 minISSUE = getiss
                             if int(getiss_num) < int(startiss_num):
-                                #logger.fdebug('Start issue now set to : ' + getiss + ' - it was : ' + startISSUE)
+                                logger.fdebug('Start issue now set to : %s - it was %s' % (getiss, startISSUE))
                                 startISSUE = str(getiss)
                                 if helpers.issuedigits(startISSUE) == 1000 and result['ComicYear'] is not None:  # if it's an issue #1, get the year and assume that's the start.
                                     startyear = result['ComicYear']

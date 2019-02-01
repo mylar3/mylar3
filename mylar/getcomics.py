@@ -27,8 +27,10 @@ import json
 from bs4 import BeautifulSoup
 import requests
 import cfscrape
+import zipfile
 import logger
 import mylar
+from mylar import db
 
 class GC(object):
 
@@ -63,7 +65,8 @@ class GC(object):
 
         return self.search_results()
 
-    def loadsite(self, title, link):
+    def loadsite(self, id, link):
+        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         with cfscrape.create_scraper() as s:
             self.cf_cookievalue, cf_user_agent = s.get_tokens(link, headers=self.headers)
 
@@ -89,6 +92,31 @@ class GC(object):
             link = lk['href']
             titlefind = f.find("h1", {"class": "post-title"})
             title = titlefind.get_text(strip=True)
+            title = re.sub(u'\u2013', '-', title).strip()
+            filename = title
+            issues = None
+            pack = False
+            #see if it's a pack type
+            issfind_st = title.find('#')
+            issfind_en = title.find('-', issfind_st)
+            if issfind_en != -1:
+                if all([title[issfind_en+1] == ' ', title[issfind_en+2].isdigit()]):
+                    iss_en = title.find(' ', issfind_en+2)
+                    if iss_en != -1:
+                        issues = title[issfind_st+1:iss_en]
+                        pack = True
+                if title[issfind_en+1].isdigit():
+                    iss_en = title.find(' ', issfind_en+1)
+                    if iss_en != -1:
+                        issues = title[issfind_st+1:iss_en]
+                        pack = True
+
+            # if it's a pack - remove the issue-range and the possible issue years (cause it most likely will span) and pass thru as separate items
+            if pack is True:
+                title = re.sub(issues, '', title).strip()
+                if title.endswith('#'):
+                    title = title[:-1].strip()
+
             option_find = f.find("p", {"style": "text-align: center;"})
             i = 0
             while i <= 2:
@@ -96,6 +124,8 @@ class GC(object):
                 if 'Year' in option_find:
                     year = option_find.findNext(text=True)
                     year = re.sub('\|', '', year).strip()
+                    if pack is True and '-' in year:
+                        title = re.sub('\('+year+'\)', '', title).strip()
                 else:
                     size = option_find.findNext(text=True)
                     if all([re.sub(':', '', size).strip() != 'Size', len(re.sub('[^0-9]', '', size).strip()) > 0]):
@@ -114,7 +144,10 @@ class GC(object):
             datestamp = time.mktime(time.strptime(datefull, "%Y-%m-%d"))
             resultlist.append({"title":    title,
                                "pubdate":  datetime.datetime.fromtimestamp(float(datestamp)).strftime('%a, %d %b %Y %H:%M:%S'),
+                               "filename": filename,
                                "size":     re.sub(' ', '', size).strip(),
+                               "pack":     pack,
+                               "issues":   issues,
                                "link":     link,
                                "year":     year,
                                "id":       re.sub('post-', '', id).strip(),
@@ -126,8 +159,9 @@ class GC(object):
 
         return results
 
-    def parse_downloadresults(self, title, mainlink):
-
+    def parse_downloadresults(self, id, mainlink):
+        myDB = db.DBConnection()
+        title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
         soup = BeautifulSoup(open(title+'.html'), 'html.parser')
         orig_find = soup.find("p", {"style": "text-align: center;"})
         i = 0
@@ -201,23 +235,35 @@ class GC(object):
         for x in links:
             logger.fdebug('[%s] %s - %s' % (x['site'], x['volume'], x['link']))
 
+        ctrlval = {'id':   id}
+        vals = {'series':  series,
+                'year':    year,
+                'size':    size,
+                'issueid': self.issueid,
+                'comicid': self.comicid,
+                'link':    link,
+                'status':  'Queued'}
+        myDB.upsert('ddl_info', vals, ctrlval)
+
         mylar.DDL_QUEUE.put({'link':     link,
                              'mainlink': mainlink,
                              'series':   series,
                              'year':     year,
                              'size':     size,
                              'comicid':  self.comicid,
-                             'issueid':  self.issueid})
+                             'issueid':  self.issueid,
+                             'id':       id})
 
         return {'success': True}
 
-    def downloadit(self, link, mainlink):
+    def downloadit(self, id, link, mainlink):
         if mylar.DDL_LOCK is True:
             logger.fdebug('[DDL] Another item is currently downloading via DDL. Only one item can be downloaded at a time using DDL. Patience.')
             return
         else:
             mylar.DDL_LOCK = True
 
+        myDB = db.DBConnection()
         filename = None
         try:
             with cfscrape.create_scraper() as s:
@@ -227,6 +273,9 @@ class GC(object):
                 filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
 
                 path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+
+                #write the filename to the db for tracking purposes...
+                myDB.upsert('ddl_info', {'filename': filename}, {'id': id})
 
                 if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
                     buf = StringIO(t.content)
@@ -248,9 +297,29 @@ class GC(object):
         else:
             mylar.DDL_LOCK = False
             if os.path.isfile(path):
+                if path.endswith('.zip'):
+                    new_path = os.path.join(mylar.CONFIG.DDL_LOCATION, re.sub('.zip', '', filename).strip())
+                    logger.info('Zip file detected. Unzipping into new modified path location: %s' % new_path)
+                    try:
+                        zip_f = zipfile.ZipFile(path, 'r')
+                        zip_f.extractall(new_path)
+                        zip_f.close()
+                    except Exception as e:
+                        logger.warn('[ERROR: %s] Unable to extract zip file: %s' % (e, new_path))
+                        return ({"success":  False,
+                                 "filename": filename,
+                                 "path":     None})
+                    else:
+                        try:
+                            os.remove(path)
+                        except Exception as e:
+                            logger.warn('[ERROR: %s] Unable to remove zip file from %s after extraction.' % (e, path))
+                        filename = None
+                else:
+                    new_path = path
                 return ({"success":  True,
                          "filename": filename,
-                         "path":     mylar.CONFIG.DDL_LOCATION})
+                         "path":     new_path})
 
     def issue_list(self, pack):
         #packlist = [x.strip() for x in pack.split(',)]

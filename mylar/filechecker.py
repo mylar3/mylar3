@@ -234,7 +234,7 @@ class FileChecker(object):
                         ab = len(path)
                         tmppath = subpath[ab:]
                 else:
-                    tmppath = re.sub(path, '', subpath).strip()
+                    tmppath = subpath.replace(path, '').strip()
 
                 path_list = os.path.normpath(tmppath)
                 if '/' == path_list[0] or '\\' == path_list[0]:
