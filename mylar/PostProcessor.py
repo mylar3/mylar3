@@ -1135,7 +1135,7 @@ class PostProcessor(object):
                                                             datematch = "False"
                                                     if len(arcvals) > 1 and int(tmp_arcmatch_vol) > 1:
                                                         if int(tmp_arcmatch_vol) == int(tmp_arclist_vol):
-                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (modulue, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
                                                         else:
                                                             logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
                                                             continue
