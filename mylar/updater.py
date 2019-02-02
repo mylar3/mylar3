@@ -114,12 +114,12 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
                     #logger.fdebug('%s [%s] Was refreshed less than %s hours ago. Skipping Refresh at this time.' % (ComicName, ComicID, cache_hours))
                     cnt +=1
                     continue
-            logger.info('[' + str(cnt) + '/' + str(len(comiclist)) + '] Refreshing :' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
+            logger.info('[%s/%s] Refreshing :%s (%s) [%s]' % (cnt, len(comiclist), ComicName, dspyear, ComicID))
         else:
             ComicID = comic['ComicID']
             ComicName = comic['ComicName']
 
-            logger.fdebug('Refreshing: ' + ComicName + ' (' + str(dspyear) + ') [' + str(ComicID) + ']')
+            logger.info('Refreshing/Updating: %s (%s) [%s]' % (ComicName, dspyear, ComicID))
 
         mismatch = "no"
         if not mylar.CONFIG.CV_ONLY or ComicID[:1] == "G":

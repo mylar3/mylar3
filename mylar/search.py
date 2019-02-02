@@ -896,11 +896,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     comsize_b = entry['size']
                                 elif entry['site'] == 'DDL':
                                     comsize_b = helpers.human2bytes(entry['size'])
-                                else:
-                                    tmpsz = entry.enclosures[0]
-                                    comsize_b = tmpsz['length']
                             except Exception as e:
-                                logger.warn('[ERROR] %s [%s]' % (e, entry))
                                 tmpsz = entry.enclosures[0]
                                 comsize_b = tmpsz['length']
 
@@ -1116,7 +1112,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
-                if parsed_comic['parse_status'] == 'success' and (all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
+                if parsed_comic['parse_status'] == 'success' and (all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or all([booktype == 'One-Shot', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
                         filecomic = fcomic.matchIT(parsed_comic)
@@ -1373,7 +1369,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.fdebug("issue we are looking for is : %s" % findcomiciss)
                             logger.fdebug("integer value of issue we are looking for : %s" % intIss)
                         else:
-                            if intIss is None:
+                            if intIss is None and all([booktype == 'One-Shot', helpers.issuedigits(parsed_comic['issue_number']) == 1000]):
+                                intIss = 1000
+                            else:
                                 intIss = 9999999999
                         if parsed_comic['issue_number'] is not None:
                             logger.fdebug("issue we found for is : %s" % parsed_comic['issue_number'])
@@ -1387,7 +1385,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             pc_in = None
                         else:
                             pc_in = helpers.issuedigits(parsed_comic['issue_number'])
-
                         #issue comparison now as well
                         if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
                             nowrite = False
@@ -1801,7 +1798,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 StoreDate = result['ReleaseDate']
                 DigitalDate = result['DigitalDate']
                 TorrentID_32p = None
-                booktype = None
+                booktype = result['Type']
             elif mode == 'pullwant':
                 ComicName = result['COMIC']
                 Comicname_filesafe = helpers.filesafe(ComicName)
@@ -1818,7 +1815,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                 IssueDate = result['SHIPDATE']
                 StoreDate = IssueDate
                 DigitalDate = '0000-00-00'
-                booktype = None
+                booktype = result['format']
             else:
                 comic = myDB.selectone('SELECT * FROM comics where ComicID=?', [ComicID]).fetchone()
                 if mode == 'want_ann':
