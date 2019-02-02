@@ -1281,6 +1281,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                 downloadit = False
 #-------------------------------------fix this!
+                try:
+                    pack_test = entry['pack']
+                except Exception as e:
+                    pack_test = False
+
                 if nzbprov == 'Public Torrents' and any([entry['site'] == 'WWT', entry['site'] == 'DEM']):
                     if entry['site'] == 'WWT':
                         nzbprov = 'WWT'
@@ -1289,7 +1294,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                 if all([nzbprov == '32P', allow_packs == True, RSS == 'no']):
                     logger.fdebug('pack:' + entry['pack'])
-                if (all([nzbprov == '32P', RSS == 'no', allow_packs == True]) and any([entry['pack'] == '1', entry['pack'] == '2'])) or (all([nzbprov == 'ddl', entry['pack'] is True])):  #allow_packs is True 
+                if (all([nzbprov == '32P', RSS == 'no', allow_packs == True]) and any([entry['pack'] == '1', entry['pack'] == '2'])) or (all([nzbprov == 'ddl', pack_test is True])):  #allow_packs is True 
                     if nzbprov == '32P':
                         if entry['pack'] == '2':
                             logger.fdebug('[PACK-QUEUE] Diamond FreeLeech Pack detected.')
