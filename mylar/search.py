@@ -622,7 +622,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         if nzbprov == 'ddl':
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug('Sending request to DDL site for : %s %s' % (findcomic, isssearch))
-            b = getcomics.GC(query=findcomic + ' ' + isssearch)
+            b = getcomics.GC(query='%s %s' % (findcomic, isssearch))
             bb = b.search()
             #logger.info('bb returned from DDL: %s' % bb)
         elif RSS == "yes":
