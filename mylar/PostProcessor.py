@@ -1814,7 +1814,7 @@ class PostProcessor(object):
 
                     grab_src = os.path.join(src_location, ofilename)
                     self._log("Source Path : %s" % grab_src)
-                    logger.info('%s Source Path : ' % (module, grab_src))
+                    logger.info('%s Source Path : %s' % (module, grab_src))
 
                     checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
                     if not checkdirectory:
