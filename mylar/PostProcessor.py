@@ -943,7 +943,7 @@ class PostProcessor(object):
                                                                 "Location":         av['Location']},
                                             "WatchValues":     {"SeriesYear":       av['SeriesYear'],
                                                                 "LatestDate":       av['IssueDate'],
-                                                                "ComicVersion":     'v' + str(av['SeriesYear']),
+                                                                "ComicVersion":     av['Volume'],
                                                                 "ComicID":          av['ComicID'],
                                                                 "Publisher":        av['IssuePublisher'],
                                                                 "Total":            av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
@@ -1037,51 +1037,134 @@ class PostProcessor(object):
                                     else:
                                         for isc in issuechk:
                                             datematch = "True"
+                                            if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
+                                                try:
+                                                    if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
+                                                        monthval = isc['DigitalDate']
+                                                        arc_issueyear = isc['DigitalDate'][:4]
+                                                    else:
+                                                        monthval = isc['ReleaseDate']
+                                                        arc_issueyear = isc['ReleaseDate'][:4]
+                                                except:
+                                                    monthval = isc['ReleaseDate']
+                                                    arc_issueyear = isc['ReleaseDate'][:4]
+
+                                            else:
+                                                try:
+                                                    if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
+                                                        monthval = isc['DigitalDate']
+                                                        arc_issueyear = isc['DigitalDate'][:4]
+                                                    else:
+                                                        monthval = isc['IssueDate']
+                                                        arc_issueyear = isc['IssueDate'][:4]
+                                                except:
+                                                    monthval = isc['IssueDate']
+                                                    arc_issueyear = isc['IssueDate'][:4]
+
+
                                             if len(arcmatch) >= 1 and arcmatch['issue_year'] is not None:
                                                 #if the # of matches is more than 1, we need to make sure we get the right series
                                                 #compare the ReleaseDate for the issue, to the found issue date in the filename.
                                                 #if ReleaseDate doesn't exist, use IssueDate
                                                 #if no issue date was found, then ignore.
+                                                logger.fdebug('%s[ARC ISSUE-VERIFY] Now checking against %s - %s' % (module, k, v[i]['WatchValues']['ComicID']))
                                                 issyr = None
-                                                logger.fdebug('issuedate: %s' % isc['IssueDate'])
-                                                logger.fdebug('issuechk: %s' % isc['IssueDate'][5:7])
+                                                #logger.fdebug('issuedate: %s' % isc['IssueDate'])
+                                                #logger.fdebug('issuechk: %s' % isc['IssueDate'][5:7])
+                                                #logger.fdebug('StoreDate %s' % isc['ReleaseDate'])
+                                                #logger.fdebug('IssueDate: %s' % isc['IssueDate'])
+                                                if isc['DigitalDate'] is not None and isc['DigitalDate'] != '0000-00-00':
+                                                    if int(isc['DigitalDate'][:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] %s is before the issue year of %s that was discovered in the filename' % (module, isc['DigitalDate'], arcmatch['issue_year']))
+                                                        datematch = "False"
 
-                                                logger.fdebug('StoreDate %s' % isc['ReleaseDate'])
-                                                logger.fdebug('IssueDate: %s' % isc['IssueDate'])
-                                                if all([isc['ReleaseDate'] is not None, isc['ReleaseDate'] != '0000-00-00']) or all([isc['IssueDate'] is not None, isc['IssueDate'] != '0000-00-00']):
+                                                elif all([isc['ReleaseDate'] is not None, isc['ReleaseDate'] != '0000-00-00']):
                                                     if isc['ReleaseDate'] == '0000-00-00':
                                                         datevalue = isc['IssueDate']
-                                                        if int(datevalue[:4]) < int(arcmatch['issue_year']):
-                                                            logger.fdebug('%s %s is before the issue year %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
-                                                            datematch = "False"
                                                     else:
                                                         datevalue = isc['ReleaseDate']
-                                                        if int(datevalue[:4]) < int(arcmatch['issue_year']):
-                                                            logger.fdebug('%s %s is before the issue year of %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
-                                                            datematch = "False"
-
-                                                    monthval = datevalue
-
-                                                    if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
-                                                        issyr = int(monthval[:4]) + 1
-                                                        logger.fdebug('%s IssueYear (issyr) is %s' % (module, issyr))
-                                                    elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
-                                                        issyr = int(monthval[:4]) - 1
-
-                                                    if datematch == "False" and issyr is not None:
-                                                        logger.fdebug('%s %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
-                                                        datematch = "True"
-                                                        if int(issyr) != int(arcmatch['issue_year']):
-                                                            logger.fdebug('%s[.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
-                                                            datematch = "False"
-
+                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
+                                                        datematch = "False"
+                                                elif all([isc['IssueDate'] is not None, isc['IssueDate'] != '0000-00-00']):
+                                                    if isc['IssueDate'] == '0000-00-00':
+                                                        datevalue = isc['ReleaseDate']
+                                                    else:
+                                                        datevalue = isc['IssueDate']
+                                                    if int(datevalue[:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] %s is before the issue year of %s that was discovered in the filename' % (module, datevalue[:4], arcmatch['issue_year']))
+                                                        datematch = "False"
                                                 else:
-                                                    logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
+                                                    if int(isc['IssueDate'][:4]) < int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (module, isc['IssueDate'], arcmatch['issue_year']))
+                                                        datematch = "False"
 
-                                                logger.fdebug('datematch: %s' % datematch)
-                                                logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
-                                                logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
-                                                if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+                                                if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                                    issyr = int(monthval[:4]) + 1
+                                                    logger.fdebug('%s[ARC ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
+                                                elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
+                                                    issyr = int(monthval[:4]) - 1
+
+                                                if datematch == "False" and issyr is not None:
+                                                    logger.fdebug('%s[ARC ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
+                                                    datematch = "True"
+                                                    if int(issyr) != int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
+                                                        datematch = "False"
+
+                                            else:
+                                                logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
+
+                                            logger.fdebug('datematch: %s' % datematch)
+                                            logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
+                                            logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
+                                            if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
+
+                                                arc_values = v[i]['WatchValues']
+                                                if any([arc_values['ComicVersion'] is None, arc_values['ComicVersion'] == 'None']):
+                                                    tmp_arclist_vol = '1'
+                                                else:
+                                                    tmp_arclist_vol = re.sub("[^0-9]", "", arc_values['ComicVersion']).strip()
+                                                if all([arcmatch['series_volume'] != 'None', arcmatch['series_volume'] is not None]):
+                                                    tmp_arcmatch_vol = re.sub("[^0-9]","", arcmatch['series_volume']).strip()
+                                                    if len(tmp_arcmatch_vol) == 4:
+                                                        if int(tmp_arcmatch_vol) == int(arc_values['SeriesYear']):
+                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Series Year of %s matched to volume/year label of %s' % (module, arc_values['SeriesYear'], tmp_arcmatch_vol))
+                                                        else:
+                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, arc_values['SeriesYear'], tmp_arcmatch_vol))
+                                                            datematch = "False"
+                                                    if len(arcvals) > 1 and int(tmp_arcmatch_vol) > 1:
+                                                        if int(tmp_arcmatch_vol) == int(tmp_arclist_vol):
+                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (modulue, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                        else:
+                                                            logger.fdebug('%s[ARC ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, arc_values['ComicVersion'], arcmatch['series_volume']))
+                                                            continue
+                                                else:
+                                                    if any([tmp_arclist_vol is None, tmp_arclist_vol == 'None', tmp_arclist_vol == '']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][NO VOLUME PRESENT] No Volume label present for series. Dropping down to Issue Year matching.' % module)
+                                                        datematch = "False"
+                                                    elif len(arcvals) == 1 and int(tmp_arclist_vol) == 1:
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume MATCH] Volume label of %s indicates only volume for this series on your watchlist.' % (module, arc_values['ComicVersion']))
+                                                    elif int(tmp_arclist_vol) > 1:
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][Lone Volume FAILURE] Volume label of %s indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.' % (module, arc_values['ComicVersion']))
+                                                        datematch = "False"
+
+                                                if datematch == "False" and all([arcmatch['issue_year'] is not None, arcmatch['issue_year'] != 'None', arc_issueyear is not None]):
+                                                    #now we see if the issue year matches exactly to what we have within Mylar.
+                                                    if int(arc_issueyear) == int(arcmatch['issue_year']):
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year MATCH] Issue Year of %s is a match to the year found in the filename of : %s' % (module, arc_issueyear, arcmatch['issue_year']))
+                                                        datematch = 'True'
+                                                    else:
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year FAILURE] Issue Year of %s does NOT match the year found in the filename of : %s' % (module, arc_issueyear, arcmatch['issue_year']))
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] Checking against complete date to see if month published could allow for different publication year.' % module)
+                                                        if issyr is not None:
+                                                            if int(issyr) != int(arcmatch['issue_year']):
+                                                                logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year FAILURE] Modified Issue year of %s is before the modified issue year of %s' % (module, issyr, arcmatch['issue_year']))
+                                                            else:
+                                                                logger.fdebug('%s[ARC ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of %s is a match to the year found in the filename of : %s' % (module, issyr, arcmatch['issue_year']))
+                                                                datematch = 'True'
+
+                                                if datematch == 'True':
                                                     passit = False
                                                     if len(manual_list) > 0:
                                                         if any([ v[i]['ArcValues']['IssueID'] == x['IssueID'] for x in manual_list ]):
@@ -1092,6 +1175,7 @@ class PostProcessor(object):
                                                                     a['IssueArcID'] = v[i]['ArcValues']['IssueArcID']
                                                                     break
                                                             passit = True
+
                                                     if passit == False:
                                                         tmpfilename = helpers.conversion(arcmatch['comicfilename'])
                                                         if arcmatch['sub']:
