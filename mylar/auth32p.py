@@ -69,7 +69,7 @@ class info32p(object):
         try:
             with cfscrape.create_scraper() as s:
                 s.headers = self.headers
-                cj = LWPCookieJar(os.path.join(mylar.CONFIG.CACHE_DIR, ".32p_cookies.dat"))
+                cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
                 cj.load()
                 s.cookies = cj
 
@@ -248,7 +248,7 @@ class info32p(object):
 
         with cfscrape.create_scraper() as s:
             s.headers = self.headers
-            cj = LWPCookieJar(os.path.join(mylar.CONFIG.CACHE_DIR, ".32p_cookies.dat"))
+            cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
             cj.load()
             s.cookies = cj
             data = []
@@ -403,7 +403,7 @@ class info32p(object):
             except Exception as e:
                 logger.error('%s Can\'t create session with cfscrape' % self.module)
 
-            self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.CACHE_DIR, ".32p_cookies.dat")
+            self.session_path = session_path if session_path is not None else os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat")
             self.ses.cookies = LWPCookieJar(self.session_path)
             if not os.path.exists(self.session_path):
                 logger.fdebug('%s Session cookie does not exist. Signing in and Creating.' % self.module)

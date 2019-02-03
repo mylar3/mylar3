@@ -76,6 +76,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SHOW_ICONS': (bool, 'General', False),
     'FORMAT_BOOKTYPE': (bool, 'General', False),
     'CLEANUP_CACHE': (bool, 'General', False),
+    'SECURE_DIR': (str, 'General', None),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -772,6 +773,25 @@ class Config(object):
                os.makedirs(self.CACHE_DIR)
             except OSError:
                 logger.error('[Cache Check] Could not create cache dir. Check permissions of datadir: ' + mylar.DATA_DIR)
+
+
+        if not self.SECURE_DIR:
+            self.SECURE_DIR = os.path.join(mylar.DATA_DIR, '.secure')
+
+        if not os.path.exists(self.SECURE_DIR):
+            try:
+               os.makedirs(self.SECURE_DIR)
+            except OSError:
+                logger.error('[Secure DIR Check] Could not create secure directory. Check permissions of datadir: ' + mylar.DATA_DIR)
+
+        #make sure the cookies.dat file is not in cache
+        for f in glob.glob(os.path.join(self.CACHE_DIR, '.32p_cookies.dat')):
+             try:
+                 if os.path.isfile(f):
+                     shutil.move(f, os.path.join(self.SECURE_DIR, '.32p_cookies.dat'))
+             except Exception as e:
+                 logger.error('SECURE-DIR-MOVE] Unable to move cookies file into secure location. This is a fatal error.')
+                 sys.exit()
 
         if self.CLEANUP_CACHE is True:
             logger.fdebug('[Cache Cleanup] Cache Cleanup initiated. Will delete items from cache that are no longer needed.')

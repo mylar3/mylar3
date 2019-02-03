@@ -99,9 +99,7 @@ def initialize(options):
         },
         '/cache': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': mylar.CONFIG.CACHE_DIR,
-            'tools.auth_basic.on': False,
-            'tools.auth.on': False
+            'tools.staticdir.dir': mylar.CONFIG.CACHE_DIR
         }
     }
 
