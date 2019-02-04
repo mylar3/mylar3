@@ -2011,7 +2011,6 @@
                             var obj = JSON.parse(data);
                             var versionsab = obj['version'];
                             vsab = numberWithDecimals(versionsab);
-                            alert(vsab);
                             $('#sabstatus').val(obj['status']);
                             $('#sabversion span').text('SABnzbd version: '+versionsab);
                             if ( vsab < "0.8.0" ){
