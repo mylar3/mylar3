@@ -653,6 +653,7 @@ class PostProcessor(object):
                                     fcdigit = helpers.issuedigits(temploc)
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=? AND Int_IssueNumber=?", [cs['ComicID'], fcdigit])
                                 else:
+                                    fcdigit = None
                                     issuechk = myDB.select("SELECT * from issues WHERE ComicID=?", [cs['ComicID']])
 
                             if not issuechk:
@@ -748,7 +749,10 @@ class PostProcessor(object):
                                             datematch = "False"
 
                                 else:
-                                    logger.info('%s[ISSUE-VERIFY] Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, cs['ComicID'], isc['IssueID']))
+                                    if fcdigit is None:
+                                        logger.info('%s[ISSUE-VERIFY] Found matching issue for ComicID: %s / IssueID: %s' % (module, cs['ComicID'], isc['IssueID']))
+                                    else:
+                                        logger.info('%s[ISSUE-VERIFY] Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, cs['ComicID'], isc['IssueID']))
 
                                 if datematch == "True":
                                     # if we get to here, we need to do some more comparisons just to make sure we have the right volume
@@ -1027,6 +1031,7 @@ class PostProcessor(object):
                                                 fcdigit = helpers.issuedigits(temploc)
                                                 issuechk = myDB.select("SELECT * from storyarcs WHERE ComicID=? AND Int_IssueNumber=?", [v[i]['WatchValues']['ComicID'], fcdigit])
                                             else:
+                                                fcdigit = None
                                                 issuechk = myDB.select("SELECT * from storyarcs WHERE ComicID=?", [v[i]['WatchValues']['ComicID']])
 
                                     if issuechk is None:
@@ -1113,7 +1118,10 @@ class PostProcessor(object):
                                                         datematch = "False"
 
                                             else:
-                                                logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
+                                                if fcdigit is None:
+                                                    logger.info('%s Found matching issue for ComicID: %s / IssueID: %s' % (module, v[i]['WatchValues']['ComicID'], isc['IssueID']))
+                                                else:
+                                                    logger.info('%s Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, v[i]['WatchValues']['ComicID'], isc['IssueID']))
 
                                             logger.fdebug('datematch: %s' % datematch)
                                             logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
