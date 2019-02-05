@@ -28,7 +28,7 @@ def locg(pulldate=None,weeknumber=None,year=None):
             if pulldate is None or pulldate == '00000000':
                 weeknumber = todaydate.strftime("%U")
             elif '-' in pulldate:
-                #find the week number            
+                #find the week number
                 weektmp = datetime.date(*(int(s) for s in pulldate.split('-')))
                 weeknumber = weektmp.strftime("%U")
                 #we need to now make sure we default to the correct week
@@ -58,82 +58,90 @@ def locg(pulldate=None,weeknumber=None,year=None):
             logger.warn(e)
             return {'status': 'failure'}
 
-        if r.status_code == '619':
+        if str(r.status_code) == '619':
             logger.warn('[' + str(r.status_code) + '] No date supplied, or an invalid date was provided [' + str(pulldate) + ']')
-            return {'status': 'failure'}            
-        elif r.status_code == '999' or r.status_code == '111':
+            return {'status': 'failure'}
+        elif str(r.status_code) == '999' or str(r.status_code) == '111':
             logger.warn('[' + str(r.status_code) + '] Unable to retrieve data from site - this is a site.specific issue [' + str(pulldate) + ']')
-            return {'status': 'failure'}            
+            return {'status': 'failure'}
+        elif str(r.status_code) == '200':
+            data = r.json()
 
-        data = r.json()
+            logger.info('[WEEKLY-PULL] There are ' + str(len(data)) + ' issues for the week of ' + str(weeknumber) + ', ' + str(year))
+            pull = []
 
-        logger.info('[WEEKLY-PULL] There are ' + str(len(data)) + ' issues for the week of ' + str(weeknumber) + ', ' + str(year))
-        pull = []
+            for x in data:
+                pull.append({'series':     x['series'],
+                             'alias':      x['alias'],
+                             'issue':      x['issue'],
+                             'publisher':  x['publisher'],
+                             'shipdate':   x['shipdate'],
+                             'coverdate':  x['coverdate'],
+                             'comicid':    x['comicid'],
+                             'issueid':    x['issueid'],
+                             'weeknumber': x['weeknumber'],
+                             'annuallink': x['link'],
+                             'year':       x['year'],
+                             'volume':     x['volume'],
+                             'seriesyear': x['seriesyear'],
+                             'format':     x['type']})
+                shipdate = x['shipdate']
 
-        for x in data:
-            pull.append({'series':     x['series'],
-                         'alias':      x['alias'],
-                         'issue':      x['issue'],
-                         'publisher':  x['publisher'],
-                         'shipdate':   x['shipdate'],
-                         'coverdate':  x['coverdate'],
-                         'comicid':    x['comicid'],
-                         'issueid':    x['issueid'],
-                         'weeknumber': x['weeknumber'],
-                         'annuallink': x['link'],
-                         'year':       x['year'],
-                         'volume':     x['volume'],
-                         'seriesyear': x['seriesyear'],
-                         'format':     x['type']})
-            shipdate = x['shipdate']
+            myDB = db.DBConnection()
 
-        myDB = db.DBConnection()
+            myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, annuallink text, format text, rowid INTEGER PRIMARY KEY)")
 
-        myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER text, ISSUE text, COMIC VARCHAR(150), EXTRA text, STATUS text, ComicID text, IssueID text, CV_Last_Update text, DynamicName text, weeknumber text, year text, volume text, seriesyear text, annuallink text, format text, rowid INTEGER PRIMARY KEY)")
+            #clear out the upcoming table here so they show the new values properly.
+            if pulldate == '00000000':
+                logger.info('Re-creating pullist to ensure everything\'s fresh.')
+                myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
 
-        #clear out the upcoming table here so they show the new values properly.
-        if pulldate == '00000000':
-            logger.info('Re-creating pullist to ensure everything\'s fresh.')
-            myDB.action('DELETE FROM weekly WHERE weeknumber=? AND year=?',[int(weeknumber), int(year)])
+            for x in pull:
+                comicid = None
+                issueid = None
+                comicname = x['series']
+                if x['comicid'] is not None:
+                    comicid = x['comicid']
+                if x['issueid'] is not None:
+                    issueid= x['issueid']
+                if x['alias'] is not None:
+                    comicname = x['alias']
 
-        for x in pull:
-            comicid = None
-            issueid = None
-            comicname = x['series']
-            if x['comicid'] is not None:
-                comicid = x['comicid']
-            if x['issueid'] is not None:
-                issueid= x['issueid']
-            if x['alias'] is not None:
-                comicname = x['alias']
+                cl_d = mylar.filechecker.FileChecker()
+                cl_dyninfo = cl_d.dynamic_replace(comicname)
+                dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
 
-            cl_d = mylar.filechecker.FileChecker()
-            cl_dyninfo = cl_d.dynamic_replace(comicname)
-            dynamic_name = re.sub('[\|\s]','', cl_dyninfo['mod_seriesname'].lower()).strip()
+                controlValueDict = {'DYNAMICNAME':   dynamic_name,
+                                    'ISSUE':   re.sub('#', '', x['issue']).strip()}
 
-            controlValueDict = {'DYNAMICNAME':   dynamic_name,
-                                'ISSUE':   re.sub('#', '', x['issue']).strip()}
-                
-            newValueDict = {'SHIPDATE':    x['shipdate'],
-                            'PUBLISHER':   x['publisher'],
-                            'STATUS':      'Skipped',
-                            'COMIC':       comicname,
-                            'COMICID':     comicid,
-                            'ISSUEID':     issueid,
-                            'WEEKNUMBER':  x['weeknumber'],
-                            'ANNUALLINK':  x['annuallink'],
-                            'YEAR':        x['year'],
-                            'VOLUME':      x['volume'],
-                            'SERIESYEAR':  x['seriesyear'],
-                            'FORMAT':      x['format']}
-            myDB.upsert("weekly", newValueDict, controlValueDict)
+                newValueDict = {'SHIPDATE':    x['shipdate'],
+                                'PUBLISHER':   x['publisher'],
+                                'STATUS':      'Skipped',
+                                'COMIC':       comicname,
+                                'COMICID':     comicid,
+                                'ISSUEID':     issueid,
+                                'WEEKNUMBER':  x['weeknumber'],
+                                'ANNUALLINK':  x['annuallink'],
+                                'YEAR':        x['year'],
+                                'VOLUME':      x['volume'],
+                                'SERIESYEAR':  x['seriesyear'],
+                                'FORMAT':      x['format']}
+                myDB.upsert("weekly", newValueDict, controlValueDict)
 
-        logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for the week of: ' + str(weeknumber))
-        #set the last poll date/time here so that we don't start overwriting stuff too much...
-        mylar.CONFIG.PULL_REFRESH = todaydate
+            logger.info('[PULL-LIST] Successfully populated pull-list into Mylar for the week of: ' + str(weeknumber))
+            #set the last poll date/time here so that we don't start overwriting stuff too much...
+            mylar.CONFIG.PULL_REFRESH = todaydate
 
-        return {'status':     'success',
-                'count':      len(data),
-                'weeknumber': weeknumber,
-                'year':       year}
+            return {'status':     'success',
+                    'count':      len(data),
+                    'weeknumber': weeknumber,
+                    'year':       year}
+
+        else:
+            if str(r.status_code) == '666':
+                logger.warn('[%s] The error returned is: %s' % (r.status_code, r.headers))
+                return {'status': 'update_required'}
+            else:
+                logger.warn('[%s] The error returned is: %s' % (r.status_code, r.headers))
+                return {'status': 'failure'}
 

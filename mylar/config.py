@@ -809,7 +809,7 @@ class Config(object):
                     cntr+=1
 
             if cntr > 1:
-                logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items')
+                logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Cleaned %s items' % cntr)
             else:
                 logger.fdebug('[Cache Cleanup] Cache Cleanup finished. Nothing to clean!')
 
