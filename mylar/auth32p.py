@@ -1,3 +1,18 @@
+# This file is part of Mylar.
+#
+# Mylar is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Mylar is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
+
 import urllib2
 import json
 import re
@@ -13,7 +28,7 @@ import cfscrape
 from operator import itemgetter
 
 import mylar
-from mylar import logger, filechecker, helpers
+from mylar import db, logger, filechecker, helpers
 
 
 class info32p(object):
@@ -35,7 +50,6 @@ class info32p(object):
         self.method = None
 
         lses = self.LoginSession(mylar.CONFIG.USERNAME_32P, mylar.CONFIG.PASSWORD_32P)
-
         if not lses.login():
             if not self.test:
                 logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
@@ -49,6 +63,7 @@ class info32p(object):
             logger.fdebug('%s [LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...' % self.module)
             self.authkey = lses.authkey
             self.passkey = lses.passkey
+            self.session = lses.ses
             self.uid = lses.uid
             try:
                 mylar.INKDROPS_32P = int(math.floor(float(lses.inkdrops['results'][0]['inkdrops'])))
@@ -67,26 +82,26 @@ class info32p(object):
         feedinfo = []
 
         try:
-            with cfscrape.create_scraper() as s:
-                s.headers = self.headers
-                cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
-                cj.load()
-                s.cookies = cj
+#            with cfscrape.create_scraper(delay=15) as s:
+#                s.headers = self.headers
+#                cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
+#                cj.load()
+#                s.cookies = cj
 
                 if mylar.CONFIG.VERIFY_32P == 1 or mylar.CONFIG.VERIFY_32P == True:
                     verify = True
                 else:
                     verify = False
 
-                logger.fdebug('[32P] Verify SSL set to : %s' % verify)
+#                logger.fdebug('[32P] Verify SSL set to : %s' % verify)
 
                 if not verify:
-                #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displa$
+#                #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displa$
                     from requests.packages.urllib3.exceptions import InsecureRequestWarning
                     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
                 # post to the login form
-                r = s.post(self.url, verify=verify, allow_redirects=True)
+                r = self.session.post(self.url, verify=verify, allow_redirects=True)
 
                 #logger.debug(self.module + " Content session reply" + r.text)
 
@@ -246,146 +261,176 @@ class info32p(object):
                         logger.warn('No results found for search on 32P.')
                         return "no results"
 
-        with cfscrape.create_scraper() as s:
-            s.headers = self.headers
-            cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
-            cj.load()
-            s.cookies = cj
-            data = []
-            pdata = []
-            pubmatch = False
+#        with cfscrape.create_scraper(delay=15) as s:
+#            s.headers = self.headers
+#            cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
+#            cj.load()
+#            s.cookies = cj
+        data = []
+        pdata = []
+        pubmatch = False
 
-            if any([series_search.startswith('0-Day Comics Pack'), torrentid is not None]):
-                data.append({"id":      torrentid,
-                             "series":  series_search})
-            else:
-                if any([not chk_id, mylar.CONFIG.DEEP_SEARCH_32P is True]):
+        if any([series_search.startswith('0-Day Comics Pack'), torrentid is not None]):
+            data.append({"id":      torrentid,
+                         "series":  series_search})
+        else:
+            if any([not chk_id, mylar.CONFIG.DEEP_SEARCH_32P is True]):
+                if mylar.CONFIG.SEARCH_32P is True:
+                    url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
+                    params = {'action': 'serieslist', 'filter': series_search}
+                    time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+                    t = self.session.get(url, params=params, verify=True, allow_redirects=True)
+                    soup = BeautifulSoup(t.content, "html.parser")
+                    results = soup.find_all("a", {"class":"object-qtip"},{"data-type":"torrentgroup"})
+
+                for r in results:
                     if mylar.CONFIG.SEARCH_32P is True:
-                        url = 'https://32pag.es/torrents.php' #?action=serieslist&filter=' + series_search #&filter=F
-                        params = {'action': 'serieslist', 'filter': series_search}
-                        time.sleep(1)  #just to make sure we don't hammer, 1s pause.
-                        t = s.get(url, params=params, verify=True, allow_redirects=True)
-                        soup = BeautifulSoup(t.content, "html.parser")
-                        results = soup.find_all("a", {"class":"object-qtip"},{"data-type":"torrentgroup"})
+                        torrentid = r['data-id']
+                        torrentname = r.findNext(text=True)
+                        torrentname = torrentname.strip()
+                    else:
+                        torrentid = r['id']
+                        torrentname = r['series']
 
-                    for r in results:
-                        if mylar.CONFIG.SEARCH_32P is True:
-                            torrentid = r['data-id']
-                            torrentname = r.findNext(text=True)
-                            torrentname = torrentname.strip()
-                        else:
-                            torrentid = r['id']
-                            torrentname = r['series']
-
-                        as_d = filechecker.FileChecker()
-                        as_dinfo = as_d.dynamic_replace(torrentname)
-                        seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
-                        logger.fdebug('searchresult: %s --- %s [%s]' % (seriesresult, mod_series, publisher_search))
-                        if seriesresult.lower() == mod_series.lower():
+                    as_d = filechecker.FileChecker()
+                    as_dinfo = as_d.dynamic_replace(torrentname)
+                    seriesresult = re.sub('\|','', as_dinfo['mod_seriesname']).strip()
+                    logger.fdebug('searchresult: %s --- %s [%s]' % (seriesresult, mod_series, publisher_search))
+                    if seriesresult.lower() == mod_series.lower():
+                        logger.fdebug('[MATCH] %s [%s]' % (torrentname, torrentid))
+                        data.append({"id":      torrentid,
+                                     "series":  torrentname})
+                    elif publisher_search.lower() in seriesresult.lower():
+                        logger.fdebug('[MATCH] Publisher match.')
+                        tmp_torrentname = re.sub(publisher_search.lower(), '', seriesresult.lower()).strip()
+                        as_t = filechecker.FileChecker()
+                        as_tinfo = as_t.dynamic_replace(tmp_torrentname)
+                        if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series.lower():
                             logger.fdebug('[MATCH] %s [%s]' % (torrentname, torrentid))
-                            data.append({"id":      torrentid,
-                                         "series":  torrentname})
-                        elif publisher_search.lower() in seriesresult.lower():
-                            logger.fdebug('[MATCH] Publisher match.')
-                            tmp_torrentname = re.sub(publisher_search.lower(), '', seriesresult.lower()).strip()
-                            as_t = filechecker.FileChecker()
-                            as_tinfo = as_t.dynamic_replace(tmp_torrentname)
-                            if re.sub('\|', '', as_tinfo['mod_seriesname']).strip() == mod_series.lower():
-                                logger.fdebug('[MATCH] %s [%s]' % (torrentname, torrentid))
-                                pdata.append({"id":      torrentid,
-                                              "series":  torrentname})
-                                pubmatch = True
+                            pdata.append({"id":      torrentid,
+                                          "series":  torrentname})
+                            pubmatch = True
 
-                    logger.fdebug('%s series listed for searching that match.' % len(data))
-                else:
-                    logger.fdebug('Exact series ID already discovered previously. Setting to : %s [%s]' % (chk_id['series'], chk_id['id']))
-                    pdata.append({"id":     chk_id['id'],
-                                  "series": chk_id['series']})
-                    pubmatch = True
-
-            if all([len(data) == 0, len(pdata) == 0]):
-                return "no results"
+                logger.fdebug('%s series listed for searching that match.' % len(data))
             else:
-                dataset = []
-                if len(data) > 0:
-                    dataset += data
-                if len(pdata) > 0:
-                    dataset += pdata
-                logger.fdebug(str(len(dataset)) + ' series match the tile being searched for on 32P...')
+                logger.fdebug('Exact series ID already discovered previously. Setting to : %s [%s]' % (chk_id['series'], chk_id['id']))
+                pdata.append({"id":     chk_id['id'],
+                              "series": chk_id['series']})
+                pubmatch = True
 
-            if all([chk_id is None, not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']) and any([len(data) == 1, len(pdata) == 1]):
-                #update the 32p_reference so we avoid doing a url lookup next time
-                helpers.checkthe_id(comic_id, dataset)
+        if all([len(data) == 0, len(pdata) == 0]):
+            return "no results"
+        else:
+            dataset = []
+            if len(data) > 0:
+                dataset += data
+            if len(pdata) > 0:
+                dataset += pdata
+            logger.fdebug(str(len(dataset)) + ' series match the tile being searched for on 32P...')
+
+        if all([chk_id is None, not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']) and any([len(data) == 1, len(pdata) == 1]):
+            #update the 32p_reference so we avoid doing a url lookup next time
+            helpers.checkthe_id(comic_id, dataset)
+        else:
+            if all([not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']):
+                pass
             else:
-                if all([not series_search.startswith('0-Day Comics Pack'), self.searchterm['torrentid_32p'] is not None, self.searchterm['torrentid_32p'] != 'None']):
-                    pass
-                else:
-                    logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
+                logger.debug('Unable to properly verify reference on 32P - will update the 32P reference point once the issue has been successfully matched against.')
 
-            results32p = []
-            resultlist = {}
+        results32p = []
+        resultlist = {}
 
-            for x in dataset:
-                #for 0-day packs, issue=week#, volume=month, id=0-day year pack (ie.issue=21&volume=2 for feb.21st)
-                payload = {"action": "groupsearch",
-                           "id":     x['id'], #searchid,
-                           "issue":  issue_search}
-                #in order to match up against 0-day stuff, volume has to be none at this point
-                #when doing other searches tho, this should be allowed to go through
-                #if all([volume_search != 'None', volume_search is not None]):
-                #    payload.update({'volume': re.sub('v', '', volume_search).strip()})
-                if series_search.startswith('0-Day Comics Pack'):
-                    payload.update({"volume": volume_search})
+        for x in dataset:
+            #for 0-day packs, issue=week#, volume=month, id=0-day year pack (ie.issue=21&volume=2 for feb.21st)
+            payload = {"action": "groupsearch",
+                       "id":     x['id'], #searchid,
+                       "issue":  issue_search}
+            #in order to match up against 0-day stuff, volume has to be none at this point
+            #when doing other searches tho, this should be allowed to go through
+            #if all([volume_search != 'None', volume_search is not None]):
+            #    payload.update({'volume': re.sub('v', '', volume_search).strip()})
+            if series_search.startswith('0-Day Comics Pack'):
+                payload.update({"volume": volume_search})
 
-                payload = json.dumps(payload)
-                payload = json.loads(payload)
+            payload = json.dumps(payload)
+            payload = json.loads(payload)
 
-                logger.fdebug('payload: %s' % payload)
-                url = 'https://32pag.es/ajax.php'
-                time.sleep(1)  #just to make sure we don't hammer, 1s pause.
-                try:
-                    d = s.get(url, params=payload, verify=True, allow_redirects=True)
-                except Exception as e:
-                    logger.error('%s [%s] Could not POST URL %s' % (self.module, e, url))
+            logger.fdebug('payload: %s' % payload)
+            url = 'https://32pag.es/ajax.php'
+            time.sleep(1)  #just to make sure we don't hammer, 1s pause.
+            try:
+                d = self.session.get(url, params=payload, verify=True, allow_redirects=True)
+            except Exception as e:
+                logger.error('%s [%s] Could not POST URL %s' % (self.module, e, url))
 
-                try:
-                    searchResults = d.json()
-                except:
-                    searchResults = d.text
-                    logger.debug('%s Search Result did not return valid JSON, falling back on text: %s' % (self.module, searchResults.text))
-                    return False
+            try:
+                searchResults = d.json()
+            except Exception as e:
+                searchResults = d.text
+                logger.debug('[%s] %s Search Result did not return valid JSON, falling back on text: %s' % (e, self.module, searchResults.text))
+                return False
 
-                if searchResults['status'] == 'success' and searchResults['count'] > 0:
-                    logger.fdebug('successfully retrieved %s search results' % searchResults['count'])
-                    for a in searchResults['details']:
-                        if series_search.startswith('0-Day Comics Pack'):
-                            title = series_search
-                        else:
-                            title = self.searchterm['series'] + ' v' + a['volume'] + ' #' + a['issues']
-                        results32p.append({'link':      a['id'],
-                                           'title':     title,
-                                           'filesize':  a['size'],
-                                           'issues':     a['issues'],
-                                           'pack':      a['pack'],
-                                           'format':    a['format'],
-                                           'language':  a['language'],
-                                           'seeders':   a['seeders'],
-                                           'leechers':  a['leechers'],
-                                           'scanner':   a['scanner'],
-                                           'chkit':     {'id': x['id'], 'series': x['series']},
-                                           'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%a, %d %b %Y %H:%M:%S'),
-                                           'int_pubdate': float(a['upload_time'])})
+            if searchResults['status'] == 'success' and searchResults['count'] > 0:
+                logger.fdebug('successfully retrieved %s search results' % searchResults['count'])
+                for a in searchResults['details']:
+                    if series_search.startswith('0-Day Comics Pack'):
+                        title = series_search
+                    else:
+                        title = self.searchterm['series'] + ' v' + a['volume'] + ' #' + a['issues']
+                    results32p.append({'link':      a['id'],
+                                       'title':     title,
+                                       'filesize':  a['size'],
+                                       'issues':     a['issues'],
+                                       'pack':      a['pack'],
+                                       'format':    a['format'],
+                                       'language':  a['language'],
+                                       'seeders':   a['seeders'],
+                                       'leechers':  a['leechers'],
+                                       'scanner':   a['scanner'],
+                                       'chkit':     {'id': x['id'], 'series': x['series']},
+                                       'pubdate':   datetime.datetime.fromtimestamp(float(a['upload_time'])).strftime('%a, %d %b %Y %H:%M:%S'),
+                                       'int_pubdate': float(a['upload_time'])})
 
-                else:
-                    logger.fdebug('32P did not return any valid search results.')
-
-            if len(results32p) > 0:
-                resultlist['entries'] = sorted(results32p, key=itemgetter('pack','title'), reverse=False)
-                logger.debug('%s Resultslist: %s' % (self.module, resultlist))
             else:
-                resultlist = 'no results'
+                logger.fdebug('32P did not return any valid search results.')
+
+        if len(results32p) > 0:
+            resultlist['entries'] = sorted(results32p, key=itemgetter('pack','title'), reverse=False)
+            logger.debug('%s Resultslist: %s' % (self.module, resultlist))
+        else:
+            resultlist = 'no results'
 
         return resultlist
+
+    def downloadfile(self, payload, filepath):
+        url = 'https://32pag.es/torrents.php'
+        try:
+            r = self.session.get(url, params=payload, verify=True, stream=True, allow_redirects=True)
+        except Exception as e:
+            logger.error('%s [%s] Could not POST URL %s' % ('[32P-DOWNLOADER]', e, url))
+            return False
+
+        if str(r.status_code) != '200':
+            logger.warn('Unable to download torrent from 32P [Status Code returned: %s]' % r.status_code)
+            if str(r.status_code) == '404' and site == '32P':
+                logger.warn('[32P-CACHED_ENTRY] Entry found in 32P cache - incorrect. Torrent has probably been merged into a pack, or another series id. Removing from cache.')
+                helpers.delete_cache_entry(linkit)
+            else:
+                logger.info('content: %s' % r.content)
+            return False
+
+
+        with open(filepath, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
+                    f.flush()
+
+        return True
+
+    def delete_cache_entry(self, id):
+        myDB = db.DBConnection()
+        myDB.action("DELETE FROM rssdb WHERE link=? AND Site='32P'", [id])
 
     class LoginSession(object):
         def __init__(self, un, pw, session_path=None):
@@ -399,7 +444,7 @@ class info32p(object):
             '''
             self.module = '[32P-AUTHENTICATION]'
             try:
-                self.ses = cfscrape.create_scraper()
+                self.ses = cfscrape.create_scraper(delay=15)
             except Exception as e:
                 logger.error('%s Can\'t create session with cfscrape' % self.module)
 
@@ -466,7 +511,7 @@ class info32p(object):
 
             if r.status_code != 200:
                 if r.status_code == 302:
-                    newloc = r.headers.get('location', '')
+                    newloc = r.headers.get('Location', '')
                     logger.warn('Got redirect from the POST-ajax action=login GET: %s' % newloc)
                     self.error = {'status':'redirect-error', 'message':'got redirect from POST-ajax login action : ' + newloc}
                 else:
@@ -614,16 +659,19 @@ class info32p(object):
             if (self.test_skey_valid()):
                 logger.fdebug('%s Session key-based login was good.' % self.module)
                 self.method = 'Session Cookie retrieved OK.'
-                return True
+                return {'ses': self.ses,
+                        'status': True}
 
             if (self.test_login()):
                 logger.fdebug('%s Credential-based login was good.' % self.module)
                 self.method = 'Credential-based login OK.'
-                return True
+                return {'ses': self.ses,
+                        'status': True}
 
             logger.warn('%s Both session key and credential-based logins failed.' % self.module)
             self.method = 'Both session key & credential login failed.'
-            return False
+            return {'ses': self.ses,
+                    'status': False}
 
 
 #if __name__ == '__main__':

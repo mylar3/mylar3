@@ -920,33 +920,12 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                    'authkey':      mylar.AUTHKEY_32P,
                    'id':           linkit}
 
-        headers = None #{'Accept-encoding': 'gzip',
-                       # 'User-Agent':      str(mylar.USER_AGENT)}
-    #elif site == 'TPSE':
-    #    pass
-        #linkit should be the magnet link since it's TPSE
-        #url = linkit
+        dfile = auth32p.info32p()
+        file_download = dfile.downloadfile(payload, filepath)
+        if file_download is False:
+            return "fail"
 
-        #url = helpers.torrent_create('TPSE', linkit)
-
-        #if url.startswith('https'):
-        #    tpse_referrer = 'https://torrentproject.se/'
-        #else:
-        #    tpse_referrer = 'http://torrentproject.se/'
-
-        #try:
-        #    scraper = cfscrape.create_scraper()
-        #    cf_cookievalue, cf_user_agent = scraper.get_tokens(url)
-        #    headers = {'Accept-encoding': 'gzip',
-        #               'User-Agent':       cf_user_agent}
-
-        #except Exception, e:
-        #    return "fail"
-
-        #logger.fdebug('Grabbing torrent from url:' + str(url))
-
-        #payload = None
-        #verify = False
+        logger.fdebug('[%s] Saved torrent file to : %s' % (site, filepath))
 
     elif site == 'DEM':
         url = helpers.torrent_create('DEM', linkit)
@@ -991,7 +970,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
         payload = None
         verify = False
 
-    if site != 'Public Torrents':
+    if site != 'Public Torrents' and site != '32P':
         if not verify:
             #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displayed.
             #disable SSL warnings - too many 'warning' messages about invalid certificates
@@ -1008,6 +987,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 except ImportError:
                     logger.warn('[EPIC FAILURE] Cannot load the requests module')
                     return "fail"
+
         try:
             scraper = cfscrape.create_scraper()
             if site == 'WWT':
@@ -1020,31 +1000,31 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             #r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
         except Exception, e:
             logger.warn('Error fetching data from %s (%s): %s' % (site, url, e))
-            if site == '32P':
-                logger.info('[TOR2CLIENT-32P] Retrying with 32P')
-                if mylar.CONFIG.MODE_32P == 1:
+        #    if site == '32P':
+        #        logger.info('[TOR2CLIENT-32P] Retrying with 32P')
+        #        if mylar.CONFIG.MODE_32P == 1:
 
-                    logger.info('[TOR2CLIENT-32P] Attempting to re-authenticate against 32P and poll new keys as required.')
-                    feed32p = auth32p.info32p(reauthenticate=True)
-                    feedinfo = feed32p.authenticate()
+        #            logger.info('[TOR2CLIENT-32P] Attempting to re-authenticate against 32P and poll new keys as required.')
+        #            feed32p = auth32p.info32p(reauthenticate=True)
+        #            feedinfo = feed32p.authenticate()
 
-                    if feedinfo == "disable":
-                        helpers.disable_provider('32P')
-                        return "fail"
+        #            if feedinfo == "disable":
+        #                helpers.disable_provider('32P')
+        #                return "fail"
 
-                    logger.debug('[TOR2CLIENT-32P] Creating CF Scraper')
-                    scraper = cfscrape.create_scraper()
+        #            logger.debug('[TOR2CLIENT-32P] Creating CF Scraper')
+        #            scraper = cfscrape.create_scraper()
 
-                    try:
-                        r = scraper.get(url, params=payload, verify=verify, allow_redirects=True)
-                    except Exception, e:
-                        logger.warn('[TOR2CLIENT-32P] Unable to GET %s (%s): %s' % (site, url, e))
-                        return "fail"
-                else:
-                    logger.warn('[TOR2CLIENT-32P] Unable to authenticate using existing RSS Feed given. Make sure that you have provided a CURRENT feed from 32P')
-                    return "fail"
-            else:
-                return "fail"
+        #            try:
+        #                r = scraper.get(url, params=payload, verify=verify, allow_redirects=True)
+        #            except Exception, e:
+        #                logger.warn('[TOR2CLIENT-32P] Unable to GET %s (%s): %s' % (site, url, e))
+        #                return "fail"
+        #        else:
+        #            logger.warn('[TOR2CLIENT-32P] Unable to authenticate using existing RSS Feed given. Make sure that you have provided a CURRENT feed from 32P')
+        #            return "fail"
+        #    else:
+        #        return "fail"
 
         if any([site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
             if str(r.status_code) != '503':
@@ -1069,15 +1049,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 except Exception, e:
                     return "fail"
 
-        if str(r.status_code) != '200':
-            logger.warn('Unable to download torrent from ' + site + ' [Status Code returned: ' + str(r.status_code) + ']')
-            if str(r.status_code) == '404' and site == '32P':
-                logger.warn('[32P-CACHED_ENTRY] Entry found in 32P cache - incorrect. Torrent has probably been merged into a pack, or another series id. Removing from cache.')
-                delete_cache_entry(linkit)
-            else:
-                logger.info('content: %s' % r.content)
-            return "fail"
-
         if any([site == 'DEM', site == 'WWT']):
             if r.headers.get('Content-Encoding') == 'gzip':
                 buf = StringIO(r.content)
@@ -1091,8 +1062,9 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
         logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
     else:
-       #tpse is magnet links only...
-       filepath = linkit
+       if site != '32P':
+           #tpse is magnet links only...
+           filepath = linkit
 
     if mylar.USE_UTORRENT:
         uTC = utorrent.utorrentclient()
