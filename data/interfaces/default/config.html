@@ -703,9 +703,21 @@
                                         <input type="text" name="qbittorrent_folder" value="${config['qbittorrent_folder']}" size="30"><br/>
                                         <small>Folder path where torrents will be assigned to</small>
                                 </div>
+                                <div class="row left">
+                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_clientdefault" value="0" ${config['qbittorrent_clientdefault']}>Add torrent using client default action
+                                </div>
+                                <div class="row left">
+                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_forcestart" value="1" ${config['qbittorrent_forcestart']}>Add torrent and force start
+                                </div>
+                                <div class="row left">
+                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_addpaused" value="2" ${config['qbittorrent_addpaused']}>Add torrent paused
+                                </div>
                                 <div class="row checkbox left clearfix">
-                                        <input id="qbittorrent_startonload" type="checkbox" name="qbittorrent_startonload" value="1" ${config['qbittorrent_startonload']} /><label>Start Torrent on Successful Load</label>
-                                        <small>Automatically start torrent on successful loading within qBittorrent client</small>
+                                    <small>qBittorrent "Add torrent" options</small>
+                                </div>
+                                <div class="row checkbox left clearfix">
+                                        <input id="qbittorrent_newapi" type="checkbox" name="qbittorrent_newapi" value="1" ${config['qbittorrent_newapi']} /><label>qBittorrent version >4.1.0? (Use new WebAPI)</label>
+                                        <small>Use the new qBittorrent client WebAPI available since v4.1.0</small>
                                 </div>
                         </fieldset>
                      </div>

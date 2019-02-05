@@ -111,17 +111,22 @@ class TorrentClient(object):
                     else:
                         logger.debug('Successfully submitted for add via file. Verifying item is now on client.')
 
-            if mylar.CONFIG.QBITTORRENT_STARTONLOAD:
-                logger.info('attempting to start')
-                startit = self.client.force_start(hash)
-                logger.info('startit returned:' + str(startit))
-            else:
-                logger.info('attempting to pause torrent incase it starts')
+            if mylar.CONFIG.QBITTORRENT_LOADACTION == 1:
+                logger.info('Attempting to force start torrent')
+                try:
+                    startit = self.client.force_start(hash)
+                    logger.info('startit returned:' + str(startit))
+                except:
+                    logger.warn('Unable to force start torrent - please check your client.')
+            elif mylar.CONFIG.QBITTORRENT_LOADACTION == 2:
+                logger.info('Attempting to pause torrent after loading')
                 try:
                     startit = self.client.pause(hash)
                     logger.info('startit paused:' + str(startit))
                 except:
                     logger.warn('Unable to pause torrent - possibly already paused?')
+            else:
+                logger.info('Client default add action selected. Doing nothing.')
 
         try:
             time.sleep(5) # wait 5 in case it's not populated yet.
