@@ -528,7 +528,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT)')
     conn.commit
     c.close
 
@@ -1098,6 +1098,22 @@ def dbcheck():
         c.execute('SELECT status from jobhistory')
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE jobhistory ADD COLUMN status TEXT')
+
+    ## -- DDL_info Table --
+    try:
+        c.execute('SELECT remote_filesize from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN remote_filesize TEXT')
+
+    try:
+        c.execute('SELECT updated_date from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN updated_date TEXT')
+
+    try:
+        c.execute('SELECT mainlink from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN mainlink TEXT')
 
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the

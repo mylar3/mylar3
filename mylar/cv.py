@@ -271,7 +271,7 @@ def GetComicInfo(comicid, dom, safechk=None):
         comic['ComicYear'] = '0000'
 
     #safety check, cause you known, dufus'...
-    if comic['ComicYear'][-1:] == '-':
+    if any([comic['ComicYear'][-1:] == '-', comic['ComicYear'][-1:] == '?']):
         comic['ComicYear'] = comic['ComicYear'][:-1]
 
     try:
