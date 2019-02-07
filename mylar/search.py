@@ -1112,7 +1112,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
-                if parsed_comic['parse_status'] == 'success' and (all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or all([booktype == 'One-Shot', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
+                if parsed_comic['parse_status'] == 'success' and (all([booktype is None, parsed_comic['booktype'] == 'issue']) or all([booktype == 'Print', parsed_comic['booktype'] == 'issue']) or all([booktype == 'One-Shot', parsed_comic['booktype'] == 'issue']) or booktype == parsed_comic['booktype']):
                     try:
                         fcomic = filechecker.FileChecker(watchcomic=ComicName)
                         filecomic = fcomic.matchIT(parsed_comic)
@@ -1704,7 +1704,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     UseFuzzy = None
                     ComicVersion = comic['Volume']
                     TorrentID_32p = None
-                    booktype = None
+                    booktype = comic['Type']
                 else:
                     Comicname_filesafe = comic['ComicName_Filesafe']
                     SeriesYear = comic['ComicYear']
@@ -1893,6 +1893,7 @@ def searchIssueIDList(issuelist):
             UseFuzzy = comic['UseFuzzy']
             ComicVersion = comic['ComicVersion']
             TorrentID_32p = comic['TorrentID_32P']
+            booktype = comic['Type']
             if issue['IssueDate'] == None:
                 IssueYear = comic['ComicYear']
             else:
@@ -1902,7 +1903,7 @@ def searchIssueIDList(issuelist):
             else:
                 AllowPacks = False
 
-            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks, torrentid_32p=TorrentID_32p, digitaldate=issue['DigitalDate'])
+            foundNZB, prov = search_init(comic['ComicName'], issue['Issue_Number'], str(IssueYear), comic['ComicYear'], Publisher, issue['IssueDate'], issue['ReleaseDate'], issue['IssueID'], AlternateSearch, UseFuzzy, ComicVersion, SARC=None, IssueArcID=None, mode=mode, ComicID=issue['ComicID'], filesafe=comic['ComicName_Filesafe'], allow_packs=AllowPacks, torrentid_32p=TorrentID_32p, digitaldate=issue['DigitalDate'], booktype=booktype)
             if foundNZB['status'] is True:
                 updater.foundsearch(ComicID=issue['ComicID'], IssueID=issue['IssueID'], mode=mode, provider=prov, hash=foundNZB['info']['t_hash'])
         logger.info('Completed search request.')
