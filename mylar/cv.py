@@ -380,12 +380,16 @@ def GetComicInfo(comicid, dom, safechk=None):
                         micdrop.append(mic_check['data-ref-id'])
 
         for fc in desclinks:
-            #logger.info('fc: %s'  % fc)
-            fc_id = fc['data-ref-id']
-            #logger.info('fc_id: %s'  % fc_id)
+            try:
+                fc_id = fc['data-ref-id']
+            except:
+                continue
+
             if fc_id in micdrop:
                 continue
+
             fc_name = fc.findNext(text=True)
+
             if fc_id.startswith('4000'):
                 fc_cid = None
                 fc_isid = fc_id
@@ -432,7 +436,10 @@ def GetComicInfo(comicid, dom, safechk=None):
             #first_collect = cis
 
         logger.info('Collected issues in volume: %s' % issue_list)
-        comic['Issue_List'] = issue_list
+        if len(issue_list) == 0:
+            comic['Issue_List'] = 'None'
+        else:
+            comic['Issue_List'] = issue_list
     else:
         comic['Issue_List'] = 'None'
 
