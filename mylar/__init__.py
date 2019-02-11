@@ -397,7 +397,7 @@ def start():
             SEARCHPOOL = threading.Thread(target=helpers.search_queue, args=(SEARCH_QUEUE,), name="SEARCH-QUEUE")
             SEARCHPOOL.start()
 
-            if all([CONFIG.POST_PROCESSING is True, CONFIG.API_ENABLED is True]):
+            if CONFIG.POST_PROCESSING is True:
                 logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
                 PPPOOL = threading.Thread(target=helpers.postprocess_main, args=(PP_QUEUE,), name="POST-PROCESS-QUEUE")
                 PPPOOL.start()
