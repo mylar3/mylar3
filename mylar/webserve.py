@@ -4742,7 +4742,6 @@ class WebInterface(object):
                     "qbittorrent_clientdefault": helpers.radio(mylar.CONFIG.QBITTORRENT_LOADACTION, 0),
                     "qbittorrent_forcestart": helpers.radio(mylar.CONFIG.QBITTORRENT_LOADACTION, 1),
                     "qbittorrent_addpaused": helpers.radio(mylar.CONFIG.QBITTORRENT_LOADACTION, 2),
-                    "qbittorrent_newapi": helpers.checked(mylar.CONFIG.QBITTORRENT_NEWAPI),
                     "blackhole_dir": mylar.CONFIG.BLACKHOLE_DIR,
                     "usenet_retention": mylar.CONFIG.USENET_RETENTION,
                     "nzbsu": helpers.checked(mylar.CONFIG.NZBSU),
@@ -5107,7 +5106,7 @@ class WebInterface(object):
     def configUpdate(self, **kwargs):
         checked_configs = ['enable_https', 'launch_browser', 'syno_fix', 'auto_update', 'annuals_on', 'api_enabled', 'nzb_startup_search',
                            'enforce_perms', 'sab_to_mylar', 'torrent_local', 'torrent_seedbox', 'rtorrent_ssl', 'rtorrent_verify', 'rtorrent_startonload',
-                           'enable_torrents', 'qbittorrent_newapi', 'enable_rss', 'nzbsu', 'nzbsu_verify',
+                           'enable_torrents', 'enable_rss', 'nzbsu', 'nzbsu_verify',
                            'dognzb', 'dognzb_verify', 'experimental', 'enable_torrent_search', 'enable_public', 'enable_32p', 'enable_torznab',
                            'newznab', 'use_minsize', 'use_maxsize', 'ddump', 'failed_download_handling', 'sab_client_post_processing', 'nzbget_client_post_processing',
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
