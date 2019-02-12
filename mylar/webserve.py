@@ -5686,6 +5686,21 @@ class WebInterface(object):
             return "Successfully validated connection to %s" % host
     testrtorrent.exposed = True
 
+    def testqbit(self, host, username, password):
+        import torrent.clients.qbittorrent as QbitClient
+        qc = QbitClient.TorrentClient()
+        qclient = qc.connect(host, username, password, True)
+        if not qclient:
+            logger.warn('[qBittorrent] Could not establish connection to %s' % host)
+            return 'Error establishing connection to Qbittorrent'
+        else:
+            if qclient['status'] is False:
+                logger.warn('[qBittorrent] Could not establish connection to %s. Error returned:' % (host, qclient['error']))
+                return 'Error establishing connection to Qbittorrent'
+            else:
+                logger.info('[qBittorrent] Successfully validated connection to %s [%s]' % (host, qclient['version']))
+                return 'Successfully validated qBittorrent connection'
+    testqbit.exposed = True
 
     def testnewznab(self, name, host, ssl, apikey):
         result = helpers.newznab_test(name, host, ssl, apikey)
