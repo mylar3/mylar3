@@ -391,7 +391,7 @@ class Client(object):
         """
         Resume all torrents.
         """
-        return self._get('api/v2/torrents/resume', data={'hashes': 'all'})
+        return self._post('api/v2/torrents/resume', data={'hashes': 'all'})
 
     def resume_multiple(self, infohash_list):
         """
