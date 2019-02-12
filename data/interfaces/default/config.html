@@ -703,18 +703,20 @@
                                         <input type="text" name="qbittorrent_folder" value="${config['qbittorrent_folder']}" size="30"><br/>
                                         <small>Folder path where torrents will be assigned to</small>
                                 </div>
-                                <div class="row left">
-                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_clientdefault" value="0" ${config['qbittorrent_clientdefault']}>Add torrent only
-                                </div>
-                                <div class="row left">
-                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_forcestart" value="1" ${config['qbittorrent_forcestart']}>Add torrent and force start
-                                </div>
-                                <div class="row left">
-                                    <input type="radio" name="qbittorrent_loadaction" id="qbittorrent_addpaused" value="2" ${config['qbittorrent_addpaused']}>Add torrent and pause
-                                </div>
-                                <div class="row checkbox left clearfix">
-                                    <small>qBittorrent "Add torrent" options</small>
-                                </div>
+                             <div class="row">
+                                 <label>Add torrent action:</label>
+                                 <select name="qbittorrent_loadaction">
+                                  %for x in ['default', 'force_start', 'pause']:
+                                         <%
+                                                if config['qbittorrent_loadaction'] == x:
+                                                    outputselect = 'selected'
+                                                else:
+                                                    outputselect = ''
+                                          %>
+                                          <option value=${x} ${outputselect}>${x}</option>
+                                  %endfor
+                                 </select>
+                            </div>
                         </fieldset>
                      </div>
                 </td>
