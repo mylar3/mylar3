@@ -1528,10 +1528,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     updater.nzblog(isid['issueid'], nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov, oneoff=oneoff)
                     updater.foundsearch(ComicID, isid['issueid'], mode='series', provider=tmpprov)
                 notify_snatch(sent_to, mylar.COMICINFO[0]['ComicName'], mylar.COMICINFO[0]['comyear'], mylar.COMICINFO[0]['pack_numbers'], nzbprov, True)
-                #notify_snatch(nzbname, sent_to, mylar.COMICINFO[0]['modcomicname'], mylar.COMICINFO[0]['comyear'], mylar.COMICINFO[0]['pack_numbers'], nzbprov)
             else:
                 notify_snatch(sent_to, mylar.COMICINFO[0]['ComicName'], mylar.COMICINFO[0]['comyear'], None, nzbprov, True)
-                #notify_snatch(nzbname, sent_to, mylar.COMICINFO[0]['modcomicname'], mylar.COMICINFO[0]['comyear'], None, nzbprov)
 
         else:
             if alt_nzbname is None or alt_nzbname == '':
@@ -1547,8 +1545,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 cyear = ComicYear
             else:
                 cyear = comyear
-            #notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), cyear, IssueNumber, nzbprov)
-            notify_snatch(ComicName, sent_to, cyear, IssueNumber, nzbprov, False)
+            notify_snatch(sent_to, ComicName, cyear, IssueNumber, nzbprov, False)
         prov_count == 0
         mylar.TMP_PROV = nzbprov
 
@@ -2702,12 +2699,10 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             if '[RSS]' in tmpprov: tmpprov = re.sub('\[RSS\]', '', tmpprov).strip()
             updater.nzblog(IssueID, nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov, alt_nzbname=alt_nzbname, oneoff=oneoff)
         #send out notifications for on snatch after the updater incase notification fails (it would bugger up the updater/pp scripts)
-        #notify_snatch(nzbname, sent_to, helpers.filesafe(modcomicname), comyear, IssueNumber, nzbprov)
         notify_snatch(sent_to, ComicName, comyear, IssueNumber, nzbprov, False)
         mylar.TMP_PROV = nzbprov
         return return_val
 
-#def notify_snatch(nzbname, sent_to, modcomicname, comyear, IssueNumber, nzbprov):
 def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
     if pack is False:
         snline = 'Issue snatched!'
@@ -2730,7 +2725,7 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
     if mylar.CONFIG.PUSHOVER_ENABLED and mylar.CONFIG.PUSHOVER_ONSNATCH:
         logger.info(u"Sending Pushover notification")
         pushover = notifiers.PUSHOVER()
-        pushover.notify(snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
+        pushover.notify(snline, snatched_nzb=snatched_name, prov=nzbprov, sent_to=sent_to)
     if mylar.CONFIG.BOXCAR_ENABLED and mylar.CONFIG.BOXCAR_ONSNATCH:
         logger.info(u"Sending Boxcar notification")
         boxcar = notifiers.BOXCAR()
