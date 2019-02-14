@@ -651,7 +651,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     if ComicName[:17] == '0-Day Comics Pack':
                         searchterm = {'series': ComicName, 'issue': StoreDate[8:10], 'volume': StoreDate[5:7], 'torrentid_32p': None}
                     else:
-                        searchterm = {'series': ComicName, 'id': ComicID, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher, 'torrentid_32p': torrentid_32p}
+                        searchterm = {'series': ComicName, 'id': ComicID, 'issue': findcomiciss, 'volume': ComicVersion, 'publisher': Publisher, 'torrentid_32p': torrentid_32p, 'booktype': booktype}
                     #first we find the id on the serieslist of 32P
                     #then we call the ajax against the id and issue# and volume (if exists)
                     a = auth32p.info32p(searchterm=searchterm)
@@ -805,7 +805,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             elif nzbprov == 'experimental':
                 #bb = parseit.MysterBinScrape(comsearch[findloop], comyear)
                 logger.info('sending %s to experimental search' % findcomic)
-                bb = findcomicfeed.Startit(findcomic, isssearch, comyear, ComicVersion, IssDateFix)
+                bb = findcomicfeed.Startit(findcomic, isssearch, comyear, ComicVersion, IssDateFix, booktype)
                 # since the regexs in findcomicfeed do the 3 loops, lets force the exit after
                 cmloopit == 1
 

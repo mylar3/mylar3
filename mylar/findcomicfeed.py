@@ -10,7 +10,7 @@ import mylar
 import unicodedata
 import urllib
 
-def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
+def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, booktype=None):
     cName = searchName
 
     #clean up searchName due to webparse/redudant naming that would return too specific of results.
@@ -39,7 +39,12 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     encodeSearch = urllib.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
-    if len(searchIssue) == 1:
+    tmpsearchIssue = searchIssue
+
+    if any([booktype == 'One-Shot', booktype == 'TPB']):
+        tmpsearchIssue = '1'
+        loop = 4
+    elif len(searchIssue) == 1:
         loop = 3
     elif len(searchIssue) == 2:
         loop = 2
@@ -71,17 +76,24 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix):
     i = 1
     while (i <= loop):
         if i == 1:
-            searchmethod = searchIssue
+            searchmethod = tmpsearchIssue
         elif i == 2:
-            searchmethod = '0' + searchIssue
+            searchmethod = '0' + tmpsearchIssue
         elif i == 3:
-            searchmethod = '00' + searchIssue
+            searchmethod = '00' + tmpsearchIssue
+        elif i == 4:
+            searchmethod = tmpsearchIssue
         else:
             break
 
-        joinSearch = "+".join(splitSearch) + "+" +searchmethod
+        if i == 4:
+            logger.fdebug('Now searching experimental for %s to try and ensure all the bases are covered' % cName)
+            joinSearch = "+".join(splitSearch)
+        else:
+            logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
+            joinSearch = "+".join(splitSearch) + "+" +searchmethod
 
-        logger.fdebug('Now searching experimental for issue number: %s to try and ensure all the bases are covered' % searchmethod)
+
 
         if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
         elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
