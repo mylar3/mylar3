@@ -85,18 +85,22 @@ class TorrentClient(object):
                 #multiple copies of the same issues that's already downloaded
             else:
                 logger.info('Torrent not added yet, trying to add it now!')
-                if any([mylar.CONFIG.QBITTORRENT_FOLDER is None, mylar.CONFIG.QBITTORRENT_FOLDER == '', mylar.CONFIG.QBITTORRENT_FOLDER == 'None']):
-                    down_dir = None
-                else:
-                    down_dir = mylar.CONFIG.QBITTORRENT_FOLDER
-                    logger.info('Forcing Download location to: %s' % down_dir)
 
+                # Build an arg dict based on user prefs.
+                addargs = {}
+                if not any([mylar.CONFIG.QBITTORRENT_LABEL is None, mylar.CONFIG.QBITTORRENT_LABEL == '', mylar.CONFIG.QBITTORRENT_LABEL == 'None']):
+                    addargs.update( { 'category': str(mylar.CONFIG.QBITTORRENT_LABEL) } )
+                    logger.info('Setting download label to: %s' % mylar.CONFIG.QBITTORRENT_LABEL)
+                if not any([mylar.CONFIG.QBITTORRENT_FOLDER is None, mylar.CONFIG.QBITTORRENT_FOLDER == '', mylar.CONFIG.QBITTORRENT_FOLDER == 'None']):
+                    addargs.update( { 'savepath': str(mylar.CONFIG.QBITTORRENT_FOLDER) } )
+                    logger.info('Forcing download location to: %s' % mylar.CONFIG.QBITTORRENT_FOLDER)
+                if mylar.CONFIG.QBITTORRENT_LOADACTION == 'pause':
+                    addargs.update( { 'paused': 'true' } )
+                    logger.info('Attempting to add torrent in paused state')
+                
                 if filepath.startswith('magnet'):
                     try:
-                        if down_dir is not None:
-                            tid = self.client.download_from_link(filepath, savepath=str(down_dir), category=str(mylar.CONFIG.QBITTORRENT_LABEL))
-                        else:
-                            tid = self.client.download_from_link(filepath, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        tid = self.client.download_from_link(filepath, **addargs)
                     except Exception as e:
                         logger.error('Torrent not added')
                         return {'status': False, 'error': e}
@@ -105,10 +109,7 @@ class TorrentClient(object):
                 else:
                     try:
                         torrent_content = open(filepath, 'rb')
-                        if down_dir is not None:
-                            tid = self.client.download_from_file(torrent_content, savepath=str(down_dir), category=str(mylar.CONFIG.QBITTORRENT_LABEL))
-                        else:
-                            tid = self.client.download_from_file(torrent_content, category=str(mylar.CONFIG.QBITTORRENT_LABEL))
+                        tid = self.client.download_from_file(torrent_content, **addargs)
                     except Exception as e:
                         logger.error('Torrent not added')
                         return {'status': False, 'error': e}
@@ -122,13 +123,6 @@ class TorrentClient(object):
                     logger.info('startit returned: %s' % startit)
                 except:
                     logger.warn('Unable to force start torrent - please check your client.')
-            elif mylar.CONFIG.QBITTORRENT_LOADACTION == 'pause':
-                logger.info('Attempting to pause torrent after loading')
-                try:
-                    startit = self.client.pause(hash)
-                    logger.info('startit paused: %s' % startit)
-                except:
-                    logger.warn('Unable to pause torrent - possibly already paused?')
             else:
                 logger.info('Client default add action selected. Doing nothing.')
 
