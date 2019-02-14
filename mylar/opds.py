@@ -381,7 +381,7 @@ class OPDS(object):
                 image = None
                 thumbnail = None
                 if not 'ReleaseComicID' in issue:
-                    title = escape('%s - %s' % (issue['Issue_Number'], issue['IssueName']))
+                    title = escape('%s (%s) #%s - %s' % (issue['ComicName'], comic['ComicYear'], issue['Issue_Number'], issue['IssueName']))
                     image = issue['ImageURL_ALT']
                     thumbnail = issue['ImageURL']
                 else:
@@ -398,7 +398,7 @@ class OPDS(object):
                     metainfo = [{'writer': None,'summary': ''}]
                 entries.append(
                     {
-                        'title': title,
+                        'title': escape(title),
                         'id': escape('comic:%s (%s) [%s] - %s' % (issue['ComicName'], comic['ComicYear'], comic['ComicID'], issue['Issue_Number'])),
                         'updated': updated,
                         'content': escape('%s' % (metainfo[0]['summary'])),
@@ -512,6 +512,7 @@ class OPDS(object):
         elif 'filename' not in kwargs:
             self.data = self._error_with_message('No filename provided')
         else:
+            #logger.fdebug("file name: %s" % str(kwargs['file'])
             self.filename = os.path.split(str(kwargs['file']))[1]
             self.file = str(kwargs['file'])
         return 
