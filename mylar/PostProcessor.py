@@ -1836,7 +1836,7 @@ class PostProcessor(object):
                         renamed_file = helpers.rename_param(comicid, comicname, issuenumber, dfilename, issueid=issueid, arc=sarc)
                         if renamed_file:
                             dfilename = renamed_file['nfilename']
-                            logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, ofilename))
+                            logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, dfilename))
 
                     if sandwich is not None and 'S' in sandwich:
                         #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
@@ -1850,7 +1850,11 @@ class PostProcessor(object):
                             dfilename = ofilename
                         grab_dst = os.path.join(grdst, dfilename)
                     else:
-                        grab_dst = os.path.join(grdst, ofilename)
+                        grab_dst = os.path.join(grdst, dfilename)
+
+                    if not os.path.exists(grab_dst) or grab_src == grab_dst:
+                        #if it hits this, ofilename is the full path so we need to extract just the filename to path it back to a possible grab_bag dir
+                        grab_dst = os.path.join(grdst, os.path.split(dfilename)[1])
 
                     self._log("Destination Path : %s" % grab_dst)
 

@@ -168,7 +168,7 @@ class NZBGet(object):
         found = False
         destdir = None
         double_pp = False
-        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or ('COPY' in hs['Status'] and 'DELETED' not in hq[0]['Status']))]
+        hq = [hs for hs in history if hs['NZBID'] == nzbid and ('SUCCESS' in hs['Status'] or ('COPY' in hs['Status']))]
         if len(hq) > 0:
             logger.fdebug('found matching completed item in history. Job has a status of %s' % hq[0]['Status'])
             if len(hq[0]['ScriptStatuses']) > 0:
