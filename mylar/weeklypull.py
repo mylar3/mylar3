@@ -81,7 +81,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         elif chk_locg['status'] == 'success':
             logger.info('[PULL-LIST] Weekly Pull List successfully loaded with ' + str(chk_locg['count']) + ' issues.')
             return new_pullcheck(chk_locg['weeknumber'],chk_locg['year'])
-        elif chk_log['status'] == 'update_required':
+        elif chk_locg['status'] == 'update_required':
             logger.warn('[PULL-LIST] Your version of Mylar is not up-to-date. You MUST update before this works')
             return
         else:
