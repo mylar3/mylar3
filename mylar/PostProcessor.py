@@ -1436,55 +1436,60 @@ class PostProcessor(object):
             if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or (self.oneoffinlist is True or all([self.issuearcid is not None, self.issueid is None]))) and not self.nzb_name.startswith('0-Day'): # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
                 if self.oneoffinlist is False:
-                    nzbname = self.nzb_name
-                    #remove extensions from nzb_name if they somehow got through (Experimental most likely)
-                    if nzbname.lower().endswith(self.extensions):
-                        fd, ext = os.path.splitext(nzbname)
-                        self._log("Removed extension from nzb: " + ext)
-                        nzbname = re.sub(str(ext), '', str(nzbname))
-
-                    #replace spaces
-                    # let's change all space to decimals for simplicity
-                    logger.fdebug('[NZBNAME]: ' + nzbname)
-                    #gotta replace & or escape it
-                    nzbname = re.sub("\&", 'and', nzbname)
-                    nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
-                    nzbname = re.sub('[\(\)]', ' ', nzbname)
-                    logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
-                    nzbname = re.sub('.cbr', '', nzbname).strip()
-                    nzbname = re.sub('.cbz', '', nzbname).strip()
-                    nzbname = re.sub('[\.\_]', ' ', nzbname).strip()
-                    nzbname = re.sub('\s+', ' ', nzbname)  #make sure we remove the extra spaces.
-                    logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
-                    nzbname = re.sub('\s', '.', nzbname)
-
-                    logger.fdebug('%s After conversions, nzbname is : %s' % (module, nzbname))
-#                   if mylar.USE_NZBGET==1:
-#                       nzbname=self.nzb_name
-                    self._log("nzbname: %s" % nzbname)
-
-                    nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
-
                     self.oneoff = False
-                    if nzbiss is None:
-                        self._log("Failure - could not initially locate nzbfile in my database to rename.")
-                        logger.fdebug('%s Failure - could not locate nzbfile initially' % module)
-                        # if failed on spaces, change it all to decimals and try again.
-                        nzbname = re.sub('[\(\)]', '', str(nzbname))
-                        self._log("trying again with this nzbname: %s" % nzbname)
-                        logger.fdebug('%s Trying to locate nzbfile again with nzbname of : %s' % (module, nzbname))
-                        nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
-                        if nzbiss is None:
-                            logger.error('%s Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.' % module)
-                            #set it up to run manual post-processing on self.nzb_folder
-                            self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
-                            self.valreturn.append({"self.log": self.log,
-                                                   "mode": 'outside'})
-                            return self.queue.put(self.valreturn)
+                    if any([self.issueid is not None, self.issuearcid is not None]):
+                        if self.issueid is not None:
+                            s_id = self.issueid
                         else:
-                            self._log("I corrected and found the nzb as : %s" % nzbname)
-                            logger.fdebug('%s Auto-corrected and found the nzb as : %s' % (module, nzbname))
-                            #issueid = nzbiss['IssueID']
+                            s_id = self.issuearcid
+                        nzbiss = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=?', [s_id]).fetchone()
+                    else:
+                        nzbname = self.nzb_name
+                        #remove extensions from nzb_name if they somehow got through (Experimental most likely)
+                        if nzbname.lower().endswith(self.extensions):
+                            fd, ext = os.path.splitext(nzbname)
+                            self._log("Removed extension from nzb: " + ext)
+                            nzbname = re.sub(str(ext), '', str(nzbname))
+
+                        #replace spaces
+                        # let's change all space to decimals for simplicity
+                        logger.fdebug('[NZBNAME]: ' + nzbname)
+                        #gotta replace & or escape it
+                        nzbname = re.sub("\&", 'and', nzbname)
+                        nzbname = re.sub('[\,\:\?\'\+]', '', nzbname)
+                        nzbname = re.sub('[\(\)]', ' ', nzbname)
+                        logger.fdebug('[NZBNAME] nzbname (remove chars): ' + nzbname)
+                        nzbname = re.sub('.cbr', '', nzbname).strip()
+                        nzbname = re.sub('.cbz', '', nzbname).strip()
+                        nzbname = re.sub('[\.\_]', ' ', nzbname).strip()
+                        nzbname = re.sub('\s+', ' ', nzbname)  #make sure we remove the extra spaces.
+                        logger.fdebug('[NZBNAME] nzbname (remove extensions, double spaces, convert underscores to spaces): ' + nzbname)
+                        nzbname = re.sub('\s', '.', nzbname)
+
+                        logger.fdebug('%s After conversions, nzbname is : %s' % (module, nzbname))
+                        self._log("nzbname: %s" % nzbname)
+
+                        nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
+
+                        if nzbiss is None:
+                            self._log("Failure - could not initially locate nzbfile in my database to rename.")
+                            logger.fdebug('%s Failure - could not locate nzbfile initially' % module)
+                            # if failed on spaces, change it all to decimals and try again.
+                            nzbname = re.sub('[\(\)]', '', str(nzbname))
+                            self._log("trying again with this nzbname: %s" % nzbname)
+                            logger.fdebug('%s Trying to locate nzbfile again with nzbname of : %s' % (module, nzbname))
+                            nzbiss = myDB.selectone("SELECT * from nzblog WHERE nzbname=? or altnzbname=?", [nzbname, nzbname]).fetchone()
+                            if nzbiss is None:
+                                logger.error('%s Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.' % module)
+                                #set it up to run manual post-processing on self.nzb_folder
+                                self._log('Unable to locate downloaded file within items I have snatched. Attempting to parse the filename directly and process.')
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'outside'})
+                                return self.queue.put(self.valreturn)
+                            else:
+                                self._log("I corrected and found the nzb as : %s" % nzbname)
+                                logger.fdebug('%s Auto-corrected and found the nzb as : %s' % (module, nzbname))
+                                #issueid = nzbiss['IssueID']
 
                     issueid = nzbiss['IssueID']
                     logger.fdebug('%s Issueid: %s' % (module, issueid))
@@ -1940,7 +1945,8 @@ class PostProcessor(object):
                                    'ComicName':     tinfo['comicname'],
                                    'IssueNumber':   tinfo['issuenumber'],
                                    'Publisher':     tinfo['publisher'],
-                                   'OneOff':        tinfo['oneoff']}
+                                   'OneOff':        tinfo['oneoff'],
+                                   'ForcedMatch':   False}
 
 
         else:

@@ -143,7 +143,7 @@
                                         <td class="options">
                                         %if weekly['HAVEIT'] == 'OneOff':
                                             %if weekly['STATUS'] == 'Snatched' or weekly['STATUS'] == 'Downloaded':
-                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off">
+                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again as a One-Off">
                                                 %if mylar.CONFIG.SHOW_ICONS:
                                                     <img style="margin: 0px 5px" src="interfaces/default/images/retry.png" height="25" width="25" class="highqual" />
                                                 %else:
@@ -193,7 +193,7 @@
                                                 <% dl = False %>
                                             %endif
                                             %if weekly['HAVEIT'] == 'No' and weekly['STATUS'] == 'Skipped':
-                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
+                                                <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="One off download">
                                                 %if mylar.CONFIG.SHOW_ICONS:
                                                     <img style="margin: 0px 5px" src="interfaces/default/images/search.png" height="25" width="25" class="highqual" />
                                                 %else:
@@ -233,7 +233,7 @@
                                             %endif
                                             </a>
                                         %elif weekly['STATUS'] == 'Snatched':
-                                            <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again">
+                                            <a href="#" onclick="doAjaxCall('queueit?ComicName=${weekly['COMIC'] | u}&ComicID=${weekly['COMICID']}&IssueID=${weekly['ISSUEID']}&ComicIssue=${weekly['ISSUE']}&mode=pullwant&Publisher=${weekly['PUBLISHER']}&pullinfo=${weekinfo['midweek']}&pullweek=${weekinfo['weeknumber']}&pullyear=${weekinfo['year']}&BookType=${weekly['FORMAT']}',$(this),'table')" data-success="Successfully submitted search request for ${weekly['COMIC']} #${weekly['ISSUE']}" title="Snatch issue again">
                                             %if mylar.CONFIG.SHOW_ICONS:
                                                   <img style="margin: 0px 5px" src="interfaces/default/images/retry.png" height="25" width="25" class="highqual" />
                                             %else:

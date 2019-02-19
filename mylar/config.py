@@ -382,7 +382,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 8
+            self.newconfig = 9
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -502,13 +502,12 @@ class Config(object):
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
                 print('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.newconfig == 8:
+            if self.newconfig == 9:
                 print('Attempting to update configuration..')
                 #torznab multiple entries merged into extra_torznabs value
                 self.config_update()
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
-            print('Updating config to newest version : %s' % self.newconfig)
             self.writeconfig()
         else:
             self.provider_sequence()
@@ -537,8 +536,8 @@ class Config(object):
         return self
 
     def config_update(self):
-        if self.newconfig == 8:
-            print('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
+        print('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
+        if self.CONFIG_VERSION < 8:
             print('Checking for existing torznab configuration...')
             if not any([self.TORZNAB_NAME is None, self.TORZNAB_HOST is None, self.TORZNAB_APIKEY is None, self.TORZNAB_CATEGORY is None]):
                 torznabs =[(self.TORZNAB_NAME, self.TORZNAB_HOST, self.TORZNAB_APIKEY, self.TORZNAB_CATEGORY, str(int(self.ENABLE_TORZNAB)))]
@@ -552,7 +551,14 @@ class Config(object):
             config.remove_option('Torznab', 'torznab_apikey')
             config.remove_option('Torznab', 'torznab_category')
             config.remove_option('Torznab', 'torznab_verify')
-            print('Successfully removed old entries.')
+            print('Successfully removed outdated config entries.')
+        if self.newconfig == 9:
+            #rejig rtorrent settings due to change.
+            if all([self.RTORRENT_SSL is True, not self.RTORRENT_HOST.startswith('http')]):
+                self.RTORRENT_HOST = 'https://' + self.RTORRENT_HOST
+                config.set('Rtorrent', 'rtorrent_host', self.RTORRENT_HOST)
+            config.remove_option('Rtorrent', 'rtorrent_ssl')
+            print('Successfully removed oudated config entries.')
         print('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
@@ -730,6 +736,11 @@ class Config(object):
             logger.warn("Error writing configuration file: %s", e)
 
     def configure(self, update=False):
+
+        #force alt_pull = 2 on restarts regardless of settings
+        if self.ALT_PULL != 2:
+            self.ALT_PULL = 2
+            config.set('Weekly', 'alt_pull', str(self.ALT_PULL))
 
         try:
             if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):

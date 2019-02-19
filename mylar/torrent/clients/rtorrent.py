@@ -23,23 +23,37 @@ class TorrentClient(object):
         # Use default ssl verification
         return True
 
-    def connect(self, host, username, password, auth, verify, ssl, rpc_url, ca_bundle):
+    def connect(self, host, username, password, auth, verify, rpc_url, ca_bundle, test=False):
         if self.conn is not None:
             return self.conn
 
         if not host:
-            return False
+            return {'status': False, 'error': 'No host specified'}
 
-        url = helpers.cleanHost(host, protocol = True, ssl = ssl)
+        url = host
+        if host.startswith('https:'):
+            ssl = True
+        else:
+            if not host.startswith('http://'):
+                url = 'http://' + url
+            ssl = False
+
+        #add on the slash ..
+        if not url.endswith('/'):
+            url += '/'
+
+        #url = helpers.cleanHost(host, protocol = True, ssl = ssl)
 
         # Automatically add '+https' to 'httprpc' protocol if SSL is enabled
-        if ssl is True and url.startswith('httprpc://'):
-            url = url.replace('httprpc://', 'httprpc+https://')
+        #if ssl is True and url.startswith('httprpc://'):
+        #    url = url.replace('httprpc://', 'httprpc+https://')
+        #if ssl is False and not url.startswith('http://'):
+        #    url = 'http://' + url
 
-        parsed = urlparse(url)
+        #parsed = urlparse(url)
 
         # rpc_url is only used on http/https scgi pass-through
-        if parsed.scheme in ['http', 'https']:
+        if rpc_url is not None:
             url += rpc_url
 
         #logger.fdebug(url)
@@ -52,8 +66,8 @@ class TorrentClient(object):
                     verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
-                logger.error('Failed to connect to rTorrent: %s', err)
-                return False
+                logger.error('Make sure you have the right protocol specified for the rtorrent host. Failed to connect to rTorrent - error: %s.' % err)
+                return {'status': False, 'error': err}
         else:
             logger.fdebug('NO username %s / NO password %s' % (username, password))
             try:
@@ -63,10 +77,13 @@ class TorrentClient(object):
                     verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
-                logger.error('Failed to connect to rTorrent: %s', err)
-                return False
+                logger.error('Failed to connect to rTorrent: %s' % err)
+                return {'status': False, 'error': err}
 
-        return self.conn
+        if test is True:
+            return {'status': True, 'version': self.conn.get_client_version()}
+        else:
+            return self.conn
 
     def find_torrent(self, hash):
         return self.conn.find_torrent(hash)

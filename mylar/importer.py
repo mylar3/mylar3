@@ -291,6 +291,15 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     else:
         aliases = aliases
 
+    logger.fdebug('comicIssues: %s' % comicIssues)
+    logger.fdebug('seriesyear: %s / currentyear: %s' % (SeriesYear, helpers.today()[:4]))
+    logger.fdebug('comicType: %s' % comic['Type'])
+    if all([int(comicIssues) == 1, SeriesYear < helpers.today()[:4], comic['Type'] != 'One-Shot', comic['Type'] != 'TPB']):
+        logger.info('Determined to be a one-shot issue. Forcing Edition to One-Shot')
+        booktype = 'One-Shot'
+    else:
+        booktype = comic['Type']
+
     controlValueDict = {"ComicID":        comicid}
     newValueDict = {"ComicName":          comic['ComicName'],
                     "ComicSortName":      sortname,
@@ -309,7 +318,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                     "AlternateSearch":    aliases,
 #                    "ComicPublished":    gcdinfo['resultPublished'],
                     "ComicPublished":     "Unknown",
-                    "Type":               comic['Type'],
+                    "Type":               booktype,
                     "Corrected_Type":     comic['Corrected_Type'],
                     "Collects":           issue_list,
                     "DateAdded":          helpers.today(),

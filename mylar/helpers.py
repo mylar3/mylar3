@@ -3045,14 +3045,18 @@ def ddl_downloader(queue):
 
             #write this to the table so we have a record of what's going on.
             ctrlval = {'id':      item['id']}
-            val = {'status':  'Downloading'}
+            val = {'status':       'Downloading',
+                   'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
             myDB.upsert('ddl_info', val, ctrlval)
 
             ddz = getcomics.GC()
-            ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'])
+            ddzstat = ddz.downloadit(item['id'], item['link'], item['mainlink'], item['resume'])
 
-            nval = {'status':  'Completed'}
-            myDB.upsert('ddl_info', nval, ctrlval)
+            if ddzstat['success'] is True:
+                tdnow = datetime.datetime.now()
+                nval = {'status':  'Completed',
+                        'updated_date': tdnow.strftime('%Y-%m-%d %H:%M')}
+                myDB.upsert('ddl_info', nval, ctrlval)
 
             if all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is True]):
                 try:
@@ -3076,10 +3080,13 @@ def ddl_downloader(queue):
                                             'ddl':          True})
                 except Exception as e:
                     logger.info('process error: %s [%s]' %(e, ddzstat))
-            elif mylar.CONFIG.POST_PROCESSING is True:
+            elif all([ddzstat['success'] is True, mylar.CONFIG.POST_PROCESSING is False]):
                 logger.info('File successfully downloaded. Post Processing is not enabled - item retained here: %s' % os.path.join(ddzstat['path'],ddzstat['filename']))
             else:
                 logger.info('[Status: %s] Failed to download: %s ' % (ddzstat['success'], ddzstat))
+                nval = {'status':  'Failed',
+                        'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+                myDB.upsert('ddl_info', nval, ctrlval)
 
 def postprocess_main(queue):
     while True:

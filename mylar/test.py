@@ -41,7 +41,6 @@ class RTorrent(object):
                                    mylar.CONFIG.RTORRENT_PASSWORD,
                                    mylar.CONFIG.RTORRENT_AUTHENTICATION,
                                    mylar.CONFIG.RTORRENT_VERIFY,
-                                   mylar.CONFIG.RTORRENT_SSL,
                                    mylar.CONFIG.RTORRENT_RPC_URL,
                                    mylar.CONFIG.RTORRENT_CA_BUNDLE):
             logger.error('[ERROR] Could not connect to %s -  exiting' % mylar.CONFIG.RTORRENT_HOST)

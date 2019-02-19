@@ -584,14 +584,12 @@
                                 <div class="row">
                                         <label>rTorrent Host:port(optional)</label>
                                         <input type="text" id="rtorrent_host" name="rtorrent_host" value="${config['rtorrent_host']}" size="30">
-					<small>ie. my.rtorrent:80, 192.168.1.1, scgi://localhost:5000</small>
-                                </div>
-                                <div class="row checkbox left clearfix">
-                                        <input id="rtorrent_ssl" type="checkbox" onclick="initConfigCheckbox($this));" name="rtorrent_ssl" value="1" ${config['rtorrent_ssl']} /><label>SSL</label>
+					<small>ie. https://my.rtorrent, http://192.168.1.1, http://localhost:80, scgi://localhost:5000</small>
                                 </div>
                                 <div class="config">
                                     <div class="row checkbox left clearfix">
                                         <input id="rtorrent_verify" type="checkbox" name="rtorrent_verify" value="1" ${config['rtorrent_verify']} /><label>Verify SSL</label>
+                                        <small>(only optionally used for https connections)</small>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -2200,10 +2198,9 @@
                     var password = document.getElementById("rtorrent_password").value;
                     var auth = document.getElementById("rtorrent_authentication").value;
                     var verify = document.getElementById("rtorrent_verify").value;
-                    var ssl = document.getElementById("rtorrent_ssl").value;
                     var rpc_url = document.getElementById("rtorrent_rpc_url").value;
                     $.get("testrtorrent",
-                        { host: host, username: username, password: password, auth: auth, verify: verify, ssl: ssl, rpc_url: rpc_url },
+                        { host: host, username: username, password: password, auth: auth, verify: verify, rpc_url: rpc_url },
                         function(data){
                             if (data.error != undefined) {
                                 alert(data.error);
@@ -2480,7 +2477,6 @@
                 initConfigCheckbox("#enforce_perms");
                 initConfigCheckbox("#enable_api");
                 initConfigCheckbox("#sab_to_mylar");
-                initConfigCheckbox("#rtorrent_ssl");
                 initConfigCheckbox("#usenewznab");
                 initConfigCheckbox("#enable_torznab");
 		initConfigCheckbox("#usenzbsu");

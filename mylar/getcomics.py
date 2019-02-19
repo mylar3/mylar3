@@ -116,6 +116,9 @@ class GC(object):
                 title = re.sub(issues, '', title).strip()
                 if title.endswith('#'):
                     title = title[:-1].strip()
+            else:
+                if any(['Marvel Week+' in title, 'INDIE Week+' in title, 'Image Week' in title, 'DC Week+' in title]):
+                    continue
 
             option_find = f.find("p", {"style": "text-align: center;"})
             i = 0
@@ -156,7 +159,6 @@ class GC(object):
             logger.fdebug('%s [%s]' % (title, size))
 
         results['entries'] = resultlist
-
         return results
 
     def parse_downloadresults(self, id, mainlink):
@@ -236,13 +238,15 @@ class GC(object):
             logger.fdebug('[%s] %s - %s' % (x['site'], x['volume'], x['link']))
 
         ctrlval = {'id':   id}
-        vals = {'series':  series,
-                'year':    year,
-                'size':    size,
-                'issueid': self.issueid,
-                'comicid': self.comicid,
-                'link':    link,
-                'status':  'Queued'}
+        vals = {'series':       series,
+                'year':         year,
+                'size':         size,
+                'issueid':      self.issueid,
+                'comicid':      self.comicid,
+                'link':         link,
+                'mainlink':     mainlink,
+                'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
+                'status':       'Queued'}
         myDB.upsert('ddl_info', vals, ctrlval)
 
         mylar.DDL_QUEUE.put({'link':     link,
@@ -252,11 +256,12 @@ class GC(object):
                              'size':     size,
                              'comicid':  self.comicid,
                              'issueid':  self.issueid,
-                             'id':       id})
+                             'id':       id,
+                             'resume':   None})
 
         return {'success': True}
 
-    def downloadit(self, id, link, mainlink):
+    def downloadit(self, id, link, mainlink, resume=None):
         if mylar.DDL_LOCK is True:
             logger.fdebug('[DDL] Another item is currently downloading via DDL. Only one item can be downloaded at a time using DDL. Patience.')
             return
@@ -267,25 +272,47 @@ class GC(object):
         filename = None
         try:
             with cfscrape.create_scraper() as s:
+                if resume is not None:
+                    logger.info('[DDL-RESUME] Attempting to resume from: %s bytes' % resume)
+                    self.headers['Range'] = 'bytes=%d-' % resume
                 cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers)
                 t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True)
 
                 filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
 
-                path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
+                try:
+                    remote_filesize = int(t.headers['Content-length'])
+                    logger.fdebug('remote filesize: %s' % remote_filesize)
+                except Exception as e:
+                    logger.warn('[WARNING] Unable to retrieve remote file size. Error returned as : %s' % e)
+                    remote_filesize = 0
+                    mylar.DDL_LOCK = False
+                    return ({"success":  False,
+                            "filename": filename,
+                            "path":     None})
+                else:
+                    #write the filename to the db for tracking purposes...
+                    myDB.upsert('ddl_info', {'filename': filename, 'remote_filesize': remote_filesize}, {'id': id})
 
-                #write the filename to the db for tracking purposes...
-                myDB.upsert('ddl_info', {'filename': filename}, {'id': id})
+                path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
                 if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
                     buf = StringIO(t.content)
                     f = gzip.GzipFile(fileobj=buf)
 
-                with open(path, 'wb') as f:
-                    for chunk in t.iter_content(chunk_size=1024):
-                        if chunk: # filter out keep-alive new chunks
-                            f.write(chunk)
-                            f.flush()
+                if resume is not None:
+                    with open(path, 'ab') as f:
+                        for chunk in t.iter_content(chunk_size=1024):
+                            if chunk:
+                                f.write(chunk)
+                                f.flush()
+
+                else:
+                    with open(path, 'wb') as f:
+                        for chunk in t.iter_content(chunk_size=1024):
+                            if chunk:
+                                f.write(chunk)
+                                f.flush()
 
         except Exception as e:
             logger.error('[ERROR] %s' % e)
