@@ -554,9 +554,12 @@ class Config(object):
             print('Successfully removed outdated config entries.')
         if self.newconfig == 9:
             #rejig rtorrent settings due to change.
-            if all([self.RTORRENT_SSL is True, not self.RTORRENT_HOST.startswith('http')]):
-                self.RTORRENT_HOST = 'https://' + self.RTORRENT_HOST
-                config.set('Rtorrent', 'rtorrent_host', self.RTORRENT_HOST)
+            try:
+                if all([self.RTORRENT_SSL is True, not self.RTORRENT_HOST.startswith('http')]):
+                    self.RTORRENT_HOST = 'https://' + self.RTORRENT_HOST
+                    config.set('Rtorrent', 'rtorrent_host', self.RTORRENT_HOST)
+            except:
+                pass
             config.remove_option('Rtorrent', 'rtorrent_ssl')
             print('Successfully removed oudated config entries.')
         print('Configuration upgraded to version %s' % self.newconfig)
