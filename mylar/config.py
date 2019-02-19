@@ -502,7 +502,7 @@ class Config(object):
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
                 print('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.newconfig < 9:
+            if self.CONFIG_VERSION < 9:
                 print('Attempting to update configuration..')
                 #torznab multiple entries merged into extra_torznabs value
                 self.config_update()
