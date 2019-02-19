@@ -987,7 +987,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug('date used is : %s' % stdate)
 
                     postdate_int = None
-                    if all([nzbprov == '32P', RSS == 'no']) or nzbprov == 'ddl':
+                    if all([nzbprov == '32P', RSS == 'no']) or all([nzbprov == 'ddl', len(pubdate) == 10]):
                         postdate_int = pubdate
                         logger.fdebug('[%s] postdate_int: %s' % (nzbprov, postdate_int))
                     elif any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', RSS == 'no']):
@@ -1069,11 +1069,11 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if digitaldate != '0000-00-00' and dateconv2.date() >= digconv2.date():
                             logger.fdebug('%s is after DIGITAL store date of %s' % (pubdate, digitaldate))
                         elif dateconv2.date() < issconv2.date():
-                            logger.fdebug('[CONV]pubdate: %s  < storedate: %s' % (dateconv2.date(), issconv2.date()))
+                            logger.fdebug('[CONV] pubdate: %s  < storedate: %s' % (dateconv2.date(), issconv2.date()))
                             logger.fdebug('%s is before store date of %s. Ignoring search result as this is not the right issue.' % (pubdate, stdate))
                             continue
                         else:
-                            logger.fdebug('%s is after store date of %s' % (pubdate, stdate))
+                            logger.fdebug('[CONV] %s is after store date of %s' % (pubdate, stdate))
                     except:
                         #if the above fails, drop down to the integer compare method as a failsafe.
                         if digitaldate != '0000-00-00' and postdate_int >= digitaldate_int:
@@ -1083,9 +1083,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             logger.fdebug('%s is before store date of %s. Ignoring search result as this is not the right issue.' % (pubdate, stdate))
                             continue
                         else:
-                            logger.fdebug('%s is after store date of %s' % (pubdate, stdate))
+                            logger.fdebug('[INT] %s is after store date of %s' % (pubdate, stdate))
 # -- end size constaints.
-
                 if '(digital first)' in ComicTitle.lower(): #entry['title'].lower():
                     dig_moving = re.sub('\(digital first\)', '', ComicTitle.lower()).strip() #entry['title'].lower()).strip()
                     dig_moving = re.sub('[\s+]', ' ', dig_moving)
