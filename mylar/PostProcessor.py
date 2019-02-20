@@ -212,10 +212,10 @@ class PostProcessor(object):
                 try:
                     shutil.move(path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
                 except (OSError, IOError):
-                    logger.warn('[DUPLICATE-CLEANUP] Failed to move  ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
+                    logger.warn('[DUPLICATE-CLEANUP] Failed to move %s ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
                     return False
 
-                logger.warn('[DUPLICATE-CLEANUP] Successfully moved  ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
+                logger.warn('[DUPLICATE-CLEANUP] Successfully moved %s ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
                 return True
 
     def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False, filename=None):
