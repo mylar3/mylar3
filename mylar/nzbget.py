@@ -212,7 +212,7 @@ class NZBGet(object):
                     logger.fdebug('NZBGET Destination dir set to: %s' % destdir)
             else:
                 logger.warn('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq[0]['DestDir'])
-                return {'status': False}
+                return {'status': 'file not found', 'failed': False}
 
             if mylar.CONFIG.NZBGET_DIRECTORY is not None:
                 destdir2 = mylar.CONFIG.NZBGET_DIRECTORY

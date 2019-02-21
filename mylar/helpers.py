@@ -3171,7 +3171,9 @@ def nzb_monitor(queue):
            logger.warn('There are no NZB Completed Download handlers enabled. Not sending item to completed download handling...')
            break
 
-        if nzstat['status'] is False:
+        if any([nzstat['status'] == 'file not found', nzstat['status'] == 'double-pp']):
+            logger.warn('Unable to complete post-processing call due to not finding file in the location provided. [%s]' % item)
+        elif nzstat['status'] is False:
             logger.info('Could not find NZBID %s in the downloader\'s queue. I will requeue this item for post-processing...' % item['NZBID'])
             time.sleep(5)
             mylar.NZB_QUEUE.put(item)

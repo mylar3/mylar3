@@ -136,7 +136,8 @@ class SABnzbd(object):
                             break
                         else:
                             logger.info('no file found where it should be @ %s - is there another script that moves things after completion ?' % hq['storage'])
-                            break
+                            return {'status': 'file not found', 'failed': False}
+
                     elif hq['nzo_id'] == sendresponse and hq['status'] == 'Failed':
                         #get the stage / error message and see what we can do
                         stage = hq['stage_log']
@@ -160,6 +161,6 @@ class SABnzbd(object):
 
             except Exception as e:
                 logger.warn('error %s' % e)
-                break
+                return {'status': False, 'failed': False}
 
         return found
