@@ -837,16 +837,16 @@
                                                 </div>
                                                 <div class="row">
                                                     <label>&nbspUserName</label>
-                                                    <input type="text" name="username_32p" value="${config['username_32p']}" size="36">
+                                                    <input type="text" name="username_32p" id="username_32p" value="${config['username_32p']}" size="36">
                                                 </div>
                                                 <div class="row">
                                                     <label>&nbspPassword</label>
-                                                    <input type="password" name="password_32p" value="${config['password_32p']| h}" size="36">
+                                                    <input type="password" name="password_32p" id="password_32p" value="${config['password_32p']| h}" size="36">
                                                     <small>( monitor the NEW releases feed & your personal notifications )</small>
                                                 </div>
                                                 <div align="center" class="row">
                                                     <img name="test32p_statusicon" id="test32p_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                                    <input type="button" value="Test Connection" id="test_32p" style="float:center" /></br>
+                                                    <input type="button" value="Test Connection" id="test32p" style="float:center" /></br>
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
                                                 </div>
                                                 <div name="inkdrops32p" id="inkdrops32p" style="font-size:11px;" align="center">
@@ -1980,9 +1980,12 @@
                 function numberWithDecimals(x) {
                         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
                 };
-                $("#test_32p").click(function(){
+                $("#test32p").click(function(){
                     var imagechk = document.getElementById("test32p_statusicon");
-                    $.get('test_32p',
+                    var user32p = document.getElementById("username_32p").value;
+                    var pass32p = document.getElementById("password_32p").value;
+                    $.get("test_32p",
+                        { username: user32p, password: pass32p },
                         function(data){
                             if (data.error != undefined) {
                                 alert(data.error);

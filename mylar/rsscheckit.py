@@ -57,7 +57,7 @@ class tehMain():
                     rsscheck.torrents(pickfeed='Public')    #TPSE = DEM RSS Check + WWT RSS Check
                 if mylar.CONFIG.ENABLE_32P is True:
                     logger.info('[RSS-FEEDS] Initiating Torrent RSS Feed Check on 32P.')
-                    if mylar.CONFIG.MODE_32P == 0:
+                    if mylar.CONFIG.MODE_32P is False:
                         logger.fdebug('[RSS-FEEDS] 32P mode set to Legacy mode. Monitoring New Releases feed only.')
                         if any([mylar.CONFIG.PASSKEY_32P is None, mylar.CONFIG.PASSKEY_32P == '', mylar.CONFIG.RSSFEED_32P is None, mylar.CONFIG.RSSFEED_32P == '']):
                             logger.error('[RSS-FEEDS] Unable to validate information from provided RSS Feed. Verify that the feed provided is a current one.')

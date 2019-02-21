@@ -115,7 +115,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 logger.error('[RSS] Warning - you NEED to enter in your 32P Username and Password to use this option.')
                 lp=+1
                 continue
-            if mylar.CONFIG.MODE_32P == 0:
+            if mylar.CONFIG.MODE_32P is False:
                 logger.warn('[32P] Searching is not available in 32p Legacy mode. Switch to Auth mode to use the search functionality.')
                 lp=+1
                 continue
@@ -886,7 +886,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             verify = False
 
         logger.fdebug('[32P] Verify SSL set to : ' + str(verify))
-        if mylar.CONFIG.MODE_32P == 0:
+        if mylar.CONFIG.MODE_32P is False:
             if mylar.KEYS_32P is None or mylar.CONFIG.PASSKEY_32P is None:
                 logger.warn('[32P] Unable to retrieve keys from provided RSS Feed. Make sure you have provided a CURRENT RSS Feed from 32P')
                 mylar.KEYS_32P = helpers.parse_32pfeed(mylar.FEED_32P)

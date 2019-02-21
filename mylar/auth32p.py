@@ -41,35 +41,41 @@ class info32p(object):
                         'Accept-Charset': 'utf-8',
                         'User-Agent': 'Mozilla/5.0'}
 
-        if test is True:
+        if test:
+            self.username_32p = test['username']
+            self.password_32p = test['password']
             self.test = True
         else:
+            self.username_32p = mylar.CONFIG.USERNAME_32P
+            self.password_32p = mylar.CONFIG.PASSWORD_32P
             self.test = False
 
         self.error = None
         self.method = None
 
-        lses = self.LoginSession(mylar.CONFIG.USERNAME_32P, mylar.CONFIG.PASSWORD_32P)
-        if not lses.login():
-            if not self.test:
-                logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
-                return "disable"
-            else:
-                if self.error:
-                    return self.error #rtnmsg
+        if any([mylar.CONFIG.MODE_32P is True, self.test is True]):
+            lses = self.LoginSession(mylar.CONFIG.USERNAME_32P, mylar.CONFIG.PASSWORD_32P)
+            if not lses.login():
+                if not self.test:
+                    logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
+                    return "disable"
                 else:
-                    return self.method
+                    if self.error:
+                        return self.error #rtnmsg
+                    else:
+                        return self.method
+            else:
+                logger.fdebug('%s [LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...' % self.module)
+                self.authkey = lses.authkey
+                self.passkey = lses.passkey
+                self.session = lses.ses
+                self.uid = lses.uid
+                try:
+                    mylar.INKDROPS_32P = int(math.floor(float(lses.inkdrops['results'][0]['inkdrops'])))
+                except:
+                    mylar.INKDROPS_32P = lses.inkdrops['results'][0]['inkdrops']
         else:
-            logger.fdebug('%s [LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...' % self.module)
-            self.authkey = lses.authkey
-            self.passkey = lses.passkey
-            self.session = lses.ses
-            self.uid = lses.uid
-            try:
-                mylar.INKDROPS_32P = int(math.floor(float(lses.inkdrops['results'][0]['inkdrops'])))
-            except:
-                mylar.INKDROPS_32P = lses.inkdrops['results'][0]['inkdrops']
-
+            self.session = requests.Session()
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
         self.publisher_list = {'Entertainment', 'Press', 'Comics', 'Publishing', 'Comix', 'Studios!'}

@@ -5877,9 +5877,9 @@ class WebInterface(object):
 
     download_0day.exposed = True
 
-    def test_32p(self):
+    def test_32p(self, username, password):
         import auth32p
-        tmp = auth32p.info32p(test=True)
+        tmp = auth32p.info32p(test={'username': username, 'password': password})
         rtnvalues = tmp.authenticate()
         if rtnvalues['status'] is True:
             return json.dumps({"status": "Successfully Authenticated.", "inkdrops": mylar.INKDROPS_32P})
