@@ -146,6 +146,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DUPECONSTRAINT': (str, 'Duplicates', None),
     'DDUMP': (bool, 'Duplicates', False),
     'DUPLICATE_DUMP': (str, 'Duplicates', None),
+    'DUPLICATE_DATED_FOLDERS': (bool, 'Duplicates', False),
 
     'PROWL_ENABLED': (bool, 'Prowl', False),
     'PROWL_PRIORITY': (int, 'Prowl', 0),

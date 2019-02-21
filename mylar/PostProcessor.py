@@ -209,13 +209,21 @@ class PostProcessor(object):
             if mylar.CONFIG.FILE_OPTS == 'move':
                 #check to make sure duplicate_dump directory exists:
                 checkdirectory = filechecker.validateAndCreateDirectory(mylar.CONFIG.DUPLICATE_DUMP, True, module='[DUPLICATE-CLEANUP]')
+
+                if mylar.CONFIG.DUPLICATE_DATED_FOLDERS is True:
+                    todaydate = datetime.datetime.now().strftime("%Y-%m-%d")
+                    dump_folder = os.path.join(mylar.CONFIG.DUPLICATE_DUMP, todaydate)
+                    checkdirectory = filechecker.validateAndCreateDirectory(dump_folder, True, module='[DUPLICATE-DATED CLEANUP]')
+                else:
+                    dump_folder = mylar.CONFIG.DUPLICATE_DUMP
+
                 try:
-                    shutil.move(path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move))
+                    shutil.move(path_to_move, os.path.join(dump_folder, file_to_move))
                 except (OSError, IOError):
-                    logger.warn('[DUPLICATE-CLEANUP] Failed to move %s ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
+                    logger.warn('[DUPLICATE-CLEANUP] Failed to move %s ... to ... %s' % (path_to_move, os.path.join(dump_folder, file_to_move)))
                     return False
 
-                logger.warn('[DUPLICATE-CLEANUP] Successfully moved %s ... to ... %s' % (path_to_move, os.path.join(mylar.CONFIG.DUPLICATE_DUMP, file_to_move)))
+                logger.warn('[DUPLICATE-CLEANUP] Successfully moved %s ... to ... %s' % (path_to_move, os.path.join(dump_folder, file_to_move)))
                 return True
 
     def tidyup(self, odir=None, del_nzbdir=False, sub_path=None, cacheonly=False, filename=None):
