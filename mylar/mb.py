@@ -359,8 +359,8 @@ def findComic(name, mode, issue, limityear=None, type=None):
 
                             xmltype = None
                             if xmldeck != 'None':
-                                if any(['print' in xmldeck.lower(), 'digital' in xmldeck.lower(), 'paperback' in xmldeck.lower(), 'hardcover' in xmldeck.lower()]):
-                                    if 'print' in xmldeck.lower():
+                                if any(['print' in xmldeck.lower(), 'digital' in xmldeck.lower(), 'paperback' in xmldeck.lower(), 'one shot' in re.sub('-', '', xmldeck.lower()).strip(), 'hardcover' in xmldeck.lower()]):
+                                    if all(['print' in xmldeck.lower(), 'reprint' not in xmldeck.lower()]):
                                         xmltype = 'Print'
                                     elif 'digital' in xmldeck.lower():
                                         xmltype = 'Digital'
@@ -368,15 +368,38 @@ def findComic(name, mode, issue, limityear=None, type=None):
                                         xmltype = 'TPB'
                                     elif 'hardcover' in xmldeck.lower():
                                         xmltype = 'HC'
+                                    elif 'oneshot' in re.sub('-', '', xmldeck.lower()).strip():
+                                        xmltype = 'One-Shot'
+                                    else:
+                                        xmltype = 'Print'
+
                             if xmldesc != 'None' and xmltype is None:
-                                if 'print' in xmldesc[:60].lower() and 'print edition can be found' not in xmldesc.lower():
+                                if 'print' in xmldesc[:60].lower() and all(['print edition can be found' not in xmldesc.lower(), 'reprints' not in xmldesc.lower()]):
                                     xmltype = 'Print'
                                 elif 'digital' in xmldesc[:60].lower() and 'digital edition can be found' not in xmldesc.lower():
                                     xmltype = 'Digital'
-                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or 'collects' in xmldesc.lower():
+                                elif all(['paperback' in xmldesc[:60].lower(), 'paperback can be found' not in xmldesc.lower()]) or 'collects' in xmldesc[:60].lower():
                                     xmltype = 'TPB'
                                 elif 'hardcover' in xmldesc[:60].lower() and 'hardcover can be found' not in xmldesc.lower():
                                     xmltype = 'HC'
+                                elif any(['one-shot' in xmldesc[:60].lower(), 'one shot' in xmldesc[:60].lower()]) and any(['can be found' not in xmldesc.lower(), 'following the' not in xmldesc.lower()]):
+                                    i = 0
+                                    xmltype = 'One-Shot'
+                                    avoidwords = ['preceding', 'after the special', 'following the']
+                                    while i < 2:
+                                        if i == 0:
+                                            cbd = 'one-shot'
+                                        elif i == 1:
+                                            cbd = 'one shot'
+                                        tmp1 = xmldesc[:60].lower().find(cbd)
+                                        if tmp1 != -1:
+                                            for x in avoidwords:
+                                                tmp2 = xmldesc[:tmp1].lower().find(x)
+                                                if tmp2 != -1:
+                                                    xmltype = 'Print'
+                                                    i = 3
+                                                    break
+                                        i+=1
                                 else:
                                     xmltype = 'Print'
 
