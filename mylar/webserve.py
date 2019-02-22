@@ -2490,10 +2490,12 @@ class WebInterface(object):
             annuals = []
         for iss in issues:
             results.append(iss)
-            resultlist.append(str(iss['IssueID']))
+            if status == 'Snatched':
+                resultlist.append(str(iss['IssueID']))
         for ann in annuals:
             results.append(ann)
-            resultlist.append(str(iss['IssueID']))
+            if status == 'Snatched':
+                resultlist.append(str(ann['IssueID']))
         endresults = []
         if status == 'Snatched':
             for genlist in helpers.chunker(resultlist, 200):
