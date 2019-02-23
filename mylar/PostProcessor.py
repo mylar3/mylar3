@@ -781,7 +781,7 @@ class PostProcessor(object):
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Series Year of %s DID NOT match to volume/year label of %s' % (module, watch_values['SeriesYear'], tmp_watchmatch_vol))
                                                 datematch = "False"
-                                        if len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
+                                        elif len(watchvals) > 1 and int(tmp_watchmatch_vol) > 1:
                                             if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                             else:
