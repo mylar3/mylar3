@@ -193,9 +193,10 @@ class GC(object):
                 site = lk['title']
                 break #get the first link just to test
 
+
         if link is None:
             logger.warn('Unable to retrieve any valid immediate download links. They might not exist.')
-            return
+            return {'success':  False}
 
         links = []
 
