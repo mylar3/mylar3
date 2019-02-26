@@ -3087,6 +3087,8 @@ def ddl_downloader(queue):
                 nval = {'status':  'Failed',
                         'updated_date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
                 myDB.upsert('ddl_info', nval, ctrlval)
+        else:
+            time.sleep(5)
 
 def postprocess_main(queue):
     while True:
@@ -3153,6 +3155,7 @@ def worker_main(queue):
         elif any([snstat['snatch_status'] == 'MONITOR FAIL', snstat['snatch_status'] == 'MONITOR COMPLETE']):
             logger.info('File copied for post-processing - submitting as a direct pp.')
             threading.Thread(target=self.checkFolder, args=[os.path.abspath(os.path.join(snstat['copied_filepath'], os.pardir))]).start()
+        time.sleep(15)
 
 def nzb_monitor(queue):
     while True:
@@ -3195,6 +3198,7 @@ def nzb_monitor(queue):
             except Exception as e:
                 logger.info('process error: %s' % e)
 
+        time.sleep(5)
 
 def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
