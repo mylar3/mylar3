@@ -1757,6 +1757,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
                     mylar.SEARCHLOCK = False
 
         else:
+            mylar.SEARCHLOCK = True
             result = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             mode = 'want'
             oneoff = False
