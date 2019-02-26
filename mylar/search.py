@@ -1146,7 +1146,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 fndcomicversion = None
 
                 if parsed_comic['series_volume'] is not None:
-                        version_found = "yes"
+                        versionfound = "yes"
                         if len(parsed_comic['series_volume'][1:]) == 4 and parsed_comic['series_volume'][1:].isdigit():  #v2013
                             logger.fdebug("[Vxxxx] Version detected as %s" % (parsed_comic['series_volume']))
                             vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
