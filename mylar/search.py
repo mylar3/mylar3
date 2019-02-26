@@ -2322,7 +2322,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         if ddl_it['success'] is True:
             logger.info('Successfully snatched %s from DDL site. It is currently being queued to download in position %s' % (nzbname, mylar.DDL_QUEUE.qsize()))
         else:
-            logger.info('Failed to retrieve %s from the DDL site.' %s (nzbname))
+            logger.info('Failed to retrieve %s from the DDL site.' % (nzbname))
             return "ddl-fail"
 
         sent_to = "is downloading it directly via DDL"

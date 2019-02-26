@@ -193,14 +193,9 @@ class GC(object):
                 site = lk['title']
                 break #get the first link just to test
 
-
-        if link is None:
-            logger.warn('Unable to retrieve any valid immediate download links. They might not exist.')
-            return {'success':  False}
-
         links = []
 
-        if possible_more.name == 'ul':
+        if link is None and possible_more.name == 'ul':
             bb = possible_more.findAll('li')
             for x in bb:
                 volume = x.findNext(text=True)
