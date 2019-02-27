@@ -6,6 +6,7 @@ import os
 import glob
 import codecs
 import shutil
+import threading
 import re
 import ConfigParser
 import mylar
@@ -288,6 +289,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'ENABLE_DDL': (bool, 'DDL', False),
     'ALLOW_PACKS': (bool, 'DDL', False),
     'DDL_LOCATION': (str, 'DDL', None),
+    'DDL_AUTORESUME': (bool, 'DDL', True),
 
     'AUTO_SNATCH': (bool, 'AutoSnatch', False),
     'AUTO_SNATCH_SCRIPT': (str, 'AutoSnatch', None),
@@ -899,6 +901,24 @@ class Config(object):
                         logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
                 else:
                     logger.fdebug('Successfully created ComicTagger Settings location.')
+
+        #make sure queues are running here...
+        if all([mylar.NZBPOOL is None, self.POST_PROCESSING is True]) and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZB_CLIENT_POST_PROCESSING is True]) ):
+            if self.NZB_DOWNLOADER == 0:
+                logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
+            elif self.NZB_DOWNLOADER == 1:
+                logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
+            mylar.NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(mylar.NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
+            mylar.NZBPOOL.start()
+            if self.NZB_DOWNLOADER == 0:
+                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically...')
+            elif self.NZB_DOWNLOADER == 1:
+                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically...')
+
+        if all([mylar.DDLPOOL is None, self.ENABLE_DDL is True]):
+            mylar.DDLPOOL = threading.Thread(target=helpers.ddl_downloader, args=(mylar.DDL_QUEUE,), name='DDL-QUEUE')
+            mylar.DDLPOOL.start()
+            logger.info('[DDL-QUEUE] Succesfully started DDL Download Queuer....')
 
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR
