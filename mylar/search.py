@@ -368,7 +368,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                             loopit = len(chkthealt)
                             for calt in chkthealt:
                                 AS_Alternate = re.sub('##', '', calt)
-                                logger.info('Alternate Search pattern detected...re-adjusting to : %s' % AS_Alternate))
+                                logger.info('Alternate Search pattern detected...re-adjusting to : %s' % AS_Alternate)
                                 findit = NZB_SEARCH(AS_Alternate, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="no", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, allow_packs=allow_packs, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, torrentid_32p=torrentid_32p, digitaldate=digitaldate, booktype=booktype)
                                 if findit['status'] is True:
                                     break
@@ -492,7 +492,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         elif 'torznab' in nzbprov:
             tmpprov = '%s (%s) [RSS]' % (name_torznab, nzbprov)
         else:
-            tmpprov = '%s [RSS]' % nzbprov)
+            tmpprov = '%s [RSS]' % nzbprov
     else:
         if 'newznab' in nzbprov:
             tmpprov = '%s (%s)' % (name_newznab, nzbprov)
