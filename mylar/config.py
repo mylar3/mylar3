@@ -903,7 +903,7 @@ class Config(object):
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
         #make sure queues are running here...
-        if all([mylar.NZBPOOL is None, self.POST_PROCESSING is True]) and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZB_CLIENT_POST_PROCESSING is True]) ):
+        if all([mylar.NZBPOOL is None, self.POST_PROCESSING is True]) and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is True]) ):
             if self.NZB_DOWNLOADER == 0:
                 logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
             elif self.NZB_DOWNLOADER == 1:
