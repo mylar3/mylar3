@@ -159,10 +159,10 @@ class FileChecker(object):
                                     'sub':                 runresults['sub'],
                                     'comicfilename':       runresults['comicfilename'],
                                     'comiclocation':       runresults['comiclocation'],
-                                    'series_name':         runresults['series_name'],
+                                    'series_name':         helpers.conversion(runresults['series_name']),
                                     'series_name_decoded': runresults['series_name_decoded'],
                                     'issueid':             runresults['issueid'],
-                                    'alt_series':          runresults['alt_series'],
+                                    'alt_series':          helpers.conversion(runresults['alt_series']),
                                     'alt_issue':           runresults['alt_issue'],
                                     'dynamic_name':        runresults['dynamic_name'],
                                     'series_volume':       runresults['series_volume'],
@@ -178,7 +178,7 @@ class FileChecker(object):
                                      'ComicFilename':           runresults['comicfilename'],
                                      'ComicLocation':           runresults['comiclocation'],
                                      'ComicSize':               files['comicsize'],
-                                     'ComicName':               runresults['series_name'],
+                                     'ComicName':               helpers.conversion(runresults['series_name']),
                                      'SeriesVolume':            runresults['series_volume'],
                                      'IssueYear':               runresults['issue_year'],
                                      'JusttheDigits':           runresults['justthedigits'],
@@ -194,9 +194,9 @@ class FileChecker(object):
                                                   'sub':            runresults['sub'],
                                                   'comicfilename':  runresults['comicfilename'],
                                                   'comiclocation':  runresults['comiclocation'],
-                                                  'series_name':    runresults['series_name'],
+                                                  'series_name':    helpers.conversion(runresults['series_name']),
                                                   'series_volume':  runresults['series_volume'],
-                                                  'alt_series':     runresults['alt_series'],
+                                                  'alt_series':     helpres.conversion(runresults['alt_series']),
                                                   'alt_issue':      runresults['alt_issue'],
                                                   'issue_year':     runresults['issue_year'],
                                                   'issue_number':   runresults['issue_number'],
@@ -227,8 +227,9 @@ class FileChecker(object):
                 #basepath the sub if it exists to get the parent folder.
                 logger.fdebug('[SUB-PATH] Checking Folder Name for more information.')
                 #sub = re.sub(origpath, '', path).strip()})
-                logger.fdebug('[SUB-PATH] Original Path : ' + str(path))
-                logger.fdebug('[SUB-PATH] Sub-directory : ' + str(subpath))
+                logger.fdebug('[SUB-PATH] Original Path : %s' % path)
+                logger.fdebug('[SUB-PATH] Sub-directory : %s' % subpath)
+                subpath = helpers.conversion(subpath)
                 if 'windows' in mylar.OS_DETECT.lower():
                     if path in subpath:
                         ab = len(path)
