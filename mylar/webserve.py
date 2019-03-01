@@ -5093,6 +5093,18 @@ class WebInterface(object):
                     "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
                     "slack_webhook_url": mylar.CONFIG.SLACK_WEBHOOK_URL,
                     "slack_onsnatch": helpers.checked(mylar.CONFIG.SLACK_ONSNATCH),
+                    "email_enabled": helpers.checked(mylar.CONFIG.EMAIL_ENABLED),
+                    "email_from": mylar.CONFIG.EMAIL_FROM,
+                    "email_to": mylar.CONFIG.EMAIL_TO,
+                    "email_server": mylar.CONFIG.EMAIL_SERVER,
+                    "email_user": mylar.CONFIG.EMAIL_USER,
+                    "email_password": mylar.CONFIG.EMAIL_PASSWORD,
+                    "email_port": int(mylar.CONFIG.EMAIL_PORT),
+                    "email_raw": helpers.radio(int(mylar.CONFIG.EMAIL_ENC), 0),
+                    "email_ssl": helpers.radio(int(mylar.CONFIG.EMAIL_ENC), 1),
+                    "email_tls": helpers.radio(int(mylar.CONFIG.EMAIL_ENC), 2),
+                    "email_ongrab": helpers.checked(mylar.CONFIG.EMAIL_ONGRAB),
+                    "email_onpost": helpers.checked(mylar.CONFIG.EMAIL_ONPOST),
                     "enable_extra_scripts": helpers.checked(mylar.CONFIG.ENABLE_EXTRA_SCRIPTS),
                     "extra_scripts": mylar.CONFIG.EXTRA_SCRIPTS,
                     "enable_snatch_script": helpers.checked(mylar.CONFIG.ENABLE_SNATCH_SCRIPT),
@@ -5363,7 +5375,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'nma_enabled', 'nma_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'opds_enable', 'opds_authentication', 'opds_metainfo', 'enable_ddl']
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'enable_ddl']
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
@@ -5922,6 +5934,16 @@ class WebInterface(object):
             return "Error sending test message to Slack"
     testslack.exposed = True
 
+    def testemail(self, emailfrom, emailto, emailsvr, emailport, emailuser, emailpass, emailenc):
+        email = notifiers.EMAIL(test_emailfrom=emailfrom, test_emailto=emailto, test_emailsvr=emailsvr, test_emailport=emailport, test_emailuser=emailuser, test_emailpass=emailpass, test_emailenc=emailenc)
+        result = email.test_notify()
+
+        if result == True:
+            return "Successfully sent email. Check your mailbox."
+        else:
+            logger.warn('Email test has gone horribly wrong. Variables used were [FROM: %s] [TO: %s] [SERVER: %s] [PORT: %s] [USER: %s] [PASSWORD: ********] [ENCRYPTION: %s]' % (emailfrom, emailto, emailsvr, emailport, emailuser, emailenc))
+            return "Error sending test message via email"
+    testemail.exposed = True
 
     def testrtorrent(self, host, username, password, auth, verify, rpc_url):
         import torrent.clients.rtorrent as TorClient

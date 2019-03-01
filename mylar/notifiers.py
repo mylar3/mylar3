@@ -27,6 +27,9 @@ import time
 import simplejson
 import json
 import requests
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # This was obviously all taken from headphones with great appreciation :)
 
@@ -478,6 +481,53 @@ class TELEGRAM:
 
     def test_notify(self):
         return self.notify('Test Message: Release the Ninjas!')
+
+class EMAIL:
+    def __init__(self, test_emailfrom=None, test_emailto=None, test_emailsvr=None, test_emailport=None, test_emailuser=None, test_emailpass=None, test_emailenc=None):
+        self.emailfrom = mylar.CONFIG.EMAIL_FROM if test_emailfrom is None else test_emailfrom
+        self.emailto = mylar.CONFIG.EMAIL_TO if test_emailto is None else test_emailto
+        self.emailsvr = mylar.CONFIG.EMAIL_SERVER if test_emailsvr is None else test_emailsvr
+        self.emailport = mylar.CONFIG.EMAIL_PORT if test_emailport is None else test_emailport
+        self.emailuser = mylar.CONFIG.EMAIL_USER if test_emailuser is None else test_emailuser
+        self.emailpass = mylar.CONFIG.EMAIL_PASSWORD if test_emailpass is None else test_emailpass
+        self.emailenc = mylar.CONFIG.EMAIL_ENC if test_emailenc is None else int(test_emailenc)
+
+    def notify(self, message, subject, module=None):
+        if module is None:
+            module = ''
+        module += '[NOTIFIER]'
+        sent_successfully = False
+
+        try:
+            logger.debug(module + u' Sending email notification. From: [%s] - To: [%s] - Server: [%s] - Port: [%s] - Username: [%s] - Password: [********] - Encryption: [%s] - Message: [%s]' % (self.emailfrom, self.emailto, self.emailsvr, self.emailport, self.emailuser, self.emailenc, message))
+            msg = MIMEMultipart()
+            msg['From'] = str(self.emailfrom)
+            msg['To'] = str(self.emailto)
+            msg['Subject'] = subject
+            msg.attach(MIMEText(message, 'plain'))
+
+            if self.emailenc is 1:
+                sock = smtplib.SMTP_SSL(self.emailsvr, str(self.emailport))
+            else:
+                sock = smtplib.SMTP(self.emailsvr, str(self.emailport))
+
+            if self.emailenc is 2:
+                sock.starttls()
+
+            if self.emailuser or self.emailpass:
+                sock.login(str(self.emailuser), str(self.emailpass))
+
+            sock.sendmail(str(self.emailfrom), str(self.emailto), msg.as_string())
+            sock.quit()
+            sent_successfully = True
+
+        except Exception, e:
+            logger.warn(module + u' Oh no!! Email notification failed: ' + str(e))
+
+        return sent_successfully
+
+    def test_notify(self):
+        return self.notify('Test Message: With great power comes great responsibility.', 'Mylar notification - Test')
 
 class SLACK:
     def __init__(self, test_webhook_url=None):

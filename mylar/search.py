@@ -2753,6 +2753,10 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         logger.info(u"Sending Slack notification")
         slack = notifiers.SLACK()
         slack.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
+    if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONGRAB:
+        logger.info(u"Sending email notification")
+        email = notifiers.EMAIL()
+        email.notify(snline + " - " + snatched_name, "Mylar notification - Snatch", module="[SEARCH]")
 
     return
 

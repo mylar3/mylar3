@@ -186,6 +186,17 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),
     'SLACK_ONSNATCH': (bool, 'SLACK', False),
 
+    'EMAIL_ENABLED': (bool, 'Email', False),
+    'EMAIL_FROM': (str, 'Email', ''),
+    'EMAIL_TO': (str, 'Email', ''),
+    'EMAIL_SERVER': (str, 'Email', ''),
+    'EMAIL_USER': (str, 'Email', ''),
+    'EMAIL_PASSWORD': (str, 'Email', ''),
+    'EMAIL_PORT': (int, 'Email', 25),
+    'EMAIL_ENC': (int, 'Email', 0),
+    'EMAIL_ONGRAB': (bool, 'Email', True),
+    'EMAIL_ONPOST': (bool, 'Email', True),
+
     'POST_PROCESSING': (bool, 'PostProcess', False),
     'FILE_OPTS': (str, 'PostProcess', 'move'),
     'SNATCHEDTORRENT_NOTIFY': (bool, 'PostProcess', False),
