@@ -535,7 +535,7 @@ class Config(object):
                     print('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL))
                 logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
 
-        self.configure()
+        self.configure(startup=startup)
         return self
 
     def config_update(self):
@@ -741,7 +741,7 @@ class Config(object):
         except IOError as e:
             logger.warn("Error writing configuration file: %s", e)
 
-    def configure(self, update=False):
+    def configure(self, update=False, startup=False):
 
         #force alt_pull = 2 on restarts regardless of settings
         if self.ALT_PULL != 2:
@@ -903,22 +903,16 @@ class Config(object):
                     logger.fdebug('Successfully created ComicTagger Settings location.')
 
         #make sure queues are running here...
-        if all([mylar.NZBPOOL is None, self.POST_PROCESSING is True]) and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is True]) ):
-            if self.NZB_DOWNLOADER == 0:
-                logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
-            elif self.NZB_DOWNLOADER == 1:
-                logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
-            mylar.NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(mylar.NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
-            mylar.NZBPOOL.start()
-            if self.NZB_DOWNLOADER == 0:
-                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically...')
-            elif self.NZB_DOWNLOADER == 1:
-                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically...')
+        if startup is False:
+            if self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is True]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is True]) ):
+                mylar.queue_schedule('nzb_queue', 'start')
+            elif self.POST_PROCESSING is True and ( all([self.NZB_DOWNLOADER == 0, self.SAB_CLIENT_POST_PROCESSING is False]) or all([self.NZB_DOWNLOADER == 1, self.NZBGET_CLIENT_POST_PROCESSING is False]) ):
+                mylar.queue_schedule('nzb_queue', 'stop')
 
-        if all([mylar.DDLPOOL is None, self.ENABLE_DDL is True]):
-            mylar.DDLPOOL = threading.Thread(target=helpers.ddl_downloader, args=(mylar.DDL_QUEUE,), name='DDL-QUEUE')
-            mylar.DDLPOOL.start()
-            logger.info('[DDL-QUEUE] Succesfully started DDL Download Queuer....')
+            if self.ENABLE_DDL is True:
+                mylar.queue_schedule('ddl_queue', 'start')
+            elif self.ENABLE_DDL is False:
+                mylar.queue_schedule('ddl_queue', 'stop')
 
         if not self.DDL_LOCATION:
             self.DDL_LOCATION = self.CACHE_DIR

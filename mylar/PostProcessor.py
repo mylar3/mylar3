@@ -880,32 +880,6 @@ class PostProcessor(object):
                         elif self.matched is True:
                             logger.warn('%s[MATCH: %s - %s] We matched by name for this series, but cannot find a corresponding issue number in the series list.' % (module, cs['ComicName'], cs['ComicID']))
 
-                    #mlp = []
-
-                    #xmld = filechecker.FileChecker()
-                    #if len(manual_list) > 1:
-                    #    #in case the manual pp matches on more than one series in the watchlist, drop back down to exact name matching to see if we can narrow
-                    #    #the matches down further to the point where there's only one exact match. Not being able to match specifically when there is more than
-                    #    #one item in the manual list that's matched to the same file will result in a dupe_src error and/or mistakingly PP'ing against the
-                    #    #wrong series.
-                    #    for x in manual_list:
-                    #        xmld1 = xmld.dynamic_replace(helpers.conversion(x['ComicName']))
-                    #        xseries = xmld1['mod_seriesname'].lower()
-                    #        xmld2 = xmld.dynamic_replace(helpers.conversion(x['Series']))
-                    #        xfile = xmld2['mod_seriesname'].lower()
-                    #        #logger.info('[xseries:%s][xfile:%s]' % (xseries,xfile))
-                    #        if re.sub('\|', '', xseries).strip() == re.sub('\|', '', xfile).strip():
-                    #            logger.fdebug('%s[DEFINITIVE-NAME MATCH] Definitive name match exactly to : %s [%s]' % (module, x['ComicName'], x['ComicID']))
-                    #            mlp.append(x)
-                    #        else:
-                    #            pass
-                    #    if len(mlp) == 1:
-                    #        manual_list = mlp 
-                    #        logger.fdebug('%s[CONFIRMED-FORCE-OVERRIDE] Over-ride of matching taken due to exact name matching of series' % module)
-                    #    else:
-                    #        logger.warn('%s[CONFIRMATION-PROBLEM] Unable to determine proper match for series as more than one successful match came up.' % module)
-
-
                     #we should setup for manual post-processing of story-arc issues here
                     #we can also search by ComicID to just grab those particular arcs as an alternative as well (not done)
 

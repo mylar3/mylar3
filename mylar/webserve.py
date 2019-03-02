@@ -4068,7 +4068,7 @@ class WebInterface(object):
         mylar.CONFIG.IMP_METADATA = bool(imp_metadata)
         mylar.CONFIG.IMP_PATHS = bool(imp_paths)
 
-        mylar.CONFIG.configure(update=True)
+        mylar.CONFIG.configure(update=True, startup=False)
         # Write the config
         logger.info('Now updating config...')
         mylar.CONFIG.writeconfig()

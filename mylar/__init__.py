@@ -32,7 +32,6 @@ import Queue
 import platform
 import locale
 import re
-from threading import Lock, Thread
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -168,6 +167,7 @@ def initialize(config_file):
         global CONFIG, _INITIALIZED, QUIET, CONFIG_FILE, OS_DETECT, MAINTENANCE, CURRENT_VERSION, LATEST_VERSION, COMMITS_BEHIND, INSTALL_TYPE, IMPORTLOCK, PULLBYFILE, INKDROPS_32P, \
                DONATEBUTTON, CURRENT_WEEKNUMBER, CURRENT_YEAR, UMASK, USER_AGENT, SNATCHED_QUEUE, NZB_QUEUE, PP_QUEUE, SEARCH_QUEUE, DDL_QUEUE, PULLNEW, COMICSORT, WANTED_TAB_OFF, CV_HEADERS, \
                IMPORTBUTTON, IMPORT_FILES, IMPORT_TOTALFILES, IMPORT_CID_COUNT, IMPORT_PARSED_COUNT, IMPORT_FAILURE_COUNT, CHECKENABLED, CVURL, DEMURL, WWTURL, WWT_CF_COOKIEVALUE, \
+               DDLPOOL, NZBPOOL, SNPOOL, PPPOOL, SEARCHPOOL, \
                USE_SABNZBD, USE_NZBGET, USE_BLACKHOLE, USE_RTORRENT, USE_UTORRENT, USE_QBITTORRENT, USE_DELUGE, USE_TRANSMISSION, USE_WATCHDIR, SAB_PARAMS, \
                PROG_DIR, DATA_DIR, CMTAGGER_PATH, DOWNLOAD_APIKEY, LOCAL_IP, STATIC_COMICRN_VERSION, STATIC_APC_VERSION, KEYS_32P, AUTHKEY_32P, FEED_32P, FEEDINFO_32P, \
                MONITOR_STATUS, SEARCH_STATUS, RSS_STATUS, WEEKLY_STATUS, VERSION_STATUS, UPDATER_STATUS, DBUPDATE_INTERVAL, LOG_LANG, LOG_CHARSET, APILOCK, SEARCHLOCK, DDL_LOCK, LOG_LEVEL, \
@@ -375,40 +375,21 @@ def start():
                 ss = searchit.CurrentSearcher()
                 SCHED.add_job(func=ss.run, id='search', name='Auto-Search', next_run_time=None, trigger=IntervalTrigger(hours=0, minutes=CONFIG.SEARCH_INTERVAL, timezone='UTC'))
 
+            #thread queue control..
+            queue_schedule('search_queue', 'start')
+
             if all([CONFIG.ENABLE_TORRENTS, CONFIG.AUTO_SNATCH, OS_DETECT != 'Windows']) and any([CONFIG.TORRENT_DOWNLOADER == 2, CONFIG.TORRENT_DOWNLOADER == 4]):
-                logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to background load....')
-                SNPOOL = threading.Thread(target=helpers.worker_main, args=(SNATCHED_QUEUE,), name="AUTO-SNATCHER")
-                SNPOOL.start()
-                logger.info('[AUTO-SNATCHER] Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
+                queue_schedule('snatched_queue', 'start')
 
             if CONFIG.POST_PROCESSING is True and ( all([CONFIG.NZB_DOWNLOADER == 0, CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([CONFIG.NZB_DOWNLOADER == 1, CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
-                if CONFIG.NZB_DOWNLOADER == 0:
-                    logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
-                elif CONFIG.NZB_DOWNLOADER == 1:
-                    logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
-                NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
-                NZBPOOL.start()
-                if CONFIG.NZB_DOWNLOADER == 0:
-                    logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically....')
-                elif CONFIG.NZB_DOWNLOADER == 1:
-                    logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically....')
+                queue_schedule('nzb_queue', 'start')
 
-            logger.info('[SEARCH-QUEUE] Attempting to background load the search queue....')
-            SEARCHPOOL = threading.Thread(target=helpers.search_queue, args=(SEARCH_QUEUE,), name="SEARCH-QUEUE")
-            SEARCHPOOL.start()
 
             if CONFIG.POST_PROCESSING is True:
-                logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
-                PPPOOL = threading.Thread(target=helpers.postprocess_main, args=(PP_QUEUE,), name="POST-PROCESS-QUEUE")
-                PPPOOL.start()
-                logger.info('[POST-PROCESS-QUEUE] Succesfully started Post-Processing Queuer....')
+                queue_schedule('pp_queue', 'start')
 
             if CONFIG.ENABLE_DDL is True:
-                logger.info('[DDL-QUEUE] DDL Download queue enabled & monitoring for requests....')
-                DDLPOOL = threading.Thread(target=helpers.ddl_downloader, args=(DDL_QUEUE,), name="DDL-QUEUE")
-                DDLPOOL.start()
-                logger.info('[DDL-QUEUE] Succesfully started DDL Download Queuer....')
-
+                queue_schedule('ddl_queue', 'start')
             helpers.latestdate_fix()
 
             if CONFIG.ALT_PULL == 2:
@@ -495,6 +476,183 @@ def start():
 
         started = True
 
+def queue_schedule(queuetype, mode):
+
+    #global _INITIALIZED
+
+    if mode == 'start':
+        if queuetype == 'snatched_queue':
+            try:
+                if mylar.SNPOOL.isAlive() is True:
+                    return
+            except Exception as e:
+                pass
+
+            logger.info('[AUTO-SNATCHER] Auto-Snatch of completed torrents enabled & attempting to background load....')
+            mylar.SNPOOL = threading.Thread(target=helpers.worker_main, args=(SNATCHED_QUEUE,), name="AUTO-SNATCHER")
+            mylar.SNPOOL.start()
+            logger.info('[AUTO-SNATCHER] Succesfully started Auto-Snatch add-on - will now monitor for completed torrents on client....')
+
+        elif queuetype == 'nzb_queue':
+            try:
+                if mylar.NZBPOOL.isAlive() is True:
+                    return
+            except Exception as e:
+                pass
+
+            if CONFIG.NZB_DOWNLOADER == 0:
+                logger.info('[SAB-MONITOR] Completed post-processing handling enabled for SABnzbd. Attempting to background load....')
+            elif CONFIG.NZB_DOWNLOADER == 1:
+                logger.info('[NZBGET-MONITOR] Completed post-processing handling enabled for NZBGet. Attempting to background load....')
+            mylar.NZBPOOL = threading.Thread(target=helpers.nzb_monitor, args=(NZB_QUEUE,), name="AUTO-COMPLETE-NZB")
+            mylar.NZBPOOL.start()
+            if CONFIG.NZB_DOWNLOADER == 0:
+                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for SABnzbd - will now monitor for completed nzbs within sabnzbd and post-process automatically...')
+            elif CONFIG.NZB_DOWNLOADER == 1:
+                logger.info('[AUTO-COMPLETE-NZB] Succesfully started Completed post-processing handling for NZBGet - will now monitor for completed nzbs within nzbget and post-process automatically...')
+
+        elif queuetype == 'search_queue':
+            try:
+                if mylar.SEARCHPOOL.isAlive() is True:
+                    return
+            except Exception as e:
+                pass
+
+            logger.info('[SEARCH-QUEUE] Attempting to background load the search queue....')
+            mylar.SEARCHPOOL = threading.Thread(target=helpers.search_queue, args=(SEARCH_QUEUE,), name="SEARCH-QUEUE")
+            mylar.SEARCHPOOL.start()
+            logger.info('[SEARCH-QUEUE] Successfully started the Search Queuer...')
+        elif queuetype == 'pp_queue':
+            try:
+                if mylar.PPPOOL.isAlive() is True:
+                    return
+            except Exception as e:
+                pass
+
+            logger.info('[POST-PROCESS-QUEUE] Post Process queue enabled & monitoring for api requests....')
+            mylar.PPPOOL = threading.Thread(target=helpers.postprocess_main, args=(PP_QUEUE,), name="POST-PROCESS-QUEUE")
+            mylar.PPPOOL.start()
+            logger.info('[POST-PROCESS-QUEUE] Succesfully started Post-Processing Queuer....')
+
+        elif queuetype == 'ddl_queue':
+            try:
+                if mylar.DDLPOOL.isAlive() is True:
+                    return
+            except Exception as e:
+                pass
+
+            logger.info('[DDL-QUEUE] DDL Download queue enabled & monitoring for requests....')
+            mylar.DDLPOOL = threading.Thread(target=helpers.ddl_downloader, args=(DDL_QUEUE,), name="DDL-QUEUE")
+            mylar.DDLPOOL.start()
+            logger.info('[DDL-QUEUE:] Succesfully started DDL Download Queuer....')
+
+    else:
+        if (queuetype == 'nzb_queue') or mode == 'shutdown':
+            try:
+                if mylar.NZBPOOL.isAlive() is False:
+                    return
+                elif all([mode!= 'shutdown', mylar.CONFIG.POST_PROCESSING is True]) and ( all([mylar.CONFIG.NZB_DOWNLOADER == 0, mylar.CONFIG.SAB_CLIENT_POST_PROCESSING is True]) or all([mylar.CONFIG.NZB_DOWNLOADER == 1, mylar.CONFIG.NZBGET_CLIENT_POST_PROCESSING is True]) ):
+                    return
+            except Exception as e:
+                return
+
+            logger.fdebug('Terminating the NZB auto-complete queue thread')
+            try:
+                mylar.NZB_QUEUE.put('exit')
+                mylar.NZBPOOL.join(5)
+                logger.fdebug('Joined pool for termination -  successful')
+            except KeyboardInterrupt:
+                mylar.NZB_QUEUE.put('exit')
+                mylar.NZBPOOL.join(5)
+            except AssertionError:
+                if mode == 'shutdown':
+                   os._exit(0)
+
+
+        if (queuetype == 'snatched_queue') or mode == 'shutdown':
+            try:
+                if mylar.SNPOOL.isAlive() is False:
+                    return
+                elif all([mode != 'shutdown', mylar.CONFIG.ENABLE_TORRENTS is True, mylar.CONFIG.AUTO_SNATCH is True, OS_DETECT != 'Windows']) and any([mylar.CONFIG.TORRENT_DOWNLOADER == 2, mylar.CONFIG.TORRENT_DOWNLOADER == 4]):
+                    return
+            except Exception as e:
+                return
+
+
+            logger.fdebug('Terminating the auto-snatch thread.')
+            try:
+                mylar.SNATCHED_QUEUE.put('exit')
+                mylar.SNPOOL.join(5)
+                logger.fdebug('Joined pool for termination -  successful')
+            except KeyboardInterrupt:
+                mylar.SNATCHED_QUEUE.put('exit')
+                mylar.SNPOOL.join(5)
+            except AssertionError:
+                if mode == 'shutdown':
+                   os._exit(0)
+
+        if (queuetype == 'search_queue') or mode == 'shutdown':
+            try:
+                if mylar.SEARCHPOOL.isAlive() is False:
+                    return
+            except Exception as e:
+                return
+
+            logger.fdebug('Terminating the search queue thread.')
+            try:
+                mylar.SEARCH_QUEUE.put('exit')
+                mylar.SEARCHPOOL.join(5)
+                logger.fdebug('Joined pool for termination -  successful')
+            except KeyboardInterrupt:
+                mylar.SEARCH_QUEUE.put('exit')
+                mylar.SEARCHPOOL.join(5)
+            except AssertionError:
+                if mode == 'shutdown':
+                    os._exit(0)
+
+        if (queuetype == 'pp_queue') or mode == 'shutdown':
+            try:
+                if mylar.PPPOOL.isAlive() is False:
+                    return
+                elif all([mylar.CONFIG.POST_PROCESSING is True, mode != 'shutdown']):
+                    return
+            except Exception as e:
+                return
+
+            logger.fdebug('Terminating the post-processing queue thread.')
+            try:
+                mylar.PP_QUEUE.put('exit')
+                mylar.PPPOOL.join(5)
+                logger.fdebug('Joined pool for termination -  successful')
+            except KeyboardInterrupt:
+                mylar.PP_QUEUE.put('exit')
+                mylar.PPPOOL.join(5)
+            except AssertionError:
+                if mode == 'shutdown':
+                    os._exit(0)
+
+        if (queuetype == 'ddl_queue') or mode == 'shutdown':
+            try:
+                if mylar.DDLPOOL.isAlive() is False:
+                    return
+                elif all([mylar.CONFIG.ENABLE_DDL is True, mode != 'shutdown']):
+                    return
+            except Exception as e:
+                return
+
+            logger.fdebugo('Terminating the DDL download queue thread')
+            try:
+                mylar.DDL_QUEUE.put('exit')
+                mylar.DDLPOOL.join(5)
+                logger.fdebug('Joined pool for termination -  successful')
+            except KeyboardInterrupt:
+                mylar.DDL_QUEUE.put('exit')
+                DDLPOOL.join(5)
+            except AssertionError:
+                if mode == 'shutdown':
+                   os._exit(0)
+
+
 def dbcheck():
     conn = sqlite3.connect(DB_FILE)
     c_error = 'sqlite3.OperationalError'
@@ -528,7 +686,7 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS jobhistory (JobName TEXT, prev_run_datetime timestamp, prev_run_timestamp REAL, next_run_datetime timestamp, next_run_timestamp REAL, last_run_completed TEXT, successful_completions TEXT, failed_completions TEXT, status TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS manualresults (provider TEXT, id TEXT, kind TEXT, comicname TEXT, volume TEXT, oneoff TEXT, fullprov TEXT, issuenumber TEXT, modcomicname TEXT, name TEXT, link TEXT, size TEXT, pack_numbers TEXT, pack_issuelist TEXT, comicyear TEXT, issuedate TEXT, tmpprov TEXT, pack TEXT, issueid TEXT, comicid TEXT, sarc TEXT, issuearcid TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS storyarcs(StoryArcID TEXT, ComicName TEXT, IssueNumber TEXT, SeriesYear TEXT, IssueYEAR TEXT, StoryArc TEXT, TotalIssues TEXT, Status TEXT, inCacheDir TEXT, Location TEXT, IssueArcID TEXT, ReadingOrder INT, IssueID TEXT, ComicID TEXT, ReleaseDate TEXT, IssueDate TEXT, Publisher TEXT, IssuePublisher TEXT, IssueName TEXT, CV_ArcID TEXT, Int_IssueNumber INT, DynamicComicName TEXT, Volume TEXT, Manual TEXT, DateAdded TEXT, DigitalDate TEXT, Type TEXT, Aliases TEXT)')
-    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT)')
     conn.commit
     c.close
 
@@ -1115,6 +1273,11 @@ def dbcheck():
     except sqlite3.OperationalError:
         c.execute('ALTER TABLE ddl_info ADD COLUMN mainlink TEXT')
 
+    try:
+        c.execute('SELECT issues from ddl_info')
+    except sqlite3.OperationalError:
+        c.execute('ALTER TABLE ddl_info ADD COLUMN issues TEXT')
+
     #if it's prior to Wednesday, the issue counts will be inflated by one as the online db's everywhere
     #prepare for the next 'new' release of a series. It's caught in updater.py, so let's just store the
     #value in the sql so we can display it in the details screen for everyone to wonder at.
@@ -1230,61 +1393,20 @@ def halt():
             logger.info('Shutting down the background schedulers...')
             SCHED.shutdown(wait=False)
 
-            if NZBPOOL is not None:
-                logger.info('Terminating the nzb auto-complete thread.')
-                try:
-                    NZBPOOL.join(10)
-                    logger.info('Joined pool for termination -  successful')
-                except KeyboardInterrupt:
-                    NZB_QUEUE.put('exit')
-                    NZBPOOL.join(5)
-                except AssertionError:
-                    os._exit(0)
+            queue_schedule('all', 'shutdown')
+            #if NZBPOOL is not None:
+            #    queue_schedule('nzb_queue', 'shutdown')
+            #if SNPOOL is not None:
+            #    queue_schedule('snatched_queue', 'shutdown')
 
-            if SNPOOL is not None:
-                logger.info('Terminating the auto-snatch thread.')
-                try:
-                    SNPOOL.join(10)
-                    logger.info('Joined pool for termination -  successful')
-                except KeyboardInterrupt:
-                    SNATCHED_QUEUE.put('exit')
-                    SNPOOL.join(5)
-                except AssertionError:
-                    os._exit(0)
+            #if SEARCHPOOL is not None:
+            #    queue_schedule('search_queue', 'shutdown')
 
+            #if PPPOOL is not None:
+            #    queue_schedule('pp_queue', 'shutdown')
 
-            if SEARCHPOOL is not None:
-                logger.info('Terminating the search queue thread.')
-                try:
-                    SEARCHPOOL.join(10)
-                    logger.info('Joined pool for termination -  successful')
-                except KeyboardInterrupt:
-                    SEARCH_QUEUE.put('exit')
-                    SEARCHPOOL.join(5)
-                except AssertionError:
-                    os._exit(0)
-
-            if PPPOOL is not None:
-                logger.info('Terminating the post-processing queue thread.')
-                try:
-                    PPPOOL.join(10)
-                    logger.info('Joined pool for termination -  successful')
-                except KeyboardInterrupt:
-                    PP_QUEUE.put('exit')
-                    PPPOOL.join(5)
-                except AssertionError:
-                    os._exit(0)
-
-            if DDLPOOL is not None:
-                logger.info('Terminating the DDL download queue thread.')
-                try:
-                    DDLPOOL.join(10)
-                    logger.info('Joined pool for termination -  successful')
-                except KeyboardInterrupt:
-                    DDL_QUEUE.put('exit')
-                    DDLPOOL.join(5)
-                except AssertionError:
-                    os._exit(0)
+            #if DDLPOOL is not None:
+            #    queue_schedule('ddl_queue', 'shutdown')
 
             _INITIALIZED = False
 
