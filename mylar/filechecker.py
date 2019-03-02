@@ -196,7 +196,7 @@ class FileChecker(object):
                                                   'comiclocation':  runresults['comiclocation'],
                                                   'series_name':    helpers.conversion(runresults['series_name']),
                                                   'series_volume':  runresults['series_volume'],
-                                                  'alt_series':     helpres.conversion(runresults['alt_series']),
+                                                  'alt_series':     helpers.conversion(runresults['alt_series']),
                                                   'alt_issue':      runresults['alt_issue'],
                                                   'issue_year':     runresults['issue_year'],
                                                   'issue_number':   runresults['issue_number'],
