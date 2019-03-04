@@ -785,7 +785,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                     try:
                         if bb == 'no results':
-                            logger.fdebug('No results for search query from %s' % tmprov)
+                            logger.fdebug('No results for search query from %s' % tmpprov)
                             break
                         elif bb['feed']['error']:
                             logger.error('[ERROR CODE: %s] %s' % (bb['feed']['error']['code'], bb['feed']['error']['description']))
@@ -2128,7 +2128,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             call_the_fail = Failed.FailedProcessor(nzb_name=nzbname, id=nzbid, issueid=IssueID, comicid=ComicID, prov=tmpprov)
             check_the_fail = call_the_fail.failed_check()
             if check_the_fail == 'Failed':
-                logger.fdebug('[FAILED_DOWNLOAD_CHECKER] [%s] Marked as a bad download : %s' % (tmprov, nzbid))
+                logger.fdebug('[FAILED_DOWNLOAD_CHECKER] [%s] Marked as a bad download : %s' % (tmpprov, nzbid))
                 return "downloadchk-fail"
             elif check_the_fail == 'Good':
                 logger.fdebug('[FAILED_DOWNLOAD_CHECKER] This is not in the failed downloads list. Will continue with the download.')
