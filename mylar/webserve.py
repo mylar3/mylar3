@@ -1695,7 +1695,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError, e:
-                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower():
+                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
                         x = weekly['ISSUE']
 
                 if x is not None:
@@ -1838,7 +1838,7 @@ class WebInterface(object):
                 try:
                     x = float(future['ISSUE'])
                 except ValueError, e:
-                    if 'au' in future['ISSUE'].lower() or 'ai' in future['ISSUE'].lower() or '.inh' in future['ISSUE'].lower() or '.now' in future['ISSUE'].lower() or '.mu' in future['ISSUE'].lower():
+                    if 'au' in future['ISSUE'].lower() or 'ai' in future['ISSUE'].lower() or '.inh' in future['ISSUE'].lower() or '.now' in future['ISSUE'].lower() or '.mu' in future['ISSUE'].lower() or '.hu' in future['ISSUE'].lower():
                         x = future['ISSUE']
 
                 if future['EXTRA'] == 'N/A' or future['EXTRA'] == '':
@@ -5953,7 +5953,7 @@ class WebInterface(object):
                 try:
                     x = float(weekly['ISSUE'])
                 except ValueError, e:
-                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower():
+                    if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
                         x = weekly['ISSUE']
 
                 if x is not None:
