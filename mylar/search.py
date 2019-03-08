@@ -254,7 +254,6 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             c_number = c_number[:decst].rstrip()
 
     while (srchloop <= searchcnt):
-        logger.fdebug('srchloop: %s' % srchloop)
         #searchmodes:
         # rss - will run through the built-cached db of entries
         # api - will run through the providers via api (or non-api in the case of Experimental)
@@ -334,9 +333,9 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     prov_count+=1
                     continue
                 if searchmode == 'rss':
-                    if searchprov.lower() == 'ddl':
-                        prov_count+=1
-                        continue
+                    #if searchprov.lower() == 'ddl':
+                    #    prov_count+=1
+                    #    continue
                     findit = NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDate, StoreDate, searchprov, send_prov_count, IssDateFix, IssueID, UseFuzzy, newznab_host, ComicVersion=ComicVersion, SARC=SARC, IssueArcID=IssueArcID, RSS="yes", ComicID=ComicID, issuetitle=issuetitle, unaltered_ComicName=unaltered_ComicName, oneoff=oneoff, cmloopit=cmloopit, manual=manual, torznab_host=torznab_host, digitaldate=digitaldate, booktype=booktype)
                     if findit['status'] is False:
                         if AlternateSearch is not None and AlternateSearch != "None":
@@ -581,7 +580,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
             foundc['status'] = False
             done = True
             break
-        if any([nzbprov == '32P', nzbprov == 'Public Torrents']):
+        if any([nzbprov == '32P', nzbprov == 'Public Torrents', nzbprov == 'ddl']):
             #because 32p directly stores the exact issue, no need to worry about iterating over variations of the issue number.
             findloop == 99
 
@@ -619,14 +618,17 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
         #logger.fdebug('RSS Check: %s' % RSS)
         #logger.fdebug('nzbprov: %s' % nzbprov)
         #logger.fdebug('comicid: %s' % ComicID)
-        if nzbprov == 'ddl':
+        if nzbprov == 'ddl' and RSS == "no":
             cmname = re.sub("%20", " ", str(comsrc))
             logger.fdebug('Sending request to DDL site for : %s %s' % (findcomic, isssearch))
             b = getcomics.GC(query='%s %s' % (findcomic, isssearch))
             bb = b.search()
             #logger.info('bb returned from DDL: %s' % bb)
         elif RSS == "yes":
-            if nzbprov == '32P' or nzbprov == 'Public Torrents':
+            if nzbprov == 'ddl':
+                logger.fdebug('Sending request to [%s] RSS for %s : %s' % (nzbprov, ComicName, mod_isssearch))
+                bb = rsscheck.ddl_dbsearch(ComicName, mod_isssearch, ComicID, nzbprov, oneoff)
+            elif nzbprov == '32P' or nzbprov == 'Public Torrents':
                 cmname = re.sub("%20", " ", str(comsrc))
                 logger.fdebug('Sending request to [%s] RSS for %s : %s' % (nzbprov, ComicName, mod_isssearch))
                 bb = rsscheck.torrentdbsearch(ComicName, mod_isssearch, ComicID, nzbprov, oneoff)
@@ -1389,7 +1391,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             nowrite = False
                             if all([nzbprov == 'torznab', 'worldwidetorrents' in entry['link']]):
                                 nzbid = generate_id(nzbprov, entry['id'])
-                            elif all([nzbprov == 'ddl', 'getcomics' in entry['link']]):
+                            elif all([nzbprov == 'ddl', 'getcomics' in entry['link']]) or all([nzbprov == 'ddl', RSS == 'yes']):
+                                if RSS == "yes":
+                                    entry['id'] = entry['link']
+                                    entry['link'] = 'https://getcomics.info/?p='+str(entry['id'])
+                                    entry['filename'] = entry['title']
+                                if '/cat/' in entry['link']:
+                                    entry['link'] = 'https://getcomics.info/?p='+str(entry['id'])
                                 nzbid = entry['id']
                                 entry['title'] = entry['filename']
                             else:
@@ -2318,7 +2326,6 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         ggc = getcomics.GC(issueid=IssueID, comicid=ComicID)
         sendsite = ggc.loadsite(nzbid, link)
         ddl_it = ggc.parse_downloadresults(nzbid, link)
-        logger.info("ddl status response: %s" % ddl_it)
         if ddl_it['success'] is True:
             logger.info('Successfully snatched %s from DDL site. It is currently being queued to download in position %s' % (nzbname, mylar.DDL_QUEUE.qsize()))
         else:

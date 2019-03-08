@@ -91,6 +91,9 @@ class tehMain():
 
             logger.info('[RSS-FEEDS] Initiating RSS Feed Check for NZB Providers.')
             rsscheck.nzbs(forcerss=forcerss)
+            if mylar.CONFIG.ENABLE_DDL is True:
+                logger.info('[RSS-FEEDS] Initiating RSS Feed Check for DDL Provider.')
+                rsscheck.ddl(forcerss=forcerss)
             logger.info('[RSS-FEEDS] RSS Feed Check/Update Complete')
             logger.info('[RSS-FEEDS] Watchlist Check for new Releases')
             mylar.search.searchforissue(rsscheck='yes')

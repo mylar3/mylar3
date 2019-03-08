@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 import gzip
 import time
 import random
+from bs4 import BeautifulSoup
 from StringIO import StringIO
 
 import mylar
@@ -384,6 +385,78 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
         return torinfo
     return
 
+def ddl(forcerss=False):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1'}
+    ddl_feed = 'https://getcomics.info/feed/'
+    try:
+        r = requests.get(ddl_feed, verify=True, headers=headers)
+    except Exception, e:
+        logger.warn('Error fetching RSS Feed Data from DDL: %s' % (e))
+        return False
+    else:
+        if r.status_code != 200:
+            #typically 403 will not return results, but just catch anything other than a 200
+            if r.status_code == 403:
+                logger.warn('ERROR - status code:%s' % r.status_code)
+                return False
+            else:
+                logger.warn('[%s] Status code returned: %s' % (r.status_code))
+                return False
+
+        feedme = feedparser.parse(r.content)
+        results = []
+        for entry in feedme.entries:
+            soup = BeautifulSoup(entry.summary, 'html.parser')
+            orig_find = soup.find("p", {"style": "text-align: center;"})
+            i = 0
+            option_find = orig_find
+            while True: #i <= 10:
+                prev_option = option_find
+                option_find = option_find.findNext(text=True)
+                if 'Year' in option_find:
+                    year = option_find.findNext(text=True)
+                    year = re.sub('\|', '', year).strip()
+                else:
+                   if 'Size' in prev_option:
+                        size = option_find #.findNext(text=True)
+                        if '- MB' in size: size = '0 MB'
+                        possible_more = orig_find.next_sibling
+                        break
+            i+=1
+
+            link = entry.link
+            title = entry.title
+            updated = entry.updated
+            if updated.endswith('+0000'):
+                updated = updated[:-5].strip()
+            tmpid = entry.id
+            id = tmpid[tmpid.find('=')+1:]
+            if 'KB' in size:
+                szform = 'KB'
+                sz = 'K'
+            elif 'GB' in size:
+                szform = 'GB'
+                sz = 'G'
+            elif 'MB' in size:
+                szform = 'MB'
+                sz = 'M'
+            elif 'TB' in size:
+                szform = 'TB'
+                sz = 'T'
+            tsize = helpers.human2bytes(re.sub('[^0-9]', '', size).strip() + sz)
+
+            #link can be referenced with the ?p=id url
+            results.append({'Title':   title,
+                            'Size':    tsize,
+                            'Link':    id,
+                            'Site':    'DDL',
+                            'Pubdate': updated})
+
+        if len(results) >0:
+            logger.info('[RSS][DDL] %s entries have been indexed and are now going to be stored for caching.' % len(results))
+            rssdbupdate(results, len(results), 'ddl')
+
+    return
 
 def nzbs(provider=None, forcerss=False):
 
@@ -569,6 +642,43 @@ def rssdbupdate(feeddata, i, type):
     logger.fdebug('Completed adding new data to RSS DB. Next add in ' + str(mylar.CONFIG.RSS_CHECKINTERVAL) + ' minutes')
     return
 
+def ddl_dbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
+    myDB = db.DBConnection()
+    seriesname_alt = None
+    if any([comicid is None, comicid == 'None', oneoff is True]):
+        pass
+    else:
+        snm = myDB.selectone("SELECT * FROM comics WHERE comicid=?", [comicid]).fetchone()
+        if snm is None:
+            logger.fdebug('Invalid ComicID of %s. Aborting search' % comicid)
+            return "no results"
+        else:
+            seriesname = snm['ComicName']
+            seriesname_alt = snm['AlternateSearch']
+
+    dsearch_rem1 = re.sub("\\band\\b", "%", seriesname.lower())
+    dsearch_rem2 = re.sub("\\bthe\\b", "%", dsearch_rem1.lower())
+    dsearch_removed = re.sub('\s+', ' ', dsearch_rem2)
+    dsearch_seriesname = re.sub('[\'\!\@\#\$\%\:\-\;\/\\=\?\&\.\s\,]', '%', dsearch_removed)
+    dsearch = '%' + dsearch_seriesname + '%'
+    dresults = myDB.select("SELECT * FROM rssdb WHERE Title like ? AND Site='DDL'", [dsearch])
+    ddltheinfo = []
+    ddlinfo = {}
+    if not dresults:
+        return "no results"
+    else:
+        for dl in dresults:
+            ddltheinfo.append({
+                          'title':   dl['Title'],
+                          'link':    dl['Link'],
+                          'pubdate': dl['Pubdate'],
+                          'site':    dl['Site'],
+                          'length':  dl['Size']
+                          })
+
+    ddlinfo['entries'] = ddltheinfo
+
+    return ddlinfo
 
 def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False):
     myDB = db.DBConnection()
