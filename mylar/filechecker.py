@@ -734,6 +734,7 @@ class FileChecker(object):
 
 
             highest_series_pos = len(split_file)
+            issue2year = False
             issue_year = None
             possible_years = []
             yearmodposition = None
@@ -766,20 +767,27 @@ class FileChecker(object):
                         issue_year = ab
                         logger.fdebug('date verified as: ' + str(issue_year))
 
-                if highest_series_pos > dc['position']: highest_series_pos = dc['position']
-
                 if len(possible_years) == 1:
                     issueyear = possible_years[0]['year']
                     yearposition = possible_years[0]['yearposition']
                     yearmodposition = possible_years[0]['yearmodposition']
                 else:
-                    yearposition = dc['position']
-                    yearmodposition = dc['mod_position']
+                    for x in possible_years:
+                        logger.info('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
+                        if yearposition < x['yearposition']:
+                             if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
+                                issue2year = True
+                                highest_series_pos = x['yearposition']
+                        yearposition = x['yearposition']
+                        yearmodposition = x['yearmodposition']
+
+                if highest_series_pos > yearposition: highest_series_pos = yearposition #dc['position']: highest_series_pos = dc['position']
             else:
                 issue_year = None
                 yearposition = None
                 yearmodposition = None
                 logger.fdebug('No year present within title - ignoring as a variable.')
+
 
             logger.fdebug('highest_series_position: ' + str(highest_series_pos))
 
@@ -788,7 +796,7 @@ class FileChecker(object):
             issue_number_position = len(split_file)
             if len(possible_issuenumbers) > 0:
                 logger.fdebug('possible_issuenumbers: ' + str(possible_issuenumbers))
-                if len(possible_issuenumbers) > 1:
+                if len(possible_issuenumbers) >= 1:
                     p = 1
                     if '-' not in split_file[0]:
                         finddash = modfilename.find('-')
@@ -831,7 +839,7 @@ class FileChecker(object):
                             issue_number = pis['number']
                             issue_number_position = pis['position']
                             logger.fdebug('issue number :' + issue_number) #(pis)
-                            if highest_series_pos > pis['position']: highest_series_pos = pis['position']
+                            if highest_series_pos > pis['position'] and issue2year is False: highest_series_pos = pis['position']
                         #else:
                             #logger.fdebug('numeric probably belongs to series title: ' + str(pis))
                         p+=1
@@ -916,7 +924,7 @@ class FileChecker(object):
 
             #make sure if we have multiple years detected, that the right one gets picked for the actual year vs. series title
             if len(possible_years) > 1:
-                for x in possible_years:
+                for x in sorted(possible_years, key=operator.itemgetter('yearposition'), reverse=False):
                     if x['yearposition'] <= highest_series_pos:
                         logger.fdebug('year ' + str(x['year']) + ' is within series title. Ignoring as YEAR value')
                     else:
@@ -947,12 +955,12 @@ class FileChecker(object):
             else:
                 if tmpval > 2:
                     logger.fdebug('There are %s extra words between the issue # and the year position. Deciphering if issue title or part of series title.' % tmpval)
-                    tmpval1 = ' '.join(split_file[issue_number_position+1:yearposition])
+                    tmpval1 = ' '.join(split_file[issue_number_position:yearposition])
                     if split_file[issue_number_position+1] == '-':
                         usevalue = ' '.join(split_file[issue_number_position+2:yearposition])
                         splitv = split_file[issue_number_position+2:yearposition]
                     else:
-                        splitv = split_file[issue_number_position+1:yearposition]
+                        splitv = split_file[issue_number_position:yearposition]
                     splitvalue = ' '.join(splitv)
                 else:
                     #store alternate naming of title just in case
