@@ -3068,7 +3068,7 @@ def ddl_downloader(queue):
                 try:
                     if ddzstat['filename'] is None:
                         logger.info('%s successfully downloaded - now initiating post-processing.' % (os.path.basename(ddzstat['path'])))
-                        mylar.PP_QUEUE.put({'nzb_name':     ddzstat['filename'],
+                        mylar.PP_QUEUE.put({'nzb_name':     os.path.basename(ddzstat['path']),
                                             'nzb_folder':   ddzstat['path'],
                                             'failed':       False,
                                             'issueid':      None,
