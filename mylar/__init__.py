@@ -640,7 +640,7 @@ def queue_schedule(queuetype, mode):
             except Exception as e:
                 return
 
-            logger.fdebugo('Terminating the DDL download queue thread')
+            logger.fdebug('Terminating the DDL download queue thread')
             try:
                 mylar.DDL_QUEUE.put('exit')
                 mylar.DDLPOOL.join(5)
