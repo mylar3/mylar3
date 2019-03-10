@@ -15,7 +15,6 @@ Helpful hints:
 - Add a comic (series) using the Search button or the Pullist
 - Ensure Comic Location is specified in settings
   - Mylar auto-creates the Comic Series directories under the Comic Location. The directory is displayed on the Comic Detail page).
-- Restart Mylar after any settings changes, or else errors will occur 
 - A search provider needs to be specified to perform any search-related functions
 - Enabling 'Automatically Mark Upcoming Issues as Wanted' in settings will mark any **NEW** comic from the Pullist that is on your 'watchlist' as wanted
 - If adding a comic fails with "Error", submit a bug and it will be checked out (usually an easy fix)
