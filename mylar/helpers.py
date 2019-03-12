@@ -1530,7 +1530,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                                 cover = "found"
                                 break
 
-                    elif (any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) or ('0001' in infile and infile.endswith(pic_extensions))) and cover == "notfound":
+                    elif (any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) or all(['0001' in infile, infile.endswith(pic_extensions)]) or all(['01' in infile, infile.endswith(pic_extensions)])) and cover == "notfound":
                         logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                         local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
                         local_file.write(inzipfile.read(infile))
