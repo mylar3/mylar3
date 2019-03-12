@@ -1420,11 +1420,14 @@ class PostProcessor(object):
                 if self.oneoffinlist is False:
                     self.oneoff = False
                     if any([self.issueid is not None, self.issuearcid is not None]):
-                        if self.issueid is not None:
-                            s_id = self.issueid
-                        else:
+                        if self.issuearcid is not None:
                             s_id = self.issuearcid
+                        else:
+                            s_id = self.issueid
                         nzbiss = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=?', [s_id]).fetchone()
+                        if nzbiss is None and self.issuearcid is not None:
+                            nzbiss = myDB.selectone('SELECT * FROM nzblog WHERE IssueID=?', ['S'+s_id]).fetchone()
+
                     else:
                         nzbname = self.nzb_name
                         #remove extensions from nzb_name if they somehow got through (Experimental most likely)

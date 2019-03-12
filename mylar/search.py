@@ -2323,7 +2323,11 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
     sent_to = None
     t_hash = None
     if mylar.CONFIG.ENABLE_DDL is True and nzbprov == 'ddl':
-        ggc = getcomics.GC(issueid=IssueID, comicid=ComicID)
+        if all([IssueID is None, IssueArcID is not None]):
+            tmp_issueid = IssueArcID
+        else:
+            tmp_issueid = IssueID
+        ggc = getcomics.GC(issueid=tmp_issueid, comicid=ComicID)
         sendsite = ggc.loadsite(nzbid, link)
         ddl_it = ggc.parse_downloadresults(nzbid, link)
         if ddl_it['success'] is True:
