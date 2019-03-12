@@ -251,12 +251,24 @@ class GC(object):
                             volume = x.findNext(text=True)
                             if u'\u2013' in volume:
                                 volume = re.sub(u'\u2013', '-', volume)
+                            series_st = volume.find('(')
+                            issues_st = volume.find('#')
+                            series = volume[:issues_st].strip()
+                            issues = volume[issues_st:series_st].strip()
+                            year_end = volume.find(')', series_st+1)
+                            year = re.sub('[\(\)\|]', '', volume[series_st+1: year_end]).strip()
+                            size_end = volume.find(')', year_end+1)
+                            size = re.sub('[\(\)\|]', '', volume[year_end+1: size_end]).strip()
                             linkline = x.find('a')
                             linked = linkline['href']
                             site = linkline.findNext(text=True)
-                            links.append({"volume": volume,
-                                          "site": site,
-                                          "link": linked})
+                            links.append({"series": series,
+                                          "volume": volume,
+                                          "site":   site,
+                                          "year":   year,
+                                          "issues": issues,
+                                          "size":   size,
+                                          "link":   linked})
 
         if all([link is None, len(links) == 0]):
             logger.warn('Unable to retrieve any valid immediate download links. They might not exist.')
@@ -265,8 +277,11 @@ class GC(object):
             logger.info('only one item discovered, changing queue length to accomodate: %s [%s]' % (link, type(link)))
             links = [link]
         elif len(links) > 0:
+            if link is not None:
+                links.append(link)
+                logger.fdebug('[DDL-QUEUE] Making sure we download the original item in addition to the extra packs.')
             if len(links) > 1:
-                logger.info('[DDL-QUEUER] This pack has been broken up into %s separate packs - queueing each in sequence for your enjoyment.' % len(links))
+                logger.fdebug('[DDL-QUEUER] This pack has been broken up into %s separate packs - queueing each in sequence for your enjoyment.' % len(links))
         cnt = 1
         for x in links:
             if len(links) == 1:
@@ -302,6 +317,7 @@ class GC(object):
         return {'success': True}
 
     def downloadit(self, id, link, mainlink, resume=None):
+        #logger.info('[%s] %s -- mainlink: %s' % (id, link, mainlink))
         if mylar.DDL_LOCK is True:
             logger.fdebug('[DDL] Another item is currently downloading via DDL. Only one item can be downloaded at a time using DDL. Patience.')
             return
