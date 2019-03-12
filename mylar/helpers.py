@@ -1530,7 +1530,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                                 cover = "found"
                                 break
 
-                    elif any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) and cover == "notfound":
+                    elif (any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) or ('0001' in infile and infile.endswith(pic_extensions))) and cover == "notfound":
                         logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
                         local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
                         local_file.write(inzipfile.read(infile))
@@ -1540,6 +1540,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                 if cover != "found":
                     logger.fdebug('Invalid naming sequence for jpgs discovered. Attempting to find the lowest sequence and will use as cover (it might not work). Currently : ' + str(low_infile))
                     local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
+                    logger.fdebug('infile_name used for displaying: %s' % low_infile_name)
                     local_file.write(inzipfile.read(low_infile_name))
                     local_file.close
                     cover = "found"                
