@@ -1599,7 +1599,7 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
     ComicImage = helpers.replacetheslash(PRComicImage)
 
     #if the comic cover local is checked, save a cover.jpg to the series folder.
-    if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(PRComicImage)]):
+    if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg'))]):
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
             shutil.copyfile(PRComicImage, comiclocal)
