@@ -418,11 +418,11 @@ class info32p(object):
 
         if str(r.status_code) != '200':
             logger.warn('Unable to download torrent from 32P [Status Code returned: %s]' % r.status_code)
-            if str(r.status_code) == '404' and site == '32P':
+            if str(r.status_code) == '404':
                 logger.warn('[32P-CACHED_ENTRY] Entry found in 32P cache - incorrect. Torrent has probably been merged into a pack, or another series id. Removing from cache.')
-                helpers.delete_cache_entry(linkit)
+                self.delete_cache_entry(payload['id'])
             else:
-                logger.info('content: %s' % r.content)
+                logger.fdebug('content: %s' % r.content)
             return False
 
 
