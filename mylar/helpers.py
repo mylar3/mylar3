@@ -3679,32 +3679,39 @@ def getImage(comicid, url, issueid=None):
         r = requests.get(url, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
     except Exception as e:
         logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
-
-    logger.fdebug('comic image retrieval status code: %s' % r.status_code)
-
-    if str(r.status_code) != '200':
-        logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, r.status_code))
         coversize = 0
+        statuscode = '400'
     else:
-        if r.headers.get('Content-Encoding') == 'gzip':
-            buf = StringIO(r.content)
-            f = gzip.GzipFile(fileobj=buf)
+        statuscode = str(r.status_code)
+        logger.fdebug('comic image retrieval status code: %s' % statuscode)
 
-        with open(coverfile, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk: # filter out keep-alive new chunks
-                    f.write(chunk)
-                    f.flush()
-
-
-        statinfo = os.stat(coverfile)
-        coversize = statinfo.st_size
-
-    if int(coversize) < 10000 or str(r.status_code) != '200':
-        if str(r.status_code) != '200':
-            logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
+        if statuscode != '200':
+            logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
+            coversize = 0
         else:
+            if r.headers.get('Content-Encoding') == 'gzip':
+                buf = StringIO(r.content)
+                f = gzip.GzipFile(fileobj=buf)
+
+            with open(coverfile, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+                        f.flush()
+
+
+            statinfo = os.stat(coverfile)
+            coversize = statinfo.st_size
+
+    if any([int(coversize) < 10000, statuscode != '200']):
+        try:
+            if statuscode != '200':
+                logger.info('Trying to grab an alternate cover due to problems trying to retrieve the main cover image.')
+            else:
+                logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+        except Exception as e:
             logger.info('Image size invalid [%s bytes] - trying to get alternate cover image.' % coversize)
+
         logger.fdebug('invalid image link is here: %s' % url)
 
         if os.path.exists(coverfile):
