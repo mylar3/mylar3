@@ -249,7 +249,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
                 covercheck = helpers.getImage(comicid, comic['ComicImageALT'])
 
         #if the comic cover local is checked, save a cover.jpg to the series folder.
-        if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(PRComicImage) is False]):
+        if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False]):
             try:
                 comiclocal = os.path.join(comlocation, 'cover.jpg')
                 shutil.copyfile(PRComicImage, comiclocal)
