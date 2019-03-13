@@ -397,6 +397,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                                 'NOW',
                                 'AI',
                                 'MU',
+                                'HU',
                                 'A',
                                 'B',
                                 'C',
