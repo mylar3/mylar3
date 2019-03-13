@@ -3676,8 +3676,8 @@ def getImage(comicid, url, issueid=None):
     logger.info('Attempting to retrieve the comic image for series')
     try:
         r = requests.get(url, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-    except Exception, e:
-        logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s' % (url, r.status_code))
+    except Exception as e:
+        logger.warn('[ERROR: %s] Unable to download image from CV URL link: %s' % (e, url))
 
     logger.fdebug('comic image retrieval status code: %s' % r.status_code)
 
