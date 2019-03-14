@@ -1642,7 +1642,7 @@ def totals(ComicID, havefiles=None, totalfiles=None, module=None, issueid=None, 
                     if totalfiles == 1:
                         havefiles = 1
                     else:
-                        logger.warn('Total issues for this series [ComiciD:%s/IssueID:%] is not 1 when it should be. This is probably a mistake and the series should be refreshed.' % (ComicID, IssueID))
+                        logger.warn('Total issues for this series [ComiciD:%s/IssueID:%] is not 1 when it should be. This is probably a mistake and the series should be refreshed.' % (ComicID, issueid))
                         havefiles = 0
                 logger.fdebug('incremented havefiles: %s' % havefiles)
             else:
