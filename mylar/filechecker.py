@@ -1060,11 +1060,19 @@ class FileChecker(object):
             #check for annual in title(s) here.
             if not self.justparse and all([mylar.CONFIG.ANNUALS_ON, 'annual' not in self.watchcomic.lower(), 'special' not in self.watchcomic.lower()]):
                 if 'annual' in series_name.lower():
-                    issue_number = 'Annual ' + str(issue_number)
+                    isn = 'Annual'
+                    if issue_number is not None:
+                        issue_number = '%s %s' % (isn, issue_number)
+                    else:
+                        issue_number = isn
                     series_name = re.sub('annual', '', series_name, flags=re.I).strip()
                     series_name_decoded = re.sub('annual', '', series_name_decoded, flags=re.I).strip()
                 elif 'special' in series_name.lower():
-                    issue_number = 'Special ' + str(issue_number)
+                    isn = 'Special'
+                    if issue_number is not None:
+                        issue_number = '%s %s' % (isn, issue_number)
+                    else:
+                        issue_number = isn
                     series_name = re.sub('special', '', series_name, flags=re.I).strip()
                     series_name_decoded = re.sub('special', '', series_name_decoded, flags=re.I).strip()
 

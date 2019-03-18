@@ -58,7 +58,7 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if dbcomic is None:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
-        if all([imported, mylar.CONFIG.IMP_PATHS is True]):
+        if all([imported is not None, mylar.CONFIG.IMP_PATHS is True]):
             comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
         else:
             comlocation = None
@@ -1130,7 +1130,11 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                 elif 'hu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
                 elif u'\xbd' in issnum:
-                    int_issnum = .5 * 1000
+                    tmpiss = re.sub('[^0-9]', '', issnum).strip()
+                    if len(tmpiss) > 0:
+                        int_issnum = (int(tmpiss) + .5) * 1000
+                    else:
+                        int_issnum = .5 * 1000
                     logger.fdebug('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
                 elif u'\xbc' in issnum:
                     int_issnum = .25 * 1000

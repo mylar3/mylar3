@@ -1025,8 +1025,7 @@ def issuedigits(issnum):
         x = [vals[key] for key in vals if key in issnum]
 
         if x:
-            #logger.fdebug('Unicode Issue present - adjusting.')
-            int_issnum = x[0] * 1000
+            int_issnum = (int(re.sub('[^0-9]', '', issnum).strip()) + x[0]) * 1000
             #logger.fdebug('int_issnum: ' + str(int_issnum))
         else:
             if any(['.' in issnum, ',' in issnum]):
