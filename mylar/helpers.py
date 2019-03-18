@@ -1025,7 +1025,11 @@ def issuedigits(issnum):
         x = [vals[key] for key in vals if key in issnum]
 
         if x:
-            int_issnum = (int(re.sub('[^0-9]', '', issnum).strip()) + x[0]) * 1000
+            chk = re.sub('[^0-9]', '', issnum).strip()
+            if len(chk) == 0:
+                int_issnum = x[0] * 1000
+            else:
+                int_issnum = (int(re.sub('[^0-9]', '', issnum).strip()) + x[0]) * 1000
             #logger.fdebug('int_issnum: ' + str(int_issnum))
         else:
             if any(['.' in issnum, ',' in issnum]):
