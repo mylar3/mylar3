@@ -416,11 +416,11 @@ class FileChecker(object):
             file_length = 0
             validcountchk = False
             sep_volume = False
-            current_pos = -1   
+            current_pos = -1
             for sf in split_file:
                 current_pos +=1
                 #the series title will always be first and be AT LEAST one word.
-                if split_file.index(sf) >= 1 and not volumeprior:
+                if split_file.index(sf) >= 0 and not volumeprior:
                     dtcheck = re.sub('[\(\)\,]', '', sf).strip()
                     #if there's more than one date, assume the right-most date is the actual issue date.
                     if any(['19' in dtcheck, '20' in dtcheck]) and not any([dtcheck.lower().startswith('v19'), dtcheck.lower().startswith('v20')]) and len(dtcheck) >=4:
@@ -775,11 +775,11 @@ class FileChecker(object):
                     for x in possible_years:
                         logger.info('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
                         if yearposition < x['yearposition']:
-                             if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
+                            if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
                                 issue2year = True
                                 highest_series_pos = x['yearposition']
-                        yearposition = x['yearposition']
-                        yearmodposition = x['yearmodposition']
+                            yearposition = x['yearposition']
+                            yearmodposition = x['yearmodposition']
 
                 if highest_series_pos > yearposition: highest_series_pos = yearposition #dc['position']: highest_series_pos = dc['position']
             else:
@@ -790,7 +790,6 @@ class FileChecker(object):
 
 
             logger.fdebug('highest_series_position: ' + str(highest_series_pos))
-
             issue_number = None
             dash_numbers = []
             issue_number_position = len(split_file)
@@ -811,7 +810,7 @@ class FileChecker(object):
                     for pis in sorted(possible_issuenumbers, key=operator.itemgetter('position'), reverse=True):
                         a = ' '.join(split_file)
                         lenn = pis['mod_position'] + len(pis['number'])
-                        if lenn == len(a):
+                        if lenn == len(a) and finddash != -1:
                             logger.fdebug('Numeric detected as the last digit after a hyphen. Typically this is the issue number.')
                             if pis['position'] != yearposition:
                                 issue_number = pis['number']
@@ -819,20 +818,20 @@ class FileChecker(object):
                                 issue_number_position = pis['position']
                                 if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             #break
-                        if pis['validcountchk'] == True:
+                        elif pis['validcountchk'] == True:
                             issue_number = pis['number']
                             issue_number_position = pis['position']
                             logger.fdebug('Issue verified and detected as part of a numeric count sequnce: ' + issue_number)
                             if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             break
-                        if pis['mod_position'] > finddash and finddash != -1:
+                        elif pis['mod_position'] > finddash and finddash != -1:
                             if finddash < yearposition and finddash > (yearmodposition + len(split_file[yearposition])):
                                 logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
                                 dash_numbers.append({'mod_position': pis['mod_position'],
                                                      'number':       pis['number'],
                                                      'position':     pis['position']})
                                 continue
-                        if yearposition == pis['position']:
+                        elif yearposition == pis['position']:
                             logger.fdebug('Already validated year, ignoring as possible issue number: ' + str(pis['number']))
                             continue
                         if p == 1:
@@ -934,8 +933,10 @@ class FileChecker(object):
                         break
             else:
                 try:
-                    if possible_years[0]['yearposition'] <= highest_series_pos:
+                    if possible_years[0]['yearposition'] <= highest_series_pos and possible_years[0]['year_position'] != 0:
                        highest_series_pos = possible_years[0]['yearposition']
+                    elif possible_years[0]['year_position'] == 0:
+                       yearposition = 1
                 except:
                     pass
 
@@ -1013,7 +1014,14 @@ class FileChecker(object):
             #here we should account for some characters that get stripped out due to the regex's
             #namely, unique characters - known so far: +
             #c1 = '+'
-            series_name = ' '.join(split_file[:highest_series_pos])
+            #series_name = ' '.join(split_file[:highest_series_pos])
+            if yearposition != 0:
+                series_name = ' '.join(split_file[:highest_series_pos])
+            else:
+                if highest_series_pos <= issue_number_position and all([len(split_file[0]) == 4, split_file[0].isdigit()]):
+                    series_name = ' '.join(split_file[:highest_series_pos])
+                else:
+                    series_name = ' '.join(split_file[yearposition+1:highest_series_pos])
 
             for x in list(wrds):
                 if x != '':
