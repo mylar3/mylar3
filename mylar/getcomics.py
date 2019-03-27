@@ -34,7 +34,7 @@ from mylar import db
 
 class GC(object):
 
-    def __init__(self, query=None, issueid=None, comicid=None):
+    def __init__(self, query=None, issueid=None, comicid=None, oneoff=False):
 
         self.valreturn = []
 
@@ -46,6 +46,8 @@ class GC(object):
  
         self.issueid = issueid
 
+        self.oneoff = oneoff
+
         self.local_filename = os.path.join(mylar.CONFIG.CACHE_DIR, "getcomics.html")
 
         self.headers = {'Accept-encoding': 'gzip', 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1', 'Referer': 'https://getcomics.info/'}
@@ -55,7 +57,7 @@ class GC(object):
         with cfscrape.create_scraper() as s:
             cf_cookievalue, cf_user_agent = s.get_tokens(self.url, headers=self.headers)
 
-            t = s.get(self.url+'/', params={'s': self.query}, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True)
+            t = s.get(self.url+'/', params={'s': self.query}, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
             with open(self.local_filename, 'wb') as f:
                 for chunk in t.iter_content(chunk_size=1024):
@@ -70,7 +72,7 @@ class GC(object):
         with cfscrape.create_scraper() as s:
             self.cf_cookievalue, cf_user_agent = s.get_tokens(link, headers=self.headers)
 
-            t = s.get(link, verify=True, cookies=self.cf_cookievalue, headers=self.headers, stream=True)
+            t = s.get(link, verify=True, cookies=self.cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
             with open(title+'.html', 'wb') as f:
                 for chunk in t.iter_content(chunk_size=1024):
@@ -310,6 +312,7 @@ class GC(object):
                                  'size':     x['size'],
                                  'comicid':  self.comicid,
                                  'issueid':  self.issueid,
+                                 'oneoff':   self.oneoff,
                                  'id':       mod_id,
                                  'resume':   None})
             cnt+=1
@@ -331,8 +334,8 @@ class GC(object):
                 if resume is not None:
                     logger.info('[DDL-RESUME] Attempting to resume from: %s bytes' % resume)
                     self.headers['Range'] = 'bytes=%d-' % resume
-                cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers)
-                t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True)
+                cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers, timeout=30)
+                t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
                 filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
                 if 'GetComics.INFO' in filename:
@@ -342,13 +345,32 @@ class GC(object):
                     remote_filesize = int(t.headers['Content-length'])
                     logger.fdebug('remote filesize: %s' % remote_filesize)
                 except Exception as e:
-                    logger.warn('[WARNING] Unable to retrieve remote file size - this is usually due to the page being behind a different click-bait/ad page. Error returned as : %s' % e)
-                    logger.warn('[WARNING] Considering this particular download as invalid and will ignore this result.')
-                    remote_filesize = 0
-                    mylar.DDL_LOCK = False
-                    return ({"success":  False,
-                            "filename": filename,
-                            "path":     None})
+                    if 'go.php-urls' not in link:
+                        link = re.sub('go.php-url=', 'go.php-urls', link)
+                        t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
+                        filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
+                        if 'GetComics.INFO' in filename:
+                            filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
+                        try:
+                            remote_filesize = int(t.headers['Content-length'])
+                            logger.fdebug('remote filesize: %s' % remote_filesize)
+                        except Exception as e:
+                            logger.warn('[WARNING] Unable to retrieve remote file size - this is usually due to the page being behind a different click-bait/ad page. Error returned as : %s' % e)
+                            logger.warn('[WARNING] Considering this particular download as invalid and will ignore this result.')
+                            remote_filesize = 0
+                            mylar.DDL_LOCK = False
+                            return ({"success":  False,
+                                     "filename": filename,
+                                     "path":     None})
+
+                    else:
+                        logger.warn('[WARNING] Unable to retrieve remote file size - this is usually due to the page being behind a different click-bait/ad page. Error returned as : %s' % e)
+                        logger.warn('[WARNING] Considering this particular download as invalid and will ignore this result.')
+                        remote_filesize = 0
+                        mylar.DDL_LOCK = False
+                        return ({"success":  False,
+                                 "filename": filename,
+                                 "path":     None})
 
                 #write the filename to the db for tracking purposes...
                 myDB.upsert('ddl_info', {'filename': filename, 'remote_filesize': remote_filesize}, {'id': id})
