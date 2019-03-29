@@ -27,7 +27,7 @@ from cgi import escape
 import urllib
 import re
 import mylar
-from mylar import logger
+from mylar import logger, encrypted
 
 SESSION_KEY = '_cp_username'
 
@@ -37,10 +37,18 @@ def check_credentials(username, password):
     # Adapt to your needs
     forms_user = cherrypy.request.config['auth.forms_username']
     forms_pass = cherrypy.request.config['auth.forms_password']
-    if username == forms_user and password == forms_pass:
-        return None
+    edc = encrypted.Encryptor(forms_pass)
+    ed_chk = edc.decrypt_it()
+    if mylar.CONFIG.ENCRYPT_PASSWORDS is True:
+        if username == forms_user and all([ed_chk['status'] is True, ed_chk['password'] == password]):
+            return None
+        else:
+            return u"Incorrect username or password."
     else:
-        return u"Incorrect username or password."
+        if username == forms_user and password == forms_pass:
+            return None
+        else:
+            return u"Incorrect username or password."
 
 def check_auth(*args, **kwargs):
     """A tool that looks in config for 'auth.require'. If found and it

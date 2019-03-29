@@ -10,7 +10,7 @@ import threading
 import re
 import ConfigParser
 import mylar
-from mylar import logger, helpers
+from mylar import logger, helpers, encrypted
 
 config = ConfigParser.SafeConfigParser()
 
@@ -78,6 +78,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'FORMAT_BOOKTYPE': (bool, 'General', False),
     'CLEANUP_CACHE': (bool, 'General', False),
     'SECURE_DIR': (str, 'General', None),
+    'ENCRYPT_PASSWORDS': (bool, 'General', False),
 
     'RSS_CHECKINTERVAL': (int, 'Scheduler', 20),
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
@@ -385,7 +386,7 @@ class Config(object):
                 count = sum(1 for line in open(self._config_file))
             else:
                 count = 0
-            self.newconfig = 9
+            self.newconfig = 10
             if count == 0:
                 CONFIG_VERSION = 0
                 MINIMALINI = False
@@ -505,9 +506,11 @@ class Config(object):
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
                 print('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
-            if self.CONFIG_VERSION < 9:
+            if self.CONFIG_VERSION < 10:
                 print('Attempting to update configuration..')
-                #torznab multiple entries merged into extra_torznabs value
+                #8-torznab multiple entries merged into extra_torznabs value
+                #9-remote rtorrent ssl option
+                #10-encryption of all keys/passwords.
                 self.config_update()
             setattr(self, 'CONFIG_VERSION', str(self.newconfig))
             config.set('General', 'CONFIG_VERSION', str(self.newconfig))
@@ -555,7 +558,7 @@ class Config(object):
             config.remove_option('Torznab', 'torznab_category')
             config.remove_option('Torznab', 'torznab_verify')
             print('Successfully removed outdated config entries.')
-        if self.newconfig == 9:
+        if self.newconfig < 9:
             #rejig rtorrent settings due to change.
             try:
                 if all([self.RTORRENT_SSL is True, not self.RTORRENT_HOST.startswith('http')]):
@@ -565,6 +568,15 @@ class Config(object):
                 pass
             config.remove_option('Rtorrent', 'rtorrent_ssl')
             print('Successfully removed oudated config entries.')
+        if self.newconfig < 10:
+            #encrypt all passwords / apikeys / usernames in ini file.
+            #leave non-ini items (ie. memory) as un-encrypted items.
+            try:
+                if self.ENCRYPT_PASSWORDS is True:
+                    self.encrypt_items(mode='encrypt', updateconfig=True)
+            except Exception as e:
+                print('Error: %s' % e)
+            print('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
         print('Configuration upgraded to version %s' % self.newconfig)
 
     def check_section(self, section, key):
@@ -713,6 +725,10 @@ class Config(object):
             else:
                 pass
 
+        if self.ENCRYPT_PASSWORDS is True:
+            self.encrypt_items(mode='encrypt')
+
+
     def writeconfig(self, values=None):
         logger.fdebug("Writing configuration to file")
         self.provider_sequence()
@@ -740,6 +756,74 @@ class Config(object):
             logger.fdebug('Configuration written to disk.')
         except IOError as e:
             logger.warn("Error writing configuration file: %s", e)
+
+    def encrypt_items(self, mode='encrypt', updateconfig=False):
+        encryption_list = OrderedDict({
+                               #key                      section         key            value
+                            'HTTP_PASSWORD':         ('Interface', 'http_password', self.HTTP_PASSWORD),
+                            'SAB_PASSWORD':          ('SABnzbd', 'sab_password', self.SAB_PASSWORD),
+                            'SAB_APIKEY':            ('SABnzbd', 'sab_apikey', self.SAB_APIKEY),
+                            'NZBGET_PASSWORD':       ('NZBGet', 'nzbget_password', self.NZBGET_PASSWORD),
+                            'NZBSU_APIKEY':          ('NZBsu', 'nzbsu_apikey', self.NZBSU_APIKEY),
+                            'DOGNZB_APIKEY':         ('DOGnzb', 'dognzb_apikey', self.DOGNZB_APIKEY),
+                            'UTORRENT_PASSWORD':     ('uTorrent', 'utorrent_password', self.UTORRENT_PASSWORD),
+                            'TRANSMISSION_PASSWORD': ('Transmission', 'transmission_password', self.TRANSMISSION_PASSWORD),
+                            'DELUGE_PASSWORD':       ('Deluge', 'deluge_password', self.DELUGE_PASSWORD),
+                            'QBITTORRENT_PASSWORD':  ('qBittorrent', 'qbittorrent_password', self.QBITTORRENT_PASSWORD),
+                            'RTORRENT_PASSWORD':     ('Rtorrent', 'rtorrent_password', self.RTORRENT_PASSWORD),
+                            'PROWL_KEYS':            ('Prowl', 'prowl_keys', self.PROWL_KEYS),
+                            'PUSHOVER_APIKEY':       ('PUSHOVER', 'pushover_apikey', self.PUSHOVER_APIKEY),
+                            'PUSHOVER_USERKEY':      ('PUSHOVER', 'pushover_userkey', self.PUSHOVER_USERKEY),
+                            'BOXCAR_TOKEN':          ('BOXCAR', 'boxcar_token', self.BOXCAR_TOKEN),
+                            'PUSHBULLET_APIKEY':     ('PUSHBULLET', 'pushbullet_apikey', self.PUSHBULLET_APIKEY),
+                            'TELEGRAM_TOKEN':        ('TELEGRAM', 'telegram_token', self.TELEGRAM_TOKEN),
+                            'COMICVINE_API':         ('CV', 'comicvine_api', self.COMICVINE_API),
+                            'PASSWORD_32P':          ('32P', 'password_32p', self.PASSWORD_32P),
+                            'PASSKEY_32P':           ('32P', 'passkey_32p', self.PASSKEY_32P),
+                            'USERNAME_32P':          ('32P', 'username_32p', self.USERNAME_32P),
+                            'SEEDBOX_PASS':          ('Seedbox', 'seedbox_pass', self.SEEDBOX_PASS),
+                            'TAB_PASS':              ('Tablet', 'tab_pass', self.TAB_PASS),
+                            'API_KEY':               ('API', 'api_key', self.API_KEY),
+                            'OPDS_PASSWORD':         ('OPDS', 'opds_password', self.OPDS_PASSWORD),
+                            'PP_SSHPASSWD':          ('AutoSnatch', 'pp_sshpasswd', self.PP_SSHPASSWD),
+                            })
+
+        new_encrypted = 0
+        for k,v in encryption_list.iteritems():
+            value = []
+            for x in v:
+                value.append(x)
+
+            if value[2] is not None:
+                if value[2][:5] == '^~$z$':
+                    if mode == 'decrypt':
+                        hp = encrypted.Encryptor(value[2])
+                        decrypted_password = hp.decrypt_it()
+                        if decrypted_password['status'] is False:
+                            logger.warn('Password unable to decrypt - you might have to manually edit the ini for %s to reset the value' % value[1])
+                        else:
+                            if k != 'HTTP_PASSWORD':
+                                setattr(self, k, decrypted_password['password'])
+                            config.set(value[0], value[1], decrypted_password['password'])
+                    else:
+                        if k == 'HTTP_PASSWORD':
+                            hp = encrypted.Encryptor(value[2])
+                            decrypted_password = hp.decrypt_it()
+                            if decrypted_password['status'] is False:
+                                logger.warn('Password unable to decrypt - you might have to manually edit the ini for %s to reset the value' % value[1])
+                            else:
+                                setattr(self, k, decrypted_password['password'])
+                else:
+                    hp = encrypted.Encryptor(value[2])
+                    encrypted_password = hp.encrypt_it()
+                    if encrypted_password['status'] is False:
+                        logger.warn('Unable to encrypt password for %s - it has not been encrypted. Keeping it as it is.' % value[1])
+                    else:
+                        if k == 'HTTP_PASSWORD':
+                            #make sure we set the http_password for signon to the encrypted value otherwise won't match
+                            setattr(self, k, encrypted_password['password'])
+                        config.set(value[0], value[1], encrypted_password['password'])
+                        new_encrypted+=1
 
     def configure(self, update=False, startup=False):
 
@@ -879,6 +963,9 @@ class Config(object):
             self.AUTHENTICATION = 1
         elif all([self.HTTP_USERNAME is None, self.HTTP_PASSWORD is None]):
             self.AUTHENTICATION = 0
+
+        if self.ENCRYPT_PASSWORDS is True:
+            self.encrypt_items(mode='decrypt')
 
         if all([self.IGNORE_TOTAL is True, self.IGNORE_HAVETOTAL is True]):
             self.IGNORE_TOTAL = False
