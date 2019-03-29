@@ -1690,6 +1690,62 @@ div#artistheader h2 a {
   min-width: 95px;
   vertical-align: middle;
 }
+#queue_table th#qcomicid {
+  max-width: 10px;
+  text-align: center;
+}
+#queue_table th#qseries {
+  max-width: 475px;
+  text-align: center;
+}
+#queue_table th#qsize {
+  max-width: 30px;
+  text-align: center;
+}
+#queue_table th#qprogress {
+  max-width: 25px;
+  text-align: center;
+}
+#queue_table th#qstatus {
+  max-width: 50px;
+  text-align: center;
+}
+#queue_table th#qdate {
+  max-width: 90px;
+  text-align: center;
+}
+#queue_table th#qoptions {
+  min-width: 160px;
+  text-align: center;
+}
+#queue_table td#qcomicid {
+  max-width: 10px;
+  text-align: left;
+}
+#queue_table td#qseries {
+  max-width: 475px;
+  text-align: left;
+}
+#queue_table td#qsize {
+  max-width: 30px;
+  text-align: center;
+}
+#queue_table td#qprogress {
+  max-width: 25px;
+  text-align: center;
+}
+#queue_table td#qstatus {
+  max-width: 50px;
+  text-align: center;
+}
+#queue_table td#qdate {
+  min-width: 90px;
+  text-align: center;
+}
+#queue_table td#qoptions {
+  min-width: 160px;
+  text-align: center;
+}
 DIV.progress-container
 {
 	position: relative;

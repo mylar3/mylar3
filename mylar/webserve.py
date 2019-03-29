@@ -2189,45 +2189,67 @@ class WebInterface(object):
 
     annualDelete.exposed = True
 
-    def ddl_requeue(self, id, mode):
+    def ddl_requeue(self, mode, id=None):
         myDB = db.DBConnection()
-        item = myDB.selectone("SELECT * FROM DDL_INFO WHERE ID=?", [id]).fetchone()
-        if item is not None:
-            if mode == 'resume':
-                if item['status'] != 'Completed':
-                    filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size
-                    mylar.DDL_QUEUE.put({'link':     item['link'],
-                                         'mainlink': item['mainlink'],
-                                         'series':   item['series'],
-                                         'year':     item['year'],
-                                         'size':     item['size'],
-                                         'comicid':  item['comicid'],
-                                         'issueid':  item['issueid'],
-                                         'id':       item['id'],
-                                         'resume':   filesize})
+        if id is None:
+            items = myDB.select("SELECT * FROM ddl_info WHERE status = 'Queued' ORDER BY updated_date DESC")
+        else:
+            oneitem = myDB.selectone("SELECT * FROM DDL_INFO WHERE ID=?", [id]).fetchone()
+            items = [oneitem]
+
+        itemlist = [x for x in items]
+
+        if itemlist is not None:
+            for item in itemlist:
+                if all([mylar.CONFIG.DDL_AUTORESUME is True, mode == 'resume', item['status'] != 'Completed']):
+                    try:
+                        filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, item['filename'])).st_size
+                    except:
+                        filesize = 0
+                    resume = filesize
+                elif mode == 'abort':
+                    myDB.action('DELETE FROM ddl_info where ID=?', [id])
+                    continue
+                else:
+                    resume = None
+                mylar.DDL_QUEUE.put({'link':     item['link'],
+                                     'mainlink': item['mainlink'],
+                                     'series':   item['series'],
+                                     'year':     item['year'],
+                                     'size':     item['size'],
+                                     'comicid':  item['comicid'],
+                                     'issueid':  item['issueid'],
+                                     'id':       item['id'],
+                                     'resume':   resume})
+        if mode == 'restart_queue':
+            logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
+        elif mode == 'restart':
+            logger.info('[DDL-REQUEUE] Successfully restarted %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
+        elif mode == 'requeue':
+            logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
+        elif mode == 'abort':
+            logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (oneitem['series'], oneitem['size']))
 
     ddl_requeue.exposed = True
 
     def queueManage(self): # **args):
         myDB = db.DBConnection()
-        activelist = 'There are currently no items currently downloading via Direct Download (DDL).'
-        active = myDB.selectone("SELECT * FROM DDL_INFO WHERE STATUS = 'Downloading'").fetchone()
-        if active is not None:
-            activelist ={'series':   active['series'],
-                         'year':     active['year'],
-                         'size':     active['size'],
-                         'filename': active['filename'],
-                         'status':   active['status'],
-                         'id':       active['id']}
 
         resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
-        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID WHERE c.status != 'Downloading'")
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
         if s_info:
             resultlist = []
             for si in s_info:
-                issue = si['Issue_Number']
-                if issue is not None:
-                    issue = '#%s' % issue
+                if si['issues'] is None:
+                    issue = si['Issue_Number']
+                    year = si['ComicYear']
+                    if issue is not None:
+                        issue = '#%s' % issue
+                else:
+                    year = si['year']
+                    issue = '#%s' % si['issues']
+
                 if si['status'] == 'Completed':
                     si_status = '100%'
                 else:
@@ -2236,18 +2258,161 @@ class WebInterface(object):
                                    'issue':        issue,
                                    'id':           si['id'],
                                    'volume':       si['ComicVersion'],
-                                   'year':         si['ComicYear'],
+                                   'year':         year,
                                    'size':         si['size'].strip(),
                                    'comicid':      si['ComicID'],
                                    'issueid':      si['IssueID'],
                                    'status':       si['status'],
                                    'updated_date': si['updated_date'],
                                    'progress':     si_status})
+        if o_info:
+            if type(resultlist) is str:
+                resultlist = []
 
-            logger.info('resultlist: %s' % resultlist)
-        return serve_template(templatename="queue_management.html", title="Queue Management", activelist=activelist, resultlist=resultlist)
+            for oi in o_info:
+                if oi['issues'] is None:
+                    issue = oi['Issue_Number']
+                    year = oi['year']
+                    if issue is not None:
+                        issue = '#%s' % issue
+                else:
+                    year = oi['year']
+                    issue = '#%s' % oi['issues']
+
+                if oi['status'] == 'Completed':
+                    oi_status = '100%'
+                else:
+                    oi_status = ''
+
+                resultlist.append({'series':       oi['ComicName'],
+                                   'issue':        issue,
+                                   'id':           oi['id'],
+                                   'volume':       None,
+                                   'year':         year,
+                                   'size':         oi['size'].strip(),
+                                   'comicid':      oi['ComicID'],
+                                   'issueid':      oi['IssueID'],
+                                   'status':       oi['status'],
+                                   'updated_date': oi['updated_date'],
+                                   'progress':     oi_status})
+
+
+        return serve_template(templatename="queue_management.html", title="Queue Management", resultlist=resultlist) #activelist=activelist, resultlist=resultlist)
     queueManage.exposed = True
 
+    def queueManageIt(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=0, sSortDir_0="desc", sSearch="", **kwargs):
+        iDisplayStart = int(iDisplayStart)
+        iDisplayLength = int(iDisplayLength)
+        filtered = []
+
+        myDB = db.DBConnection()
+        resultlist = 'There are currently no items waiting in the Direct Download (DDL) Queue for processing.'
+        s_info = myDB.select("SELECT a.ComicName, a.ComicVersion, a.ComicID, a.ComicYear, b.Issue_Number, b.IssueID, c.size, c.status, c.id, c.updated_date, c.issues, c.year FROM comics as a INNER JOIN issues as b ON a.ComicID = b.ComicID INNER JOIN ddl_info as c ON b.IssueID = c.IssueID") # WHERE c.status != 'Downloading'")
+        o_info = myDB.select("Select a.ComicName, b.Issue_Number, a.IssueID, a.ComicID, c.size, c.status, c.id, c.updated_date, c.issues, c.year from oneoffhistory a join snatched b on a.issueid=b.issueid join ddl_info c on b.issueid=c.issueid where b.provider = 'ddl'")
+        if s_info:
+            resultlist = []
+            for si in s_info:
+                if si['issues'] is None:
+                    issue = si['Issue_Number']
+                    year = si['ComicYear']
+                    if issue is not None:
+                        issue = '#%s' % issue
+                else:
+                    year = si['year']
+                    issue = '#%s' % si['issues']
+
+                if si['status'] == 'Completed':
+                    si_status = '100%'
+                else:
+                    si_status = ''
+
+                if issue is not None:
+                    if si['ComicVersion'] is not None:
+                        series = '%s %s %s (%s)' % (si['ComicName'], si['ComicVersion'], issue, year)
+                    else:
+                        series = '%s %s (%s)' % (si['ComicName'], issue, year)
+                else:
+                    if si['ComicVersion'] is not None:
+                        series = '%s %s (%s)' % (si['ComicName'], si['ComicVersion'], year)
+                    else:
+                        series = '%s (%s)' % (si['ComicName'], year)
+
+                resultlist.append({'series':       series, #i['ComicName'],
+                                   'issue':        issue,
+                                   'queueid':      si['id'],
+                                   'volume':       si['ComicVersion'],
+                                   'year':         year,
+                                   'size':         si['size'].strip(),
+                                   'comicid':      si['ComicID'],
+                                   'issueid':      si['IssueID'],
+                                   'status':       si['status'],
+                                   'updated_date': si['updated_date'],
+                                   'progress':     si_status})
+        if o_info:
+            if type(resultlist) is str:
+                resultlist = []
+
+            for oi in o_info:
+                if oi['issues'] is None:
+                    issue = oi['Issue_Number']
+                    year = oi['year']
+                    if issue is not None:
+                        issue = '#%s' % issue
+                else:
+                    year = oi['year']
+                    issue = '#%s' % oi['issues']
+
+                if oi['status'] == 'Completed':
+                    oi_status = '100%'
+                else:
+                    oi_status = ''
+
+                if issue is not None:
+                    series = '%s %s (%s)' % (oi['ComicName'], issue, year)
+                else:
+                    series = '%s (%s)' % (oi['ComicName'], year)
+
+                resultlist.append({'series':       series,
+                                   'issue':        issue,
+                                   'queueid':      oi['id'],
+                                   'volume':       None,
+                                   'year':         year,
+                                   'size':         oi['size'].strip(),
+                                   'comicid':      oi['ComicID'],
+                                   'issueid':      oi['IssueID'],
+                                   'status':       oi['status'],
+                                   'updated_date': oi['updated_date'],
+                                   'progress':     oi_status})
+
+
+        if sSearch == "" or sSearch == None:
+            filtered = resultlist[::]
+        else:
+            filtered = [row for row in resultlist if any([sSearch.lower() in row['series'].lower(), sSearch.lower() in row['status'].lower()])]
+        sortcolumn = 'series'
+        if iSortCol_0 == '1':
+            sortcolumn = 'series'
+        elif iSortCol_0 == '2':
+            sortcolumn = 'size'
+        elif iSortCol_0 == '3':
+            sortcolumn = 'progress'
+        elif iSortCol_0 == '4':
+            sortcolumn = 'status'
+        elif iSortCol_0 == '5':
+            sortcolumn = 'updated_date'
+        filtered.sort(key=lambda x: x[sortcolumn], reverse=sSortDir_0 == "desc")
+
+        rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
+        rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid']] for row in rows]
+        #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
+        #logger.info('rows: %s' % rows)
+        return json.dumps({
+            'iTotalDisplayRecords': len(filtered),
+            'iTotalRecords': len(resultlist),
+            'aaData': rows,
+        })
+
+    queueManageIt.exposed = True
 
     def previewRename(self, **args): #comicid=None, comicidlist=None):
         file_format = mylar.CONFIG.FILE_FORMAT
@@ -4068,7 +4233,7 @@ class WebInterface(object):
         mylar.CONFIG.IMP_METADATA = bool(imp_metadata)
         mylar.CONFIG.IMP_PATHS = bool(imp_paths)
 
-        mylar.CONFIG.configure(update=True, startup=False)
+        mylar.CONFIG.configure(update=True)
         # Write the config
         logger.info('Now updating config...')
         mylar.CONFIG.writeconfig()
@@ -5253,7 +5418,7 @@ class WebInterface(object):
         mylar.CONFIG.process_kwargs(kwargs)
 
         #this makes sure things are set to the default values if they're not appropriately set.
-        mylar.CONFIG.configure(update=True)
+        mylar.CONFIG.configure(update=True, startup=False)
 
         # Write the config
         logger.info('Now saving config...')
@@ -5894,11 +6059,31 @@ class WebInterface(object):
          myDB = db.DBConnection()
          active = myDB.selectone("SELECT * FROM DDL_INFO WHERE STATUS = 'Downloading'").fetchone()
          if active is None:
-             return "There are no active downloads currently being attended to"
+             return json.dumps({'status':   'There are no active downloads currently being attended to',
+                                'percent':   0,
+                                'a_series':  None,
+                                'a_year':  None,
+                                'a_filename':  None,
+                                'a_size':  None,
+                                'a_id':  None})
          else:
-             filesize = os.stat(os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])).st_size
-             cmath = int(float(filesize*100)/int(int(active['remote_filesize'])*100) * 100)
-             return "%s%s" % (cmath, '%')
+             filelocation = os.path.join(mylar.CONFIG.DDL_LOCATION, active['filename'])
+             #logger.fdebug('checking file existance: %s' % filelocation)
+             if os.path.exists(filelocation) is True:
+                 filesize = os.stat(filelocation).st_size
+                 cmath = int(float(filesize*100)/int(int(active['remote_filesize'])*100) * 100)
+                 #logger.fdebug('ACTIVE DDL: %s  %s  [%s]' % (active['filename'], cmath, 'Downloading'))
+                 return json.dumps({'status':      'Downloading',
+                                    'percent':     "%s%s" % (cmath, '%'),
+                                    'a_series':    active['series'],
+                                    'a_year':      active['year'],
+                                    'a_filename':  active['filename'],
+                                    'a_size':      active['size'],
+                                    'a_id':        active['id']})
+             else:
+             #    myDB.upsert('ddl_info', {'status': 'Incomplete'}, {'id': active['id']})
+                 return json.dumps({'a_id': active['id'], 'status': 'File does not exist in %s.</br> This probably needs to be restarted (use the option in the GUI)' % filelocation, 'percent': 0})
+
     check_ActiveDDL.exposed = True
 
     def create_readlist(self, list=None, weeknumber=None, year=None):
