@@ -358,6 +358,8 @@ class FileChecker(object):
                     mini = False
                     try:
                         logger.fdebug('checking now: %s' % x)
+                        if x.lower() == 'infinity':
+                            raise Exception
                         if x.isdigit():
                             logger.fdebug('[MINI-SERIES] MAX ISSUES IN SERIES: %s' % x)
                             spf.append('(of %s)' % x)
