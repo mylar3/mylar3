@@ -2208,6 +2208,9 @@ class WebInterface(object):
                         filesize = 0
                     resume = filesize
                 elif mode == 'abort':
+                    myDB.upsert("ddl_info", {'Status': 'Failed'}, {'id': id}) #DELETE FROM ddl_info where ID=?', [id])
+                    continue
+                elif mode == 'remove':
                     myDB.action('DELETE FROM ddl_info where ID=?', [id])
                     continue
                 else:
@@ -2221,15 +2224,20 @@ class WebInterface(object):
                                      'issueid':  item['issueid'],
                                      'id':       item['id'],
                                      'resume':   resume})
+
+        linemessage = '%s successful for %s' % (mode, oneitem['series'])
         if mode == 'restart_queue':
             logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
+            linemessage = 'Successfully restarted Queue'
         elif mode == 'restart':
-            logger.info('[DDL-REQUEUE] Successfully restarted %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
+            logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
         elif mode == 'requeue':
             logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
         elif mode == 'abort':
             logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (oneitem['series'], oneitem['size']))
-
+        elif mode == 'remove':
+            logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (oneitem['series'], oneitem['size']))
+        return json.dumps({'status': True, 'message': linemessage})
     ddl_requeue.exposed = True
 
     def queueManage(self): # **args):

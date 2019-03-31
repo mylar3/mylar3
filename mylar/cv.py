@@ -413,16 +413,16 @@ def GetComicInfo(comicid, dom, safechk=None):
                                         issuerun = issuerun[:srchline+len(x)]
                                         break
                                 except Exception as e:
-                                    logger.warn('[ERROR] %s' % e)
+                                    #logger.warn('[ERROR] %s' % e)
                                     continue
                 else:
                     iss_start = fc_name.find('#')
                     issuerun = fc_name[iss_start:].strip()
                     fc_name = fc_name[:iss_start].strip()
 
-                if issuerun.endswith('.') or issuerun.endswith(','):
+                if issuerun.strip().endswith('.') or issuerun.strip().endswith(','):
                     #logger.fdebug('Changed issuerun from %s to %s' % (issuerun, issuerun[:-1]))
-                    issuerun = issuerun[:-1]
+                    issuerun = issuerun.strip()[:-1]
                 if issuerun.endswith(' and '):
                     issuerun = issuerun[:-4].strip()
                 elif issuerun.endswith(' and'):
