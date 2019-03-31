@@ -693,6 +693,7 @@ class PostProcessor(object):
 
                             for isc in issuechk:
                                 datematch = "True"
+                                datechkit = False
                                 if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
                                     try:
                                         if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
@@ -746,10 +747,12 @@ class PostProcessor(object):
                                     if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                         issyr = int(monthval[:4]) + 1
                                         logger.fdebug('%s[ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
+                                        datechkit = True
                                     elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
                                         issyr = int(monthval[:4]) - 1
+                                        datechkit = True
 
-                                    if datematch == "False" and issyr is not None:
+                                    if datechkit is True and issyr is not None:
                                         logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, watchmatch['issue_year']))
                                         datematch = "True"
                                         if int(issyr) != int(watchmatch['issue_year']):
@@ -1023,6 +1026,7 @@ class PostProcessor(object):
                                     else:
                                         for isc in issuechk:
                                             datematch = "True"
+                                            datechkit = False
                                             if isc['ReleaseDate'] is not None and isc['ReleaseDate'] != '0000-00-00':
                                                 try:
                                                     if isc['DigitalDate'] != '0000-00-00' and int(re.sub('-', '', isc['DigitalDate']).strip()) <= int(re.sub('-', '', isc['ReleaseDate']).strip()):
@@ -1087,11 +1091,13 @@ class PostProcessor(object):
 
                                                 if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
                                                     issyr = int(monthval[:4]) + 1
+                                                    datechkit = True
                                                     logger.fdebug('%s[ARC ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
                                                 elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
                                                     issyr = int(monthval[:4]) - 1
+                                                    datechkit = True
 
-                                                if datematch == "False" and issyr is not None:
+                                                if datechkit is True and issyr is not None:
                                                     logger.fdebug('%s[ARC ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
                                                     datematch = "True"
                                                     if int(issyr) != int(arcmatch['issue_year']):
