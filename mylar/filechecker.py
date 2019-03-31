@@ -1018,6 +1018,12 @@ class FileChecker(object):
             #c1 = '+'
             #series_name = ' '.join(split_file[:highest_series_pos])
             if yearposition != 0:
+                if yearposition is not None and yearposition < highest_series_pos:
+                    if yearposition+1 == highest_series_pos:
+                        highest_series_pos = yearposition
+                    else:
+                        if split_file[yearposition+1] == '-' and yearposition+2 == highest_series_pos:
+                            highest_series_pos = yearposition
                 series_name = ' '.join(split_file[:highest_series_pos])
             else:
                 if highest_series_pos <= issue_number_position and all([len(split_file[0]) == 4, split_file[0].isdigit()]):
