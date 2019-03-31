@@ -744,20 +744,21 @@ class PostProcessor(object):
                                             logger.fdebug('%s[ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (module, isc['IssueDate'], watchmatch['issue_year']))
                                             datematch = "False"
 
-                                    if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
-                                        issyr = int(monthval[:4]) + 1
-                                        logger.fdebug('%s[ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
-                                        datechkit = True
-                                    elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
-                                        issyr = int(monthval[:4]) - 1
-                                        datechkit = True
+                                    if int(watch_issueyear) != int(watchmatch['issue_year']):
+                                        if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                            issyr = int(monthval[:4]) + 1
+                                            logger.fdebug('%s[ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
+                                            datechkit = True
+                                        elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
+                                            issyr = int(monthval[:4]) - 1
+                                            datechkit = True
 
-                                    if datechkit is True and issyr is not None:
-                                        logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, watchmatch['issue_year']))
-                                        datematch = "True"
-                                        if int(issyr) != int(watchmatch['issue_year']):
-                                            logger.fdebug('%s[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
-                                            datematch = "False"
+                                        if datechkit is True and issyr is not None:
+                                            logger.fdebug('%s[ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, watchmatch['issue_year']))
+                                            datematch = "True"
+                                            if int(issyr) != int(watchmatch['issue_year']):
+                                                logger.fdebug('%s[ISSUE-VERIFY][.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
+                                                datematch = "False"
 
                                 else:
                                     if fcdigit is None:
@@ -1091,20 +1092,21 @@ class PostProcessor(object):
                                                         logger.fdebug('%s[ARC ISSUE-VERIFY] %s is before the issue year %s that was discovered in the filename' % (module, isc['IssueDate'], arcmatch['issue_year']))
                                                         datematch = "False"
 
-                                                if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
-                                                    issyr = int(monthval[:4]) + 1
-                                                    datechkit = True
-                                                    logger.fdebug('%s[ARC ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
-                                                elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
-                                                    issyr = int(monthval[:4]) - 1
-                                                    datechkit = True
+                                                if int(arc_issueyear) != int(arcmatch['issue_year']):
+                                                    if int(monthval[5:7]) == 11 or int(monthval[5:7]) == 12:
+                                                        issyr = int(monthval[:4]) + 1
+                                                        datechkit = True
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] IssueYear (issyr) is %s' % (module, issyr))
+                                                    elif int(monthval[5:7]) == 1 or int(monthval[5:7]) == 2 or int(monthval[5:7]) == 3:
+                                                        issyr = int(monthval[:4]) - 1
+                                                        datechkit = True
 
-                                                if datechkit is True and issyr is not None:
-                                                    logger.fdebug('%s[ARC ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
-                                                    datematch = "True"
-                                                    if int(issyr) != int(arcmatch['issue_year']):
-                                                        logger.fdebug('%s[.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
-                                                        datematch = "False"
+                                                    if datechkit is True and issyr is not None:
+                                                        logger.fdebug('%s[ARC ISSUE-VERIFY] %s comparing to %s : rechecking by month-check versus year.' % (module, issyr, arcmatch['issue_year']))
+                                                        datematch = "True"
+                                                        if int(issyr) != int(arcmatch['issue_year']):
+                                                            logger.fdebug('%s[.:FAIL:.] Issue is before the modified issue year of %s' % (module, issyr))
+                                                            datematch = "False"
 
                                             else:
                                                 if fcdigit is None:
