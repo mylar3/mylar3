@@ -766,6 +766,8 @@ class PostProcessor(object):
                                         logger.info('%s[ISSUE-VERIFY] Found matching issue # %s for ComicID: %s / IssueID: %s' % (module, fcdigit, cs['ComicID'], isc['IssueID']))
 
                                 if datematch == "True":
+                                    #need to reset this to False here so that the True doesn't carry down and avoid the year checks due to the True
+                                    datematch = "False"
                                     # if we get to here, we need to do some more comparisons just to make sure we have the right volume
                                     # first we chk volume label if it exists, then we drop down to issue year
                                     # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
@@ -1114,7 +1116,8 @@ class PostProcessor(object):
                                             logger.fdebug('temploc: %s' % helpers.issuedigits(temploc))
                                             logger.fdebug('arcissue: %s' % helpers.issuedigits(v[i]['ArcValues']['IssueNumber']))
                                             if datematch == "True" and helpers.issuedigits(temploc) == helpers.issuedigits(v[i]['ArcValues']['IssueNumber']):
-
+                                                #reset datematch here so it doesn't carry the value down and avoid year checks
+                                                datematch = "False"
                                                 arc_values = v[i]['WatchValues']
                                                 if any([arc_values['ComicVersion'] is None, arc_values['ComicVersion'] == 'None']):
                                                     tmp_arclist_vol = '1'
@@ -1433,8 +1436,10 @@ class PostProcessor(object):
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
-
-                        logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
+                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
+                            logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], grab_dst))
+                        else:
+                            logger.fdebug('%s [%s] Post-Processing completed for: %s' % (module, ml['StoryArc'], ml['ComicLocation'])
 
             if (all([self.nzb_name != 'Manual Run', self.apicall is False]) or (self.oneoffinlist is True or all([self.issuearcid is not None, self.issueid is None]))) and not self.nzb_name.startswith('0-Day'): # and all([self.issueid is None, self.comicid is None, self.apicall is False]):
                 ppinfo = []
