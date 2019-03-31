@@ -1275,8 +1275,19 @@ class PostProcessor(object):
                                     if temploc is not None and fcdigit == helpers.issuedigits(ofv['Issue_Number']) or all([temploc is None, helpers.issuedigits(ofv['Issue_Number']) == '1']):
                                         if watchmatch['sub']:
                                             clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                            if not os.path.exists(clocation):
+                                                scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
+                                                if scrubs[:2] == '//' or scrubs[:2] == '\\':
+                                                    scrubs = scrubs[1:]
+                                                    if os.path.exists(scrubs):
+                                                        logger.fdebug('[MODIFIED CLOCATION] %s' % scrubs)
+                                                        clocation = scrubs
+
                                         else:
-                                            clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                            if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
+                                                clocation = watchmatch['comiclocation']
+                                            else:
+                                                clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
                                         oneoff_issuelist.append({"ComicLocation":   clocation,
                                                                  "ComicID":         ofv['ComicID'],
                                                                  "IssueID":         ofv['IssueID'],
@@ -1296,120 +1307,124 @@ class PostProcessor(object):
                     logger.fdebug('%s There are %s files found that match on your watchlist, %s files are considered one-off\'s, and %s files do not match anything' % (module, len(manual_list), len(oneoff_issuelist), int(filelist['comiccount']) - len(manual_list)))
 
                 delete_arc = []
-                if len(manual_arclist) > 0: # and mylar.CONFIG.copy2arcdir is True:
+                if len(manual_arclist) > 0:
                     logger.info('[STORY-ARC MANUAL POST-PROCESSING] I have found %s issues that belong to Story Arcs. Flinging them into the correct directories.' % len(manual_arclist))
                     for ml in manual_arclist:
                         issueid = ml['IssueID']
                         ofilename = orig_filename = ml['ComicLocation']
                         logger.info('[STORY-ARC POST-PROCESSING] Enabled for %s' % ml['StoryArc'])
 
-                        grdst = helpers.arcformat(ml['StoryArc'], helpers.spantheyears(ml['StoryArcID']), ml['Publisher'])
-                        logger.info('grdst: %s' % grdst)
+                        if all([mylar.CONFIG.STORYARCDIR is True, mylar.CONFIG.COPY2ARCDIR is True]):
+                            grdst = helpers.arcformat(ml['StoryArc'], helpers.spantheyears(ml['StoryArcID']), ml['Publisher'])
+                            logger.info('grdst: %s' % grdst)
 
-                        #tag the meta.
-                        metaresponse = None
+                            #tag the meta.
+                            metaresponse = None
 
-                        crcvalue = helpers.crc(ofilename)
+                            crcvalue = helpers.crc(ofilename)
 
-                        if mylar.CONFIG.ENABLE_META:
-                            logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
-                            try:
-                                import cmtagmylar
-                                metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
-                            except ImportError:
-                                logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
-                                metaresponse = "fail"
+                            if mylar.CONFIG.ENABLE_META:
+                                logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
+                                try:
+                                    import cmtagmylar
+                                    metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
+                                except ImportError:
+                                    logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
+                                    metaresponse = "fail"
 
-                            if metaresponse == "fail":
-                                logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
-                            elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
-                                logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' % module)
-                                continue
-                                #launch failed download handling here.
-                            elif metaresponse.startswith('file not found'):
-                                filename_in_error = metaresponse.split('||')[1]
-                                self._log("The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging..." % (filename_in_error))
-                                logger.error('%s The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...' % (module, filename_in_error))
+                                if metaresponse == "fail":
+                                    logger.fdebug('%s Unable to write metadata successfully - check mylar.log file. Attempting to continue without metatagging...' % module)
+                                elif any([metaresponse == "unrar error", metaresponse == "corrupt"]):
+                                    logger.error('%s This is a corrupt archive - whether CRC errors or it is incomplete. Marking as BAD, and retrying it.' % module)
+                                    continue
+                                    #launch failed download handling here.
+                                elif metaresponse.startswith('file not found'):
+                                    filename_in_error = metaresponse.split('||')[1]
+                                    self._log("The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging..." % (filename_in_error))
+                                    logger.error('%s The file cannot be found in the location provided for metatagging to be used [%s]. Please verify it exists, and re-run if necessary. Attempting to continue without metatagging...' % (module, filename_in_error))
+                                else:
+                                    odir = os.path.split(metaresponse)[0]
+                                    ofilename = os.path.split(metaresponse)[1]
+                                    ext = os.path.splitext(metaresponse)[1]
+                                    logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
+                                    self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
+
+                                dfilename = ofilename
                             else:
-                                odir = os.path.split(metaresponse)[0]
-                                ofilename = os.path.split(metaresponse)[1]
-                                ext = os.path.splitext(metaresponse)[1]
-                                logger.info('%s Sucessfully wrote metadata to .cbz (%s) - Continuing..' % (module, ofilename))
-                                self._log('Sucessfully wrote metadata to .cbz (%s) - proceeding...' % ofilename)
+                                dfilename = ml['Filename']
 
-                            dfilename = ofilename
+
+                            if metaresponse:
+                                src_location = odir
+                                grab_src = os.path.join(src_location, ofilename)
+                            else:
+                                src_location = ofilename
+                                grab_src = ofilename
+
+                            logger.fdebug('%s Source Path : %s' % (module, grab_src))
+
+                            checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
+                            if not checkdirectory:
+                                logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
+                                self.valreturn.append({"self.log": self.log,
+                                                       "mode": 'stop'})
+                                return self.queue.put(self.valreturn)
+
+                            #send to renamer here if valid.
+                            if mylar.CONFIG.RENAME_FILES:
+                                renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], dfilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
+                                if renamed_file:
+                                    dfilename = renamed_file['nfilename']
+                                    logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, ofilename))
+
+                            #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
+                            if mylar.CONFIG.READ2FILENAME:
+
+                                logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
+                                if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
+                                elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
+                                else: readord = str(ml['ReadingOrder'])
+                                dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
+
+                            grab_dst = os.path.join(grdst, dfilename)
+
+                            logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
+                            logger.fdebug('%s Source Path : %s' % (module, grab_src))
+
+                            logger.info('%s[ONE-OFF MODE][%s] %s into directory : %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), grab_src, grab_dst))
+                            #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
+
+                            try:
+                                checkspace = helpers.get_free_space(grdst)
+                                if checkspace is False:
+                                    if all([metaresponse is not None, metaresponse != 'fail']):  # meta was done
+                                        self.tidyup(src_location, True, cacheonly=True)
+                                    raise OSError
+                                fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True)
+                                if not fileoperation:
+                                    raise OSError
+                            except Exception as e:
+                                logger.error('%s [ONE-OFF MODE] Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
+                                return
+
+                            #tidyup old path
+                            if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
+                                self.tidyup(src_location, True, filename=orig_filename)
+
+                            #delete entry from nzblog table
+                            #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
+                            #if it was downloaded outside of mylar and/or not from the storyarc section, it will be a normal issueid in the nzblog
+                            #IssArcID = 'S' + str(ml['IssueArcID'])
+                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', ['S' + str(ml['IssueArcID']),ml['StoryArc']])
+                            myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [ml['IssueArcID'],ml['StoryArc']])
+
+                            logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
+                            newVal = {"Status":       "Downloaded",
+                                      "Location":     grab_dst}
                         else:
-                            dfilename = ml['Filename']
-
-
-                        if metaresponse:
-                            src_location = odir
-                            grab_src = os.path.join(src_location, ofilename)
-                        else:
-                            src_location = ofilename
-                            grab_src = ofilename
-
-                        logger.fdebug('%s Source Path : %s' % (module, grab_src))
-
-                        checkdirectory = filechecker.validateAndCreateDirectory(grdst, True, module=module)
-                        if not checkdirectory:
-                            logger.warn('%s Error trying to validate/create directory. Aborting this process at this time.' % module)
-                            self.valreturn.append({"self.log": self.log,
-                                                   "mode": 'stop'})
-                            return self.queue.put(self.valreturn)
-
-                        #send to renamer here if valid.
-                        if mylar.CONFIG.RENAME_FILES:
-                            renamed_file = helpers.rename_param(ml['ComicID'], ml['ComicName'], ml['IssueNumber'], dfilename, issueid=ml['IssueID'], arc=ml['StoryArc'])
-                            if renamed_file:
-                                dfilename = renamed_file['nfilename']
-                                logger.fdebug('%s Renaming file to conform to configuration: %s' % (module, ofilename))
-
-                        #if from a StoryArc, check to see if we're appending the ReadingOrder to the filename
-                        if mylar.CONFIG.READ2FILENAME:
-
-                            logger.fdebug('%s readingorder#: %s' % (module, ml['ReadingOrder']))
-                            if int(ml['ReadingOrder']) < 10: readord = "00" + str(ml['ReadingOrder'])
-                            elif int(ml['ReadingOrder']) >= 10 and int(ml['ReadingOrder']) <= 99: readord = "0" + str(ml['ReadingOrder'])
-                            else: readord = str(ml['ReadingOrder'])
-                            dfilename = str(readord) + "-" + os.path.split(dfilename)[1]
-
-                        grab_dst = os.path.join(grdst, dfilename)
-
-                        logger.fdebug('%s Destination Path : %s' % (module, grab_dst))
-                        logger.fdebug('%s Source Path : %s' % (module, grab_src))
-
-                        logger.info('%s[ONE-OFF MODE][%s] %s into directory : %s' % (module, mylar.CONFIG.ARC_FILEOPS.upper(), grab_src, grab_dst))
-                        #this is also for issues that are part of a story arc, and don't belong to a watchlist series (ie. one-off's)
-
-                        try:
-                            checkspace = helpers.get_free_space(grdst)
-                            if checkspace is False:
-                                if all([metaresponse is not None, metaresponse != 'fail']):  # meta was done
-                                    self.tidyup(src_location, True, cacheonly=True)
-                                raise OSError
-                            fileoperation = helpers.file_ops(grab_src, grab_dst, one_off=True)
-                            if not fileoperation:
-                                raise OSError
-                        except Exception as e:
-                            logger.error('%s [ONE-OFF MODE] Failed to %s %s: %s' % (module, mylar.CONFIG.ARC_FILEOPS, grab_src, e))
-                            return
-
-                        #tidyup old path
-                        if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
-                            self.tidyup(src_location, True, filename=orig_filename)
-
-                        #delete entry from nzblog table
-                        #if it was downloaded via mylar from the storyarc section, it will have an 'S' in the nzblog
-                        #if it was downloaded outside of mylar and/or not from the storyarc section, it will be a normal issueid in the nzblog
-                        #IssArcID = 'S' + str(ml['IssueArcID'])
-                        myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', ['S' + str(ml['IssueArcID']),ml['StoryArc']])
-                        myDB.action('DELETE from nzblog WHERE IssueID=? AND SARC=?', [ml['IssueArcID'],ml['StoryArc']])
-
-                        logger.fdebug('%s IssueArcID: %s' % (module, ml['IssueArcID']))
+                            newVal = {"Status":       "Downloaded",
+                                      "Location":     ml['ComicLocation']}
                         ctrlVal = {"IssueArcID":  ml['IssueArcID']}
-                        newVal = {"Status":       "Downloaded",
-                                  "Location":     grab_dst}
                         logger.fdebug('writing: %s -- %s' % (newVal, ctrlVal))
                         myDB.upsert("storyarcs", newVal, ctrlVal)
 
