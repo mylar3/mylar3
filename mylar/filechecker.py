@@ -816,7 +816,7 @@ class FileChecker(object):
                             logger.fdebug('Numeric detected as the last digit after a hyphen. Typically this is the issue number.')
                             if pis['position'] != yearposition:
                                 issue_number = pis['number']
-                                logger.info('Issue set to: ' + str(issue_number))
+                                #logger.info('Issue set to: ' + str(issue_number))
                                 issue_number_position = pis['position']
                                 if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                             #break
