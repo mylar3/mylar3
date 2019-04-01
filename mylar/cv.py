@@ -24,6 +24,7 @@ import lib.feedparser
 import mylar
 import platform
 from bs4 import BeautifulSoup as Soup
+from xml.parsers.expat import ExpatError
 import httplib
 import requests
 
@@ -96,10 +97,19 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
         return
 
     #logger.fdebug('cv status code : ' + str(r.status_code))
-    dom = parseString(r.content)
-
-    return dom
-
+    try:
+        dom = parseString(r.content)
+    except ExpatError:
+        if u'<title>Abnormal Traffic Detected' in r.content:
+            logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
+        else:
+            logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')
+        return
+    except Exception as e:
+        logger.warn('[ERROR] Error returned from CV: %s' % e)
+        return
+    else:
+        return dom
 
 def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None):
     if type == 'issue':

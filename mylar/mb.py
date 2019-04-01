@@ -21,6 +21,7 @@ import threading
 import platform
 import urllib, urllib2
 from xml.dom.minidom import parseString, Element
+from xml.parsers.expat import ExpatError
 import requests
 
 import mylar
@@ -70,8 +71,8 @@ def pullsearch(comicapi, comicquery, offset, type):
 
     try:
         r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-    except Exception, e:
-        logger.warn('Error fetching data from ComicVine: %s' % (e))
+    except Exception as e:
+        logger.warn('Error fetching data from ComicVine: %s' % e)
         return
 
     try:
@@ -82,8 +83,11 @@ def pullsearch(comicapi, comicquery, offset, type):
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
         return
-
-    return dom
+    except Exception as e:
+        logger.warn('[ERROR] Error returned from CV: %s' % e)
+        return
+    else:
+        return dom
 
 def findComic(name, mode, issue, limityear=None, type=None):
 
@@ -459,24 +463,20 @@ def storyarcinfo(xmlid):
 
     try:
         r = requests.get(ARCPULL_URL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-    except Exception, e:
-        logger.warn('Error fetching data from ComicVine: %s' % (e))
+    except Exception as e:
+        logger.warn('While parsing data from ComicVine, got exception: %s' % e)
         return
-#    try:
-#        file = urllib2.urlopen(ARCPULL_URL)
-#    except urllib2.HTTPError, err:
-#        logger.error('err : ' + str(err))
-#        logger.error('There was a major problem retrieving data from ComicVine - on their end.')
-#        return
-#    arcdata = file.read()
-#    file.close()
+
     try:
-        arcdom = parseString(r.content) #(arcdata)
+        arcdom = parseString(r.content)
     except ExpatError:
         if u'<title>Abnormal Traffic Detected' in r.content:
-            logger.error("ComicVine has banned this server's IP address because it exceeded the API rate limit.")
+            logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
-            logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (str(e), r.content))
+            logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))
+        return
+    except Exception as e:
+        logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))
         return
 
     try:
