@@ -41,6 +41,7 @@
 				<th id="name">Comic Name</th>
 				<th id="status">Status</th>
                                 <th id="stat_icon"></th>
+                                <th class="hidden" id="stat_title"></th>
                                 <th id="latest">Latest Issue</th>
                                 <th id="publisher">Publisher</th>
                                 <th id="have">Have</th>
@@ -66,15 +67,16 @@
 				<td id="status">${comic['recentstatus']}</td>
                                 <td id="stat_icon">
                                 %if comic['Status'] == 'Paused':
-                                    <img src="interfaces/default/images/pause-icon.png" alt="Paused" width="16" height="16" />
+                                    <img src="interfaces/default/images/pause-icon.png" title="Paused" alt="Paused" width="16" height="16" />
                                 %elif comic['Status'] == 'Loading':
-                                    <img src="interfaces/default/images/hourglass.png" alt="Loading" width="16" height="16" />
+                                    <img src="interfaces/default/images/hourglass.png" title="Loading" alt="Loading" width="16" height="16" />
                                 %elif comic['Status'] == 'Error':
-                                    <img src="interfaces/default/images/cross.png" alt="Error" width="16" height="16" />
+                                    <img src="interfaces/default/images/cross.png" title="Error" alt="Error" width="16" height="16" />
                                 %else:
-                                    <img src="interfaces/default/images/checkmark.png" alt="Active" width="16" height="16" />
+                                    <img src="interfaces/default/images/checkmark.png" title="Active" alt="Active" width="16" height="16" />
                                 %endif
                                 </td>
+                                <td class="hidden" id="stat_title">${comic['Status']}</td>
 				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
                                 <td id="publisher">${comic['ComicPublisher']}</td>
                                 <td id="have" valign="center"><span title="${comic['percent']}"></span><div class="progress-container"><div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
