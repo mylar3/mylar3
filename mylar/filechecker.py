@@ -621,7 +621,7 @@ class FileChecker(object):
                             volume_found['position'] = split_file.index(sf, current_pos)
 
                         volume_found['volume'] = volume
-                        logger.fdebug('volume label detected as : Volume ' + str(volume) + ' @ position: ' + str(split_file.index(sf)))
+                        logger.fdebug('volume label detected as : Volume %s @ position: %s' % (volume, volume_found['position']))
                         volumeprior = False
                         volumeprior_label = None
                     elif all(['vol' in sf.lower(), len(sf) == 3]) or all(['vol.' in sf.lower(), len(sf) == 4]):
