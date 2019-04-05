@@ -329,7 +329,8 @@ class FileChecker(object):
 
             ret_sf2 = ' '.join(split_file3)
 
-            sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\S+''', ret_sf2, re.VERBOSE)
+            sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\[ [^\#]* \]|\S+''', ret_sf2, re.VERBOSE)
+            #sf = re.findall('''\( [^\)]* \) |\[ [^\]]* \] |\S+''', ret_sf2, re.VERBOSE)
 
             ret_sf1 = ' '.join(sf)
 
@@ -342,9 +343,8 @@ class FileChecker(object):
             ret_sf1 = re.sub('\&', 'f11', ret_sf1).strip()
             ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
 
-            #split_file = re.findall('\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
-            split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
-
+            #split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+|[\w-]+|#?\d\.\d+|#(?<![\w\d])XCV(?![\w\d])+|\)', ret_sf1, re.UNICODE)
+            split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
             #10-20-2018 ---START -- attempt to detect '01 (of 7.3)'
             #10-20-2018          -- attempt to detect '36p ctc' as one element
             spf = []
@@ -507,6 +507,12 @@ class FileChecker(object):
                     logger.fdebug('Issue Number SHOULD BE: ' + str(lastissue_label))
                     validcountchk = True
 
+                match2 = re.search('(\d+[\s])covers', sf, re.IGNORECASE)
+                if match2:
+                    num_covers = re.sub('[^0-9]', '', match2.group()).strip()
+                    #logger.fdebug('%s covers detected within filename' % num_covers)
+                    continue
+
                 if all([lastissue_position == (split_file.index(sf) -1), lastissue_label is not None, '#' not in sf, sf != 'p']):
                     #find it in the original file to see if there's a decimal between.
                     findst = lastissue_mod_position+1
@@ -596,6 +602,16 @@ class FileChecker(object):
                             try:
                                 volume_found['position'] = split_file.index(volumeprior_label, current_pos -1) #if this passes, then we're ok, otherwise will try exception
                                 logger.fdebug('volume_found: ' + str(volume_found['position']))
+                                #remove volume numeric from split_file
+                                split_file.pop(volume_found['position'])
+                                split_file.pop(split_file.index(sf, current_pos-1))
+                                #join the previous label to the volume numeric
+                                #volume = str(volumeprior_label) + str(volume)
+                                #insert the combined info back
+                                split_file.insert(volume_found['position'], volumeprior_label + volume)
+                                split_file.insert(volume_found['position']+1, '')
+                                #volume_found['position'] = split_file.index(sf, current_pos)
+                                #logger.fdebug('NEWSPLITFILE: %s' % split_file)
                             except:
                                 volumeprior = False
                                 volumeprior_label = None
@@ -608,7 +624,7 @@ class FileChecker(object):
                         logger.fdebug('volume label detected as : Volume ' + str(volume) + ' @ position: ' + str(split_file.index(sf)))
                         volumeprior = False
                         volumeprior_label = None
-                    elif 'vol' in sf.lower() and len(sf) == 3:
+                    elif all(['vol' in sf.lower(), len(sf) == 3]) or all(['vol.' in sf.lower(), len(sf) == 4]):
                         #if there's a space between the vol and # - adjust.
                         volumeprior = True
                         volumeprior_label = sf
@@ -918,10 +934,11 @@ class FileChecker(object):
                         if split_file[issue_number_position -1].lower() == 'annual' or split_file[issue_number_position -1].lower() == 'special':
                             highest_series_pos = issue_number_position
                         else:
-                            if volume_found['position'] < issue_number_position:
-                                highest_series_pos = issue_number_position - 1
-                            else:
-                                highest_series_pos = issue_number_position
+                            highest_series_pos = issue_number_position - 1
+                            #if volume_found['position'] < issue_number_position:
+                            #    highest_series_pos = issue_number_position - 1
+                            #else:
+                            #    highest_series_pos = issue_number_position
 
             #make sure if we have multiple years detected, that the right one gets picked for the actual year vs. series title
             if len(possible_years) > 1:
