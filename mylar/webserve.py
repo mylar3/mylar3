@@ -5959,6 +5959,14 @@ class WebInterface(object):
     testqbit.exposed = True
 
     def testnewznab(self, name, host, ssl, apikey):
+        logger.fdebug('ssl/verify: %s' % ssl)
+        if 'ssl' == '0' or ssl == '1':
+            ssl = bool(int(ssl))
+        else:
+            if ssl == 'false':
+                ssl = False
+            else:
+                ssl = True
         result = helpers.newznab_test(name, host, ssl, apikey)
         if result is True:
             logger.info('Successfully tested %s [%s] - valid api response received' % (name, host))

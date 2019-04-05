@@ -2227,19 +2227,19 @@
                         var imagechk = document.getElementById("dognzb_statusicon");
                         var name = 'DOGnzb';
                         var host = 'https://api.dognzb.cr';
-                        var ssl = document.getElementById("dognzb_verify").value;
+                        var ssl = document.getElementById("dognzb_verify").checked;
                         var apikey = document.getElementById("dognzb_apikey").value;
                     } else if ( newznab.indexOf("test_nzbsu") > -1) {
                         var imagechk = document.getElementById("nzbsu_statusicon");
                         var name = 'nzb.su';
                         var host = 'https://api.nzb.su';
-                        var ssl = document.getElementById("nzbsu_verify").value;
+                        var ssl = document.getElementById("nzbsu_verify").checked;
                         var apikey = document.getElementById("nzbsu_apikey").value;
                     } else {
                         var imagechk = document.getElementById("newznabstatus"+newznab);
                         var name = document.getElementById("newznab_name"+newznab).value;
                         var host = document.getElementById("newznab_host"+newznab).value;;
-                        var ssl = document.getElementById("newznab_verify"+newznab).value;
+                        var ssl = document.getElementById("newznab_verify"+newznab).checked;
                         var apikey = document.getElementById("newznab_api"+newznab).value;
                     }
                     $.get("testnewznab",
