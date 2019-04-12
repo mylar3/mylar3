@@ -1319,53 +1319,6 @@
                                                  </div>
                                         </fieldset>
                      <fieldset>
-                        <h3><img src="interfaces/default/images/nma_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>NotifyMyAndroid</h3>
-                        <div class="checkbox row">
-                             <input type="checkbox" name="nma_enabled" id="nma" value="1" ${config['nma_enabled']} /><label>Enable NotifyMyAndroid</label>
-                        </div>
-                        <div id="nmaoptions">
-                            <div class="row">
-                                    <div class="row checkbox">
-                                        <input type="checkbox" name="nma_onsnatch" value="1" ${config['nma_onsnatch']} /><label>Notify on snatch?</label>
-                                    </div>
-                                    <label>NotifyMyAndroid API Key</label>
-                                    <input type="text" name="nma_apikey" id="nma_apikey" value="${config['nma_apikey']}" size="30">
-                                    <small>Separate multiple api keys with commas</small>
-                            </div>
-                            <div class="row">
-                                <label>Priority</label>
-                                <select name="nma_priority">
-                                        %for x in [-2,-1,0,1,2]:
-                                                <%
-                                                        if config['nma_priority'] == x:	
-                                                                nma_priority_selected = 'selected'
-                                                        else:
-                                                                nma_priority_selected = ''
-
-                                                        if x == -2:
-                                                                nma_priority_value = 'Very Low'
-                                                        elif x == -1:
-                                                                nma_priority_value = 'Moderate'
-                                                        elif x == 0:
-                                                                nma_priority_value = 'Normal'
-                                                        elif x == 1:
-                                                                nma_priority_value = 'High'
-                                                        else:
-                                                                nma_priority_value = 'Emergency'
-                                                %>
-                                            <option value=${x} ${nma_priority_selected}>${nma_priority_value}</option>
-                                        %endfor
-                                </select>
-                            </div>
-                            <div align="center" class="row">
-                                 <img name="nma_statusicon" id="nma_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
-                                 <input type="button" value="Test NMA" id="nma_test" style="float:center" /></br>
-                                 <input type="text" name="nmastatus" style="text-align:center; font-size:11px;" id="nmastatus" size="55" DISABLED />
-                            </div>
-                        </div>
-                     </fieldset>
-                                        
-                     <fieldset>
                         <h3><img src="interfaces/default/images/pushover_logo.png" style="vertical-align: middle; margin: 3px; margin-top: -1px;" height="30" width="30"/>Pushover</h3>
                         <div class="row checkbox">
                              <input type="checkbox" name="pushover_enabled" id="pushover" value="1" ${config['pushover_enabled']} /><label>Enable Pushover Notifications</label>
