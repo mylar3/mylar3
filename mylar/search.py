@@ -2729,10 +2729,6 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         logger.info(u"Sending Prowl notification")
         prowl = notifiers.PROWL()
         prowl.notify(snatched_name, 'Download started using %s' % sent_to)
-    if mylar.CONFIG.NMA_ENABLED and mylar.CONFIG.NMA_ONSNATCH:
-        logger.info(u"Sending NMA notification")
-        nma = notifiers.NMA()
-        nma.notify(snline=snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
     if mylar.CONFIG.PUSHOVER_ENABLED and mylar.CONFIG.PUSHOVER_ONSNATCH:
         logger.info(u"Sending Pushover notification")
         pushover = notifiers.PUSHOVER()
