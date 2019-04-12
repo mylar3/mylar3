@@ -5068,10 +5068,6 @@ class WebInterface(object):
                     "prowl_onsnatch": helpers.checked(mylar.CONFIG.PROWL_ONSNATCH),
                     "prowl_keys": mylar.CONFIG.PROWL_KEYS,
                     "prowl_priority": mylar.CONFIG.PROWL_PRIORITY,
-                    "nma_enabled": helpers.checked(mylar.CONFIG.NMA_ENABLED),
-                    "nma_apikey": mylar.CONFIG.NMA_APIKEY,
-                    "nma_priority": int(mylar.CONFIG.NMA_PRIORITY),
-                    "nma_onsnatch": helpers.checked(mylar.CONFIG.NMA_ONSNATCH),
                     "pushover_enabled": helpers.checked(mylar.CONFIG.PUSHOVER_ENABLED),
                     "pushover_onsnatch": helpers.checked(mylar.CONFIG.PUSHOVER_ONSNATCH),
                     "pushover_apikey": mylar.CONFIG.PUSHOVER_APIKEY,
@@ -5864,16 +5860,6 @@ class WebInterface(object):
     def search_32p(self, search=None):
         return mylar.rsscheck.torrents(pickfeed='4', seriesname=search)
     search_32p.exposed = True
-
-    def testNMA(self, apikey):
-        nma = notifiers.NMA(test_apikey=apikey)
-        result = nma.test_notify()
-        if result['status'] == True:
-            return result['message']
-        else:
-            logger.warn('APIKEY used for test was : %s' % apikey)
-            return result['message']
-    testNMA.exposed = True
 
     def testprowl(self):
         prowl = notifiers.prowl()
