@@ -155,11 +155,6 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PROWL_KEYS': (str, 'Prowl', None),
     'PROWL_ONSNATCH': (bool, 'Prowl', False),
 
-    'NMA_ENABLED': (bool, 'NMA', False),
-    'NMA_APIKEY': (str, 'NMA', None),
-    'NMA_PRIORITY': (int, 'NMA', 0),
-    'NMA_ONSNATCH': (bool, 'NMA', False),
-
     'PUSHOVER_ENABLED': (bool, 'PUSHOVER', False),
     'PUSHOVER_PRIORITY': (int, 'PUSHOVER', 0),
     'PUSHOVER_APIKEY': (str, 'PUSHOVER', None),
