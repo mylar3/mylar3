@@ -24,6 +24,16 @@
 	<div class="title">
 		<h1 class="clearfix"><img src="interfaces/default/images/icon_logs.png" alt="Logs"/>Logs</h1>
 	</div>
+        <div align="center">Refresh rate:
+        <select id="refreshrate" onchange="setRefresh()">
+        <option value="0" selected="selected">No Refresh</option>
+        <option value="5">5 Seconds</option>
+        <option value="15">15 Seconds</option>
+        <option value="30">30 Seconds</option>
+        <option value="60">60 Seconds</option>
+        <option value="300">5 Minutes</option>
+        <option value="600">10 Minutes</option>
+        </select></div>
 	<table class="display_log" id="log_table">
 		<thead>
 			<tr>
@@ -36,16 +46,7 @@
                 </tbody>
         </table>
         <br>
-        <div align="center">Refresh rate:
-        <select id="refreshrate" onchange="setRefresh()">
-        <option value="0" selected="selected">No Refresh</option>
-        <option value="5">5 Seconds</option>
-        <option value="15">15 Seconds</option>
-        <option value="30">30 Seconds</option>
-        <option value="60">60 Seconds</option>
-        <option value="300">5 Minutes</option>
-        <option value="600">10 Minutes</option>
-        </select></div>
+
 </%def>
 
 <%def name="headIncludes()">
