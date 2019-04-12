@@ -2772,10 +2772,6 @@ class PostProcessor(object):
             prowl = notifiers.PROWL()
             prowl.notify(pushmessage, "Download and Postprocessing completed", module=module)
 
-        if mylar.CONFIG.NMA_ENABLED:
-            nma = notifiers.NMA()
-            nma.notify(prline=prline, prline2=prline2, module=module)
-
         if mylar.CONFIG.PUSHOVER_ENABLED:
             pushover = notifiers.PUSHOVER()
             pushover.notify(prline, prline2, module=module)
