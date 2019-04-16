@@ -192,6 +192,8 @@ def checkGithub(current_version=None):
 
         if mylar.COMMITS_BEHIND >= 1:
             logger.info('New version is available. You are %s commits behind' % mylar.COMMITS_BEHIND)
+            if mylar.CONFIG.AUTO_UPDATE is True:
+                mylar.SIGNAL = 'update'
         elif mylar.COMMITS_BEHIND == 0:
             logger.info('Mylar is up to date')
         elif mylar.COMMITS_BEHIND == -1:
