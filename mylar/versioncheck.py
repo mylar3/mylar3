@@ -319,4 +319,4 @@ def versionload():
     if mylar.CONFIG.AUTO_UPDATE:
         if mylar.CURRENT_VERSION != mylar.LATEST_VERSION and mylar.INSTALL_TYPE != 'win' and mylar.COMMITS_BEHIND > 0:
              logger.info('Auto-updating has been enabled. Attempting to auto-update.')
-             #SIGNAL = 'update'
+             mylar.SIGNAL = 'update'
