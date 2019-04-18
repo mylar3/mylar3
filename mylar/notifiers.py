@@ -538,10 +538,13 @@ class SLACK:
             module = ''
         module += '[NOTIFIER]'
 
-        if all([sent_to is not None, prov is not None]):
-            attachment_text += ' %s from %s and %s' % (snatched_nzb, prov, sent_to)
-        elif sent_to is None:
-            attachment_text += ' %s from %s' % (snatched_nzb, prov)
+        if 'snatched' in attachment_text.lower():
+            snatched_text = '%s: %s' % (attachment_text, snatched_nzb)
+            if all([sent_to is not None, prov is not None]):
+                snatched_text += ' from %s and %s' % (prov, sent_to)
+            elif sent_to is None:
+                snatched_text += ' from %s' % prov
+            attachment_text = snatched_text
         else:
             pass
 
