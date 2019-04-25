@@ -23,6 +23,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 ## Requirements
 - At least Python version 2.7.9 (3.x is not supported)
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
+- UnRaR / RAR is required if metatagging is enabled within the program.
 
 ## Usage
 To start the program, type `python Mylar.py` inside the root of the Mylar directory. Typing `python Mylar.py --help` will give a list of available options.
