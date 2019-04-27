@@ -1102,7 +1102,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             scraper = cfscrape.create_scraper()
             if site == 'WWT':
                 if mylar.WWT_CF_COOKIEVALUE is None:
-                    cf_cookievalue, cf_user_agent = scraper.get_tokens(newurl, user_agent=mylar.CV_HEADERS['User-Agent'])
+                    cf_cookievalue, cf_user_agent = scraper.get_tokens(url, user_agent=mylar.CV_HEADERS['User-Agent'])
                     mylar.WWT_CF_COOKIEVALUE = cf_cookievalue
                 r = scraper.get(url, params=payload, cookies=mylar.WWT_CF_COOKIEVALUE, verify=verify, stream=True, headers=headers)
             else:

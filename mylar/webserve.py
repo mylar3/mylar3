@@ -5959,12 +5959,28 @@ class WebInterface(object):
             return 'Error establishing connection to Qbittorrent'
         else:
             if qclient['status'] is False:
-                logger.warn('[qBittorrent] Could not establish connection to %s. Error returned:' % (host, qclient['error']))
+                logger.warn('[qBittorrent] Could not establish connection to %s. Error returned: %s' % (host, qclient['error']))
                 return 'Error establishing connection to Qbittorrent'
             else:
-                logger.info('[qBittorrent] Successfully validated connection to %s [%s]' % (host, qclient['version']))
+                logger.info('[qBittorrent] Successfully validated connection to %s [v%s]' % (host, qclient['version']))
                 return 'Successfully validated qBittorrent connection'
     testqbit.exposed = True
+
+    def testdeluge(self, host, username, password):
+        import torrent.clients.deluge as DelugeClient
+        client = DelugeClient.TorrentClient()
+        dclient = client.connect(host, username, password, True)
+        if not dclient:
+            logger.warn('[Deluge] Could not establish connection to %s' % host)
+            return 'Error establishing connection to Deluge'
+        else:
+            if dclient['status'] is False:
+                logger.warn('[Deluge] Could not establish connection to %s. Error returned: %s' % (host, dclient['error']))
+                return 'Error establishing connection to Deluge'
+            else:
+                logger.info('[Deluge] Successfully validated connection to %s [daemon v%s; libtorrent v%s]' % (host, dclient['daemon_version'], dclient['libtorrent_version']))
+                return 'Successfully validated Deluge connection'
+    testdeluge.exposed = True
 
     def testnewznab(self, name, host, ssl, apikey):
         logger.fdebug('ssl/verify: %s' % ssl)

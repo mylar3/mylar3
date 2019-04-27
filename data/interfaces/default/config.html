@@ -502,8 +502,8 @@
 
                    </td>
                    <td>
-                      <legend>Torrents</legend>
 			<fieldset>
+				<legend>Torrents</legend>
 				<div class="row checkbox">
 					<input id="enable_torrents" type="checkbox" onclick="initConfigCheckbox($(this));" name="enable_torrents" value=1 ${config['enable_torrents']} /><label>Use Torrents</label>
 				</div>
@@ -654,27 +654,30 @@
                         <small>Folder path where torrent download will be assigned</small>
                 </div>
 			</fieldset>
-            			<fieldset id="deluge_options">
+			<fieldset id="deluge_options">
 				<div class="row">
 					<label>Deluge Host:Port </label>
-					<input type="text" name="deluge_host" value="${config['deluge_host']}" size="30">
-                                        <small>(ie. 192.168.1.2:58846) port uses the deluge daemon port (remote connection to daemon has to be enabled)</small>
+					<input type="text" id="deluge_host" name="deluge_host" value="${config['deluge_host']}" size="30">
+					<small>(ie. 192.168.1.2:58846) port uses the deluge daemon port (remote connection to daemon has to be enabled)</small>
 				</div>
 				<div class="row">
 					<label>Deluge Username</label>
-					<input type="text" name="deluge_username" value="${config['deluge_username']}" size="30">
+					<input type="text" id="deluge_username" name="deluge_username" value="${config['deluge_username']}" size="30">
 				</div>
 				<div class="row">
 					<label>Deluge Password</label>
-					<input type="password" name="deluge_password" value="${config['deluge_password']}" size="30">
+					<input type="password" id="deluge_password" name="deluge_password" value="${config['deluge_password']}" size="30">
 				</div>
 				<div class="row">
 					<label>Deluge Label</label>
 					<input type="text" name="deluge_label" value="${config['deluge_label']}" size="30"><br/>
 					<small>Label to be used on the torrents</small>
 				</div>
+				<div class="row">
+					<img name="deluge_status_icon" id="deluge_status_icon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
+					<input type="button" value="Test Connection" id="deluge_test" /><br/>
+				</div>
 			</fieldset>
-                        </fieldset>
                                 <fieldset id="qbittorrent_options">
                                 <div class="row">
                                         <label>qBittorrent Host:Port </label>
@@ -716,8 +719,9 @@
                                     <img name="qbittorrent_statusicon" id="qbittorrent_statusicon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
                                     <input type="button" value="Test Connection" id="qbittorrent_test" />
                               </div>
-                        </fieldset>
-                     </div>
+                            </fieldset>
+                        </div>
+                    </fieldset>
                 </td>
             </tr>
 	    </table>
@@ -2212,6 +2216,32 @@
                                 return;
                             }
                             //$('#rtorrentstatus').val(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
+                            if ( data.indexOf("Successfully") > -1){
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/success.png";
+                                imagechk.style.visibility = "visible";
+                            } else {
+                                imagechk.src = "";
+                                imagechk.src = "interfaces/default/images/fail.png";
+                                imagechk.style.visibility = "visible";
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
+
+                $('#deluge_test').click(function () {
+                    var imagechk = document.getElementById("deluge_status_icon");
+                    var host = document.getElementById("deluge_host").value;
+                    var username = document.getElementById("deluge_username").value;
+                    var password = document.getElementById("deluge_password").value;
+                    $.get("testdeluge",
+                        { host: host, username: username, password: password },
+                        function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+data+"</div>");
                             if ( data.indexOf("Successfully") > -1){
                                 imagechk.src = "";

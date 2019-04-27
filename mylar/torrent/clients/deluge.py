@@ -8,33 +8,43 @@ from deluge_client import DelugeRPCClient
 class TorrentClient(object):
     def __init__(self):
         self.conn = None
-		
-    def connect(self, host, username, password):
+
+    def connect(self, host, username, password, test=False):
         if self.conn is not None:
             return self.connect
-	
+
         if not host:
-            return False
+            return {'status': False, 'error': 'No host specified'}
+
+        if not username:
+            return {'status': False, 'error': 'No username specified'}
+
+        if not password:
+            return {'status': False, 'error': 'No password specified'}
 
         # Get port from the config
         host,portnr = host.split(':')
 
-
-        #if username and password:
         # logger.info('Connecting to ' + host + ':' + portnr + ' Username: ' + username + ' Password: ' + password )
         try:
             self.client = DelugeRPCClient(host,int(portnr),username,password)
         except Exception as e:
-            logger.error('Could not create DelugeRPCClient Object' + e)
-            return False
+            logger.error('Could not create DelugeRPCClient Object %s' % e)
+            return {'status': False, 'error': e}
         else:
             try:
                 self.client.connect()
             except Exception as e:
-                logger.error('Could not connect to Deluge ' + host)
+                logger.error('Could not connect to Deluge: %s' % host)
+                return {'status': False, 'error': e}
             else:
-                return self.client
-	
+                if test is True:
+                    daemon_version = self.client.call('daemon.info')
+                    libtorrent_version = self.client.call('core.get_libtorrent_version')
+                    return {'status': True, 'daemon_version': daemon_version, 'libtorrent_version': libtorrent_version}
+                else:
+                    return self.client
+
     def find_torrent(self, hash):
         logger.debug('Finding Torrent hash: ' + hash)
         torrent_info = self.get_torrent(hash)
@@ -85,16 +95,16 @@ class TorrentClient(object):
             else:
                 logger.info('Torrent ' + hash + ' was stopped')
                 return True
-        
+
 
     def load_torrent(self, filepath):
-        
+
         logger.info('filepath to torrent file set to : ' + filepath)
         torrent_id = False
-                
+
         if self.client.connected is True:
             logger.info('Checking if Torrent Exists!')
-            
+
             if not filepath.startswith('magnet'):
                 torrentcontent = open(filepath, 'rb').read()
                 hash = str.lower(self.get_the_hash(filepath)) # Deluge expects a lower case hash
