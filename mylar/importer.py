@@ -1610,9 +1610,9 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
             if mylar.CONFIG.ENFORCE_PERMS:
                 filechecker.setperms(comiclocal)
         except IOError as e:
-            logger.error('[%e] Error saving cover into series directory (%s) at this time' % (e, comiclocal))
+            logger.error('[%s] Error saving cover into series directory (%s) at this time' % (e, comiclocal))
         except Exception as e:
-            logger.error('[%e] Unable to save cover into series directory (%s) at this time' % (e, comiclocal))
+            logger.error('[%s] Unable to save cover into series directory (%s) at this time' % (e, comiclocal))
 
     myDB = db.DBConnection()
     myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})
