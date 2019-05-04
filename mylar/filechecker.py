@@ -790,14 +790,15 @@ class FileChecker(object):
                     yearposition = possible_years[0]['yearposition']
                     yearmodposition = possible_years[0]['yearmodposition']
                 else:
-                    for x in possible_years:
-                        logger.info('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
-                        if yearposition < x['yearposition']:
-                            if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
-                                issue2year = True
-                                highest_series_pos = x['yearposition']
-                            yearposition = x['yearposition']
-                            yearmodposition = x['yearmodposition']
+                    if len(possible_issuenumbers) > 0:
+                        for x in possible_years:
+                            logger.info('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
+                            if yearposition < x['yearposition']:
+                                if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
+                                    issue2year = True
+                                    highest_series_pos = x['yearposition']
+                                yearposition = x['yearposition']
+                                yearmodposition = x['yearmodposition']
 
                 if highest_series_pos > yearposition: highest_series_pos = yearposition #dc['position']: highest_series_pos = dc['position']
             else:
