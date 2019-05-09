@@ -1173,7 +1173,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
 
                     #this will detect duplicate filenames within the same directory.
                     for di in issuedupechk:
-                        if di['fcdigit'] == fcdigit:
+                        if di['fcdigit'] == fcdigit and di['issueid'] == reiss['IssueID']:
                             #base off of config - base duplication keep on filesize or file-type (or both)
                             logger.fdebug('[DUPECHECK] Duplicate issue detected [' + di['filename'] + '] [' + tmpfc['ComicFilename'] + ']')
                             # mylar.CONFIG.DUPECONSTRAINT = 'filesize' / 'filetype-cbr' / 'filetype-cbz'
