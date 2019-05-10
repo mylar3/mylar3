@@ -238,9 +238,10 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
             comicIssues = str(int(comic['ComicIssues']) + 1)
 
     if mylar.CONFIG.ALTERNATE_LATEST_SERIES_COVERS is False:
+        cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
         PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
         ComicImage = helpers.replacetheslash(PRComicImage)
-        if os.path.isfile(PRComicImage) is True:
+        if os.path.isfile(cimage) is True:
             logger.fdebug('Cover already exists for series. Not redownloading.')
         else:
             covercheck = helpers.getImage(comicid, comic['ComicImage'])
@@ -252,11 +253,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
         if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg')) is False]):
             try:
                 comiclocal = os.path.join(comlocation, 'cover.jpg')
-                shutil.copyfile(PRComicImage, comiclocal)
+                shutil.copyfile(cimage, comiclocal)
                 if mylar.CONFIG.ENFORCE_PERMS:
                     filechecker.setperms(comiclocal)
             except IOError as e:
-                logger.error('Unable to save cover (' + str(comiclocal) + ') into series directory (' + str(comlocation) + ') at this time.')
+                logger.error('Unable to save cover (%s) into series directory (%s) at this time.' % (cimage, comiclocal))
     else:
         ComicImage = None
 
@@ -1589,14 +1590,15 @@ def annual_check(ComicName, SeriesYear, comicid, issuetype, issuechk, annualslis
 def image_it(comicid, latestissueid, comlocation, ComicImage):
     #alternate series covers download latest image...
 
-    imageurl = mylar.cv.getComic(comicid, 'image', issueid=latestissueid) 
+    cimage = os.path.join(mylar.CONFIG.CACHE_DIR, str(comicid) + '.jpg')
+    imageurl = mylar.cv.getComic(comicid, 'image', issueid=latestissueid)
     covercheck = helpers.getImage(comicid, imageurl['image'])
     if covercheck == 'retry':
         logger.fdebug('Attempting to retrieve a different comic image for this particular issue.')
         if imageurl['image_alt'] is not None:
             covercheck = helpers.getImage(comicid, imageurl['image_alt'])
         else:
-            if not os.path.isfile(os.path.join(mylar.CACHE_DIR, str(comicid) + '.jpg')):
+            if not os.path.isfile(cimage):
                 logger.fdebug('Failed to retrieve issue image, possibly because not available. Reverting back to series image.')
                 covercheck = helpers.getImage(comicid, ComicImage)
     PRComicImage = os.path.join('cache', str(comicid) + ".jpg")
@@ -1606,13 +1608,13 @@ def image_it(comicid, latestissueid, comlocation, ComicImage):
     if all([mylar.CONFIG.COMIC_COVER_LOCAL is True, os.path.isdir(comlocation) is True, os.path.isfile(os.path.join(comlocation, 'cover.jpg'))]):
         try:
             comiclocal = os.path.join(comlocation, 'cover.jpg')
-            shutil.copyfile(PRComicImage, comiclocal)
+            shutil.copyfile(cimage, comiclocal)
             if mylar.CONFIG.ENFORCE_PERMS:
                 filechecker.setperms(comiclocal)
         except IOError as e:
-            logger.error('[%s] Error saving cover into series directory (%s) at this time' % (e, comiclocal))
+            logger.error('[%s] Error saving cover (%s) into series directory (%s) at this time' % (e, cimage, comiclocal))
         except Exception as e:
-            logger.error('[%s] Unable to save cover into series directory (%s) at this time' % (e, comiclocal))
+            logger.error('[%s] Unable to save cover (%s) into series directory (%s) at this time' % (e, cimage, comiclocal))
 
     myDB = db.DBConnection()
     myDB.upsert('comics', {'ComicImage': ComicImage}, {'ComicID': comicid})
