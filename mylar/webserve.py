@@ -4465,7 +4465,8 @@ class WebInterface(object):
                 movedata = []
 
                 for result in results:
-                    if result is None:
+                    if result is None or result == 'None':
+                       logger.info('[IMPORT] Ultron gave me bad information, this issue wont import correctly: %s' & DynamicName)
                        break
 
                     if result['WatchMatch']:
