@@ -98,10 +98,10 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
         if mylar.CONFIG.PREFERRED_QUALITY == 1: joinSearch = joinSearch + " .cbr"
         elif mylar.CONFIG.PREFERRED_QUALITY == 2: joinSearch = joinSearch + " .cbz"
 
-        feeds.append(feedparser.parse("http://beta.nzbindex.com/search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=85" % (joinSearch, max_age, size_constraints)))
+        feeds.append(feedparser.parse(mylar.EXPURL + "search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=85" % (joinSearch, max_age, size_constraints)))
         time.sleep(5)
         if mylar.CONFIG.ALTEXPERIMENTAL:
-            feeds.append(feedparser.parse("http://beta.nzbindex.com/search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=86" % (joinSearch, max_age, size_constraints)))
+            feeds.append(feedparser.parse(mylar.EXPURL + "search/rss?q=%s&max=50&minage=0%s&hidespam=1&hidepassword=1&sort=agedesc%s&complete=0&hidecross=0&hasNFO=0&poster=&g[]=86" % (joinSearch, max_age, size_constraints)))
             time.sleep(5)
         i+=1
 
