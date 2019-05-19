@@ -54,7 +54,7 @@ class info32p(object):
         self.method = None
 
         if any([mylar.CONFIG.MODE_32P is True, self.test is True]):
-            lses = self.LoginSession(mylar.CONFIG.USERNAME_32P, mylar.CONFIG.PASSWORD_32P)
+            lses = self.LoginSession(self.username_32p, self.password_32p)
             if not lses.login():
                 if not self.test:
                     logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
