@@ -361,7 +361,7 @@ class PostProcessor(object):
                 if mylar.USE_SABNZBD==1:
                     if self.nzb_name != 'Manual Run':
                         logger.fdebug('%s Using SABnzbd' % module)
-                        logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
+                        logger.fdebug('%s NZB name as passed from SABnzbd: %s' % (module, self.nzb_name))
 
                     if self.nzb_name == 'Manual Run':
                         logger.fdebug('%s Manual Run Post-Processing enabled.' % module)
@@ -403,7 +403,9 @@ class PostProcessor(object):
                     filelist = flc.listFiles()
                     if filelist['comiccount'] == 0: # is None:
                         logger.warn('There were no files located - check the debugging logs if you think this is in error.')
-                        return
+                        self.valreturn.append({"self.log": self.log,
+                                               "mode": 'stop'})
+                        return self.queue.put(self.valreturn)
                     logger.info('I have located %s files that I should be able to post-process. Continuing...' % filelist['comiccount'])
                 else:
                     if all([self.comicid is None, '_' not in self.issueid]):
@@ -769,6 +771,7 @@ class PostProcessor(object):
                                 if datematch == "True":
                                     #need to reset this to False here so that the True doesn't carry down and avoid the year checks due to the True
                                     datematch = "False"
+                                    lonevol = False
                                     # if we get to here, we need to do some more comparisons just to make sure we have the right volume
                                     # first we chk volume label if it exists, then we drop down to issue year
                                     # if the above both don't exist, and there's more than one series on the watchlist (or the series is > v1)
@@ -790,6 +793,7 @@ class PostProcessor(object):
                                         elif len(watchvals) > 1 and int(tmp_watchmatch_vol) >= 1:
                                             if int(tmp_watchmatch_vol) == int(tmp_watchlist_vol):
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume MATCH] Volume label of series Year of %s matched to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
+                                                lonevol = True
                                             else:
                                                 logger.fdebug('%s[ISSUE-VERIFY][SeriesYear-Volume FAILURE] Volume label of Series Year of %s DID NOT match to volume label of %s' % (module, watch_values['ComicVersion'], watchmatch['series_volume']))
                                                 datematch = "False"
@@ -799,6 +803,7 @@ class PostProcessor(object):
                                             datematch = "False"
                                         elif len(watchvals) == 1 and int(tmp_watchlist_vol) == 1:
                                             logger.fdebug('%s[ISSUE-VERIFY][Lone Volume MATCH] Volume label of %s indicates only volume for this series on your watchlist.' % (module, watch_values['ComicVersion']))
+                                            lonevol = True
                                         elif int(tmp_watchlist_vol) > 1:
                                             logger.fdebug('%s[ISSUE-VERIFY][Lone Volume FAILURE] Volume label of %s indicates that there is more than one volume for this series, but the one on your watchlist has no volume label set.' % (module, watch_values['ComicVersion']))
                                             datematch = "False"
@@ -817,6 +822,9 @@ class PostProcessor(object):
                                                 else:
                                                     logger.fdebug('%s[ISSUE-VERIFY][Issue Year MATCH] Modified Issue Year of %s is a match to the year found in the filename of : %s' % (module, issyr, watchmatch['issue_year']))
                                                     datematch = 'True'
+                                    elif datematch == 'False' and watchmatch['issue_year'] is None and lonevol is True:
+                                        logger.fdebug('%s[LONE-VOLUME/NO YEAR][MATCH] Only Volume on watchlist matches, no year present in filename. Assuming match based on volume and title.' % module)
+                                        datematch = 'True'
 
                                     if datematch == 'True':
                                         if watchmatch['sub']:
@@ -1606,12 +1614,16 @@ class PostProcessor(object):
                         logger.info('%s No matches for Manual Run ... exiting.' % module)
                     if mylar.APILOCK is True:
                         mylar.APILOCK = False
-                    return
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
                 elif len(manual_arclist) > 0 and len(manual_list) == 0:
                     logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
                     if mylar.APILOCK is True:
                         mylar.APILOCK = False
-                    return
+                    self.valreturn.append({"self.log": self.log,
+                                           "mode": 'stop'})
+                    return self.queue.put(self.valreturn)
                 elif len(manual_arclist) > 0:
                     logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
 
@@ -1668,7 +1680,9 @@ class PostProcessor(object):
                         logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
                 if mylar.APILOCK is True:
                     mylar.APILOCK = False
-                return
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop'})
+                return self.queue.put(self.valreturn)
             else:
                 pass
 
@@ -1891,7 +1905,9 @@ class PostProcessor(object):
                     except Exception as e:
                         logger.error('%s Failed to %s %s: %s' % (module, mylar.CONFIG.FILE_OPTS, grab_src, e))
                         self._log("Failed to %s %s: %s" % (mylar.CONFIG.FILE_OPTS, grab_src, e))
-                        return
+                        self.valreturn.append({"self.log": self.log,
+                                               "mode": 'stop'})
+                        return self.queue.put(self.valreturn)
 
                     #tidyup old path
                     if any([mylar.CONFIG.FILE_OPTS == 'move', mylar.CONFIG.FILE_OPTS == 'copy']):
@@ -1969,10 +1985,14 @@ class PostProcessor(object):
             #loop through the hits here.
             if len(manual_list) == 0 and len(manual_arclist) == 0:
                 logger.info('%s No matches for Manual Run ... exiting.' % module)
-                return
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop'})
+                return self.queue.put(self.valreturn)
             elif len(manual_arclist) > 0 and len(manual_list) == 0:
                 logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
-                return
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop'})
+                return self.queue.put(self.valreturn)
             elif len(manual_arclist) > 0:
                 logger.info('%s Manual post-processing completed for %s story-arc issues.' % (module, len(manual_arclist)))
             i = 0
@@ -2018,7 +2038,9 @@ class PostProcessor(object):
                 logger.info('%s Manual post-processing completed for %s issues.' % (module, i))
             else:
                 logger.info('%s Manual post-processing completed for %s issues [FAILED: %s]' % (module, i, self.failed_files))
-            return
+            self.valreturn.append({"self.log": self.log,
+                                   "mode": 'stop'})
+            return self.queue.put(self.valreturn)
 
         else:
             comicid = issuenzb['ComicID']
