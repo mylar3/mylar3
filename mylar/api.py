@@ -17,7 +17,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import mylar
-from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers
+from mylar import db, mb, importer, search, process, versioncheck, logger, webserve, helpers, encrypted
 import simplejson as simplejson
 import json
 import cherrypy
@@ -31,7 +31,7 @@ from cherrypy.lib.static import serve_file, serve_download
 import datetime
 
 cmd_list = ['getIndex', 'getComic', 'getUpcoming', 'getWanted', 'getHistory',
-            'getLogs', 'clearLogs','findComic', 'addComic', 'delComic',
+            'getLogs', 'getAPI', 'clearLogs','findComic', 'addComic', 'delComic',
             'pauseComic', 'resumeComic', 'refreshComic', 'addIssue',
             'queueIssue', 'unqueueIssue', 'forceSearch', 'forceProcess',
             'getVersion', 'checkGithub','shutdown', 'restart', 'update',
@@ -56,44 +56,46 @@ class Api(object):
 
     def checkParams(self, *args, **kwargs):
 
-        if 'apikey' not in kwargs:
-            self.data = self._error_with_message('Missing api key')
-            return
-
         if 'cmd' not in kwargs:
             self.data = self._error_with_message('Missing parameter: cmd')
             return
 
-        if not mylar.CONFIG.API_ENABLED:
-            if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
-               self.data = self._error_with_message('API not enabled')
-               return
-
-        if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
-            self.data = self._error_with_message('Incorrect API key')
+        if 'apikey' not in kwargs and ('apikey' not in kwargs and kwargs['cmd'] != 'getAPI'):
+            self.data = self._error_with_message('Missing api key')
             return
+        elif kwargs['cmd'] == 'getAPI':
+            self.apitype = 'normal'
         else:
-            if kwargs['apikey'] == mylar.CONFIG.API_KEY:
-                self.apitype = 'normal'
-            elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
-                self.apitype = 'download'
-            logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
-            self.apikey = kwargs.pop('apikey')
+            if not mylar.CONFIG.API_ENABLED:
+                if kwargs['apikey'] != mylar.DOWNLOAD_APIKEY:
+                    self.data = self._error_with_message('API not enabled')
+                    return
 
-        if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
-            self.data = self._error_with_message('API key not generated')
-            return
+            if kwargs['apikey'] != mylar.CONFIG.API_KEY and all([kwargs['apikey'] != mylar.DOWNLOAD_APIKEY, mylar.DOWNLOAD_APIKEY != None]):
+                self.data = self._error_with_message('Incorrect API key')
+                return
+            else:
+                if kwargs['apikey'] == mylar.CONFIG.API_KEY:
+                    self.apitype = 'normal'
+                elif kwargs['apikey'] == mylar.DOWNLOAD_APIKEY:
+                    self.apitype = 'download'
+                logger.fdebug('Matched to key. Api set to : ' + self.apitype + ' mode.')
+                self.apikey = kwargs.pop('apikey')
 
-        if self.apitype:
-            if self.apitype == 'normal' and len(mylar.CONFIG.API_KEY) != 32:
+            if not([mylar.CONFIG.API_KEY, mylar.DOWNLOAD_APIKEY]):
+                self.data = self._error_with_message('API key not generated')
+                return
+
+            if self.apitype:
+                if self.apitype == 'normal' and len(mylar.CONFIG.API_KEY) != 32:
+                    self.data = self._error_with_message('API key not generated correctly')
+                    return
+                if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
+                    self.data = self._error_with_message('Download API key not generated correctly')
+                    return
+            else:
                 self.data = self._error_with_message('API key not generated correctly')
                 return
-            if self.apitype == 'download' and len(mylar.DOWNLOAD_APIKEY) != 32:
-                self.data = self._error_with_message('Download API key not generated correctly')
-                return
-        else:
-            self.data = self._error_with_message('API key not generated correctly')
-            return
 
         if kwargs['cmd'] not in cmd_list:
             self.data = self._error_with_message('Unknown command: %s' % kwargs['cmd'])
@@ -148,6 +150,37 @@ class Api(object):
         error = {'error': {'message': message} }
         cherrypy.response.headers['Content-Type'] = "application/json"
         return simplejson.dumps(error)
+
+    def _getAPI(self, **kwargs):
+        if 'username' not in kwargs:
+           self.data = self._error_with_message('Missing parameter: username')
+           return
+        else:
+            username = kwargs['username']
+
+        if 'password' not in kwargs:
+           self.data = self._error_with_message('Missing parameter: password')
+           return
+        else:
+            password = kwargs['password']
+
+        if any([mylar.CONFIG.HTTP_USERNAME is None, mylar.CONFIG.HTTP_PASSWORD is None]):
+            self.data = self._error_with_message('Unable to use this command - username & password MUST be enabled.')
+            return
+
+        ht_user = mylar.CONFIG.HTTP_USERNAME
+        edc = encrypted.Encryptor(mylar.CONFIG.HTTP_PASSWORD)
+        ed_chk = edc.decrypt_it()
+        if mylar.CONFIG.ENCRYPT_PASSWORDS is True:
+            if username == ht_user and all([ed_chk['status'] is True, ed_chk['password'] == password]):
+                self.data = {'apikey': mylar.CONFIG.API_KEY}
+            else:
+                self.data = self._error_with_message('Incorrect username or password.')
+        else:
+            if username == ht_user and password == mylar.CONFIG.HTTP_PASSWORD:
+                self.data = {'apikey': mylar.CONFIG.API_KEY}
+            else:
+                self.data = self._error_with_message('Incorrect username or password.')
 
     def _getIndex(self, **kwargs):
         self.data = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
