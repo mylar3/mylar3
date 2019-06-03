@@ -3009,7 +3009,10 @@ def weekly_info(week=None, year=None, current=None):
 
     if weekdst is not None:
         if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
-            weekfold = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weeknumber) ))
+            weekn = weeknumber
+            if len(str(weekn)) == 1:
+                weekn = '%s%s' % ('0', str(weekn))
+            weekfold = os.path.join(weekdst, '%s-%s' % (weekinfo['year'], weekn))
         else:
             weekfold = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
     else:

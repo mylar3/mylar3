@@ -1325,16 +1325,7 @@ def weekly_singlecopy(comicid, issuenum, file, path, weekinfo):
 
     module = '[WEEKLY-PULL COPY]'
     if mylar.CONFIG.WEEKFOLDER:
-        if mylar.CONFIG.WEEKFOLDER_LOC:
-            weekdst = mylar.CONFIG.WEEKFOLDER_LOC
-        else:
-            weekdst = mylar.CONFIG.DESTINATION_DIR
-
-        if mylar.CONFIG.WEEKFOLDER_FORMAT == 0:
-            desdir = os.path.join(weekdst, str( str(weekinfo['year']) + '-' + str(weekinfo['weeknumber']) ))
-        else:
-            desdir = os.path.join(weekdst, str( str(weekinfo['midweek']) ))
-
+        desdir = weekinfo['week_folder']
         dircheck = mylar.filechecker.validateAndCreateDirectory(desdir, True, module=module)
         if dircheck:
             pass
