@@ -99,6 +99,18 @@ class TorrentClient(object):
 
     def load_torrent(self, filepath):
 
+        options = {}
+
+        if mylar.CONFIG.DELUGE_DOWNLOAD_DIRECTORY:
+            options['download_location'] = mylar.CONFIG.DELUGE_DOWNLOAD_DIRECTORY
+
+        if mylar.CONFIG.DELUGE_DONE_DIRECTORY:
+            options['move_completed'] = 1
+            options['move_completed_path'] = mylar.CONFIG.DELUGE_DONE_DIRECTORY
+
+        if mylar.CONFIG.DELUGE_PAUSE:
+            options['add_paused'] = int(mylar.CONFIG.DELUGE_PAUSE)
+
         logger.info('filepath to torrent file set to : ' + filepath)
         torrent_id = False
 
@@ -121,13 +133,13 @@ class TorrentClient(object):
                 else:
                     logger.info('Torrent not added yet, trying to add it now!')
                     try:
-                        torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), '')
+                        torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), options)
                     except Exception as e:
                         logger.debug('Torrent not added')
                         return False
             else:
                 try:
-                    torrent_id = self.client.call('core.add_torrent_magnet', str(filepath), {})
+                    torrent_id = self.client.call('core.add_torrent_magnet', str(filepath), options)
                 except Exception as e:
                     logger.debug('Torrent not added')
                     return False
@@ -158,10 +170,12 @@ class TorrentClient(object):
             return {'hash':             torrent_info['hash'],
                     'label':            mylar.CONFIG.DELUGE_LABEL,
                     'folder':           torrent_info['save_path'],
+                    'move path':        torrent_info['move_completed_path'],
                     'total_filesize':   torrent_info['total_size'],
                     'name':             torrent_info['name'],
                     'files':            torrent_info['files'],
                     'time_started':     torrent_info['active_time'],
+                    'pause':            torrent_info['paused'],
                     'completed':        torrent_info['is_finished']}
 
 

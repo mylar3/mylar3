@@ -4986,6 +4986,9 @@ class WebInterface(object):
                     "deluge_username": mylar.CONFIG.DELUGE_USERNAME,
                     "deluge_password": mylar.CONFIG.DELUGE_PASSWORD,
                     "deluge_label": mylar.CONFIG.DELUGE_LABEL,
+                    "deluge_pause": helpers.checked(mylar.CONFIG.DELUGE_PAUSE),
+                    "deluge_download_directory": mylar.CONFIG.DELUGE_DOWNLOAD_DIRECTORY,
+                    "deluge_done_directory": mylar.CONFIG.DELUGE_DONE_DIRECTORY,
                     "qbittorrent_host": mylar.CONFIG.QBITTORRENT_HOST,
                     "qbittorrent_username": mylar.CONFIG.QBITTORRENT_USERNAME,
                     "qbittorrent_password": mylar.CONFIG.QBITTORRENT_PASSWORD,
@@ -5372,7 +5375,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'enable_ddl']
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'enable_ddl', 'deluge_pause']
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:

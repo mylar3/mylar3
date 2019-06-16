@@ -674,6 +674,22 @@
 					<small>Label to be used on the torrents</small>
 				</div>
 				<div class="row">
+					<label>Deluge Download Path</label>
+					<input type="text" name="deluge_download_directory" value="${config['deluge_download_directory']}" size="30"><br/>
+					<small>Where the torrent will be downloaded to</small>
+				</div>
+				<div class="row">
+					<label>Deluge Move Path</label>
+					<input type="text" name="deluge_done_directory" value="${config['deluge_done_directory']}" size="30"><br/>
+					<small>Path that files will be moved to after download is complete</small>
+				</div>
+				<div class="config">
+					<div class="row checkbox left clearfix">
+						<input id="deluge_pause" type="checkbox" name="deluge_pause"  value="1" ${config['deluge_pause']} /><label>Deluge Paused</label>
+						<small>Add the torrent in a paused state</small>
+					</div>
+				</div>
+				<div class="row">
 					<img name="deluge_status_icon" id="deluge_status_icon" src="interfaces/default/images/successs.png" style="float:right;visibility:hidden;" height="20" width="20" />
 					<input type="button" value="Test Connection" id="deluge_test" /><br/>
 				</div>

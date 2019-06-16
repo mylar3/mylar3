@@ -352,6 +352,9 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'DELUGE_USERNAME': (str, 'Deluge', None),
     'DELUGE_PASSWORD': (str, 'Deluge', None),
     'DELUGE_LABEL': (str, 'Deluge', None),
+    'DELUGE_PAUSE': (bool, 'Deluge', False),
+    'DELUGE_DOWNLOAD_DIRECTORY': (str, 'Deluge', ""),
+    'DELUGE_DONE_DIRECTORY': (str, 'Deluge', ""),
 
     'QBITTORRENT_HOST': (str, 'qBittorrent', None),
     'QBITTORRENT_USERNAME': (str, 'qBittorrent', None),
