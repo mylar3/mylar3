@@ -183,7 +183,18 @@ class Api(object):
                 self.data = self._error_with_message('Incorrect username or password.')
 
     def _getIndex(self, **kwargs):
-        self.data = self._dic_from_query('SELECT * from comics order by ComicSortName COLLATE NOCASE')
+        self.data = self._dic_from_query(
+            "SELECT ComicID as id,\
+                ComicName as name,\
+                ComicImageURL as imageURL,\
+                Status as status,\
+                ComicPublisher as publisher,\
+                ComicYear as year,\
+                LatestIssue as latestIssue,\
+                Total as totalIssues,\
+                DetailURL as detailsURL\
+            FROM comics \
+            ORDER BY ComicSortName COLLATE NOCASE")
         return
 
     def _getReadList(self, **kwargs):
