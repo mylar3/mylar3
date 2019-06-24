@@ -134,6 +134,40 @@ class Api(object):
         else:
             return self.data
 
+    def _selectForComics(self):
+        return 'SELECT \
+            ComicID as id,\
+            ComicName as name,\
+            ComicImageURL as imageURL,\
+            Status as status,\
+            ComicPublisher as publisher,\
+            ComicYear as year,\
+            LatestIssue as latestIssue,\
+            Total as totalIssues,\
+            DetailURL as detailsURL\
+        FROM comics'
+        
+    def _selectForIssues(self):
+        return 'SELECT \
+            IssueID as id,\
+            IssueName as name,\
+            ImageURL as imageURL,\
+            Issue_Number as number,\
+            ReleaseDate as releaseDate,\
+            IssueDate as issueDate,\
+            Status as status\
+        FROM issues'
+    
+    def _selectForAnnuals(self):
+        return 'SELECT \
+            IssueID as id,\
+            IssueName as name,\
+            Issue_Number as number,\
+            ReleaseDate as releaseDate,\
+            IssueDate as issueDate,\
+            Status as status\
+        FROM annuals'
+        
     def _dic_from_query(self, query):
         myDB = db.DBConnection()
         rows = myDB.select(query)
@@ -183,18 +217,14 @@ class Api(object):
                 self.data = self._error_with_message('Incorrect username or password.')
 
     def _getIndex(self, **kwargs):
-        self.data = self._dic_from_query(
-            "SELECT ComicID as id,\
-                ComicName as name,\
-                ComicImageURL as imageURL,\
-                Status as status,\
-                ComicPublisher as publisher,\
-                ComicYear as year,\
-                LatestIssue as latestIssue,\
-                Total as totalIssues,\
-                DetailURL as detailsURL\
-            FROM comics \
-            ORDER BY ComicSortName COLLATE NOCASE")
+
+        query = '{select} FROM comics ORDER BY ComicSortName COLLATE NOCASE'.format(
+            select = self._selectForComics(),
+            id = self.id
+        )
+        
+        self.data = self._dic_from_query(query)
+
         return
 
     def _getReadList(self, **kwargs):
@@ -208,14 +238,33 @@ class Api(object):
         else:
             self.id = kwargs['id']
 
-        comic = self._dic_from_query('SELECT * from comics WHERE ComicID="' + self.id + '"')
-        issues = self._dic_from_query('SELECT * from issues WHERE ComicID="' + self.id + '"order by Int_IssueNumber DESC')
+        comicQuery = '{select} WHERE ComicID="{id}" ORDER BY ComicSortName COLLATE NOCASE'.format(
+            select = self._selectForComics(),
+            id = self.id
+        )
+        comic = self._dic_from_query(comicQuery)
+
+        issuesQuery = '{select} WHERE ComicID="{id}" ORDER BY Int_IssueNumber DESC'.format(
+            select = self._selectForIssues(),
+            id = self.id
+        )
+        issues = self._dic_from_query(issuesQuery)
+
         if mylar.CONFIG.ANNUALS_ON:
-            annuals = self._dic_from_query('SELECT * FROM annuals WHERE ComicID="' + self.id + '"')
+            annualsQuery = '{select} WHERE ComicID="{id}"'.format(
+                select = self._selectForAnnuals(),
+                id = self.id
+            )
+            annuals = self._dic_from_query(annualsQuery)
         else:
             annuals = []
 
-        self.data = {'comic': comic, 'issues': issues, 'annuals': annuals}
+        self.data = {
+            'comic': comic, 
+            'issues': issues, 
+            'annuals': annuals
+        }
+
         return
 
     def _getHistory(self, **kwargs):
