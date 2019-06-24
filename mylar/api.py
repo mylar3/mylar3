@@ -219,8 +219,7 @@ class Api(object):
     def _getIndex(self, **kwargs):
 
         query = '{select} ORDER BY ComicSortName COLLATE NOCASE'.format(
-            select = self._selectForComics(),
-            id = self.id
+            select = self._selectForComics()
         )
         
         self.data = self._dic_from_query(query)
