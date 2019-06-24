@@ -155,7 +155,8 @@ class Api(object):
             Issue_Number as number,\
             ReleaseDate as releaseDate,\
             IssueDate as issueDate,\
-            Status as status\
+            Status as status,\
+            ComicName as comicName\
         FROM issues'
     
     def _selectForAnnuals(self):
@@ -165,9 +166,19 @@ class Api(object):
             Issue_Number as number,\
             ReleaseDate as releaseDate,\
             IssueDate as issueDate,\
-            Status as status\
+            Status as status,\
+            ComicName as comicName\
         FROM annuals'
-        
+
+    def _selectForReadList(self):
+        return 'SELECT \
+            IssueID as id,\
+            Issue_Number as number,\
+            IssueDate as issueDate,\
+            Status as status,\
+            ComicName as comicName\
+        FROM readlist'
+
     def _dic_from_query(self, query):
         myDB = db.DBConnection()
         rows = myDB.select(query)
@@ -227,7 +238,13 @@ class Api(object):
         return
 
     def _getReadList(self, **kwargs):
-        self.data = self._dic_from_query('SELECT * from readlist order by IssueDate ASC')
+
+        readListQuery ='{select} ORDER BY IssueDate ASC'.format(
+            select = self._selectForReadList()
+        )
+
+        self.data = self._dic_from_query(readListQuery)
+        
         return
 
     def _getComic(self, **kwargs):
