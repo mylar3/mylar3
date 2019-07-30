@@ -51,7 +51,15 @@
 		<tbody>
 		%for comic in comics:
                         <%
-                                if comic['Status'] == 'Paused':
+
+			        if comic['percent'] == 101:
+                                        css = '<div class=\"progress-container warning\">'
+                                if comic['percent'] == 100:
+                                        css = '<div class=\"progress-container complete\">'
+                                if comic['percent'] < 100:
+                                        css = '<div class=\"progress-container missing\">'
+			        
+			        if comic['Status'] == 'Paused':
                                         grade = 'X'
                                 elif comic['Status'] == 'Loading':
                                         grade = 'L'
@@ -79,7 +87,7 @@
                                 <td class="hidden" id="stat_title">${comic['Status']}</td>
 				<td id="latest">${comic['LatestIssue']} (${comic['LatestDate']})</td>
                                 <td id="publisher">${comic['ComicPublisher']}</td>
-                                <td id="have" valign="center"><span title="${comic['percent']}"></span><div class="progress-container"><div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
+                                <td id="have" valign="center"><span title="${comic['percent']}"></span>${css}<div style="width:${comic['percent']}%"><div style="width:${comic['percent']}%"><div class="havetracks">${comic['haveissues']}/${comic['totalissues']}</div></div></div></td>
 				<td id="lastupdated">${comic['DateAdded']}</td>
 			</tr>
 		%endfor
