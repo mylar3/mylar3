@@ -800,7 +800,8 @@ class FileChecker(object):
                                 yearposition = x['yearposition']
                                 yearmodposition = x['yearmodposition']
 
-                if highest_series_pos > yearposition: highest_series_pos = yearposition #dc['position']: highest_series_pos = dc['position']
+                if yearposition is not None and highest_series_pos > yearposition:
+                    highest_series_pos = yearposition #dc['position']: highest_series_pos = dc['position']
             else:
                 issue_year = None
                 yearposition = None
