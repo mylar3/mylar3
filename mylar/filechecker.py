@@ -516,9 +516,9 @@ class FileChecker(object):
                 if all([lastissue_position == (split_file.index(sf) -1), lastissue_label is not None, '#' not in sf, sf != 'p']):
                     #find it in the original file to see if there's a decimal between.
                     findst = lastissue_mod_position+1
-                    if findst > len(modfilename):
+                    if findst >= len(modfilename):
                         findst = len(modfilename) -1
-
+                    
                     if modfilename[findst] != '.' or modfilename[findst] != '#': #findst != '.' and findst != '#':
                         if sf.isdigit():
                             seper_num = False
