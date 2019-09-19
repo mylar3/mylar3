@@ -2476,7 +2476,8 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
         tmp_annuals = pack[pack.find('Annual'):]
         tmp_ann = re.sub('[annual/annuals/+]', '', tmp_annuals.lower()).strip()
         tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip() 
-        pack_issues = range(int(tmp_pack[:tmp_pack.find('-')]),int(tmp_pack[tmp_pack.find('-')+1:])+1)
+        pack_issues_numbers = re.findall(r'\d+', tmp_pack)
+        pack_issues = range(int(pack_issues_numbers[0]),int(pack_issues_numbers[1])+1)
         annualize = True
 
     issues = {}
