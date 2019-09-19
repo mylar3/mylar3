@@ -3,14 +3,26 @@ import os.path
 import ConfigParser
 import urllib2
 import urllib
+import platform
+
 try:
     import requests
     use_requests = True
 except ImportError:
-    print "Requests module not found on system. I'll revert so this will work, but you probably should install "
-    print "requests to bypass this in the future (ie. pip install requests)"
+    print '''Requests module not found on system. I'll revert so this will work, but you probably should install 
+        requests to bypass this in the future (i.e. pip install requests)'''
     use_requests = False
 
+if platform.system() == 'Windows':
+    try:
+        import win32api
+        use_win32api = True
+    except ImportError:
+        print '''The win32api module was not found on this system. While it's fine to run without it, you're 
+            running a Windows-based OS, so it would benefit you to install it. It enables ComicRN to better 
+            work with file paths beyond the 260 character limit. Run "pip install pypiwin32".'''
+    
+    
 apc_version = "2.04"
 
 def processEpisode(dirName, nzbName=None):
@@ -18,6 +30,8 @@ def processEpisode(dirName, nzbName=None):
     return processIssue(dirName, nzbName)
 
 def processIssue(dirName, nzbName=None, failed=False, comicrn_version=None):
+    if use_win32api is True:
+        dirName = win32api.GetShortPathName(dirName)
 
     config = ConfigParser.ConfigParser()
     configFilename = os.path.join(os.path.dirname(sys.argv[0]), "autoProcessComics.cfg")
