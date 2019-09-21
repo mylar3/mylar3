@@ -597,7 +597,10 @@ class FileChecker(object):
                 #now we try to find the series title &/or volume lablel.
                 if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower(), 'part' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
                     if any([ split_file[split_file.index(sf)].isdigit(), split_file[split_file.index(sf)][3:].isdigit(), split_file[split_file.index(sf)][1:].isdigit() ]):
-                        volume = re.sub("[^0-9]", "", sf)
+                        if '.' in sf:
+                            volume = sf.split('.')[0]
+                        else:
+                            volume = re.sub("[^0-9]", "", sf)
                         if volumeprior:
                             try:
                                 volume_found['position'] = split_file.index(volumeprior_label, current_pos -1) #if this passes, then we're ok, otherwise will try exception
