@@ -1529,7 +1529,12 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 issinfo = mylar.COMICINFO['pack_issuelist']
             if issinfo is not None:
                 #we need to get EVERY issue ID within the pack and update the log to reflect that they're being downloaded via a pack.
-                logger.fdebug('Found matching comic within pack...preparing to send to Updater with IssueIDs: %s and nzbname of %s' % (issueid_info, nzbname))
+                
+                try:
+                    logger.fdebug('Found matching comic within pack...preparing to send to Updater with IssueIDs: %s and nzbname of %s' % (issueid_info, nzbname))
+                except NameError:
+                    logger.fdebug('Did not find issueid_info')
+                    
                 #because packs need to have every issue that's not already Downloaded in a Snatched status, throw it to the updater here as well.
                 for isid in issinfo['issues']:
                     updater.nzblog(isid['issueid'], nzbname, ComicName, SARC=SARC, IssueArcID=IssueArcID, id=nzbid, prov=tmpprov, oneoff=oneoff)
