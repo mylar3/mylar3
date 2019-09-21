@@ -170,15 +170,21 @@ class FailedProcessor(object):
                 sandwich = issueid
             elif 'G' in issueid or '-' in issueid:
                 sandwich = 1
-        if helpers.is_number(sandwich):
-            if sandwich < 900000:
+        try:
+            if helpers.is_number(sandwich):
+                if sandwich < 900000:
             # if sandwich is less than 900000 it's a normal watchlist download. Bypass.
-                pass
-        else:
-            logger.info('Failed download handling for story-arcs and one-off\'s are not supported yet. Be patient!')
-            self._log(' Unable to locate downloaded file to rename. PostProcessing aborted.')
+                    pass
+            else:
+                logger.info('Failed download handling for story-arcs and one-off\'s are not supported yet. Be patient!')
+                self._log(' Unable to locate downloaded file to rename. PostProcessing aborted.')
+                self.valreturn.append({"self.log": self.log,
+                                       "mode": 'stop'})
+                return self.queue.put(self.valreturn)
+        except NameError:
+            logger.info('sandwich was not defined. Post-processing aborted...')
             self.valreturn.append({"self.log": self.log,
-                                   "mode": 'stop'})
+                                       "mode": 'stop'})
 
             return self.queue.put(self.valreturn)
 
