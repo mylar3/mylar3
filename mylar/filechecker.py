@@ -597,7 +597,7 @@ class FileChecker(object):
                 #now we try to find the series title &/or volume lablel.
                 if any( [sf.lower().startswith('v'), sf.lower().startswith('vol'), volumeprior == True, 'volume' in sf.lower(), 'vol' in sf.lower(), 'part' in sf.lower()] ) and sf.lower() not in {'one','two','three','four','five','six'}:
                     if any([ split_file[split_file.index(sf)].isdigit(), split_file[split_file.index(sf)][3:].isdigit(), split_file[split_file.index(sf)][1:].isdigit() ]):
-                        if '.' in sf:
+                        if all(identifier in sf for identifier in ['.', 'v']):
                             volume = sf.split('.')[0]
                         else:
                             volume = re.sub("[^0-9]", "", sf)
