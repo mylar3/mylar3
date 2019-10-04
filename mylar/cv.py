@@ -344,7 +344,7 @@ def GetComicInfo(comicid, dom, safechk=None):
                 comic['Type'] = 'Print'
 
     if comic_desc != 'None' and comic['Type'] == 'None':
-        if 'print' in comic_desc[:60].lower() and all(['print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
+        if 'print' in comic_desc[:60].lower() and all(['for the printed edition' not in comic_desc.lower(), 'print edition can be found' not in comic_desc.lower(), 'reprints' not in comic_desc.lower()]):
             comic['Type'] = 'Print'
         elif 'digital' in comic_desc[:60].lower() and 'digital edition can be found' not in comic_desc.lower():
             comic['Type'] = 'Digital'
@@ -352,10 +352,10 @@ def GetComicInfo(comicid, dom, safechk=None):
             comic['Type'] = 'TPB'
         elif 'hardcover' in comic_desc[:60].lower() and 'hardcover can be found' not in comic_desc.lower():
             comic['Type'] = 'HC'
-        elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower()]):
+        elif any(['one-shot' in comic_desc[:60].lower(), 'one shot' in comic_desc[:60].lower()]) and any(['can be found' not in comic_desc.lower(), 'following the' not in comic_desc.lower(), 'after the' not in comic_desc.lower()]):
             i = 0
             comic['Type'] = 'One-Shot'
-            avoidwords = ['preceding', 'after the special', 'following the']
+            avoidwords = ['preceding', 'after the', 'following the']
             while i < 2:
                 if i == 0:
                     cbd = 'one-shot'
