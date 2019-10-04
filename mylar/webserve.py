@@ -522,6 +522,8 @@ class WebInterface(object):
                 logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (imageurl, r.status_code))
             else:
                 if r.headers.get('Content-Encoding') == 'gzip':
+                    import gzip
+                    from StringIO import StringIO
                     buf = StringIO(r.content)
                     f = gzip.GzipFile(fileobj=buf)
 
