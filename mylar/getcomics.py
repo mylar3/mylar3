@@ -375,6 +375,14 @@ class GC(object):
                 #write the filename to the db for tracking purposes...
                 myDB.upsert('ddl_info', {'filename': filename, 'remote_filesize': remote_filesize}, {'id': id})
 
+                if mylar.CONFIG.DDL_LOCATION is not None and not os.path.isdir(mylar.CONFIG.DDL_LOCATION):
+                    checkdirectory = mylar.filechecker.validateAndCreateDirectory(mylar.CONFIG.DDL_LOCATION, True)
+                    if not checkdirectory:
+                        logger.warn('[ABORTING] Error trying to validate/create DDL download directory: %s.' % mylar.CONFIG.DDL_LOCATION)
+                        return ({"success":  False,
+                                 "filename": filename,
+                                 "path":     None})
+
                 path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
                 if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
