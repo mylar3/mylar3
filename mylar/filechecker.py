@@ -854,6 +854,11 @@ class FileChecker(object):
                                                      'number':       pis['number'],
                                                      'position':     pis['position']})
                                 continue
+                            #2019-10-05 fix - if decimal-spaced filename has a series title with a hyphen will include issue # as part of series title
+                            elif yearposition == pis['position']:
+                                logger.info('Already validated year, ignoring as possible issue number: ' + str(pis['number']))
+                                continue
+                            #end 2019-10-05
                         elif yearposition == pis['position']:
                             logger.fdebug('Already validated year, ignoring as possible issue number: ' + str(pis['number']))
                             continue
