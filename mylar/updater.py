@@ -856,8 +856,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                     pass
 
             myDB.upsert("oneoffhistory", newValue, ctlVal)
-
-        logger.info(module + ' Updated the status (Snatched) complete for ' + ComicName + ' Issue: ' + str(IssueNum))
+        logger.info('%s Updated the status (Snatched) complete for %s Issue: %s' % (module, ComicName, IssueNum))
     else:
         if down == 'PP':
             logger.info(module + ' Setting status to Post-Processed in history.')
@@ -917,7 +916,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                 newVal['year'] = pullinfo['year']
             myDB.upsert("oneoffhistory", newVal, ctlVal)
 
-        logger.info(module + ' Updating Status (' + downstatus + ') now complete for ' + ComicName + ' issue: ' + IssueNum)
+        logger.info('%s Updating Status (%s) now completed for %s issue: %s' (module, downstatus, ComicName, IssueNum))
     return
 
 def forceRescan(ComicID, archive=None, module=None, recheck=False):
