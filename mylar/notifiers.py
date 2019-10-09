@@ -30,6 +30,7 @@ import requests
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate, make_msgid
 
 # This was obviously all taken from headphones with great appreciation :)
 
@@ -383,6 +384,8 @@ class EMAIL:
             msg['From'] = str(self.emailfrom)
             msg['To'] = str(self.emailto)
             msg['Subject'] = subject
+            msg['Date'] = formatdate()
+            msg['Message-ID'] = make_msgid('mylar')
             msg.attach(MIMEText(message, 'plain'))
 
             if self.emailenc is 1:
