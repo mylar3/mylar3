@@ -13,6 +13,7 @@ except ImportError:
         requests to bypass this in the future (i.e. pip install requests)'''
     use_requests = False
 
+use_win32api = False
 if platform.system() == 'Windows':
     try:
         import win32api
@@ -21,8 +22,7 @@ if platform.system() == 'Windows':
         print '''The win32api module was not found on this system. While it's fine to run without it, you're 
             running a Windows-based OS, so it would benefit you to install it. It enables ComicRN to better 
             work with file paths beyond the 260 character limit. Run "pip install pypiwin32".'''
-    
-    
+
 apc_version = "2.04"
 
 def processEpisode(dirName, nzbName=None):
