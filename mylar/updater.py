@@ -916,7 +916,7 @@ def foundsearch(ComicID, IssueID, mode=None, down=None, provider=None, SARC=None
                 newVal['year'] = pullinfo['year']
             myDB.upsert("oneoffhistory", newVal, ctlVal)
 
-        logger.info('%s Updating Status (%s) now completed for %s issue: %s' (module, downstatus, ComicName, IssueNum))
+        logger.info('%s Updating Status (%s) now completed for %s issue: %s' % (module, downstatus, ComicName, IssueNum))
     return
 
 def forceRescan(ComicID, archive=None, module=None, recheck=False):
