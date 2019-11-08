@@ -1122,6 +1122,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         continue
                     else:
                         logger.fdebug('match_check: %s' % filecomic)
+                        if filecomic['process_status'] == 'fail':
+                            logger.fdebug('%s was not a match to %s (%s)' % (cleantitle, ComicName, SeriesYear))
+                            continue
                 elif booktype != parsed_comic['booktype']:
                     logger.fdebug('Booktypes do not match. Looking for %s, this is a %s. Ignoring this result.' % (booktype, parsed_comic['booktype']))
                     continue
@@ -1148,39 +1151,38 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                 fndcomicversion = None
 
                 if parsed_comic['series_volume'] is not None:
-                        versionfound = "yes"
-                        if len(parsed_comic['series_volume'][1:]) == 4 and parsed_comic['series_volume'][1:].isdigit():  #v2013
-                            logger.fdebug("[Vxxxx] Version detected as %s" % (parsed_comic['series_volume']))
-                            vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
+                    versionfound = "yes"
+                    if len(parsed_comic['series_volume'][1:]) == 4 and parsed_comic['series_volume'][1:].isdigit():  #v2013
+                        logger.fdebug("[Vxxxx] Version detected as %s" % (parsed_comic['series_volume']))
+                        vers4year = "yes" #re.sub("[^0-9]", " ", str(ct)) #remove the v
+                        fndcomicversion = parsed_comic['series_volume']
+                    elif len(parsed_comic['series_volume'][1:]) == 1 and parsed_comic['series_volume'][1:].isdigit():  #v2
+                        logger.fdebug("[Vx] Version detected as %s" % parsed_comic['series_volume'])
+                        vers4vol = parsed_comic['series_volume']
+                        fndcomicversion = parsed_comic['series_volume']
+                    elif parsed_comic['series_volume'][1:].isdigit() and len(parsed_comic['series_volume']) < 4:
+                        logger.fdebug('[Vxxx] Version detected as %s' % parsed_comic['series_volume'])
+                        vers4vol = parsed_comic['series_volume']
+                        fndcomicversion = parsed_comic['series_volume']
+                    elif parsed_comic['series_volume'].isdigit() and len(parsed_comic['series_volume']) <=4:
+                        # this stuff is necessary for 32P volume manipulation
+                        if len(parsed_comic['series_volume']) == 4:
+                            vers4year = "yes"
                             fndcomicversion = parsed_comic['series_volume']
-                        elif len(parsed_comic['series_volume'][1:]) == 1 and parsed_comic['series_volume'][1:].isdigit():  #v2
-                            logger.fdebug("[Vx] Version detected as %s" % parsed_comic['series_volume'])
+                        elif len(parsed_comic['series_volume']) == 1:
                             vers4vol = parsed_comic['series_volume']
                             fndcomicversion = parsed_comic['series_volume']
-                        elif parsed_comic['series_volume'][1:].isdigit() and len(parsed_comic['series_volume']) < 4:
-                            logger.fdebug('[Vxxx] Version detected as %s' % parsed_comic['series_volume'])
+                        elif len(parsed_comic['series_volume']) < 4:
                             vers4vol = parsed_comic['series_volume']
                             fndcomicversion = parsed_comic['series_volume']
-                        elif parsed_comic['series_volume'].isdigit() and len(parsed_comic['series_volume']) <=4:
-                            # this stuff is necessary for 32P volume manipulation
-                            if len(parsed_comic['series_volume']) == 4:
-                                vers4year = "yes"
-                                fndcomicversion = parsed_comic['series_volume']
-                            elif len(parsed_comic['series_volume']) == 1:
-                                vers4vol = parsed_comic['series_volume']
-                                fndcomicversion = parsed_comic['series_volume']
-                            elif len(parsed_comic['series_volume']) < 4:
-                                vers4vol = parsed_comic['series_volume']
-                                fndcomicversion = parsed_comic['series_volume']
-                            else:
-                                logger.fdebug("error - unknown length for : %s" % parsed_comic['series_volume'])
-
+                        else:
+                            logger.fdebug("error - unknown length for : %s" % parsed_comic['series_volume'])
 
                 yearmatch = "false"
                 if vers4vol != "no" or vers4year != "no":
                     logger.fdebug("Series Year not provided but Series Volume detected of %s. Bypassing Year Match." % fndcomicversion)
                     yearmatch = "true"
-                elif ComVersChk == 0:
+                elif ComVersChk == 0 and parsed_comic['issue_year'] is None:
                     logger.fdebug("Series version detected as V1 (only series in existance with that title). Bypassing Year/Volume check")
                     yearmatch = "true"
                 elif any([UseFuzzy == "0", UseFuzzy == "2", UseFuzzy is None, IssDateFix != "no"]) and parsed_comic['issue_year'] is not None:
