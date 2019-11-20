@@ -841,6 +841,9 @@ class Config(object):
             self.ALT_PULL = 2
             config.set('Weekly', 'alt_pull', str(self.ALT_PULL))
 
+        #force off public torrents usage as currently broken.
+        self.ENABLE_PUBLIC = False
+
         try:
             if not any([self.SAB_HOST is None, self.SAB_HOST == '', 'http://' in self.SAB_HOST[:7], 'https://' in self.SAB_HOST[:8]]):
                 self.SAB_HOST = 'http://' + self.SAB_HOST
