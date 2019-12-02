@@ -1,1 +1,1 @@
-from .client import DelugeRPCClient
+from .client import DelugeRPCClient, FailedToReconnectException
