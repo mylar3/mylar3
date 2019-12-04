@@ -3111,6 +3111,7 @@ def postprocess_main(queue):
             time.sleep(5)
 
         elif mylar.APILOCK is False and queue.qsize() >= 1: #len(queue) > 1:
+            pp = None
             item = queue.get(True)
             logger.info('Now loading from post-processing queue: %s' % item)
             if item == 'exit':
@@ -3124,6 +3125,11 @@ def postprocess_main(queue):
                     pprocess = process.Process(item['nzb_name'], item['nzb_folder'], item['failed'], item['issueid'], item['comicid'], item['apicall'])
                 pp = pprocess.post_process()
                 time.sleep(5) #arbitrary sleep to let the process attempt to finish pp'ing
+
+            if pp is not None:
+                if pp['mode'] == 'stop':
+                    #reset the lock so any subsequent items can pp and not keep the queue locked up.
+                    mylar.APILOCK = False
 
             if mylar.APILOCK is True:
                 logger.info('Another item is post-processing still...')
