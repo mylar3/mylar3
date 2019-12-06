@@ -208,7 +208,9 @@ class FileChecker(object):
         watchmatch['comiccount'] = comiccnt
         if len(comiclist) > 0:
             watchmatch['comiclist'] = comiclist
-
+        else:
+            watchmatch['comiclist'] = []
+            
         if len(self.failed_files) > 0:
             logger.info('FAILED FILES: %s' % self.failed_files)
 
