@@ -644,6 +644,10 @@ class PostProcessor(object):
                                 temploc = None
                             datematch = "False"
 
+                            if temploc is None and all([cs['WatchValues']['Type'] != 'TPB', cs['WatchValues']['Type'] != 'One-Shot']):
+                                logger.info('this should have an issue number to match to this particular series: %s' % cs['ComicID'])
+                                continue
+
                             if temploc is not None and (any(['annual' in temploc.lower(), 'special' in temploc.lower()]) and mylar.CONFIG.ANNUALS_ON is True):
                                 biannchk = re.sub('-', '', temploc.lower()).strip()
                                 if 'biannual' in biannchk:
