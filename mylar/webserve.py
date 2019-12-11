@@ -2580,7 +2580,7 @@ class WebInterface(object):
                     interval = str(mylar.CONFIG.DOWNLOAD_SCAN_INTERVAL) + ' mins'
                 if 'version' in jb['JobName'].lower():
                     status = mylar.VERSION_STATUS
-                    interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + 'mins'
+                    interval = str(mylar.CONFIG.CHECK_GITHUB_INTERVAL) + ' mins'
 
                 if status != jb['Status'] and not('rss' in jb['JobName'].lower()):
                     status = jb['Status']
