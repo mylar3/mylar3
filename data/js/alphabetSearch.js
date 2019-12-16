@@ -70,7 +70,7 @@ function bin ( data ) {
         bins['nonalpha'] = 0;
         for ( var i=0, ien=data.length ; i<ien ; i++ ) {
                 letter = data[i].charAt(13).toUpperCase();
-		if ( !letter.match(/^[A-Z]/) ) {
+		if ( !letter.match(/^[a-zA-Z]/) ) {
                         bins['nonalpha']++;
                 }
                 else if ( bins[letter] ) {
