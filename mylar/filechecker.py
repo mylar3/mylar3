@@ -271,17 +271,23 @@ class FileChecker(object):
                     if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                         logger.fdebug('[SARC] Removed Reading Order sequence from subname. Now set to : %s' % modfilename)
 
-            #2019-10-13---
             #make sure all the brackets are properly spaced apart
             m = re.findall('[^()]+', modfilename)
             cnt = 1
-            while cnt < len(m):
-                if modfilename[modfilename.find('('+m[cnt]+')')-1] != ' ':
-                    #logger.fdebug('space-1: %s' % modfilename[modfilename.find('('+m[cnt]+')')-1])
-                    #logger.fdebug('space-2: %s' % modfilename[modfilename.find('('+m[cnt]+')'):])
-                    modfilename = '%s%s%s' % (modfilename[:modfilename.find('('+m[cnt]+')')], ' ', modfilename[modfilename.find('('+m[cnt]+')'):])
-                cnt+=1
-            #---end 2019-10-13
+            #2019-12-24----fixed to accomodate naming convention like Amazing Mary Jane (2019) 002.cbr, and to account for brackets properly
+            try:
+                while cnt < len(m):
+                    #logger.fdebug('[m=%s] modfilename.find: %s' % (m[cnt], modfilename[modfilename.find('('+m[cnt]+')')+len(m[cnt])+2]))
+                    #logger.fdebug('mod_1: %s' % modfilename.find('('+m[cnt]+')'))
+                    if modfilename[modfilename.find('('+m[cnt]+')')-1] != ' ' and modfilename.find('('+m[cnt]+')') != -1:
+                        #logger.fdebug('before_space: %s' % modfilename[modfilename.find('('+m[cnt]+')')-1])
+                        #logger.fdebug('after_space: %s' % modfilename[modfilename.find('('+m[cnt]+')')+len(m[cnt])+2])
+                        modfilename = '%s%s%s' % (modfilename[:modfilename.find('('+m[cnt]+')')], ' ', modfilename[modfilename.find('('+m[cnt]+')'):])
+                    cnt+=1
+            except Exception as e:
+                #logger.warn('[ERROR] %s' % e)
+                pass
+            #---end 2019-12-24
 
             #grab the scanner tags here.
             scangroup = None
