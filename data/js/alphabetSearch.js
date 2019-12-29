@@ -55,7 +55,7 @@ $.fn.dataTable.ext.search.push( function ( context, searchData ) {
 	if ( context.alphabetSearch.match('nonalpha') && !(searchData[1].charAt(0).match(/^[a-zA-Z]/)) ) {
                 return true;
         }
-        if ( searchData[1].charAt(0) === context.alphabetSearch ) {
+        if ( searchData[1].charAt(0).toUpperCase() === context.alphabetSearch ) {
 		return true;
 	}
 
