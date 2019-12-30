@@ -4707,6 +4707,7 @@ class WebInterface(object):
                                     "issues":      sres['issues'],
                                     "ogcname":     ogcname,
                                     "comicyear":   sres['comicyear']}
+                            logger.fdebug('search_values: [%s]/%s' % (cVal, nVal))
                             myDB.upsert("searchresults", nVal, cVal)
                         logger.info('[IMPORT] There is more than one result that might be valid - normally this is due to the filename(s) not having enough information for me to use (ie. no volume label/year). Manual intervention is required.')
                         #force the status here just in case
