@@ -2940,6 +2940,14 @@ def weekly_info(week=None, year=None, current=None):
             weeknumber = 51
             year = 2018
 
+        #monkey patch for 2019/2020 - week 52/week 0
+        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]):
+            weeknumber = 0
+            year = 2020
+        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
+            weeknumber = 51
+            year = 2019
+
         #view specific week (prev_week, next_week)
         startofyear = date(year,1,1)
         week0 = startofyear - timedelta(days=startofyear.isoweekday())
@@ -2959,6 +2967,14 @@ def weekly_info(week=None, year=None, current=None):
         elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2019]):
             weeknumber = 51
             year = 2018
+
+        #monkey patch for 2019/2020 - week 52/week 0
+        if all([weeknumber == 52, c_weeknumber == 51, c_weekyear == 2019]) or all([weeknumber == '52', year == '2019']):
+            weeknumber = 0
+            year = 2020
+        elif all([weeknumber == 52, c_weeknumber == 0, c_weekyear == 2020]):
+            weeknumber = 51
+            year = 2019
 
         stweek = datetime.datetime.strptime(todaydate.strftime('%Y-%m-%d'), '%Y-%m-%d')
         startweek = stweek - timedelta(days = (stweek.weekday() + 1) % 7)
