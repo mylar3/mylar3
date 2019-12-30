@@ -1131,7 +1131,8 @@ class FileChecker(object):
                     if alt_series is not None:
                         if 'XCV' in alt_series:
                             alt_series = re.sub('XCV', x, alt_series,1)
-                        elif 'XCV' in alt_issue:
+                    if alt_issue is not None:
+                        if 'XCV' in alt_issue:
                             alt_issue = re.sub('XCV', x, alt_issue,1)
 
             series_name = re.sub('c11', '+', series_name)
