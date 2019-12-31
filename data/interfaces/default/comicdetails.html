@@ -431,6 +431,7 @@
                                         %>
                                             %if linky:
                                             <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
+                                            <a href="read_comic?ish_id=${issue['IssueID']}&page_num=0&size=high"><img src="interfaces/default/images/readabook.png" height="25" width="25" title="Read the Issue in your Browser" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
                                                 <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">

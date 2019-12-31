@@ -6426,3 +6426,14 @@ class WebInterface(object):
 
     download_specific_release.exposed = True
 
+    def read_comic(self, ish_id, page_num, size):
+        from mylar.webviewer import WebViewer
+        wv = WebViewer()
+        page_num = int(page_num)
+        #cherrypy.session['ishid'] = ish_id 
+        data = wv.read_comic(ish_id, page_num, size)
+        #data = wv.read_comic(ish_id)
+        return data
+    read_comic.exposed = True
+
+    
