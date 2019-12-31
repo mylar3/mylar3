@@ -12,3 +12,4 @@ ehtumbs.db
 Thumbs.db
 lib/comictaggerlib/ct_settings/
 settings.json
+.DS_Store
