@@ -18,13 +18,13 @@ import platform
 #import sys
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
-from coverimagewidget import CoverImageWidget
+from .settings import ComicTaggerSettings
+from .coverimagewidget import CoverImageWidget
 
 
-class PageBrowserWindow(QtGui.QDialog):
+class PageBrowserWindow(QtWidgets.QDialog):
 
     def __init__(self, parent, metadata):
         super(PageBrowserWindow, self).__init__(parent)
@@ -33,7 +33,7 @@ class PageBrowserWindow(QtGui.QDialog):
 
         self.pageWidget = CoverImageWidget(
             self.pageContainer, CoverImageWidget.ArchiveMode)
-        gridlayout = QtGui.QGridLayout(self.pageContainer)
+        gridlayout = QtWidgets.QGridLayout(self.pageContainer)
         gridlayout.addWidget(self.pageWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
         self.pageWidget.showControls = False
@@ -47,7 +47,7 @@ class PageBrowserWindow(QtGui.QDialog):
         self.current_page_num = 0
         self.metadata = metadata
 
-        self.buttonBox.button(QtGui.QDialogButtonBox.Close).setDefault(True)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Close).setDefault(True)
         if platform.system() == "Darwin":
             self.btnPrev.setText("<<")
             self.btnNext.setText(">>")

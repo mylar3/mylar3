@@ -1,6 +1,6 @@
 
 from bs4 import BeautifulSoup, UnicodeDammit
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import csv
 import fileinput
 import sys
@@ -10,7 +10,7 @@ import sqlite3
 import datetime
 import unicodedata
 from decimal import Decimal
-from HTMLParser import HTMLParseError
+from html.parser import HTMLParseError
 from time import strptime
 
 import mylar
@@ -82,7 +82,7 @@ def solicit(month, year):
 
         #logger.info('datestring:' + datestring)
         #logger.info('checking:' + pagelinks)
-        pageresponse = urllib2.urlopen (pagelinks)
+        pageresponse = urllib.request.urlopen (pagelinks)
         soup = BeautifulSoup (pageresponse)
         cntlinks = soup.findAll('h3')
         lenlinks = len(cntlinks)
@@ -102,7 +102,7 @@ def solicit(month, year):
                 #print ("titlet: " + str(headt))
                 headName = headt.findNext(text=True)
                 #print ('headName: ' + headName)
-                if 'Image' in headName: print 'IMAGE FOUND'
+                if 'Image' in headName: print('IMAGE FOUND')
                 if not all(['Marvel' in headName, 'DC' in headName, 'Image' in headName]) and ('Solicitations' in headName or 'Solicits' in headName):
                    # test for month here (int(month) + 5)
                     if not any(d.get('month', None) == str(headName).lower() for d in monthlist):
@@ -191,7 +191,7 @@ def solicit(month, year):
         try:
             #print ("Row: %s" % row)
             cursor.execute("INSERT INTO future VALUES (?,?,?,?,?,?,?,null);", row)
-        except Exception, e:
+        except Exception as e:
             logger.fdebug("Error - invald arguments...-skipping")
             pass
         t+=1
@@ -208,7 +208,7 @@ def populate(link, publisher, shipdate):
     #this is the secondary url call to populate
     input = 'http://www.comicbookresources.com/' + link
     #print 'checking ' + str(input)
-    response = urllib2.urlopen (input)
+    response = urllib.request.urlopen (input)
     soup = BeautifulSoup (response)
     abc = soup.findAll('p')
     lenabc = len(abc)

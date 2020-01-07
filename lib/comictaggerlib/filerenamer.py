@@ -18,8 +18,8 @@ import os
 import re
 import datetime
 
-import utils
-from issuestring import IssueString
+from . import utils
+from .issuestring import IssueString
 
 
 class FileRenamer:
@@ -49,7 +49,7 @@ class FileRenamer:
             return (word[0] == "%" and word[-1:] == "%")
 
         if value is not None:
-            return text.replace(token, unicode(value))
+            return text.replace(token, str(value))
         else:
             if self.smart_cleanup:
                 # smart cleanup means we want to remove anything appended to token if it's empty
@@ -81,7 +81,7 @@ class FileRenamer:
         new_name = self.replaceToken(new_name, md.volume, '%volume%')
 
         if md.issue is not None:
-            issue_str = u"{0}".format(
+            issue_str = "{0}".format(
                 IssueString(md.issue).asString(pad=self.issue_zero_padding))
         else:
             issue_str = None
@@ -98,8 +98,8 @@ class FileRenamer:
                     md.month, int):
                 if int(md.month) in range(1, 13):
                     dt = datetime.datetime(1970, int(md.month), 1, 0, 0)
-                    month_name = dt.strftime(
-                        u"%B".encode(preferred_encoding)).decode(preferred_encoding)
+                    #month_name = dt.strftime("%B".encode(preferred_encoding)).decode(preferred_encoding)
+                    month_name = dt.strftime("%B")
         new_name = self.replaceToken(new_name, month_name, '%month_name%')
 
         new_name = self.replaceToken(new_name, md.genre, '%genre%')
@@ -128,7 +128,7 @@ class FileRenamer:
             new_name = re.sub("\{\s*[-:]*\s*\}", "", new_name)
 
             # remove duplicate spaces
-            new_name = u" ".join(new_name.split())
+            new_name = " ".join(new_name.split())
 
             # remove remove duplicate -, _,
             new_name = re.sub("[-_]{2,}\s+", "-- ", new_name)
@@ -139,7 +139,7 @@ class FileRenamer:
             new_name = re.sub("[-]{1,2}\s*$", "", new_name)
 
             # remove duplicate spaces (again!)
-            new_name = u" ".join(new_name.split())
+            new_name = " ".join(new_name.split())
 
         if ext is None:
             ext = os.path.splitext(filename)[1]

@@ -16,15 +16,15 @@
 
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
+from .settings import ComicTaggerSettings
 #from settingswindow import SettingsWindow
 #from filerenamer import FileRenamer
 #import utils
 
 
-class AutoTagStartWindow(QtGui.QDialog):
+class AutoTagStartWindow(QtWidgets.QDialog):
 
     def __init__(self, parent, settings, msg):
         super(AutoTagStartWindow, self).__init__(parent)
@@ -102,7 +102,7 @@ class AutoTagStartWindow(QtGui.QDialog):
         self.leSearchString.setEnabled(enable)
 
     def accept(self):
-        QtGui.QDialog.accept(self)
+        QtWidgets.QDialog.accept(self)
 
         self.autoSaveOnLow = self.cbxSaveOnLowConfidence.isChecked()
         self.dontUseYear = self.cbxDontUseYear.isChecked()
@@ -122,6 +122,6 @@ class AutoTagStartWindow(QtGui.QDialog):
         self.settings.wait_and_retry_on_rate_limit = self.waitAndRetryOnRateLimit
 
         if self.cbxSpecifySearchString.isChecked():
-            self.searchString = unicode(self.leSearchString.text())
+            self.searchString = str(self.leSearchString.text())
             if len(self.searchString) == 0:
                 self.searchString = None

@@ -1,23 +1,33 @@
 import logging
 import urllib
+import sys
+from urllib.parse import urlparse
 
-from rtorrent.common import convert_version_tuple_to_str, join_uri, update_uri
-from rtorrent.lib.xmlrpc.clients.http import HTTPServerProxy
-from rtorrent.lib.xmlrpc.clients.scgi import SCGIServerProxy
-from rtorrent.lib.xmlrpc.transports.basic_auth import BasicAuthTransport
+def is_py3():
+    return sys.version_info[0] == 3
+
+if is_py3():
+    import urllib.request
+
+from .common import convert_version_tuple_to_str, join_uri, update_uri
+from .lib.xmlrpc.clients.http import HTTPServerProxy
+from .lib.xmlrpc.clients.scgi import SCGIServerProxy
+from .lib.xmlrpc.transports.basic_auth import BasicAuthTransport
 
 
 try:
     from requests.packages.urllib3 import disable_warnings
     disable_warnings()
 except ImportError:
-    print 'Unable to disable warnings for non-https authentication.'
+    print('Unable to disable warnings for non-https authentication.')
 
 # Try import requests transport (optional)
 try:
-    from rtorrent.lib.xmlrpc.transports.requests_ import RequestsTransport
-except ImportError:
+    from .lib.xmlrpc.transports.requests_ import RequestsTransport
+    RQT = True
+except Exception as e:
     RequestsTransport = None
+    RQT = False
 
 MIN_RTORRENT_VERSION = (0, 8, 1)
 MIN_RTORRENT_VERSION_STR = convert_version_tuple_to_str(MIN_RTORRENT_VERSION)
@@ -32,12 +42,16 @@ class Connection(object):
 
         # Transform + Parse URI
         self.uri = self._transform_uri(uri)
-        self.scheme = urllib.splittype(self.uri)[0]
+        if is_py3():
+            self.scheme = urlparse(self.uri)[0]
+        else:
+            self.scheme = urllib.splittype(self.uri)[0]
 
         # Construct RPC Client
         self.sp = self._get_sp(self.scheme, sp)
+        print('self.sp: %s' % self.sp)
         self.sp_kwargs = sp_kwargs or {}
-
+        print('self.kwargs: %s' % self.sp_kwargs)
         self._client = None
         self._client_version_tuple = ()
         self._rpc_methods = []
@@ -52,9 +66,10 @@ class Connection(object):
         return self._client
 
     def connect(self):
-        log.debug('Connecting to server: %r', self.uri)
+        # log.debug('Connecting to server: %r', self.uri)
 
         if self.auth:
+            print('self.uri: %s' % self.uri)
             # Construct server proxy with authentication transport
             return self.sp(self.uri, transport=self._construct_transport(), **self.sp_kwargs)
 
@@ -88,13 +103,12 @@ class Connection(object):
             raise ValueError('Invalid "auth" parameter format')
 
         # Construct transport with authentication details
-        method, _, _ = self.auth
-        secure = self.scheme == 'https'
-
-        log.debug('Constructing transport for scheme: %r, authentication method: %r', self.scheme, method)
+        method = self.auth[0]
+        secure = 'https'
+        self.scheme = secure
 
         # Use requests transport (if available)
-        if RequestsTransport and method in ['basic', 'digest']:
+        if RQT is True and method in ['basic', 'digest']:
             return RequestsTransport(
                 secure, self.auth,
                 verify_ssl=self.verify_ssl
@@ -117,7 +131,6 @@ class Connection(object):
 
             rtver = getattr(self, "client_version")
             self._client_version_tuple = tuple([int(i) for i in rtver.split(".")])
-
         return self._client_version_tuple
 
     def _get_rpc_methods(self):
@@ -147,7 +160,10 @@ class Connection(object):
 
     @staticmethod
     def _transform_uri(uri):
-        scheme = urllib.splittype(uri)[0]
+        if is_py3():
+            scheme = urlparse(uri)[0]
+        else:
+            scheme = urllib.splittype(uri)[0]
 
         if scheme == 'httprpc' or scheme.startswith('httprpc+'):
             # Try find HTTPRPC transport (token after '+' in 'httprpc+https'), otherwise assume HTTP

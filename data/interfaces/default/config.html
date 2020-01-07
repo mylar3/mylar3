@@ -999,7 +999,7 @@
              <tr>
                       <%
                            porder = []
-                           for k,v in sorted(mylar.CONFIG.PROVIDER_ORDER.iteritems(), key=itemgetter(0), reverse=False):
+                           for k,v in sorted(mylar.CONFIG.PROVIDER_ORDER.items(), key=itemgetter(0), reverse=False):
                                porder.append(v)
                            porder = ', '.join(porder)
                        %>

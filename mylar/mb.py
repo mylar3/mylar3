@@ -13,13 +13,13 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+
 
 import re
 import time
 import threading
 import platform
-import urllib, urllib2
+import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 from xml.dom.minidom import parseString, Element
 from xml.parsers.expat import ExpatError
 import requests
@@ -27,7 +27,7 @@ import requests
 import mylar
 from mylar import logger, db, cv
 from mylar.helpers import multikeysort, replace_all, cleanName, listLibrary, listStoryArcs
-import httplib
+import http.client
 
 mb_lock = threading.Lock()
 
@@ -35,15 +35,15 @@ def patch_http_response_read(func):
     def inner(*args):
         try:
             return func(*args)
-        except httplib.IncompleteRead, e:
+        except http.client.IncompleteRead as e:
             return e.partial
 
     return inner
-httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+http.client.HTTPResponse.read = patch_http_response_read(http.client.HTTPResponse.read)
 
 if platform.python_version() == '2.7.6':
-    httplib.HTTPConnection._http_vsn = 10
-    httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
+    http.client.HTTPConnection._http_vsn = 10
+    http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 def pullsearch(comicapi, comicquery, offset, type):
 
@@ -78,7 +78,7 @@ def pullsearch(comicapi, comicquery, offset, type):
     try:
         dom = parseString(r.content) #(data)
     except ExpatError:
-        if u'<title>Abnormal Traffic Detected' in r.content:
+        if '<title>Abnormal Traffic Detected' in r.content:
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')
@@ -116,7 +116,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
     if '+' in name:
        name = re.sub('\+', 'PLUS', name)
 
-    pattern = re.compile(ur'\w+', re.UNICODE)
+    pattern = re.compile(r'\w+', re.UNICODE)
     name = pattern.findall(name)
 
     if '+' in originalname:
@@ -320,7 +320,7 @@ def findComic(name, mode, issue, limityear=None, type=None):
                         if tmpYr != xmlYr:
                             xmlYr = tmpYr
 
-                        if any(map(lambda v: v in limityear, yearRange)) or limityear == 'None':
+                        if any([v in limityear for v in yearRange]) or limityear == 'None':
                             xmlurl = result.getElementsByTagName('site_detail_url')[0].firstChild.wholeText
                             idl = len (result.getElementsByTagName('id'))
                             idt = 0
@@ -470,7 +470,7 @@ def storyarcinfo(xmlid):
     try:
         arcdom = parseString(r.content)
     except ExpatError:
-        if u'<title>Abnormal Traffic Detected' in r.content:
+        if '<title>Abnormal Traffic Detected' in r.content:
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('While parsing data from ComicVine, got exception: %s for data: %s' % (e, r.content))

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys
-import StringIO
+import io
 #import math
 #import urllib2
 #import urllib
@@ -27,12 +27,12 @@ try:
 except ImportError:
     pil_available = False
 
-from genericmetadata import GenericMetadata
-from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from imagehasher import ImageHasher
-from imagefetcher import ImageFetcher, ImageFetcherException
-from issuestring import IssueString
-import utils
+from .genericmetadata import GenericMetadata
+from .comicvinetalker import ComicVineTalker, ComicVineTalkerException
+from .imagehasher import ImageHasher
+from .imagefetcher import ImageFetcher, ImageFetcherException
+from .issuestring import IssueString
+from . import utils
 #from settings import ComicTaggerSettings
 #from comicvinecacher import ComicVineCacher
 
@@ -124,7 +124,7 @@ class IssueIdentifier:
 
     def getAspectRatio(self, image_data):
         try:
-            im = Image.open(StringIO.StringIO(image_data))
+            im = Image.open(io.StringIO(image_data))
             w, h = im.size
             return float(h) / float(w)
         except:
@@ -132,17 +132,17 @@ class IssueIdentifier:
 
     def cropCover(self, image_data):
 
-        im = Image.open(StringIO.StringIO(image_data))
+        im = Image.open(io.StringIO(image_data))
         w, h = im.size
 
         try:
             cropped_im = im.crop((int(w / 2), 0, w, h))
         except Exception as e:
             sys.exc_clear()
-            print "cropCover() error:", e
+            print("cropCover() error:", e)
             return None
 
-        output = StringIO.StringIO()
+        output = io.StringIO()
         cropped_im.save(output, format="PNG")
         cropped_image_data = output.getvalue()
         output.close()
@@ -405,7 +405,7 @@ class IssueIdentifier:
         comicVine.setLogFunc(self.output_function)
 
         # self.log_msg(("Searching for " + keys['series'] + "...")
-        self.log_msg(u"Searching for  {0} #{1} ...".format(
+        self.log_msg("Searching for  {0} #{1} ...".format(
             keys['series'], keys['issue_number']))
         try:
             cv_search_results = comicVine.searchForSeries(keys['series'])
@@ -492,11 +492,11 @@ class IssueIdentifier:
                     break
 
         if keys['year'] is None:
-            self.log_msg(u"Found {0} series that have an issue #{1}".format(
+            self.log_msg("Found {0} series that have an issue #{1}".format(
                 len(shortlist), keys['issue_number']))
         else:
             self.log_msg(
-                u"Found {0} series that have an issue #{1} from {2}".format(
+                "Found {0} series that have an issue #{1} from {2}".format(
                     len(shortlist),
                     keys['issue_number'],
                     keys['year']))
@@ -509,7 +509,7 @@ class IssueIdentifier:
                 self.callback(counter, len(shortlist) * 3)
                 counter += 1
 
-            self.log_msg(u"Examining covers for  ID: {0} {1} ({2}) ...".format(
+            self.log_msg("Examining covers for  ID: {0} {1} ({2}) ...".format(
                 series['id'],
                 series['name'],
                 series['start_year']), newline=False)
@@ -540,7 +540,7 @@ class IssueIdentifier:
                 return self.match_list
 
             match = dict()
-            match['series'] = u"{0} ({1})".format(
+            match['series'] = "{0} ({1})".format(
                 series['name'], series['start_year'])
             match['distance'] = score_item['score']
             match['issue_number'] = keys['issue_number']
@@ -582,7 +582,7 @@ class IssueIdentifier:
         self.log_msg(str(l))
 
         def print_match(item):
-            self.log_msg(u"-----> {0} #{1} {2} ({3}/{4}) -- score: {5}".format(
+            self.log_msg("-----> {0} #{1} {2} ({3}/{4}) -- score: {5}".format(
                 item['series'],
                 item['issue_number'],
                 item['issue_title'],
@@ -613,7 +613,7 @@ class IssueIdentifier:
                     self.callback(counter, len(self.match_list) * 3)
                     counter += 1
                 self.log_msg(
-                    u"Examining alternate covers for ID: {0} {1} ...".format(
+                    "Examining alternate covers for ID: {0} {1} ...".format(
                         m['volume_id'],
                         m['series']),
                     newline=False)
@@ -640,18 +640,18 @@ class IssueIdentifier:
                 if len(self.match_list) == 1:
                     self.log_msg("No matching pages in the issue.")
                     self.log_msg(
-                        u"--------------------------------------------------------------------------")
+                        "--------------------------------------------------------------------------")
                     print_match(self.match_list[0])
                     self.log_msg(
-                        u"--------------------------------------------------------------------------")
+                        "--------------------------------------------------------------------------")
                     self.search_result = self.ResultFoundMatchButBadCoverScore
                 else:
                     self.log_msg(
-                        u"--------------------------------------------------------------------------")
+                        "--------------------------------------------------------------------------")
                     self.log_msg(
-                        u"Multiple bad cover matches!  Need to use other info...")
+                        "Multiple bad cover matches!  Need to use other info...")
                     self.log_msg(
-                        u"--------------------------------------------------------------------------")
+                        "--------------------------------------------------------------------------")
                     self.search_result = self.ResultMultipleMatchesWithBadImageScores
                 return self.match_list
             else:
@@ -695,28 +695,28 @@ class IssueIdentifier:
 
         if len(self.match_list) == 1:
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
             print_match(self.match_list[0])
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
             self.search_result = self.ResultOneGoodMatch
 
         elif len(self.match_list) == 0:
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
             self.log_msg("No matches found :(")
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
             self.search_result = self.ResultNoMatches
         else:
             # we've got multiple good matches:
             self.log_msg("More than one likely candidate.")
             self.search_result = self.ResultMultipleGoodMatches
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
             for item in self.match_list:
                 print_match(item)
             self.log_msg(
-                u"--------------------------------------------------------------------------")
+                "--------------------------------------------------------------------------")
 
         return self.match_list

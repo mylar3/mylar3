@@ -18,9 +18,9 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import rtorrent.rpc
+from . import rpc
 
-Method = rtorrent.rpc.Method
+Method = rpc.Method
 
 
 class Group:

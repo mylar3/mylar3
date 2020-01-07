@@ -13,22 +13,22 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import division
+
 
 import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck
 
 import feedparser as feedparser
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os, errno
 import string
 import sys
 import getopt
 import re
 import time
-import urlparse
+import urllib.parse
 from xml.dom.minidom import parseString
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import email.utils
 import datetime
 

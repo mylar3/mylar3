@@ -44,7 +44,7 @@ class IssueString:
         if len(text) == 0:
             return
 
-        text = unicode(text)
+        text = str(text)
 
         # skip the minus sign if it's first
         if text[0] == '-':
@@ -119,7 +119,7 @@ class IssueString:
 
     def asFloat(self):
         # return the float, with no suffix
-        if self.suffix == u"½":
+        if self.suffix == "½":
             if self.num is not None:
                 return self.num + .5
             else:

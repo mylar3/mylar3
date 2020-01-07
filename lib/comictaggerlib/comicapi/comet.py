@@ -19,8 +19,8 @@ import xml.etree.ElementTree as ET
 #from pprint import pprint
 #import zipfile
 
-from genericmetadata import GenericMetadata
-import utils
+from .genericmetadata import GenericMetadata
+from . import utils
 
 
 class CoMet:
@@ -76,7 +76,7 @@ class CoMet:
         # helper func
         def assign(comet_entry, md_entry):
             if md_entry is not None:
-                ET.SubElement(root, comet_entry).text = u"{0}".format(md_entry)
+                ET.SubElement(root, comet_entry).text = "{0}".format(md_entry)
 
         # title is manditory
         if md.title is None:
@@ -131,43 +131,43 @@ class CoMet:
             if credit['role'].lower() in set(self.writer_synonyms):
                 ET.SubElement(
                     root,
-                    'writer').text = u"{0}".format(
+                    'writer').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.penciller_synonyms):
                 ET.SubElement(
                     root,
-                    'penciller').text = u"{0}".format(
+                    'penciller').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.inker_synonyms):
                 ET.SubElement(
                     root,
-                    'inker').text = u"{0}".format(
+                    'inker').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.colorist_synonyms):
                 ET.SubElement(
                     root,
-                    'colorist').text = u"{0}".format(
+                    'colorist').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.letterer_synonyms):
                 ET.SubElement(
                     root,
-                    'letterer').text = u"{0}".format(
+                    'letterer').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.cover_synonyms):
                 ET.SubElement(
                     root,
-                    'coverDesigner').text = u"{0}".format(
+                    'coverDesigner').text = "{0}".format(
                     credit['person'])
 
             if credit['role'].lower() in set(self.editor_synonyms):
                 ET.SubElement(
                     root,
-                    'editor').text = u"{0}".format(
+                    'editor').text = "{0}".format(
                     credit['person'])
 
         # self pretty-print

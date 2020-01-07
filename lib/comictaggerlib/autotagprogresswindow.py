@@ -17,15 +17,15 @@
 #import sys
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
-from coverimagewidget import CoverImageWidget
+from .settings import ComicTaggerSettings
+from .coverimagewidget import CoverImageWidget
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize
 #import utils
 
 
-class AutoTagProgressWindow(QtGui.QDialog):
+class AutoTagProgressWindow(QtWidgets.QDialog):
 
     def __init__(self, parent):
         super(AutoTagProgressWindow, self).__init__(parent)
@@ -35,13 +35,13 @@ class AutoTagProgressWindow(QtGui.QDialog):
 
         self.archiveCoverWidget = CoverImageWidget(
             self.archiveCoverContainer, CoverImageWidget.DataMode, False)
-        gridlayout = QtGui.QGridLayout(self.archiveCoverContainer)
+        gridlayout = QtWidgets.QGridLayout(self.archiveCoverContainer)
         gridlayout.addWidget(self.archiveCoverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
         self.testCoverWidget = CoverImageWidget(
             self.testCoverContainer, CoverImageWidget.DataMode, False)
-        gridlayout = QtGui.QGridLayout(self.testCoverContainer)
+        gridlayout = QtWidgets.QGridLayout(self.testCoverContainer)
         gridlayout.addWidget(self.testCoverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -65,5 +65,5 @@ class AutoTagProgressWindow(QtGui.QDialog):
         QtCore.QCoreApplication.processEvents()
 
     def reject(self):
-        QtGui.QDialog.reject(self)
+        QtWidgets.QDialog.reject(self)
         self.isdone = True

@@ -5,10 +5,10 @@ import sys
 import time
 import feedparser
 import re
-import logger
+from . import logger
 import mylar
 import unicodedata
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, booktype=None):
     cName = searchName
@@ -36,7 +36,7 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
     #logger.fdebug("searchname: %s" % searchName)
     #logger.fdebug("issue: %s" % searchIssue)
     #logger.fdebug("year: %s" % searchYear)
-    encodeSearch = urllib.quote_plus(searchName)
+    encodeSearch = urllib.parse.quote_plus(searchName)
     splitSearch = encodeSearch.split(" ")
 
     tmpsearchIssue = searchIssue
@@ -119,13 +119,14 @@ def Startit(searchName, searchIssue, searchYear, ComicVersion, IssDateFix, bookt
         countUp = 0
 
         while countUp < totNum:
-     	    urlParse = feed.entries[countUp].enclosures[0]
+            urlParse = feed.entries[countUp].enclosures[0]
 	    #keyPair[feed.entries[countUp].title] = feed.entries[countUp].link
 	    #keyPair[feed.entries[countUp].title] = urlParse["href"]
-            keyPair.append({"title":     feed.entries[countUp].title,
-                            "link":      urlParse["href"],
-                            "length":    urlParse["length"],
-                            "pubdate":   feed.entries[countUp].updated})
+            keyPair.append({
+                "title":     feed.entries[countUp].title,
+                "link":      urlParse["href"],
+                "length":    urlParse["length"],
+                "pubdate":   feed.entries[countUp].updated})
             countUp=countUp +1
 
         # thanks to SpammyHagar for spending the time in compiling these regEx's!

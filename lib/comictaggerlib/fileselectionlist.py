@@ -1,5 +1,5 @@
 # coding=utf-8
-"""A PyQt4 widget for managing list of comic archive files"""
+"""A PyQt5 widget for managing list of comic archive files"""
 
 # Copyright 2012-2014 Anthony Beville
 
@@ -18,18 +18,19 @@
 import platform
 import os
 #import os
-#import sys
+import sys
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4 import uic
-from PyQt4.QtCore import pyqtSignal
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5 import uic
+from PyQt5.QtCore import pyqtSignal
 
-from settings import ComicTaggerSettings
-from comicarchive import ComicArchive
-from optionalmsgdialog import OptionalMessageDialog
+from .settings import ComicTaggerSettings
+from .comicarchive import ComicArchive
+from .optionalmsgdialog import OptionalMessageDialog
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize, centerWindowOnParent
-import utils
+from . import utils
 #from comicarchive import MetaDataStyle
 #from genericmetadata import GenericMetadata, PageType
 
@@ -37,8 +38,10 @@ import utils
 class FileTableWidgetItem(QTableWidgetItem):
 
     def __lt__(self, other):
-        return (self.data(Qt.UserRole).toBool() <
-                other.data(Qt.UserRole).toBool())
+        #return (self.data(Qt.UserRole).toBool() <
+        #        other.data(Qt.UserRole).toBool())
+        return (self.data(Qt.UserRole) <
+                other.data(Qt.UserRole))
 
 
 class FileInfo():
@@ -139,7 +142,7 @@ class FileSelectionList(QWidget):
 
     def getArchiveByRow(self, row):
         fi = self.twList.item(row, FileSelectionList.dataColNum).data(
-            Qt.UserRole).toPyObject()
+            Qt.UserRole)
         return fi.ca
 
     def getCurrentArchive(self):
@@ -186,44 +189,32 @@ class FileSelectionList(QWidget):
         filelist = utils.get_recursive_filelist(pathlist)
         # we now have a list of files to add
 
-        progdialog = QProgressDialog("", "Cancel", 0, len(filelist), self)
+        # Prog dialog on Linux flakes out for small range, so scale up
+        progdialog = QProgressDialog("", "Cancel", 0, len(filelist), parent=self)
         progdialog.setWindowTitle("Adding Files")
-        # progdialog.setWindowModality(Qt.WindowModal)
         progdialog.setWindowModality(Qt.ApplicationModal)
-        progdialog.show()
-
+        progdialog.setMinimumDuration(300)
+        centerWindowOnParent(progdialog)
+        #QCoreApplication.processEvents()
+        #progdialog.show()
+        
+        QCoreApplication.processEvents()
         firstAdded = None
         self.twList.setSortingEnabled(False)
         for idx, f in enumerate(filelist):
             QCoreApplication.processEvents()
             if progdialog.wasCanceled():
                 break
-            progdialog.setValue(idx)
+            progdialog.setValue(idx+1)
             progdialog.setLabelText(f)
             centerWindowOnParent(progdialog)
             QCoreApplication.processEvents()
             row = self.addPathItem(f)
             if firstAdded is None and row is not None:
                 firstAdded = row
-
-        progdialog.close()
-        if (self.settings.show_no_unrar_warning and
-                self.settings.unrar_exe_path == "" and
-                self.settings.rar_exe_path == "" and
-                platform.system() != "Windows"):
-            for f in filelist:
-                ext = os.path.splitext(f)[1].lower()
-                if ext == ".rar" or ext == ".cbr":
-                    checked = OptionalMessageDialog.msg(self, "No unrar tool",
-                                                        """
-                            It looks like you've tried to open at least one CBR or RAR file.<br><br>
-                            In order for ComicTagger to read this kind of file, you will have to configure
-                            the location of the unrar tool in the settings.  Until then, ComicTagger
-                            will not be able recognize these kind of files.
-                            """
-                                                        )
-                    self.settings.show_no_unrar_warning = not checked
-                    break
+ 
+        progdialog.hide()
+        QCoreApplication.processEvents()
 
         if firstAdded is not None:
             self.twList.selectRow(firstAdded)
@@ -235,7 +226,7 @@ class FileSelectionList(QWidget):
                 QMessageBox.information(
                     self,
                     self.tr("File/Folder Open"),
-                    self.tr("No comic archives were found."))
+                    self.tr("No readable comic archives were found."))
 
         self.twList.setSortingEnabled(True)
 
@@ -271,7 +262,7 @@ class FileSelectionList(QWidget):
         return -1
 
     def addPathItem(self, path):
-        path = unicode(path)
+        path = str(path)
         path = os.path.abspath(path)
         # print "processing", path
 
@@ -327,7 +318,7 @@ class FileSelectionList(QWidget):
 
     def updateRow(self, row):
         fi = self.twList.item(row, FileSelectionList.dataColNum).data(
-            Qt.UserRole).toPyObject()
+            Qt.UserRole) #.toPyObject()
 
         filename_item = self.twList.item(row, FileSelectionList.fileColNum)
         folder_item = self.twList.item(row, FileSelectionList.folderColNum)
@@ -382,8 +373,8 @@ class FileSelectionList(QWidget):
         ca_list = []
         for r in range(self.twList.rowCount()):
             item = self.twList.item(r, FileSelectionList.dataColNum)
-            if self.twList.isItemSelected(item):
-                fi = item.data(Qt.UserRole).toPyObject()
+            if item.isSelected():
+                fi = item.data(Qt.UserRole)
                 ca_list.append(fi.ca)
 
         return ca_list
@@ -395,7 +386,7 @@ class FileSelectionList(QWidget):
         self.twList.setSortingEnabled(False)
         for r in range(self.twList.rowCount()):
             item = self.twList.item(r, FileSelectionList.dataColNum)
-            if self.twList.isItemSelected(item):
+            if item.isSelected():
                 self.updateRow(r)
         self.twList.setSortingEnabled(True)
 
@@ -425,7 +416,7 @@ class FileSelectionList(QWidget):
                 return
 
         fi = self.twList.item(new_idx, FileSelectionList.dataColNum).data(
-            Qt.UserRole).toPyObject()
+            Qt.UserRole) #.toPyObject()
         self.selectionChanged.emit(QVariant(fi))
 
     def revertSelection(self):

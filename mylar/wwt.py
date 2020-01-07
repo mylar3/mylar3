@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -14,15 +13,15 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import requests
+import requests as requests
 from bs4 import BeautifulSoup, UnicodeDammit
-import urlparse
+import urllib.parse
 import re
 import time
 import sys
 import datetime
 from datetime import timedelta
-import lib.cfscrape as cfscrape
+import cfscrape
 
 import mylar
 from mylar import logger, helpers
@@ -103,7 +102,7 @@ class wwt(object):
                 try:
                     for link in res.find_all('a', href=True):
                         if link['href'].startswith('download.php'):
-                            linkurl = urlparse.parse_qs(urlparse.urlparse(link['href']).query)['id']
+                            linkurl = urllib.parse.parse_qs(urllib.parse.urlparse(link['href']).query)['id']
                             #results = {'torrent':  torrent,
                             #           'link':     link['href']}
                             break

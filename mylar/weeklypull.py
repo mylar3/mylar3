@@ -14,14 +14,14 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from __future__ import print_function
+
 
 import sys
 import fileinput
 import csv
 import getopt
 import sqlite3
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os
 import time
 import re
@@ -38,19 +38,19 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         if popit:
             try:
                 pull_date = myDB.selectone("SELECT SHIPDATE from weekly").fetchone()
-                logger.info(u"Weekly pull list present - checking if it's up-to-date..")
+                logger.info("Weekly pull list present - checking if it's up-to-date..")
                 if (pull_date is None):
                     pulldate = '00000000'
                 else:
                     pulldate = pull_date['SHIPDATE']
-            except (sqlite3.OperationalError, TypeError), msg:
-                logger.info(u"Error Retrieving weekly pull list - attempting to adjust")
+            except (sqlite3.OperationalError, TypeError) as msg:
+                logger.info("Error Retrieving weekly pull list - attempting to adjust")
                 myDB.action("DROP TABLE weekly")
                 myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE TEXT, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, annuallink TEXT, format TEXT, rowid INTEGER PRIMARY KEY)")
                 pulldate = '00000000'
-                logger.fdebug(u"Table re-created, trying to populate")
+                logger.fdebug("Table re-created, trying to populate")
         else:
-            logger.info(u"No pullist found...I'm going to try and get a new list now.")
+            logger.info("No pullist found...I'm going to try and get a new list now.")
             pulldate = '00000000'
     else:
         pulldate = None
@@ -207,11 +207,11 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                         logger.fdebug("shipdate: " + str(shipdaterep))
                         logger.fdebug("today: " + str(pulldate))
                         if pulldate == shipdaterep:
-                            logger.info(u"No new pull-list available - will re-check again in 24 hours.")
+                            logger.info("No new pull-list available - will re-check again in 24 hours.")
                             mylar.PULLNEW = 'no'
                             return pullitcheck()
                         else:
-                            logger.info(u"Preparing to update to the new listing.")
+                            logger.info("Preparing to update to the new listing.")
                     break
             else:
                 mylar.PULLNEW = 'yes'
@@ -272,7 +272,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                                 x = None
                                 try:
                                      x = float(re.sub('#', '', issname[n].strip()))
-                                except ValueError, e:
+                                except ValueError as e:
                                      if any(d in re.sub(r'[^a-zA-Z0-9]', '', issname[n]).strip() for d in specialissues):
                                         issue = issname[n]
                                      else:
@@ -439,7 +439,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
             weektmp = datetime.date.today()
         weeknumber = weektmp.strftime("%U")
 
-        logger.info(u"Populating the NEW Weekly Pull list into Mylar for week " + str(weeknumber))
+        logger.info("Populating the NEW Weekly Pull list into Mylar for week " + str(weeknumber))
 
         myDB.action("drop table if exists weekly")
         myDB.action("CREATE TABLE IF NOT EXISTS weekly (SHIPDATE, PUBLISHER TEXT, ISSUE TEXT, COMIC VARCHAR(150), EXTRA TEXT, STATUS TEXT, ComicID TEXT, IssueID TEXT, CV_Last_Update TEXT, DynamicName TEXT, weeknumber TEXT, year TEXT, volume TEXT, seriesyear TEXT, annuallink TEXT, format TEXT, rowid INTEGER PRIMARY KEY)")
@@ -467,7 +467,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                                 'WEEKNUMBER': int(weeknumber),
                                 'YEAR': mylar.CURRENT_YEAR}
                 myDB.upsert("weekly", newValueDict, controlValueDict)
-            except Exception, e:
+            except Exception as e:
                 #print ("Error - invald arguments...-skipping")
                 pass
             t+=1
@@ -476,14 +476,14 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
         os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'Clean-newreleases.txt'))
         os.remove(os.path.join(mylar.CONFIG.CACHE_DIR, 'newreleases.txt'))
 
-        logger.info(u"Weekly Pull List successfully loaded.")
+        logger.info("Weekly Pull List successfully loaded.")
 
     if mylar.CONFIG.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         pullitcheck(forcecheck=forcecheck)
 
 def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurepull=None, issue=None):
     if futurepull is None:
-        logger.info(u"Checking the Weekly Releases list for comics I'm watching...")
+        logger.info("Checking the Weekly Releases list for comics I'm watching...")
     else:
         logger.info('Checking the Future Releases list for upcoming comics I am watching for...')
 
@@ -828,7 +828,7 @@ def pullitcheck(comic1off_name=None, comic1off_id=None, forcecheck=None, futurep
                 cnt-=1
 
         logger.fdebug("There are " + str(otot) + " comics this week to get!")
-        logger.info(u"Finished checking for comics on my watchlist.")
+        logger.info("Finished checking for comics on my watchlist.")
     return {'status': 'success'}
 
 def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, forcecheck=None, issue=None):
@@ -1009,7 +1009,7 @@ def new_pullcheck(weeknumber, pullyear, comic1off_name=None, comic1off_id=None, 
                 todaydate = datetime.datetime.today()
                 try:
                     ComicDate = str(week['shipdate'])
-                except TypeError, e:
+                except TypeError as e:
                     ComicDate = todaydate.strftime('%Y-%m-%d')
                     logger.fdebug('[WEEKLY-PULL] Invalid Cover date. Forcing to weekly pull date of : ' + str(ComicDate))
 

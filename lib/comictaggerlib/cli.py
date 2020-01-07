@@ -29,15 +29,15 @@ import json
 
 filename_encoding = sys.getfilesystemencoding()
 
-from settings import ComicTaggerSettings
-from options import Options
-from comicarchive import ComicArchive, MetaDataStyle
-from issueidentifier import IssueIdentifier
-from genericmetadata import GenericMetadata
-from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from filerenamer import FileRenamer
-from cbltransformer import CBLTransformer
-import utils
+from .settings import ComicTaggerSettings
+from .options import Options
+from .comicarchive import ComicArchive, MetaDataStyle
+from .issueidentifier import IssueIdentifier
+from .genericmetadata import GenericMetadata
+from .comicvinetalker import ComicVineTalker, ComicVineTalkerException
+from .filerenamer import FileRenamer
+from .cbltransformer import CBLTransformer
+from . import utils
 
 
 class MultipleMatch():
@@ -69,7 +69,7 @@ def actual_issue_data_fetch(match, settings, opts):
         cv_md = comicVine.fetchIssueData(
             match['volume_id'], match['issue_number'], settings)
     except ComicVineTalkerException:
-        print >> sys.stderr, "Network error while getting issue details.  Save aborted"
+        print("Network error while getting issue details.  Save aborted", file=sys.stderr)
         return None
 
     if settings.apply_cbl_transform_on_cv_import:
@@ -83,39 +83,39 @@ def actual_metadata_save(ca, opts, md):
     if not opts.dryrun:
         # write out the new data
         if not ca.writeMetadata(md, opts.data_style):
-            print >> sys.stderr, "The tag save seemed to fail!"
+            print("The tag save seemed to fail!", file=sys.stderr)
             return False
         else:
-            print >> sys.stderr, "Save complete."
+            print("Save complete.", file=sys.stderr)
     else:
         if opts.terse:
-            print >> sys.stderr, "dry-run option was set, so nothing was written"
+            print("dry-run option was set, so nothing was written", file=sys.stderr)
         else:
-            print >> sys.stderr, "dry-run option was set, so nothing was written, but here is the final set of tags:"
-            print(u"{0}".format(md))
+            print("dry-run option was set, so nothing was written, but here is the final set of tags:", file=sys.stderr)
+            print(("{0}".format(md)))
     return True
 
 
 def display_match_set_for_choice(label, match_set, opts, settings):
-    print(u"{0} -- {1}:".format(match_set.filename, label))
+    print(("{0} -- {1}:".format(match_set.filename, label)))
 
     # sort match list by year
     match_set.matches.sort(key=lambda k: k['year'])
 
     for (counter, m) in enumerate(match_set.matches):
         counter += 1
-        print(
-            u"    {0}. {1} #{2} [{3}] ({4}/{5}) - {6}".format(
+        print((
+            "    {0}. {1} #{2} [{3}] ({4}/{5}) - {6}".format(
                 counter,
                 m['series'],
                 m['issue_number'],
                 m['publisher'],
                 m['month'],
                 m['year'],
-                m['issue_title']))
+                m['issue_title'])))
     if opts.interactive:
         while True:
-            i = raw_input("Choose a match #, or 's' to skip: ")
+            i = input("Choose a match #, or 's' to skip: ")
             if (i.isdigit() and int(i) in range(
                     1, len(match_set.matches) + 1)) or i == 's':
                 break
@@ -182,14 +182,14 @@ def post_process_matches(match_results, opts, settings):
 
 def cli_mode(opts, settings):
     if len(opts.file_list) < 1:
-        print >> sys.stderr, "You must specify at least one filename.  Use the -h option for more info"
+        print("You must specify at least one filename.  Use the -h option for more info", file=sys.stderr)
         return
 
     match_results = OnlineMatchResults()
 
     for f in opts.file_list:
         if isinstance(f, str):
-            f = f.decode(filename_encoding, 'replace')
+            pass
         process_file_cli(f, opts, settings, match_results)
         sys.stdout.flush()
 
@@ -225,19 +225,19 @@ def process_file_cli(filename, opts, settings, match_results):
         ComicTaggerSettings.getGraphic('nocover.png'))
 
     if not os.path.lexists(filename):
-        print >> sys.stderr, "Cannot find " + filename
+        print("Cannot find " + filename, file=sys.stderr)
         return
 
     if not ca.seemsToBeAComicArchive():
-        print >> sys.stderr, "Sorry, but " + \
-            filename + "  is not a comic archive!"
+        print("Sorry, but " + \
+            filename + "  is not a comic archive!", file=sys.stderr)
         return
 
     # if not ca.isWritableForStyle(opts.data_style) and (opts.delete_tags or
     # opts.save_tags or opts.rename_file):
     if not ca.isWritable() and (
             opts.delete_tags or opts.copy_tags or opts.save_tags or opts.rename_file):
-        print >> sys.stderr, "This archive is not writable for that tag type"
+        print("This archive is not writable for that tag type", file=sys.stderr)
         return
 
     has = [False, False, False]
@@ -256,7 +256,7 @@ def process_file_cli(filename, opts, settings, match_results):
             brief = ""
 
             if batch_mode:
-                brief = u"{0}: ".format(filename)
+                brief = "{0}: ".format(filename)
 
             if ca.isZip():
                 brief += "ZIP archive    "
@@ -280,24 +280,24 @@ def process_file_cli(filename, opts, settings, match_results):
                     brief += "CoMet "
             brief += "]"
 
-            print brief
+            print(brief)
 
         if opts.terse:
             return
 
-        print
+        print()
 
         if opts.data_style is None or opts.data_style == MetaDataStyle.CIX:
             if has[MetaDataStyle.CIX]:
                 print("--------- ComicRack tags ---------")
                 if opts.raw:
-                    print(
-                        u"{0}".format(
-                            unicode(
+                    print((
+                        "{0}".format(
+                            str(
                                 ca.readRawCIX(),
-                                errors='ignore')))
+                                errors='ignore'))))
                 else:
-                    print(u"{0}".format(ca.readCIX()))
+                    print(("{0}".format(ca.readCIX())))
 
         if opts.data_style is None or opts.data_style == MetaDataStyle.CBI:
             if has[MetaDataStyle.CBI]:
@@ -305,43 +305,43 @@ def process_file_cli(filename, opts, settings, match_results):
                 if opts.raw:
                     pprint(json.loads(ca.readRawCBI()))
                 else:
-                    print(u"{0}".format(ca.readCBI()))
+                    print(("{0}".format(ca.readCBI())))
 
         if opts.data_style is None or opts.data_style == MetaDataStyle.COMET:
             if has[MetaDataStyle.COMET]:
                 print("----------- CoMet tags -----------")
                 if opts.raw:
-                    print(u"{0}".format(ca.readRawCoMet()))
+                    print(("{0}".format(ca.readRawCoMet())))
                 else:
-                    print(u"{0}".format(ca.readCoMet()))
+                    print(("{0}".format(ca.readCoMet())))
 
     elif opts.delete_tags:
         style_name = MetaDataStyle.name[opts.data_style]
         if has[opts.data_style]:
             if not opts.dryrun:
                 if not ca.removeMetadata(opts.data_style):
-                    print(u"{0}: Tag removal seemed to fail!".format(filename))
+                    print(("{0}: Tag removal seemed to fail!".format(filename)))
                 else:
-                    print(
-                        u"{0}: Removed {1} tags.".format(filename, style_name))
+                    print((
+                        "{0}: Removed {1} tags.".format(filename, style_name)))
             else:
-                print(
-                    u"{0}: dry-run. {1} tags not removed".format(filename, style_name))
+                print((
+                    "{0}: dry-run. {1} tags not removed".format(filename, style_name)))
         else:
-            print(u"{0}: This archive doesn't have {1} tags to remove.".format(
-                filename, style_name))
+            print(("{0}: This archive doesn't have {1} tags to remove.".format(
+                filename, style_name)))
 
     elif opts.copy_tags:
         dst_style_name = MetaDataStyle.name[opts.data_style]
         if opts.no_overwrite and has[opts.data_style]:
-            print(u"{0}: Already has {1} tags. Not overwriting.".format(
-                filename, dst_style_name))
+            print(("{0}: Already has {1} tags. Not overwriting.".format(
+                filename, dst_style_name)))
             return
         if opts.copy_source == opts.data_style:
-            print(
-                u"{0}: Destination and source are same: {1}. Nothing to do.".format(
+            print((
+                "{0}: Destination and source are same: {1}. Nothing to do.".format(
                     filename,
-                    dst_style_name))
+                    dst_style_name)))
             return
 
         src_style_name = MetaDataStyle.name[opts.copy_source]
@@ -353,26 +353,26 @@ def process_file_cli(filename, opts, settings, match_results):
                     md = CBLTransformer(md, settings).apply()
 
                 if not ca.writeMetadata(md, opts.data_style):
-                    print(u"{0}: Tag copy seemed to fail!".format(filename))
+                    print(("{0}: Tag copy seemed to fail!".format(filename)))
                 else:
-                    print(u"{0}: Copied {1} tags to {2} .".format(
-                        filename, src_style_name, dst_style_name))
+                    print(("{0}: Copied {1} tags to {2} .".format(
+                        filename, src_style_name, dst_style_name)))
             else:
-                print(
-                    u"{0}: dry-run.  {1} tags not copied".format(filename, src_style_name))
+                print((
+                    "{0}: dry-run.  {1} tags not copied".format(filename, src_style_name)))
         else:
-            print(u"{0}: This archive doesn't have {1} tags to copy.".format(
-                filename, src_style_name))
+            print(("{0}: This archive doesn't have {1} tags to copy.".format(
+                filename, src_style_name)))
 
     elif opts.save_tags:
 
         if opts.no_overwrite and has[opts.data_style]:
-            print(u"{0}: Already has {1} tags. Not overwriting.".format(
-                filename, MetaDataStyle.name[opts.data_style]))
+            print(("{0}: Already has {1} tags. Not overwriting.".format(
+                filename, MetaDataStyle.name[opts.data_style])))
             return
 
         if batch_mode:
-            print(u"Processing {0}...".format(filename))
+            print(("Processing {0}...".format(filename)))
 
         md = create_local_metadata(opts, ca, has[opts.data_style])
         if md.issue is None or md.issue == "":
@@ -389,13 +389,13 @@ def process_file_cli(filename, opts, settings, match_results):
                     cv_md = comicVine.fetchIssueDataByIssueID(
                         opts.issue_id, settings)
                 except ComicVineTalkerException:
-                    print >> sys.stderr, "Network error while getting issue details.  Save aborted"
+                    print("Network error while getting issue details.  Save aborted", file=sys.stderr)
                     match_results.fetchDataFailures.append(filename)
                     return
 
                 if cv_md is None:
-                    print >> sys.stderr, "No match for ID {0} was found.".format(
-                        opts.issue_id)
+                    print("No match for ID {0} was found.".format(
+                        opts.issue_id), file=sys.stderr)
                     match_results.noMatches.append(filename)
                     return
 
@@ -405,7 +405,7 @@ def process_file_cli(filename, opts, settings, match_results):
                 ii = IssueIdentifier(ca, settings)
 
                 if md is None or md.isEmpty:
-                    print >> sys.stderr, "No metadata given to search online with!"
+                    print("No metadata given to search online with!", file=sys.stderr)
                     match_results.noMatches.append(filename)
                     return
 
@@ -444,22 +444,22 @@ def process_file_cli(filename, opts, settings, match_results):
 
                 if choices:
                     if low_confidence:
-                        print >> sys.stderr, "Online search: Multiple low confidence matches.  Save aborted"
+                        print("Online search: Multiple low confidence matches.  Save aborted", file=sys.stderr)
                         match_results.lowConfidenceMatches.append(
                             MultipleMatch(filename, matches))
                         return
                     else:
-                        print >> sys.stderr, "Online search: Multiple good matches.  Save aborted"
+                        print("Online search: Multiple good matches.  Save aborted", file=sys.stderr)
                         match_results.multipleMatches.append(
                             MultipleMatch(filename, matches))
                         return
                 if low_confidence and opts.abortOnLowConfidence:
-                    print >> sys.stderr, "Online search: Low confidence match.  Save aborted"
+                    print("Online search: Low confidence match.  Save aborted", file=sys.stderr)
                     match_results.lowConfidenceMatches.append(
                         MultipleMatch(filename, matches))
                     return
                 if not found_match:
-                    print >> sys.stderr, "Online search: No match found.  Save aborted"
+                    print("Online search: No match found.  Save aborted", file=sys.stderr)
                     match_results.noMatches.append(filename)
                     return
 
@@ -483,7 +483,7 @@ def process_file_cli(filename, opts, settings, match_results):
 
         msg_hdr = ""
         if batch_mode:
-            msg_hdr = u"{0}: ".format(filename)
+            msg_hdr = "{0}: ".format(filename)
 
         if opts.data_style is not None:
             use_tags = has[opts.data_style]
@@ -493,7 +493,7 @@ def process_file_cli(filename, opts, settings, match_results):
         md = create_local_metadata(opts, ca, use_tags)
 
         if md.series is None:
-            print >> sys.stderr, msg_hdr + "Can't rename without series name"
+            print(msg_hdr + "Can't rename without series name", file=sys.stderr)
             return
 
         new_ext = None  # default
@@ -511,7 +511,7 @@ def process_file_cli(filename, opts, settings, match_results):
         new_name = renamer.determineName(filename, ext=new_ext)
 
         if new_name == os.path.basename(filename):
-            print >> sys.stderr, msg_hdr + "Filename is already good!"
+            print(msg_hdr + "Filename is already good!", file=sys.stderr)
             return
 
         folder = os.path.dirname(os.path.abspath(filename))
@@ -524,23 +524,23 @@ def process_file_cli(filename, opts, settings, match_results):
         else:
             suffix = " (dry-run, no change)"
 
-        print(
-            u"renamed '{0}' -> '{1}' {2}".format(os.path.basename(filename), new_name, suffix))
+        print((
+            "renamed '{0}' -> '{1}' {2}".format(os.path.basename(filename), new_name, suffix)))
 
     elif opts.export_to_zip:
         msg_hdr = ""
         if batch_mode:
-            msg_hdr = u"{0}: ".format(filename)
+            msg_hdr = "{0}: ".format(filename)
 
         if not ca.isRar():
-            print >> sys.stderr, msg_hdr + "Archive is not a RAR."
+            print(msg_hdr + "Archive is not a RAR.", file=sys.stderr)
             return
 
         rar_file = os.path.abspath(os.path.abspath(filename))
         new_file = os.path.splitext(rar_file)[0] + ".cbz"
 
         if opts.abort_export_on_conflict and os.path.lexists(new_file):
-            print msg_hdr + "{0} already exists in the that folder.".format(os.path.split(new_file)[1])
+            print(msg_hdr + "{0} already exists in the that folder.".format(os.path.split(new_file)[1]))
             return
 
         new_file = utils.unique_file(os.path.join(new_file))
@@ -554,8 +554,8 @@ def process_file_cli(filename, opts, settings, match_results):
                     try:
                         os.unlink(rar_file)
                     except:
-                        print >> sys.stderr, msg_hdr + \
-                            "Error deleting original RAR after export"
+                        print(msg_hdr + \
+                            "Error deleting original RAR after export", file=sys.stderr)
                         delete_success = False
                     else:
                         delete_success = True
@@ -565,20 +565,20 @@ def process_file_cli(filename, opts, settings, match_results):
                     os.remove(new_file)
         else:
             msg = msg_hdr + \
-                u"Dry-run:  Would try to create {0}".format(
+                "Dry-run:  Would try to create {0}".format(
                     os.path.split(new_file)[1])
             if opts.delete_rar_after_export:
-                msg += u" and delete orginal."
+                msg += " and delete orginal."
             print(msg)
             return
 
         msg = msg_hdr
         if export_success:
-            msg += u"Archive exported successfully to: {0}".format(
+            msg += "Archive exported successfully to: {0}".format(
                 os.path.split(new_file)[1])
             if opts.delete_rar_after_export and delete_success:
-                msg += u" (Original deleted) "
+                msg += " (Original deleted) "
         else:
-            msg += u"Archive failed to export!"
+            msg += "Archive failed to export!"
 
         print(msg)

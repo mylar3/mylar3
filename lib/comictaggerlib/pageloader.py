@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from PyQt4 import QtCore, QtGui, uic
-from PyQt4.QtCore import pyqtSignal
+from PyQt5 import QtCore, QtGui, uic
+from PyQt5.QtCore import pyqtSignal
 
 from comictaggerlib.ui.qtutils import getQImageFromData
 #from comicarchive import ComicArchive

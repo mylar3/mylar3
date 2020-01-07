@@ -17,19 +17,19 @@
 #import sys
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
+from .settings import ComicTaggerSettings
 
 
-class ImagePopup(QtGui.QDialog):
+class ImagePopup(QtWidgets.QDialog):
 
     def __init__(self, parent, image_pixmap):
         super(ImagePopup, self).__init__(parent)
 
         uic.loadUi(ComicTaggerSettings.getUIFile('imagepopup.ui'), self)
 
-        QtGui.QApplication.setOverrideCursor(
+        QtWidgets.QApplication.setOverrideCursor(
             QtGui.QCursor(QtCore.Qt.WaitCursor))
 
         # self.setWindowModality(QtCore.Qt.WindowModal)
@@ -38,15 +38,16 @@ class ImagePopup(QtGui.QDialog):
 
         self.imagePixmap = image_pixmap
 
-        screen_size = QtGui.QDesktopWidget().screenGeometry()
+        screen_size = QtWidgets.QDesktopWidget().screenGeometry()
         self.resize(screen_size.width(), screen_size.height())
         self.move(0, 0)
 
         # This is a total hack.  Uses a snapshot of the desktop, and overlays a
         # translucent screen over it.  Probably can do it better by setting opacity of a
         # widget
-        self.desktopBg = QtGui.QPixmap.grabWindow(
-            QtGui.QApplication.desktop().winId(),
+        screen = QtWidgets.QApplication.primaryScreen()
+        self.desktopBg = screen.grabWindow(
+            QtWidgets.QApplication.desktop().winId(),
             0,
             0,
             screen_size.width(),
@@ -59,7 +60,7 @@ class ImagePopup(QtGui.QDialog):
         self.applyImagePixmap()
         self.showFullScreen()
         self.raise_()
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def paintEvent(self, event):
         self.painter = QtGui.QPainter(self)

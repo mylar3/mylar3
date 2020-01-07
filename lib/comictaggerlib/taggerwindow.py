@@ -17,6 +17,7 @@
 
 import sys
 import locale
+import functools
 import platform
 import os
 import pprint
@@ -26,38 +27,38 @@ import re
 import pickle
 #import signal
 
-from PyQt4 import QtCore, QtGui, uic
-from PyQt4 import QtNetwork
-#from PyQt4.QtCore import QUrl, pyqtSignal
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5 import QtNetwork
+from PyQt5.QtCore import QUrl
 
 #from comicarchive import ComicArchive
 #from pageloader import PageLoader
-from volumeselectionwindow import VolumeSelectionWindow
-from comicarchive import MetaDataStyle
-from comicinfoxml import ComicInfoXml
-from genericmetadata import GenericMetadata
-from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from crediteditorwindow import CreditEditorWindow
-from settingswindow import SettingsWindow
-from settings import ComicTaggerSettings
-from pagebrowser import PageBrowserWindow
-from filenameparser import FileNameParser
-from logwindow import LogWindow
-from optionalmsgdialog import OptionalMessageDialog
-from pagelisteditor import PageListEditor
-from fileselectionlist import FileSelectionList
-from cbltransformer import CBLTransformer
-from renamewindow import RenameWindow
-from exportwindow import ExportWindow, ExportConflictOpts
-from issueidentifier import IssueIdentifier
-from autotagstartwindow import AutoTagStartWindow
-from autotagprogresswindow import AutoTagProgressWindow
-from autotagmatchwindow import AutoTagMatchWindow
-from coverimagewidget import CoverImageWidget
-from versionchecker import VersionChecker
+from .volumeselectionwindow import VolumeSelectionWindow
+from .comicarchive import MetaDataStyle
+from .comicinfoxml import ComicInfoXml
+from .genericmetadata import GenericMetadata
+from .comicvinetalker import ComicVineTalker, ComicVineTalkerException
+from .crediteditorwindow import CreditEditorWindow
+from .settingswindow import SettingsWindow
+from .settings import ComicTaggerSettings
+from .pagebrowser import PageBrowserWindow
+from .filenameparser import FileNameParser
+from .logwindow import LogWindow
+from .optionalmsgdialog import OptionalMessageDialog
+from .pagelisteditor import PageListEditor
+from .fileselectionlist import FileSelectionList
+from .cbltransformer import CBLTransformer
+from .renamewindow import RenameWindow
+from .exportwindow import ExportWindow, ExportConflictOpts
+from .issueidentifier import IssueIdentifier
+from .autotagstartwindow import AutoTagStartWindow
+from .autotagprogresswindow import AutoTagProgressWindow
+from .autotagmatchwindow import AutoTagMatchWindow
+from .coverimagewidget import CoverImageWidget
+from .versionchecker import VersionChecker
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize, centerWindowOnParent
-import utils
-import ctversion
+from . import utils
+from . import ctversion
 
 
 class OnlineMatchResults():
@@ -78,14 +79,14 @@ class MultipleMatch():
         self.matches = match_list
 
 
-class TaggerWindow(QtGui.QMainWindow):
+class TaggerWindow(QtWidgets.QMainWindow):
 
     appName = "ComicTagger"
     version = ctversion.version
 
     def __init__(self, file_list, settings, parent=None, opts=None):
         super(TaggerWindow, self).__init__(parent)
-
+        
         uic.loadUi(ComicTaggerSettings.getUIFile('taggerwindow.ui'), self)
         self.settings = settings
 
@@ -95,14 +96,14 @@ class TaggerWindow(QtGui.QMainWindow):
         socket.connectToServer(settings.install_id)
         alive = socket.waitForConnected(3000)
         if alive:
-            print(
+            print((
                 "Another application with key [{}] is already running".format(
-                    settings.install_id))
+                    settings.install_id)))
             # send file list to other instance
             if len(file_list) > 0:
                 socket.write(pickle.dumps(file_list))
                 if not socket.waitForBytesWritten(3000):
-                    print(socket.errorString().toLatin1())
+                    print((socket.errorString().toLatin1()))
             socket.disconnectFromServer()
             sys.exit()
         else:
@@ -118,28 +119,28 @@ class TaggerWindow(QtGui.QMainWindow):
                     self.socketServer.removeServer(settings.install_id)
                     ok = self.socketServer.listen(settings.install_id)
                 if not ok:
-                    print(
+                    print((
                         "Cannot start local socket with key [{}]. Reason: %s ".format(
                             settings.install_id,
-                            self.socketServer.errorString()))
+                            self.socketServer.errorString())))
                     sys.exit()
             #print("Registering as single instance with key [{}]".format(settings.install_id))
         #----------------------------------
 
         self.archiveCoverWidget = CoverImageWidget(
             self.coverImageContainer, CoverImageWidget.ArchiveMode)
-        gridlayout = QtGui.QGridLayout(self.coverImageContainer)
+        gridlayout = QtWidgets.QGridLayout(self.coverImageContainer)
         gridlayout.addWidget(self.archiveCoverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
         self.pageListEditor = PageListEditor(self.tabPages)
-        gridlayout = QtGui.QGridLayout(self.tabPages)
+        gridlayout = QtWidgets.QGridLayout(self.tabPages)
         gridlayout.addWidget(self.pageListEditor)
 
         #---------------------------
         self.fileSelectionList = FileSelectionList(
             self.widgetListHolder, self.settings)
-        gridlayout = QtGui.QGridLayout(self.widgetListHolder)
+        gridlayout = QtWidgets.QGridLayout(self.widgetListHolder)
         gridlayout.addWidget(self.fileSelectionList)
 
         self.fileSelectionList.selectionChanged.connect(
@@ -153,7 +154,7 @@ class TaggerWindow(QtGui.QMainWindow):
         # walk through all the lablels in the main form, and make them
         # a smidge smaller
         for child in self.scrollAreaWidgetContents.children():
-            if (isinstance(child, QtGui.QLabel)):
+            if (isinstance(child, QtWidgets.QLabel)):
                 f = child.font()
                 if f.pointSize() > 10:
                     f.setPointSize(f.pointSize() - 2)
@@ -264,22 +265,9 @@ class TaggerWindow(QtGui.QMainWindow):
                                                 )
             self.settings.show_disclaimer = not checked
 
-        if self.settings.ask_about_usage_stats:
-            reply = QtGui.QMessageBox.question(
-                self,
-                self.tr("Anonymous Stats"),
-                self.tr(
-                    "Is it okay if ComicTagger occasionally sends some anonymous usage statistics?  Nothing nefarious, "
-                    "just trying to get a better idea of how the app is being used.\n\nThanks for your support!"),
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.Default,
-                QtGui.QMessageBox.No)
-
-            if reply == QtGui.QMessageBox.Yes:
-                self.settings.send_usage_stats = True
-            self.settings.ask_about_usage_stats = False
-
         if self.settings.check_for_new_version:
-            self.checkLatestVersionOnline()
+            #self.checkLatestVersionOnline()
+            pass
 
     def sigint_handler(self, *args):
         # defer the actual close in the app loop thread
@@ -303,6 +291,9 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def updateAppTitle(self):
 
+        self.setWindowIcon(
+            QtGui.QIcon(ComicTaggerSettings.getGraphic('app.png')))
+        
         if self.comic_archive is None:
             self.setWindowTitle(self.appName)
         else:
@@ -455,7 +446,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 rar_count += 1
 
         if rar_count == 0:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 self.tr("Export as Zip Archive"),
                 self.tr("No RAR archives selected!"))
@@ -477,11 +468,13 @@ class TaggerWindow(QtGui.QMainWindow):
             if not dlg.exec_():
                 return
 
-            progdialog = QtGui.QProgressDialog(
+            progdialog = QtWidgets.QProgressDialog(
                 "", "Cancel", 0, rar_count, self)
             progdialog.setWindowTitle("Exporting as ZIP")
             progdialog.setWindowModality(QtCore.Qt.ApplicationModal)
-            progdialog.show()
+            progdialog.setMinimumDuration(300)
+            centerWindowOnParent(progdialog)
+            QtCore.QCoreApplication.processEvents()
             prog_idx = 0
 
             new_archives_to_add = []
@@ -495,8 +488,8 @@ class TaggerWindow(QtGui.QMainWindow):
                     QtCore.QCoreApplication.processEvents()
                     if progdialog.wasCanceled():
                         break
-                    progdialog.setValue(prog_idx)
                     prog_idx += 1
+                    progdialog.setValue(prog_idx)
                     progdialog.setLabelText(ca.path)
                     centerWindowOnParent(progdialog)
                     QtCore.QCoreApplication.processEvents()
@@ -527,23 +520,23 @@ class TaggerWindow(QtGui.QMainWindow):
                             if os.path.lexists(export_name):
                                 os.remove(export_name)
 
-            progdialog.close()
-
+            progdialog.hide()
+            QtCore.QCoreApplication.processEvents()
             self.fileSelectionList.addPathList(new_archives_to_add)
             self.fileSelectionList.removeArchiveList(archives_to_remove)
 
-            summary = u"Successfully created {0} Zip archive(s).".format(
+            summary = "Successfully created {0} Zip archive(s).".format(
                 success_count)
             if len(skipped_list) > 0:
-                summary += u"\n\nThe following {0} RAR archive(s) were skipped due to file name conflicts:\n".format(
+                summary += "\n\nThe following {0} RAR archive(s) were skipped due to file name conflicts:\n".format(
                     len(skipped_list))
                 for f in skipped_list:
-                    summary += u"\t{0}\n".format(f)
+                    summary += "\t{0}\n".format(f)
             if len(failed_list) > 0:
-                summary += u"\n\nThe following {0} RAR archive(s) failed to export due to read/write errors:\n".format(
+                summary += "\n\nThe following {0} RAR archive(s) failed to export due to read/write errors:\n".format(
                     len(failed_list))
                 for f in failed_list:
-                    summary += u"\t{0}\n".format(f)
+                    summary += "\t{0}\n".format(f)
 
             dlg = LogWindow(self)
             dlg.setText(summary)
@@ -552,12 +545,12 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def aboutApp(self):
 
-        website = "http://code.google.com/p/comictagger"
+        website = "https://github.com/comictagger/comictagger"
         email = "comictagger@gmail.com"
         license_link = "http://www.apache.org/licenses/LICENSE-2.0"
         license_name = "Apache License 2.0"
 
-        msgBox = QtGui.QMessageBox()
+        msgBox = QtWidgets.QMessageBox()
         msgBox.setWindowTitle(self.tr("About " + self.appName))
         msgBox.setTextFormat(QtCore.Qt.RichText)
         msgBox.setIconPixmap(
@@ -567,12 +560,12 @@ class TaggerWindow(QtGui.QMainWindow):
                        " v" +
                        self.version +
                        "<br>" +
-                       "&copy;2014 Anthony Beville<br><br>" +
+                       "&copy;2014-2018 ComicTagger Devs<br><br>" +
                        "<a href='{0}'>{0}</a><br><br>".format(website) +
                        "<a href='mailto:{0}'>{0}</a><br><br>".format(email) +
                        "License: <a href='{0}'>{1}</a>".format(license_link, license_name))
 
-        msgBox.setStandardButtons(QtGui.QMessageBox.Ok)
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Ok)
         msgBox.exec_()
 
     def dragEnterEvent(self, event):
@@ -584,10 +577,13 @@ class TaggerWindow(QtGui.QMainWindow):
                 if url.isValid() and url.scheme() == "file":
                     if self.droppedFiles is None:
                         self.droppedFiles = []
-                    self.droppedFiles.append(url.toLocalFile())
+                    self.droppedFiles.append(self.getUrlFromLocalFileID(url))
 
             if self.droppedFiles is not None:
                 event.accept()
+
+    def getUrlFromLocalFileID(self, localFileID):
+            return localFileID.toLocalFile()        
 
     def dropEvent(self, event):
         # if self.dirtyFlagVerification("Open Archive",
@@ -692,11 +688,11 @@ class TaggerWindow(QtGui.QMainWindow):
 
         tag_info = ""
         if ca.hasCIX():
-            tag_info = u"• ComicRack tags"
+            tag_info = "• ComicRack tags"
         if ca.hasCBI():
             if tag_info != "":
                 tag_info += "\n"
-            tag_info += u"• ComicBookLover tags"
+            tag_info += "• ComicBookLover tags"
 
         self.lblTagList.setText(tag_info)
 
@@ -718,13 +714,13 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def connectChildDirtyFlagSignals(self, widget):
 
-        if (isinstance(widget, QtGui.QLineEdit)):
+        if (isinstance(widget, QtWidgets.QLineEdit)):
             widget.textEdited.connect(self.setDirtyFlag)
-        if (isinstance(widget, QtGui.QTextEdit)):
+        if (isinstance(widget, QtWidgets.QTextEdit)):
             widget.textChanged.connect(self.setDirtyFlag)
-        if (isinstance(widget, QtGui.QComboBox)):
+        if (isinstance(widget, QtWidgets.QComboBox)):
             widget.currentIndexChanged.connect(self.setDirtyFlag)
-        if (isinstance(widget, QtGui.QCheckBox)):
+        if (isinstance(widget, QtWidgets.QCheckBox)):
             widget.stateChanged.connect(self.setDirtyFlag)
 
         # recursive call on chillun
@@ -750,14 +746,14 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def clearChildren(self, widget):
 
-        if (isinstance(widget, QtGui.QLineEdit) or
-                isinstance(widget, QtGui.QTextEdit)):
+        if (isinstance(widget, QtWidgets.QLineEdit) or
+                isinstance(widget, QtWidgets.QTextEdit)):
             widget.setText("")
-        if (isinstance(widget, QtGui.QComboBox)):
+        if (isinstance(widget, QtWidgets.QComboBox)):
             widget.setCurrentIndex(0)
-        if (isinstance(widget, QtGui.QCheckBox)):
+        if (isinstance(widget, QtWidgets.QCheckBox)):
             widget.setChecked(False)
-        if (isinstance(widget, QtGui.QTableWidget)):
+        if (isinstance(widget, QtWidgets.QTableWidget)):
             while widget.rowCount() > 0:
                 widget.removeRow(0)
 
@@ -771,7 +767,7 @@ class TaggerWindow(QtGui.QMainWindow):
         # helper func
         def assignText(field, value):
             if value is not None:
-                field.setText(unicode(value))
+                field.setText(str(value))
 
         md = self.metadata
 
@@ -862,18 +858,18 @@ class TaggerWindow(QtGui.QMainWindow):
         self.twCredits.insertRow(row)
 
         item_text = role
-        item = QtGui.QTableWidgetItem(item_text)
+        item = QtWidgets.QTableWidgetItem(item_text)
         item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         item.setData(QtCore.Qt.ToolTipRole, item_text)
         self.twCredits.setItem(row, 1, item)
 
         item_text = name
-        item = QtGui.QTableWidgetItem(item_text)
+        item = QtWidgets.QTableWidgetItem(item_text)
         item.setData(QtCore.Qt.ToolTipRole, item_text)
         item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         self.twCredits.setItem(row, 2, item)
 
-        item = QtGui.QTableWidgetItem("")
+        item = QtWidgets.QTableWidgetItem("")
         item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
         self.twCredits.setItem(row, 0, item)
         self.updateCreditPrimaryFlag(row, primary_flag)
@@ -892,7 +888,7 @@ class TaggerWindow(QtGui.QMainWindow):
 
         # helper func
         def xlate(data, type_str):
-            s = u"{0}".format(data).strip()
+            s = "{0}".format(data).strip()
             if s == "":
                 return None
             elif type_str == "str":
@@ -933,12 +929,10 @@ class TaggerWindow(QtGui.QMainWindow):
         md.format = xlate(self.cbFormat.currentText(), "str")
         md.country = xlate(self.cbCountry.currentText(), "str")
 
-        langiso = self.cbLanguage.itemData(
-            self.cbLanguage.currentIndex()).toString()
+        langiso = self.cbLanguage.itemData(self.cbLanguage.currentIndex())
         md.language = xlate(langiso, "str")
 
-        manga_code = self.cbManga.itemData(
-            self.cbManga.currentIndex()).toString()
+        manga_code = self.cbManga.itemData(self.cbManga.currentIndex())
         md.manga = xlate(manga_code, "str")
 
         # Make a list from the coma delimited tags string
@@ -958,8 +952,8 @@ class TaggerWindow(QtGui.QMainWindow):
         md.credits = list()
         row = 0
         while row < self.twCredits.rowCount():
-            role = u"{0}".format(self.twCredits.item(row, 1).text())
-            name = u"{0}".format(self.twCredits.item(row, 2).text())
+            role = "{0}".format(self.twCredits.item(row, 1).text())
+            name = "{0}".format(self.twCredits.item(row, 2).text())
             primary_flag = self.twCredits.item(row, 0).text() != ""
 
             md.addCredit(name, role, bool(primary_flag))
@@ -982,21 +976,17 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def selectFile(self, folder_mode=False):
 
-        dialog = QtGui.QFileDialog(self)
+        dialog = QtWidgets.QFileDialog(self)
         if folder_mode:
-            dialog.setFileMode(QtGui.QFileDialog.Directory)
+            dialog.setFileMode(QtWidgets.QFileDialog.Directory)
         else:
-            dialog.setFileMode(QtGui.QFileDialog.ExistingFiles)
+            dialog.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
 
         if self.settings.last_opened_folder is not None:
             dialog.setDirectory(self.settings.last_opened_folder)
-        # dialog.setFileMode(QtGui.QFileDialog.Directory)
 
         if not folder_mode:
-            if platform.system() != "Windows" and utils.which("unrar") is None:
-                archive_filter = "Comic archive files (*.cbz *.zip)"
-            else:
-                archive_filter = "Comic archive files (*.cbz *.zip *.cbr *.rar)"
+            archive_filter = "Comic archive files (*.cbz *.zip *.cbr *.rar)"
             filters = [
                 archive_filter,
                 "Any files (*)"
@@ -1011,7 +1001,7 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def autoIdentifySearch(self):
         if self.comic_archive is None:
-            QtGui.QMessageBox.warning(
+            QtWidgets.QMessageBox.warning(
                 self,
                 self.tr("Automatic Identify Search"),
                 self.tr("You need to load a comic first!"))
@@ -1021,19 +1011,19 @@ class TaggerWindow(QtGui.QMainWindow):
 
     def queryOnline(self, autoselect=False):
 
-        issue_number = unicode(self.leIssueNum.text()).strip()
+        issue_number = str(self.leIssueNum.text()).strip()
 
         if autoselect and issue_number == "":
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 "Automatic Identify Search",
                 "Can't auto-identify without an issue number (yet!)")
             return
 
-        if unicode(self.leSeries.text()).strip() != "":
-            series_name = unicode(self.leSeries.text()).strip()
+        if str(self.leSeries.text()).strip() != "":
+            series_name = str(self.leSeries.text()).strip()
         else:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 self.tr("Online Search"),
                 self.tr("Need to enter a series name to search."))
@@ -1067,7 +1057,7 @@ class TaggerWindow(QtGui.QMainWindow):
 
         if selector.result():
             # we should now have a volume ID
-            QtGui.QApplication.setOverrideCursor(
+            QtWidgets.QApplication.setOverrideCursor(
                 QtGui.QCursor(QtCore.Qt.WaitCursor))
 
             # copy the form onto metadata object
@@ -1078,19 +1068,19 @@ class TaggerWindow(QtGui.QMainWindow):
                 new_metadata = comicVine.fetchIssueData(
                     selector.volume_id, selector.issue_number, self.settings)
             except ComicVineTalkerException as e:
-                QtGui.QApplication.restoreOverrideCursor()
+                QtWidgets.QApplication.restoreOverrideCursor()
                 if e.code == ComicVineTalkerException.RateLimit:
-                    QtGui.QMessageBox.critical(
+                    QtWidgets.QMessageBox.critical(
                         self,
                         self.tr("Comic Vine Error"),
                         ComicVineTalker.getRateLimitMessage())
                 else:
-                    QtGui.QMessageBox.critical(
+                    QtWidgets.QMessageBox.critical(
                         self,
                         self.tr("Network Issue"),
                         self.tr("Could not connect to Comic Vine to get issue details.!"))
             else:
-                QtGui.QApplication.restoreOverrideCursor()
+                QtWidgets.QApplication.restoreOverrideCursor()
                 if new_metadata is not None:
 
                     if self.settings.apply_cbl_transform_on_cv_import:
@@ -1104,7 +1094,7 @@ class TaggerWindow(QtGui.QMainWindow):
                     # Now push the new combined data into the edit controls
                     self.metadataToForm()
                 else:
-                    QtGui.QMessageBox.critical(
+                    QtWidgets.QMessageBox.critical(
                         self, self.tr("Search"), self.tr(
                             "Could not find an issue {0} for that series".format(
                                 selector.issue_number)))
@@ -1112,7 +1102,7 @@ class TaggerWindow(QtGui.QMainWindow):
     def commitMetadata(self):
 
         if (self.metadata is not None and self.comic_archive is not None):
-            reply = QtGui.QMessageBox.question(
+            reply = QtWidgets.QMessageBox.question(
                 self,
                 self.tr("Save Tags"),
                 self.tr(
@@ -1120,11 +1110,11 @@ class TaggerWindow(QtGui.QMainWindow):
                     MetaDataStyle.name[
                         self.save_data_style] +
                     " tags to this archive?"),
-                QtGui.QMessageBox.Yes,
-                QtGui.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No)
 
-            if reply == QtGui.QMessageBox.Yes:
-                QtGui.QApplication.setOverrideCursor(
+            if reply == QtWidgets.QMessageBox.Yes:
+                QtWidgets.QApplication.setOverrideCursor(
                     QtGui.QCursor(QtCore.Qt.WaitCursor))
                 self.formToMetadata()
 
@@ -1132,10 +1122,10 @@ class TaggerWindow(QtGui.QMainWindow):
                     self.metadata, self.save_data_style)
                 self.comic_archive.loadCache(
                     [MetaDataStyle.CBI, MetaDataStyle.CIX])
-                QtGui.QApplication.restoreOverrideCursor()
+                QtWidgets.QApplication.restoreOverrideCursor()
 
                 if not success:
-                    QtGui.QMessageBox.warning(
+                    QtWidgets.QMessageBox.warning(
                         self,
                         self.tr("Save failed"),
                         self.tr("The tag save operation seemed to fail!"))
@@ -1143,18 +1133,18 @@ class TaggerWindow(QtGui.QMainWindow):
                     self.clearDirtyFlag()
                     self.updateInfoBox()
                     self.updateMenus()
-                    #QtGui.QMessageBox.information(self, self.tr("Yeah!"), self.tr("File written."))
+                    #QtWidgets.QMessageBox.information(self, self.tr("Yeah!"), self.tr("File written."))
                 self.fileSelectionList.updateCurrentRow()
 
         else:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Whoops!"), self.tr("No data to commit!"))
 
     def setLoadDataStyle(self, s):
         if self.dirtyFlagVerification(
                 "Change Tag Read Style",
                 "If you change read tag style now, data in the form will be lost.  Are you sure?"):
-            self.load_data_style, b = self.cbLoadDataStyle.itemData(s).toInt()
+            self.load_data_style = self.cbLoadDataStyle.itemData(s)
             self.settings.last_selected_load_data_style = self.load_data_style
             self.updateMenus()
             if self.comic_archive is not None:
@@ -1167,16 +1157,21 @@ class TaggerWindow(QtGui.QMainWindow):
                 self.setLoadDataStyle)
 
     def setSaveDataStyle(self, s):
-        self.save_data_style, b = self.cbSaveDataStyle.itemData(s).toInt()
+        self.save_data_style = self.cbSaveDataStyle.itemData(s)
 
         self.settings.last_selected_save_data_style = self.save_data_style
         self.updateStyleTweaks()
         self.updateMenus()
 
     def updateCreditColors(self):
+        #!!!ATB qt5 porting TODO
+        #return 
         inactive_color = QtGui.QColor(255, 170, 150)
         active_palette = self.leSeries.palette()
         active_color = active_palette.color(QtGui.QPalette.Base)
+        
+        inactive_brush = QtGui.QBrush(inactive_color)
+        active_brush = QtGui.QBrush(active_color)
 
         cix_credits = ComicInfoXml().getParseableCredits()
 
@@ -1187,19 +1182,19 @@ class TaggerWindow(QtGui.QMainWindow):
                 if str(self.twCredits.item(r, 1).text()
                        ).lower() not in cix_credits:
                     self.twCredits.item(
-                        r, 1).setBackgroundColor(inactive_color)
+                        r, 1).setBackground(inactive_brush)
                 else:
-                    self.twCredits.item(r, 1).setBackgroundColor(active_color)
+                    self.twCredits.item(r, 1).setBackground(active_brush)
                 # turn off entire primary column
-                self.twCredits.item(r, 0).setBackgroundColor(inactive_color)
+                self.twCredits.item(r, 0).setBackground(inactive_brush)
                 r = r + 1
 
         if self.save_data_style == MetaDataStyle.CBI:
             # loop over credit table, make all active color
             r = 0
             while r < self.twCredits.rowCount():
-                self.twCredits.item(r, 0).setBackgroundColor(active_color)
-                self.twCredits.item(r, 1).setBackgroundColor(active_color)
+                self.twCredits.item(r, 0).setBackground(active_brush)
+                self.twCredits.item(r, 1).setBackground(active_brush)
                 r = r + 1
 
     def updateStyleTweaks(self):
@@ -1228,18 +1223,18 @@ class TaggerWindow(QtGui.QMainWindow):
             if enable:
                 item.setPalette(active_palette)
                 item.setAutoFillBackground(False)
-                if isinstance(item, QtGui.QCheckBox):
+                if isinstance(item, QtWidgets.QCheckBox):
                     item.setEnabled(True)
-                elif isinstance(item, QtGui.QComboBox):
+                elif isinstance(item, QtWidgets.QComboBox):
                     item.setEnabled(True)
                 else:
                     item.setReadOnly(False)
             else:
                 item.setAutoFillBackground(True)
-                if isinstance(item, QtGui.QCheckBox):
+                if isinstance(item, QtWidgets.QCheckBox):
                     item.setPalette(inactive_palette2)
                     item.setEnabled(False)
-                elif isinstance(item, QtGui.QComboBox):
+                elif isinstance(item, QtWidgets.QComboBox):
                     item.setPalette(inactive_palette3)
                     item.setEnabled(False)
                 else:
@@ -1333,7 +1328,7 @@ class TaggerWindow(QtGui.QMainWindow):
             ok_to_mod = True
             if self.isDupeCredit(new_role, new_name):
                 # delete the dupe credit from list
-                reply = QtGui.QMessageBox.question(
+                reply = QtWidgets.QMessageBox.question(
                     self,
                     self.tr("Duplicate Credit!"),
                     self.tr(
@@ -1389,7 +1384,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 self.settings.last_main_window_width,
                 self.settings.last_main_window_height)
         else:
-            screen = QtGui.QDesktopWidget().screenGeometry()
+            screen = QtWidgets.QDesktopWidget().screenGeometry()
             size = self.frameGeometry()
             self.move((screen.width() - size.width()) / 2,
                       (screen.height() - size.height()) / 2)
@@ -1428,7 +1423,7 @@ class TaggerWindow(QtGui.QMainWindow):
         # Add the entries to the language combobox
         self.cbLanguage.addItem("", "")
         lang_dict = utils.getLanguageDict()
-        for key in sorted(lang_dict, cmp=locale.strcoll, key=lang_dict.get):
+        for key in sorted(lang_dict, key=functools.cmp_to_key(locale.strcoll)):
             self.cbLanguage.addItem(lang_dict[key], key)
 
         # Add the entries to the manga combobox
@@ -1527,7 +1522,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 has_md_count += 1
 
         if has_md_count == 0:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Remove Tags"), self.tr(
                     "No archives with {0} tags selected!".format(
                         MetaDataStyle.name[style])))
@@ -1539,22 +1534,26 @@ class TaggerWindow(QtGui.QMainWindow):
             return
 
         if has_md_count != 0:
-            reply = QtGui.QMessageBox.question(
+            reply = QtWidgets.QMessageBox.question(
                 self,
                 self.tr("Remove Tags"),
                 self.tr(
                     "Are you sure you wish to remove the {0} tags from {1} archive(s)?".format(
                         MetaDataStyle.name[style],
                         has_md_count)),
-                QtGui.QMessageBox.Yes,
-                QtGui.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No)
 
-            if reply == QtGui.QMessageBox.Yes:
-                progdialog = QtGui.QProgressDialog(
+            if reply == QtWidgets.QMessageBox.Yes:
+                progdialog = QtWidgets.QProgressDialog(
                     "", "Cancel", 0, has_md_count, self)
                 progdialog.setWindowTitle("Removing Tags")
                 progdialog.setWindowModality(QtCore.Qt.ApplicationModal)
-                progdialog.show()
+                progdialog.setMinimumDuration(300)
+                centerWindowOnParent(progdialog)
+                QtCore.QCoreApplication.processEvents()
+                #progdialog.show()
+
                 prog_idx = 0
 
                 failed_list = []
@@ -1564,8 +1563,8 @@ class TaggerWindow(QtGui.QMainWindow):
                         QtCore.QCoreApplication.processEvents()
                         if progdialog.wasCanceled():
                             break
-                        progdialog.setValue(prog_idx)
                         prog_idx += 1
+                        progdialog.setValue(prog_idx)
                         progdialog.setLabelText(ca.path)
                         centerWindowOnParent(progdialog)
                         QtCore.QCoreApplication.processEvents()
@@ -1577,18 +1576,19 @@ class TaggerWindow(QtGui.QMainWindow):
                             success_count += 1
                         ca.loadCache([MetaDataStyle.CBI, MetaDataStyle.CIX])
 
-                progdialog.close()
+                progdialog.hide()
+                QtCore.QCoreApplication.processEvents()
                 self.fileSelectionList.updateSelectedRows()
                 self.updateInfoBox()
                 self.updateMenus()
 
-                summary = u"Successfully removed tags in {0} archive(s).".format(
+                summary = "Successfully removed tags in {0} archive(s).".format(
                     success_count)
                 if len(failed_list) > 0:
-                    summary += u"\n\nThe remove operation failed in the following {0} archive(s):\n".format(
+                    summary += "\n\nThe remove operation failed in the following {0} archive(s):\n".format(
                         len(failed_list))
                     for f in failed_list:
-                        summary += u"\t{0}\n".format(f)
+                        summary += "\t{0}\n".format(f)
 
                 dlg = LogWindow(self)
                 dlg.setText(summary)
@@ -1605,7 +1605,7 @@ class TaggerWindow(QtGui.QMainWindow):
         dest_style = self.save_data_style
 
         if src_style == dest_style:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self,
                 self.tr("Copy Tags"),
                 self.tr(
@@ -1618,7 +1618,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 has_src_count += 1
 
         if has_src_count == 0:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Copy Tags"), self.tr(
                     "No archives with {0} tags selected!".format(
                         MetaDataStyle.name[src_style])))
@@ -1630,7 +1630,7 @@ class TaggerWindow(QtGui.QMainWindow):
             return
 
         if has_src_count != 0:
-            reply = QtGui.QMessageBox.question(
+            reply = QtWidgets.QMessageBox.question(
                 self,
                 self.tr("Copy Tags"),
                 self.tr(
@@ -1638,15 +1638,17 @@ class TaggerWindow(QtGui.QMainWindow):
                         MetaDataStyle.name[src_style],
                         MetaDataStyle.name[dest_style],
                         has_src_count)),
-                QtGui.QMessageBox.Yes,
-                QtGui.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No)
 
-            if reply == QtGui.QMessageBox.Yes:
-                progdialog = QtGui.QProgressDialog(
+            if reply == QtWidgets.QMessageBox.Yes:
+                progdialog = QtWidgets.QProgressDialog(
                     "", "Cancel", 0, has_src_count, self)
                 progdialog.setWindowTitle("Copying Tags")
                 progdialog.setWindowModality(QtCore.Qt.ApplicationModal)
-                progdialog.show()
+                progdialog.setMinimumDuration(300)
+                centerWindowOnParent(progdialog)
+                QtCore.QCoreApplication.processEvents()
                 prog_idx = 0
 
                 failed_list = []
@@ -1656,8 +1658,8 @@ class TaggerWindow(QtGui.QMainWindow):
                         QtCore.QCoreApplication.processEvents()
                         if progdialog.wasCanceled():
                             break
-                        progdialog.setValue(prog_idx)
                         prog_idx += 1
+                        progdialog.setValue(prog_idx)
                         progdialog.setLabelText(ca.path)
                         centerWindowOnParent(progdialog)
                         QtCore.QCoreApplication.processEvents()
@@ -1675,18 +1677,19 @@ class TaggerWindow(QtGui.QMainWindow):
 
                         ca.loadCache([MetaDataStyle.CBI, MetaDataStyle.CIX])
 
-                progdialog.close()
+                progdialog.hide()
+                QtCore.QCoreApplication.processEvents()
                 self.fileSelectionList.updateSelectedRows()
                 self.updateInfoBox()
                 self.updateMenus()
 
-                summary = u"Successfully copied tags in {0} archive(s).".format(
+                summary = "Successfully copied tags in {0} archive(s).".format(
                     success_count)
                 if len(failed_list) > 0:
-                    summary += u"\n\nThe copy operation failed in the following {0} archive(s):\n".format(
+                    summary += "\n\nThe copy operation failed in the following {0} archive(s):\n".format(
                         len(failed_list))
                     for f in failed_list:
-                        summary += u"\t{0}\n".format(f)
+                        summary += "\t{0}\n".format(f)
 
                 dlg = LogWindow(self)
                 dlg.setText(summary)
@@ -1697,7 +1700,7 @@ class TaggerWindow(QtGui.QMainWindow):
 
         # now get the particular issue data
         cv_md = None
-        QtGui.QApplication.setOverrideCursor(
+        QtWidgets.QApplication.setOverrideCursor(
             QtGui.QCursor(QtCore.Qt.WaitCursor))
 
         try:
@@ -1712,7 +1715,7 @@ class TaggerWindow(QtGui.QMainWindow):
             if self.settings.apply_cbl_transform_on_cv_import:
                 cv_md = CBLTransformer(cv_md, self.settings).apply()
 
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
         return cv_md
 
@@ -1830,7 +1833,7 @@ class TaggerWindow(QtGui.QMainWindow):
         style = self.save_data_style
 
         if len(ca_list) == 0:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Auto-Tag"), self.tr("No archives selected!"))
             return
 
@@ -1860,9 +1863,9 @@ class TaggerWindow(QtGui.QMainWindow):
         self.atprogdialog.setWindowTitle("Auto-Tagging")
 
         self.autoTagLog(
-            u"==========================================================================\n")
+            "==========================================================================\n")
         self.autoTagLog(
-            u"Auto-Tagging Started for {0} items\n".format(len(ca_list)))
+            "Auto-Tagging Started for {0} items\n".format(len(ca_list)))
 
         prog_idx = 0
 
@@ -1870,10 +1873,10 @@ class TaggerWindow(QtGui.QMainWindow):
         archives_to_remove = []
         for ca in ca_list:
             self.autoTagLog(
-                u"==========================================================================\n")
+                "==========================================================================\n")
             self.autoTagLog(
-                u"Auto-Tagging {0} of {1}\n".format(prog_idx + 1, len(ca_list)))
-            self.autoTagLog(u"{0}\n".format(ca.path))
+                "Auto-Tagging {0} of {1}\n".format(prog_idx + 1, len(ca_list)))
+            self.autoTagLog("{0}\n".format(ca.path))
             cover_idx = ca.readMetadata(style).getCoverPageIndexList()[0]
             image_data = ca.getPage(cover_idx)
             self.atprogdialog.setArchiveImage(image_data)
@@ -1904,24 +1907,24 @@ class TaggerWindow(QtGui.QMainWindow):
         self.loadArchive(self.fileSelectionList.getCurrentArchive())
         self.atprogdialog = None
 
-        summary = u""
-        summary += u"Successfully tagged archives: {0}\n".format(
+        summary = ""
+        summary += "Successfully tagged archives: {0}\n".format(
             len(match_results.goodMatches))
 
         if len(match_results.multipleMatches) > 0:
-            summary += u"Archives with multiple matches: {0}\n".format(
+            summary += "Archives with multiple matches: {0}\n".format(
                 len(match_results.multipleMatches))
         if len(match_results.lowConfidenceMatches) > 0:
-            summary += u"Archives with one or more low-confidence matches: {0}\n".format(
+            summary += "Archives with one or more low-confidence matches: {0}\n".format(
                 len(match_results.lowConfidenceMatches))
         if len(match_results.noMatches) > 0:
-            summary += u"Archives with no matches: {0}\n".format(
+            summary += "Archives with no matches: {0}\n".format(
                 len(match_results.noMatches))
         if len(match_results.fetchDataFailures) > 0:
-            summary += u"Archives that failed due to data fetch errors: {0}\n".format(
+            summary += "Archives that failed due to data fetch errors: {0}\n".format(
                 len(match_results.fetchDataFailures))
         if len(match_results.writeFailures) > 0:
-            summary += u"Archives that failed due to file writing errors: {0}\n".format(
+            summary += "Archives that failed due to file writing errors: {0}\n".format(
                 len(match_results.writeFailures))
 
         self.autoTagLog(summary)
@@ -1929,18 +1932,18 @@ class TaggerWindow(QtGui.QMainWindow):
         sum_selectable = len(
             match_results.multipleMatches) + len(match_results.lowConfidenceMatches)
         if sum_selectable > 0:
-            summary += u"\n\nDo you want to manually select the ones with multiple matches and/or low-confidence matches now?"
+            summary += "\n\nDo you want to manually select the ones with multiple matches and/or low-confidence matches now?"
 
-            reply = QtGui.QMessageBox.question(
+            reply = QtWidgets.QMessageBox.question(
                 self,
-                self.tr(u"Auto-Tag Summary"),
+                self.tr("Auto-Tag Summary"),
                 self.tr(summary),
-                QtGui.QMessageBox.Yes,
-                QtGui.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No)
 
             match_results.multipleMatches.extend(
                 match_results.lowConfidenceMatches)
-            if reply == QtGui.QMessageBox.Yes:
+            if reply == QtWidgets.QMessageBox.Yes:
                 matchdlg = AutoTagMatchWindow(
                     self,
                     match_results.multipleMatches,
@@ -1952,19 +1955,19 @@ class TaggerWindow(QtGui.QMainWindow):
                 self.loadArchive(self.fileSelectionList.getCurrentArchive())
 
         else:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Auto-Tag Summary"), self.tr(summary))
 
     def dirtyFlagVerification(self, title, desc):
         if self.dirtyFlag:
-            reply = QtGui.QMessageBox.question(
+            reply = QtWidgets.QMessageBox.question(
                 self,
                 self.tr(title),
                 self.tr(desc),
-                QtGui.QMessageBox.Yes,
-                QtGui.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No)
 
-            if reply != QtGui.QMessageBox.Yes:
+            if reply != QtWidgets.QMessageBox.Yes:
                 return False
         return True
 
@@ -2015,10 +2018,10 @@ class TaggerWindow(QtGui.QMainWindow):
             dlg.exec_()
 
     def showWiki(self):
-        webbrowser.open("http://code.google.com/p/comictagger/wiki/Home?tm=6")
+        webbrowser.open("https://github.com/comictagger/comictagger/wiki")
 
     def reportBug(self):
-        webbrowser.open("http://code.google.com/p/comictagger/issues/list")
+        webbrowser.open("https://github.com/comictagger/comictagger/issues")
 
     def showForum(self):
         webbrowser.open("http://comictagger.forumotion.com/")
@@ -2039,7 +2042,7 @@ class TaggerWindow(QtGui.QMainWindow):
         ca_list = self.fileSelectionList.getSelectedArchiveList()
 
         if len(ca_list) == 0:
-            QtGui.QMessageBox.information(
+            QtWidgets.QMessageBox.information(
                 self, self.tr("Rename"), self.tr("No archives selected!"))
             return
 
@@ -2055,7 +2058,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 self.loadArchive(self.comic_archive)
 
     def fileListSelectionChanged(self, qvarFI):
-        fi = qvarFI.toPyObject()
+        fi = qvarFI #.toPyObject()
         self.loadArchive(fi.ca)
 
     def loadArchive(self, comic_archive):
@@ -2100,7 +2103,7 @@ class TaggerWindow(QtGui.QMainWindow):
     def versionCheckComplete(self, new_version):
         if (new_version != self.version and
                 new_version != self.settings.dont_notify_about_this_version):
-            website = "http://code.google.com/p/comictagger"
+            website = "https://github.com/comictagger/comictagger"
             checked = OptionalMessageDialog.msg(
                 self,
                 "New version available!",
@@ -2152,7 +2155,7 @@ class TaggerWindow(QtGui.QMainWindow):
                 win32gui.SetWindowPos(
                     hwnd, win32con.HWND_NOTOPMOST, x, y, w, h, 0)
             except Exception as e:
-                print "Whoops", e
+                print("Whoops", e)
         elif platform.system() == "Darwin":
             self.raise_()
             self.showNormal()

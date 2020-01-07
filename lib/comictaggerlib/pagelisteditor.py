@@ -1,4 +1,4 @@
-"""A PyQt4 widget for editing the page list info"""
+"""A PyQt5 widget for editing the page list info"""
 
 # Copyright 2012-2014 Anthony Beville
 
@@ -16,14 +16,15 @@
 
 #import os
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5 import uic
 
-from settings import ComicTaggerSettings
-from genericmetadata import GenericMetadata, PageType
-from comicarchive import MetaDataStyle
-from coverimagewidget import CoverImageWidget
+from .settings import ComicTaggerSettings
+from .genericmetadata import GenericMetadata, PageType
+from .comicarchive import MetaDataStyle
+from .coverimagewidget import CoverImageWidget
 #from pageloader import PageLoader
 
 
@@ -171,7 +172,7 @@ class PageListEditor(QWidget):
 
         #idx = int(str (self.listWidget.item(row).text()))
         idx = int(self.listWidget.item(row).data(
-            Qt.UserRole).toPyObject()[0]['Image'])
+            Qt.UserRole)[0]['Image'])
 
         if self.comic_archive is not None:
             self.pageWidget.setArchive(self.comic_archive, idx)
@@ -180,7 +181,7 @@ class PageListEditor(QWidget):
         frontCover = 0
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
-            page_dict = item.data(Qt.UserRole).toPyObject()[0]
+            page_dict = item.data(Qt.UserRole)[0] #.toPyObject()[0]
             if 'Type' in page_dict and page_dict[
                     'Type'] == PageType.FrontCover:
                 frontCover = int(page_dict['Image'])
@@ -189,7 +190,7 @@ class PageListEditor(QWidget):
 
     def getCurrentPageType(self):
         row = self.listWidget.currentRow()
-        page_dict = self.listWidget.item(row).data(Qt.UserRole).toPyObject()[0]
+        page_dict = self.listWidget.item(row).data(Qt.UserRole)[0] #.toPyObject()[0]
         if 'Type' in page_dict:
             return page_dict['Type']
         else:
@@ -197,7 +198,7 @@ class PageListEditor(QWidget):
 
     def setCurrentPageType(self, t):
         row = self.listWidget.currentRow()
-        page_dict = self.listWidget.item(row).data(Qt.UserRole).toPyObject()[0]
+        page_dict = self.listWidget.item(row).data(Qt.UserRole)[0] #.toPyObject()[0]
 
         if t == "":
             if 'Type' in page_dict:
@@ -239,7 +240,7 @@ class PageListEditor(QWidget):
         page_list = []
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
-            page_list.append(item.data(Qt.UserRole).toPyObject()[0])
+            page_list.append(item.data(Qt.UserRole)[0]) #.toPyObject()[0]
         return page_list
 
     def emitFrontCoverChange(self):

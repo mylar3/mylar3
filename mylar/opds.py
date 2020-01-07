@@ -23,9 +23,9 @@ import cherrypy
 from xml.sax.saxutils import escape
 import os
 import glob
-import urllib2
-from urllib import urlencode, quote_plus
-import cache
+import urllib.request, urllib.error, urllib.parse
+from urllib.parse import urlencode, quote_plus
+from . import cache
 import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
@@ -91,7 +91,7 @@ class OPDS(object):
                     except:
                         logger.fdebug('No reading list found to update.')
                 return serve_download(path=self.file, name=self.filename)
-            if isinstance(self.data, basestring):
+            if isinstance(self.data, str):
                 return self.data
             else:
                 cherrypy.response.headers['Content-Type'] = "text/xml"
@@ -111,7 +111,7 @@ class OPDS(object):
         rows_as_dic = []
 
         for row in rows:
-            row_as_dic = dict(zip(row.keys(), row))
+            row_as_dic = dict(list(zip(list(row.keys()), row)))
             rows_as_dic.append(row_as_dic)
 
         return rows_as_dic
@@ -451,7 +451,7 @@ class OPDS(object):
                 image = None
                 thumbnail = None
                 if issuebook:
-                    if not 'ReleaseComicID' in issuebook.keys():
+                    if not 'ReleaseComicID' in list(issuebook.keys()):
                         if issuebook['DateAdded'] is None:
                             title = escape('%03d: %s #%s - %s (In stores %s)' % (index + number, issuebook['ComicName'], issuebook['Issue_Number'], issuebook['IssueName'], issuebook['ReleaseDate']))
                             image = issuebook['ImageURL_ALT']

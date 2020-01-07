@@ -20,7 +20,7 @@ possible, however lossy it might be
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import utils
+from . import utils
 
 
 class PageType:
@@ -251,7 +251,7 @@ class GenericMetadata:
             return "No metadata"
 
         def add_string(tag, val):
-            if val is not None and u"{0}".format(val) != "":
+            if val is not None and "{0}".format(val) != "":
                 vals.append((tag, val))
 
         def add_attr_string(tag):
@@ -314,7 +314,7 @@ class GenericMetadata:
 
         # format the data nicely
         outstr = ""
-        fmt_str = u"{0: <" + str(flen) + "} {1}\n"
+        fmt_str = "{0: <" + str(flen) + "} {1}\n"
         for i in vals:
             outstr += fmt_str.format(i[0] + ":", i[1])
 

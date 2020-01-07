@@ -55,20 +55,22 @@ def get_recursive_filelist(pathlist):
         # if path is a folder, walk it recursively, and all files underneath
         if isinstance(p, str):
             # make sure string is unicode
-            p = p.decode(filename_encoding)  # , 'replace')
-        elif not isinstance(p, unicode):
+            #p = p.decode(filename_encoding)  # , 'replace')
+            pass
+        elif not isinstance(p, str):
             # it's probably a QString
-            p = unicode(p)
+            p = str(p)
 
         if os.path.isdir(p):
             for root, dirs, files in os.walk(p):
                 for f in files:
                     if isinstance(f, str):
                         # make sure string is unicode
-                        f = f.decode(filename_encoding, 'replace')
-                    elif not isinstance(f, unicode):
+                        #f = f.decode(filename_encoding, 'replace')
+                        pass
+                    elif not isinstance(f, str):
                         # it's probably a QString
-                        f = unicode(f)
+                        f = str(f)
                     filelist.append(os.path.join(root, f))
         else:
             filelist.append(p)
@@ -121,7 +123,7 @@ def which(program):
 
 def removearticles(text):
     text = text.lower()
-    articles = ['and', 'the', 'a', '&', 'issue']
+    articles = ['and', 'a', '&', 'issue', 'the']
     newText = ''
     for word in text.split(' '):
         if word not in articles:

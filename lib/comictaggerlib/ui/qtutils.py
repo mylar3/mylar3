@@ -8,7 +8,7 @@ from comictaggerlib.settings import ComicTaggerSettings
 
 
 try:
-    from PyQt4 import QtGui
+    from PyQt5 import QtGui
     qt_available = True
 except ImportError:
     qt_available = False
@@ -64,7 +64,7 @@ if qt_available:
     try:
         from PIL import Image
         from PIL import WebPImagePlugin
-        import StringIO
+        import io
         pil_available = True
     except ImportError:
         pil_available = False
@@ -78,11 +78,10 @@ if qt_available:
                     #  Qt doesn't understand the format, but maybe PIL does
                     # so try to convert the image data to uncompressed tiff
                     # format
-                    im = Image.open(StringIO.StringIO(image_data))
-                    output = StringIO.StringIO()
-                    im.save(output, format="TIFF")
-                    img.loadFromData(output.getvalue())
-                    success = True
+                    im = Image.open(io.StringIO(image_data))
+                    output = io.StringIO()
+                    im.save(output, format="PNG")
+                    success = img.loadFromData(output.getvalue())
             except Exception as e:
                 pass
         # if still nothing, go with default image

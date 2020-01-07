@@ -1,13 +1,12 @@
 
 from bs4 import BeautifulSoup, UnicodeDammit
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
-import helpers
-import logger
+from . import helpers
+from . import logger
 import datetime
 import sys
 from decimal import Decimal
-from HTMLParser import HTMLParseError
 from time import strptime
 
 
@@ -17,7 +16,7 @@ def cbdb(comicnm, ComicYear):
     #print ( "comicyear: " + str(comicyr) )
     comicnm = re.sub(' ', '+', comicnm)
     input = "http://mobile.comicbookdb.com/search.php?form_search=" + str(comicnm) + "&form_searchtype=Title&x=0&y=0"
-    response = urllib2.urlopen(input)
+    response = urllib.request.urlopen(input)
     soup = BeautifulSoup(response)
     abc = soup.findAll('a', href=True)
     lenabc = len(abc)
@@ -31,41 +30,41 @@ def cbdb(comicnm, ComicYear):
 
     while (i < lenabc):
         titlet = abc[i]  # iterate through the href's, pulling out only results.
-        print ("titlet: " + str(titlet))
+        print(("titlet: " + str(titlet)))
         if "title.php" in str(titlet):
             print ("found title")
             tempName = titlet.findNext(text=True)
-            print ("tempName: " + tempName)
+            print(("tempName: " + tempName))
             resultName = tempName[:tempName.find("(")]
-            print ("ComicName: " + resultName)
+            print(("ComicName: " + resultName))
 
             resultYear = tempName[tempName.find("(") +1:tempName.find(")")]
             if resultYear.isdigit(): pass
             else:
                 i += 1
                 continue
-            print "ComicYear: " + resultYear
+            print("ComicYear: " + resultYear)
 
             ID_som = titlet['href']
             resultURL = ID_som
-            print "CBDB URL: " + resultURL
+            print("CBDB URL: " + resultURL)
 
             IDst = ID_som.find('?ID=')
             resultID = ID_som[(IDst +4):]
 
-            print "CBDB ID: " + resultID
+            print("CBDB ID: " + resultID)
 
-            print ("resultname: " + resultName)
+            print(("resultname: " + resultName))
             CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
             CleanComicName = re.sub(' ', '', CleanComicName).lower()
             CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName)
             CleanResultName = re.sub(' ', '', CleanResultName).lower()
-            print ("CleanComicName: " + CleanComicName)
-            print ("CleanResultName: " + CleanResultName)
+            print(("CleanComicName: " + CleanComicName))
+            print(("CleanResultName: " + CleanResultName))
             if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName or len(CleanComicName) == len(CleanResultName):
             #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower():
-                print ("i:" + str(i) + "...matched by name to Mylar!")
-                print ("ComicYear: " + str(ComicYear) + ".. to ResultYear: " + str(resultYear))
+                print(("i:" + str(i) + "...matched by name to Mylar!"))
+                print(("ComicYear: " + str(ComicYear) + ".. to ResultYear: " + str(resultYear)))
                 if resultYear.isdigit():
                     if int(resultYear) == int(ComicYear) or int(resultYear) == int(ComicYear) +1:
                         resultID = str(resultID)
@@ -85,7 +84,7 @@ def IssueDetails(cbdb_id):
     gcount = 0
     pagethis = 'http://comicbookdb.com/title.php?ID=' + str(cbdb_id)
 
-    response = urllib2.urlopen(pagethis)
+    response = urllib.request.urlopen(pagethis)
     soup = BeautifulSoup(response)
 
     resultp = soup.findAll("table")
@@ -100,16 +99,16 @@ def IssueDetails(cbdb_id):
     for t in boop:
         if pubchk == 0:
             if ("publisher.php?" in startit('a')[i]['href']):
-                print (startit('a')[i]['href'])
+                print((startit('a')[i]['href']))
                 publisher = str(startit('a')[i].contents)
-                print ("publisher: " + publisher)
+                print(("publisher: " + publisher))
                 pubchk = "1"
         elif 'Publication Date: ' in t:
             pdi = boop[i].nextSibling
-            print ("publication date: " + pdi)
+            print(("publication date: " + pdi))
         elif 'Number of issues cataloged: ' in t:
             noi = boop[i].nextSibling
-            print ("number of issues: " + noi)
+            print(("number of issues: " + noi))
 
         i += 1
 
@@ -132,7 +131,7 @@ def IssueDetails(cbdb_id):
         ti += 1
     noresults = len(tableno)
     #print ("tableno: " + str(tableno))
-    print ("there are " + str(noresults) + " issues total (cover variations, et all).")
+    print(("there are " + str(noresults) + " issues total (cover variations, et all)."))
     i = 1 # start at 1 so we don't grab the table headers ;)
     issue = []
     storyarc = []
@@ -142,7 +141,7 @@ def IssueDetails(cbdb_id):
 
     while (i < noresults):
         resultit = tableno[i]   # 7th table, 1st set of tr (which indicates an issue).
-        print ("resultit: " + str(resultit))
+        print(("resultit: " + str(resultit)))
         issuet = resultit.find("a", {"class": "page_link"})  # gets the issue # portion
         try:
             issue = issuet.findNext(text=True)
@@ -164,10 +163,10 @@ def IssueDetails(cbdb_id):
         issuetitle = 'None'
         while (n < lengtht):
             storyt = lent[n] #
-            print ("storyt: " + str(storyt))
+            print(("storyt: " + str(storyt)))
             if 'issue.php' in storyt:
                 issuetitle = storyt.findNext(text=True)
-                print ("title:" + issuetitle)
+                print(("title:" + issuetitle))
             if 'storyarc.php' in storyt:
                 #print ("found storyarc")
                 storyarc = storyt.findNext(text=True)
@@ -191,8 +190,8 @@ def IssueDetails(cbdb_id):
 
         #pubdate = re.sub("[^0-9]", "", pdaters)
         issuetmp = re.sub("[^0-9]", '', issue)
-        print ("Issue : " + str(issuetmp) + "  (" + str(pubdate) + ")")
-        print ("Issuetitle " + str(issuetitle))
+        print(("Issue : " + str(issuetmp) + "  (" + str(pubdate) + ")"))
+        print(("Issuetitle " + str(issuetitle)))
 
         annualslist.append({
             'AnnualIssue':  issuetmp.strip(),
@@ -206,8 +205,8 @@ def IssueDetails(cbdb_id):
 
     annuals['annualslist'] = annualslist
 
-    print ("Issues:" + str(annuals['annualslist']))
-    print ("There are " + str(gcount) + " issues.")
+    print(("Issues:" + str(annuals['annualslist'])))
+    print(("There are " + str(gcount) + " issues."))
 
     annuals['totalissues'] = gcount
     annuals['GCDComicID'] = cbdb_id

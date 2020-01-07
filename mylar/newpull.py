@@ -1,6 +1,6 @@
 
 from bs4 import BeautifulSoup, UnicodeDammit
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import csv
 import fileinput
 import sys
@@ -10,7 +10,6 @@ import sqlite3
 import datetime
 import unicodedata
 from decimal import Decimal
-from HTMLParser import HTMLParseError
 from time import strptime
 import requests
 
@@ -23,7 +22,7 @@ def newpull():
         try:
             r = requests.get(pagelinks, verify=False)
 
-        except Exception, e:
+        except Exception as e:
             logger.warn('Error fetching data: %s' % e)
 
         soup = BeautifulSoup(r.content)
@@ -115,9 +114,9 @@ def newpull():
             f.write('%s\n' % (newdates))
             for pl in pull_list:
                 if pl['publisher'] == oldpub:
-                    exceptln = str(pl['ID']) + "\t" + pl['name'].replace(u"\xA0", u" ") + "\t" + str(pl['price'])
+                    exceptln = str(pl['ID']) + "\t" + pl['name'].replace("\xA0", " ") + "\t" + str(pl['price'])
                 else:
-                    exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + pl['name'].replace(u"\xA0", u" ") + "\t" + str(pl['price'])
+                    exceptln = pl['publisher'] + "\n" + str(pl['ID']) + "\t" + pl['name'].replace("\xA0", " ") + "\t" + str(pl['price'])
 
                 for lb in breakhtml:
                     exceptln = re.sub(lb, '', exceptln).strip()

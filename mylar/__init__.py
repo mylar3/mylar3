@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -16,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+
 
 import os, sys, subprocess
 
@@ -28,7 +25,7 @@ import sqlite3
 import itertools
 import csv
 import shutil
-import Queue
+import queue
 import platform
 import locale
 import re
@@ -125,11 +122,11 @@ NZBPOOL = None
 SEARCHPOOL = None
 PPPOOL = None
 DDLPOOL = None
-SNATCHED_QUEUE = Queue.Queue()
-NZB_QUEUE = Queue.Queue()
-PP_QUEUE = Queue.Queue()
-SEARCH_QUEUE = Queue.Queue()
-DDL_QUEUE = Queue.Queue()
+SNATCHED_QUEUE = queue.Queue()
+NZB_QUEUE = queue.Queue()
+PP_QUEUE = queue.Queue()
+SEARCH_QUEUE = queue.Queue()
+DDL_QUEUE = queue.Queue()
 SEARCH_TIER_DATE = None
 COMICSORT = None
 PULLBYFILE = False
@@ -186,7 +183,7 @@ def initialize(config_file):
         logger.info('Checking to see if the database has all tables....')
         try:
             dbcheck()
-        except Exception, e:
+        except Exception as e:
             logger.error('Cannot connect to the database: %s' % e)
 
         if MAINTENANCE is False:
@@ -287,7 +284,7 @@ def daemonize():
             # Exit the parent process
             logger.debug('Forking once...')
             os._exit(0)
-    except OSError, e:
+    except OSError as e:
         sys.exit("1st fork failed: %s [%d]" % (e.strerror, e.errno))
 
     os.setsid()
@@ -302,7 +299,7 @@ def daemonize():
         if pid > 0:
             logger.debug('Forking twice...')
             os._exit(0) # Exit second parent process
-    except OSError, e:
+    except OSError as e:
         sys.exit("2nd fork failed: %s [%d]" % (e.strerror, e.errno))
 
     dev_null = file('/dev/null', 'r')
@@ -330,7 +327,7 @@ def launch_browser(host, port, root):
 
     try:
         webbrowser.open('http://%s:%i%s' % (host, port, root))
-    except Exception, e:
+    except Exception as e:
         logger.error('Could not launch browser: %s' % e)
 
 def start():
@@ -693,8 +690,6 @@ def dbcheck():
     c.execute('CREATE TABLE IF NOT EXISTS ddl_info (ID TEXT UNIQUE, series TEXT, year TEXT, filename TEXT, size TEXT, issueid TEXT, comicid TEXT, link TEXT, status TEXT, remote_filesize TEXT, updated_date TEXT, mainlink TEXT, issues TEXT)')
     conn.commit
     c.close
-
-    csv_load()
 
 
     #add in the late players to the game....
@@ -1331,61 +1326,6 @@ def dbcheck():
     if dynamic_upgrade is True:
         logger.info('Updating db to include some important changes.')
         helpers.upgrade_dynamic()
-
-def csv_load():
-    # for redudant module calls..include this.
-    conn = sqlite3.connect(DB_FILE)
-    c=conn.cursor()
-
-    c.execute('DROP TABLE IF EXISTS exceptions')
-
-    c.execute('CREATE TABLE IF NOT EXISTS exceptions (variloop TEXT, ComicID TEXT, NewComicID TEXT, GComicID TEXT)')
-
-    # for Mylar-based Exception Updates....
-    i = 0
-    EXCEPTIONS = []
-    EXCEPTIONS.append('exceptions.csv')
-    EXCEPTIONS.append('custom_exceptions.csv')
-
-    while (i <= 1):
-    #EXCEPTIONS_FILE = os.path.join(DATA_DIR, 'exceptions.csv')
-        EXCEPTIONS_FILE = os.path.join(DATA_DIR, EXCEPTIONS[i])
-
-        if not os.path.exists(EXCEPTIONS_FILE):
-            try:
-                csvfile = open(str(EXCEPTIONS_FILE), "rb")
-            except (OSError, IOError):
-                if i == 1:
-                    logger.info('No Custom Exceptions found - Using base exceptions only. Creating blank custom_exceptions for your personal use.')
-                    try:
-                        shutil.copy(os.path.join(DATA_DIR, "custom_exceptions_sample.csv"), EXCEPTIONS_FILE)
-                    except (OSError, IOError):
-                        logger.error('Cannot create custom_exceptions.csv in ' + str(DATA_DIR) + '. Make sure custom_exceptions_sample.csv is present and/or check permissions.')
-                        return
-                else:
-                    logger.error('Could not locate ' + str(EXCEPTIONS[i]) + ' file. Make sure it is in datadir: ' + DATA_DIR)
-                break
-        else:
-            csvfile = open(str(EXCEPTIONS_FILE), "rb")
-        if i == 0:
-            logger.info('Populating Base Exception listings into Mylar....')
-        elif i == 1:
-            logger.info('Populating Custom Exception listings into Mylar....')
-
-        creader = csv.reader(csvfile, delimiter=',')
-
-        for row in creader:
-            try:
-                #print row.split(',')
-                c.execute("INSERT INTO exceptions VALUES (?,?,?,?)", row)
-            except Exception, e:
-                #print ("Error - invald arguments...-skipping")
-                pass
-        csvfile.close()
-        i+=1
-
-    conn.commit()
-    c.close()
 
 def halt():
     global _INITIALIZED, started

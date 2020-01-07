@@ -41,7 +41,7 @@ class TorrentClient(object):
 
     def get_torrent(self, torrent):
         if not torrent[26]:
-            raise 'Only compatible with uTorrent 3.0+'
+            raise Exception('Only compatible with uTorrent 3.0+')
 
         torrent_files = []
         torrent_completed = False

@@ -1,0 +1,25 @@
+# Library dependencies for the python code.  You need to install these with
+# `pip install -r requirements.txt` before you can run this.
+
+# this might not be exhaustive, as this is still a WIP.
+
+#### ESSENTIAL LIBRARIES FOR MAIN FUNCTIONALITY ####
+APScheduler>=3.6.3
+beautifulsoup4>=4.8.2
+cfscrape>=2.0.8
+cheroot==8.2.1
+CherryPy>=18.5.0
+configparser>=4.0.2
+feedparser>=5.2.1
+Mako>=1.1.0
+natsort>=3.5.2
+Pillow>=7.0.0
+portend>=2.6
+pytz>=2019.3
+requests>=2.22.0
+simplejson>=3.17.0
+six>=1.13.0
+tzlocal>=2.0.0
+unrar>=0.3
+urllib3>=1.25.7
+

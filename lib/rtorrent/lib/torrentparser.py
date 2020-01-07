@@ -18,10 +18,10 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-from rtorrent.compat import is_py3
+from lib.rtorrent.compat import is_py3
 import os.path
 import re
-import rtorrent.lib.bencode as bencode
+from . import bencode
 import hashlib
 
 if is_py3():

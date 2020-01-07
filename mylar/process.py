@@ -14,10 +14,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import Queue
+import queue
 import threading
 import mylar
-import logger
+from . import logger
 
 class Process(object):
 
@@ -36,7 +36,7 @@ class Process(object):
         elif self.failed == '1':
             self.failed = True
 
-        queue = Queue.Queue()
+        queue = queue.Queue()
         retry_outside = False
 
         if self.failed is False:

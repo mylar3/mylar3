@@ -13,24 +13,24 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import division
+
 
 import mylar
 from mylar import logger, db, updater, helpers, parseit, findcomicfeed, notifiers, rsscheck, Failed, filechecker, auth32p, sabnzbd, nzbget, wwt, getcomics
 
 import feedparser
 import requests
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os, errno
 import string
 import sys
 import getopt
 import re
 import time
-import urlparse
-from urlparse import urljoin
+import urllib.parse
+from urllib.parse import urljoin
 from xml.dom.minidom import parseString
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import email.utils
 import datetime
 import shutil
@@ -208,13 +208,13 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     if IssueNumber is not None:
         intIss = helpers.issuedigits(IssueNumber)
         iss = IssueNumber
-        if u'\xbd' in IssueNumber:
+        if '\xbd' in IssueNumber:
             findcomiciss = '0.5'
-        elif u'\xbc' in IssueNumber:
+        elif '\xbc' in IssueNumber:
             findcomiciss = '0.25'
-        elif u'\xbe' in IssueNumber:
+        elif '\xbe' in IssueNumber:
             findcomiciss = '0.75'
-        elif u'\u221e' in IssueNumber:
+        elif '\u221e' in IssueNumber:
             #issnum = utf-8 will encode the infinity symbol without any help
             findcomiciss = 'infinity'  # set 9999999999 for integer value of issue
         else:
@@ -541,13 +541,13 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     if IssueNumber is not None:
         intIss = helpers.issuedigits(IssueNumber)
         iss = IssueNumber
-        if u'\xbd' in IssueNumber:
+        if '\xbd' in IssueNumber:
             findcomiciss = '0.5'
-        elif u'\xbc' in IssueNumber:
+        elif '\xbc' in IssueNumber:
             findcomiciss = '0.25'
-        elif u'\xbe' in IssueNumber:
+        elif '\xbe' in IssueNumber:
             findcomiciss = '0.75'
-        elif u'\u221e' in IssueNumber:
+        elif '\u221e' in IssueNumber:
             #issnum = utf-8 will encode the infinity symbol without any help
             findcomiciss = 'infinity'  # set 9999999999 for integer value of issue
         else:
@@ -1934,7 +1934,7 @@ def provider_sequence(nzbprovider, torprovider, newznab_hosts, torznab_hosts, dd
     ddlproviders_lower = [z.lower() for z in ddlprovider]
 
     if len(mylar.CONFIG.PROVIDER_ORDER) > 0:
-        for pr_order in sorted(mylar.CONFIG.PROVIDER_ORDER.items(), key=itemgetter(0), reverse=False):
+        for pr_order in sorted(list(mylar.CONFIG.PROVIDER_ORDER.items()), key=itemgetter(0), reverse=False):
             if any(pr_order[1].lower() in y for y in torproviders_lower) or any(pr_order[1].lower() in x for x in nzbproviders_lower) or any(pr_order[1].lower() == z for z in ddlproviders_lower):
                 if any(pr_order[1].lower() in x for x in nzbproviders_lower):
                     # this is for nzb providers
@@ -1998,13 +1998,13 @@ def nzbname_create(provider, title=None, info=None):
             #pretty this biatch up.
             BComicName = re.sub('[\:\,\/\?\']', '', str(ComicName))
             Bl_ComicName = re.sub('[\&]', 'and', str(BComicName))
-            if u'\xbd' in IssueNumber:
+            if '\xbd' in IssueNumber:
                 str_IssueNumber = '0.5'
-            elif u'\xbc' in IssueNumber:
+            elif '\xbc' in IssueNumber:
                 str_IssueNumber = '0.25'
-            elif u'\xbe' in IssueNumber:
+            elif '\xbe' in IssueNumber:
                 str_IssueNumber = '0.75'
-            elif u'\u221e' in IssueNumber:
+            elif '\u221e' in IssueNumber:
                 str_IssueNumber = 'infinity'
             else:
                 str_IssueNumber = IssueNumber
@@ -2230,7 +2230,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         else:
             tmppay = payload.copy()
             tmppay['apikey'] = 'YOUDONTNEEDTOKNOWTHIS'
-            logger.fdebug('[PAYLOAD] Download URL: %s?%s [VerifySSL: %s]' % (down_url, urllib.urlencode(tmppay), verify))
+            logger.fdebug('[PAYLOAD] Download URL: %s?%s [VerifySSL: %s]' % (down_url, urllib.parse.urlencode(tmppay), verify))
 
         if down_url.startswith('https') and verify == False:
             try:
@@ -2242,7 +2242,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         try:
             r = requests.get(down_url, params=payload, verify=verify, headers=headers)
 
-        except Exception, e:
+        except Exception as e:
             logger.warn('Error fetching data from %s: %s' % (tmpprov, e))
             return "sab-fail"
 
@@ -2276,7 +2276,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             if payload is None:
                 logger.error('[PAYLOAD:NONE] Unable to download nzb from link: %s [%s]' % (down_url, link))
             else:
-                errorlink = down_url + '?' + urllib.urlencode(payload)
+                errorlink = down_url + '?' + urllib.parse.urlencode(payload)
                 logger.error('[PAYLOAD:PRESENT] Unable to download nzb from link: %s [%s]' % (errorlink, link))
             return "sab-fail"
         else:
@@ -2648,7 +2648,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 return "sab-fail"
 
             sent_to = "has sent it to your SABnzbd+"
-            logger.info(u"Successfully sent nzb file to SABnzbd")
+            logger.info("Successfully sent nzb file to SABnzbd")
 
         if mylar.CONFIG.ENABLE_SNATCH_SCRIPT:
             if mylar.USE_NZBGET:
@@ -2733,31 +2733,31 @@ def notify_snatch(sent_to, comicname, comyear, IssueNumber, nzbprov, pack):
         snatched_name= '%s (%s)' % (comicname, comyear)
 
     if mylar.CONFIG.PROWL_ENABLED and mylar.CONFIG.PROWL_ONSNATCH:
-        logger.info(u"Sending Prowl notification")
+        logger.info("Sending Prowl notification")
         prowl = notifiers.PROWL()
         prowl.notify(snatched_name, 'Download started using %s' % sent_to)
     if mylar.CONFIG.PUSHOVER_ENABLED and mylar.CONFIG.PUSHOVER_ONSNATCH:
-        logger.info(u"Sending Pushover notification")
+        logger.info("Sending Pushover notification")
         pushover = notifiers.PUSHOVER()
         pushover.notify(snline, snatched_nzb=snatched_name, prov=nzbprov, sent_to=sent_to)
     if mylar.CONFIG.BOXCAR_ENABLED and mylar.CONFIG.BOXCAR_ONSNATCH:
-        logger.info(u"Sending Boxcar notification")
+        logger.info("Sending Boxcar notification")
         boxcar = notifiers.BOXCAR()
         boxcar.notify(snatched_nzb=snatched_name, sent_to=sent_to, snline=snline)
     if mylar.CONFIG.PUSHBULLET_ENABLED and mylar.CONFIG.PUSHBULLET_ONSNATCH:
-        logger.info(u"Sending Pushbullet notification")
+        logger.info("Sending Pushbullet notification")
         pushbullet = notifiers.PUSHBULLET()
         pushbullet.notify(snline=snline, snatched=snatched_name, sent_to=sent_to, prov=nzbprov, method='POST')
     if mylar.CONFIG.TELEGRAM_ENABLED and mylar.CONFIG.TELEGRAM_ONSNATCH:
-        logger.info(u"Sending Telegram notification")
+        logger.info("Sending Telegram notification")
         telegram = notifiers.TELEGRAM()
         telegram.notify(snline + " - " + snatched_name)
     if mylar.CONFIG.SLACK_ENABLED and mylar.CONFIG.SLACK_ONSNATCH:
-        logger.info(u"Sending Slack notification")
+        logger.info("Sending Slack notification")
         slack = notifiers.SLACK()
         slack.notify("Snatched", snline, snatched_nzb=snatched_name, sent_to=sent_to, prov=nzbprov)
     if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONGRAB:
-        logger.info(u"Sending email notification")
+        logger.info("Sending email notification")
         email = notifiers.EMAIL()
         email.notify(snline + " - " + snatched_name, "Mylar notification - Snatch", module="[SEARCH]")
 
@@ -2814,8 +2814,8 @@ def IssueTitleCheck(issuetitle, watchcomic_split, splitit, splitst, issue_firstw
                 chkme = orignzb.find(decit[0])
                 chkend = orignzb.find(decit[1], chkme + len(decit[0]))
                 chkspot = orignzb[chkme:chkend +1]
-                print chkme, chkend
-                print chkspot
+                print(chkme, chkend)
+                print(chkspot)
                 # we add +1 to decit totals in order to account for the '.' that's missing and we assume is there.
                 if len(chkspot) == (len(decit[0]) + len(decit[1]) + 1):
                     logger.fdebug('lengths match for possible decimal issue.')
@@ -2907,7 +2907,7 @@ def generate_id(nzbprov, link):
     #logger.fdebug('[%s] generate_id - link: %s' % (nzbprov, link))
     if nzbprov == 'experimental':
         #id is located after the /download/ portion
-        url_parts = urlparse.urlparse(link)
+        url_parts = urllib.parse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbtempid = path_parts[0].rpartition('/')
         nzblen = len(nzbtempid)
@@ -2927,25 +2927,25 @@ def generate_id(nzbprov, link):
             nzbid = link
         else:
             #for users that already have the cache in place.
-            url_parts = urlparse.urlparse(link)
+            url_parts = urllib.parse.urlparse(link)
             path_parts = url_parts[2].rpartition('/')
             nzbtempid = path_parts[2]
             nzbid = re.sub('.torrent', '', nzbtempid).rstrip()
     elif nzbprov == 'nzb.su':
         nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
     elif nzbprov == 'dognzb':
-        url_parts = urlparse.urlparse(link)
+        url_parts = urllib.parse.urlparse(link)
         path_parts = url_parts[2].rpartition('/')
         nzbid = path_parts[0].rsplit('/', 1)[1]
     elif 'newznab' in nzbprov:
         #if in format of http://newznab/getnzb/<id>.nzb&i=1&r=apikey
-        tmpid = urlparse.urlparse(link)[4]  #param 4 is the query string from the url.
+        tmpid = urllib.parse.urlparse(link)[4]  #param 4 is the query string from the url.
         if 'searchresultid' in tmpid:
             nzbid = os.path.splitext(link)[0].rsplit('searchresultid=',1)[1]
         elif tmpid == '' or tmpid is None:
             nzbid = os.path.splitext(link)[0].rsplit('/', 1)[1]
         else:
-            nzbinfo = urlparse.parse_qs(link)
+            nzbinfo = urllib.parse.parse_qs(link)
             nzbid = nzbinfo.get('id', None)
             if nzbid is not None:
                 nzbid = ''.join(nzbid)
@@ -2959,10 +2959,10 @@ def generate_id(nzbprov, link):
                 findend = tmpid.find('apikey=', findend)
                 nzbid = tmpid[findend+1:].strip()
             if '&id' not in tmpid or nzbid == '':
-                tmpid = urlparse.urlparse(link)[2]
+                tmpid = urllib.parse.urlparse(link)[2]
                 nzbid = tmpid.rsplit('/', 1)[1]
     elif nzbprov == 'torznab':
-        idtmp = urlparse.urlparse(link)[4]
+        idtmp = urllib.parse.urlparse(link)[4]
         idpos = idtmp.find('&')
         nzbid = re.sub('id=', '', idtmp[:idpos]).strip()
     return nzbid

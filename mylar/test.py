@@ -21,14 +21,14 @@ import shutil
 import traceback
 from base64 import b16encode, b32decode
 
-import hashlib, StringIO
+import hashlib, io
 import bencode
-from torrent.helpers.variable import link, symlink, is_rarfile
+from .torrent.helpers.variable import link, symlink, is_rarfile
 
 import requests
 #from lib.unrar2 import RarFile
 
-import torrent.clients.rtorrent as TorClient
+from . import torrent.clients.rtorrent as TorClient
 
 import mylar
 from mylar import logger, helpers

@@ -8,11 +8,11 @@ import codecs
 import shutil
 import threading
 import re
-import ConfigParser
+import configparser
 import mylar
 from mylar import logger, helpers, encrypted
 
-config = ConfigParser.SafeConfigParser()
+config = configparser.ConfigParser()
 
 _CONFIG_DEFINITIONS = OrderedDict({
      #keyname, type, section, default
@@ -386,11 +386,12 @@ class Config(object):
     def __init__(self, config_file):
         # initalize the config...
         self._config_file = config_file
+        self.WRITE_THE_CONFIG = False
 
     def config_vals(self, update=False):
         if update is False:
             if os.path.isfile(self._config_file):
-                self.config = config.readfp(codecs.open(self._config_file, 'r', 'utf8')) #read(self._config_file)
+                self.config = config.read_file(codecs.open(self._config_file, 'r', 'utf8')) #read(self._config_file)
                 #check for empty config / new config
                 count = sum(1 for line in open(self._config_file))
             else:
@@ -414,7 +415,7 @@ class Config(object):
         setattr(self, 'MINIMAL_INI', MINIMALINI)
 
         config_values = []
-        for k,v in _CONFIG_DEFINITIONS.iteritems():
+        for k,v in _CONFIG_DEFINITIONS.items():
             xv = []
             xv.append(k)
             for x in v:
@@ -423,7 +424,7 @@ class Config(object):
                 xv.append(x)
             value = self.check_setting(xv)
 
-            for b, bv in _BAD_DEFINITIONS.iteritems():
+            for b, bv in _BAD_DEFINITIONS.items():
                 try:
                     if config.has_section(bv[0]) and any([b == k, bv[1] is None]):
                         cvs = xv
@@ -478,13 +479,13 @@ class Config(object):
                 if all([self.MINIMAL_INI is True, str(value) != str(v[2])]) or self.MINIMAL_INI is False:
                     try:
                         config.add_section(v[1])
-                    except ConfigParser.DuplicateSectionError:
+                    except configparser.DuplicateSectionError:
                         pass
                 else:
                     try:
                         if config.has_section(v[1]):
                             config.remove_option(v[1], k.lower())
-                    except ConfigParser.NoSectionError:
+                    except configparser.NoSectionError:
                         continue
 
                 if all([config.has_section(v[1]), self.MINIMAL_INI is False]) or all([self.MINIMAL_INI is True, str(value) != str(v[2]), config.has_section(v[1])]):
@@ -495,7 +496,7 @@ class Config(object):
                             config.remove_option(v[1], k.lower())
                         if len(dict(config.items(v[1]))) == 0:
                             config.remove_section(v[1])
-                    except ConfigParser.NoSectionError:
+                    except configparser.NoSectionError:
                         continue
             else:
                 if k == 'CONFIG_VERSION':
@@ -514,7 +515,7 @@ class Config(object):
             try:
                 shutil.move(self._config_file, os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
             except:
-                print('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup'))
+                print(('Unable to make proper backup of config file in %s' % os.path.join(mylar.DATA_DIR, 'config.ini.backup')))
             if self.CONFIG_VERSION < 10:
                 print('Attempting to update configuration..')
                 #8-torznab multiple entries merged into extra_torznabs value
@@ -544,14 +545,16 @@ class Config(object):
                 logger.initLogger(console=not mylar.QUIET, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES, loglevel=mylar.LOG_LEVEL)
             else:
                 if self.LOG_LEVEL != mylar.LOG_LEVEL:
-                    print('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL))
+                    print(('Logging level over-ridden by startup value. Changing from %s to %s' % (self.LOG_LEVEL, mylar.LOG_LEVEL)))
                 logger.mylar_log.initLogger(loglevel=mylar.LOG_LEVEL, log_dir=self.LOG_DIR, max_logsize=self.MAX_LOGSIZE, max_logfiles=self.MAX_LOGFILES)
 
         self.configure(startup=startup)
+        if self.WRITE_THE_CONFIG is True:
+            self.writeconfig()
         return self
 
     def config_update(self):
-        print('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig))
+        print(('Updating Configuration from %s to %s' % (self.CONFIG_VERSION, self.newconfig)))
         if self.CONFIG_VERSION < 8:
             print('Checking for existing torznab configuration...')
             if not any([self.TORZNAB_NAME is None, self.TORZNAB_HOST is None, self.TORZNAB_APIKEY is None, self.TORZNAB_CATEGORY is None]):
@@ -584,9 +587,9 @@ class Config(object):
                 if self.ENCRYPT_PASSWORDS is True:
                     self.encrypt_items(mode='encrypt', updateconfig=True)
             except Exception as e:
-                print('Error: %s' % e)
+                print(('Error: %s' % e))
             print('Successfully updated config to version 10 ( password / apikey - .ini encryption )')
-        print('Configuration upgraded to version %s' % self.newconfig)
+        print(('Configuration upgraded to version %s' % self.newconfig))
 
     def check_section(self, section, key):
         """ Check if INI section exists, if not create it """
@@ -596,7 +599,7 @@ class Config(object):
             return False
 
     def argToBool(self, argument):
-        _arg = argument.strip().lower() if isinstance(argument, basestring) else argument
+        _arg = argument.strip().lower() if isinstance(argument, str) else argument
         if _arg in (1, '1', 'on', 'true', True):
             return True
         elif _arg in (0, '0', 'off', 'false', False):
@@ -620,7 +623,7 @@ class Config(object):
                         chkstatus = True
                         try:
                             config.remove_option('Torrents', inikey)
-                        except ConfigParser.NoSectionError:
+                        except configparser.NoSectionError:
                             pass
                 if all([chkstatus is False, config.has_section('General')]):
                     myval = self.check_config(definition_type, 'General', inikey, default)
@@ -652,7 +655,7 @@ class Config(object):
             if definition_type == str:
                 try:
                     myval = {'status': True, 'value': config.get(section, inikey, raw=True)}
-                except (ConfigParser.NoSectionError, ConfigParser.NoOptionError):
+                except (configparser.NoSectionError, configparser.NoOptionError):
                     myval = {'status': False, 'value': None}
             else:
                 myval = {'status': False, 'value': None}
@@ -673,7 +676,7 @@ class Config(object):
         """
         Given a big bunch of key value pairs, apply them to the ini.
         """
-        for name, value in kwargs.items():
+        for name, value in list(kwargs.items()):
             if not any([(name.startswith('newznab') and name[-1].isdigit()), name.startswith('torznab') and name[-1].isdigit()]):
                 key, definition_type, section, ini_key, default = self._define(name)
                 if definition_type == str:
@@ -708,7 +711,7 @@ class Config(object):
                     if all([self.MINIMAL_INI is True, definition_type(value) != definition_type(default)]) or self.MINIMAL_INI is False:
                         try:
                             config.add_section(section)
-                        except ConfigParser.DuplicateSectionError:
+                        except configparser.DuplicateSectionError:
                             pass
                     else:
                         try:
@@ -716,7 +719,7 @@ class Config(object):
                                 config.remove_option(section, ini_key)
                             if len(dict(config.items(section))) == 0:
                                 config.remove_section(section) 
-                        except ConfigParser.NoSectionError:
+                        except configparser.NoSectionError:
                             continue
 
                     if any([value is None, value == ""]):
@@ -798,7 +801,7 @@ class Config(object):
                             })
 
         new_encrypted = 0
-        for k,v in encryption_list.iteritems():
+        for k,v in encryption_list.items():
             value = []
             for x in v:
                 value.append(x)
@@ -813,7 +816,8 @@ class Config(object):
                         else:
                             if k != 'HTTP_PASSWORD':
                                 setattr(self, k, decrypted_password['password'])
-                            config.set(value[0], value[1], decrypted_password['password'])
+                            if updateconfig is True:
+                                config.set(value[0], value[1], decrypted_password['password'])
                     else:
                         if k == 'HTTP_PASSWORD':
                             hp = encrypted.Encryptor(value[2])
@@ -833,6 +837,9 @@ class Config(object):
                             setattr(self, k, encrypted_password['password'])
                         config.set(value[0], value[1], encrypted_password['password'])
                         new_encrypted+=1
+
+        if new_encrypted > 0:
+            self.WRITE_THE_CONFIG = True
 
     def configure(self, update=False, startup=False):
 
@@ -967,7 +974,7 @@ class Config(object):
             #we can't have metatagging enabled with hard/soft linking. Forcibly disable it here just in case it's set on load.
             self.ENABLE_META = False
 
-        if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == unicode:
+        if self.BLACKLISTED_PUBLISHERS is not None and type(self.BLACKLISTED_PUBLISHERS) == str:
             setattr(self, 'BLACKLISTED_PUBLISHERS', self.BLACKLISTED_PUBLISHERS.split(', '))
 
         if all([self.AUTHENTICATION == 0, self.HTTP_USERNAME is not None, self.HTTP_PASSWORD is not None]):
@@ -985,17 +992,23 @@ class Config(object):
             logger.warn('You cannot have both ignore_total and ignore_havetotal enabled in the config.ini at the same time. Set only ONE to true - disabling both until this is resolved.')
 
         #comictagger - force to use included version if option is enabled.
+        import comictaggerlib.ctversion as ctversion
+        logger.info('[COMICTAGGER] Version detected: %s' % ctversion.version) 
         if self.ENABLE_META:
             mylar.CMTAGGER_PATH = mylar.PROG_DIR
             #we need to make sure the default folder setting for the comictagger settings exists so things don't error out
-            mylar.CT_SETTINGSPATH = os.path.join(mylar.PROG_DIR, 'lib', 'comictaggerlib', 'ct_settings')
+            if self.CT_SETTINGSPATH is None:
+                import pathlib
+                ct_path = str(pathlib.Path(os.path.expanduser("~")))
+                mylar.CT_SETTINGSPATH = os.path.join(ct_path, '.ComicTagger', 'settings')
+
             if not update:
-                logger.fdebug('Setting ComicTagger settings default path to : ' + mylar.CT_SETTINGSPATH)
+                logger.fdebug('[COMICTAGGER] Setting ComicTagger settings default path to : ' + mylar.CT_SETTINGSPATH)
 
             if not os.path.exists(mylar.CT_SETTINGSPATH):
                 try:
                     os.mkdir(mylar.CT_SETTINGSPATH)
-                except OSError,e:
+                except OSError as e:
                     if e.errno != errno.EEXIST:
                         logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
                 else:
@@ -1107,11 +1120,11 @@ class Config(object):
         return KEYS_32P
 
     def get_extra_newznabs(self):
-        extra_newznabs = zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6)
+        extra_newznabs = list(zip(*[iter(self.EXTRA_NEWZNABS.split(', '))]*6))
         return extra_newznabs
 
     def get_extra_torznabs(self):
-        extra_torznabs = zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*5)
+        extra_torznabs = list(zip(*[iter(self.EXTRA_TORZNABS.split(', '))]*5))
         return extra_torznabs
 
     def provider_sequence(self):
@@ -1167,16 +1180,16 @@ class Config(object):
 
         if self.PROVIDER_ORDER is not None:
             try:
-                PRO_ORDER = zip(*[iter(self.PROVIDER_ORDER.split(', '))]*2)
+                PRO_ORDER = list(zip(*[iter(self.PROVIDER_ORDER.split(', '))]*2))
             except:
                 PO = []
-                for k, v in self.PROVIDER_ORDER.iteritems():
+                for k, v in self.PROVIDER_ORDER.items():
                     PO.append(k)
                     PO.append(v)
                 POR = ', '.join(PO)
-                PRO_ORDER = zip(*[iter(POR.split(', '))]*2)
+                PRO_ORDER = list(zip(*[iter(POR.split(', '))]*2))
 
-            logger.fdebug(u"Original provider_order sequence: %s" % self.PROVIDER_ORDER)
+            logger.fdebug("Original provider_order sequence: %s" % self.PROVIDER_ORDER)
 
             #if provider order exists already, load it and then append to end any NEW entries.
             logger.fdebug('Provider sequence already pre-exists. Re-loading and adding/remove any new entries')
@@ -1222,8 +1235,8 @@ class Config(object):
 
                 if found is not False:
                     new_order_seqnum = len(NEW_PROV_ORDER)
-                    if new_order_seqnum <= found['order']:
-                        seqnum = found['order']
+                    if new_order_seqnum <= int(found['order']):
+                        seqnum = int(found['order'])
                     else:
                         seqnum = new_order_seqnum
                     NEW_PROV_ORDER.append({"order_seq":  len(NEW_PROV_ORDER),
@@ -1259,7 +1272,7 @@ class Config(object):
             config.add_section('Providers')
         config.set('Providers', 'PROVIDER_ORDER', ll)
 
-        PROVIDER_ORDER = dict(zip(*[PROVIDER_ORDER[i::2] for i in range(2)]))
+        PROVIDER_ORDER = dict(list(zip(*[PROVIDER_ORDER[i::2] for i in range(2)])))
         setattr(self, 'PROVIDER_ORDER', PROVIDER_ORDER)
         logger.fdebug('Provider Order is now set : %s ' % self.PROVIDER_ORDER)
 

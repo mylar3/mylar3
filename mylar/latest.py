@@ -6,4 +6,4 @@ from mylar import db
 def latestcheck():
 
         myDB = db.DBConnection()
-        comics = myDB.select('SELECT * from comics WHERE LatestIssue = 'None')
+        comics = myDB.select("SELECT * from comics WHERE LatestIssue = 'None'")

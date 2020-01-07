@@ -22,7 +22,7 @@ This should probably be re-written, but, well, it mostly works!
 
 import re
 import os
-from urllib import unquote
+from urllib.parse import unquote
 
 
 class FileNameParser:

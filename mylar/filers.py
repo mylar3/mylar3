@@ -232,10 +232,10 @@ class FileHandlers(object):
 
             unicodeissue = issuenum
 
-            if type(issuenum) == unicode:
-               vals = {u'\xbd':'.5',u'\xbc':'.25',u'\xbe':'.75',u'\u221e':'9999999999',u'\xe2':'9999999999'}
-            else:
+            if type(issuenum) == str:
                vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
+            else:
+               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\\u221e':'9999999999','\xe2':'9999999999'}
             x = [vals[key] for key in vals if key in issuenum]
             if x:
                 issuenum = x[0]
@@ -339,7 +339,7 @@ class FileHandlers(object):
                         pass
                     else:
                         raise ValueError
-                except ValueError, e:
+                except ValueError as e:
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 

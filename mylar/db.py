@@ -17,19 +17,19 @@
 ## Stolen from Sick-Beard's db.py  ##
 #####################################
 
-from __future__ import with_statement
+
 
 import os
 import sqlite3
 import threading
 import time
-import Queue
+import queue
 
 import mylar
-import logger
+from . import logger
 
 db_lock = threading.Lock()
-mylarQueue = Queue.Queue()
+mylarQueue = queue.Queue()
 
 def dbFilename(filename="mylar.db"):
 
@@ -93,7 +93,7 @@ class DBConnection:
                         sqlResult = cursor.execute(query, args)
                     # get out of the connection attempt loop since we were successful
                     break
-                except sqlite3.OperationalError, e:
+                except sqlite3.OperationalError as e:
                     if "unable to open database file" in e.args[0] or "database is locked" in e.args[0]:
                         logger.warn('Database Error: %s' % e)
                         attempt += 1
@@ -101,7 +101,7 @@ class DBConnection:
                     else:
                         logger.warn('DB error: %s' % e)
                         raise
-                except sqlite3.DatabaseError, e:
+                except sqlite3.DatabaseError as e:
                     logger.error('Fatal error executing query: %s' % e)
                     raise
 
@@ -128,7 +128,7 @@ class DBConnection:
                         sqlResult = self.connection.execute(query, args)
                     self.connection.commit()
                     break
-                except sqlite3.OperationalError, e:
+                except sqlite3.OperationalError as e:
                     if "unable to open database file" in e.message or "database is locked" in e.message:
                         logger.warn('Database Error: %s' % e)
                         logger.warn('sqlresult: %s' %  query)
@@ -162,16 +162,16 @@ class DBConnection:
 
         changesBefore = self.connection.total_changes
 
-        genParams = lambda myDict: [x + " = ?" for x in myDict.keys()]
+        genParams = lambda myDict: [x + " = ?" for x in list(myDict.keys())]
 
         query = "UPDATE " + tableName + " SET " + ", ".join(genParams(valueDict)) + " WHERE " + " AND ".join(genParams(keyDict))
 
-        self.action(query, valueDict.values() + keyDict.values())
+        self.action(query, list(valueDict.values()) + list(keyDict.values()))
 
         if self.connection.total_changes == changesBefore:
-            query = "INSERT INTO " +tableName +" (" + ", ".join(valueDict.keys() + keyDict.keys()) + ")" + \
-                        " VALUES (" + ", ".join(["?"] * len(valueDict.keys() + keyDict.keys())) + ")"
-            self.action(query, valueDict.values() + keyDict.values())
+            query = "INSERT INTO " +tableName +" (" + ", ".join(list(valueDict.keys()) + list(keyDict.keys())) + ")" + \
+                        " VALUES (" + ", ".join(["?"] * len(list(valueDict.keys()) + list(keyDict.keys()))) + ")"
+            self.action(query, list(valueDict.values()) + list(keyDict.values()))
 
 
         #else:

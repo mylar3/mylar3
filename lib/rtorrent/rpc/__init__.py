@@ -19,15 +19,15 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import inspect
-import rtorrent
 import re
-from rtorrent.common import bool_to_int, convert_version_tuple_to_str,\
+import xmlrpc.client
+from lib.rtorrent.common import bool_to_int, convert_version_tuple_to_str,\
     safe_repr
-from rtorrent.err import MethodError
-from rtorrent.compat import xmlrpclib
+from lib.rtorrent.err import MethodError
+from mylar import logger
 
 
-def get_varname(rpc_call):
+def get_varname(rpc_call, version):
     """Transform rpc method into variable name.
 
     @newfield example: Example
@@ -38,7 +38,7 @@ def get_varname(rpc_call):
     r = re.search(
         "([ptdf]\.|system\.|get\_|is\_|set\_)+([^=]*)", rpc_call, re.I)
     if r:
-        if rtorrent.connection.Connection._get_client_version_tuple >= .97:
+        if version >= (0, 9, 7):
             return(r.groups()[-1].replace(".","_"))
         else:
             return(r.groups()[-1])
@@ -65,7 +65,7 @@ class Method:
     """Represents an individual RPC method"""
 
     def __init__(self, _class, method_name,
-                 rpc_call, docstring=None, varname=None, **kwargs):
+                 rpc_call, docstring=None, varname=None, version=(0, 9, 6), **kwargs):
         self._class = _class  # : Class this method is associated with
         self.class_name = _class.__name__
         self.method_name = method_name  # : name of public-facing method
@@ -81,16 +81,21 @@ class Method:
             "aliases", [])  # : aliases for method (optional)
         self.required_args = []
             #: Arguments required when calling the method (not utilized)
-
+        self.version = version
         self.method_type = self._get_method_type()
 
         if self.varname is None:
-            self.varname = get_varname(self.rpc_call)
+            self.varname = get_varname(self.rpc_call, self.version)
         assert self.varname is not None, "Couldn't get variable name."
 
     def __repr__(self):
         return safe_repr("Method(method_name='{0}', rpc_call='{1}')",
                         self.method_name, self.rpc_call)
+
+    def _update_version(self, version):
+        if version != self.version:
+            self.version = version
+            self.varname = get_varname(self.rpc_call, self.version)
 
     def _get_method_type(self):
         """Determine whether method is a modifier or a retriever"""
@@ -125,8 +130,11 @@ class Multicall:
             self.rt_obj = class_obj
         else:
             self.rt_obj = class_obj._rt_obj
+        if hasattr(self.rt_obj, 'client_version'):
+            self.rtorrent_version = self.rt_obj.client_version
+        else:
+            self.rtorrent_version = (0, 0, 0)
         self.calls = []
-
     def add(self, method, *args):
         """Add call to multicall
 
@@ -139,7 +147,7 @@ class Multicall:
         # try and find the instance for it. And if all else fails, create a
         # dummy Method instance
         if isinstance(method, str):
-            result = find_method(method)
+            result = find_method(method, self.rtorrent_version)
             # if result not found
             if result == -1:
                 method = Method(DummyClass, method, method)
@@ -148,6 +156,7 @@ class Multicall:
 
         # ensure method is available before adding
         if not method.is_available(self.rt_obj):
+
             _handle_unavailable_rpc_method(method, self.rt_obj)
 
         self.calls.append((method, args))
@@ -162,7 +171,8 @@ class Multicall:
         @return: the results (post-processed), in the order they were added
         @rtype: tuple
         """
-        m = xmlrpclib.MultiCall(self.rt_obj._get_conn())
+        m = xmlrpc.client.MultiCall(self.rt_obj._get_conn())
+        # logger.debug('RTORRENT_TEMP: Calls: %s' % self.calls)
         for call in self.calls:
             method, args = call
             rpc_call = getattr(method, "rpc_call")
@@ -193,6 +203,7 @@ def call_method(class_obj, method, *args):
     @param method: L{Method} instance or name of raw RPC method
     @type method: Method or str
     """
+    # logger.debug("RTORRENT_TEMP: Method: %s" % method)
     if method.is_retriever():
         args = args[:-1]
     else:
@@ -225,15 +236,19 @@ def call_method(class_obj, method, *args):
     return(ret_value)
 
 
-def find_method(rpc_call):
+def find_method(rpc_call, rt_version):
     """Return L{Method} instance associated with given RPC call"""
-    method_lists = [
-        rtorrent.methods,
-        rtorrent.file.methods,
-        rtorrent.tracker.methods,
-        rtorrent.peer.methods,
-        rtorrent.torrent.methods,
-    ]
+    if rt_version >= (0, 9, 7):
+        from .. import _all_methods_list97 as method_lists
+    else:
+        from .. import _all_methods_list as method_lists
+    # method_lists = [
+    #     rtorrent.methods,
+    #     rtorrent.file.methods,
+    #     rtorrent.tracker.methods,
+    #     rtorrent.peer.methods,
+    #     rtorrent.torrent.methods,
+    # ]
 
     for l in method_lists:
         for m in l:

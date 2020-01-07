@@ -83,21 +83,28 @@
 
 
 import errno
-import httplib
 import re
 import socket
 import urllib
-import xmlrpclib
+
+import sys
+
+def is_py3():
+    return sys.version_info[0] == 3
+
+import xmlrpc.client
+import http.client as httplib
 
 
-class SCGITransport(xmlrpclib.Transport):
+
+class SCGITransport(xmlrpc.client.Transport):
     # Added request() from Python 2.7 xmlrpclib here to backport to Python 2.6
     def request(self, host, handler, request_body, verbose=0):
         #retry request once if cached connection has gone cold
         for i in (0, 1):
             try:
                 return self.single_request(host, handler, request_body, verbose)
-            except socket.error, e:
+            except socket.error as e:
                 if i or e.errno not in (errno.ECONNRESET, errno.ECONNABORTED, errno.EPIPE):
                     raise
             except httplib.BadStatusLine: #close after we sent request
@@ -147,7 +154,7 @@ class SCGITransport(xmlrpclib.Transport):
                                                   maxsplit=1)
 
         if self.verbose:
-            print 'body:', repr(response_body)
+            print('body:', repr(response_body))
 
         p.feed(response_body)
         p.close()

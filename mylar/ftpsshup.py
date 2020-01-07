@@ -50,7 +50,7 @@ def putfile(localpath, file):    #localpath=full path to .torrent (including fil
         try:
             sftp.put(localpath, rempath)
             sendcheck = True
-        except Exception, e:
+        except Exception as e:
             logger.fdebug('ERROR Sending torrent to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
             logger.fdebug('Forcibly closing connection and attempting to reconnect')
             sftp.close()
@@ -114,14 +114,14 @@ def sendtohome(sftp, remotepath, filelist, transport):
         issid = files['issueid']
         logger.fdebug('Checking filename for problematic characters: ' + tempfile)
         #we need to make the required directory(ies)/subdirectories before the get will work.
-        if u'\xb4' in files['filename']:
+        if '\xb4' in files['filename']:
             # right quotation
             logger.fdebug('detected abnormal character in filename')
             filename = tempfile.replace('0xb4', '\'')
-        if u'\xbd' in files['filename']:
+        if '\xbd' in files['filename']:
             # 1/2 character
             filename = tempfile.replace('0xbd', 'half')
-        if u'\uff1a' in files['filename']:
+        if '\uff1a' in files['filename']:
             #some unknown character
             filename = tempfile.replace('\0ff1a', '-')
 
@@ -139,7 +139,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
             chkdir = os.path.join(remdir, comicdir)
             try:
                 sftp.stat(chkdir)
-            except IOError, e:
+            except IOError as e:
                 logger.info('Comic Folder does not Exist, creating ' + chkdir )
                 try:
                     sftp.mkdir(chkdir)
@@ -158,7 +158,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
 
         try:
             sftp.stat(remotesend)
-        except IOError, e:
+        except IOError as e:
             if e[0] == 2:
                 filechk = False
         else:
@@ -172,7 +172,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                 try:
                     sftp.put(localsend, remotesend)#, callback=printTotals)
                     sendcheck = True
-                except Exception, e:
+                except Exception as e:
                     logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
                     logger.info('Forcibly closing connection and attempting to reconnect')
                     sftp.close()
@@ -201,7 +201,7 @@ def sendtohome(sftp, remotepath, filelist, transport):
                     try:
                         sftp.put(localsend, remotesend)
                         sendcheck = True
-                    except Exception, e:
+                    except Exception as e:
                         logger.info('Attempt #' + str(count) + ': ERROR Sending issue to seedbox *** Caught exception: %s: %s' % (e.__class__, e))
                         logger.info('Forcibly closing connection and attempting to reconnect')
                         sftp.close()

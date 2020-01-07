@@ -19,11 +19,11 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # from rtorrent.rpc import Method
-import rtorrent.rpc
+from . import rpc
 
-from rtorrent.common import safe_repr
+from .common import safe_repr
 
-Method = rtorrent.rpc.Method
+Method = rpc.Method
 
 
 class File:
@@ -31,6 +31,11 @@ class File:
 
     def __init__(self, _rt_obj, info_hash, index, **kwargs):
         self._rt_obj = _rt_obj
+        if hasattr(self._rt_obj, 'client_version'):
+            self.rtorrent_version = self._rt_obj.client_version
+        else:
+            self.rtorrent_version = (0, 0, 0)
+
         self.info_hash = info_hash  # : info hash for the torrent the file is associated with
         self.index = index  # : The position of the file within the file list
         for k in kwargs.keys():
@@ -46,9 +51,13 @@ class File:
 
         @return: None
         """
-        multicall = rtorrent.rpc.Multicall(self)
-        retriever_methods = [m for m in methods
-                             if m.is_retriever() and m.is_available(self._rt_obj)]
+        multicall = rpc.Multicall(self)
+        if self.rtorrent_version >= (0, 9, 7):
+            retriever_methods = [m for m in methods97
+                                 if m.is_retriever() and m.is_available(self._rt_obj)]
+        else:
+            retriever_methods = [m for m in methods
+                                 if m.is_retriever() and m.is_available(self._rt_obj)]
         for method in retriever_methods:
             multicall.add(method, self.rpc_id)
 
@@ -58,65 +67,64 @@ class File:
         return safe_repr("File(index={0} path=\"{1}\")", self.index, self.path)
 
 
-if rtorrent.connection.Connection._get_client_version_tuple >= .97:
-    methods = [
-        # RETRIEVERS
-        Method(File, 'get_last_touched', 'f.last_touched'),
-        Method(File, 'get_range_second', 'f.range_second'),
-        Method(File, 'get_size_bytes', 'f.size_bytes'),
-        Method(File, 'get_priority', 'f.priority'),
-        Method(File, 'get_match_depth_next', 'f.match_depth_next'),
-        Method(File, 'is_resize_queued', 'f.is_resize_queued',
-               boolean=True,
-               ),
-        Method(File, 'get_range_first', 'f.range_first'),
-        Method(File, 'get_match_depth_prev', 'f.match_depth_prev'),
-        Method(File, 'get_path', 'f.path'),
-        Method(File, 'get_completed_chunks', 'f.completed_chunks'),
-        Method(File, 'get_path_components', 'f.path_components'),
-        Method(File, 'is_created', 'f.is_created',
-               boolean=True,
-               ),
-        Method(File, 'is_open', 'f.is_open',
-               boolean=True,
-               ),
-        Method(File, 'get_size_chunks', 'f.size_chunks'),
-        Method(File, 'get_offset', 'f.offset'),
-        Method(File, 'get_frozen_path', 'f.frozen_path'),
-        Method(File, 'get_path_depth', 'f.path_depth'),
-        Method(File, 'is_create_queued', 'f.is_create_queued',
-               boolean=True,
-               ),
-        # MODIFIERS
-    ]
-else:
-    methods = [
-        # RETRIEVERS
-        Method(File, 'get_last_touched', 'f.get_last_touched'),
-        Method(File, 'get_range_second', 'f.get_range_second'),
-        Method(File, 'get_size_bytes', 'f.get_size_bytes'),
-        Method(File, 'get_priority', 'f.get_priority'),
-        Method(File, 'get_match_depth_next', 'f.get_match_depth_next'),
-        Method(File, 'is_resize_queued', 'f.is_resize_queued',
-               boolean=True,
-               ),
-        Method(File, 'get_range_first', 'f.get_range_first'),
-        Method(File, 'get_match_depth_prev', 'f.get_match_depth_prev'),
-        Method(File, 'get_path', 'f.get_path'),
-        Method(File, 'get_completed_chunks', 'f.get_completed_chunks'),
-        Method(File, 'get_path_components', 'f.get_path_components'),
-        Method(File, 'is_created', 'f.is_created',
-               boolean=True,
-               ),
-        Method(File, 'is_open', 'f.is_open',
-               boolean=True,
-               ),
-        Method(File, 'get_size_chunks', 'f.get_size_chunks'),
-        Method(File, 'get_offset', 'f.get_offset'),
-        Method(File, 'get_frozen_path', 'f.get_frozen_path'),
-        Method(File, 'get_path_depth', 'f.get_path_depth'),
-        Method(File, 'is_create_queued', 'f.is_create_queued',
-               boolean=True,
-               ),
-        # MODIFIERS
-    ]
+methods97 = [
+    # RETRIEVERS
+    Method(File, 'get_last_touched', 'f.last_touched'),
+    Method(File, 'get_range_second', 'f.range_second'),
+    Method(File, 'get_size_bytes', 'f.size_bytes'),
+    Method(File, 'get_priority', 'f.priority'),
+    Method(File, 'get_match_depth_next', 'f.match_depth_next'),
+    Method(File, 'is_resize_queued', 'f.is_resize_queued',
+           boolean=True,
+           ),
+    Method(File, 'get_range_first', 'f.range_first'),
+    Method(File, 'get_match_depth_prev', 'f.match_depth_prev'),
+    Method(File, 'get_path', 'f.path'),
+    Method(File, 'get_completed_chunks', 'f.completed_chunks'),
+    Method(File, 'get_path_components', 'f.path_components'),
+    Method(File, 'is_created', 'f.is_created',
+           boolean=True,
+           ),
+    Method(File, 'is_open', 'f.is_open',
+           boolean=True,
+           ),
+    Method(File, 'get_size_chunks', 'f.size_chunks'),
+    Method(File, 'get_offset', 'f.offset'),
+    Method(File, 'get_frozen_path', 'f.frozen_path'),
+    Method(File, 'get_path_depth', 'f.path_depth'),
+    Method(File, 'is_create_queued', 'f.is_create_queued',
+           boolean=True,
+           ),
+    # MODIFIERS
+]
+
+methods = [
+    # RETRIEVERS
+    Method(File, 'get_last_touched', 'f.get_last_touched'),
+    Method(File, 'get_range_second', 'f.get_range_second'),
+    Method(File, 'get_size_bytes', 'f.get_size_bytes'),
+    Method(File, 'get_priority', 'f.get_priority'),
+    Method(File, 'get_match_depth_next', 'f.get_match_depth_next'),
+    Method(File, 'is_resize_queued', 'f.is_resize_queued',
+           boolean=True,
+           ),
+    Method(File, 'get_range_first', 'f.get_range_first'),
+    Method(File, 'get_match_depth_prev', 'f.get_match_depth_prev'),
+    Method(File, 'get_path', 'f.get_path'),
+    Method(File, 'get_completed_chunks', 'f.get_completed_chunks'),
+    Method(File, 'get_path_components', 'f.get_path_components'),
+    Method(File, 'is_created', 'f.is_created',
+           boolean=True,
+           ),
+    Method(File, 'is_open', 'f.is_open',
+           boolean=True,
+           ),
+    Method(File, 'get_size_chunks', 'f.get_size_chunks'),
+    Method(File, 'get_offset', 'f.get_offset'),
+    Method(File, 'get_frozen_path', 'f.get_frozen_path'),
+    Method(File, 'get_path_depth', 'f.get_path_depth'),
+    Method(File, 'is_create_queued', 'f.is_create_queued',
+           boolean=True,
+           ),
+    # MODIFIERS
+]

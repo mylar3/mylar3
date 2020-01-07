@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import StringIO
+import io
 import sys
 from functools import reduce
 
@@ -40,9 +40,9 @@ class ImageHasher(object):
                 if path is not None:
                     self.image = Image.open(path)
                 else:
-                    self.image = Image.open(StringIO.StringIO(data))
-            except:
-                print("Image data seems corrupted!")
+                    self.image = Image.open(io.BytesIO(data))
+            except Exception as e:
+                print("Image data seems corrupted! [{}]".format(e))
                 # just generate a bogus image
                 self.image = Image.new("L", (1, 1))
 
@@ -52,8 +52,8 @@ class ImageHasher(object):
                 (self.width, self.height), Image.ANTIALIAS).convert("L")
         except Exception as e:
             sys.exc_clear()
-            print "average_hash error:", e
-            return long(0)
+            print("average_hash error:", e)
+            return int(0)
 
         pixels = list(image.getdata())
         avg = sum(pixels) / len(pixels)
@@ -61,7 +61,7 @@ class ImageHasher(object):
         def compare_value_to_avg(i):
             return (1 if i > avg else 0)
 
-        bitlist = map(compare_value_to_avg, pixels)
+        bitlist = list(map(compare_value_to_avg, pixels))
 
         # build up an int value from the bit list, one bit at a time
         def set_bit(x, idx_val):
@@ -178,13 +178,13 @@ class ImageHasher(object):
 
     @staticmethod
     def hamming_distance(h1, h2):
-        if isinstance(h1, long) or isinstance(h1, int):
+        if isinstance(h1, int) or isinstance(h1, int):
             n1 = h1
             n2 = h2
         else:
             # convert hex strings to ints
-            n1 = long(h1, 16)
-            n2 = long(h2, 16)
+            n1 = int(h1, 16)
+            n2 = int(h2, 16)
 
         # xor the two numbers
         n = n1 ^ n2

@@ -20,9 +20,9 @@ import datetime
 #import sys
 #from pprint import pprint
 
-import ctversion
-from settings import ComicTaggerSettings
-import utils
+from . import ctversion
+from .settings import ComicTaggerSettings
+from . import utils
 
 
 class ComicVineCacher:
@@ -37,7 +37,7 @@ class ComicVineCacher:
         data = ""
         try:
             with open(self.version_file, 'rb') as f:
-                data = f.read()
+                data = f.read().decode("utf-8") 
                 f.close()
         except:
             pass
@@ -121,7 +121,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
 
         with con:
-            con.text_factory = unicode
+            con.text_factory = str
             cur = con.cursor()
 
             # remove all previous entries with this search term
@@ -161,7 +161,7 @@ class ComicVineCacher:
         results = list()
         con = lite.connect(self.db_file)
         with con:
-            con.text_factory = unicode
+            con.text_factory = str
             cur = con.cursor()
 
             # purge stale search results
@@ -197,7 +197,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
 
         with con:
-            con.text_factory = unicode
+            con.text_factory = str
             cur = con.cursor()
 
             # remove all previous entries with this search term
@@ -217,7 +217,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
         with con:
             cur = con.cursor()
-            con.text_factory = unicode
+            con.text_factory = str
 
             # purge stale issue info - probably issue data won't change
             # much....
@@ -300,7 +300,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
         with con:
             cur = con.cursor()
-            con.text_factory = unicode
+            con.text_factory = str
 
             # purge stale volume info
             a_week_ago = datetime.datetime.today() - datetime.timedelta(days=7)
@@ -337,7 +337,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
         with con:
             cur = con.cursor()
-            con.text_factory = unicode
+            con.text_factory = str
 
             # purge stale issue info - probably issue data won't change
             # much....
@@ -386,7 +386,7 @@ class ComicVineCacher:
 
         with con:
             cur = con.cursor()
-            con.text_factory = unicode
+            con.text_factory = str
             timestamp = datetime.datetime.now()
 
             data = {
@@ -403,7 +403,7 @@ class ComicVineCacher:
         con = lite.connect(self.db_file)
         with con:
             cur = con.cursor()
-            con.text_factory = unicode
+            con.text_factory = str
 
             cur.execute(
                 "SELECT super_url,thumb_url,cover_date,site_detail_url FROM Issues WHERE id=?",

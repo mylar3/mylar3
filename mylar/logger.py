@@ -24,7 +24,7 @@ import mylar
 from mylar import helpers
 import logging
 from logging import getLogger, WARN, ERROR, INFO, DEBUG, StreamHandler, Formatter, Handler
-from lib.six import PY2
+from six import PY2
 
 #setup logger for non-english (this doesnt carry thru, so check here too)
 try:
@@ -183,10 +183,10 @@ if not LOG_LANG.startswith('en'):
         if not PY2:
             return str(obj, *args)
         try:
-            return unicode(obj, *args)
+            return str(obj, *args)
         except UnicodeDecodeError:
             ascii_text = str(obj).encode('string_escape')
-            return unicode(ascii_text)
+            return str(ascii_text)
 
 else:
     # Mylar logger

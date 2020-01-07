@@ -18,39 +18,50 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import urllib
+
+
+
 import os.path
 import time
-import xmlrpclib
-
-from rtorrent.connection import Connection
-from rtorrent.common import find_torrent, join_uri, \
+import xmlrpc.client
+from mylar import logger
+from .connection import Connection
+from .common import find_torrent, join_uri, \
     update_uri, is_valid_port, convert_version_tuple_to_str
-from rtorrent.lib.torrentparser import TorrentParser
-from rtorrent.rpc import Method
-from rtorrent.torrent import Torrent
-from rtorrent.group import Group
-import rtorrent.rpc  # @UnresolvedImport
+from .lib.torrentparser import TorrentParser
+from .rpc import Method, Multicall, _build_rpc_methods, process_result
+from .torrent import Torrent, methods as torrentmethods, methods97 as torrentmethods97
+from .file import File, methods as filemethods, methods97 as filemethods97
+from .peer import Peer, methods as peermethods, methods97 as peermethods97
+from .tracker import Tracker, methods as trackermethods, methods97 as trackermethods97
+
+
+from .group import Group
+# from . import rpc  # @UnresolvedImport
 
 __version__ = "0.2.9"
 __author__ = "Chris Lucas"
 __contact__ = "chris@chrisjlucas.com"
 __license__ = "MIT"
 
-
 class RTorrent:
     """ Create a new rTorrent connection """
     rpc_prefix = None
 
     def __init__(self, uri, auth=None, verify_server=False, verify_ssl=True, sp=None, sp_kwargs=None):
-
         self.connection = Connection(uri, auth, verify_ssl, sp, sp_kwargs)
         self.torrents = []  # : List of L{Torrent} instances
-
+        self.client_version = self.connection._get_client_version_tuple()
+        # print(self.client_version)
         self._torrent_cache = []
 
         # Verify connection is valid
         if verify_server is True:
             self.connection.verify()
+        for m in methods:
+            if m.version != self.client_version:
+                # logger.debug('Updating %s to version %s' % (m.varname, str(self.client_version)))
+                m._update_version(self.client_version)
 
     @property
     def client(self):
@@ -69,12 +80,22 @@ class RTorrent:
         @todo: add validity check for specified view
         """
         self.torrents = []
-        methods = rtorrent.torrent.methods
+        if self.client_version >= (0, 9, 7):
+            logger.debug('RTORRENT: Building methods for new RTorrent')
+            methods = torrentmethods97
+            for c in class_methods_pair97.keys():
+                _build_rpc_methods(c, class_methods_pair97[c])
+                _build_class_methods(c)
+            self.connection._update_rpc_methods()
+            # logger.debug('RTORRENT_TEMP: RPC Methods: %s' % self.connection._get_rpc_methods())
+        else:
+            methods = torrentmethods
+
         retriever_methods = [m for m in methods
                              if m.is_retriever() and m.is_available(self)]
-
-        m = rtorrent.rpc.Multicall(self)
-        if Connection._get_client_version_tuple >= .97:
+        # logger.debug('RTORRENT_TEMP: Retriever Methods: %s' % retriever_methods)
+        m = Multicall(self)
+        if self.client_version >= (0, 9, 7):
             MCFirstArg = ""
             m.add("d.multicall2", MCFirstArg, view, "d.hash=",
                   *[method.rpc_call + "=" for method in retriever_methods])
@@ -88,7 +109,7 @@ class RTorrent:
             results_dict = {}
             # build results_dict
             for m, r in zip(retriever_methods, result[1:]):  # result[0] is the info_hash
-                results_dict[m.varname] = rtorrent.rpc.process_result(m, r)
+                results_dict[m.varname] = process_result(m, r)
 
             self.torrents.append(
                 Torrent(self, info_hash=result[0], **results_dict)
@@ -100,7 +121,7 @@ class RTorrent:
     def _manage_torrent_cache(self):
         """Carry tracker/peer/file lists over to new torrent list"""
         for torrent in self._torrent_cache:
-            new_torrent = rtorrent.common.find_torrent(torrent.info_hash,
+            new_torrent = find_torrent(torrent.info_hash,
                                                        self.torrents)
             if new_torrent is not None:
                 new_torrent.files = torrent.files
@@ -121,28 +142,28 @@ class RTorrent:
             elif verbose:
                 func_name = "load_verbose"
             else:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     func_name= "load.normal"
                 else:
                     func_name = "load"
         elif file_type in ["file", "raw"]:
             if start and verbose:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     func_name = "load.raw_start_verbose"
                 else:
                     func_name = "load_raw_start_verbose"
             elif start:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     func_name = "load.raw_start"
                 else:
                     func_name = "load_raw_start"
             elif verbose:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     func_name = "load.raw_verbose"
                 else:
                     func_name = "load_raw_verbose"
             else:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     func_name = "load.raw"
                 else:
                     func_name = "load_raw"
@@ -157,7 +178,7 @@ class RTorrent:
 
         func_name = self._get_load_function("url", start, verbose)
         # load magnet
-        if Connection._get_client_version_tuple >= .97:
+        if self.client_version >= (0, 9, 7):
             target = ""
             getattr(p, func_name)(target, magneturl)
         else:
@@ -168,7 +189,7 @@ class RTorrent:
             i = 0
             torrent = None
             while i < verify_retries:
-                if Connection._get_client_version_tuple >= .97:
+                if self.client_version >= (0, 9, 7):
                     for m in self.get_torrents():
                         # This block finds the magnet that was just added, starts it, breaks
                         # out of the for loop, and then out of the while loop.
@@ -190,7 +211,7 @@ class RTorrent:
                     time.sleep(1)
                     i += 1
 
-        if Connection._get_client_version_tuple >= .97:
+        if self.client_version >= (0, 9, 7):
             # If torrent hasn't been defined, sleep for a second and check again.
             if not magnet:
                 time.sleep(1)
@@ -206,7 +227,7 @@ class RTorrent:
 
         i = 0
         while i < verify_retries:
-            if Connection._get_client_version_tuple >= .97:
+            if self.client_version >= (0, 9, 7):
                 for t in self.get_torrents():
                     if t.info_hash == info_hash:
                         if str(info_hash) not in str(t.name):
@@ -225,7 +246,7 @@ class RTorrent:
                             time.sleep(1)
                             i += 1
 
-        if Connection._get_client_version_tuple >= .97:
+        if self.client_version >= (0, 9, 7):
             assert info_hash in [t.info_hash for t in self.torrents],\
                 "Adding magnet was unsuccessful."
 
@@ -267,13 +288,13 @@ class RTorrent:
         """
         p = self._get_conn()
         tp = TorrentParser(torrent)
-        torrent = xmlrpclib.Binary(tp._raw_torrent)
+        torrent = xmlrpc.client.Binary(tp._raw_torrent)
         info_hash = tp.info_hash
 
         func_name = self._get_load_function("raw", start, verbose)
 
         # load torrent
-        if Connection._get_client_version_tuple >= .97:
+        if self.client_version >= (0, 9, 7):
             target = ""
             getattr(p, func_name)(target, torrent)
         else:
@@ -335,7 +356,7 @@ class RTorrent:
             torrent = open(torrent, "rb").read()
 
         if file_type in ["raw", "file"]:
-            finput = xmlrpclib.Binary(torrent)
+            finput = xmlrpc.client.Binary(torrent)
         elif file_type == "url":
             finput = torrent
 
@@ -384,7 +405,7 @@ class RTorrent:
 
     def find_torrent(self, info_hash):
         """Frontend for rtorrent.common.find_torrent"""
-        return(rtorrent.common.find_torrent(info_hash, self.get_torrents()))
+        return(find_torrent(info_hash, self.get_torrents()))
 
     def poll(self):
         """ poll rTorrent to get latest torrent/peer/tracker/file information
@@ -407,7 +428,7 @@ class RTorrent:
 
         @return: None
         """
-        multicall = rtorrent.rpc.Multicall(self)
+        multicall = Multicall(self)
         retriever_methods = [m for m in methods
                              if m.is_retriever() and m.is_available(self)]
         for method in retriever_methods:
@@ -449,16 +470,32 @@ def __check_supported_methods(rt):
     from pprint import pprint
     supported_methods = set([m.rpc_call for m in
                              methods +
-                             rtorrent.file.methods +
-                             rtorrent.torrent.methods +
-                             rtorrent.tracker.methods +
-                             rtorrent.peer.methods])
+                             filemethods +
+                             torrentmethods +
+                             trackermethods +
+                             peermethods])
     all_methods = set(rt.connection._get_rpc_methods())
 
     print("Methods NOT in supported methods")
     pprint(all_methods - supported_methods)
     print("Supported methods NOT in all methods")
     pprint(supported_methods - all_methods)
+
+def __check_supported_methods97(rt):
+    from pprint import pprint
+    supported_methods = set([m.rpc_call for m in
+                             methods +
+                             filemethods97 +
+                             torrentmethods97 +
+                             trackermethods97 +
+                             peermethods97])
+    all_methods = set(rt.connection._get_rpc_methods())
+
+    print("Methods NOT in supported methods")
+    pprint(all_methods - supported_methods)
+    print("Supported methods NOT in all methods")
+    pprint(supported_methods - all_methods)
+
 
 methods = [
     # RETRIEVERS
@@ -626,19 +663,35 @@ methods = [
 ]
 
 _all_methods_list = [methods,
-                     rtorrent.file.methods,
-                     rtorrent.torrent.methods,
-                     rtorrent.tracker.methods,
-                     rtorrent.peer.methods,
+                     filemethods,
+                     torrentmethods,
+                     trackermethods,
+                     peermethods,
                      ]
+
+_all_methods_list97 = [methods,
+                       filemethods97,
+                       torrentmethods97,
+                       trackermethods97,
+                       peermethods97,
+                       ]
 
 class_methods_pair = {
     RTorrent: methods,
-    rtorrent.file.File: rtorrent.file.methods,
-    rtorrent.torrent.Torrent: rtorrent.torrent.methods,
-    rtorrent.tracker.Tracker: rtorrent.tracker.methods,
-    rtorrent.peer.Peer: rtorrent.peer.methods,
+    File: filemethods,
+    Torrent: torrentmethods,
+    Tracker: trackermethods,
+    Peer: peermethods,
 }
+
+class_methods_pair97 = {
+    RTorrent: methods,
+    File: filemethods97,
+    Torrent: torrentmethods97,
+    Tracker: trackermethods97,
+    Peer: peermethods97,
+}
+
 for c in class_methods_pair.keys():
-    rtorrent.rpc._build_rpc_methods(c, class_methods_pair[c])
+    _build_rpc_methods(c, class_methods_pair[c])
     _build_class_methods(c)

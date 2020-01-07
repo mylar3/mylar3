@@ -19,11 +19,11 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 # from rtorrent.rpc import Method
-import rtorrent.rpc
+from . import rpc
 
-from rtorrent.common import safe_repr
+from .common import safe_repr
 
-Method = rtorrent.rpc.Method
+Method = rpc.Method
 
 
 class Tracker:
@@ -31,6 +31,10 @@ class Tracker:
 
     def __init__(self, _rt_obj, info_hash, **kwargs):
         self._rt_obj = _rt_obj
+        if hasattr(self._rt_obj, 'client_version'):
+            self.rtorrent_version = self._rt_obj.client_version
+        else:
+            self.rtorrent_version = (0, 0, 0)
         self.info_hash = info_hash  # : info hash for the torrent using this tracker
         for k in kwargs.keys():
             setattr(self, k, kwargs.get(k, None))
@@ -60,151 +64,153 @@ class Tracker:
         @return: None
         """
         multicall = rtorrent.rpc.Multicall(self)
-        retriever_methods = [m for m in methods
-                             if m.is_retriever() and m.is_available(self._rt_obj)]
+        if self.rtorrent_version >= (0, 9, 7):
+            retriever_methods = [m for m in methods97
+                                 if m.is_retriever() and m.is_available(self._rt_obj)]
+        else:
+            retriever_methods = [m for m in methods
+                                 if m.is_retriever() and m.is_available(self._rt_obj)]
         for method in retriever_methods:
             multicall.add(method, self.rpc_id)
 
         multicall.call()
 
-if rtorrent.connection.Connection._get_client_version_tuple >= .97:
-    methods = [
-        # RETRIEVERS
-        Method(Tracker, 'is_enabled', 't.is_enabled', boolean=True),
-        Method(Tracker, 'get_id', 't.id'),
-        Method(Tracker, 'get_scrape_incomplete', 't.scrape_incomplete'),
-        Method(Tracker, 'is_open', 't.is_open', boolean=True),
-        Method(Tracker, 'get_min_interval', 't.min_interval'),
-        Method(Tracker, 'get_scrape_downloaded', 't.scrape_downloaded'),
-        Method(Tracker, 'get_group', 't.group'),
-        Method(Tracker, 'get_scrape_time_last', 't.scrape_time_last'),
-        Method(Tracker, 'get_type', 't.type'),
-        Method(Tracker, 'get_normal_interval', 't.normal_interval'),
-        Method(Tracker, 'get_url', 't.url'),
-        Method(Tracker, 'get_scrape_complete', 't.scrape_complete',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_activity_time_last', 't.activity_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_activity_time_next', 't.activity_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_failed_time_last', 't.failed_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_failed_time_next', 't.failed_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_success_time_last', 't.success_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_success_time_next', 't.success_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'can_scrape', 't.can_scrape',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'get_failed_counter', 't.failed_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'get_scrape_counter', 't.scrape_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'get_success_counter', 't.success_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'is_usable', 't.is_usable',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'is_busy', 't.is_busy',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'is_extra_tracker', 't.is_extra_tracker',
-               min_version=(0, 9, 1),
-               boolean=True,
-               ),
-        Method(Tracker, "get_latest_sum_peers", "t.latest_sum_peers",
-               min_version=(0, 9, 0)
-               ),
-        Method(Tracker, "get_latest_new_peers", "t.latest_new_peers",
-               min_version=(0, 9, 0)
-               ),
+methods97 = [
+    # RETRIEVERS
+    Method(Tracker, 'is_enabled', 't.is_enabled', boolean=True),
+    Method(Tracker, 'get_id', 't.id'),
+    Method(Tracker, 'get_scrape_incomplete', 't.scrape_incomplete'),
+    Method(Tracker, 'is_open', 't.is_open', boolean=True),
+    Method(Tracker, 'get_min_interval', 't.min_interval'),
+    Method(Tracker, 'get_scrape_downloaded', 't.scrape_downloaded'),
+    Method(Tracker, 'get_group', 't.group'),
+    Method(Tracker, 'get_scrape_time_last', 't.scrape_time_last'),
+    Method(Tracker, 'get_type', 't.type'),
+    Method(Tracker, 'get_normal_interval', 't.normal_interval'),
+    Method(Tracker, 'get_url', 't.url'),
+    Method(Tracker, 'get_scrape_complete', 't.scrape_complete',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_activity_time_last', 't.activity_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_activity_time_next', 't.activity_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_failed_time_last', 't.failed_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_failed_time_next', 't.failed_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_success_time_last', 't.success_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_success_time_next', 't.success_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'can_scrape', 't.can_scrape',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'get_failed_counter', 't.failed_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'get_scrape_counter', 't.scrape_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'get_success_counter', 't.success_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'is_usable', 't.is_usable',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'is_busy', 't.is_busy',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'is_extra_tracker', 't.is_extra_tracker',
+           min_version=(0, 9, 1),
+           boolean=True,
+           ),
+    Method(Tracker, "get_latest_sum_peers", "t.latest_sum_peers",
+           min_version=(0, 9, 0)
+           ),
+    Method(Tracker, "get_latest_new_peers", "t.latest_new_peers",
+           min_version=(0, 9, 0)
+           ),
 
-        # MODIFIERS
-        Method(Tracker, 'set_enabled', 't.is_enabled.set'),
-    ]
+    # MODIFIERS
+    Method(Tracker, 'set_enabled', 't.is_enabled.set'),
+]
 
-else:
-    methods = [
-        # RETRIEVERS
-        Method(Tracker, 'is_enabled', 't.is_enabled', boolean=True),
-        Method(Tracker, 'get_id', 't.get_id'),
-        Method(Tracker, 'get_scrape_incomplete', 't.get_scrape_incomplete'),
-        Method(Tracker, 'is_open', 't.is_open', boolean=True),
-        Method(Tracker, 'get_min_interval', 't.get_min_interval'),
-        Method(Tracker, 'get_scrape_downloaded', 't.get_scrape_downloaded'),
-        Method(Tracker, 'get_group', 't.get_group'),
-        Method(Tracker, 'get_scrape_time_last', 't.get_scrape_time_last'),
-        Method(Tracker, 'get_type', 't.get_type'),
-        Method(Tracker, 'get_normal_interval', 't.get_normal_interval'),
-        Method(Tracker, 'get_url', 't.get_url'),
-        Method(Tracker, 'get_scrape_complete', 't.get_scrape_complete',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_activity_time_last', 't.activity_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_activity_time_next', 't.activity_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_failed_time_last', 't.failed_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_failed_time_next', 't.failed_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_success_time_last', 't.success_time_last',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'get_success_time_next', 't.success_time_next',
-               min_version=(0, 8, 9),
-               ),
-        Method(Tracker, 'can_scrape', 't.can_scrape',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'get_failed_counter', 't.failed_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'get_scrape_counter', 't.scrape_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'get_success_counter', 't.success_counter',
-               min_version=(0, 8, 9)
-               ),
-        Method(Tracker, 'is_usable', 't.is_usable',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'is_busy', 't.is_busy',
-               min_version=(0, 9, 1),
-               boolean=True
-               ),
-        Method(Tracker, 'is_extra_tracker', 't.is_extra_tracker',
-               min_version=(0, 9, 1),
-               boolean=True,
-               ),
-        Method(Tracker, "get_latest_sum_peers", "t.latest_sum_peers",
-               min_version=(0, 9, 0)
-               ),
-        Method(Tracker, "get_latest_new_peers", "t.latest_new_peers",
-               min_version=(0, 9, 0)
-               ),
+methods = [
+    # RETRIEVERS
+    Method(Tracker, 'is_enabled', 't.is_enabled', boolean=True),
+    Method(Tracker, 'get_id', 't.get_id'),
+    Method(Tracker, 'get_scrape_incomplete', 't.get_scrape_incomplete'),
+    Method(Tracker, 'is_open', 't.is_open', boolean=True),
+    Method(Tracker, 'get_min_interval', 't.get_min_interval'),
+    Method(Tracker, 'get_scrape_downloaded', 't.get_scrape_downloaded'),
+    Method(Tracker, 'get_group', 't.get_group'),
+    Method(Tracker, 'get_scrape_time_last', 't.get_scrape_time_last'),
+    Method(Tracker, 'get_type', 't.get_type'),
+    Method(Tracker, 'get_normal_interval', 't.get_normal_interval'),
+    Method(Tracker, 'get_url', 't.get_url'),
+    Method(Tracker, 'get_scrape_complete', 't.get_scrape_complete',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_activity_time_last', 't.activity_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_activity_time_next', 't.activity_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_failed_time_last', 't.failed_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_failed_time_next', 't.failed_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_success_time_last', 't.success_time_last',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'get_success_time_next', 't.success_time_next',
+           min_version=(0, 8, 9),
+           ),
+    Method(Tracker, 'can_scrape', 't.can_scrape',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'get_failed_counter', 't.failed_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'get_scrape_counter', 't.scrape_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'get_success_counter', 't.success_counter',
+           min_version=(0, 8, 9)
+           ),
+    Method(Tracker, 'is_usable', 't.is_usable',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'is_busy', 't.is_busy',
+           min_version=(0, 9, 1),
+           boolean=True
+           ),
+    Method(Tracker, 'is_extra_tracker', 't.is_extra_tracker',
+           min_version=(0, 9, 1),
+           boolean=True,
+           ),
+    Method(Tracker, "get_latest_sum_peers", "t.latest_sum_peers",
+           min_version=(0, 9, 0)
+           ),
+    Method(Tracker, "get_latest_new_peers", "t.latest_new_peers",
+           min_version=(0, 9, 0)
+           ),
 
-        # MODIFIERS
-        Method(Tracker, 'set_enabled', 't.set_enabled'),
-    ]
+    # MODIFIERS
+    Method(Tracker, 'set_enabled', 't.set_enabled'),
+]

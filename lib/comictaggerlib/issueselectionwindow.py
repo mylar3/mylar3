@@ -18,29 +18,29 @@
 #import os
 #import re
 
-from PyQt4 import QtCore, QtGui, uic
-#from PyQt4.QtCore import QUrl, pyqtSignal, QByteArray
-#from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+#from PyQt5.QtCore import QUrl, pyqtSignal, QByteArray
+#from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
-from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from settings import ComicTaggerSettings
-from issuestring import IssueString
-from coverimagewidget import CoverImageWidget
+from .comicvinetalker import ComicVineTalker, ComicVineTalkerException
+from .settings import ComicTaggerSettings
+from .issuestring import IssueString
+from .coverimagewidget import CoverImageWidget
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize
 #from imagefetcher import ImageFetcher
 #import utils
 
 
-class IssueNumberTableWidgetItem(QtGui.QTableWidgetItem):
+class IssueNumberTableWidgetItem(QtWidgets.QTableWidgetItem):
 
     def __lt__(self, other):
-        selfStr = self.data(QtCore.Qt.DisplayRole).toString()
-        otherStr = other.data(QtCore.Qt.DisplayRole).toString()
+        selfStr = self.data(QtCore.Qt.DisplayRole)
+        otherStr = other.data(QtCore.Qt.DisplayRole)
         return (IssueString(selfStr).asFloat() <
                 IssueString(otherStr).asFloat())
 
 
-class IssueSelectionWindow(QtGui.QDialog):
+class IssueSelectionWindow(QtWidgets.QDialog):
 
     volume_id = 0
 
@@ -52,7 +52,7 @@ class IssueSelectionWindow(QtGui.QDialog):
 
         self.coverWidget = CoverImageWidget(
             self.coverImageContainer, CoverImageWidget.AltCoverMode)
-        gridlayout = QtGui.QGridLayout(self.coverImageContainer)
+        gridlayout = QtWidgets.QGridLayout(self.coverImageContainer)
         gridlayout.addWidget(self.coverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -85,15 +85,14 @@ class IssueSelectionWindow(QtGui.QDialog):
             self.twList.selectRow(0)
         else:
             for r in range(0, self.twList.rowCount()):
-                issue_id, b = self.twList.item(
-                    r, 0).data(QtCore.Qt.UserRole).toInt()
+                issue_id = self.twList.item(r, 0).data(QtCore.Qt.UserRole)
                 if (issue_id == self.initial_id):
                     self.twList.selectRow(r)
                     break
 
     def performQuery(self):
 
-        QtGui.QApplication.setOverrideCursor(
+        QtWidgets.QApplication.setOverrideCursor(
             QtGui.QCursor(QtCore.Qt.WaitCursor))
 
         try:
@@ -101,14 +100,14 @@ class IssueSelectionWindow(QtGui.QDialog):
             volume_data = comicVine.fetchVolumeData(self.series_id)
             self.issue_list = comicVine.fetchIssuesByVolume(self.series_id)
         except ComicVineTalkerException as e:
-            QtGui.QApplication.restoreOverrideCursor()
+            QtWidgets.QApplication.restoreOverrideCursor()
             if e.code == ComicVineTalkerException.RateLimit:
-                QtGui.QMessageBox.critical(
+                QtWidgets.QMessageBox.critical(
                     self,
                     self.tr("Comic Vine Error"),
                     ComicVineTalker.getRateLimitMessage())
             else:
-                QtGui.QMessageBox.critical(
+                QtWidgets.QMessageBox.critical(
                     self,
                     self.tr("Network Issue"),
                     self.tr("Could not connect to Comic Vine to list issues!"))
@@ -139,7 +138,7 @@ class IssueSelectionWindow(QtGui.QDialog):
             if len(parts) > 1:
                 item_text = parts[0] + "-" + parts[1]
 
-            item = QtGui.QTableWidgetItem(item_text)
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 1, item)
@@ -147,7 +146,7 @@ class IssueSelectionWindow(QtGui.QDialog):
             item_text = record['name']
             if item_text is None:
                 item_text = ""
-            item = QtGui.QTableWidgetItem(item_text)
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 2, item)
@@ -162,7 +161,7 @@ class IssueSelectionWindow(QtGui.QDialog):
         self.twList.setSortingEnabled(True)
         self.twList.sortItems(0, QtCore.Qt.AscendingOrder)
 
-        QtGui.QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def cellDoubleClicked(self, r, c):
         self.accept()
@@ -174,8 +173,7 @@ class IssueSelectionWindow(QtGui.QDialog):
         if prev is not None and prev.row() == curr.row():
             return
 
-        self.issue_id, b = self.twList.item(
-            curr.row(), 0).data(QtCore.Qt.UserRole).toInt()
+        self.issue_id = self.twList.item(curr.row(), 0).data(QtCore.Qt.UserRole)
 
         # list selection was changed, update the the issue cover
         for record in self.issue_list:

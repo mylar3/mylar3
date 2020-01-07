@@ -15,19 +15,21 @@
 # limitations under the License.
 
 import json
-import urllib2
-import urllib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import re
 import time
 import datetime
 import sys
-import os
+import ssl
+#from pprint import pprint
+#import math
 
 from bs4 import BeautifulSoup
 
 try:
-    from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
-    from PyQt4.QtCore import QUrl, pyqtSignal, QObject, QByteArray
+    from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
+    from PyQt5.QtCore import QUrl, pyqtSignal, QObject, QByteArray
 except ImportError:
     # No Qt, so define a few dummy QObjects to help us compile
     class QObject():
@@ -43,22 +45,13 @@ except ImportError:
         def emit(a, b, c):
             pass
 
-import ctversion
-import utils
-from comicvinecacher import ComicVineCacher
-from genericmetadata import GenericMetadata
-from issuestring import IssueString
-from settings import ComicTaggerSettings
+from . import ctversion
+from . import utils
+from .comicvinecacher import ComicVineCacher
+from .genericmetadata import GenericMetadata
+from .issuestring import IssueString
+#from settings import ComicTaggerSettings
 
-try:
-    import requests
-except:
-    try:
-        lib_path = os.path.join(ComicTaggerSettings.baseDir(), '..')
-        sys.path.append(lib_path)
-        import requests
-    except ImportError:
-        print "Unable to use requests module. This is a CRITICAL error and ComicTagger cannot proceed. Exiting."
 
 class CVTypeID:
     Volume = "4050"
@@ -98,7 +91,7 @@ class ComicVineTalker(QObject):
     def __init__(self):
         QObject.__init__(self)
 
-        self.api_base_url = "http://comicvine.gamespot.com/api"
+        self.api_base_url = "https://comicvine.gamespot.com/api"
         self.wait_for_rate_limit = False
 
         # key that is registered to comictagger
@@ -109,8 +102,10 @@ class ComicVineTalker(QObject):
         else:
             self.api_key = ComicVineTalker.api_key
 
-        self.cv_headers = {'User-Agent': 'ComicTagger ' + str(ctversion.version) + ' [' + ctversion.fork + ' / ' + ctversion.fork_tag + ']'}
         self.log_func = None
+
+        # always use a tls context for urlopen
+        self.ssl = ssl.SSLContext(ssl.PROTOCOL_TLS)
 
     def setLogFunc(self, log_func):
         self.log_func = log_func
@@ -119,7 +114,7 @@ class ComicVineTalker(QObject):
         if self.log_func is None:
             # sys.stdout.write(text.encode(errors='replace'))
             # sys.stdout.flush()
-            print >> sys.stderr, text
+            print(text, file=sys.stderr)
         else:
             self.log_func(text)
 
@@ -138,15 +133,19 @@ class ComicVineTalker(QObject):
 
     def testKey(self, key):
 
-        test_url = self.api_base_url + "/issue/1/?api_key=" + \
-            key + "&format=json&field_list=name"
-        r = requests.get(test_url, headers=self.cv_headers)
-
-        cv_response = r.json()
-
-        # Bogus request, but if the key is wrong, you get error 100: "Invalid
-        # API Key"
-        return cv_response['status_code'] != 100
+        try:
+            test_url = self.api_base_url + "/issue/1/?api_key=" + \
+                key + "&format=json&field_list=name"
+            resp = urllib.request.urlopen(test_url, context=self.ssl)
+            content = resp.read()
+    
+            cv_response = json.loads(content.decode('utf-8'))
+    
+            # Bogus request, but if the key is wrong, you get error 100: "Invalid
+            # API Key"
+            return cv_response['status_code'] != 100
+        except:
+            return False
 
     """
     Get the contect from the CV server.  If we're in "wait mode" and status code is a rate limit error
@@ -159,7 +158,8 @@ class ComicVineTalker(QObject):
         counter = 0
         wait_times = [1, 2, 3, 4]
         while True:
-            cv_response = self.getUrlContent(url)
+            content = self.getUrlContent(url)
+            cv_response = json.loads(content.decode('utf-8'))
             if self.wait_for_rate_limit and cv_response[
                     'status_code'] == ComicVineTalkerException.RateLimit:
                 self.writeLog(
@@ -188,19 +188,18 @@ class ComicVineTalker(QObject):
         # connect to server:
         #  if there is a 500 error, try a few more times before giving up
         #  any other error, just bail
-        # print "ATB---", url
+        #print("---", url)
         for tries in range(3):
             try:
-                r = requests.get(url, headers=self.cv_headers)
-                return r.json()
-            except Exception as e:
-                ecode = type(e).__name__
-                if ecode == 500:
+                resp = urllib.request.urlopen(url, context=self.ssl)
+                return resp.read()
+            except urllib.error.HTTPError as e:
+                if e.getcode() == 500:
                     self.writeLog("Try #{0}: ".format(tries + 1))
                     time.sleep(1)
                 self.writeLog(str(e) + "\n")
 
-                if ecode != 500:
+                if e.getcode() != 500:
                     break
 
             except Exception as e:
@@ -227,23 +226,16 @@ class ComicVineTalker(QObject):
 
         original_series_name = series_name
 
-        # We need to make the series name into an "AND"ed query list
+        # Split and rejoin to remove extra internal spaces
         query_word_list = series_name.split()
-        and_list = ['AND'] * (len(query_word_list) - 1)
-        and_list.append('')
-        # zipper up the two lists
-        query_list = zip(query_word_list, and_list)
-        # flatten the list
-        query_list = [item for sublist in query_list for item in sublist]
-        # convert back to a string
-        query_string = " ".join(query_list).strip()
-        # print "Query string = ", query_string
+        query_string = " ".join( query_word_list ).strip()
+        #print ("Query string = ", query_string)
 
-        query_string = urllib.quote_plus(query_string.encode("utf-8"))
+        query_string = urllib.parse.quote_plus(query_string.encode("utf-8"))
 
         search_url = self.api_base_url + "/search/?api_key=" + self.api_key + "&format=json&resources=volume&query=" + \
             query_string + \
-            "&field_list=name,id,start_year,publisher,image,description,count_of_issues"
+            "&field_list=name,id,start_year,publisher,image,description,count_of_issues&limit=100"
         cv_response = self.getCVContent(search_url + "&page=1")
 
         search_results = list()
@@ -253,6 +245,19 @@ class ComicVineTalker(QObject):
         limit = cv_response['limit']
         current_result_count = cv_response['number_of_page_results']
         total_result_count = cv_response['number_of_total_results']
+
+        # 8 Dec 2018 - Comic Vine changed query results again. Terms are now
+        # ORed together, and we get thousands of results.  Good news is the
+        # results are sorted by relevance, so we can be smart about halting
+        # the search.  
+        # 1. Don't fetch more than some sane amount of pages.
+        max_results = 500 
+        # 2. Halt when not all of our search terms are present in a result
+        # 3. Halt when the results contain more (plus threshold) words than
+        #    our search
+        result_word_count_max = len(query_word_list) + 3
+
+        total_result_count = min(total_result_count, max_results) 
 
         if callback is None:
             self.writeLog(
@@ -266,7 +271,29 @@ class ComicVineTalker(QObject):
             callback(current_result_count, total_result_count)
 
         # see if we need to keep asking for more pages...
+        stop_searching = False
         while (current_result_count < total_result_count):
+
+            last_result = search_results[-1]['name']
+
+            # See if the last result's name has all the of the search terms.
+            # if not, break out of this, loop, we're done.
+            #print("Searching for {} in '{}'".format(query_word_list, last_result))
+            for term in query_word_list:
+                if term not in last_result.lower():
+                    #print("Term '{}' not in last result. Halting search result fetching".format(term))
+                    stop_searching = True
+                    break
+
+            # Also, stop searching when the word count of last results is too much longer
+            # than our search terms list 
+            if len(utils.removearticles(last_result).split()) > result_word_count_max:
+                #print("Last result '{}' is too long. Halting search result fetching".format(last_result))
+                stop_searching = True
+
+            if stop_searching:
+                break
+
             if callback is None:
                 self.writeLog(
                     "getting another page of results {0} of {1}...\n".format(
@@ -281,6 +308,15 @@ class ComicVineTalker(QObject):
 
             if callback is not None:
                 callback(current_result_count, total_result_count)
+
+        # Remove any search results that don't contain all the search terms
+        # (iterate backwards for easy removal)
+        for i in range(len(search_results) - 1, -1, -1):
+            record = search_results[i]
+            for term in query_word_list:
+                if term not in record['name'].lower():
+                    del search_results[i]
+                    break
 
         # for record in search_results:
             #print(u"{0}: {1} ({2})".format(record['id'], record['name'] , record['start_year']))
@@ -336,16 +372,16 @@ class ComicVineTalker(QObject):
         limit = cv_response['limit']
         current_result_count = cv_response['number_of_page_results']
         total_result_count = cv_response['number_of_total_results']
-        # print "ATB total_result_count", total_result_count
+        #print("total_result_count", total_result_count)
 
-        #print("ATB Found {0} of {1} results".format(cv_response['number_of_page_results'], cv_response['number_of_total_results']))
+        #print("Found {0} of {1} results".format(cv_response['number_of_page_results'], cv_response['number_of_total_results']))
         volume_issues_result = cv_response['results']
         page = 1
         offset = 0
 
         # see if we need to keep asking for more pages...
         while (current_result_count < total_result_count):
-            #print("ATB getting another page of issue results {0} of {1}...".format(current_result_count, total_result_count))
+            #print("getting another page of issue results {0} of {1}...".format(current_result_count, total_result_count))
             page += 1
             offset += cv_response['number_of_page_results']
 
@@ -373,7 +409,7 @@ class ComicVineTalker(QObject):
             year_filter = ",cover_date:{0}-1-1|{1}-1-1".format(
                 year, int(year) + 1)
 
-        issue_number = urllib.quote_plus(unicode(issue_number).encode("utf-8"))
+        issue_number = urllib.parse.quote_plus(str(issue_number).encode("utf-8"))
 
         filter = "&filter=" + volume_filter + \
             year_filter + ",issue_number:" + issue_number
@@ -388,16 +424,16 @@ class ComicVineTalker(QObject):
         limit = cv_response['limit']
         current_result_count = cv_response['number_of_page_results']
         total_result_count = cv_response['number_of_total_results']
-        # print "ATB total_result_count", total_result_count
+        #print("total_result_count", total_result_count)
 
-        #print("ATB Found {0} of {1} results\n".format(cv_response['number_of_page_results'], cv_response['number_of_total_results']))
+        #print("Found {0} of {1} results\n".format(cv_response['number_of_page_results'], cv_response['number_of_total_results']))
         filtered_issues_result = cv_response['results']
         page = 1
         offset = 0
 
         # see if we need to keep asking for more pages...
         while (current_result_count < total_result_count):
-            #print("ATB getting another page of issue results {0} of {1}...\n".format(current_result_count, total_result_count))
+            #print("getting another page of issue results {0} of {1}...\n".format(current_result_count, total_result_count))
             page += 1
             offset += cv_response['number_of_page_results']
 
@@ -477,8 +513,7 @@ class ComicVineTalker(QObject):
         if settings.use_series_start_as_volume:
             metadata.volume = volume_results['start_year']
 
-        metadata.notes = "Tagged with the {0} fork of ComicTagger {1} using info from Comic Vine on {2}.  [Issue ID {3}]".format(
-            ctversion.fork,
+        metadata.notes = "Tagged with ComicTagger {0} using info from Comic Vine on {1}.  [Issue ID {2}]".format(
             ctversion.version,
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             issue_results['id'])
@@ -597,7 +632,7 @@ class ComicVineTalker(QObject):
                     for w in col_widths:
                         fmtstr += " {{:{}}}|".format(w + 1)
                     width = sum(col_widths) + len(col_widths) * 2
-                    print "width=", width
+                    print("width=", width)
                     table_text = ""
                     counter = 0
                     for row in rows:
@@ -683,7 +718,7 @@ class ComicVineTalker(QObject):
             return url_list
 
         # scrape the CV issue page URL to get the alternate cover URLs
-        resp = urllib2.urlopen(issue_page_url)
+        resp = urllib.request.urlopen(issue_page_url, context=self.ssl)
         content = resp.read()
         alt_cover_url_list = self.parseOutAltCoverUrls(content)
 
@@ -694,22 +729,26 @@ class ComicVineTalker(QObject):
 
     def parseOutAltCoverUrls(self, page_html):
         soup = BeautifulSoup(page_html, "html.parser")
-
+    
         alt_cover_url_list = []
-
+    
         # Using knowledge of the layout of the Comic Vine issue page here:
-        # look for the divs that are in the classes 'content-pod' and
-        # 'alt-cover'
+        # look for the divs that are in the classes 'imgboxart' and
+        # 'issue-cover'
         div_list = soup.find_all('div')
         covers_found = 0
         for d in div_list:
-            if 'class' in d:
+            if 'class' in d.attrs:
                 c = d['class']
-                if 'imgboxart' in c and 'issue-cover' in c:
+                if ('imgboxart' in c and 
+                        'issue-cover' in c and
+                        d.img['src'].startswith("http")
+                   ):
+                    
                     covers_found += 1
                     if covers_found != 1:
-                        alt_cover_url_list.append(d.img['src'])
-
+                            alt_cover_url_list.append(d.img['src'])
+    
         return alt_cover_url_list
 
     def fetchCachedAlternateCoverURLs(self, issue_id):
@@ -754,15 +793,15 @@ class ComicVineTalker(QObject):
         data = reply.readAll()
 
         try:
-            cv_response = json.loads(str(data))
-        except:
-            print >> sys.stderr, "Comic Vine query failed to get JSON data"
-            print >> sys.stderr, str(data)
+            cv_response = json.loads(bytes(data))
+        except Exception as e:
+            print("Comic Vine query failed to get JSON data", file=sys.stderr)
+            print(str(data), file=sys.stderr)
             return
 
         if cv_response['status_code'] != 1:
-            print >> sys.stderr, "Comic Vine query failed with error:  [{0}]. ".format(
-                cv_response['error'])
+            print("Comic Vine query failed with error:  [{0}]. ".format(
+                cv_response['error']), file=sys.stderr)
             return
 
         image_url = cv_response['results']['image']['super_url']

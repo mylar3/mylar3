@@ -17,12 +17,12 @@
 #import sys
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
+from .settings import ComicTaggerSettings
 
 
-class LogWindow(QtGui.QDialog):
+class LogWindow(QtWidgets.QDialog):
 
     def __init__(self, parent):
         super(LogWindow, self).__init__(parent)
@@ -34,4 +34,8 @@ class LogWindow(QtGui.QDialog):
                             QtCore.Qt.WindowMaximizeButtonHint)
 
     def setText(self, text):
+        try:
+            text = text.decode()
+        except:
+            pass
         self.textEdit.setPlainText(text)

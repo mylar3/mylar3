@@ -15,7 +15,7 @@
 #  along with Harpoon.  If not, see <http://www.gnu.org/licenses/>.
 
 import optparse
-import xmlrpclib
+import xmlrpc.client
 from base64 import standard_b64encode
 from xml.dom.minidom import parseString
 import os
@@ -23,7 +23,7 @@ import sys
 import re
 import time
 import mylar
-import logger
+from . import logger
 
 class NZBGet(object):
     def __init__(self):
@@ -48,7 +48,7 @@ class NZBGet(object):
             url = url + '%s:%s/xmlrpc'
         val = val + (nzbget_host,mylar.CONFIG.NZBGET_PORT,)
         self.nzb_url = (url % val)
-        self.server = xmlrpclib.ServerProxy(self.nzb_url) #,allow_none=True)
+        self.server = xmlrpc.client.ServerProxy(self.nzb_url) #,allow_none=True)
 
     def sender(self, filename, test=False):
         if mylar.CONFIG.NZBGET_PRIORITY:

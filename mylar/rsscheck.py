@@ -18,20 +18,20 @@ import re
 import feedparser
 import requests
 import cfscrape
-import urlparse
-import ftpsshup
+import urllib.parse
+from . import ftpsshup
 from datetime import datetime, timedelta
 import gzip
 import time
 import random
 from bs4 import BeautifulSoup
-from StringIO import StringIO
+from io import StringIO
 
 import mylar
 from mylar import db, logger, ftpsshup, helpers, auth32p, utorrent, helpers
-import torrent.clients.transmission as transmission
-import torrent.clients.deluge as deluge
-import torrent.clients.qbittorrent as qbittorrent
+from mylar.torrent.clients import transmission
+from mylar.torrent.clients import  deluge as deluge
+from mylar.torrent.clients import qbittorrent as qbittorrent
 
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
@@ -182,7 +182,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     r = scraper.get(feed, verify=verify, cookies=cookievalue, headers=headers)
                 else:
                     r = scraper.get(feed, verify=verify, headers=headers)
-            except Exception, e:
+            except Exception as e:
                 logger.warn('Error fetching RSS Feed Data from %s: %s' % (picksite, e))
                 lp+=1
                 continue
@@ -234,7 +234,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                 elif 'MB' in tmpsz[tmpsz_st:]:
                     szform = 'MB'
                     sz = 'M'
-                linkwwt = urlparse.parse_qs(urlparse.urlparse(entry.link).query)['id']
+                linkwwt = urllib.parse.parse_qs(urllib.parse.urlparse(entry.link).query)['id']
                 feeddata.append({
                                 'site':     picksite,
                                 'title':    entry.title,
@@ -308,7 +308,7 @@ def torrents(pickfeed=None, seriesname=None, issue=None, feedinfo=None):
                     feeddata.append({
                                     'site':     picksite,
                                     'title':    feedme.entries[i].title,
-                                    'link':     str(re.sub('genid=', '', urlparse.urlparse(feedme.entries[i].link)[4]).strip()),
+                                    'link':     str(re.sub('genid=', '', urllib.parse.urlparse(feedme.entries[i].link)[4]).strip()),
                                     #'link':     str(urlparse.urlparse(feedme.entries[i].link)[2].rpartition('/')[0].rsplit('/',2)[2]),
                                     'pubdate':  pdate,
                                     'size':     tsize
@@ -390,7 +390,7 @@ def ddl(forcerss=False):
     ddl_feed = 'https://getcomics.info/feed/'
     try:
         r = requests.get(ddl_feed, verify=True, headers=headers)
-    except Exception, e:
+    except Exception as e:
         logger.warn('Error fetching RSS Feed Data from DDL: %s' % (e))
         return False
     else:
@@ -468,7 +468,7 @@ def nzbs(provider=None, forcerss=False):
 
         try:
             r = requests.get(url, params=payload, verify=verify, headers=headers)
-        except Exception, e:
+        except Exception as e:
             logger.warn('Error fetching RSS Feed Data from %s: %s' % (site, e))
             return
 
@@ -1108,7 +1108,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             else:
                 r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers)
             #r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
-        except Exception, e:
+        except Exception as e:
             logger.warn('Error fetching data from %s (%s): %s' % (site, url, e))
         #    if site == '32P':
         #        logger.info('[TOR2CLIENT-32P] Retrying with 32P')
@@ -1145,7 +1145,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 try:
                     r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
 
-                except Exception, e:
+                except Exception as e:
                     return "fail"
             else:
                 logger.warn('Cloudflare protection online for ' + site + '. Attempting to bypass...')
@@ -1156,7 +1156,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                                'User-Agent':       cf_user_agent}
 
                     r = scraper.get(url, verify=verify, cookies=cf_cookievalue, stream=True, headers=headers)
-                except Exception, e:
+                except Exception as e:
                     return "fail"
 
         if any([site == 'DEM', site == 'WWT']):
@@ -1193,7 +1193,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             return torrent_info
 
     elif mylar.USE_RTORRENT:
-        import test
+        from . import test
         rp = test.RTorrent()
 
         torrent_info = rp.main(filepath=filepath)

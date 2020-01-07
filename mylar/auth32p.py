@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import json
 import re
 import time
@@ -22,7 +22,7 @@ import datetime
 import os
 import requests
 from bs4 import BeautifulSoup
-from cookielib import LWPCookieJar
+from http.cookiejar import LWPCookieJar
 import cfscrape
 
 from operator import itemgetter

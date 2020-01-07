@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+
 
 import os
 import shutil
@@ -24,7 +24,7 @@ import time
 import logging
 import mylar
 import subprocess
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import sys
 from xml.dom.minidom import parseString
 
@@ -138,16 +138,16 @@ class PostProcessor(object):
         self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
-        logger.fdebug(u"Executing command " +str(script_cmd))
-        logger.fdebug(u"Absolute path to script: " +script_cmd[0])
+        logger.fdebug("Executing command " +str(script_cmd))
+        logger.fdebug("Absolute path to script: " +script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            logger.fdebug(u"Script result: " + out)
-            self._log(u"Script result: " + out)
-        except OSError, e:
-           logger.warn(u"Unable to run pre_script: " + str(script_cmd))
-           self._log(u"Unable to run pre_script: " + str(script_cmd))
+            logger.fdebug("Script result: " + out)
+            self._log("Script result: " + out)
+        except OSError as e:
+           logger.warn("Unable to run pre_script: " + str(script_cmd))
+           self._log("Unable to run pre_script: " + str(script_cmd))
 
     def _run_extra_scripts(self, nzb_name, nzb_folder, filen, folderp, seriesmetadata):
         """
@@ -179,16 +179,16 @@ class PostProcessor(object):
         self._log("cmd to be executed: " + str(script_cmd))
 
             # use subprocess to run the command and capture output
-        logger.fdebug(u"Executing command " +str(script_cmd))
-        logger.fdebug(u"Absolute path to script: " +script_cmd[0])
+        logger.fdebug("Executing command " +str(script_cmd))
+        logger.fdebug("Absolute path to script: " +script_cmd[0])
         try:
             p = subprocess.Popen(script_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
             out, err = p.communicate() #@UnusedVariable
-            logger.fdebug(u"Script result: " + out)
-            self._log(u"Script result: " + out)
-        except OSError, e:
-            logger.warn(u"Unable to run extra_script: " + str(script_cmd))
-            self._log(u"Unable to run extra_script: " + str(script_cmd))
+            logger.fdebug("Script result: " + out)
+            self._log("Script result: " + out)
+        except OSError as e:
+            logger.warn("Unable to run extra_script: " + str(script_cmd))
+            self._log("Unable to run extra_script: " + str(script_cmd))
 
 
     def duplicate_process(self, dupeinfo):
@@ -969,7 +969,7 @@ class PostProcessor(object):
                                                                   "WatchValues":   acv['WatchValues']})
                     if len(res) > 0:
                         logger.fdebug('%s Now Checking if %s issue(s) may also reside in one of the storyarc\'s that I am watching.' % (module, len(res)))
-                    for k,v in res.items():
+                    for k,v in list(res.items()):
                         i = 0
                         #k is ComicName
                         #v is ArcValues and WatchValues
@@ -1349,7 +1349,7 @@ class PostProcessor(object):
                             if mylar.CONFIG.ENABLE_META:
                                 logger.info('[STORY-ARC POST-PROCESSING] Metatagging enabled - proceeding...')
                                 try:
-                                    import cmtagmylar
+                                    from . import cmtagmylar
                                     metaresponse = cmtagmylar.run(self.nzb_folder, issueid=issueid, filename=ofilename)
                                 except ImportError:
                                     logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
@@ -1828,7 +1828,7 @@ class PostProcessor(object):
                     if all([mylar.CONFIG.ENABLE_META, issueid is not None]):
                         self._log("Metatagging enabled - proceeding...")
                         try:
-                            import cmtagmylar
+                            from . import cmtagmylar
                             metaresponse = cmtagmylar.run(location, issueid=issueid, filename=os.path.join(self.nzb_folder, ofilename))
                         except ImportError:
                             logger.warn('%s comictaggerlib not found on system. Ensure the ENTIRE lib directory is located within mylar/lib/comictaggerlib/' % module)
@@ -1929,7 +1929,7 @@ class PostProcessor(object):
                         logger.info('%s Updated status to Downloaded' % module)
 
                         logger.info('%s Post-Processing completed for: [%s] %s' % (module, sarc, grab_dst))
-                        self._log(u"Post Processing SUCCESSFUL! ")
+                        self._log("Post Processing SUCCESSFUL! ")
                     elif oneoff is True:
                         logger.info('%s IssueID is : %s' % (module, issueid))
                         ctrlVal = {"IssueID":  issueid}
@@ -1940,7 +1940,7 @@ class PostProcessor(object):
                         myDB.upsert("oneoffhistory", newVal, ctrlVal)
                         logger.info('%s Updated history for one-off\'s for tracking purposes' % module)
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
-                        self._log(u"Post Processing SUCCESSFUL! ")
+                        self._log("Post Processing SUCCESSFUL! ")
 
                     try:
                         self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module)
@@ -2127,13 +2127,13 @@ class PostProcessor(object):
             elif 'hu' in issuenum.lower() and issuenum[:1].isdigit():
                 issuenum = re.sub("[^0-9]", "", issuenum)
                 issue_except = '.HU'
-            elif u'\xbd' in issuenum:
+            elif '\xbd' in issuenum:
                 issuenum = '0.5'
-            elif u'\xbc' in issuenum:
+            elif '\xbc' in issuenum:
                 issuenum = '0.25'
-            elif u'\xbe' in issuenum:
+            elif '\xbe' in issuenum:
                 issuenum = '0.75'
-            elif u'\u221e' in issuenum:
+            elif '\u221e' in issuenum:
                 #issnum = utf-8 will encode the infinity symbol without any help
                 issuenum = 'infinity'
             else:
@@ -2203,7 +2203,7 @@ class PostProcessor(object):
                         pass
                     else:
                         raise ValueError
-                except ValueError, e:
+                except ValueError as e:
                     logger.warn('Unable to properly determine issue number [%s] - you should probably log this on github for help.' % issueno)
                     return
 
@@ -2379,7 +2379,7 @@ class PostProcessor(object):
                     vol_label = comversion
 
                 try:
-                    import cmtagmylar
+                    from . import cmtagmylar
                     if ml is None:
                         pcheck = cmtagmylar.run(self.nzb_folder, issueid=issueid, comversion=vol_label, filename=os.path.join(odir, ofilename))
                     else:
@@ -2774,7 +2774,7 @@ class PostProcessor(object):
             self.sendnotify(series, issueyear, dispiss, annchk, module)
 
             logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
-            self._log(u"Post Processing SUCCESSFUL! ")
+            self._log("Post Processing SUCCESSFUL! ")
 
             self.valreturn.append({"self.log": self.log,
                                    "mode": 'stop',
@@ -2819,7 +2819,7 @@ class PostProcessor(object):
             slack.notify("Download and Postprocessing completed", prline2, module=module)
 
         if mylar.CONFIG.EMAIL_ENABLED and mylar.CONFIG.EMAIL_ONPOST:
-            logger.info(u"Sending email notification")
+            logger.info("Sending email notification")
             email = notifiers.EMAIL()
             email.notify(prline2, "Mylar notification - Processed", module=module)
 
@@ -2828,11 +2828,11 @@ class PostProcessor(object):
 class FolderCheck():
 
     def __init__(self):
-        import Queue
-        import PostProcessor, logger
+        import queue
+        from . import PostProcessor, logger
 
         self.module = '[FOLDER-CHECK]'
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
 
     def run(self):
         if mylar.IMPORTLOCK:

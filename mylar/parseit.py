@@ -15,14 +15,13 @@
 
 
 from bs4 import BeautifulSoup, UnicodeDammit
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import re
-import helpers
-import logger
+from . import helpers
+from . import logger
 import datetime
 import sys
 from decimal import Decimal
-from HTMLParser import HTMLParseError
 from time import strptime
 import mylar
 
@@ -42,7 +41,7 @@ def GCDScraper(ComicName, ComicYear, Total, ComicID, quickmatch=None):
     comicnm_1 = re.sub('\+', '%2B', comicnm)
     comicnm = re.sub(' ', '+', comicnm_1)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
-    response = urllib2.urlopen (input)
+    response = urllib.request.urlopen (input)
     soup = BeautifulSoup (response)
     cnt1 = len(soup.findAll("tr", {"class": "listing_even"}))
     cnt2 = len(soup.findAll("tr", {"class": "listing_odd"}))
@@ -194,15 +193,15 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
             # if we're here - it means it's a mismatched name.
             # let's pull down the publication date as it'll be blank otherwise
             inputMIS = 'http://www.comics.org' + str(resultURL)
-            resp = urllib2.urlopen (inputMIS)
+            resp = urllib.request.urlopen (inputMIS)
 #            soup = BeautifulSoup ( resp )
             try:
-                soup = BeautifulSoup(urllib2.urlopen(inputMIS))
+                soup = BeautifulSoup(urllib.request.urlopen(inputMIS))
             except UnicodeDecodeError:
                 logger.info("I've detected your system is using: " + sys.stdout.encoding)
                 logger.info("unable to parse properly due to utf-8 problem, ignoring wrong symbols")
                 try:
-                    soup = BeautifulSoup(urllib2.urlopen(inputMIS)).decode('utf-8', 'ignore')
+                    soup = BeautifulSoup(urllib.request.urlopen(inputMIS)).decode('utf-8', 'ignore')
                 except UnicodeDecodeError:
                     logger.info("not working...aborting. Tell Evilhero.")
                     return
@@ -243,7 +242,7 @@ def GCDdetails(comseries, resultURL, vari_loop, ComicID, TotalIssues, issvariati
         #print ("resultURL:" + str(resultURL))
         #print ("comicID:" + str(ComicID))
         input2 = 'http://www.comics.org' + str(resultURL) + 'details/'
-        resp = urllib2.urlopen(input2)
+        resp = urllib.request.urlopen(input2)
         soup = BeautifulSoup(resp)
 
         #for newer comics, on-sale date has complete date...
@@ -493,7 +492,7 @@ def GCDAdd(gcdcomicid):
         logger.fdebug("looking at gcdid:" + str(gcdid))
         input2 = 'http://www.comics.org/series/' + str(gcdid)
         logger.fdebug("---url: " + str(input2))
-        resp = urllib2.urlopen (input2)
+        resp = urllib.request.urlopen (input2)
         soup = BeautifulSoup (resp)
         logger.fdebug("SeriesName section...")
         parsen = soup.find("span", {"id": "series_name"})
@@ -624,7 +623,7 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
         if uhuh == "no":
             publink = "&pub_name="
         input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&keywords=&order1=series&order2=date&order3=&start_date=' + str(comicyr) + '-01-01&end_date=' + str(NOWyr) + '-12-31' + '&title=&feature=&job_number=&pages=&script=&pencils=&inks=&colors=&letters=&story_editing=&genre=&characters=&synopsis=&reprint_notes=&story_reprinted=None&notes=' + str(publink) + '&pub_notes=&brand=&brand_notes=&indicia_publisher=&is_surrogate=None&ind_pub_notes=&series=' + str(comicnm) + '&series_year_began=&series_notes=&tracking_notes=&issue_count=&is_comics=None&format=&color=&dimensions=&paper_stock=&binding=&publishing_format=&issues=&volume=&issue_title=&variant_name=&issue_date=&indicia_frequency=&price=&issue_pages=&issue_editing=&isbn=&barcode=&issue_notes=&issue_reprinted=None&is_indexed=None'
-        response = urllib2.urlopen (input)
+        response = urllib.request.urlopen (input)
         soup = BeautifulSoup (response)
         cnt1 = len(soup.findAll("tr", {"class": "listing_even"}))
         cnt2 = len(soup.findAll("tr", {"class": "listing_odd"}))
@@ -700,35 +699,35 @@ def ComChk(ComicName, ComicYear, ComicPublisher, Total, ComicID):
 
 def decode_html(html_string):
     converted = UnicodeDammit(html_string)
-    if not converted.unicode:
+    if not converted.str:
         raise UnicodeDecodeError(
             "Failed to detect encoding, tried [%s]",
             ', '.join(converted.triedEncodings))
     # print converted.originalEncoding
-    return converted.unicode
+    return converted.str
 
 def annualCheck(gcomicid, comicid, comicname, comicyear):
     # will only work if we already matched for gcd.
     # search for <comicname> annual
     # grab annual listing that hits on comicyear (seriesyear)
     # grab results :)
-    print ("GcomicID: " + str(gcomicid))
-    print ("comicID: " + str(comicid))
-    print ("comicname: " + comicname)
-    print ("comicyear: " + str(comicyear))
+    print(("GcomicID: " + str(gcomicid)))
+    print(("comicID: " + str(comicid)))
+    print(("comicname: " + comicname))
+    print(("comicyear: " + str(comicyear)))
     comicnm = comicname.encode('utf-8').strip()
     comicnm_1 = re.sub('\+', '%2B', comicnm + " annual")
     comicnm = re.sub(' ', '+', comicnm_1)
     input = 'http://www.comics.org/search/advanced/process/?target=series&method=icontains&logic=False&order2=date&order3=&start_date=' + str(comicyear) + '-01-01&end_date=' + str(comicyear) + '-12-31&series=' + str(comicnm) + '&is_indexed=None'
 
-    response = urllib2.urlopen (input)
+    response = urllib.request.urlopen (input)
     soup = BeautifulSoup (response)
     cnt1 = len(soup.findAll("tr", {"class": "listing_even"}))
     cnt2 = len(soup.findAll("tr", {"class": "listing_odd"}))
 
     cnt = int(cnt1 + cnt2)
 
-    print (str(cnt) + " results")
+    print((str(cnt) + " results"))
 
     resultName = []
     resultID = []
@@ -748,10 +747,10 @@ def annualCheck(gcomicid, comicid, comicname, comicyear):
         rtp = resultp('a')[1]
         rtp1 = re.sub('Annual', '', rtp)
         resultName.append(helpers.cleanName(rtp1.findNext(text=True)))
-        print ("Comic Name: " + str(resultName[n]))
+        print(("Comic Name: " + str(resultName[n])))
         fip = resultp('a', href=True)[1]
         resultID.append(fip['href'])
-        print ("ID: " + str(resultID[n]))
+        print(("ID: " + str(resultID[n])))
 
         subtxt3 = resultp('td')[3]
         resultYear.append(subtxt3.findNext(text=True))
@@ -763,21 +762,21 @@ def annualCheck(gcomicid, comicid, comicname, comicyear):
         resiss = int(resiss)
         resultIssues[n] = resultIssues[n].replace('', '')[:resiss]
         resultIssues[n] = resultIssues[n].replace(' ', '')
-        print ("Year: " + str(resultYear[n]))
-        print ("Issues: " + str(resultIssues[n]))
+        print(("Year: " + str(resultYear[n])))
+        print(("Issues: " + str(resultIssues[n])))
         CleanComicName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', comicnm)
 
         CleanComicName = re.sub(' ', '', CleanComicName).lower()
         CleanResultName = re.sub('[\,\.\:\;\'\[\]\(\)\!\@\#\$\%\^\&\*\-\_\+\=\?\/]', '', resultName[n])
         CleanResultName = re.sub(' ', '', CleanResultName).lower()
-        print ("CleanComicName: " + str(CleanComicName))
-        print ("CleanResultName: " + str(CleanResultName))
+        print(("CleanComicName: " + str(CleanComicName)))
+        print(("CleanResultName: " + str(CleanResultName)))
         if CleanResultName == CleanComicName or CleanResultName[3:] == CleanComicName:
         #if resultName[n].lower() == helpers.cleanName(str(ComicName)).lower():
             #print ("n:" + str(n) + "...matched by name to Mylar!")
             if resultYear[n] == ComicYear or resultYear[n] == str(int(ComicYear) +1):
-                print ("n:" + str(n) + "...matched by year to Mylar!")
-                print ("Year: " + str(resultYear[n]))
+                print(("n:" + str(n) + "...matched by year to Mylar!"))
+                print(("Year: " + str(resultYear[n])))
                 TotalIssues = resultIssues[n]
                 resultURL = str(resultID[n])
                 rptxt = resultp('td')[6]

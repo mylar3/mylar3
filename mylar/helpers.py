@@ -21,7 +21,7 @@ from datetime import timedelta, date
 import subprocess
 import requests
 import shlex
-import Queue
+import queue
 import json
 import re
 import sys
@@ -33,11 +33,12 @@ import shutil
 import hashlib
 import gzip
 import os, errno
-from StringIO import StringIO
+import urllib
+from io import StringIO
 from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
-import logger
+from . import logger
 from mylar import db, sabnzbd, nzbget, process, getcomics
 
 def multikeysort(items, columns):
@@ -100,7 +101,7 @@ def latinToAscii(unicrap):
 
     r = ''
     for i in unicrap:
-        if xlate.has_key(ord(i)):
+        if ord(i) in xlate:
             r += xlate[ord(i)]
         elif ord(i) >= 0x80:
             pass
@@ -195,7 +196,7 @@ def human2bytes(s):
         return 0
 
 def replace_all(text, dic):
-    for i, j in dic.iteritems():
+    for i, j in dic.items():
         text = text.replace(i, j)
     return text.rstrip()
 
@@ -380,10 +381,10 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
 
             unicodeissue = issuenum
 
-            if type(issuenum) == unicode:
-               vals = {u'\xbd':'.5',u'\xbc':'.25',u'\xbe':'.75',u'\u221e':'9999999999',u'\xe2':'9999999999'}
-            else:
+            if type(issuenum) == str:
                vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\u221e':'9999999999','\xe2':'9999999999'}
+            else:
+               vals = {'\xbd':'.5','\xbc':'.25','\xbe':'.75','\\u221e':'9999999999','\xe2':'9999999999'}
             x = [vals[key] for key in vals if key in issuenum]
             if x:
                 issuenum = x[0]
@@ -488,7 +489,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         pass
                     else:
                         raise ValueError
-                except ValueError, e:
+                except ValueError as e:
                     logger.warn('Unable to properly determine issue number [ %s] - you should probably log this on github for help.' % issueno)
                     return
 
@@ -711,7 +712,7 @@ def apiremove(apistring, type):
 def remove_apikey(payd, key):
         #payload = some dictionary with payload values
         #key = the key to replace with REDACTED (normally apikey)
-    for k,v in payd.items():
+    for k,v in list(payd.items()):
         payd[key] = 'REDACTED'
 
     return payd
@@ -932,7 +933,7 @@ def cleanhtml(raw_html):
         if tag.name not in VALID_TAGS:
             tag.replaceWith(tag.renderContents())
     flipflop = soup.renderContents()
-    print flipflop
+    print(flipflop)
     return flipflop
 
 
@@ -1017,10 +1018,10 @@ def issuedigits(issnum):
             except:
                 issnum = issnum.decode('windows-1252')
 
-        if type(issnum) == unicode:
-            vals = {u'\xbd':.5,u'\xbc':.25,u'\xbe':.75,u'\u221e':9999999999,u'\xe2':9999999999}
-        else:
+        if type(issnum) == str:
             vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\u221e':9999999999,'\xe2':9999999999}
+        else:
+            vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\\u221e':9999999999,'\xe2':9999999999}
 
         x = [vals[key] for key in vals if key in issnum]
 
@@ -1070,7 +1071,7 @@ def issuedigits(issnum):
                         logger.fdebug('Infinity issue found.')
                         int_issnum = 9999999999 * 1000
                     else: raise ValueError
-                except ValueError, e:
+                except ValueError as e:
                     #this will account for any alpha in a issue#, so long as it doesn't have decimals.
                     x = 0
                     tstord = None
@@ -1086,7 +1087,7 @@ def issuedigits(issnum):
                                 issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
                                 try:
                                     isschk = float(issno)
-                                except ValueError, e:
+                                except ValueError as e:
                                     if len(issnum) == 1 and issnum.isalpha():
                                         break
                                     logger.fdebug('[' + issno + '] Invalid numeric for issue - cannot be found. Ignoring.')
@@ -1118,7 +1119,7 @@ def issuedigits(issnum):
                             return 999999999999999
                     else:
                         if issnum == '9-5':
-                            issnum = u'9\xbd'
+                            issnum = '9\xbd'
                             logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                             int_issnum = (9 * 1000) + (.5 * 1000)
                         elif issnum == '112/113':
@@ -1199,10 +1200,10 @@ def urlretrieve(urlfile, fpath):
     while 1:
         data = urlfile.read(chunk)
         if not data:
-            print "done."
+            print("done.")
             break
         f.write(data)
-        print "Read %s bytes"%len(data)
+        print("Read %s bytes"%len(data))
 
 def renamefile_readingorder(readorder):
     logger.fdebug('readingorder#: ' + str(readorder))
@@ -1305,7 +1306,7 @@ def upgrade_dynamic():
 def checkFolder(folderpath=None):
     from mylar import PostProcessor
 
-    queue = Queue.Queue()
+    queue = queue.Queue()
     #monitor a selected folder for 'snatched' files that haven't been processed
     if folderpath is None:
         logger.info('Checking folder ' + mylar.CONFIG.CHECK_FOLDER + ' for newly snatched downloads')
@@ -1334,7 +1335,7 @@ def LoadAlternateSearchNames(seriesname_alt, comicid):
             AS_Alt.append(seriesname_alt)
         for calt in chkthealt:
             AS_Alter = re.sub('##', '', calt)
-            u_altsearchcomic = AS_Alter.encode('ascii', 'ignore').strip()
+            u_altsearchcomic = AS_Alter #.encode('ascii', 'ignore').strip()
             AS_formatrem_seriesname = re.sub('\s+', ' ', u_altsearchcomic)
             if AS_formatrem_seriesname[:1] == ' ': AS_formatrem_seriesname = AS_formatrem_seriesname[1:]
 
@@ -1466,8 +1467,8 @@ def havetotals(refreshit=None):
 
 def filesafe(comic):
     import unicodedata
-    if u'\u2014' in comic:
-        comic = re.sub(u'\u2014', ' - ', comic)
+    if '\u2014' in comic:
+        comic = re.sub('\u2014', ' - ', comic)
     try:
         u_comic = unicodedata.normalize('NFKD', comic).encode('ASCII', 'ignore').strip()
     except TypeError:
@@ -1484,7 +1485,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
 
     issuedetails = []
     issuetag = None
-
+    filelocation = urllib.parse.unquote_plus(filelocation.decode('utf-8'))
     if justinfo is False:
         dstlocation = os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.zip')
 
@@ -2458,7 +2459,7 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
         pack_issues = []
         for pl in packlist:
             if '-' in pl:
-                plist.append(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1))
+                plist.append(list(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1)))
             else:
                 plist.append(int(pl))
 
@@ -2477,7 +2478,7 @@ def issue_find_ids(ComicName, ComicID, pack, IssueNumber):
         tmp_ann = re.sub('[annual/annuals/+]', '', tmp_annuals.lower()).strip()
         tmp_pack = re.sub('[annual/annuals/+]', '', pack.lower()).strip() 
         pack_issues_numbers = re.findall(r'\d+', tmp_pack)
-        pack_issues = range(int(pack_issues_numbers[0]),int(pack_issues_numbers[1])+1)
+        pack_issues = list(range(int(pack_issues_numbers[0]),int(pack_issues_numbers[1])+1))
         annualize = True
 
     issues = {}
@@ -2531,7 +2532,7 @@ def clean_url(url):
 
 def chunker(seq, size):
     #returns a list from a large group of tuples by size (ie. for group in chunker(seq, 3))
-    return [seq[pos:pos + size] for pos in xrange(0, len(seq), size)]
+    return [seq[pos:pos + size] for pos in range(0, len(seq), size)]
 
 def cleanHost(host, protocol = True, ssl = False, username = None, password = None):
     """  Return a cleaned up host with given url options set
@@ -2785,12 +2786,12 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
        snatch_status = 'ERROR'
     else:
         if mylar.USE_RTORRENT:
-            import test
+            from . import test
             rp = test.RTorrent()
             torrent_info = rp.main(torrent_hash, check=True)
         elif mylar.USE_DELUGE:
             #need to set the connect here as well....
-            import torrent.clients.deluge as delu
+            from mylar.torrent.clients import deluge as delu
             dp = delu.TorrentClient()
             if not dp.connect(mylar.CONFIG.DELUGE_HOST, mylar.CONFIG.DELUGE_USERNAME, mylar.CONFIG.DELUGE_PASSWORD):
                 logger.warn('Not connected to Deluge!')
@@ -2869,13 +2870,13 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             #downlocation = re.sub("&", "\&", downlocation)
 
             script_cmd = shlex.split(curScriptName, posix=False) # + [downlocation]
-            logger.fdebug(u"Executing command " +str(script_cmd))
+            logger.fdebug("Executing command " +str(script_cmd))
             try:
                 p = subprocess.Popen(script_cmd, env=dict(autosnatch_env), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=mylar.PROG_DIR)
                 out, err = p.communicate()
-                logger.fdebug(u"Script result: " + out)
-            except OSError, e:
-                logger.warn(u"Unable to run extra_script: " + e)
+                logger.fdebug("Script result: " + out)
+            except OSError as e:
+                logger.warn("Unable to run extra_script: " + e)
                 snatch_status = 'ERROR'
             else:
                 if 'Access failed: No such file' in out:
@@ -2995,11 +2996,11 @@ def weekly_info(week=None, year=None, current=None):
 
     date_fmt = "%B %d, %Y"
     try:
-        con_startweek = u"" + startweek.strftime(date_fmt).decode('utf-8')
-        con_endweek = u"" + endweek.strftime(date_fmt).decode('utf-8')
+        con_startweek = "" + startweek.strftime(date_fmt) #.decode('utf-8')
+        con_endweek = "" + endweek.strftime(date_fmt) #.decode('utf-8')
     except:
-        con_startweek = u"" + startweek.strftime(date_fmt).decode('cp1252')
-        con_endweek = u"" + endweek.strftime(date_fmt).decode('cp1252')
+        con_startweek = "" + startweek.strftime(date_fmt) #.decode('cp1252')
+        con_endweek = "" + endweek.strftime(date_fmt) #.decode('cp1252')
 
     if mylar.CONFIG.WEEKFOLDER_LOC is not None:
         weekdst = mylar.CONFIG.WEEKFOLDER_LOC
@@ -3346,11 +3347,11 @@ def script_env(mode, vars):
     logger.fdebug("snatch script detected...enabling: " + str(curScriptName))
 
     script_cmd = shlex.split(curScriptName)
-    logger.fdebug(u"Executing command " +str(script_cmd))
+    logger.fdebug("Executing command " +str(script_cmd))
     try:
         subprocess.call(script_cmd, env=dict(mylar_env))
-    except OSError, e:
-        logger.warn(u"Unable to run extra_script: " + str(script_cmd))
+    except OSError as e:
+        logger.warn("Unable to run extra_script: " + str(script_cmd))
         return False
     else:
         return True
@@ -4031,7 +4032,7 @@ def file_ops(path,dst,arc=False,one_off=False):
                     # Now create another copy of the above file.
                     os.link( path, dst )
                     logger.info('Created hard link successfully!!')
-                except OSError, e:
+                except OSError as e:
                     if e.errno == errno.EXDEV:
                         logger.warn('[' + str(e) + '] Hardlinking failure. Could not create hardlink - dropping down to copy mode so that this operation can complete. Intervention is required if you wish to continue using hardlinks.')
                         try:
@@ -4065,7 +4066,7 @@ def file_ops(path,dst,arc=False,one_off=False):
                     else:
                         os.symlink ( path, dst )
                         logger.fdebug('Successfully created softlink [' + path + ' --> ' + dst + ']')
-                except OSError, e:
+                except OSError as e:
                     #if e.errno == errno.EEXIST:
                     #    os.remove(dst)
                     #    os.symlink( path, dst )
@@ -4095,12 +4096,11 @@ def file_ops(path,dst,arc=False,one_off=False):
             #kdll.CreateSymbolicLinkW(path, dst, 0)
 
             #option 2
-            import lib.winlink as winlink
             if mylar.CONFIG.FILE_OPTS == 'hardlink':
                 try:
                     os.system(r'mklink /H dst path')
                     logger.fdebug('Successfully hardlinked file [' + dst + ' --> ' + path + ']')
-                except OSError, e:
+                except OSError as e:
                     logger.warn('[' + e + '] Unable to create symlink. Dropping down to copy mode so that this operation can continue.')
                     try:
                         shutil.copy( dst, path )
@@ -4115,7 +4115,7 @@ def file_ops(path,dst,arc=False,one_off=False):
                         os.remove( path )
                     os.system(r'mklink dst path')
                     logger.fdebug('Successfully created symlink [' + dst + ' --> ' + path + ']')
-                except OSError, e:
+                except OSError as e:
                     raise e
                     logger.warn('[' + e + '] Unable to create softlink. Dropping down to copy mode so that this operation can continue.')
                     try:

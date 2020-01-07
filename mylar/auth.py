@@ -22,9 +22,9 @@
 
 import cherrypy
 from cherrypy.lib.static import serve_file
-from cgi import escape
+import cgi
 #from datetime import datetime, timedelta
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 import mylar
 from mylar import logger, encrypted
@@ -43,19 +43,19 @@ def check_credentials(username, password):
         if username == forms_user and all([ed_chk['status'] is True, ed_chk['password'] == password]):
             return None
         else:
-            return u"Incorrect username or password."
+            return "Incorrect username or password."
     else:
         if username == forms_user and password == forms_pass:
             return None
         else:
-            return u"Incorrect username or password."
+            return "Incorrect username or password."
 
 def check_auth(*args, **kwargs):
     """A tool that looks in config for 'auth.require'. If found and it
     is not None, a login is required and the entry is evaluated as a list of
     conditions that the user must fulfill"""
     conditions = cherrypy.request.config.get('auth.require', None)
-    get_params = urllib.quote(cherrypy.request.request_line.split()[1])
+    get_params = urllib.parse.quote(cherrypy.request.request_line.split()[1])
     if conditions is not None:
         username = cherrypy.session.get(SESSION_KEY)
         if username:

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #  This file is part of Mylar.
@@ -23,8 +22,8 @@ import json
 import cherrypy
 import random
 import os
-import urllib2
-import cache
+import urllib.request, urllib.error, urllib.parse
+from . import cache
 import imghdr
 from operator import itemgetter
 from cherrypy.lib.static import serve_file, serve_download
@@ -81,7 +80,7 @@ class Api(object):
         results = []
 
         for row in rows:
-            results.append(dict(zip(row.keys(), row)))
+            results.append(dict(list(zip(list(row.keys()), row))))
 
         return results
 
@@ -148,7 +147,7 @@ class Api(object):
                     return serve_file(path=self.img, content_type='image/jpeg')
                 if self.file and self.filename:
                     return serve_download(path=self.file, name=self.filename)
-                if isinstance(self.data, basestring):
+                if isinstance(self.data, str):
                     return self.data
                 else:
                     if self.comicrn is True:
@@ -393,7 +392,7 @@ class Api(object):
 
         try:
             importer.addComictoDB(self.id)
-        except Exception, e:
+        except Exception as e:
             self.data = e
 
         return
@@ -407,7 +406,7 @@ class Api(object):
 
         try:
             importer.addComictoDB(self.id)
-        except Exception, e:
+        except Exception as e:
             self.data = e
 
         return
@@ -596,10 +595,10 @@ class Api(object):
 
             # Try every img url in the db
             try:
-                img = urllib2.urlopen(comic[0]['ComicImageURL']).read()
+                img = urllib.request.urlopen(comic[0]['ComicImageURL']).read()
             except:
                 try:
-                    img = urllib2.urlopen(comic[0]['ComicImageALTURL']).read()
+                    img = urllib.request.urlopen(comic[0]['ComicImageALTURL']).read()
                 except:
                     pass
 
@@ -799,7 +798,7 @@ class REST(object):
             rows_as_dic = []
 
             for row in rows:
-                row_as_dic = dict(zip(row.keys(), row))
+                row_as_dic = dict(list(zip(list(row.keys()), row)))
                 rows_as_dic.append(row_as_dic)
 
             return rows_as_dic
@@ -832,7 +831,7 @@ class REST(object):
             rows_as_dic = []
 
             for row in rows:
-                row_as_dic = dict(zip(row.keys(), row))
+                row_as_dic = dict(list(zip(list(row.keys()), row)))
                 rows_as_dic.append(row_as_dic)
 
             return rows_as_dic

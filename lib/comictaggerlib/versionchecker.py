@@ -16,13 +16,13 @@
 
 import sys
 import platform
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 #import os
 #import urllib
 
 try:
-    from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
-    from PyQt4.QtCore import QUrl, pyqtSignal, QObject, QByteArray
+    from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+    from PyQt5.QtCore import QUrl, pyqtSignal, QObject, QByteArray
 except ImportError:
     # No Qt, so define a few dummy QObjects to help us compile
     class QObject():
@@ -38,7 +38,7 @@ except ImportError:
         def emit(a, b, c):
             pass
 
-import ctversion
+from . import ctversion
 
 
 class VersionChecker(QObject):
@@ -67,7 +67,7 @@ class VersionChecker(QObject):
     def getLatestVersion(self, uuid, use_stats=True):
 
         try:
-            resp = urllib2.urlopen(self.getRequestUrl(uuid, use_stats))
+            resp = urllib.request.urlopen(self.getRequestUrl(uuid, use_stats))
             new_version = resp.read()
         except Exception as e:
             return None

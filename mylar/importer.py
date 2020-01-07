@@ -23,8 +23,8 @@ import shlex
 import datetime
 import re
 import json
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import shutil
 import imghdr
 import sqlite3
@@ -586,7 +586,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         sortname = ComicName
 
 
-    logger.info(u"Now adding/updating: " + ComicName)
+    logger.info("Now adding/updating: " + ComicName)
     #--Now that we know ComicName, let's try some scraping
     #--Start
     # gcd will return issue details (most importantly publishing date)
@@ -598,7 +598,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         updater.no_searchresults(gcomicid)
         nomatch = "true"
         return nomatch
-    logger.info(u"Sucessfully retrieved details for " + ComicName)
+    logger.info("Sucessfully retrieved details for " + ComicName)
     # print ("Series Published" + parseit.resultPublished)
     #--End
 
@@ -640,7 +640,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
         #comlocation = mylar.CONFIG.DESTINATION_DIR + "/" + comicdir + " (" + ComicYear + ")"
         if mylar.CONFIG.DESTINATION_DIR == "":
-            logger.error(u"There is no general directory specified - please specify in Config/Post-Processing.")
+            logger.error("There is no general directory specified - please specify in Config/Post-Processing.")
             return
         if mylar.CONFIG.REPLACE_SPACES:
             #mylar.CONFIG.REPLACE_CHAR ...determines what to replace spaces with underscore or dot
@@ -648,7 +648,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
 
     #if it doesn't exist - create it (otherwise will bugger up later on)
     if os.path.isdir(comlocation):
-        logger.info(u"Directory (" + comlocation + ") already exists! Continuing...")
+        logger.info("Directory (" + comlocation + ") already exists! Continuing...")
     else:
         if mylar.CONFIG.CREATE_FOLDERS is True:
             checkdirectory = filechecker.validateAndCreateDirectory(comlocation, True)
@@ -664,10 +664,10 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
         #let's make the dir.
         try:
             os.makedirs(str(mylar.CONFIG.CACHE_DIR))
-            logger.info(u"Cache Directory successfully created at: " + str(mylar.CONFIG.CACHE_DIR))
+            logger.info("Cache Directory successfully created at: " + str(mylar.CONFIG.CACHE_DIR))
 
         except OSError:
-            logger.error(u"Could not create cache dir : " + str(mylar.CONFIG.CACHE_DIR))
+            logger.error("Could not create cache dir : " + str(mylar.CONFIG.CACHE_DIR))
 
     coverfile = os.path.join(mylar.CONFIG.CACHE_DIR, str(gcomicid) + ".jpg")
 
@@ -677,7 +677,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     else:
         time.sleep(mylar.CONFIG.CVAPI_RATE)
 
-    urllib.urlretrieve(str(ComicImage), str(coverfile))
+    urllib.request.urlretrieve(str(ComicImage), str(coverfile))
     try:
         with open(str(coverfile)) as f:
             ComicImage = os.path.join('cache', str(gcomicid) + ".jpg")
@@ -686,13 +686,13 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
             #without breaking the normal flow for inside the LAN (above)
             #ComicImage = "http://" + str(mylar.CONFIG.HTTP_HOST) + ":" + str(mylar.CONFIG.HTTP_PORT) + "/cache/" + str(comi$
 
-            logger.info(u"Sucessfully retrieved cover for " + ComicName)
+            logger.info("Sucessfully retrieved cover for " + ComicName)
             #if the comic cover local is checked, save a cover.jpg to the series folder.
             if mylar.CONFIG.COMIC_COVER_LOCAL and os.path.isdir(comlocation):
                 comiclocal = os.path.join(comlocation + "/cover.jpg")
                 shutil.copy(ComicImage, comiclocal)
     except IOError as e:
-        logger.error(u"Unable to save cover locally at this time.")
+        logger.error("Unable to save cover locally at this time.")
 
     #if comic['ComicVersion'].isdigit():
     #    comicVol = "v" + comic['ComicVersion']
@@ -722,7 +722,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if pullupd is None:
         helpers.ComicSort(sequence='update')
 
-    logger.info(u"Sucessfully retrieved issue details for " + ComicName)
+    logger.info("Sucessfully retrieved issue details for " + ComicName)
     n = 0
     iscnt = int(comicIssues)
     issnum = []
@@ -734,7 +734,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     latestdate = "0000-00-00"
     #print ("total issues:" + str(iscnt))
     #---removed NEW code here---
-    logger.info(u"Now adding/updating issues for " + ComicName)
+    logger.info("Now adding/updating issues for " + ComicName)
     bb = 0
     while (bb <= iscnt):
         #---NEW.code
@@ -750,7 +750,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
             break
         if 'nn' in str(gcdval['GCDIssue']):
             #no number detected - GN, TP or the like
-            logger.warn(u"Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
+            logger.warn("Non Series detected (Graphic Novel, etc) - cannot proceed at this time.")
             updater.no_searchresults(comicid)
             return
         elif '.' in str(gcdval['GCDIssue']):
@@ -839,7 +839,7 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
             with open(comlocation + "/cvinfo", "w") as text_file:
                 text_file.write("http://comicvine.gamespot.com/volume/49-" + str(comicid))
 
-    logger.info(u"Updating complete for: " + ComicName)
+    logger.info("Updating complete for: " + ComicName)
 
     #move the files...if imported is not empty (meaning it's not from the mass importer.)
     if imported is None or imported == 'None':
@@ -859,14 +859,14 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
     if pullupd is None:
         # lets' check the pullist for anyting at this time as well since we're here.
         if mylar.CONFIG.AUTOWANT_UPCOMING and 'Present' in ComicPublished:
-            logger.info(u"Checking this week's pullist for new issues of " + ComicName)
+            logger.info("Checking this week's pullist for new issues of " + ComicName)
             updater.newpullcheck(comic['ComicName'], gcomicid)
 
         #here we grab issues that have been marked as wanted above...
 
         results = myDB.select("SELECT * FROM issues where ComicID=? AND Status='Wanted'", [gcomicid])
         if results:
-            logger.info(u"Attempting to grab wanted issues for : "  + ComicName)
+            logger.info("Attempting to grab wanted issues for : "  + ComicName)
 
             for result in results:
                 foundNZB = "none"
@@ -874,9 +874,9 @@ def GCDimport(gcomicid, pullupd=None, imported=None, ogcname=None):
                     foundNZB = search.searchforissue(result['IssueID'])
                     if foundNZB == "yes":
                         updater.foundsearch(result['ComicID'], result['IssueID'])
-        else: logger.info(u"No issues marked as wanted for " + ComicName)
+        else: logger.info("No issues marked as wanted for " + ComicName)
 
-        logger.info(u"Finished grabbing what I could.")
+        logger.info("Finished grabbing what I could.")
 
 
 def issue_collection(issuedata, nostatus):
@@ -949,7 +949,7 @@ def issue_collection(issuedata, nostatus):
 
             try:
                 myDB.upsert(dbwrite, newValueDict, controlValueDict)
-            except sqlite3.InterfaceError, e:
+            except sqlite3.InterfaceError as e:
                 #raise sqlite3.InterfaceError(e)
                 logger.error('Something went wrong - I cannot add the issue information into my DB.')
                 myDB.action("DELETE FROM comics WHERE ComicID=?", [issue['ComicID']])
@@ -1130,18 +1130,18 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('m') + ord('u')
                 elif 'hu' in issnum.lower():
                     int_issnum = (int(issnum[:-3]) * 1000) + ord('h') + ord('u')
-                elif u'\xbd' in issnum:
+                elif '\xbd' in issnum:
                     tmpiss = re.sub('[^0-9]', '', issnum).strip()
                     if len(tmpiss) > 0:
                         int_issnum = (int(tmpiss) + .5) * 1000
                     else:
                         int_issnum = .5 * 1000
                     logger.fdebug('1/2 issue detected :' + issnum + ' === ' + str(int_issnum))
-                elif u'\xbc' in issnum:
+                elif '\xbc' in issnum:
                     int_issnum = .25 * 1000
-                elif u'\xbe' in issnum:
+                elif '\xbe' in issnum:
                     int_issnum = .75 * 1000
-                elif u'\u221e' in issnum:
+                elif '\u221e' in issnum:
                     #issnum = utf-8 will encode the infinity symbol without any help
                     int_issnum = 9999999999 * 1000  # set 9999999999 for integer value of issue
                 elif '.' in issnum or ',' in issnum:
@@ -1185,7 +1185,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             logger.fdebug('value of x is : ' + str(x))
                             int_issnum = (int(x) *1000) - 1
                         else: raise ValueError
-                    except ValueError, e:
+                    except ValueError as e:
                         x = 0
                         tstord = None
                         issno = None
@@ -1200,7 +1200,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                                     issno = re.sub('[\-\,\.\+]', '', issno).rstrip()
                                     try:
                                         isschk = float(issno)
-                                    except ValueError, e:
+                                    except ValueError as e:
                                         if len(issnum) == 1 and issnum.isalpha():
                                             logger.fdebug('detected lone alpha issue. Attempting to figure this out.')
                                             break
@@ -1237,7 +1237,7 @@ def updateissuedata(comicid, comicname=None, issued=None, comicIssues=None, call
                             if int_issnum is not None:
                                 pass 
                             elif issnum == '9-5':
-                                issnum = u'9\xbd'
+                                issnum = '9\xbd'
                                 logger.fdebug('issue: 9-5 is an invalid entry. Correcting to : ' + issnum)
                                 int_issnum = (9 * 1000) + (.5 * 1000)
                             elif issnum == '112/113':

@@ -17,30 +17,29 @@ import sys
 import os
 import re
 import time
-import logger
+from mylar import logger
 import string
-import urllib2
-import lib.feedparser
+import feedparser
 import mylar
 import platform
 from bs4 import BeautifulSoup as Soup
 from xml.parsers.expat import ExpatError
-import httplib
+import http.client
 import requests
 
 def patch_http_response_read(func):
     def inner(*args):
         try:
             return func(*args)
-        except httplib.IncompleteRead, e:
+        except http.client.IncompleteRead as e:
             return e.partial
 
     return inner
-httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+http.client.HTTPResponse.read = patch_http_response_read(http.client.HTTPResponse.read)
 
 if platform.python_version() == '2.7.6':
-    httplib.HTTPConnection._http_vsn = 10
-    httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
+    http.client.HTTPConnection._http_vsn = 10
+    http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 
 def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist=None):
@@ -92,7 +91,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
 
     try:
         r = requests.get(PULLURL, params=payload, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-    except Exception, e:
+    except Exception as e:
         logger.warn('Error fetching data from ComicVine: %s' % (e))
         return
 
@@ -100,7 +99,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     try:
         dom = parseString(r.content)
     except ExpatError:
-        if u'<title>Abnormal Traffic Detected' in r.content:
+        if '<title>Abnormal Traffic Detected' in r.content:
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')

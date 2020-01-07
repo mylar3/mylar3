@@ -197,7 +197,7 @@ class TorrentClient(object):
 
 
     def get_the_hash(self, filepath):
-        import hashlib, StringIO
+        import hashlib, io
         import bencode
 
         # Open torrent file

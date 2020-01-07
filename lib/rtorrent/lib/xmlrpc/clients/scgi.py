@@ -82,12 +82,18 @@
 # OF THIS SOFTWARE.
 
 import urllib
-import xmlrpclib
+import sys
 
-from rtorrent.lib.xmlrpc.transports.scgi import SCGITransport
+def is_py3():
+    return sys.version_info[0] == 3
+
+import xmlrpc.client
 
 
-class SCGIServerProxy(xmlrpclib.ServerProxy):
+from lib.rtorrent.lib.xmlrpc.transports.scgi import SCGITransport
+
+
+class SCGIServerProxy(xmlrpc.client.ServerProxy):
     def __init__(self, uri, transport=None, encoding=None, verbose=False,
                  allow_none=False, use_datetime=False):
         type, uri = urllib.splittype(uri)
@@ -111,7 +117,7 @@ class SCGIServerProxy(xmlrpclib.ServerProxy):
     def __request(self, methodname, params):
         # call a method on the remote server
 
-        request = xmlrpclib.dumps(params, methodname, encoding=self.__encoding,
+        request = xmlrpc.client.dumps(params, methodname, encoding=self.__encoding,
                                   allow_none=self.__allow_none)
 
         response = self.__transport.request(
@@ -136,7 +142,7 @@ class SCGIServerProxy(xmlrpclib.ServerProxy):
 
     def __getattr__(self, name):
         # magic method dispatcher
-        return xmlrpclib._Method(self.__request, name)
+        return xmlrpc.client._Method(self.__request, name)
 
     # note: to call a remote object with an non-standard name, use
     # result getattr(server, "strange-python-name")(args)

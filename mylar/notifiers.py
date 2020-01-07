@@ -16,11 +16,11 @@
 from mylar import logger
 import base64
 import cherrypy
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import mylar
-from httplib import HTTPSConnection
-from urllib import urlencode
+from http.client import HTTPSConnection
+from urllib.parse import urlencode
 import os.path
 import subprocess
 import time
@@ -196,19 +196,19 @@ class BOXCAR:
 
         try:
 
-            data = urllib.urlencode({
+            data = urllib.parse.urlencode({
                 'user_credentials': mylar.CONFIG.BOXCAR_TOKEN,
                 'notification[title]': title.encode('utf-8').strip(),
                 'notification[long_message]': msg.encode('utf-8'),
                 'notification[sound]': "done"
                 })
 
-            req = urllib2.Request(self.url)
-            handle = urllib2.urlopen(req, data)
+            req = urllib.request.Request(self.url)
+            handle = urllib.request.urlopen(req, data)
             handle.close()
             return True
 
-        except urllib2.URLError, e:
+        except urllib.error.URLError as e:
             # if we get an error back that doesn't have an error code then who knows what's really happening
             if not hasattr(e, 'code'):
                 logger.error(module + 'Boxcar2 notification failed. %s' % e)
@@ -347,16 +347,16 @@ class TELEGRAM:
         # Send message to user using Telegram's Bot API
         try:
             response = requests.post(self.TELEGRAM_API % (self.token, "sendMessage"), json=payload, verify=True)
-        except Exception, e:
-            logger.info(u'Telegram notify failed: ' + str(e))
+        except Exception as e:
+            logger.info('Telegram notify failed: ' + str(e))
 
         # Error logging
         sent_successfuly = True
         if not response.status_code == 200:
-            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
+            logger.info('Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
             sent_successfuly = False
 
-        logger.info(u"Telegram notifications sent.")
+        logger.info("Telegram notifications sent.")
         return sent_successfuly
 
     def test_notify(self):
@@ -379,7 +379,7 @@ class EMAIL:
         sent_successfully = False
 
         try:
-            logger.debug(module + u' Sending email notification. From: [%s] - To: [%s] - Server: [%s] - Port: [%s] - Username: [%s] - Password: [********] - Encryption: [%s] - Message: [%s]' % (self.emailfrom, self.emailto, self.emailsvr, self.emailport, self.emailuser, self.emailenc, message))
+            logger.debug(module + ' Sending email notification. From: [%s] - To: [%s] - Server: [%s] - Port: [%s] - Username: [%s] - Password: [********] - Encryption: [%s] - Message: [%s]' % (self.emailfrom, self.emailto, self.emailsvr, self.emailport, self.emailuser, self.emailenc, message))
             msg = MIMEMultipart()
             msg['From'] = str(self.emailfrom)
             msg['To'] = str(self.emailto)
@@ -403,8 +403,8 @@ class EMAIL:
             sock.quit()
             sent_successfully = True
 
-        except Exception, e:
-            logger.warn(module + u' Oh no!! Email notification failed: ' + str(e))
+        except Exception as e:
+            logger.warn(module + ' Oh no!! Email notification failed: ' + str(e))
 
         return sent_successfully
 
@@ -444,16 +444,16 @@ class SLACK:
 
         try:
             response = requests.post(self.webhook_url, json=payload, verify=True)
-        except Exception, e:
-            logger.info(module + u'Slack notify failed: ' + str(e))
+        except Exception as e:
+            logger.info(module + 'Slack notify failed: ' + str(e))
 
         # Error logging
         sent_successfuly = True
         if not response.status_code == 200:
-            logger.info(module + u'Could not send notification to Slack (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
+            logger.info(module + 'Could not send notification to Slack (webhook_url=%s). Response: [%s]' % (self.webhook_url, response.text))
             sent_successfuly = False
 
-        logger.info(module + u"Slack notifications sent.")
+        logger.info(module + "Slack notifications sent.")
         return sent_successfuly
 
     def test_notify(self):

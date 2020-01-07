@@ -41,7 +41,7 @@ class TorrentClient(object):
         torrent_files = []
         torrent_directory = os.path.normpath(torrent.downloadDir)
 
-        for f in torrent.files().itervalues():
+        for f in torrent.files().values():
             if not os.path.normpath(f['name']).startswith(torrent_directory):
                 file_path = os.path.join(torrent_directory,
                                          f['name'].lstrip('/'))
@@ -90,7 +90,7 @@ class TorrentClient(object):
     def delete_torrent(self, torrent):
         deleted = []
         files = torrent.files()
-        for file_item in files.itervalues():
+        for file_item in files.values():
             file_path = os.path.join(torrent.downloadDir,
                                      file_item['name'])
             deleted.append(file_path)

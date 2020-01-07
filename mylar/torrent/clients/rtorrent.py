@@ -1,6 +1,6 @@
 import os
 import re
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from lib.rtorrent import RTorrent
 
@@ -42,28 +42,39 @@ class TorrentClient(object):
         if not url.endswith('/'):
             url += '/'
 
-        #url = helpers.cleanHost(host, protocol = True, ssl = ssl)
+        url = helpers.cleanHost(host, protocol = True, ssl = ssl)
 
         # Automatically add '+https' to 'httprpc' protocol if SSL is enabled
-        #if ssl is True and url.startswith('httprpc://'):
-        #    url = url.replace('httprpc://', 'httprpc+https://')
-        #if ssl is False and not url.startswith('http://'):
-        #    url = 'http://' + url
+        if ssl is True and url.startswith('httprpc://'):
+            url = url.replace('httprpc://', 'httprpc+https://')
+        if ssl is False and not url.startswith('http://'):
+           url = 'http://' + url
 
-        #parsed = urlparse(url)
+        parsed = urlparse(url)
 
         # rpc_url is only used on http/https scgi pass-through
-        if rpc_url is not None:
+        if parsed.scheme in ['http', 'https'] and rpc_url is not None:
             url += rpc_url
 
-        #logger.fdebug(url)
+        logger.fdebug(url)
 
         if username and password:
             try:
+                # logger.debug('SECURE: username and password')
+                if parsed.scheme == 'https':
+                    newurl = url.replace('https://', 'https://%s:%s@' % (username, password))
+                elif parsed.scheme == 'http':
+                    newurl = url.replace('http://', 'http://%s:%s@' % (username, password))
+                else:
+                    newurl = url
+                logger.fdebug('NEWURL: %s' % newurl.replace(password, '[REDACTED]'))
+                logger.info('[%s] %s / %s' % (auth, username, password))
+                authinfo = tuple(([auth, username, password]))
+                logger.fdebug('authinfo: %s[%s]' % (authinfo, type(authinfo)))
                 self.conn = RTorrent(
-                    url,(auth, username, password),
+                    url, authinfo,
                     verify_server=True,
-                    verify_ssl=self.getVerifySsl(verify, ca_bundle)
+                    verify_ssl=False #self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
                 logger.error('Make sure you have the right protocol specified for the rtorrent host. Failed to connect to rTorrent - error: %s.' % err)

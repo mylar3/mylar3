@@ -76,7 +76,7 @@ class Scheduler:
                         time.sleep(self.delay)
 
                     self.action.run()
-                except Exception, e:
+                except Exception as e:
                     logger.fdebug("Exception generated in thread " + self.threadName + ": %s" % e)
                     logger.fdebug(repr(traceback.format_exc()))
 

@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-import platform, subprocess, re, os, urllib2, tarfile
+import platform, subprocess, re, os, urllib.request, urllib.error, urllib.parse, tarfile
 
 import mylar
 from mylar import logger, version
@@ -42,8 +42,8 @@ def runGit(args):
         try:
             #logger.debug('Trying to execute: %s with shell in %s' % (cmd, mylar.PROG_DIR))
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=mylar.PROG_DIR)
-            output, err = p.communicate()
-            #logger.debug('Git output: %s' % output)
+            output, err = p.communicate
+            logger.debug('Git output: %s' % output)
         except Exception as e:
             logger.error('Command %s didn\'t work [%s]' % (cmd, e))
             continue
@@ -51,7 +51,7 @@ def runGit(args):
             if all([err is not None, err != '']):
                 logger.error('Encountered error: %s' % err)
 
-        if 'not found' in output or "not recognized as an internal or external command" in output:
+        if "not found" in output or "not recognized as an internal or external command" in output:
             logger.error('[%s] Unable to find git with command: %s' % (output, cmd))
             output = None
         elif 'fatal:' in output or err:
@@ -239,7 +239,7 @@ def update():
         try:
             logger.info('Downloading update from: ' + tar_download_url)
             response = requests.get(tar_download_url, verify=True, stream=True)
-        except (IOError, urllib2.URLError):
+        except (IOError, urllib.error.URLError):
             logger.error("Unable to retrieve new version from " + tar_download_url + ", can't update")
             return
 
@@ -267,7 +267,7 @@ def update():
         # Find update dir name
         update_dir_contents = [x for x in os.listdir(update_dir) if os.path.isdir(os.path.join(update_dir, x))]
         if len(update_dir_contents) != 1:
-            logger.error(u"Invalid update data, update failed: " +str(update_dir_contents))
+            logger.error("Invalid update data, update failed: " +str(update_dir_contents))
             return
         content_dir = os.path.join(update_dir, update_dir_contents[0])
 

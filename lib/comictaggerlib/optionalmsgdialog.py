@@ -1,4 +1,4 @@
-"""A PyQt4 dialog to show a message and let the user check a box
+"""A PyQt5 dialog to show a message and let the user check a box
 
 Example usage:
 
@@ -25,8 +25,9 @@ said_yes, checked = OptionalMessageDialog.question(self, "Question",
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
 StyleMessage = 0

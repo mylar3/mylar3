@@ -15,14 +15,13 @@
 import time
 import datetime
 from xml.dom.minidom import parseString
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import shlex
 import operator
 import re
 import os
 import itertools
 import sys
-import exceptions
 
 import mylar
 from mylar import db, logger, helpers, filechecker
@@ -1232,7 +1231,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                             logger.fdebug(module + ' Matched...issue: ' + rescan['ComicName'] + '#' + reiss['Issue_Number'] + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = helpers.conversion(tmpfc['ComicFilename'])
+                            isslocation = tmpfc['ComicFilename'] #helpers.conversion(tmpfc['ComicFilename'])
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize'])) 
@@ -1380,7 +1379,7 @@ def forceRescan(ComicID, archive=None, module=None, recheck=False):
                             logger.fdebug(module + ' Matched...annual issue: ' + rescan['ComicName'] + '#' + str(reann['Issue_Number']) + ' --- ' + str(int_iss))
                             havefiles+=1
                             haveissue = "yes"
-                            isslocation = helpers.conversion(tmpfc['ComicFilename'])
+                            isslocation = tmpfc['ComicFilename'] #helpers.conversion(tmpfc['ComicFilename'])
                             issSize = str(tmpfc['ComicSize'])
                             logger.fdebug(module + ' .......filename: ' + isslocation)
                             logger.fdebug(module + ' .......filesize: ' + str(tmpfc['ComicSize']))

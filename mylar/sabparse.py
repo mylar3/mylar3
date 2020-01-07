@@ -23,7 +23,6 @@ import re
 import datetime
 import sys
 from decimal import Decimal
-from HTMLParser import HTMLParseError
 from time import strptime
 
 class sabnzbd(object):

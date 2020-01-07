@@ -19,8 +19,8 @@ import xml.etree.ElementTree as ET
 #from pprint import pprint
 #import zipfile
 
-from genericmetadata import GenericMetadata
-import utils
+from .genericmetadata import GenericMetadata
+from . import utils
 
 
 class ComicInfoXml:
@@ -54,7 +54,8 @@ class ComicInfoXml:
         header = '<?xml version="1.0"?>\n'
 
         tree = self.convertMetadataToXML(self, metadata)
-        return header + ET.tostring(tree.getroot())
+        tree_str = ET.tostring(tree.getroot()).decode()
+        return header + tree_str
 
     def indent(self, elem, level=0):
         # for making the XML output readable
@@ -85,7 +86,7 @@ class ComicInfoXml:
 
         def assign(cix_entry, md_entry):
             if md_entry is not None:
-                ET.SubElement(root, cix_entry).text = u"{0}".format(md_entry)
+                ET.SubElement(root, cix_entry).text = "{0}".format(md_entry)
 
         assign('Title', md.title)
         assign('Series', md.series)

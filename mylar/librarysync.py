@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+
 
 import os
 import glob
@@ -135,7 +135,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                         if comic.endswith('.cbz'):
                             cbz_retry +=1
 
-                except Exception, e:
+                except Exception as e:
                     logger.info('bang')
                     utter_failure_list.append({'ComicFilename':           comic,
                                                'ComicLocation':           comicpath,
@@ -625,7 +625,7 @@ def scanLibrary(scan=None, queue=None):
     if scan:
         try:
             soma = libraryScan(queue=queue)
-        except Exception, e:
+        except Exception as e:
             logger.error('[IMPORT] Unable to complete the scan: %s' % e)
             mylar.IMPORT_STATUS = None
             valreturn.append({"somevalue":  'self.ie',

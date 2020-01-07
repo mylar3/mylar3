@@ -16,9 +16,9 @@
 
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
+from .settings import ComicTaggerSettings
 #from settingswindow import SettingsWindow
 #from filerenamer import FileRenamer
 #import utils
@@ -30,7 +30,7 @@ class ExportConflictOpts:
     createUnique = 3
 
 
-class ExportWindow(QtGui.QDialog):
+class ExportWindow(QtWidgets.QDialog):
 
     def __init__(self, parent, settings, msg):
         super(ExportWindow, self).__init__(parent)
@@ -52,7 +52,7 @@ class ExportWindow(QtGui.QDialog):
         self.fileConflictBehavior = ExportConflictOpts.dontCreate
 
     def accept(self):
-        QtGui.QDialog.accept(self)
+        QtWidgets.QDialog.accept(self)
 
         self.deleteOriginal = self.cbxDeleteOriginal.isChecked()
         self.addToList = self.cbxAddToList.isChecked()

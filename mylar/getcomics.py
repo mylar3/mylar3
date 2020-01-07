@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from StringIO import StringIO
-import urllib
+from io import StringIO
+import urllib.request, urllib.parse, urllib.error
 from threading import Thread
 import os
 import sys
@@ -28,7 +28,7 @@ from bs4 import BeautifulSoup
 import requests
 import cfscrape
 import zipfile
-import logger
+from . import logger
 import mylar
 from mylar import db
 
@@ -94,7 +94,7 @@ class GC(object):
             link = lk['href']
             titlefind = f.find("h1", {"class": "post-title"})
             title = titlefind.get_text(strip=True)
-            title = re.sub(u'\u2013', '-', title).strip()
+            title = re.sub('\u2013', '-', title).strip()
             filename = title
             issues = None
             pack = False
@@ -217,8 +217,8 @@ class GC(object):
                     if linkline:
                         if 'go.php' in linkline['href']:
                             volume = x.findNext(text=True)
-                            if u'\u2013' in volume:
-                                volume = re.sub(u'\u2013', '-', volume)
+                            if '\u2013' in volume:
+                                volume = re.sub('\u2013', '-', volume)
                             #volume label contains series, issue(s), year(s), and size
                             series_st = volume.find('(')
                             issues_st = volume.find('#')
@@ -251,8 +251,8 @@ class GC(object):
                         bb = nxt.findAll('li')
                         for x in bb:
                             volume = x.findNext(text=True)
-                            if u'\u2013' in volume:
-                                volume = re.sub(u'\u2013', '-', volume)
+                            if '\u2013' in volume:
+                                volume = re.sub('\u2013', '-', volume)
                             series_st = volume.find('(')
                             issues_st = volume.find('#')
                             series = volume[:issues_st].strip()
@@ -337,7 +337,7 @@ class GC(object):
                 cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers, timeout=30)
                 t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
-                filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
+                filename = os.path.basename(urllib.parse.unquote(t.url).decode('utf-8'))
                 if 'GetComics.INFO' in filename:
                     filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
 
@@ -348,7 +348,7 @@ class GC(object):
                     if 'go.php-urls' not in link:
                         link = re.sub('go.php-url=', 'go.php-urls', link)
                         t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
-                        filename = os.path.basename(urllib.unquote(t.url).decode('utf-8'))
+                        filename = os.path.basename(urllib.parse.unquote(t.url).decode('utf-8'))
                         if 'GetComics.INFO' in filename:
                             filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
                         try:
@@ -440,12 +440,12 @@ class GC(object):
     def issue_list(self, pack):
         #packlist = [x.strip() for x in pack.split(',)]
         packlist = pack.replace('+', ' ').replace(',', ' ').split()
-        print packlist
+        print(packlist)
         plist = []
         pack_issues = []
         for pl in packlist:
             if '-' in pl:
-                plist.append(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1))
+                plist.append(list(range(int(pl[:pl.find('-')]),int(pl[pl.find('-')+1:])+1)))
             else:
                 if 'TPBs' not in pl:
                     plist.append(int(pl))
@@ -460,7 +460,7 @@ class GC(object):
                 pack_issues.append(pi)
 
         pack_issues.sort()
-        print "pack_issues: %s" % pack_issues
+        print("pack_issues: %s" % pack_issues)
 
 #if __name__ == '__main__':
 #    ab = GC(sys.argv[1]) #'justice league aquaman') #sys.argv[0])

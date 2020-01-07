@@ -18,7 +18,7 @@ import os
 import requests
 import bencode
 import hashlib
-import StringIO
+import io
 
 import mylar
 from mylar import logger

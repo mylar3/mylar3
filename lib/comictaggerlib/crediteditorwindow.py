@@ -16,12 +16,12 @@
 
 #import os
 
-from PyQt4 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from settings import ComicTaggerSettings
+from .settings import ComicTaggerSettings
 
 
-class CreditEditorWindow(QtGui.QDialog):
+class CreditEditorWindow(QtWidgets.QDialog):
 
     ModeEdit = 0
     ModeNew = 1
@@ -90,7 +90,7 @@ class CreditEditorWindow(QtGui.QDialog):
 
     def accept(self):
         if self.cbRole.currentText() == "" or self.leName.text() == "":
-            QtGui.QMessageBox.warning(self, self.tr("Whoops"), self.tr(
+            QtWidgets.QMessageBox.warning(self, self.tr("Whoops"), self.tr(
                 "You need to enter both role and name for a credit."))
         else:
-            QtGui.QDialog.accept(self)
+            QtWidgets.QDialog.accept(self)

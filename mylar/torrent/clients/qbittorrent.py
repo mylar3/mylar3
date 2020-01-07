@@ -5,7 +5,7 @@ import re
 import time
 from mylar import logger, helpers
 
-from lib.qbittorrent import client
+from qbittorrent import Client
 
 class TorrentClient(object):
     def __init__(self):
@@ -19,7 +19,7 @@ class TorrentClient(object):
             return {'status': False, 'error': 'host not specified'}
 
         try:
-            self.client = client.Client(host)
+            self.client = Client(host)
         except Exception as e:
             logger.error('Could not create qBittorrent Object %s' % e)
             return {'status': False, 'error': e}
@@ -97,7 +97,7 @@ class TorrentClient(object):
                 if mylar.CONFIG.QBITTORRENT_LOADACTION == 'pause':
                     addargs.update( { 'paused': 'true' } )
                     logger.info('Attempting to add torrent in paused state')
-                
+
                 if filepath.startswith('magnet'):
                     try:
                         tid = self.client.download_from_link(filepath, **addargs)
@@ -155,7 +155,7 @@ class TorrentClient(object):
 
 
     def get_the_hash(self, filepath):
-        import hashlib, StringIO
+        import hashlib
         import bencode
 
         # Open torrent file

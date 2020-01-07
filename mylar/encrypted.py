@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -27,18 +24,22 @@ from mylar import logger
 
 class Encryptor(object):
     def __init__(self, password, chk_password=None):
-        self.password = password.encode('utf-8')
+        self.password = password
 
     def encrypt_it(self):
+       #self.password = self.password.encode('utf-8')
+       logger.info('sp[%s]: %s' % (self.password,type(self.password)))
        try:
            salt = os.urandom(8)
            saltedhash = [salt[i] for i in range (0, len(salt))]
-           salted_pass = base64.b64encode('%s%s' % (self.password,salt))
+           logger.info('salted_hash: %s' % saltedhash)
+           salted_pass = base64.b64encode(b"%s%s" % (self.password.encode('utf-8'),salt))
        except Exception as e:
            logger.warn('Error when encrypting: %s' % e)
            return {'status': False}
        else:
-           return {'status': True, 'password': '^~$z$' + salted_pass}
+           fp = "%s%s" % ("^~$z$", salted_pass.decode('utf-8'))
+           return {'status': True, 'password': fp}
 
     def decrypt_it(self):
        try:
@@ -51,5 +52,5 @@ class Encryptor(object):
            logger.warn('Error when decrypting password: %s' % e)
            return {'status': False}
        else:
-           return {'status': True, 'password': passd[:-8]}
+           return {'status': True, 'password': passd[:-8].decode('utf-8')}
 

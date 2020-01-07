@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #  This file is part of Mylar.
 #
 #  Mylar is free software: you can redistribute it and/or modify
@@ -15,6 +14,7 @@
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
 import os, sys, locale
+import argparse
 import errno
 import shutil
 import time
@@ -63,9 +63,9 @@ def main():
         mylar.SYS_ENCODING = 'UTF-8'
 
     if not logger.LOG_LANG.startswith('en'):
-        print 'language detected as non-English (%s). Forcing specific logging module - errors WILL NOT be captured in the logs' % logger.LOG_LANG
+        print('language detected as non-English (%s). Forcing specific logging module - errors WILL NOT be captured in the logs' % logger.LOG_LANG)
     else:
-        print 'log language set to %s' % logger.LOG_LANG
+        print('log language set to %s' % logger.LOG_LANG)
 
     # Set up and gather command line arguments
     parser = argparse.ArgumentParser(description='Automated Comic Book Downloader')
@@ -96,25 +96,25 @@ def main():
 
     if args.maintenance:
         if all([args.exportjson is None, args.importdatabase is None, args.importjson is None, args.importstatus is False, args.update is False, args.fixslashes is False]):
-            print 'Expecting subcommand with the maintenance positional argumeent'
+            print('Expecting subcommand with the maintenance positional argumeent')
             sys.exit()
         mylar.MAINTENANCE = True
     else:
         mylar.MAINTENANCE = False
 
     if args.verbose:
-        print 'Verbose/Debugging mode enabled...'
+        print('Verbose/Debugging mode enabled...')
         mylar.LOG_LEVEL = 2
     elif args.quiet:
         mylar.QUIET = True
-        print 'Quiet logging mode enabled...'
+        print('Quiet logging mode enabled...')
         mylar.LOG_LEVEL = 0
     else:
         mylar.LOG_LEVEL = 1
 
     if args.daemon:
         if sys.platform == 'win32':
-            print "Daemonize not supported under Windows, starting normally"
+            print("Daemonize not supported under Windows, starting normally")
         else:
             mylar.DAEMON = True
 
@@ -130,7 +130,7 @@ def main():
             mylar.CREATEPID = True
             try:
                 file(mylar.PIDFILE, 'w').write("pid\n")
-            except IOError, e:
+            except IOError as e:
                 raise SystemExit("Unable to write PID file: %s [%d]" % (e.strerror, e.errno))
         else:
             print("Not running in daemon mode. PID file creation disabled.")
@@ -177,15 +177,15 @@ def main():
 
     # backup the db and configs before they load.
     if args.backup:
-        print '[AUTO-BACKUP] Backing up .db and config.ini files for safety.'
+        print('[AUTO-BACKUP] Backing up .db and config.ini files for safety.')
         backupdir = os.path.join(mylar.DATA_DIR, 'backup')
 
         try:
             os.makedirs(backupdir)
-            print '[AUTO-BACKUP] Directory does not exist for backup - creating : ' + backupdir
+            print('[AUTO-BACKUP] Directory does not exist for backup - creating : ' + backupdir)
         except OSError as exception:
             if exception.errno != errno.EEXIST:
-                print '[AUTO-BACKUP] Directory already exists.'
+                print('[AUTO-BACKUP] Directory already exists.')
                 raise
 
         i = 0
@@ -200,14 +200,14 @@ def main():
                 back_1 = os.path.join(backupdir, 'config.ini.1')
 
             try:
-                print '[AUTO-BACKUP] Now Backing up mylar.db file'
+                print('[AUTO-BACKUP] Now Backing up mylar.db file')
                 if os.path.isfile(back_1):
-                    print '[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.'
+                    print('[AUTO-BACKUP] ' + back_1 + ' exists. Deleting and keeping new.')
                     os.remove(back_1)
                 if os.path.isfile(back):
-                    print '[AUTO-BACKUP] Now renaming ' + back + ' to ' + back_1
+                    print('[AUTO-BACKUP] Now renaming ' + back + ' to ' + back_1)
                     shutil.move(back, back_1)
-                print '[AUTO-BACKUP] Now copying db file to ' + back
+                print('[AUTO-BACKUP] Now copying db file to ' + back)
                 shutil.copy(ogfile, back)
 
             except OSError as exception:
@@ -282,7 +282,7 @@ def main():
         http_port = int(mylar.CONFIG.HTTP_PORT)
 
     # Check if pyOpenSSL is installed. It is required for certificate generation
-    # and for CherryPy.
+    # and for cherrypy.
     if mylar.CONFIG.ENABLE_HTTPS:
         try:
             import OpenSSL

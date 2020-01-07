@@ -17,11 +17,11 @@
 import os
 #import sys
 
-from PyQt4 import QtCore, QtGui, uic
-#from PyQt4.QtCore import QUrl, pyqtSignal, QByteArray
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+#from PyQt5.QtCore import QUrl, pyqtSignal, QByteArray
 
-from settings import ComicTaggerSettings
-from coverimagewidget import CoverImageWidget
+from .settings import ComicTaggerSettings
+from .coverimagewidget import CoverImageWidget
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize
 #from imagefetcher import ImageFetcher
 #from comicarchive import MetaDataStyle
@@ -29,7 +29,7 @@ from comictaggerlib.ui.qtutils import reduceWidgetFontSize
 #import utils
 
 
-class MatchSelectionWindow(QtGui.QDialog):
+class MatchSelectionWindow(QtWidgets.QDialog):
 
     volume_id = 0
 
@@ -41,13 +41,13 @@ class MatchSelectionWindow(QtGui.QDialog):
 
         self.altCoverWidget = CoverImageWidget(
             self.altCoverContainer, CoverImageWidget.AltCoverMode)
-        gridlayout = QtGui.QGridLayout(self.altCoverContainer)
+        gridlayout = QtWidgets.QGridLayout(self.altCoverContainer)
         gridlayout.addWidget(self.altCoverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
         self.archiveCoverWidget = CoverImageWidget(
             self.archiveCoverContainer, CoverImageWidget.ArchiveMode)
-        gridlayout = QtGui.QGridLayout(self.archiveCoverContainer)
+        gridlayout = QtWidgets.QGridLayout(self.archiveCoverContainer)
         gridlayout.addWidget(self.archiveCoverWidget)
         gridlayout.setContentsMargins(0, 0, 0, 0)
 
@@ -74,7 +74,7 @@ class MatchSelectionWindow(QtGui.QDialog):
         self.twList.selectRow(0)
 
         path = self.comic_archive.path
-        self.setWindowTitle(u"Select correct match: {0}".format(
+        self.setWindowTitle("Select correct match: {0}".format(
             os.path.split(path)[1]))
 
     def populateTable(self):
@@ -89,30 +89,30 @@ class MatchSelectionWindow(QtGui.QDialog):
             self.twList.insertRow(row)
 
             item_text = match['series']
-            item = QtGui.QTableWidgetItem(item_text)
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setData(QtCore.Qt.UserRole, (match,))
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 0, item)
 
             if match['publisher'] is not None:
-                item_text = u"{0}".format(match['publisher'])
+                item_text = "{0}".format(match['publisher'])
             else:
-                item_text = u"Unknown"
-            item = QtGui.QTableWidgetItem(item_text)
+                item_text = "Unknown"
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 1, item)
 
-            month_str = u""
-            year_str = u"????"
+            month_str = ""
+            year_str = "????"
             if match['month'] is not None:
-                month_str = u"-{0:02d}".format(int(match['month']))
+                month_str = "-{0:02d}".format(int(match['month']))
             if match['year'] is not None:
-                year_str = u"{0}".format(match['year'])
+                year_str = "{0}".format(match['year'])
 
             item_text = year_str + month_str
-            item = QtGui.QTableWidgetItem(item_text)
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 2, item)
@@ -120,7 +120,7 @@ class MatchSelectionWindow(QtGui.QDialog):
             item_text = match['issue_title']
             if item_text is None:
                 item_text = ""
-            item = QtGui.QTableWidgetItem(item_text)
+            item = QtWidgets.QTableWidgetItem(item_text)
             item.setData(QtCore.Qt.ToolTipRole, item_text)
             item.setFlags(QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEnabled)
             self.twList.setItem(row, 3, item)
@@ -156,5 +156,5 @@ class MatchSelectionWindow(QtGui.QDialog):
     def currentMatch(self):
         row = self.twList.currentRow()
         match = self.twList.item(row, 0).data(
-            QtCore.Qt.UserRole).toPyObject()[0]
+            QtCore.Qt.UserRole)[0]
         return match

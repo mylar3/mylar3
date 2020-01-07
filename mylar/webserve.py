@@ -14,7 +14,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Mylar.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import with_statement
+
 
 import os
 import io
@@ -36,7 +36,7 @@ import time
 import threading
 import csv
 import platform
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import shutil
 
 import mylar
@@ -337,7 +337,7 @@ class WebInterface(object):
                 self.importResults()
             return
         elif imported == 'futurecheck':
-            print 'serinfo:' + str(serinfo)
+            print('serinfo:' + str(serinfo))
             logger.info('selected comicid of : ' + str(comicid) + ' [ ' + comicname + ' (' + str(comicyear) + ') ]')
             ser = []
             ser.append({"comicname": comicname,
@@ -394,13 +394,13 @@ class WebInterface(object):
                         return serve_template(templatename="searchfix.html", title="Error Check", comicname=comicname, comicid=comicid, comicyear=comicyear, comicimage=comicimage, comicissues=comicissues, cresults=cresults, imported=None, ogcname=None)
                 else:
                     nomatch = "false"
-                    logger.info(u"Quick match success..continuing.")
+                    logger.info("Quick match success..continuing.")
             else:
                 if CV_EXcomicid['variloop'] == '99':
-                    logger.info(u"mismatched name...autocorrecting to correct GID and auto-adding.")
+                    logger.info("mismatched name...autocorrecting to correct GID and auto-adding.")
                     mismatch = "yes"
                 if CV_EXcomicid['NewComicID'] == 'none':
-                    logger.info(u"multi-volume series detected")
+                    logger.info("multi-volume series detected")
                     testspx = CV_EXcomicid['GComicID'].split('/')
                     for exc in testspx:
                         fakeit = parseit.GCDAdd(testspx)
@@ -513,7 +513,7 @@ class WebInterface(object):
         logger.info('imageurl: %s' % imageurl)
         try:
             r = requests.get(imageurl, params=None, stream=True, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-        except Exception, e:
+        except Exception as e:
             logger.warn('Unable to download image from CV URL link - possibly no arc picture is present: %s' % imageurl)
         else:
             logger.fdebug('comic image retrieval status code: %s' % r.status_code)
@@ -523,7 +523,7 @@ class WebInterface(object):
             else:
                 if r.headers.get('Content-Encoding') == 'gzip':
                     import gzip
-                    from StringIO import StringIO
+                    from io import StringIO
                     buf = StringIO(r.content)
                     f = gzip.GzipFile(fileobj=buf)
 
@@ -816,14 +816,14 @@ class WebInterface(object):
             else:
                 logger.info('ComicRN.py version: ' + str(comicrn_version) + ' -- autoProcessComics.py version: ' + str(apc_version))
 
-        import Queue
+        import queue
         logger.info('Starting postprocessing for : ' + nzb_name)
         if failed == '0':
             failed = False
         elif failed == '1':
             failed = True
 
-        queue = Queue.Queue()
+        queue = queue.Queue()
         retry_outside = False
 
         if not failed:
@@ -904,7 +904,7 @@ class WebInterface(object):
     post_process.exposed = True
 
     def pauseSeries(self, ComicID):
-        logger.info(u"Pausing comic: " + ComicID)
+        logger.info("Pausing comic: " + ComicID)
         myDB = db.DBConnection()
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Paused'}
@@ -913,7 +913,7 @@ class WebInterface(object):
     pauseSeries.exposed = True
 
     def resumeSeries(self, ComicID):
-        logger.info(u"Resuming comic: " + ComicID)
+        logger.info("Resuming comic: " + ComicID)
         myDB = db.DBConnection()
         controlValueDict = {'ComicID': ComicID}
         newValueDict = {'Status': 'Active'}
@@ -929,7 +929,7 @@ class WebInterface(object):
         seriesdir = comic['ComicLocation']
         seriesyear = comic['ComicYear']
         seriesvol = comic['ComicVersion']
-        logger.info(u"Deleting all traces of Comic: " + ComicName)
+        logger.info("Deleting all traces of Comic: " + ComicName)
         myDB.action('DELETE from comics WHERE ComicID=?', [ComicID])
         myDB.action('DELETE from issues WHERE ComicID=?', [ComicID])
         if mylar.CONFIG.ANNUALS_ON:
@@ -1052,10 +1052,10 @@ class WebInterface(object):
                 miyr = myDB.selectone("SELECT ComicYear FROM comics WHERE ComicID=?", [mi['ComicID']]).fetchone()
                 if action == 'Downloaded':
                     if mi['Status'] == "Skipped" or mi['Status'] == "Wanted":
-                        logger.fdebug(u"Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
+                        logger.fdebug("Cannot change status to %s as comic is not Snatched or Downloaded" % (newaction))
                         continue
                 elif action == 'Archived':
-                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     #updater.forceRescan(mi['ComicID'])
                     issuestoArchive.append(IssueID)
                 elif action == 'Wanted' or action == 'Retry':
@@ -1063,10 +1063,10 @@ class WebInterface(object):
                         logger.fdebug('Issue already set to Wanted status - no need to change it again.')
                         continue
                     if action == 'Retry': newaction = 'Wanted'
-                    logger.fdebug(u"Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
+                    logger.fdebug("Marking %s %s as %s" % (comicname, mi['Issue_Number'], newaction))
                     issuesToAdd.append(IssueID)
                 elif action == 'Skipped':
-                    logger.fdebug(u"Marking " + str(IssueID) + " as Skipped")
+                    logger.fdebug("Marking " + str(IssueID) + " as Skipped")
                 elif action == 'Clear':
                     myDB.action("DELETE FROM snatched WHERE IssueID=?", [IssueID])
                 elif action == 'Failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
@@ -1511,7 +1511,7 @@ class WebInterface(object):
 
             controlValueDict = {"IssueID": IssueID}
             if mode == 'failed' and mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
-                logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
+                logger.info("Marking " + ComicName + " issue # " + IssueNumber + " as Failed...")
                 newValueDict = {"Status": "Failed"}
                 myDB.upsert("failed", newValueDict, controlValueDict)
                 if annchk == 'yes':
@@ -1520,7 +1520,7 @@ class WebInterface(object):
                    myDB.upsert("issues", newValueDict, controlValueDict)
                 self.failed_handling(ComicID=ComicID, IssueID=IssueID)
             else:
-                logger.info(u"Marking " + ComicName + " issue # " + IssueNumber + " as Skipped...")
+                logger.info("Marking " + ComicName + " issue # " + IssueNumber + " as Skipped...")
                 newValueDict = {"Status": "Skipped"}
                 if annchk == 'yes':
                    myDB.upsert("annuals", newValueDict, controlValueDict)
@@ -1553,8 +1553,8 @@ class WebInterface(object):
     unqueueissue.exposed = True
 
     def failed_handling(self, ComicID, IssueID):
-        import Queue
-        queue = Queue.Queue()
+        import queue
+        queue = queue.Queue()
 
         FailProcess = Failed.FailedProcessor(issueid=IssueID, comicid=ComicID, queue=queue)
         thread_ = threading.Thread(target=FailProcess.Process, name="FAILED Post-Processing")
@@ -1587,7 +1587,7 @@ class WebInterface(object):
         else:
             comicname = issue['ComicName']
             issue = issue['Issue_Number']
-        logger.info(u"Marking " + comicname + " issue # " + str(issue) + " as archived...")
+        logger.info("Marking " + comicname + " issue # " + str(issue) + " as archived...")
         controlValueDict = {'IssueID': IssueID}
         newValueDict = {'Status': 'Archived'}
         if annchk == 'yes':
@@ -1669,7 +1669,7 @@ class WebInterface(object):
                     if weekinfo['weeknumber']:
                         if watchlibrary[weekly['ComicID']]['status'] == 'Paused':
                             tmp_status = 'Paused'
-                        elif any([week >= int(weekinfo['weeknumber']), week is None]) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                        elif (week is None or  all([week is not None, week >= int(weekinfo['weeknumber'])])) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
 
                     for x in issueLibrary:
@@ -1696,7 +1696,7 @@ class WebInterface(object):
                 x = None
                 try:
                     x = float(weekly['ISSUE'])
-                except ValueError, e:
+                except ValueError as e:
                     if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
                         x = weekly['ISSUE']
 
@@ -1839,7 +1839,7 @@ class WebInterface(object):
                 if future['ISSUE'] is None: break
                 try:
                     x = float(future['ISSUE'])
-                except ValueError, e:
+                except ValueError as e:
                     if 'au' in future['ISSUE'].lower() or 'ai' in future['ISSUE'].lower() or '.inh' in future['ISSUE'].lower() or '.now' in future['ISSUE'].lower() or '.mu' in future['ISSUE'].lower() or '.hu' in future['ISSUE'].lower():
                         x = future['ISSUE']
 
@@ -2101,7 +2101,7 @@ class WebInterface(object):
             issues += annuals_list
 
         issues_tmp = sorted(issues, key=itemgetter('ReleaseDate'), reverse=True)
-        issues_tmp1 = sorted(issues_tmp, key=itemgetter('DateAdded'), reverse=True)
+        issues_tmp1 = sorted(issues_tmp, key=lambda x: x if isinstance(itemgetter('DateAdded'), str) else "", reverse=True)
         issues = sorted(issues_tmp1, key=itemgetter('Status'), reverse=True)
 
         for curResult in issues:
@@ -2111,7 +2111,7 @@ class WebInterface(object):
                    continue
                 else:
                     if seas in curResult['Status'].lower():
-                        if all([curResult['DateAdded'] <= mylar.SEARCH_TIER_DATE, curResult['Status'] == 'Wanted']):
+                        if curResult['DateAdded'] is not None and all([curResult['DateAdded'] <= mylar.SEARCH_TIER_DATE, curResult['Status'] == 'Wanted']):
                             isCounts[4]+=1
                         else:
                             sconv = baseissues[seas]
@@ -2428,7 +2428,7 @@ class WebInterface(object):
         file_format = mylar.CONFIG.FILE_FORMAT
         myDB = db.DBConnection()
         resultlist = []
-        for k,v in args.items():
+        for k,v in list(args.items()):
             if any([k == 'x', k == 'y']):
                 continue
             elif 'file_format' in k:
@@ -2436,7 +2436,7 @@ class WebInterface(object):
             elif 'comicid' in k:
                 if type(v) is list:
                     comicid = str(' '.join(v))
-                elif type(v) is unicode:
+                elif type(v) is str:
                     comicid = re.sub('[\]\[\']', '', v.decode('utf-8').encode('ascii')).strip()
                 else:
                     comicid = v
@@ -2455,7 +2455,7 @@ class WebInterface(object):
                         annualize = 'yes'
                     else:
                         annualize = None
-                    import filers
+                    from . import filers
                     rniss = filers.FileHandlers(ComicID=str(cid), IssueID=issue['IssueID'])
                     renameiss = rniss.rename_file(issue['Location'], annualize=annualize, file_format=file_format)
                     #renameiss = helpers.rename_param(comicid, comicname, issue['Issue_Number'], issue['Location'], comicyear=None, issueid=issue['IssueID'], annualize=annualize)
@@ -2474,7 +2474,7 @@ class WebInterface(object):
             logger.error("Cannot rename files.")
             return
 
-        if type(comicid) is not unicode:
+        if type(comicid) is not str:
             comiclist = comicid
         else:
             comiclist = []
@@ -2536,7 +2536,7 @@ class WebInterface(object):
 
     def manage(self):
         mylarRoot = mylar.CONFIG.DESTINATION_DIR
-        import db
+        from . import db
         myDB = db.DBConnection()
         jobresults = myDB.select('SELECT DISTINCT * FROM jobhistory')
         if jobresults is not None:
@@ -2598,7 +2598,7 @@ class WebInterface(object):
         logger.info('%s : %s' % (job, mode))
         jobid = None
         job_id_map = {'DB Updater': 'dbupdater', 'Auto-Search': 'search', 'RSS Feeds': 'rss', 'Weekly Pullist': 'weekly', 'Check Version': 'version', 'Folder Monitor': 'monitor'}
-        for k,v in job_id_map.iteritems():
+        for k,v in job_id_map.items():
             if k == job:
                 jobid = v
                 break
@@ -2753,7 +2753,7 @@ class WebInterface(object):
         else:
             if action == 'importselected':
                 logger.info('importing selected series.')
-                for k,v in args.items():
+                for k,v in list(args.items()):
                     #k = Comicname[Volume]|ComicID
                     #v = DynamicName
                     Volst = k.find('[')
@@ -2775,7 +2775,7 @@ class WebInterface(object):
                                            'ComicID':   comicid})
 
             elif action == 'removeimport':
-                for k,v in args.items():
+                for k,v in list(args.items()):
                     Volst = k.find('[')
                     comicid_st = k.find('|')
                     if comicid_st == -1:
@@ -2809,7 +2809,7 @@ class WebInterface(object):
         myDB = db.DBConnection()
         comicsToAdd = []
         clist = []
-        for k,v in args.items():
+        for k,v in list(args.items()):
             if k == 'manage_comic_length':
                 continue
             #k = Comicname[ComicYear]
@@ -3238,14 +3238,14 @@ class WebInterface(object):
                     comicname = mi['ComicName']
 
                 if action == 'Downloaded':
-                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
+                    logger.fdebug("Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
                     read = readinglist.Readinglist(IssueID)
                     read.addtoreadlist()
                 elif action == 'Read':
-                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
+                    logger.fdebug("Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
                     markasRead(IssueID)
                 elif action == 'Added':
-                    logger.fdebug(u"Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
+                    logger.fdebug("Marking %s #%s as %s" % (comicname, mi['Issue_Number'], action))
                     read = readinglist.Readinglist(IssueID=IssueID)
                     read.addtoreadlist()
                 elif action == 'Remove':
@@ -3358,7 +3358,7 @@ class WebInterface(object):
         else:
             AMS = []
             for Arc_MS in Arc_MultipleSeries:
-                print Arc_MS
+                print(Arc_MS)
                 #the purpose of this loop is to loop through the multiple entries, pulling out the lowest & highest issue numbers
                 #along with the publication years in order to help the auto-detector attempt to figure out what the series is on CV.
                 #.schema storyarcs
@@ -3377,19 +3377,19 @@ class WebInterface(object):
                 thischk = myDB.select('SELECT * FROM storyarcs WHERE ComicName=? AND SeriesYear=?', [MSCheck['ComicName'], MSCheck['SeriesYear']])
                 for tchk in thischk:
                     if helpers.issuedigits(tchk['IssueNumber']) > helpers.issuedigits(MSCheck['highvalue']):
-                        for key in MSCheck.keys():
+                        for key in list(MSCheck.keys()):
                             if key == "highvalue":
                                 MSCheck[key] = tchk['IssueNumber']
 
                     if helpers.issuedigits(tchk['IssueNumber']) < helpers.issuedigits(MSCheck['lowvalue']):
-                        for key in MSCheck.keys():
+                        for key in list(MSCheck.keys()):
                             if key == "lowvalue":
                                 MSCheck[key] = tchk['IssueNumber']
 
                     logger.fdebug(str(tchk['IssueYear']))
                     logger.fdebug(MSCheck['yearRANGE'])
                     if str(tchk['IssueYear']) not in str(MSCheck['yearRANGE']):
-                        for key in MSCheck.keys():
+                        for key in list(MSCheck.keys()):
                             if key == "yearRANGE":
                                 MSCheck[key].append(str(tchk['IssueYear']))
 
@@ -3819,7 +3819,7 @@ class WebInterface(object):
         wantedlist = myDB.select("SELECT * FROM storyarcs WHERE StoryArcID=? AND Status != 'Downloaded' AND Status !='Archived' AND Status !='Snatched'", [StoryArcID])
         if wantedlist is not None:
             for want in wantedlist:
-                print want
+                print(want)
                 issuechk = myDB.selectone("SELECT a.Type, a.ComicYear, b.ComicName, b.Issue_Number, b.ComicID, b.IssueID FROM comics as a INNER JOIN issues as b on a.ComicID = b.ComicID WHERE b.IssueID=?", [want['IssueArcID']]).fetchone()
                 SARC = want['StoryArc']
                 IssueArcID = want['IssueArcID']
@@ -4078,10 +4078,10 @@ class WebInterface(object):
     def clearhistory(self, type=None):
         myDB = db.DBConnection()
         if type == 'all':
-            logger.info(u"Clearing all history")
+            logger.info("Clearing all history")
             myDB.action('DELETE from snatched')
         else:
-            logger.info(u"Clearing history where status is %s" % type)
+            logger.info("Clearing history where status is %s" % type)
             myDB.action('DELETE from snatched WHERE Status=?', [type])
             if type == 'Processed':
                 myDB.action("DELETE from snatched WHERE Status='Post-Processed'")
@@ -4228,8 +4228,8 @@ class WebInterface(object):
     Check_ImportStatus.exposed = True
 
     def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_paths=0, imp_rename=0, imp_metadata=0, forcescan=0):
-        import Queue
-        queue = Queue.Queue()
+        import queue
+        queue = queue.Queue()
 
         #save the values so they stick.
         mylar.CONFIG.ADD_COMICS = autoadd
@@ -4317,8 +4317,8 @@ class WebInterface(object):
     importResults.exposed = True
 
     def ImportFilelisting(self, comicname, dynamicname, volume):
-        comicname = urllib.unquote_plus(helpers.conversion(comicname))
-        dynamicname = helpers.conversion(urllib.unquote_plus(dynamicname)) #urllib.unquote(dynamicname).decode('utf-8')
+        comicname = urllib.parse.unquote_plus(helpers.conversion(comicname))
+        dynamicname = helpers.conversion(urllib.parse.unquote_plus(dynamicname)) #urllib.unquote(dynamicname).decode('utf-8')
         myDB = db.DBConnection()
         if volume is None or volume == 'None':
             results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[dynamicname])
@@ -4504,7 +4504,7 @@ class WebInterface(object):
                                 continue
                         else:
                             if (result['ComicYear'] not in yearRANGE) or all([yearRANGE is None, yearRANGE == 'None']):
-                                if result['ComicYear'] <> "0000" and result['ComicYear'] is not None:
+                                if result['ComicYear'] != "0000" and result['ComicYear'] is not None:
                                     yearRANGE.append(str(result['ComicYear']))
                                     yearTOP = str(result['ComicYear'])
                             getiss_num = helpers.issuedigits(getiss)
@@ -4702,7 +4702,7 @@ class WebInterface(object):
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
-                                    "description":  sres['description'],
+                                    "description":  helpers.conversion(sres['description']),
                                     "comicimage":  sres['comicimage'],
                                     "issues":      sres['issues'],
                                     "ogcname":     ogcname,
@@ -4846,7 +4846,7 @@ class WebInterface(object):
                 if branch_history:
                     br_hist = self.pretty_git(branch_history)
                     try:
-                        br_hist = u"" + br_hist.decode('utf-8')
+                        br_hist = "" + br_hist.decode('utf-8')
                     except:
                         br_hist = br_hist
                 else:
@@ -4911,7 +4911,7 @@ class WebInterface(object):
 
             freq_tot += row['Frequency']
 
-        dlprovstats = sorted(freq.iteritems(), key=itemgetter(1), reverse=True)
+        dlprovstats = sorted(iter(freq.items()), key=itemgetter(1), reverse=True)
 
         if mylar.SCHED_RSS_LAST is None:
             rss_sclast = 'Unknown'
@@ -5150,14 +5150,14 @@ class WebInterface(object):
 
     def error_change(self, comicid, errorgcd, comicname, comicyear, imported=None, mogcname=None):
         # if comicname contains a "," it will break the exceptions import.
-        import urllib
-        b = urllib.unquote_plus(comicname)
+        import urllib.request, urllib.parse, urllib.error
+        b = urllib.parse.unquote_plus(comicname)
 #        cname = b.decode("utf-8")
         cname = b.encode('utf-8')
         cname = re.sub("\,", "", cname)
 
         if mogcname != None:
-            c = urllib.unquote_plus(mogcname)
+            c = urllib.parse.unquote_plus(mogcname)
             ogcname = c.encode('utf-8')
         else:
             ogcname = None
@@ -5175,8 +5175,8 @@ class WebInterface(object):
     error_change.exposed = True
 
     def manual_annual_add(self, manual_comicid, comicname, comicyear, comicid, x=None, y=None):
-        import urllib
-        b = urllib.unquote_plus(comicname)
+        import urllib.request, urllib.parse, urllib.error
+        b = urllib.parse.unquote_plus(comicname)
         cname = b.encode('utf-8')
 
         logger.fdebug('comicid to be attached : ' + str(manual_comicid))
@@ -5267,7 +5267,7 @@ class WebInterface(object):
         if orig_type != force_type:
             if '$Type' in mylar.CONFIG.FOLDER_FORMAT and com_location == orig_location:
                 #rename folder to accomodate new forced TPB format.
-                import filers
+                from . import filers
                 x = filers.FileHandlers(ComicID=ComicID)
                 newcom_location = x.folder_create(booktype=newValues['Corrected_Type'])
                 if newcom_location is not None:
@@ -5289,7 +5289,7 @@ class WebInterface(object):
         #force the check/creation of directory com_location here
         if any([mylar.CONFIG.CREATE_FOLDERS is True, os.path.isdir(orig_location)]):
             if os.path.isdir(str(com_location)):
-                logger.info(u"Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
+                logger.info("Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
             else:
                 if orig_location != com_location:
                     logger.fdebug('Renaming existing location [%s] to new location: %s' % (orig_location, com_location))
@@ -5384,7 +5384,7 @@ class WebInterface(object):
             if checked_config not in kwargs:
                 kwargs[checked_config] = False
 
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             try:
                 _conf = mylar.CONFIG._define(k)
             except KeyError:
@@ -5489,7 +5489,7 @@ class WebInterface(object):
                 logger.fdebug('sabnzbd version: %s' % v.content)
                 version = v.text
             r = requests.get(querysab, params=payload, verify=verify)
-        except Exception, e:
+        except Exception as e:
             logger.warn('Error fetching data from %s: %s' % (querysab, e))
             if requests.exceptions.SSLError:
                 logger.warn('Cannot verify ssl certificate. Attempting to authenticate with no ssl-certificate verification.')
@@ -5507,7 +5507,7 @@ class WebInterface(object):
                         logger.fdebug('sabnzbd version: %s' % v.text)
                         version = v.text
                     r = requests.get(querysab, params=payload, verify=verify)
-                except Exception, e:
+                except Exception as e:
                     logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                     return 'Unable to retrieve data from SABnzbd'
             else:
@@ -5530,7 +5530,7 @@ class WebInterface(object):
                 try:
                     sp = sabparse.sabnzbd(sabhost, sabusername, sabpassword)
                     q_apikey = sp.sab_get()
-                except Exception, e:
+                except Exception as e:
                     logger.warn('Error fetching data from %s: %s' % (sabhost, e))
                 if q_apikey is None:
                     return "Invalid APIKey provided"
@@ -5575,8 +5575,8 @@ class WebInterface(object):
         nzbparams = nzbparams + (nzbgethost, nzbport,)
         nzb_url = (url % nzbparams)
 
-        import xmlrpclib
-        nzbserver = xmlrpclib.ServerProxy(nzb_url)
+        import xmlrpc.client
+        nzbserver = xmlrpc.client.ServerProxy(nzb_url)
 
         try:
             r = nzbserver.status()
@@ -5619,7 +5619,7 @@ class WebInterface(object):
     def getComicArtwork(self, ComicID=None, imageURL=None):
 
         from mylar import cache
-        logger.info(u"Retrieving image for : " + comicID)
+        logger.info("Retrieving image for : " + comicID)
         return cache.getArtwork(ComicID, imageURL)
 
     getComicArtwork.exposed = True
@@ -5683,7 +5683,7 @@ class WebInterface(object):
 
     def IssueInfo(self, filelocation, comicname=None, issue=None, date=None, title=None):
         filelocation = filelocation.encode('ASCII')
-        filelocation = urllib.unquote_plus(filelocation).decode('utf8')
+        #filelocation = urllib.parse.unquote_plus(filelocation).decode('utf8')
         issuedetails = helpers.IssueDetails(filelocation)
         if issuedetails:
             issueinfo = '<table width="500"><tr><td>'
@@ -5730,7 +5730,7 @@ class WebInterface(object):
                 else:
                     issuesumm = issuedetails[0]['summary']
             issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
-            issueinfo += '<tr><td><center>' + os.path.split(filelocation)[1] + '</center>'
+            issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation.decode('utf-8')))[1] + '</center>'
             issueinfo += '</td></tr></table>'
 
         else:
@@ -5750,7 +5750,7 @@ class WebInterface(object):
     def manual_metatag(self, dirName, issueid, filename, comicid, comversion, seriesyear=None, group=False):
         module = '[MANUAL META-TAGGING]'
         try:
-            import cmtagmylar
+            from . import cmtagmylar
             if mylar.CONFIG.CMTAG_START_YEAR_AS_VOLUME:
                 if all([seriesyear is not None, seriesyear != 'None']):
                     vol_label = seriesyear
@@ -5939,7 +5939,7 @@ class WebInterface(object):
     testemail.exposed = True
 
     def testrtorrent(self, host, username, password, auth, verify, rpc_url):
-        import torrent.clients.rtorrent as TorClient
+        from mylar.torrent.clients import rtorrent as TorClient
         client = TorClient.TorrentClient()
         ca_bundle = None
         if mylar.CONFIG.RTORRENT_CA_BUNDLE is not None:
@@ -5958,7 +5958,7 @@ class WebInterface(object):
     testrtorrent.exposed = True
 
     def testqbit(self, host, username, password):
-        import torrent.clients.qbittorrent as QbitClient
+        from torrent.clients import qbittorrent as QbitClient
         qc = QbitClient.TorrentClient()
         qclient = qc.connect(host, username, password, True)
         if not qclient:
@@ -5974,7 +5974,7 @@ class WebInterface(object):
     testqbit.exposed = True
 
     def testdeluge(self, host, username, password):
-        import torrent.clients.deluge as DelugeClient
+        from torrent.clients import deluge as DelugeClient
         client = DelugeClient.TorrentClient()
         dclient = client.connect(host, username, password, True)
         if not dclient:
@@ -6072,7 +6072,7 @@ class WebInterface(object):
     torrentit.exposed = True
 
     def get_the_hash(self, filepath):
-        import hashlib, StringIO
+        import hashlib, io
         import rtorrent.lib.bencode as bencode
 
         # Open torrent file
@@ -6092,7 +6092,7 @@ class WebInterface(object):
     download_0day.exposed = True
 
     def test_32p(self, username, password):
-        import auth32p
+        from . import auth32p
         tmp = auth32p.info32p(test={'username': username, 'password': password})
         rtnvalues = tmp.authenticate()
         if rtnvalues['status'] is True:
@@ -6184,7 +6184,7 @@ class WebInterface(object):
                 x = None
                 try:
                     x = float(weekly['ISSUE'])
-                except ValueError, e:
+                except ValueError as e:
                     if 'au' in weekly['ISSUE'].lower() or 'ai' in weekly['ISSUE'].lower() or '.inh' in weekly['ISSUE'].lower() or '.now' in weekly['ISSUE'].lower() or '.mu' in weekly['ISSUE'].lower() or '.hu' in weekly['ISSUE'].lower():
                         x = weekly['ISSUE']
 
@@ -6243,7 +6243,7 @@ class WebInterface(object):
         else:
             if r.headers.get('Content-Encoding') == 'gzip':
                 import gzip
-                from StringIO import StringIO
+                from io import StringIO
                 buf = StringIO(r.content)
                 f = gzip.GzipFile(fileobj=buf)
 

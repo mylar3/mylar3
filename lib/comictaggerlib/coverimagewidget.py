@@ -1,4 +1,4 @@
-"""A PyQt4 widget to display cover images
+"""A PyQt5 widget to display cover images
 
 Display cover images from either a local archive, or from Comic Vine.
 TODO: This should be re-factored using subclasses!
@@ -20,15 +20,16 @@ TODO: This should be re-factored using subclasses!
 
 #import os
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4 import uic
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5 import uic
 
-from settings import ComicTaggerSettings
-from comicvinetalker import ComicVineTalker, ComicVineTalkerException
-from imagefetcher import ImageFetcher
-from pageloader import PageLoader
-from imagepopup import ImagePopup
+from .settings import ComicTaggerSettings
+from .comicvinetalker import ComicVineTalker, ComicVineTalkerException
+from .imagefetcher import ImageFetcher
+from .pageloader import PageLoader
+from .imagepopup import ImagePopup
 from comictaggerlib.ui.qtutils import reduceWidgetFontSize, getQImageFromData
 #from genericmetadata import GenericMetadata, PageType
 #from comicarchive import MetaDataStyle
