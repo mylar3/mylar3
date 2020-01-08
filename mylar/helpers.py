@@ -692,7 +692,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
             return rename_this
 
 
-def apiremove(apistring, type):
+def apiremove(apistring, apitype):
     if type == 'nzb':
         value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=$)")
         #match = value_regex.search(apistring)
@@ -700,10 +700,10 @@ def apiremove(apistring, type):
     else:
         #type = $ to denote end of string
         #type = & to denote up until next api variable
-        value_regex1 = re.compile("(?<=%26i=1%26r=)(?P<value>.*?)(?=" + str(type) +")")
+        value_regex1 = re.compile("(?<=%26i=1%26r=)(?P<value>.*?)(?=" + str(apitype) +")")
         #match = value_regex.search(apistring)
         apiremoved1 = value_regex1.sub("xUDONTNEEDTOKNOWTHISx", apistring)
-        value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=" + str(type) +")")
+        value_regex = re.compile("(?<=apikey=)(?P<value>.*?)(?=" + str(apitype) +")")
         apiremoved = value_regex.sub("xUDONTNEEDTOKNOWTHISx", apiremoved1)
 
     #need to remove the urlencoded-portions as well in future
@@ -1474,8 +1474,14 @@ def filesafe(comic):
     except TypeError:
         u_comic = comic.encode('ASCII', 'ignore').strip()
 
-    comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
-    comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
+    logger.info('comic-type: %s' % type(u_comic))
+
+    if type(u_comic) != bytes:
+        comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
+        comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
+    else:
+        comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic.decode('utf-8'))
+        comicname_filesafe = re.sub('[\/\*]', '-', comicname_filesafe)
 
     return comicname_filesafe
 
@@ -2838,7 +2844,7 @@ def torrentinfo(issueid=None, torrent_hash=None, download=False, monitor=False):
             else:
                 shell_cmd = sys.executable
 
-            curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.AUTO_SNATCH_SCRIPT).decode("string_escape")
+            curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.AUTO_SNATCH_SCRIPT) #.decode("string_escape")
             if torrent_files > 1:
                 downlocation = torrent_folder.encode('utf-8')
             else:
@@ -3343,7 +3349,7 @@ def script_env(mode, vars):
     else:
         shell_cmd = sys.executable
 
-    curScriptName = shell_cmd + ' ' + runscript.decode("string_escape")
+    curScriptName = shell_cmd + ' ' + runscript #.decode("string_escape")
     logger.fdebug("snatch script detected...enabling: " + str(curScriptName))
 
     script_cmd = shlex.split(curScriptName)
@@ -3719,9 +3725,9 @@ def getImage(comicid, url, issueid=None):
             logger.warn('Unable to download image from CV URL link: %s [Status Code returned: %s]' % (url, statuscode))
             coversize = 0
         else:
-            if r.headers.get('Content-Encoding') == 'gzip':
-                buf = StringIO(r.content)
-                f = gzip.GzipFile(fileobj=buf)
+            #if r.headers.get('Content-Encoding') == 'gzip':
+            #    buf = StringIO(r.content)
+            #    f = gzip.GzipFile(fileobj=buf)
 
             with open(coverfile, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):

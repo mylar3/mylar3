@@ -337,7 +337,7 @@ class GC(object):
                 cf_cookievalue, cf_user_agent = s.get_tokens(mainlink, headers=self.headers, timeout=30)
                 t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
 
-                filename = os.path.basename(urllib.parse.unquote(t.url).decode('utf-8'))
+                filename = os.path.basename(urllib.parse.unquote(t.url)) #.decode('utf-8'))
                 if 'GetComics.INFO' in filename:
                     filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
 
@@ -348,7 +348,7 @@ class GC(object):
                     if 'go.php-urls' not in link:
                         link = re.sub('go.php-url=', 'go.php-urls', link)
                         t = s.get(link, verify=True, cookies=cf_cookievalue, headers=self.headers, stream=True, timeout=30)
-                        filename = os.path.basename(urllib.parse.unquote(t.url).decode('utf-8'))
+                        filename = os.path.basename(urllib.parse.unquote(t.url)) #.decode('utf-8'))
                         if 'GetComics.INFO' in filename:
                             filename = re.sub('GetComics.INFO', '', filename, re.I).strip()
                         try:
@@ -385,9 +385,9 @@ class GC(object):
 
                 path = os.path.join(mylar.CONFIG.DDL_LOCATION, filename)
 
-                if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
-                    buf = StringIO(t.content)
-                    f = gzip.GzipFile(fileobj=buf)
+                #if t.headers.get('content-encoding') == 'gzip': #.get('Content-Encoding') == 'gzip':
+                #    buf = StringIO(t.content)
+                #    f = gzip.GzipFile(fileobj=buf)
 
                 if resume is not None:
                     with open(path, 'ab') as f:

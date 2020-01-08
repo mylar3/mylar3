@@ -458,7 +458,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
             logger.fdebug('[' + mod_series + '] Adding to the import-queue!')
             isd = filechecker.FileChecker()
-            is_dyninfo = isd.dynamic_replace(helpers.conversion(mod_series))
+            is_dyninfo = isd.dynamic_replace(mod_series) #helpers.conversion(mod_series))
             logger.fdebug('Dynamic-ComicName: ' + is_dyninfo['mod_seriesname'])
 
             #impid = dispname + '-' + str(result_comyear) + '-' + str(comiss) #com_NAME + "-" + str(result_comyear) + "-" + str(comiss)
@@ -500,7 +500,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 "issuenumber": issuenumber, #issuenumber,
                 "volume": issuevolume,
                 "comfilename": comfilename,
-                "comlocation": helpers.conversion(comlocation)
+                "comlocation": comlocation #helpers.conversion(comlocation)
                                       })
         cnt+=1
     #logger.fdebug('import_by_ids: ' + str(import_by_comicids))
@@ -661,16 +661,16 @@ def scanLibrary(scan=None, queue=None):
                     #these all have related ComicID/IssueID's...just add them as is.
                     controlValue = {"impID":        ghi['impid']}
                     newValue = {"Status":           "Not Imported",
-                                "ComicName":        helpers.conversion(i['ComicName']),
-                                "DisplayName":      helpers.conversion(i['ComicName']),
-                                "DynamicName":      helpers.conversion(nspace_dynamicname),
+                                "ComicName":        i['ComicName'], #helpers.conversion(i['ComicName']),
+                                "DisplayName":      i['ComicName'], #helpers.conversion(i['ComicName']),
+                                "DynamicName":      nspace_dynamicname, #helpers.conversion(nspace_dynamicname),
                                 "ComicID":          i['ComicID'],
                                 "IssueID":          i['IssueID'],
-                                "IssueNumber":      helpers.conversion(i['Issue_Number']),
+                                "IssueNumber":      i['Issue_Number'], #helpers.conversion(i['Issue_Number']),
                                 "Volume":           ghi['volume'],
                                 "ComicYear":        ghi['comicyear'],
-                                "ComicFilename":    helpers.conversion(ghi['comfilename']),
-                                "ComicLocation":    helpers.conversion(ghi['comlocation']),
+                                "ComicFilename":    ghi['comfilename'], #helpers.conversion(ghi['comfilename']),
+                                "ComicLocation":    ghi['comlocation'], #helpers.conversion(ghi['comlocation']),
                                 "ImportDate":       helpers.today(),
                                 "WatchMatch":       None} #i['watchmatch']}
                     myDB.upsert("importresults", newValue, controlValue)
@@ -683,15 +683,15 @@ def scanLibrary(scan=None, queue=None):
                     controlValue = {"impID":        ss['impid']}
                     newValue = {"ComicYear":        ss['comicyear'],
                                 "Status":           "Not Imported",
-                                "ComicName":        helpers.conversion(ss['comicname']),
-                                "DisplayName":      helpers.conversion(ss['displayname']),
-                                "DynamicName":      helpers.conversion(nspace_dynamicname),
+                                "ComicName":        ss['comicname'], #helpers.conversion(ss['comicname']),
+                                "DisplayName":      ss['displayname'], #helpers.conversion(ss['displayname']),
+                                "DynamicName":      nspace_dynamicname, #helpers.conversion(nspace_dynamicname),
                                 "ComicID":          ss['comicid'],  #if it's been scanned in for cvinfo, this will be the CID - otherwise it's None
                                 "IssueID":          None,
                                 "Volume":           ss['volume'],
-                                "IssueNumber":      helpers.conversion(ss['issuenumber']),
-                                "ComicFilename":    helpers.conversion(ss['comfilename']),
-                                "ComicLocation":    helpers.conversion(ss['comlocation']),
+                                "IssueNumber":      ss['issuenumber'], #helpers.conversion(ss['issuenumber']),
+                                "ComicFilename":    ss['comfilename'], #helpers.conversion(ss['comfilename']),
+                                "ComicLocation":    ss['comlocation'], #helpers.conversion(ss['comlocation']),
                                 "ImportDate":       helpers.today(),
                                 "WatchMatch":       ss['watchmatch']}
                     myDB.upsert("importresults", newValue, controlValue)

@@ -4317,8 +4317,8 @@ class WebInterface(object):
     importResults.exposed = True
 
     def ImportFilelisting(self, comicname, dynamicname, volume):
-        comicname = urllib.parse.unquote_plus(helpers.conversion(comicname))
-        dynamicname = helpers.conversion(urllib.parse.unquote_plus(dynamicname)) #urllib.unquote(dynamicname).decode('utf-8')
+        comicname = urllib.parse.unquote_plus(comicname)
+        dynamicname = urllib.parse.unquote_plus(dynamicname) #urllib.unquote(dynamicname).decode('utf-8')
         myDB = db.DBConnection()
         if volume is None or volume == 'None':
             results = myDB.select("SELECT * FROM importresults WHERE (WatchMatch is Null OR WatchMatch LIKE 'C%') AND DynamicName=? AND Volume IS NULL",[dynamicname])
@@ -4702,7 +4702,7 @@ class WebInterface(object):
                                     "name":        sres['name'],
                                     "deck":        sres['deck'],
                                     "url":         sres['url'],
-                                    "description":  helpers.conversion(sres['description']),
+                                    "description":  sres['description'],
                                     "comicimage":  sres['comicimage'],
                                     "issues":      sres['issues'],
                                     "ogcname":     ogcname,

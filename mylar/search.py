@@ -525,7 +525,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
     #print ("-------SEARCH FOR MISSING------------------")
     #ComicName is unicode - let's unicode and ascii it cause we'll be comparing filenames against it.
-    u_ComicName = ComicName.encode('ascii', 'replace').strip()
+    u_ComicName = ComicName #.encode('ascii', 'replace').strip()
     findcomic = u_ComicName
 
     cm1 = re.sub("[\/\-]", " ", findcomic)
@@ -2524,7 +2524,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             #generate the api key to download here and then kill it immediately after.
             if mylar.DOWNLOAD_APIKEY is None:
                 import hashlib, random
-                mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
+                mylar.DOWNLOAD_APIKEY = hashlib.sha224(str(random.getrandbits(256)).encode('utf-8')).hexdigest()[0:32]
 
             #generate the mylar host address if applicable.
             if mylar.CONFIG.ENABLE_HTTPS:

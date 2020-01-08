@@ -36,18 +36,18 @@ class Process(object):
         elif self.failed == '1':
             self.failed = True
 
-        queue = queue.Queue()
+        ppqueue = queue.Queue()
         retry_outside = False
 
         if self.failed is False:
-            PostProcess = mylar.PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder, self.issueid, queue=queue, comicid=self.comicid, apicall=self.apicall, ddl=self.ddl)
+            PostProcess = mylar.PostProcessor.PostProcessor(self.nzb_name, self.nzb_folder, self.issueid, queue=ppqueue, comicid=self.comicid, apicall=self.apicall, ddl=self.ddl)
             if any([self.nzb_name == 'Manual Run', self.nzb_name == 'Manual+Run', self.apicall is True, self.issueid is not None]):
                 threading.Thread(target=PostProcess.Process).start()
             else:
                 thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")
                 thread_.start()
                 thread_.join()
-                chk = queue.get()
+                chk = ppqueue.get()
                 while True:
                     if chk[0]['mode'] == 'fail':
                         logger.info('Initiating Failed Download handling')
@@ -70,11 +70,11 @@ class Process(object):
             if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING is True:
                 #drop the if-else continuation so we can drop down to this from the above if statement.
                 logger.info('Initiating Failed Download handling for this download.')
-                FailProcess = mylar.Failed.FailedProcessor(nzb_name=self.nzb_name, nzb_folder=self.nzb_folder, queue=queue)
+                FailProcess = mylar.Failed.FailedProcessor(nzb_name=self.nzb_name, nzb_folder=self.nzb_folder, queue=ppqueue)
                 thread_ = threading.Thread(target=FailProcess.Process, name="FAILED Post-Processing")
                 thread_.start()
                 thread_.join()
-                failchk = queue.get()
+                failchk = ppqueue.get()
                 if failchk[0]['mode'] == 'retry':
                     logger.info('Attempting to return to search module with ' + str(failchk[0]['issueid']))
                     if failchk[0]['annchk'] == 'no':
@@ -91,11 +91,11 @@ class Process(object):
                 logger.warn('Failed Download Handling is not enabled. Leaving Failed Download as-is.')
 
         if retry_outside:
-            PostProcess = mylar.PostProcessor.PostProcessor('Manual Run', self.nzb_folder, queue=queue)
+            PostProcess = mylar.PostProcessor.PostProcessor('Manual Run', self.nzb_folder, queue=ppqueue)
             thread_ = threading.Thread(target=PostProcess.Process, name="Post-Processing")
             thread_.start()
             thread_.join()
-            chk = queue.get()
+            chk = ppqueue.get()
             while True:
                 if chk[0]['mode'] == 'fail':
                     logger.info('Initiating Failed Download handling')

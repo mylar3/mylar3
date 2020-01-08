@@ -40,28 +40,27 @@ def runGit(args):
         cmd = '%s %s' % (cur_git, args)
 
         try:
-            #logger.debug('Trying to execute: %s with shell in %s' % (cmd, mylar.PROG_DIR))
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, cwd=mylar.PROG_DIR)
-            output, err = p.communicate
+            logger.debug('Trying to execute: %s with shell in %s' % (cmd, mylar.PROG_DIR))
+            output = subprocess.run(cmd, text=True, capture_output=True, shell=True, cwd=mylar.PROG_DIR)
             logger.debug('Git output: %s' % output)
         except Exception as e:
             logger.error('Command %s didn\'t work [%s]' % (cmd, e))
             continue
         else:
-            if all([err is not None, err != '']):
-                logger.error('Encountered error: %s' % err)
+            if all([output.stderr is not None, output.stderr != '']):
+                logger.error('Encountered error: %s' % output.stderr)
 
-        if "not found" in output or "not recognized as an internal or external command" in output:
-            logger.error('[%s] Unable to find git with command: %s' % (output, cmd))
+        if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout:
+            logger.error('[%s] Unable to find git with command: %s' % (output.stdout, cmd))
             output = None
-        elif 'fatal:' in output or err:
-            logger.error('Error: %s' % err)
-            logger.error('Git returned bad info. Are you sure this is a git installation? [%s]' % output)
+        elif 'fatal:' in output.stdout or output.stderr:
+            logger.error('Error: %s' % output.stderr)
+            logger.error('Git returned bad info. Are you sure this is a git installation? [%s]' % output.stdout)
             output = None
         elif output:
             break
 
-    return (output, err)
+    return (output.stdout, output.stderr)
 
 def getVersion():
 
@@ -75,7 +74,7 @@ def getVersion():
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
         mylar.INSTALL_TYPE = 'git'
-        output, err = runGit('rev-parse HEAD')
+        output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
 
         if not output:
             logger.error('Couldn\'t find latest installed version.')
@@ -87,13 +86,17 @@ def getVersion():
         #bh.append(branch_history.split('\n'))
         #print ("bh1: " + bh[0])
 
-        cur_commit_hash = str(output).strip()
+        opp = output.find('\n')
+        cur_commit_hash = output[:opp]
+        cur_branch = output[opp:output.find('\n', opp+1)].strip()
+        logger.info('cur_commit_hash: %s' % cur_commit_hash)
+        logger.info('cur_branch: %s' % cur_branch)
 
         if not re.match('^[a-z0-9]+$', cur_commit_hash):
             logger.error('Output does not look like a hash, not using it')
             cur_commit_hash = None
 
-        if mylar.CONFIG.GIT_BRANCH:
+        if mylar.CONFIG.GIT_BRANCH == cur_branch:
             branch = mylar.CONFIG.GIT_BRANCH
 
         else:

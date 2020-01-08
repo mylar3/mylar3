@@ -438,7 +438,7 @@ class PostProcessor(object):
                 alt_db = myDB.select("SELECT * FROM Comics WHERE AlternateSearch != 'None'")
                 if alt_db is not None:
                     for aldb in alt_db:
-                        as_d = filechecker.FileChecker(AlternateSearch=helpers.conversion(aldb['AlternateSearch']))
+                        as_d = filechecker.FileChecker(AlternateSearch=aldb['AlternateSearch']) #helpers.conversion(aldb['AlternateSearch']))
                         as_dinfo = as_d.altcheck()
                         alt_list.append({'AS_Alt':   as_dinfo['AS_Alt'],
                                          'AS_Tuple': as_dinfo['AS_Tuple'],
@@ -450,13 +450,13 @@ class PostProcessor(object):
                 for fl in filelist['comiclist']:
                     self.matched = False
                     as_d = filechecker.FileChecker()
-                    as_dinfo = as_d.dynamic_replace(helpers.conversion(fl['series_name']))
+                    as_dinfo = as_d.dynamic_replace(fl['series_name']) #helpers.conversion(fl['series_name']))
                     orig_seriesname = as_dinfo['mod_seriesname']
                     mod_seriesname = as_dinfo['mod_seriesname']
                     loopchk = []
                     if fl['alt_series'] is not None:
                         logger.fdebug('%s Alternate series naming detected: %s' % (module, fl['alt_series']))
-                        as_sinfo = as_d.dynamic_replace(helpers.conversion(fl['alt_series']))
+                        as_sinfo = as_d.dynamic_replace(fl['alt_series']) #helpers.conversion(fl['alt_series']))
                         mod_altseriesname = as_sinfo['mod_seriesname']
                         if all([mylar.CONFIG.ANNUALS_ON, 'annual' in mod_altseriesname.lower()]) or all([mylar.CONFIG.ANNUALS_ON, 'special' in mod_altseriesname.lower()]):
                             mod_altseriesname = re.sub('annual', '', mod_altseriesname, flags=re.I).strip()
@@ -497,10 +497,10 @@ class PostProcessor(object):
                                 annchk = 'no'
                             if fl['sub']:
                                 logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, fl['sub'], fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'], fl['sub'], helpers.conversion(fl['comicfilename']))
+                                clocation = os.path.join(fl['comiclocation'], fl['sub'], fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
                             else:
                                 logger.fdebug('%s[CLOCATION] %s' % (module, fl['comiclocation']))
-                                clocation = os.path.join(fl['comiclocation'],helpers.conversion(fl['comicfilename']))
+                                clocation = os.path.join(fl['comiclocation'],fl['comicfilename']) #helpers.conversion(fl['comicfilename']))
                             annualtype = None
                             if annchk == 'yes':
                                 if 'Annual' in csi['ReleaseComicName']:
@@ -558,7 +558,7 @@ class PostProcessor(object):
                         wv_seriesyear = wv['ComicYear']
                         wv_comicversion = wv['ComicVersion']
                         wv_publisher = wv['ComicPublisher']
-                        wv_total = wv['Total']
+                        wv_total = int(wv['Total'])
                         if mylar.CONFIG.FOLDER_SCAN_LOG_VERBOSE:
                             logger.fdebug('Queuing to Check: %s [%s] -- %s' % (wv['ComicName'], wv['ComicYear'], wv['ComicID']))
 
@@ -833,7 +833,7 @@ class PostProcessor(object):
                                     if datematch == 'True':
                                         if watchmatch['sub']:
                                             logger.fdebug('%s[SUB: %s][CLOCATION: %s]' % (module, watchmatch['sub'], watchmatch['comiclocation']))
-                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename']) #helpers.conversion(watchmatch['comicfilename']))
                                             if not os.path.exists(clocation):
                                                 scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
                                                 if scrubs[:2] == '//' or scrubs[:2] == '\\':
@@ -846,7 +846,7 @@ class PostProcessor(object):
                                             if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
                                                 clocation = watchmatch['comiclocation']
                                             else:
-                                                clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                                clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename']) #helpers.conversion(watchmatch['comicfilename']))
                                         annualtype = None
                                         if annchk == 'yes':
                                             if 'Annual' in isc['ReleaseComicName']:
@@ -879,9 +879,9 @@ class PostProcessor(object):
 
                         if datematch == 'True':
                             xmld = filechecker.FileChecker()
-                            xmld1 = xmld.dynamic_replace(helpers.conversion(cs['ComicName']))
+                            xmld1 = xmld.dynamic_replace(cs['ComicName']) #helpers.conversion(cs['ComicName']))
                             xseries = xmld1['mod_seriesname'].lower()
-                            xmld2 = xmld.dynamic_replace(helpers.conversion(watchmatch['series_name']))
+                            xmld2 = xmld.dynamic_replace(watchmatch['series_name']) #helpers.conversion(watchmatch['series_name']))
                             xfile = xmld2['mod_seriesname'].lower()
 
                             if re.sub('\|', '', xseries) == re.sub('\|', '', xfile):
@@ -893,7 +893,7 @@ class PostProcessor(object):
                                 continue #break
 
                         if datematch == 'True':
-                            logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, cs['ComicName'], cs['ComicID'], helpers.conversion(fl['comicfilename'])))
+                            logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match verified for %s' % (module, cs['ComicName'], cs['ComicID'], fl['comicfilename'])) #helpers.conversion(fl['comicfilename'])))
                             break
                         elif self.matched is True:
                             logger.warn('%s[MATCH: %s - %s] We matched by name for this series, but cannot find a corresponding issue number in the series list.' % (module, cs['ComicName'], cs['ComicID']))
@@ -949,7 +949,7 @@ class PostProcessor(object):
                                                                 "ComicVersion":     av['Volume'],
                                                                 "ComicID":          av['ComicID'],
                                                                 "Publisher":        av['IssuePublisher'],
-                                                                "Total":            av['TotalIssues'],   # this will return the total issues in the arc (not needed for this)
+                                                                "Total":            int(av['TotalIssues']),   # this will return the total issues in the arc (not needed for this)
                                                                 "Type":             av['Type'],
                                                                 "IsArc":            True}
                                             })
@@ -1189,7 +1189,7 @@ class PostProcessor(object):
                                                             passit = True
 
                                                     if passit == False:
-                                                        tmpfilename = helpers.conversion(arcmatch['comicfilename'])
+                                                        tmpfilename = arcmatch['comicfilename'] #helpers.conversion(arcmatch['comicfilename'])
                                                         if arcmatch['sub']:
                                                             clocation = os.path.join(arcmatch['comiclocation'], arcmatch['sub'], tmpfilename)
                                                         else:
@@ -1242,7 +1242,7 @@ class PostProcessor(object):
                                                                        "LatestDate":   None,
                                                                        "ComicVersion": None,
                                                                        "Publisher":    ofl['PUBLISHER'],
-                                                                       "Total":        None,
+                                                                       "Total":        0,
                                                                        "Type":         ofl['format'],
                                                                        "ComicID":      ofl['ComicID'],
                                                                        "IsArc":        False}})
@@ -1297,7 +1297,7 @@ class PostProcessor(object):
 
                                     if temploc is not None and fcdigit == helpers.issuedigits(ofv['Issue_Number']) or all([temploc is None, helpers.issuedigits(ofv['Issue_Number']) == '1']):
                                         if watchmatch['sub']:
-                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], helpers.conversion(watchmatch['comicfilename']))
+                                            clocation = os.path.join(watchmatch['comiclocation'], watchmatch['sub'], watchmatch['comicfilename']) #helpers.conversion(watchmatch['comicfilename']))
                                             if not os.path.exists(clocation):
                                                 scrubs = re.sub(watchmatch['comiclocation'], '', watchmatch['sub']).strip()
                                                 if scrubs[:2] == '//' or scrubs[:2] == '\\':
@@ -1310,7 +1310,7 @@ class PostProcessor(object):
                                             if self.issueid is not None and os.path.isfile(watchmatch['comiclocation']):
                                                 clocation = watchmatch['comiclocation']
                                             else:
-                                                clocation = os.path.join(watchmatch['comiclocation'],helpers.conversion(watchmatch['comicfilename']))
+                                                clocation = os.path.join(watchmatch['comiclocation'],watchmatch['comicfilename']) #helpers.conversion(watchmatch['comicfilename']))
                                         oneoff_issuelist.append({"ComicLocation":   clocation,
                                                                  "ComicID":         ofv['ComicID'],
                                                                  "IssueID":         ofv['IssueID'],
@@ -1322,7 +1322,7 @@ class PostProcessor(object):
                                         logger.fdebug('%s No corresponding issue # in dB found for %s # %s' % (module, ofv['ComicName'], ofv['Issue_Number']))
                                         continue
 
-                                    logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match Verified for %s' % (module, ofv['ComicName'], ofv['ComicID'], helpers.conversion(fl['comicfilename'])))
+                                    logger.fdebug('%s[SUCCESSFUL MATCH: %s-%s] Match Verified for %s' % (module, ofv['ComicName'], ofv['ComicID'], fl['comicfilename'])) #helpers.conversion(fl['comicfilename'])))
                                     self.matched = True
                                     break
 
