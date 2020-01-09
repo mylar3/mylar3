@@ -22,7 +22,7 @@
 
 import cherrypy
 from cherrypy.lib.static import serve_file
-import cgi
+from html import escape
 #from datetime import datetime, timedelta
 import urllib.request, urllib.parse, urllib.error
 import re
