@@ -2437,7 +2437,7 @@ class WebInterface(object):
                 if type(v) is list:
                     comicid = str(' '.join(v))
                 elif type(v) is str:
-                    comicid = re.sub('[\]\[\']', '', v.decode('utf-8').encode('ascii')).strip()
+                    comicid = re.sub('[\]\[\']', '', v) #v.decode('utf-8').encode('ascii')).strip()
                 else:
                     comicid = v
 

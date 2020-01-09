@@ -493,7 +493,7 @@ class FileHandlers(object):
 
                     logger.fdebug('Annual detected within series title of ' + series + '. Not auto-correcting issue #')
 
-            seriesfilename = seriesfilename.encode('ascii', 'ignore').strip()
+            seriesfilename = seriesfilename #.encode('ascii', 'ignore').strip()
             filebad = [':', ',', '/', '?', '!', '\'', '\"', '\*'] #in u_comicname or '/' in u_comicname or ',' in u_comicname or '?' in u_comicname:
             for dbd in filebad:
                 if dbd in seriesfilename:
