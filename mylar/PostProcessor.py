@@ -130,7 +130,7 @@ class PostProcessor(object):
             #forces mylar to use the executable that it was run with to run the extra script.
             shell_cmd = sys.executable
 
-        currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS).decode("string_escape")
+        currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS) #.decode("string_escape")
         logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(currentScriptName, posix=False) + [str(nzb_name), str(nzb_folder), str(seriesmetadata)]
@@ -171,7 +171,7 @@ class PostProcessor(object):
             #forces mylar to use the executable that it was run with to run the extra script.
             shell_cmd = sys.executable
 
-        curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS).decode("string_escape")
+        curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS) #.decode("string_escape")
         logger.fdebug("extra script detected...enabling: " + str(curScriptName))
             # generate a safe command line string to execute the script and provide all the parameters
         script_cmd = shlex.split(curScriptName) + [str(nzb_name), str(nzb_folder), str(filen), str(folderp), str(seriesmetadata)]
@@ -368,7 +368,7 @@ class PostProcessor(object):
                     else:
                         # if the SAB Directory option is enabled, let's use that folder name and append the jobname.
                         if all([mylar.CONFIG.SAB_TO_MYLAR, mylar.CONFIG.SAB_DIRECTORY is not None, mylar.CONFIG.SAB_DIRECTORY != 'None']):
-                            self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                            self.nzb_folder = os.path.join(mylar.CONFIG.SAB_DIRECTORY, self.nzb_name) # .encode(mylar.SYS_ENCODING)
                             logger.fdebug('%s SABnzbd Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
 
                 if mylar.USE_NZBGET==1:
@@ -380,7 +380,7 @@ class PostProcessor(object):
                         logger.fdebug('%s Manual Run Post-Processing enabled.' % module)
                     elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
                         logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
-                        self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name).encode(mylar.SYS_ENCODING)
+                        self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name) #.encode(mylar.SYS_ENCODING)
                         logger.fdebug('%s NZBGET Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))
             else:
                 logger.fdebug('%s Now performing post-processing of %s sent from DDL' % (module, self.nzb_name))
@@ -2269,13 +2269,13 @@ class PostProcessor(object):
             self._log("Publisher: %s" % publisher)
             logger.fdebug('%s Publisher: %s' % (module, publisher))
             #we need to un-unicode this to make sure we can write the filenames properly for spec.chars
-            series = comicnzb['ComicName'].encode('ascii', 'ignore').strip()
+            series = comicnzb['ComicName'] #.encode('ascii', 'ignore').strip()
             self._log("Series: %s" % series)
             logger.fdebug('%s Series: %s' % (module, series))
             if comicnzb['AlternateFileName'] is None or comicnzb['AlternateFileName'] == 'None':
                 seriesfilename = series
             else:
-                seriesfilename = comicnzb['AlternateFileName'].encode('ascii', 'ignore').strip()
+                seriesfilename = comicnzb['AlternateFileName'] #.encode('ascii', 'ignore').strip()
                 logger.fdebug('%s Alternate File Naming has been enabled for this series. Will rename series to : %s' % (module, seriesfilename))
             seriesyear = comicnzb['ComicYear']
             self._log("Year: %s" % seriesyear)

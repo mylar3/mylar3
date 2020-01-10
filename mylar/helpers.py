@@ -1012,11 +1012,11 @@ def issuedigits(issnum):
         #except:
         #    logger.fdebug('Unicode character detected: ' + issnum)
         #else: issnum.decode(mylar.SYS_ENCODING).decode('utf-8')
-        if type(issnum) == str:
-            try:
-                issnum = issnum.decode('utf-8')
-            except:
-                issnum = issnum.decode('windows-1252')
+        #if type(issnum) == str:
+        #    try:
+        #        issnum = issnum.decode('utf-8')
+        #    except:
+        #        issnum = issnum.decode('windows-1252')
 
         if type(issnum) == str:
             vals = {'\xbd':.5,'\xbc':.25,'\xbe':.75,'\u221e':9999999999,'\xe2':9999999999}
