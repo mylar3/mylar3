@@ -3,6 +3,7 @@ from collections import OrderedDict
 from operator import itemgetter
 
 import os
+import errno
 import glob
 import codecs
 import shutil
@@ -1000,7 +1001,13 @@ class Config(object):
             if self.CT_SETTINGSPATH is None:
                 import pathlib
                 ct_path = str(pathlib.Path(os.path.expanduser("~")))
-                mylar.CT_SETTINGSPATH = os.path.join(ct_path, '.ComicTagger', 'settings')
+                try:
+                    os.mkdir(os.path.join(ct_path, '.ComicTagger'))
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        logger.error('Unable to create .ComicTagger directory in %s. This WILL cause problems when tagging.' % ct_path)
+                else:
+                    mylar.CT_SETTINGSPATH = os.path.join(ct_path, '.ComicTagger', 'settings')
 
             if not update:
                 logger.fdebug('[COMICTAGGER] Setting ComicTagger settings default path to : ' + mylar.CT_SETTINGSPATH)
