@@ -1,4 +1,4 @@
-## ![Mylar Logo](https://github.com/evilhero/mylar/blob/master/data/images/mylarlogo.png) Mylar
+## ![Mylar Logo](https://github.com/evilhero/mylar/blob/master/data/images/mylarlogo.png) Mylar3
 
 ## The PY3 branch is a WIP. 
 ## Some things will be completely broken, while other parts may work fine or partially.
@@ -25,9 +25,11 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - Close your issue when it's solved!
 
 ## Requirements
-- At least Python version 2.7.9 (3.x is not supported)
+- At least Python version 3.8.1 (2.x is not supported)
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
-- UnRaR / RAR is required if metatagging is enabled within the program.
+
+## Installation
+- run `pip install -r requirements.txt` to install all required dependencies not included 
 
 ## Usage
 To start the program, type `python Mylar.py` inside the root of the Mylar directory. Typing `python Mylar.py --help` will give a list of available options.
