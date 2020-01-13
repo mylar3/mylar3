@@ -1770,8 +1770,8 @@ def setperms(path, dir=False):
 
                 logger.fdebug('Successfully changed permissions [' + str(mylar.CONFIG.CHMOD_DIR) + ' / ' + str(mylar.CONFIG.CHMOD_FILE) + ']')
 
-        except OSError:
-            logger.error('Could not change permissions : %s. Exiting...' % path)
+        except OSError as e:
+            logger.error('[ERROR @ path: %s] %s. Exiting...' % (path, e))
 
     return
 

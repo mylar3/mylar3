@@ -78,7 +78,7 @@ def pullsearch(comicapi, comicquery, offset, type):
     try:
         dom = parseString(r.content) #(data)
     except ExpatError:
-        if '<title>Abnormal Traffic Detected' in r.content:
+        if 'Abnormal Traffic Detected' in r.content.decode('utf-8'):
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
         else:
             logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, it might work properly.')

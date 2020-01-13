@@ -66,9 +66,11 @@ class NZBGet(object):
             nzbgetpriority = 0
 
 
-        in_file = open(filename, 'r')
-        nzbcontent = in_file.read()
-        in_file.close()
+        with open(filename, 'rb') as in_file:
+            while True:
+                nzbcontent = in_file.read(4096)
+                if not chunk:
+                    break
         nzbcontent64 = standard_b64encode(nzbcontent)
         try:
             logger.fdebug('sending now to %s' % self.nzb_url)

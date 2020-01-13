@@ -1,5 +1,4 @@
 #  This file is part of Mylar.
-# -*- coding: utf-8 -*-
 #
 #  Mylar is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -4018,7 +4017,7 @@ class WebInterface(object):
             logger.debug("If you can read this message, debug logging is now working")
         else:
             logger.info("normal (INFO) logging is now enabled")
-
+        logger.info('config file has been loaded from: %s' % mylar.CONFIG_FILE)
         raise cherrypy.HTTPRedirect("logs")
     toggleVerbose.exposed = True
 
