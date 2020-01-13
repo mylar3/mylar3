@@ -2222,7 +2222,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
                 tmp_line = tmp_url[:tmp_url_st+7]
             tmp_line += 'xYOUDONTNEEDTOKNOWTHISx'
             tmp_url_en = tmp_url.find('&', tmp_url_st)
-            if tmp_url_en is -1:
+            if tmp_url_en == -1:
                 tmp_url_en = len(tmp_url)
             tmp_line += tmp_url[tmp_url_en:]
             #tmp_url = helpers.apiremove(down_url.copy(), '&') 
