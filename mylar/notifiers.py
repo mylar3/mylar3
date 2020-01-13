@@ -388,12 +388,12 @@ class EMAIL:
             msg['Message-ID'] = make_msgid('mylar')
             msg.attach(MIMEText(message, 'plain'))
 
-            if self.emailenc is 1:
+            if self.emailenc == 1:
                 sock = smtplib.SMTP_SSL(self.emailsvr, str(self.emailport))
             else:
                 sock = smtplib.SMTP(self.emailsvr, str(self.emailport))
 
-            if self.emailenc is 2:
+            if self.emailenc == 2:
                 sock.starttls()
 
             if self.emailuser or self.emailpass:

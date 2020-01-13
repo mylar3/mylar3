@@ -609,7 +609,7 @@ def rename_param(comicid, comicname, issue, ofilename, comicyear=None, issueid=N
                         #if it's an annual, but $annual isn't specified in file_format, we need to
                         #force it in there, by default in the format of $Annual $Issue
                             #prettycomiss = "Annual " + str(prettycomiss)
-                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' (series, prettycomiss))
+                            logger.fdebug('[%s][ANNUALS-OFF][ANNUAL IN SERIES][NO ANNUAL FORMAT] prettycomiss: %s' % (series, prettycomiss))
                         else:
                             #because it exists within title, strip it then use formatting tag for placement of wording.
                             chunk_f_f = re.sub('\$Annual', '', chunk_file_format)

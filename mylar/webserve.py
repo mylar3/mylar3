@@ -4869,7 +4869,7 @@ class WebInterface(object):
         CCONTCOUNT = 0
         cti = helpers.havetotals()
         for cchk in cti:
-            if cchk['recentstatus'] is 'Continuing':
+            if cchk['recentstatus'] == 'Continuing':
                 CCONTCOUNT += 1
         comicinfo = {"COUNT_COMICS": COUNT_COMICS,
                       "COUNT_HAVES": COUNT_HAVES,

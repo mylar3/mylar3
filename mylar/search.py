@@ -1207,7 +1207,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                     logger.fdebug('%s Fuzzy logic\'d the Year and year still did not match.' % comyear)
                         #let's do this here and save a few extra loops ;)
                         #fix for issue dates between Nov-Dec/Jan
-                            if IssDateFix != "no" and UseFuzzy is not "2":
+                            if IssDateFix != "no" and UseFuzzy != "2":
                                 if IssDateFix == "01" or IssDateFix == "02" or IssDateFix == "03":
                                     ComicYearFix = int(ComicYear) - 1
                                     if str(ComicYearFix) in result_comyear:
@@ -1237,7 +1237,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     logger.fdebug("vers4year: %s" % vers4year)
                     logger.fdebug("vers4vol: %s" % vers4vol)
 
-                    if vers4year is not "no" or vers4vol is not "no":
+                    if vers4year != "no" or vers4vol != "no":
                         #if the volume is None, assume it's a V1 to increase % hits
                         if ComVersChk == 0:
                             D_ComicVersion = 1
@@ -2215,7 +2215,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
             tmp_line = down_url
             tmp_url = down_url
             tmp_url_st = tmp_url.find('apikey=')
-            if tmp_url_st is -1:
+            if tmp_url_st == -1:
                 tmp_url_st = tmp_url.find('r=')
                 tmp_line = tmp_url[:tmp_url_st+2]
             else:

@@ -378,7 +378,7 @@ class PostProcessor(object):
                     # if the NZBGet Directory option is enabled, let's use that folder name and append the jobname.
                     if self.nzb_name == 'Manual Run':
                         logger.fdebug('%s Manual Run Post-Processing enabled.' % module)
-                    elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY is not 'None']):
+                    elif all([mylar.CONFIG.NZBGET_DIRECTORY is not None, mylar.CONFIG.NZBGET_DIRECTORY != 'None']):
                         logger.fdebug('%s NZB name as passed from NZBGet: %s' % (module, self.nzb_name))
                         self.nzb_folder = os.path.join(mylar.CONFIG.NZBGET_DIRECTORY, self.nzb_name) #.encode(mylar.SYS_ENCODING)
                         logger.fdebug('%s NZBGET Download folder option enabled. Directory set to : %s' % (module, self.nzb_folder))

@@ -198,7 +198,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
         alt_chk = "no" # alt-checker flag (default to no)
 
         # account for alternate names as well
-        if watch['AlternateSearch'] is not None and watch['AlternateSearch'] is not 'None':
+        if watch['AlternateSearch'] is not None and watch['AlternateSearch'] != 'None':
             altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch']).encode('utf-8').strip()
             #altcomic = re.sub('\s+', ' ', str(altcomic)).strip()
             AltName.append(altcomic)
