@@ -500,13 +500,14 @@ class Config(object):
                     except configparser.NoSectionError:
                         continue
             else:
-                if k == 'CONFIG_VERSION':
-                    config.remove_option('General', 'dbuser')
-                    config.remove_option('General', 'dbpass')
-                    config.remove_option('General', 'dbchoice')
-                    config.remove_option('General', 'dbname')
-                elif k == 'MINIMAL_INI':
-                    config.set(v[1], k.lower(), str(self.MINIMAL_INI))
+                if self.CONFIG_VERSION != 0:
+                    if k == 'CONFIG_VERSION':
+                        config.remove_option('General', 'dbuser')
+                        config.remove_option('General', 'dbpass')
+                        config.remove_option('General', 'dbchoice')
+                        config.remove_option('General', 'dbname')
+                    elif k == 'MINIMAL_INI':
+                        config.set(v[1], k.lower(), str(self.MINIMAL_INI))
 
     def read(self, startup=False):
         self.config_vals()
