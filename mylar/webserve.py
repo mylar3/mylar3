@@ -1668,7 +1668,7 @@ class WebInterface(object):
                     if weekinfo['weeknumber']:
                         if watchlibrary[weekly['ComicID']]['status'] == 'Paused':
                             tmp_status = 'Paused'
-                        elif (week is None or  all([week is not None, week >= int(weekinfo['weeknumber'])])) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
+                        elif (week is None or all([week is not None, int(week) >= int(weekinfo['weeknumber'])])) and all([mylar.CONFIG.AUTOWANT_UPCOMING, tmp_status == 'Skipped']):
                             tmp_status = 'Wanted'
 
                     for x in issueLibrary:
