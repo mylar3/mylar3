@@ -29,6 +29,7 @@ class WebViewer(object):
             'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
             'tools.sessions.storage_path': os.path.join(mylar.DATA_DIR, "sessions"),
             'request.show_tracebacks': False,
+            'engine.timeout_monitor.on': False,
         }    
         if mylar.CONFIG.HTTP_PASSWORD is None:
             updatecherrypyconf.update({
@@ -37,7 +38,6 @@ class WebViewer(object):
 
         cherrypy.config.update(updatecherrypyconf)
         cherrypy.engine.signals.subscribe()
-        cherrypy.engine.timeout_monitor.unsubscribe()
         
     def read_comic(self, ish_id = None, page_num = None, size = None):
         logger.debug("WebReader Requested, looking for ish_id %s and page_num %s" % (ish_id, page_num))
