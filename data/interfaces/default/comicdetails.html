@@ -364,12 +364,17 @@
                                 <td id="select"><input type="checkbox" name="${issue['IssueID']}" class="issCheck checkbox" value="${issue['IssueID']}"/></td>
                                 <td id="int_issuenumber">${issue['Int_IssueNumber']}</td>
                                 <td id="issuenumber">${issue['Issue_Number']}</td>
+
                                 <%
                                     if len(issue['IssueName']) > 70:
                                         issuename = "%s..." % issue['IssueName'][:70]
                                     else:
                                         issuename = issue['IssueName']
                                     endif
+                                    try:
+                                        issuename = issuename.decode('utf-8')
+                                    except:
+                                        issuename = issuename
                                 %>
                                 <td id="issuename">${issuename}</td>
                                 <%
@@ -534,7 +539,18 @@
                                 %>
                                 <td id="aint_issuenumber">${annual_Number}</td>
                                 <td id="aissuenumber">${annual['Issue_Number']}</td>
-                                <td id="aissuename">${annual['IssueName']}</td>
+                                <%
+                                    if len(annual['IssueName']) > 70:
+                                        aissuename = "%s..." % annual['IssueName'][:70]
+                                    else:
+                                        aissuename = annual['IssueName']
+                                    endif
+                                    try:
+                                        aissuename = aissuename.decode('utf-8')
+                                    except:
+                                        aissuename = aissuename
+                                %>
+                                <td id="aissuename">${aissuename}</td>
                                 <%
                                     anndate = annual['IssueDate']
                                     dateline = ""
