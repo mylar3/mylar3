@@ -29,6 +29,7 @@ class WebViewer(object):
             'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
             'tools.sessions.storage_path': os.path.join(mylar.DATA_DIR, "sessions"),
             'request.show_tracebacks': False,
+            #'engine.timeout_monitor.on': False,
         }    
         if mylar.CONFIG.HTTP_PASSWORD is None:
             updatecherrypyconf.update({
@@ -37,7 +38,6 @@ class WebViewer(object):
 
         cherrypy.config.update(updatecherrypyconf)
         cherrypy.engine.signals.subscribe()
-        cherrypy.engine.timeout_monitor.unsubscribe()
         
     def read_comic(self, ish_id = None, page_num = None, size = None):
         logger.debug("WebReader Requested, looking for ish_id %s and page_num %s" % (ish_id, page_num))
@@ -82,7 +82,7 @@ class WebViewer(object):
             image_list = ['images/skipped_icon.png']
 
         cookie_comic = re.sub(r'\W+', '', comic_path)
-        cookie_comic    = "wv_" + cookie_comic.decode('unicode_escape')
+        cookie_comic    = "wv_" + cookie_comic
         logger.debug("about to drop a cookie for " + cookie_comic + " which represents " + comic_path)
         cookie_check = cherrypy.request.cookie
         if cookie_comic not in cookie_check:
@@ -91,8 +91,8 @@ class WebViewer(object):
             cookie_maxage = '2419200'
             cookie_set = cherrypy.response.cookie
             cookie_set['cookie_comic'] = 0
-            cookie_set['cookie_comic']['path'] = cookie_path.decode('unicode_escape')
-            cookie_set['cookie_comic']['max-age'] = cookie_maxage.decode('unicode_escape')
+            cookie_set['cookie_comic']['path'] = cookie_path
+            cookie_set['cookie_comic']['max-age'] = cookie_maxage
             next_page = page_num + 1
             prev_page = page_num - 1
         else:
