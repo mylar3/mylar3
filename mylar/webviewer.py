@@ -82,7 +82,7 @@ class WebViewer(object):
             image_list = ['images/skipped_icon.png']
 
         cookie_comic = re.sub(r'\W+', '', comic_path)
-        cookie_comic    = "wv_" + cookie_comic.decode('unicode_escape')
+        cookie_comic    = "wv_" + cookie_comic
         logger.debug("about to drop a cookie for " + cookie_comic + " which represents " + comic_path)
         cookie_check = cherrypy.request.cookie
         if cookie_comic not in cookie_check:
