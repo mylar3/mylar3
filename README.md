@@ -25,7 +25,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - Close your issue when it's solved!
 
 ## Requirements
-- At least Python version 2.7.9 (3.x is not supported)
+- At least Python version 3.8.1
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
 - UnRaR / RAR is required if metatagging is enabled within the program.
 
