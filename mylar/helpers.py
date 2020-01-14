@@ -1491,7 +1491,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
 
     issuedetails = []
     issuetag = None
-    filelocation = urllib.parse.unquote_plus(filelocation.decode('utf-8'))
+    filelocation = urllib.parse.unquote_plus(filelocation) #.decode('utf-8'))
     if justinfo is False:
         dstlocation = os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.zip')
 

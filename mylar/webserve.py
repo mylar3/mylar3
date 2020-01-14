@@ -2741,7 +2741,7 @@ class WebInterface(object):
                 else:
                     comicid = None
                 try:
-                    comicstoimport.append({'ComicName':   unicodedata.normalize('NFKD', cname['ComicName']).encode('utf-8', 'ignore').decode('utf-8', 'ignore'),
+                    comicstoimport.append({'ComicName':   unicodedata.normalize('NFKD', cname['ComicName']), #.encode('utf-8', 'ignore').decode('utf-8', 'ignore'),
                                            'DynamicName': cname['DynamicName'],
                                            'Volume':      cname['Volume'],
                                            'ComicID':     comicid})
@@ -4203,7 +4203,7 @@ class WebInterface(object):
                 if issue['Status'] == 'Downloaded':
                     logger.info('Status Downloaded.')
                     self.downloadLocal(issue['IssueID'], dir=desdir)
-                    logger.info("Copied " + issue['ComicName'] + " #" + str(issue['Issue_Number']) + " to " + desdir.encode('utf-8').strip())
+                    logger.info("Copied " + issue['ComicName'] + " #" + str(issue['Issue_Number']) + " to " + desdir) #.encode('utf-8').strip())
                     iscount+=1
 
             logger.info('I have copied ' + str(iscount) + ' issues from week #' + str(weeknumber) + ' pullist as requested.')
@@ -5152,12 +5152,12 @@ class WebInterface(object):
         import urllib.request, urllib.parse, urllib.error
         b = urllib.parse.unquote_plus(comicname)
 #        cname = b.decode("utf-8")
-        cname = b.encode('utf-8')
+        cname = b #.encode('utf-8')
         cname = re.sub("\,", "", cname)
 
         if mogcname != None:
             c = urllib.parse.unquote_plus(mogcname)
-            ogcname = c.encode('utf-8')
+            ogcname = c #.encode('utf-8')
         else:
             ogcname = None
 
@@ -5176,7 +5176,7 @@ class WebInterface(object):
     def manual_annual_add(self, manual_comicid, comicname, comicyear, comicid, x=None, y=None):
         import urllib.request, urllib.parse, urllib.error
         b = urllib.parse.unquote_plus(comicname)
-        cname = b.encode('utf-8')
+        cname = b #.encode('utf-8')
 
         logger.fdebug('comicid to be attached : ' + str(manual_comicid))
         logger.fdebug('comicname : ' + str(cname))
@@ -5681,7 +5681,7 @@ class WebInterface(object):
     downloadthis.exposed = True
 
     def IssueInfo(self, filelocation, comicname=None, issue=None, date=None, title=None):
-        filelocation = filelocation.encode('ASCII')
+        filelocation = filelocation #.encode('ASCII')
         #filelocation = urllib.parse.unquote_plus(filelocation).decode('utf8')
         issuedetails = helpers.IssueDetails(filelocation)
         if issuedetails:
@@ -5729,7 +5729,7 @@ class WebInterface(object):
                 else:
                     issuesumm = issuedetails[0]['summary']
             issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
-            issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation.decode('utf-8')))[1] + '</center>'
+            issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation))[1] + '</center>'
             issueinfo += '</td></tr></table>'
 
         else:
