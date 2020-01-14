@@ -737,7 +737,7 @@ def torrentdbsearch(seriesname, issue, comicid=None, nzbprov=None, oneoff=False)
             AS_Alt.append(seriesname_alt)
         for calt in chkthealt:
             AS_Alter = re.sub('##', '', calt)
-            u_altsearchcomic = AS_Alter.encode('ascii', 'ignore').strip()
+            u_altsearchcomic = AS_Alter #.encode('ascii', 'ignore').strip()
             AS_Altrem = re.sub("\\band\\b", "", u_altsearchcomic.lower())
             AS_Altrem = re.sub("\\bthe\\b", "", AS_Altrem.lower())
 
