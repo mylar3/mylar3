@@ -1,6 +1,6 @@
 ## ![Mylar Logo](https://github.com/evilhero/mylar/blob/master/data/images/mylarlogo.png) Mylar3
 
-## The PY3 branch is a WIP. 
+## This fork is a Work-In-Progrss. 
 ## Some things will be completely broken, while other parts may work fine or partially.
 ## Do not use this branch unless you're willing and able to fix things.
 
