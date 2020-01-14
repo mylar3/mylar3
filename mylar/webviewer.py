@@ -91,8 +91,8 @@ class WebViewer(object):
             cookie_maxage = '2419200'
             cookie_set = cherrypy.response.cookie
             cookie_set['cookie_comic'] = 0
-            cookie_set['cookie_comic']['path'] = cookie_path.decode('unicode_escape')
-            cookie_set['cookie_comic']['max-age'] = cookie_maxage.decode('unicode_escape')
+            cookie_set['cookie_comic']['path'] = cookie_path
+            cookie_set['cookie_comic']['max-age'] = cookie_maxage
             next_page = page_num + 1
             prev_page = page_num - 1
         else:
