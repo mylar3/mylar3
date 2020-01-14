@@ -67,11 +67,9 @@ class NZBGet(object):
 
 
         with open(filename, 'rb') as in_file:
-            while True:
-                nzbcontent = in_file.read(4096)
-                if not chunk:
-                    break
-        nzbcontent64 = standard_b64encode(nzbcontent)
+            nzbcontent = in_file.read()
+            nzbcontent64 = standard_b64encode(nzbcontent).decode('utf-8')
+
         try:
             logger.fdebug('sending now to %s' % self.nzb_url)
             if mylar.CONFIG.NZBGET_CATEGORY is None:
