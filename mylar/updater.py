@@ -83,7 +83,7 @@ def dbUpdate(ComicIDList=None, calledfrom=None, sched=False):
     if sched is True:
        logger.fdebug('Refresh sequence set to fire every %s minutes for %s day(s)' % (mylar.DBUPDATE_INTERVAL, mylar.CONFIG.REFRESH_CACHE))
 
-    for comic in sorted(comiclist, key=operator.itemgetter('LastUpdated'), reverse=True):
+    for comic in sorted(comiclist, key=lambda x: x if isinstance(operator.itemgetter('LastUpdated'), str) else "", reverse=True):
         dspyear = comic['ComicYear']
         csyear = None
         fixed_type = None
