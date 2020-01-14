@@ -192,9 +192,9 @@ class FileChecker(object):
                                                   'sub':            runresults['sub'],
                                                   'comicfilename':  runresults['comicfilename'],
                                                   'comiclocation':  runresults['comiclocation'],
-                                                  'series_name':    helpers.conversion(runresults['series_name']),
+                                                  'series_name':    runresults['series_name'], #helpers.conversion(runresults['series_name']),
                                                   'series_volume':  runresults['series_volume'],
-                                                  'alt_series':     helpers.conversion(runresults['alt_series']),
+                                                  'alt_series':     runresults['alt_series'], #helpers.conversion(runresults['alt_series']),
                                                   'alt_issue':      runresults['alt_issue'],
                                                   'issue_year':     runresults['issue_year'],
                                                   'issue_number':   runresults['issue_number'],
@@ -228,7 +228,7 @@ class FileChecker(object):
             #sub = re.sub(origpath, '', path).strip()})
             logger.fdebug('[SUB-PATH] Original Path : %s' % path)
             logger.fdebug('[SUB-PATH] Sub-directory : %s' % subpath)
-            subpath = helpers.conversion(subpath)
+            #subpath = helpers.conversion(subpath)
             if 'windows' in mylar.OS_DETECT.lower():
                 if path in subpath:
                     ab = len(path)
