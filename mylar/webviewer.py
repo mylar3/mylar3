@@ -29,7 +29,7 @@ class WebViewer(object):
             'tools.sessions.storage_class': cherrypy.lib.sessions.FileSession,
             'tools.sessions.storage_path': os.path.join(mylar.DATA_DIR, "sessions"),
             'request.show_tracebacks': False,
-            'engine.timeout_monitor.on': False,
+            #'engine.timeout_monitor.on': False,
         }    
         if mylar.CONFIG.HTTP_PASSWORD is None:
             updatecherrypyconf.update({
