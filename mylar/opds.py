@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 #  This file is part of Mylar.
@@ -157,7 +156,7 @@ class OPDS(object):
         comics = mylar.helpers.havetotals()
         count = 0
         for comic in comics:
-            if comic['haveissues'] > 0:
+            if comic['haveissues'] is not None and comic['haveissues'] > 0:
                 count += 1
         if count > -1:
             entries.append(
