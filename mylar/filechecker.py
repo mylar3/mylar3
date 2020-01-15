@@ -215,7 +215,7 @@ class FileChecker(object):
         return watchmatch
 
     def parseit(self, path, filename, subpath=None):
-        #filename = filename.encode('ASCII').decode('utf8')
+
         path_list = None
         if subpath is None:
             subpath = path
@@ -1156,7 +1156,7 @@ class FileChecker(object):
             logger.fdebug('Alternate series / issue title: %s [%s]' % (alt_series, alt_issue))
 
         #if the filename is unicoded, it won't match due to the unicode translation. Keep the unicode as well as the decoded.
-        series_name_decoded= unicodedata.normalize('NFKD', series_name) #helpers.conversion(series_name)).encode('ASCII', 'ignore')
+        series_name_decoded= unicodedata.normalize('NFKD', series_name)
         #check for annual in title(s) here.
         if not self.justparse and all([mylar.CONFIG.ANNUALS_ON, 'annual' not in self.watchcomic.lower(), 'special' not in self.watchcomic.lower()]):
             if 'annual' in series_name.lower():
@@ -1425,8 +1425,6 @@ class FileChecker(object):
         filelist = []
         comic_ext = ('.cbr','.cbz','.cb7','.pdf')
 
-        dir = dir.encode(mylar.SYS_ENCODING)
-
         if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
             from mylar import db
             myDB = db.DBConnection()
@@ -1443,22 +1441,22 @@ class FileChecker(object):
                     direc = None
                 else:
                     direc = dirname
-                    if '.AppleDouble' in direc.decode('utf-8'):
+                    if '.AppleDouble' in direc:
                         #Ignoring MAC OS Finder directory of cached files (/.AppleDouble/<name of file(s)>)
                         continue
 
                 if all([mylar.CONFIG.ENABLE_TORRENTS is True, self.pp_mode is True]):
-                    tcrc = helpers.crc(os.path.join(dirname, fname).decode(mylar.SYS_ENCODING))
+                    tcrc = helpers.crc(os.path.join(dirname, fname))
                     crcchk = [x for x in pp_crclist if tcrc == x['crc']]
                     if crcchk:
                         #logger.fdebug('[FILECHECKEER] Already post-processed this item %s - Ignoring' % fname)
                         continue
 
-                filename = fname.decode('utf-8')
+                filename = fname
                 if os.path.splitext(filename)[1].lower().endswith(comic_ext):
                     if direc is None:
                         try:
-                            comicsize = os.path.getsize(os.path.join(dir.decode('utf-8'), filename))
+                            comicsize = os.path.getsize(os.path.join(dir, filename))
                         except Exception as e:
                             logger.warn('error: %s' % e)
                     else:
