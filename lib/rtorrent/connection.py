@@ -69,7 +69,7 @@ class Connection(object):
         # log.debug('Connecting to server: %r', self.uri)
 
         if self.auth:
-            print('self.uri: %s' % self.uri)
+            #print('self.uri: %s' % self.uri)
             # Construct server proxy with authentication transport
             return self.sp(self.uri, transport=self._construct_transport(), **self.sp_kwargs)
 

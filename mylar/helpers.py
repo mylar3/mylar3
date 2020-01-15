@@ -2383,7 +2383,7 @@ def humanize_time(amount, units = 'seconds'):
 
         result = []
 
-        unit = map(lambda a: a[1], NAMES).index(units)
+        unit = list(map(lambda a: a[1], NAMES)).index(units)
         # Convert to seconds
         amount = amount * INTERVALS[unit]
 

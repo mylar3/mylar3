@@ -68,9 +68,7 @@ class TorrentClient(object):
                 else:
                     newurl = url
                 logger.fdebug('NEWURL: %s' % newurl.replace(password, '[REDACTED]'))
-                logger.info('[%s] %s / %s' % (auth, username, password))
                 authinfo = tuple(([auth, username, password]))
-                logger.fdebug('authinfo: %s[%s]' % (authinfo, type(authinfo)))
                 self.conn = RTorrent(
                     url, authinfo,
                     verify_server=True,
