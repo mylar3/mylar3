@@ -991,8 +991,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     postdate_int = None
                     if all([nzbprov == '32P', RSS == 'no']) or all([nzbprov == 'ddl', len(pubdate) == 10]):
                         postdate_int = pubdate
-                        logger.fdebug('[%s] postdate_int: %s' % (nzbprov, postdate_int))
-                    elif any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', RSS == 'no']):
+                        logger.fdebug('[%s] postdate_int (%s): %s' % (nzbprov, type(postdate_int), postdate_int))
+                    if any([postdate_int is None, type(postdate_int) != int]) or not all([nzbprov == '32P', RSS == 'no']):
                         # convert it to a tuple
                         dateconv = email.utils.parsedate_tz(pubdate)
                         if all([nzbprov == '32P', dateconv is None, RSS == 'no']):
