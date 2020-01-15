@@ -28,7 +28,7 @@ from .torrent.helpers.variable import link, symlink, is_rarfile
 import requests
 #from lib.unrar2 import RarFile
 
-from . import torrent.clients.rtorrent as TorClient
+from .torrent.clients import rtorrent as TorClient
 
 import mylar
 from mylar import logger, helpers
