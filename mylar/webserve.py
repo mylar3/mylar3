@@ -522,8 +522,8 @@ class WebInterface(object):
             else:
                 if r.headers.get('Content-Encoding') == 'gzip':
                     import gzip
-                    from io import StringIO
-                    buf = StringIO(r.content)
+                    from io import BytesIO
+                    buf = BytesIO(r.content)
                     f = gzip.GzipFile(fileobj=buf)
 
                 with open(coverfile, 'wb') as f:
