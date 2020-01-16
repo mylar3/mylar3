@@ -2767,7 +2767,7 @@ class WebInterface(object):
                         volume = re.sub('[\[\]]', '', k[Volst:comicid_st]).strip()
                     ComicName = k[:Volst].strip()
                     DynamicName = v
-                    cid = ComicName.decode('utf-8', 'replace')
+                    cid = ComicName
                     comicstoimport.append({'ComicName': cid,
                                            'DynamicName': DynamicName,
                                            'Volume':    volume,
