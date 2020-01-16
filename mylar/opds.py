@@ -38,7 +38,7 @@ class OPDS(object):
 
     def __init__(self):
         self.cmd = None
-        self.PAGE_SIZE=30
+        self.PAGE_SIZE=mylar.CONFIG.OPDS_PAGESIZE
         self.img = None
         self.issue_id = None
         self.file = None
