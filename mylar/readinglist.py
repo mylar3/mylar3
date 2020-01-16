@@ -99,10 +99,10 @@ class Readinglist(object):
                 logger.info(self.module + ' Added ' + dspinfo + ' to the Reading list.')
         return
 
-    def markasRead(self):
+    def markasRead(self, IssueID=None, IssueArcID=None):
         myDB = db.DBConnection()
-        if self.IssueID:
-            issue = myDB.selectone('SELECT * from readlist WHERE IssueID=?', [self.IssueID]).fetchone()
+        if IssueID:
+            issue = myDB.selectone('SELECT * from readlist WHERE IssueID=?', [IssueID]).fetchone()
             if issue['Status'] == 'Read':
                 NewVal = {"Status":  "Added"}
             else:
@@ -110,17 +110,17 @@ class Readinglist(object):
 
             NewVal['StatusChange'] = helpers.today()
 
-            CtrlVal = {"IssueID":  self.IssueID}
+            CtrlVal = {"IssueID":  IssueID}
             myDB.upsert("readlist", NewVal, CtrlVal)
             logger.info(self.module + ' Marked ' + issue['ComicName'] + ' #' + str(issue['Issue_Number']) + ' as Read.')
-        elif self.IssueArcID:
-            issue = myDB.selectone('SELECT * from readinglist WHERE IssueArcID=?', [self.IssueArcID]).fetchone()
+        elif IssueArcID:
+            issue = myDB.selectone('SELECT * from readinglist WHERE IssueArcID=?', [IssueArcID]).fetchone()
             if issue['Status'] == 'Read':
                 NewVal = {"Status":    "Added"}
             else:
                 NewVal = {"Status":    "Read"}
             NewVal['StatusChange'] = helpers.today()
-            CtrlVal = {"IssueArcID":  self.IssueArcID}
+            CtrlVal = {"IssueArcID":  IssueArcID}
             myDB.upsert("readinglist", NewVal, CtrlVal)
             logger.info(self.module + ' Marked ' +  issue['ComicName'] + ' #' + str(issue['IssueNumber']) + ' as Read.')
 
