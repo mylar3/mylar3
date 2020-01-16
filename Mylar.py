@@ -308,6 +308,7 @@ def main():
         'opds_authentication': mylar.CONFIG.OPDS_AUTHENTICATION,
         'opds_username': mylar.CONFIG.OPDS_USERNAME,
         'opds_password': mylar.CONFIG.OPDS_PASSWORD,
+        'opds_pagesize': mylar.CONFIG.OPDS_PAGESIZE,
     }
 
     # Try to start the server.
