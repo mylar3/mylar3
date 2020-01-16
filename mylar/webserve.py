@@ -5140,6 +5140,7 @@ class WebInterface(object):
                     "opds_username": mylar.CONFIG.OPDS_USERNAME,
                     "opds_password": mylar.CONFIG.OPDS_PASSWORD,
                     "opds_metainfo": helpers.checked(mylar.CONFIG.OPDS_METAINFO),
+                    "opds_pagesize": mylar.CONFIG.OPDS_PAGESIZE,
                     "dlstats": dlprovstats,
                     "dltotals": freq_tot,
                     "alphaindex": mylar.CONFIG.ALPHAINDEX
@@ -5377,7 +5378,7 @@ class WebInterface(object):
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
                            'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
                            'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
-                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'enable_ddl', 'deluge_pause'] #enable_public
+                           'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
             if checked_config not in kwargs:
