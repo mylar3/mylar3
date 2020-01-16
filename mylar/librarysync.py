@@ -102,7 +102,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                         continue
 
                     # We need the unicode path to use for logging, inserting into database
-                    unicode_comic_path = comicpath.decode(mylar.SYS_ENCODING, 'replace')
+                    unicode_comic_path = comicpath
 
                     if results['parse_status'] == 'success':
                         comic_list.append({'ComicFilename':           comic,
@@ -181,9 +181,9 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
     for watch in watchlist:
         #use the comicname_filesafe to start
-        watchdisplaycomic = watch['ComicName'].encode('utf-8').strip() #re.sub('[\_\#\,\/\:\;\!\$\%\&\+\'\?\@]', ' ', watch['ComicName']).encode('utf-8').strip()
+        watchdisplaycomic = watch['ComicName']
         # let's clean up the name, just in case for comparison purposes...
-        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe']).encode('utf-8').strip()
+        watchcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['ComicName_Filesafe'])
         #watchcomic = re.sub('\s+', ' ', str(watchcomic)).strip()
 
         if ' the ' in watchcomic.lower():
@@ -194,7 +194,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
         # account for alternate names as well
         if watch['AlternateSearch'] is not None and watch['AlternateSearch'] != 'None':
-            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch']).encode('utf-8').strip()
+            altcomic = re.sub('[\_\#\,\/\:\;\.\-\!\$\%\&\+\'\?\@]', '', watch['AlternateSearch'])
             #altcomic = re.sub('\s+', ' ', str(altcomic)).strip()
             AltName.append(altcomic)
             alt_chk = "yes"  # alt-checker flag
@@ -394,8 +394,8 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                                                             'issuenumber': issue_number,
                                                                             'volume':      issuevolume,
                                                                             'comfilename': comfilename,
-                                                                            'comlocation': comlocation.decode(mylar.SYS_ENCODING)}
-                                                             })
+                                                                            'comlocation': comlocation}
+                                                           })
                                         mylar.IMPORT_CID_COUNT +=1
                                         issuepopulated = True
 
@@ -417,12 +417,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                         "volume": issuevolume,
                                         "issueid": issuenotes_id,
                                         "comfilename": comfilename,
-                                        "comlocation": comlocation.decode(mylar.SYS_ENCODING)
+                                        "comlocation": comlocation
                                                        })
 
                                     mylar.IMPORT_CID_COUNT +=1
                         else:
-                            pass            
+                            pass
                             #logger.fdebug(i['ComicFilename'] + ' is not in a metatagged format (cbz). Bypassing reading of the metatags')
 
         if issueinfo is None:
