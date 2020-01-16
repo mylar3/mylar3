@@ -169,7 +169,7 @@ def checkGithub(current_version=None):
         current_version = mylar.CURRENT_VERSION
 
     # Get the latest commit available from github
-    url = 'https://api.github.com/repos/%s/mylar/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
+    url = 'https://api.github.com/repos/%s/mylar3/commits/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
     try:
         response = requests.get(url, verify=True)
         git = response.json()
@@ -182,7 +182,7 @@ def checkGithub(current_version=None):
     # See how many commits behind we are
     if current_version is not None:
         logger.fdebug('Comparing currently installed version [%s] with latest github version [%s]' % (current_version, mylar.LATEST_VERSION))
-        url = 'https://api.github.com/repos/%s/mylar/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
+        url = 'https://api.github.com/repos/%s/mylar3/compare/%s...%s' % (mylar.CONFIG.GIT_USER, current_version, mylar.LATEST_VERSION)
 
         try:
             response = requests.get(url, verify=True)
@@ -309,7 +309,7 @@ def versionload():
     else:
         vers = 'NONE'
 
-    mylar.USER_AGENT = 'Mylar/' +str(hash) +'(' +vers +') +http://www.github.com/evilhero/mylar/'
+    mylar.USER_AGENT = 'Mylar3/' +str(hash) +'(' +vers +') +http://www.github.com/mylar3/mylar3/'
 
     logger.info('Version information: %s [%s]' % (mylar.CONFIG.GIT_BRANCH, mylar.CURRENT_VERSION))
 
