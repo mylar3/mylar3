@@ -4275,7 +4275,7 @@ class WebInterface(object):
                 mylar.IMPORT_STATUS = 'Import completed.'
                 break
             else:
-                yield ckh[0]['result']
+                yield chk[0]['result']
                 mylar.IMPORTBUTTON = False
                 break
         return
