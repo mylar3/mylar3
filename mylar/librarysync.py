@@ -34,17 +34,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
     if not dir:
         dir = mylar.CONFIG.COMIC_DIR
 
-    # If we're appending a dir, it's coming from the post processor which is
-    # already bytestring
-    if not append:
-        dir = dir.encode(mylar.SYS_ENCODING)
-
     if not os.path.isdir(dir):
-        logger.warn('Cannot find directory: %s. Not scanning' % dir.decode(mylar.SYS_ENCODING, 'replace'))
+        logger.warn('Cannot find directory: %s. Not scanning' % dir)
         return "Fail"
 
 
-    logger.info('Scanning comic directory: %s' % dir.decode(mylar.SYS_ENCODING, 'replace'))
+    logger.info('Scanning comic directory: %s' % dir)
 
     basedir = dir
 
@@ -65,7 +60,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
             if any(files.lower().endswith('.' + x.lower()) for x in extensions):
                 comicpath = os.path.join(r, files)
                 if mylar.CONFIG.IMP_PATHS is True:
-                    if myDB.select('SELECT * FROM comics JOIN issues WHERE issues.Status="Downloaded" AND ComicLocation=? AND issues.Location=?', [r.decode(mylar.SYS_ENCODING, 'replace'), files.decode(mylar.SYS_ENCODING, 'replace')]):
+                    if myDB.select('SELECT * FROM comics JOIN issues WHERE issues.Status="Downloaded" AND ComicLocation=? AND issues.Location=?', [r, files]):
                         logger.info('Skipped known issue path: %s' % comicpath)
                         continue
 
