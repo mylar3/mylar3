@@ -3294,7 +3294,7 @@ class WebInterface(object):
 
     def markasRead(self, IssueID=None, IssueArcID=None):
         read = readinglist.Readinglist(IssueID, IssueArcID)
-        read.markasRead()
+        read.markasRead(IssueID, IssueArcID)
     markasRead.exposed = True
 
     def addtoreadlist(self, IssueID):
