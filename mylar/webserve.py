@@ -5587,6 +5587,15 @@ class WebInterface(object):
         return "Successfully verified connection to NZBGet"
     NZBGet_test.exposed = True
 
+    def carepackage(self):
+        from mylar.carepackage import carePackage
+        cp = carePackage()
+        from cherrypy.lib.static import serve_download
+        cppb = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
+        return serve_download(cppb)
+    
+    carepackage.exposed = True
+    
     def shutdown(self):
         mylar.SIGNAL = 'shutdown'
         message = 'Shutting Down...'
