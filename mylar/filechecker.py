@@ -269,6 +269,11 @@ class FileChecker(object):
                     logger.fdebug('[SARC] Removed Reading Order sequence from subname. Now set to : %s' % modfilename)
 
         #make sure all the brackets are properly spaced apart
+        if modfilename.find('\s') == -1:
+            #if no spaces exist, assume decimals being used as spacers (ie. nzb name)
+            modspacer = '.'
+        else:
+            modspacer = ' '
         m = re.findall('[^()]+', modfilename)
         cnt = 1
         #2019-12-24----fixed to accomodate naming convention like Amazing Mary Jane (2019) 002.cbr, and to account for brackets properly
@@ -276,10 +281,10 @@ class FileChecker(object):
             while cnt < len(m):
                 #logger.fdebug('[m=%s] modfilename.find: %s' % (m[cnt], modfilename[modfilename.find('('+m[cnt]+')')+len(m[cnt])+2]))
                 #logger.fdebug('mod_1: %s' % modfilename.find('('+m[cnt]+')'))
-                if modfilename[modfilename.find('('+m[cnt]+')')-1] != ' ' and modfilename.find('('+m[cnt]+')') != -1:
+                if modfilename[modfilename.find('('+m[cnt]+')')-1] != modspacer and modfilename.find('('+m[cnt]+')') != -1:
                     #logger.fdebug('before_space: %s' % modfilename[modfilename.find('('+m[cnt]+')')-1])
                     #logger.fdebug('after_space: %s' % modfilename[modfilename.find('('+m[cnt]+')')+len(m[cnt])+2])
-                    modfilename = '%s%s%s' % (modfilename[:modfilename.find('('+m[cnt]+')')], ' ', modfilename[modfilename.find('('+m[cnt]+')'):])
+                    modfilename = '%s%s%s' % (modfilename[:modfilename.find('('+m[cnt]+')')], modspacer, modfilename[modfilename.find('('+m[cnt]+')'):])
                 cnt+=1
         except Exception as e:
             #logger.warn('[ERROR] %s' % e)

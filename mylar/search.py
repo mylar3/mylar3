@@ -1109,7 +1109,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         logger.fdebug('Cleaned up title to : %s' % cleantitle)
 
                 #send it to the parser here.
-                p_comic = filechecker.FileChecker(file=ComicTitle)
+                p_comic = filechecker.FileChecker(file=ComicTitle, watchcomic=ComicName)
                 parsed_comic = p_comic.listFiles()
 
                 logger.fdebug('parsed_info: %s' % parsed_comic)
@@ -1376,18 +1376,18 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                                 intIss = 1000
                             else:
                                 intIss = 9999999999
-                        if parsed_comic['issue_number'] is not None:
-                            logger.fdebug("issue we found for is : %s" % parsed_comic['issue_number'])
-                            comintIss = helpers.issuedigits(parsed_comic['issue_number'])
+                        if filecomic['justthedigits'] is not None:
+                            logger.fdebug("issue we found for is : %s" % filecomic['justthedigits'])
+                            comintIss = helpers.issuedigits(filecomic['justthedigits'])
                             logger.fdebug("integer value of issue we have found : %s" % comintIss)
                         else:
                             comintIss = 11111111111
 
                         #do this so that we don't touch the actual value but just use it for comparisons
-                        if parsed_comic['issue_number'] is None:
+                        if filecomic['justthedigits'] is None:
                             pc_in = None
                         else:
-                            pc_in = helpers.issuedigits(parsed_comic['issue_number'])
+                            pc_in = helpers.issuedigits(filecomic['justthedigits'])
                         #issue comparison now as well
                         if int(intIss) == int(comintIss) or all([cmloopit == 4, findcomiciss is None, pc_in is None]) or all([cmloopit == 4, findcomiciss is None, pc_in == 1]):
                             nowrite = False
