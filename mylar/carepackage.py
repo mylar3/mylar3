@@ -34,41 +34,47 @@ class carePackage(object):
         else:
             objline = ['uname', '-a']
 
-        hi = subprocess.Popen(objline,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
-        hiout, hierr = hi.communicate()
-        f.write("%s\n" % hiout)
+        hi = subprocess.run(objline,
+            capture_output=True,
+            text=True)
+        for hiline in hi.stdout.split('\n'):
+            if platform.system() == 'Windows':
+                if all(['Host Name' not in hiline, 'OS Name' not in hiline, 
+				'OS Version' not in hiline, 'OS Configuration' not in hiline,
+				'OS Build Type' not in hiline, 'Locale' not in hiline,
+				'Time Zone' not in hiline]):
+                    continue
+            f.write("%s\n" % hiline)
 
         f.write("\n\nMylar python information:\n")
         pyloc = sys.executable
-        pi = subprocess.Popen([pyloc, '-V'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
-        piout, pierr = pi.communicate()
+        pi = subprocess.run([pyloc, '-V'],
+            capture_output=True,
+            text=True)
+        f.write("%s" % pi.stdout)
         f.write("%s\n" % pyloc)
-        f.write("%s\n" % piout)
-        pf = subprocess.Popen(['pip3', 'freeze'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
-        pfout, pferr = pf.communicate()
-        f.write("%s\n" % pfout)
 
+        pf = subprocess.run(['pip3', 'freeze'],
+            capture_output=True,
+            text=True)
+        f.write("\nPIP (freeze) list:\n")
+        for pfout in pf.stdout.split('\n'):
+            f.write("%s\n" % pfout)
 
         f.write("\n\nMylar running environment:\n")
         for param in list(os.environ.keys()):
-            if 'SSH' not in param:
+            if all(['SSH' not in param, 'LS_COLORS' not in param]):
                 f.write("%20s = %s\n" % (param,os.environ[param]))
 
         f.write("\n\nMylar git status:\n")
         try:
-            cmd = 'git --version; git status'
-            gs = subprocess.Popen(cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                shell=True)
-            gsout, gserr = gs.communicate()
-            f.write("%s" % gsout)
+            cmd = [['git', '--version'],['git', 'status']]
+            for c in cmd:
+                gs = subprocess.run(c,
+                    capture_output=True,
+                    text=True)
+                for line in gs.stdout.split('\n'):
+                    f.write("%s\n" % line)
         except Exception as e:
             f.write("\n\nUnable to retrieve Git information")
 
