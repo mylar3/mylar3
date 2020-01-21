@@ -86,15 +86,22 @@ class carePackage(object):
         tmpconfig.readfp(codecs.open(self.cleanpath, 'r', 'utf8'))
         cleaned_list = {
                             ('Interface', 'http_password'),
+                            ('SABnzbd', 'sab_username'),
                             ('SABnzbd', 'sab_password'),
                             ('SABnzbd', 'sab_apikey'),
+                            ('NZBGet', 'nzbget_username'),
                             ('NZBGet', 'nzbget_password'),
                             ('NZBsu', 'nzbsu_apikey'),
                             ('DOGnzb', 'dognzb_apikey'),
+                            ('uTorrent', 'utorrent_username'),
                             ('uTorrent', 'utorrent_password'),
+                            ('Transmission', 'transmission_username'),
                             ('Transmission', 'transmission_password'),
+                            ('Deluge', 'deluge_username'),
                             ('Deluge', 'deluge_password'),
+                            ('qBittorrent', 'qbittorrent_username'),
                             ('qBittorrent', 'qbittorrent_password'),
+                            ('Rtorrent', 'rtorrent_username'),
                             ('Rtorrent', 'rtorrent_password'),
                             ('Prowl', 'prowl_keys'),
                             ('PUSHOVER', 'pushover_apikey'),
@@ -106,39 +113,41 @@ class carePackage(object):
                             ('32P', 'password_32p'),
                             ('32P', 'passkey_32p'),
                             ('32P', 'username_32p'),
+                            ('Seedbox', 'seedbox_user'),
                             ('Seedbox', 'seedbox_pass'),
+                            ('Seedbox', 'seedbox_port'),
                             ('Tablet', 'tab_pass'),
                             ('API', 'api_key'),
                             ('OPDS', 'opds_password'),
                             ('AutoSnatch', 'pp_sshpasswd'),
+                            ('AutoSnatch', 'pp_sshport'),
+                            ('Email', 'email_password'),
+                            ('Email', 'email_user')
                        }
 
         for v in cleaned_list:
-            #value = []
-            #for x in v:
-            #    value.append(x)
             if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
                 tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
 
         hostname_list = {
-	                        ('SABnzbd', 'sab_host'),
-	                        ('NZBGet', 'nzbget_host'), 
-	                        ('Torznab', 'torznab_host'), 
-	                        ('uTorrent', 'utorrent_host'), 
-	                        ('Transmission', 'transmission_host'), 
-	                        ('Deluge', 'deluge_host'), 
-	                        ('qBittorrent', 'qbittorrent_host'), 
-	                        ('Interface', 'http_host'), 
-	                        ('Rtorrent', 'rtorrent_host'), 
-	                        ('AutoSnatch', 'pp_sshhost'),
-	                        ('Tablet', 'tab_host'),
-	                        ('Seedbox', 'seedbox_host'),
-        }
+                            ('SABnzbd', 'sab_host'),
+                            ('NZBGet', 'nzbget_host'),
+                            ('Torznab', 'torznab_host'),
+                            ('uTorrent', 'utorrent_host'),
+                            ('Transmission', 'transmission_host'),
+                            ('Deluge', 'deluge_host'),
+                            ('qBittorrent', 'qbittorrent_host'),
+                            ('Interface', 'http_host'),
+                            ('Rtorrent', 'rtorrent_host'),
+                            ('AutoSnatch', 'pp_sshhost'),
+                            ('Tablet', 'tab_host'),
+                            ('Seedbox', 'seedbox_host'),
+                            ('Email', 'email_server')
+                        }
 
         for h in hostname_list:
-            if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
-                tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
-
+            if all([tmpconfig.get(h[0], h[1]) is not None, tmpconfig.get(h[0], h[1]) != 'None']):
+                tmpconfig.set(h[0], h[1], 'xXX[REMOVED]XXx')
 
         extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*6))
         extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*5))
@@ -154,7 +163,7 @@ class carePackage(object):
                 n_api = 'xXX[REMOVED]XXx'
             if ens[4] is not None:
                 n_uid = 'xXX[REMOVED]XXx'
-            newnewzline = (ens[0], ens[1], ens[2], n_api, n_uid, ens[5])
+            newnewzline = (ens[0], n_host, ens[2], n_api, n_uid, ens[5])
             cleaned_newznabs.append(newnewzline)
 
         for ets in extra_torznabs:
@@ -167,7 +176,7 @@ class carePackage(object):
                 n_api = 'xXX[REMOVED]XXx'
             if ets[4] is not None:
                 n_uid = 'xXX[REMOVED]XXx'
-            newtorline = (ets[0], ets[1], n_api, ets[3], ets[4])
+            newtorline = (ets[0], n_host, n_api, ets[3], ets[4])
             cleaned_torznabs.append(newtorline)
 
         tmpconfig.set('Newznab', 'extra_newznabs', ', '.join(self.write_extras(cleaned_newznabs)))
