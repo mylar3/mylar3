@@ -114,14 +114,36 @@ class carePackage(object):
             if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
                 tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
 
+        hostname_list = {
+	                        ('SABnzbd', 'sab_host'),
+	                        ('NZBGet', 'nzbget_host'), 
+	                        ('Torznab', 'torznab_host'), 
+	                        ('uTorrent', 'utorrent_host'), 
+	                        ('Transmission', 'transmission_host'), 
+	                        ('Deluge', 'deluge_host'), 
+	                        ('qBittorrent', 'qbittorrent_host'), 
+	                        ('Interface', 'http_host'), 
+	                        ('Rtorrent', 'rtorrent_host'), 
+	                        ('AutoSnatch', 'pp_sshhost'),
+	                        ('Tablet', 'tab_host'),
+	                        ('Seedbox', 'seedbox_host'),
+        }
+
+        for h in hostname_list:
+            if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
+                tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
+
 
         extra_newznabs = list(zip(*[iter(tmpconfig.get('Newznab', 'extra_newznabs').split(', '))]*6))
         extra_torznabs = list(zip(*[iter(tmpconfig.get('Torznab', 'extra_torznabs').split(', '))]*5))
         cleaned_newznabs = []
         cleaned_torznabs = []
         for ens in extra_newznabs:
+            n_host = None
             n_uid = None
             n_api = None
+            if ens[1] is not None:
+                n_host = 'xXX[REMOVED]XXx'
             if ens[3] is not None:
                 n_api = 'xXX[REMOVED]XXx'
             if ens[4] is not None:
@@ -130,8 +152,11 @@ class carePackage(object):
             cleaned_newznabs.append(newnewzline)
 
         for ets in extra_torznabs:
+            n_host = None
             n_uid = None
             n_api = None
+            if ets[1] is not None:
+                n_host = 'xXX[REMOVED]XXx'
             if ets[2] is not None:
                 n_api = 'xXX[REMOVED]XXx'
             if ets[4] is not None:
