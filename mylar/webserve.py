@@ -5287,28 +5287,41 @@ class WebInterface(object):
             newValues['AlternateFileName'] = str(alt_filename)
 
         #force the check/creation of directory com_location here
+        updatedir = True
         if any([mylar.CONFIG.CREATE_FOLDERS is True, os.path.isdir(orig_location)]):
             if os.path.isdir(str(com_location)):
                 logger.info("Validating Directory (" + str(com_location) + "). Already exists! Continuing...")
             else:
-                if orig_location != com_location:
+                if orig_location != com_location and os.path.isdir(orig_location) is True:
                     logger.fdebug('Renaming existing location [%s] to new location: %s' % (orig_location, com_location))
                     try:
                         os.rename(orig_location, com_location)
                     except Exception as e:
-                        logger.warn('Unable to rename existing directory: %s' % e)
-                        return
+                        if 'No such file or directory' in e:
+                            checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
+                            if not checkdirectory:
+                                logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
+                                updatedir = False
+                        else:
+                            logger.warn('Unable to rename existing directory: %s' % e)
+                            updatedir = False
                 else:
-                    logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
+                    if orig_location != com_location and os.path.isdir(orig_location) is False:
+                        logger.fdebug("Original Directory (%s) doesn't exist! - attempting to create new directory (%s)" % (orig_location, com_location))
+                    else:
+                        logger.fdebug("Updated Directory doesn't exist! - attempting to create now.")
                     checkdirectory = filechecker.validateAndCreateDirectory(com_location, True)
                     if not checkdirectory:
                         logger.warn('Error trying to validate/create directory. Aborting this process at this time.')
-                        return
+                        updatedir = False
+        else:
+            logger.info('[Create directories False] Not creating physical directory, but updating series location in dB to: %s' % com_location)
 
-        newValues['ComicLocation'] = com_location
+        if updatedir is True:
+            newValues['ComicLocation'] = com_location
+            myDB.upsert("comics", newValues, controlValueDict)
+            logger.fdebug('Updated Series options!')
 
-        myDB.upsert("comics", newValues, controlValueDict)
-        logger.fdebug('Updated Series options!') 
         raise cherrypy.HTTPRedirect("comicDetails?ComicID=%s" % ComicID)
     comic_config.exposed = True
 
