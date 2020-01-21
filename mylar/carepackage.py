@@ -30,7 +30,7 @@ class carePackage(object):
 
         f.write("Mylar host information:\n")
         if platform.system() == 'Windows':
-            objline = ['winver']
+            objline = ['systeminfo']
         else:
             objline = ['uname', '-a']
 
