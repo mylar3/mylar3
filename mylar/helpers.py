@@ -3251,11 +3251,14 @@ def script_env(mode, vars):
     #mode = on-snatch, pre-postprocess, post-postprocess
     #var = dictionary containing variables to pass
     mylar_env = os.environ.copy()
+    shell_cmd = sys.executable
     if mode == 'on-snatch':
         runscript = mylar.CONFIG.SNATCH_SCRIPT
+        if mylar.CONFIG.SNATCH_SHELL_LOCATION is not None:
+            shell_cmd = mylar.CONFIG.SNATCH_SHELL_LOCATION
         if 'torrentinfo' in vars:
             if 'hash' in vars['torrentinfo']:
-                mylar_env['mylar_release_hash'] = vars['torrentinfo']['hash'] 
+                mylar_env['mylar_release_hash'] = vars['torrentinfo']['hash']
             if 'torrent_filename' in vars['torrentinfo']:
                 mylar_env['mylar_torrent_filename'] = vars['torrentinfo']['torrent_filename']
             if 'name' in vars['torrentinfo']:
@@ -3334,9 +3337,14 @@ def script_env(mode, vars):
     elif mode == 'post-process':
         #to-do
         runscript = mylar.CONFIG.EXTRA_SCRIPTS
+        if mylar.CONFIG.ES_SHELL_LOCATION is not None:
+            shell_cmd = mylar.CONFIG.ES_SHELL_LOCATION
+
     elif mode == 'pre-process':
         #to-do
         runscript = mylar.CONFIG.PRE_SCRIPTS
+        if mylar.CONFIG.PRE_SHELL_LOCATION is not None:
+            shell_cmd = mylar.CONFIG.PRE_SHELL_LOCATION
 
     logger.fdebug('Initiating ' + mode + ' script detection.')
     with open(runscript, 'r') as f:
@@ -3346,8 +3354,6 @@ def script_env(mode, vars):
         shell_cmd = re.sub('#!', '', first_line)
         if shell_cmd == '' or shell_cmd is None:
             shell_cmd = '/bin/bash'
-    else:
-        shell_cmd = sys.executable
 
     curScriptName = shell_cmd + ' ' + runscript #.decode("string_escape")
     logger.fdebug("snatch script detected...enabling: " + str(curScriptName))
