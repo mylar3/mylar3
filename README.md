@@ -29,7 +29,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
 
 ## Installation
-- run `pip install -r requirements.txt` to install all required dependencies not included 
+- run `pip install -r requirements.txt` to install all required dependencies not included. 
 
 ## Usage
 To start the program, type `python Mylar.py` inside the root of the Mylar directory. Typing `python Mylar.py --help` will give a list of available options.
