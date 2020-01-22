@@ -47,7 +47,7 @@ Helpful hints:
 - If adding a comic fails with "Error", submit a bug and it will be checked out (usually an easy fix)
 - Post-Processing is for adding new issues into existing series on your watchlist, Import is for adding files for series that don't exist on your watchlist into your watchlist
 - For the most up-to-date build, use the Development build
-  - Master doesn't get updated as frequently (> month), and Development is usually stable
+  - Master doesn't get updated as frequently (> month), and Development is more-or-less stable
 
 ## Post-processing
 It is imperative that you enable the post-processing option if you require post-processing (_Configuration --> Quality & Post-Processing --> Enable Post-Processing_)
