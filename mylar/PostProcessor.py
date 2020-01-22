@@ -128,7 +128,10 @@ class PostProcessor(object):
                 shell_cmd = '/bin/bash'
         else:
             #forces mylar to use the executable that it was run with to run the extra script.
-            shell_cmd = sys.executable
+            if mylar.CONFIG.PRE_SHELL_LOCATION is not None:
+                shell_cmd = mylar.CONFIG.PRE_SHELL_LOCATION
+            else:
+                shell_cmd = sys.executable
 
         currentScriptName = shell_cmd + ' ' + str(mylar.CONFIG.PRE_SCRIPTS) #.decode("string_escape")
         logger.fdebug("pre script detected...enabling: " + str(currentScriptName))
@@ -168,8 +171,11 @@ class PostProcessor(object):
             if shell_cmd == '' or shell_cmd is None:
                 shell_cmd = '/bin/bash'
         else:
-            #forces mylar to use the executable that it was run with to run the extra script.
-            shell_cmd = sys.executable
+            if mylar.CONFIG.ES_SHELL_LOCATION is not None:
+                shell_cmd = mylar.CONFIG.ES_SHELL_LOCATION
+            else:
+                #forces mylar to use the executable that it was run with to run the extra script.
+                shell_cmd = sys.executable
 
         curScriptName = shell_cmd + ' ' + str(mylar.CONFIG.EXTRA_SCRIPTS) #.decode("string_escape")
         logger.fdebug("extra script detected...enabling: " + str(curScriptName))
