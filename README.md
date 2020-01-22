@@ -21,7 +21,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 
 **Issues** can be reported on the Github issue tracker, provided that you:
 - Search existing recent OPEN issues. If an issue is open from a year ago, please don't add to it.
-- Always follow the issue template!
+- Always follow the issue template! Use the CarePackage button on the config page if you need help collecting information.
 - Close your issue when it's solved!
 
 ## Requirements
