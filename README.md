@@ -6,7 +6,7 @@
 
 Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents written in python. It supports SABnzbd, NZBGET, and many torrent clients in addition to DDL.
 
-It will allow you to monitor weekly pull-lists for items belonging to user-specific series to download, as well as being able to monitor story-arcs. Support for TPB's and GN's is also now available.
+It will allow you to monitor weekly pull-lists for items belonging to user-specific series to download, as well as being able to monitor story-arcs. Support for TPB's and GN's is also available.
 
 
 This program is considered an "Alpha release" but is in development still. It is not bug-free, but it does work!
