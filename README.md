@@ -55,6 +55,10 @@ It is imperative that you enable the post-processing option if you require post-
 ### Newsgroups
 There are 2 ways to perform post-processing within Mylar, however you cannot use both options simultaneously. 
 
+**Completed Download Handling (CDH) - Preferred**
+- For the given download client (SABnzbd / NZBGet) simply click on the Enable Completed Download Handling option.
+- For SABnzbd to work, you need to make sure you have a version > 0.8.0 (use the Test Connection button for verification)
+
 **ComicRN**
 - You need to enable the Mylar APIKey for this to work (_Configuration --> Web Interface --> API --> Enable API --> Generate --> Save Configuration_).
 - Within the post-processing/ folder of Mylar there are 2 files (autoProcessComics.py and autoProcessComics.cfg.sample)
@@ -63,10 +67,6 @@ There are 2 ways to perform post-processing within Mylar, however you cannot use
 - Copy autoProcessComics.py, autoProcessComics.cfg and the respective ComicRN.py into your SABnzbd/NZBGet scripts directory (or wherever your download client stores its scripts).
 - Make sure SABnzbd/NZBGet is setup to have a 'comic-related' category that points it to the ComicRN.py script that was just moved. 
 - Ensure in Mylar that the category is named exactly the same.
-
-**Completed Download Handling (CDH)**
-- For the given download client (SABnzbd / NZBGet) simply click on the Enable Completed Download Handling option.
-- For SABnzbd to work, you need to make sure you have a version > 0.8.0 (use the Test Connection button for verification)
 
 ### Torrents
 There is no completed processing for torrents. There are methods available however:
