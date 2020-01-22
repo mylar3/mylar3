@@ -16,6 +16,7 @@ You are free to join the Mylar support community on IRC where you can ask questi
 
 1. Use any IRC client and connect to the Freenode server, `irc.freenode.net`.
 2. Join the `#mylar` channel.
+3. Say hello!
 
 The Mylar Forums are also online @ https://forum.mylarcomics.com
 
