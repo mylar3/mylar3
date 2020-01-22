@@ -9,7 +9,7 @@ Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB a
 It will allow you to monitor weekly pull-lists for items belonging to user-specific series to download, as well as being able to monitor story-arcs. Support for TPB's and GN's is also available.
 
 
-This program is considered an "Alpha release" but is in development still. It is not bug-free, but it does work!
+This program is considered an "Alpha release" but is in active development. It is not bug-free, but it does work!
 
 ## Support & Discussion
 You are free to join the Mylar support community on IRC where you can ask questions, hang around and discuss anything related to Mylar.
