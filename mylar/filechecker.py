@@ -375,13 +375,14 @@ class FileChecker(object):
         ret_sf1 = ' '.join(sf)
 
         #here we should account for some characters that get stripped out due to the regex's
-        #namely, unique characters - known so far: +, &
+        #namely, unique characters - known so far: +, &, @
         #c11 = '\+'
         #f11 = '\&'
         #g11 = '\''
         ret_sf1 = re.sub('\+', 'c11', ret_sf1).strip()
         ret_sf1 = re.sub('\&', 'f11', ret_sf1).strip()
         ret_sf1 = re.sub('\'', 'g11', ret_sf1).strip()
+        ret_sf1 = re.sub('\@', 'h11', ret_sf1).strip()
 
         #split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
         split_file = re.findall('(?imu)\([\w\s-]+\)|[-+]?\d*\.\d+|\d+[\s]COVERS+|\d{4}-\d{2}-\d{2}|\d+[(th|nd|rd|st)]+|[\(^\)+]|\d+|[\w-]+|#?\d\.\d+|#[\.-]\w+|#[\d*\.\d+|\w+\d+]+|#(?<![\w\d])XCV(?![\w\d])+|#[\w+]|\)', ret_sf1, re.UNICODE)
@@ -1135,10 +1136,12 @@ class FileChecker(object):
         series_name = re.sub('c11', '+', series_name)
         series_name = re.sub('f11', '&', series_name)
         series_name = re.sub('g11', '\'', series_name)
+        series_name = re.sub('h11', '@', series_name)
         if alt_series is not None:
             alt_series = re.sub('c11', '+', alt_series)
             alt_series = re.sub('f11', '&', alt_series)
             alt_series = re.sub('g11', '\'', alt_series)
+            alt_series = re.sub('h11', '@', alt_series)
 
         if series_name.endswith('-'): 
             series_name = series_name[:-1].strip()
