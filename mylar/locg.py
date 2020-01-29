@@ -59,15 +59,15 @@ def locg(pulldate=None,weeknumber=None,year=None):
             return {'status': 'failure'}
 
         if str(r.status_code) == '619':
-            logger.warn('[' + str(r.status_code) + '] No date supplied, or an invalid date was provided [' + str(pulldate) + ']')
+            logger.warn('[%s] No date supplied, or an invalid date was provided [%s]' % (r.status_code, pulldate))
             return {'status': 'failure'}
         elif str(r.status_code) == '999' or str(r.status_code) == '111':
-            logger.warn('[' + str(r.status_code) + '] Unable to retrieve data from site - this is a site.specific issue [' + str(pulldate) + ']')
+            logger.warn('[%s] Unable to retrieve data from site - this is a site.specific issue [%s]' % (r.status_code, pulldate))
             return {'status': 'failure'}
         elif str(r.status_code) == '200':
             data = r.json()
 
-            logger.info('[WEEKLY-PULL] There are ' + str(len(data)) + ' issues for the week of ' + str(weeknumber) + ', ' + str(year))
+            logger.info('[WEEKLY-PULL] There are %s issues for week %s, %s' % (len(data), weeknumber, year))
             pull = []
 
             for x in data:
