@@ -357,13 +357,16 @@ class TELEGRAM:
             logger.info('Telegram notify failed: ' + str(e))
 
         # Error logging
-        sent_successfuly = True
+        sent_successfully = True
         if not response.status_code == 200:
-            logger.info('Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
-            sent_successfuly = False
+            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
+            sent_successfully = False
+            
+        if not sent_successfully and sendMethod != "sendMessage":
+            return self.notify(message)
 
-        logger.info("Telegram notifications sent.")
-        return sent_successfuly
+        logger.info(u"Telegram notifications sent.")
+        return sent_successfully
 
     def test_notify(self):
         return self.notify('Test Message: Release the Ninjas!')
