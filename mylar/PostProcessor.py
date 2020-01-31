@@ -1948,8 +1948,12 @@ class PostProcessor(object):
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log("Post Processing SUCCESSFUL! ")
 
+                    imageUrl = myDB.select('SELECT ImageURL from issues WHERE IssueID=?', [issueid])
+                    if imageUrl:
+                        imageUrl = imageUrl[0][0]
+                        
                     try:
-                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module)
+                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageUrl=imageUrl)
                     except:
                         pass
 
@@ -2777,7 +2781,11 @@ class PostProcessor(object):
             #    self.sendnotify(series, issueyear, dispiss, annchk, module)
             #    return self.queue.put(self.valreturn)
 
-            self.sendnotify(series, issueyear, dispiss, annchk, module)
+            imageUrl = myDB.select('SELECT ImageURL from issues WHERE IssueID=?', [issueid])
+            if imageUrl:
+                imageUrl = imageUrl[0][0]
+                
+            self.sendnotify(series, issueyear, dispiss, annchk, module, imageUrl)
 
             logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
             self._log("Post Processing SUCCESSFUL! ")
@@ -2790,7 +2798,7 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
-    def sendnotify(self, series, issueyear, issuenumOG, annchk, module):
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageUrl):
 
         if issueyear is None:
             prline = '%s %s' % (series, issuenumOG)
@@ -2818,7 +2826,7 @@ class PostProcessor(object):
 
         if mylar.CONFIG.TELEGRAM_ENABLED:
             telegram = notifiers.TELEGRAM()
-            telegram.notify(prline2)
+            telegram.notify(prline2, imageUrl)
 
         if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
