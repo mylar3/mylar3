@@ -1,1 +1,1 @@
-from comicapi.genericmetadata import *
+from .comicapi.genericmetadata import *
