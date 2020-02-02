@@ -162,6 +162,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'PUSHOVER_DEVICE': (str, 'PUSHOVER', None),
     'PUSHOVER_USERKEY': (str, 'PUSHOVER', None),
     'PUSHOVER_ONSNATCH': (bool, 'PUSHOVER', False),
+    'PUSHOVER_IMAGE': (bool, 'PUSHOVER', False),
 
     'BOXCAR_ENABLED': (bool, 'BOXCAR', False),
     'BOXCAR_ONSNATCH': (bool, 'BOXCAR', False),
@@ -177,6 +178,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'TELEGRAM_TOKEN': (str, 'TELEGRAM', None),
     'TELEGRAM_USERID': (str, 'TELEGRAM', None),
     'TELEGRAM_ONSNATCH': (bool, 'TELEGRAM', False),
+    'TELEGRAM_IMAGE': (bool, 'TELEGRAM', False),
 
     'SLACK_ENABLED': (bool, 'SLACK', False),
     'SLACK_WEBHOOK_URL': (str, 'SLACK', None),

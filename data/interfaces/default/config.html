@@ -1368,6 +1368,9 @@
                              <div class="row checkbox">
                                  <input type="checkbox" name="pushover_onsnatch" value="1" ${config['pushover_onsnatch']} /><label>Notify on snatch?</label>
                              </div>
+                             <div class="row checkbox">
+                                 <input type="checkbox" name="pushover_image" title="Include cover image when sending post-processing notifs" value="1" ${config['pushover_image']} /><label>Post-processing with cover?</label>
+                             </div>
                              <div class="row">
                                  <label>Priority (-2,-1,0,1 or 2):</label>
                                  <input type="text" name="pushover_priority" value="${config['pushover_priority']}" size="2">
@@ -1446,6 +1449,9 @@
                              </div>
                              <div class="row checkbox">
                                  <input type="checkbox" name="telegram_onsnatch" value="1" ${config['telegram_onsnatch']} /><label>Notify on snatch?</label>
+                             </div>
+                             <div class="row checkbox">
+                                 <input type="checkbox" name="telegram_image" title="Include cover image when sending post-processing notifs" value="1" ${config['telegram_image']} /><label>Post-processing with cover?</label>
                              </div>
                              <div align="center" class="row">
                                  <img name="telegram_statusicon" id="telegram_statusicon" src="interfaces/default/images/success.png" style="float:right;visibility:hidden;" height="20" width="20" />

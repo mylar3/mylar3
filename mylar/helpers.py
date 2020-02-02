@@ -39,7 +39,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 import mylar
 from . import logger
-from mylar import db, sabnzbd, nzbget, process, getcomics
+from mylar import db, sabnzbd, nzbget, process, getcomics, getimage
 
 def multikeysort(items, columns):
 
@@ -1474,7 +1474,7 @@ def filesafe(comic):
     except TypeError:
         u_comic = comic.encode('ASCII', 'ignore').strip()
 
-    logger.info('comic-type: %s' % type(u_comic))
+    #logger.info('comic-type: %s' % type(u_comic))
 
     if type(u_comic) != bytes:
         comicname_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_comic)
@@ -1491,78 +1491,14 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
 
     issuedetails = []
     issuetag = None
-    filelocation = urllib.parse.unquote_plus(filelocation) #.decode('utf-8'))
+    filelocation = urllib.parse.unquote_plus(filelocation)
     if justinfo is False:
-        dstlocation = os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.zip')
-
-
-        if filelocation.endswith('.cbz'):
-            logger.fdebug('CBZ file detected. Checking for .xml within file')
-            shutil.copy(filelocation, dstlocation)
-        else:
-            logger.fdebug('filename is not a cbz : ' + filelocation)
-            return
-
-        cover = "notfound"
-        pic_extensions = ('.jpg','.png','.webp')
-        modtime = os.path.getmtime(dstlocation)
-        low_infile = 999999
-
-        try:
-            with zipfile.ZipFile(dstlocation, 'r') as inzipfile:
-                for infile in sorted(inzipfile.namelist()):
-                    tmp_infile = re.sub("[^0-9]","", infile).strip()
-                    if tmp_infile == '':
-                        pass
-                    elif int(tmp_infile) < int(low_infile):
-                        low_infile = tmp_infile
-                        low_infile_name = infile
-                    if infile == 'ComicInfo.xml':
-                        logger.fdebug('Extracting ComicInfo.xml to display.')
-                        dst = os.path.join(mylar.CONFIG.CACHE_DIR, 'ComicInfo.xml')
-                        data = inzipfile.read(infile)
-                        #print str(data)
-                        issuetag = 'xml'
-                    #looks for the first page and assumes it's the cover. (Alternate covers handled later on)
-                    elif any(['000.' in infile, '00.' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
-                        logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
-                        local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
-                        local_file.write(inzipfile.read(infile))
-                        local_file.close
-                        cover = "found"
-                    elif any(['00a' in infile, '00b' in infile, '00c' in infile, '00d' in infile, '00e' in infile]) and infile.endswith(pic_extensions) and cover == "notfound":
-                        logger.fdebug('Found Alternate cover - ' + infile + ' . Extracting.')
-                        altlist = ('00a', '00b', '00c', '00d', '00e')
-                        for alt in altlist:
-                            if alt in infile:
-                                local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
-                                local_file.write(inzipfile.read(infile))
-                                local_file.close
-                                cover = "found"
-                                break
-
-                    elif (any(['001.jpg' in infile, '001.png' in infile, '001.webp' in infile, '01.jpg' in infile, '01.png' in infile, '01.webp' in infile]) or all(['0001' in infile, infile.endswith(pic_extensions)]) or all(['01' in infile, infile.endswith(pic_extensions)])) and cover == "notfound":
-                        logger.fdebug('Extracting primary image ' + infile + ' as coverfile for display.')
-                        local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
-                        local_file.write(inzipfile.read(infile))
-                        local_file.close
-                        cover = "found"
-
-                if cover != "found":
-                    logger.fdebug('Invalid naming sequence for jpgs discovered. Attempting to find the lowest sequence and will use as cover (it might not work). Currently : ' + str(low_infile))
-                    local_file = open(os.path.join(mylar.CONFIG.CACHE_DIR, 'temp.jpg'), "wb")
-                    logger.fdebug('infile_name used for displaying: %s' % low_infile_name)
-                    local_file.write(inzipfile.read(low_infile_name))
-                    local_file.close
-                    cover = "found"                
-
-        except:
-            logger.info('ERROR. Unable to properly retrieve the cover for displaying. It\'s probably best to re-tag this file.')
-            return
-
-        ComicImage = os.path.join('cache', 'temp.jpg?' +str(modtime))
-        IssueImage = replacetheslash(ComicImage)
-
+        file_info = getimage.extract_image(filelocation, single=True, imquality='issue')
+        #logger.info('file_info: %s' % file_info)
+        IssueImage = file_info['ComicImage']
+        data = file_info['metadata']
+        if data:
+            issuetag = 'xml'
     else:
         IssueImage = "None"
         try:

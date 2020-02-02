@@ -118,9 +118,11 @@ class PUSHOVER:
         self.priority = mylar.CONFIG.PUSHOVER_PRIORITY
 
         self._session = requests.Session()
-        self._session.headers = {'Content-type': "application/x-www-form-urlencoded"}
+        #self._session.headers = doesn't need to be defined, requests figures it out based on parameters
 
-    def notify(self, event, message=None, snatched_nzb=None, prov=None, sent_to=None, module=None):
+    def notify(self, event, message=None, snatched_nzb=None, prov=None, sent_to=None, module=None, imageFile=None):
+        if self.apikey is None:
+            return False
 
         if module is None:
             module = ''
@@ -137,10 +139,15 @@ class PUSHOVER:
                 'title': event,
                 'priority': mylar.CONFIG.PUSHOVER_PRIORITY}
 
+        files = None
+        if imageFile:
+            # Add image.
+            files =  {'attachment': ('image.jpeg', base64.b64decode(imageFile), 'image/jpeg')}
+
         if all([self.device is not None, self.device != 'None']):
             data.update({'device': self.device})
 
-        r = self._session.post(self.PUSHOVER_URL, data=data, verify=True)
+        r = self._session.post(self.PUSHOVER_URL, data=data, files=files, verify=True)
 
         if r.status_code == 200:
             try:
@@ -340,24 +347,32 @@ class TELEGRAM:
         else:
             self.token = test_token
 
-    def notify(self, message):
-        # Construct message
+    def notify(self, message, imageFile=None):
         payload = {'chat_id': self.userid, 'text': message}
+        sendMethod = "sendMessage"
+
+        if imageFile:
+            # Construct message
+            payload = {'chat_id': self.userid, 'caption': message, 'photo': base64.decodestring(imageFile)}
+            sendMethod = "sendPhoto"
 
         # Send message to user using Telegram's Bot API
         try:
-            response = requests.post(self.TELEGRAM_API % (self.token, "sendMessage"), json=payload, verify=True)
+            response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), json=payload, verify=True)
         except Exception as e:
             logger.info('Telegram notify failed: ' + str(e))
 
         # Error logging
-        sent_successfuly = True
+        sent_successfully = True
         if not response.status_code == 200:
-            logger.info('Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
-            sent_successfuly = False
+            logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
+            sent_successfully = False
 
-        logger.info("Telegram notifications sent.")
-        return sent_successfuly
+        if not sent_successfully and sendMethod != "sendMessage":
+            return self.notify(message)
+
+        logger.info(u"Telegram notifications sent.")
+        return sent_successfully
 
     def test_notify(self):
         return self.notify('Test Message: Release the Ninjas!')
