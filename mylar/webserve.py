@@ -5076,6 +5076,7 @@ class WebInterface(object):
                     "prowl_priority": mylar.CONFIG.PROWL_PRIORITY,
                     "pushover_enabled": helpers.checked(mylar.CONFIG.PUSHOVER_ENABLED),
                     "pushover_onsnatch": helpers.checked(mylar.CONFIG.PUSHOVER_ONSNATCH),
+                    "pushover_image": helpers.checked(mylar.CONFIG.PUSHOVER_IMAGE),
                     "pushover_apikey": mylar.CONFIG.PUSHOVER_APIKEY,
                     "pushover_userkey": mylar.CONFIG.PUSHOVER_USERKEY,
                     "pushover_device": mylar.CONFIG.PUSHOVER_DEVICE,
@@ -5090,6 +5091,7 @@ class WebInterface(object):
                     "pushbullet_channel_tag": mylar.CONFIG.PUSHBULLET_CHANNEL_TAG,
                     "telegram_enabled": helpers.checked(mylar.CONFIG.TELEGRAM_ENABLED),
                     "telegram_onsnatch": helpers.checked(mylar.CONFIG.TELEGRAM_ONSNATCH),
+                    "telegram_image": helpers.checked(mylar.CONFIG.TELEGRAM_IMAGE),
                     "telegram_token": mylar.CONFIG.TELEGRAM_TOKEN,
                     "telegram_userid": mylar.CONFIG.TELEGRAM_USERID,
                     "slack_enabled": helpers.checked(mylar.CONFIG.SLACK_ENABLED),
@@ -5390,8 +5392,8 @@ class WebInterface(object):
                            'failed_auto', 'post_processing', 'enable_check_folder', 'enable_pre_scripts', 'enable_snatch_script', 'enable_extra_scripts',
                            'enable_meta', 'cbr2cbz_only', 'ct_tag_cr', 'ct_tag_cbl', 'ct_cbz_overwrite', 'rename_files', 'replace_spaces', 'zero_level',
                            'lowercase_filenames', 'autowant_upcoming', 'autowant_all', 'comic_cover_local', 'alternate_latest_series_covers', 'cvinfo', 'snatchedtorrent_notify',
-                           'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'boxcar_enabled',
-                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'slack_enabled', 'slack_onsnatch',
+                           'prowl_enabled', 'prowl_onsnatch', 'pushover_enabled', 'pushover_onsnatch', 'pushover_image', 'boxcar_enabled',
+                           'boxcar_onsnatch', 'pushbullet_enabled', 'pushbullet_onsnatch', 'telegram_enabled', 'telegram_onsnatch', 'telegram_image', 'slack_enabled', 'slack_onsnatch',
                            'email_enabled', 'email_enc', 'email_ongrab', 'email_onpost', 'opds_enable', 'opds_authentication', 'opds_metainfo', 'opds_pagesize', 'enable_ddl', 'deluge_pause'] #enable_public
 
         for checked_config in checked_configs:
@@ -5710,7 +5712,8 @@ class WebInterface(object):
         issuedetails = helpers.IssueDetails(filelocation)
         if issuedetails:
             issueinfo = '<table width="500"><tr><td>'
-            issueinfo += '<img style="float: left; padding-right: 10px" src=' + issuedetails[0]['IssueImage'] + ' height="400" width="263">'
+            #imagebytes = bytes("data:image/jpeg;base64,", encoding='utf-8') + issuedetails[0]['IssueImage']
+            issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails[0]['IssueImage']
             seriestitle = issuedetails[0]['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = comicname

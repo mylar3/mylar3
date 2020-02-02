@@ -519,7 +519,7 @@ class FileChecker(object):
                 for x in list(wrds):
                     if x != '':
                         tmpissue_number = re.sub('XCV', x, split_file[split_file.index(sf)])
-                logger.info('[SPECIAL-CHARACTER ISSUE] Possible issue # : %s' % tmpissue_number)
+                logger.fdebug('[SPECIAL-CHARACTER ISSUE] Possible issue # : %s' % tmpissue_number)
                 possible_issuenumbers.append({'number':       sf,
                                               'position':     split_file.index(sf),
                                               'mod_position': self.char_file_position(modfilename, sf, lastmod_position),
@@ -736,7 +736,7 @@ class FileChecker(object):
                     except ValueError as e:
                        #10-20-2018 - to detect issue numbers such as #000.0000½
                         if lastissue_label is not None and lastissue_position == int(split_file.index(sf))-1 and sf == 'XCV':
-                            logger.info('this should be: %s%s' % (lastissue_label, sf))
+                            logger.fdebug('this should be: %s%s' % (lastissue_label, sf))
                             pi = []
                             for x in possible_issuenumbers:
                                 if (x['number'] == lastissue_label and x['position'] == lastissue_position) or (x['number'] == sf and x['position'] == split_file.index(sf, lastissue_position)):
@@ -757,10 +757,10 @@ class FileChecker(object):
                                 possible_issuenumbers = pi
 
                         elif sf.lower() == 'of' and lastissue_label is not None and lastissue_position == int(split_file.index(sf))-1:
-                            logger.info('MINI-SERIES DETECTED')
+                            logger.fdebug('MINI-SERIES DETECTED')
                         else:
                             if any([re.sub('[\(\)]', '', sf.lower()).strip() == 'tpb', re.sub('[\(\)]', '', sf.lower()).strip() == 'digital tpb']):
-                                logger.info('TRADE PAPERBACK DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
+                                logger.fdebug('TRADE PAPERBACK DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
                                 booktype = 'TPB'
                                 try:
                                     if volume_found['volume'] is not None:
@@ -775,7 +775,7 @@ class FileChecker(object):
                                                                   'validcountchk': validcountchk})
 
                             elif any([sf.lower() == 'gn', sf.lower() == 'graphic novel']):
-                                logger.info('GRAPHIC NOVEL DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
+                                logger.fdebug('GRAPHIC NOVEL DETECTED. NOT DETECTING ISSUE NUMBER - ASSUMING VOLUME')
                                 booktype = 'GN'
                             else:
                                 if 'could not convert string to float' not in str(e):
@@ -835,7 +835,7 @@ class FileChecker(object):
             else:
                 if len(possible_issuenumbers) > 0:
                     for x in possible_years:
-                        logger.info('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
+                        logger.fdebug('yearposition[%s] -- dc[position][%s]' % (yearposition, x['yearposition']))
                         if yearposition < x['yearposition']:
                             if all([len(possible_issuenumbers) == 1, possible_issuenumbers[0]['number'] == x['year'], x['yearposition'] != possible_issuenumbers[0]['position']]):
                                 issue2year = True
@@ -911,7 +911,7 @@ class FileChecker(object):
                             continue
                         #2019-10-05 fix - if decimal-spaced filename has a series title with a hyphen will include issue # as part of series title
                         elif yearposition == pis['position']:
-                            logger.info('Already validated year, ignoring as possible issue number: %s' % pis['number'])
+                            logger.fdebug('Already validated year, ignoring as possible issue number: %s' % pis['number'])
                             continue
                         #end 2019-10-05
                     elif yearposition == pis['position']:
@@ -959,12 +959,12 @@ class FileChecker(object):
 
         if issue_number is None:
             if any([booktype == 'TPB', booktype == 'GN']):
-                logger.info('%s detected. Volume assumption is number: %s' % (booktype, volume_found))
+                logger.fdebug('%s detected. Volume assumption is number: %s' % (booktype, volume_found))
             else:
                 if len(volume_found) > 0:
-                    logger.info('UNKNOWN TPB/GN detected. Volume assumption is number: %s' % (volume_found))
+                    logger.fdebug('UNKNOWN TPB/GN detected. Volume assumption is number: %s' % (volume_found))
                 else:
-                    logger.info('No issue number present in filename.')
+                    logger.fdebug('No issue number present in filename.')
         else:
             logger.fdebug('issue verified as : %s' % issue_number)
         issue_volume = None
@@ -1187,7 +1187,7 @@ class FileChecker(object):
         if (any([issue_number is None, series_name is None]) and booktype == 'issue'):
 
             if all([issue_number is None, booktype == 'issue', issue_volume is not None]):
-                logger.info('Possible UKNOWN TPB/GN detected - no issue number present, no clarification in filename, but volume present with series title')
+                logger.fdebug('Possible UKNOWN TPB/GN detected - no issue number present, no clarification in filename, but volume present with series title')
             else:
                 logger.fdebug('Cannot parse the filename properly. I\'m going to make note of this filename so that my evil ruler can make it work.')
 
@@ -1215,7 +1215,6 @@ class FileChecker(object):
                         'reading_order':       None}
 
         if self.justparse:
-            logger.info('justparsed.')
             return {'parse_status':           'success',
                     'type':                   re.sub('\.','', filetype).strip(),
                     'sub':                    path_list,

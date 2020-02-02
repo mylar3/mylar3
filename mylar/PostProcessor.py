@@ -29,7 +29,7 @@ import sys
 from xml.dom.minidom import parseString
 
 
-from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull
+from mylar import logger, db, helpers, updater, notifiers, filechecker, weeklypull, getimage
 
 class PostProcessor(object):
     """
@@ -1948,8 +1948,18 @@ class PostProcessor(object):
                         logger.info('%s Post-Processing completed for: [ %s #%s ] %s' % (module, comicname, issuenumber, grab_dst))
                         self._log("Post Processing SUCCESSFUL! ")
 
+                    if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                        try:
+                            get_cover = getimage.extract_image(grab_dst, single=True, imquality='notif')
+                            imageFile = get_cover['ComicImage']
+                        except Exception as e:
+                            logger.info('[WARNING] Could not extract image from download in order to send notification')
+                            imageFile = None
+                    else:
+                        imageFile = None
+
                     try:
-                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module)
+                        self.sendnotify(comicname, issueyear=None, issuenumOG=issuenumber, annchk=annchk, module=module, imageFile=imageFile)
                     except:
                         pass
 
@@ -2777,7 +2787,17 @@ class PostProcessor(object):
             #    self.sendnotify(series, issueyear, dispiss, annchk, module)
             #    return self.queue.put(self.valreturn)
 
-            self.sendnotify(series, issueyear, dispiss, annchk, module)
+            if any([all([mylar.CONFIG.PUSHOVER_IMAGE, mylar.CONFIG.PUSHOVER_ENABLED]), all([mylar.CONFIG.TELEGRAM_IMAGE, mylar.CONFIG.TELEGRAM_ENABLED]) ]):
+                try:
+                    get_cover = getimage.extract_image(dst, single=True, imquality='notif')
+                    imageFile = get_cover['ComicImage']
+                except Exception as e:
+                    logger.info('[WARNING] Could not extract image from download in order to send notification')
+                    imageFile = None #issuenzb['ImageURL']
+                    #logger.info('image location used is : %s' % imageFile)
+            else:
+                imageFile = None
+            self.sendnotify(series, issueyear, dispiss, annchk, module, imageFile)
 
             logger.info('%s Post-Processing completed for: %s %s' % (module, series, dispiss))
             self._log("Post Processing SUCCESSFUL! ")
@@ -2790,7 +2810,7 @@ class PostProcessor(object):
             return self.queue.put(self.valreturn)
 
 
-    def sendnotify(self, series, issueyear, issuenumOG, annchk, module):
+    def sendnotify(self, series, issueyear, issuenumOG, annchk, module, imageFile):
 
         if issueyear is None:
             prline = '%s %s' % (series, issuenumOG)
@@ -2806,7 +2826,7 @@ class PostProcessor(object):
 
         if mylar.CONFIG.PUSHOVER_ENABLED:
             pushover = notifiers.PUSHOVER()
-            pushover.notify(prline, prline2, module=module)
+            pushover.notify(prline, prline2, module=module, imageFile=imageFile)
 
         if mylar.CONFIG.BOXCAR_ENABLED:
             boxcar = notifiers.BOXCAR()
@@ -2818,7 +2838,7 @@ class PostProcessor(object):
 
         if mylar.CONFIG.TELEGRAM_ENABLED:
             telegram = notifiers.TELEGRAM()
-            telegram.notify(prline2)
+            telegram.notify(prline2, imageFile)
 
         if mylar.CONFIG.SLACK_ENABLED:
             slack = notifiers.SLACK()
