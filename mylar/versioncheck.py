@@ -16,7 +16,7 @@
 import platform, subprocess, re, os, urllib.request, urllib.error, urllib.parse, tarfile
 
 import mylar
-from mylar import logger, version
+from mylar import logger
 
 import requests
 import re
@@ -63,22 +63,26 @@ def runGit(args):
     return (output.stdout, output.stderr)
 
 def getVersion():
+    current_version_name = None
 
     if mylar.CONFIG.GIT_BRANCH is not None and mylar.CONFIG.GIT_BRANCH.startswith('win32build'):
 
         mylar.INSTALL_TYPE = 'win'
 
         # Don't have a way to update exe yet, but don't want to set VERSION to None
-        return 'Windows Install', 'None'
+        return {'current_version': 'Windows Install', 'current_version_name': 'None', 'branch': 'None'}
 
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
         mylar.INSTALL_TYPE = 'git'
-        output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
+        output, err = runGit('describe --exact-match --tags 2> /dev/null && git rev-parse HEAD --abbrev-ref HEAD')
+        #output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
 
         if not output:
-            logger.error('Couldn\'t find latest installed version.')
-            cur_commit_hash = None
+            output, err = runGit('describe --exact-match --tags 2> /dev/null || git rev-parse HEAD --abbrev-ref HEAD')
+            if not output:
+                logger.error('Couldn\'t find latest installed version.')
+                cur_commit_hash = None
 
         #branch_history, err = runGit("log --oneline --pretty=format:'%h - %ar - %s' -n 5")
         #bh = []
@@ -89,19 +93,37 @@ def getVersion():
         opp = output.find('\n')
         cur_commit_hash = output[:opp]
         cur_branch = output[opp:output.find('\n', opp+1)].strip()
+
+        if cur_commit_hash.startswith('v'):
+            url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
+            try:
+                response = requests.get(url2, verify=True)
+                git = response.json()
+            except Exception as e:
+                logger.warn('[ERROR] %s' % e)
+                pass
+            else:
+                if git[0]['name'] is not None:
+                    for x in git:
+                        if x['name'] == output[:opp]:
+                            current_version_name = x['name']
+                            cur_commit_hash = x['commit']['sha']
+                            break
+
         logger.info('cur_commit_hash: %s' % cur_commit_hash)
         logger.info('cur_branch: %s' % cur_branch)
 
-        if not re.match('^[a-z0-9]+$', cur_commit_hash):
+        if not re.match('^[a-z0-9]+$', cur_commit_hash) and current_version_name is None:
             logger.error('Output does not look like a hash, not using it')
             cur_commit_hash = None
 
         if mylar.CONFIG.GIT_BRANCH == cur_branch:
             branch = mylar.CONFIG.GIT_BRANCH
 
+        if cur_commit_hash is None:
+            branch = None
         else:
             branch = None
-
             branch_name, err = runGit('branch --contains %s' % cur_commit_hash)
             if not branch_name:
                 logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
@@ -112,46 +134,74 @@ def getVersion():
                         branch = re.sub('[\*\n]','',line).strip()
                         break
 
-                if not branch and mylar.CONFIG.GIT_BRANCH:
-                    logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, mylar.CONFIG.GIT_BRANCH))
-                    branch = mylar.CONFIG.GIT_BRANCH
-                if not branch:
-                    logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
-                    branch = 'master'
-                else:
-                    logger.info('Branch detected & set to : %s' % branch)
+        if not branch and mylar.CONFIG.GIT_BRANCH:
+            logger.warn('Unable to retrieve branch name [%s] from git. Setting branch to configuration value of : %s' % (branch, mylar.CONFIG.GIT_BRANCH))
+            branch = mylar.CONFIG.GIT_BRANCH
+        if not branch:
+            logger.warn('Could not retrieve branch name [%s] from git. Defaulting to Master.' % branch)
+            branch = 'master'
+        else:
+            logger.info('Branch detected & set to : %s' % branch)
 
-        return cur_commit_hash, branch
+        return {'current_version': cur_commit_hash, 'current_version_name': current_version_name, 'branch': branch}
 
     else:
 
         mylar.INSTALL_TYPE = 'source'
+        current_version = None
+        branch = None
 
-        version_file = os.path.join(mylar.PROG_DIR, 'version.txt')
+        url2 = 'https://api.github.com/repos/%s/mylar3/tags' % (mylar.CONFIG.GIT_USER)
+        try:
+            response = requests.get(url2, verify=True)
+            git = response.json()
+        except Exception as e:
+            pass
 
-        if not os.path.isfile(version_file):
-            current_version = None
-        else:
-            with open(version_file, 'r') as f:
-                current_version = f.read().strip(' \n\r')
+        if current_version is None:
+            try:
+                version_file = os.path.join(mylar.PROG_DIR, '.LAST_RELEASE')
+
+                if not os.path.isfile(version_file):
+                    current_version = None
+                else:
+                    cnt = 0
+                    with open('.LAST_RELEASE', 'r') as f:
+                        for i in f.readlines():
+                            tmp = i.split()
+                            if cnt == 0:
+                                if i.find('>') != -1:
+                                    i_clean = tmp[len(tmp)-1]
+                                    mrclean = re.sub('[\)\(\>]', '', i_clean).strip()
+                                    branch = mrclean
+                                    logger.info('[LAST_RELEASE] Branch: %s' % branch)
+                                if 'tag' in i:
+                                    i_clean = i.find('tag')
+                                    mrclean = re.sub('tag: ', '', re.sub('[\(\)]', '', i[i_clean:])).strip()
+                                    current_version_name = mrclean
+                                    logger.info('[LAST_RELEASE] Version: %s' % current_version_name)
+                            elif cnt == 1:
+                                current_version = i.strip()
+                                logger.info('[LAST_RELEASE] Commit: %s' % ''.join(current_version))
+                            cnt+=1
+            except Exception as e:
+                logger.error('error: %s' % e)
 
         if current_version:
             if mylar.CONFIG.GIT_BRANCH:
                 logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
-                return current_version, mylar.CONFIG.GIT_BRANCH
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': mylar.CONFIG.GIT_BRANCH}
             else:
-                logger.warn('No branch specified within config - will attempt to poll version from mylar')
-                try:
-                    branch = version.MYLAR_VERSION
+                if branch:
                     logger.info('Branch detected & set to : ' + branch)
-                except:
+                else:
                     branch = 'master'
-                    logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
-                return current_version, branch
+                    logger.warn('No branch specified within config - could not poll version from mylar. Defaulting to %s' % branch)
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': branch}
         else:
             if mylar.CONFIG.GIT_BRANCH:
                 logger.info('Branch detected & set to : ' + mylar.CONFIG.GIT_BRANCH)
-                return current_version, mylar.CONFIG.GIT_BRANCH
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': mylar.CONFIG.GIT_BRANCH}
             else:
                 logger.warn('No branch specified within config - will attempt to poll version from mylar')
                 try:
@@ -160,7 +210,7 @@ def getVersion():
                 except:
                     branch = 'master'
                     logger.info('Unable to detect branch properly - set branch in config.ini, currently defaulting to : ' + branch)
-                return current_version, branch
+                return {'current_version': current_version, 'current_version_name': current_version_name, 'branch': branch}
 
             logger.warn('Unable to determine which commit is currently being run. Defaulting to Master branch.')
 
@@ -175,9 +225,9 @@ def checkGithub(current_version=None):
         git = response.json()
         mylar.LATEST_VERSION = git['sha']
     except Exception as e:
-        logger.warn('[ERROR] Could not get the latest commit from github: %s' % e)
-        mylar.COMMITS_BEHIND = 0
-        return mylar.CURRENT_VERSION
+            logger.warn('[ERROR] Could not get the latest commit from github: %s' % e)
+            mylar.COMMITS_BEHIND = 0
+            return mylar.CURRENT_VERSION
 
     # See how many commits behind we are
     if current_version is not None:
@@ -237,7 +287,6 @@ def update():
 
         tar_download_url = 'https://github.com/%s/mylar/tarball/%s' % (mylar.CONFIG.GIT_USER, mylar.CONFIG.GIT_BRANCH)
         update_dir = os.path.join(mylar.PROG_DIR, 'update')
-        version_path = os.path.join(mylar.PROG_DIR, 'version.txt')
 
         try:
             logger.info('Downloading update from: ' + tar_download_url)
@@ -285,17 +334,13 @@ def update():
                     os.remove(new_path)
                 os.renames(old_path, new_path)
 
-        # Update version.txt
-        try:
-            with open(version_path, 'w') as f:
-                f.write(str(mylar.LATEST_VERSION))
-        except IOError as e:
-            logger.error("Unable to write current version to version.txt, update not complete: %s" % ex(e))
-            return
-
 def versionload():
 
-    mylar.CURRENT_VERSION, mylar.CONFIG.GIT_BRANCH = getVersion()
+    version_info = getVersion()
+    logger.info('version_info: %s' % (version_info,))
+    mylar.CURRENT_VERSION = version_info['current_version']
+    mylar.CURRENT_VERSION_NAME = version_info['current_version_name']
+    mylar.CONFIG.GIT_BRANCH = version_info['branch']
 
     if mylar.CURRENT_VERSION is not None:
         hash = mylar.CURRENT_VERSION[:7]
@@ -304,7 +349,7 @@ def versionload():
 
     if mylar.CONFIG.GIT_BRANCH == 'master':
         vers = 'M'
-    elif mylar.CONFIG.GIT_BRANCH == 'development':
+    elif mylar.CONFIG.GIT_BRANCH == 'python3-dev':
         vers = 'D'
     else:
         vers = 'NONE'

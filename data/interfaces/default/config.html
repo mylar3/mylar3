@@ -40,7 +40,11 @@
                   <fieldset>
                   <legend>Configuration Options</legend>
                        <div>
-                            <label><strong>Mylar Version: </strong> ${config['branch']}</br> -- ${config['br_type']}  build ${config['br_version']}.</label></br>
+                            <label><strong>Mylar Version: </strong> ${config['branch']}
+                            %if config['br_version_name']:
+                                [${config['br_version_name']}]
+                            %endif
+                            </br> -- ${config['br_type']} (build ${config['br_version']})</label></br>
                             <label><strong>Python Version :</strong> ${config['py_version']}</label></br>
                             <label><strong>Language :</strong> ${config['lang']}</label></br></br>
                             <legend>MYLAR PROGRAM OPTIONS</legend>
