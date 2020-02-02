@@ -5662,7 +5662,7 @@ class WebInterface(object):
 
         import hashlib, random
 
-        apikey = hashlib.sha224(str(random.getrandbits(256))).hexdigest()[0:32]
+        apikey = hashlib.sha256(str(random.getrandbits(256)).encode('utf-8')).hexdigest()[0:32]
         logger.info("New API generated")
         mylar.CONFIG.API_KEY = apikey
         return apikey
