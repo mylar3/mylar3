@@ -14,12 +14,17 @@ feedparser>=5.2.1
 Mako>=1.1.0
 natsort>=3.5.2
 Pillow>=7.0.0
+PyPDF2=1.24
+PyQt5==5.12.2
+PyQt5-sip==12.7.0
 portend>=2.6
+pyinstaller>=3.5
 pytz>=2019.3
 requests>=2.22.0
 simplejson>=3.17.0
 six>=1.13.0
 tzlocal>=2.0.0
 unrar>=0.3
+unrar-cffi==0.1.0a5
 urllib3>=1.25.7
 
