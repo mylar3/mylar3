@@ -1,1 +1,1 @@
-from comicapi.issuestring import *
+from .comicapi.issuestring import *

@@ -1,1 +1,1 @@
-from comicapi.utils import *
+from .comicapi.utils import *
