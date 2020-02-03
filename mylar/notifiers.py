@@ -350,15 +350,23 @@ class TELEGRAM:
     def notify(self, message, imageFile=None):
         payload = {'chat_id': self.userid, 'text': message}
         sendMethod = "sendMessage"
+        files = None
 
         if imageFile:
             # Construct message
-            payload = {'chat_id': self.userid, 'caption': message, 'photo': base64.decodestring(imageFile)}
-            sendMethod = "sendPhoto"
+            try:
+                files = {'photo': base64.b64decode(imageFile)}
+                payload = {'chat_id': self.userid, 'caption': message}
+                sendMethod = "sendPhoto"
+            except Exception as e:
+                logger.info('Telegram notify failed to decode image: ' + str(e))
 
         # Send message to user using Telegram's Bot API
         try:
-            response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), json=payload, verify=True)
+            if files is None:
+                response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), json=payload, verify=True)
+            else:
+                response = requests.post(self.TELEGRAM_API % (self.token, sendMethod), payload, files=files, verify=True)
         except Exception as e:
             logger.info('Telegram notify failed: ' + str(e))
 
@@ -367,7 +375,7 @@ class TELEGRAM:
         if not response.status_code == 200:
             logger.info(u'Could not send notification to TelegramBot (token=%s). Response: [%s]' % (self.token, response.text))
             sent_successfully = False
-
+            
         if not sent_successfully and sendMethod != "sendMessage":
             return self.notify(message)
 
