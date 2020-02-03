@@ -377,12 +377,7 @@ def upcoming_update(ComicID, ComicName, IssueNumber, IssueDate, forcecheck=None,
 
     #let's refresh the series here just to make sure if an issue is available/not.
     mismatch = "no"
-    CV_EXcomicid = myDB.selectone("SELECT * from exceptions WHERE ComicID=?", [ComicID]).fetchone()
-    if CV_EXcomicid is None:
-        pass
-    else:
-        if CV_EXcomicid['variloop'] == '99':
-            mismatch = "yes"
+
     if mylar.CONFIG.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         lastupdatechk = myDB.selectone("SELECT * FROM comics WHERE ComicID=?", [ComicID]).fetchone()
         if lastupdatechk is None:
