@@ -21,6 +21,7 @@ class carePackage(object):
         self.panicfile = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
         self.configpath = os.path.join(mylar.PROG_DIR, 'config.ini')
         self.cleanpath = os.path.join(mylar.CONFIG.LOG_DIR, 'clean_config.ini')
+        self.lastrelpath = os.path.join(mylar.PROG_DIR, '.LASTRELEASE')
         self.environment()
         self.cleaned_config()
         self.panicbutton()
@@ -209,6 +210,9 @@ class carePackage(object):
             zip.write(self.filename, os.path.basename(self.filename))
             zip.write(dbpath, os.path.basename(dbpath))
             zip.write(self.cleanpath, os.path.basename(self.cleanpath))
+	    if path.exists(self.lastrelpath)
+		zip.write(self.lastrelpath, os.path.basename(self.lastrelpath))
+		
             files = []
             for file in ('mylar.log', 'mylar.log.?'):
                 files.extend(glob(os.path.join(mylar.CONFIG.LOG_DIR, file)))
