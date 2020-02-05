@@ -27,21 +27,6 @@ from xml.parsers.expat import ExpatError
 import http.client
 import requests
 
-def patch_http_response_read(func):
-    def inner(*args):
-        try:
-            return func(*args)
-        except http.client.IncompleteRead as e:
-            return e.partial
-
-    return inner
-http.client.HTTPResponse.read = patch_http_response_read(http.client.HTTPResponse.read)
-
-if platform.python_version() == '2.7.6':
-    http.client.HTTPConnection._http_vsn = 10
-    http.client.HTTPConnection._http_vsn_str = 'HTTP/1.0'
-
-
 def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist=None):
     #import easy to use xml parser called minidom:
     from xml.dom.minidom import parseString
@@ -77,7 +62,9 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
     elif type == 'update_dates':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist)+ '&field_list=date_last_updated, id, issue_number, store_date, cover_date, name, volume ' + '&offset=' + str(offset)
-
+    elif type == 'single_issue':
+        #this is used for retrieving single issue metadata for use when displaying metadata information for a selected issue.
+        PULLURL = mylar.CVURL + 'issue/4000-' + str(issueid) + '?api_key=' + str(comicapi) + '&format=json'
     #logger.info('CV.PULLURL: ' + PULLURL)
     #new CV API restriction - one api request / second.
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
@@ -97,7 +84,11 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
 
     #logger.fdebug('cv status code : ' + str(r.status_code))
     try:
-        dom = parseString(r.content)
+        if type == 'single_issue':
+            dom = r.json()
+            logger.info('cv_data returned: %s' % dom)
+        else:
+            dom = parseString(r.content)
     except ExpatError:
         if '<title>Abnormal Traffic Detected' in r.content:
             logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
@@ -216,6 +207,9 @@ def getComic(comicid, type, issueid=None, arc=None, arcid=None, arclist=None, co
     elif type == 'update_dates':
         dom = pulldetails(None, 'update_dates', offset=1, comicidlist=comicidlist)
         return UpdateDates(dom)
+    elif type == 'single_issue':
+        dom = pulldetails(comicid, 'single_issue', issueid=issueid, offset=1, arclist=None, comicidlist=None)
+        return singleIssue(dom)
 
 def GetComicInfo(comicid, dom, safechk=None):
     if safechk is None:
@@ -1022,7 +1016,7 @@ def UpdateDates(dom):
             tempissue['date_last_updated'] = dm.getElementsByTagName('date_last_updated')[0].firstChild.wholeText
         except:
             tempissue['date_last_updated'] = '0000-00-00'
-    
+
         issuelist.append({'ComicID':            tempissue['ComicID'],
                           'IssueID':            tempissue['IssueID'],
                           'SeriesTitle':        tempissue['SeriesTitle'],
@@ -1033,6 +1027,29 @@ def UpdateDates(dom):
                           'Date_Last_Updated':  tempissue['date_last_updated']})
 
     return issuelist
+
+def singleIssue(results):
+    data = results['results']
+    issue_info = {}
+    issuecredits = []
+    if results['number_of_total_results'] == 1:
+        issue_info['series'] = data['volume']['name']
+        issue_info['title'] = data['name']
+        issue_info['comicid'] = data['volume']['id']
+        issue_info['coverdate'] = data['cover_date']
+        issue_info['storedate'] = data['store_date']
+        issue_info['date_added'] = data['date_added']
+        issue_info['date_updated'] = data['date_last_updated']
+        issue_info['deck']= data['deck']
+        issue_info['description'] = drophtml(data['description'])
+        issue_info['issueid'] = data['id']
+        issue_info['image'] = data['image']['medium_url'] #/ ['screen_url'] / ['screen_large_url'] / ['original_url']
+        issue_info['issue_number'] = data['issue_number']
+        for x in data['person_credits']:
+            issuecredits.append({'role': x['role'], 'name': x['name']})
+        issue_info['credits'] = issuecredits
+        #logger.fdebug('issue_info: %s' % issue_info)
+        return issue_info
 
 def GetImportList(results):
     importlist = results.getElementsByTagName('issue')

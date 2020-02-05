@@ -5706,59 +5706,129 @@ class WebInterface(object):
 
     downloadthis.exposed = True
 
-    def IssueInfo(self, filelocation, comicname=None, issue=None, date=None, title=None):
-        filelocation = filelocation #.encode('ASCII')
-        #filelocation = urllib.parse.unquote_plus(filelocation).decode('utf8')
-        issuedetails = helpers.IssueDetails(filelocation)
-        if issuedetails:
-            issueinfo = '<table width="500"><tr><td>'
-            #imagebytes = bytes("data:image/jpeg;base64,", encoding='utf-8') + issuedetails[0]['IssueImage']
-            issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails[0]['IssueImage']
-            seriestitle = issuedetails[0]['series']
+    def IssueInfo(self, filelocation, comicname=None, issue=None, date=None, title=None, issueid=None):
+        issuedetails = helpers.IssueDetails(filelocation, IssueID=issueid)
+        issuewriter = []
+        issuepenciller = []
+        issueletterer = []
+        issueeditor = []
+        issueinker = []
+        issuecolorist = []
+        if issuedetails['datamode'] == 'single_issue':
+            single_data = issuedetails['metadata']
+            seriestitle = single_data['series']
+            issuenumber = single_data['issue_number']
+            issuetitle = single_data['title']
+            issuesummary = single_data['description']
+            issue_rls = single_data['storedate']
+            if issue_rls is None:
+                issue_rls = single_data['coverdate']
+            if issue_rls is None:
+                issueday = '00'
+                issuemonth = '00'
+                issueyear = '0000'
+            else:
+                issueday = issue_rls[8:10]
+                issuemonth = issue_rls[5:7]
+                issueyear = issue_rls[:4]
+            for xi in single_data['credits']:
+                if xi['role'] == 'writer':
+                    issuewriter.append(xi['name'])
+                if xi['role'] == 'penciller':
+                    issuepenciller.append(xi['name'])
+                if xi['role'] == 'inker':
+                    issueinker.append(xi['name'])
+                if xi['role'] == 'colorist':
+                    issuecolorist.append(xi['name'])
+                if xi['role'] == 'letterer':
+                    issueletterer.append(xi['name'])
+                if xi['role'] == 'editor':
+                    issueeditor.append(xi['name'])
+            pagecount = None
+        elif 'series' not in issuedetails:
+            myDB = db.DBConnection()
+            issueinfo = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            seriestitle = issueinfo['ComicName']
+            issuenumber = issueinfo['Issue_Number']
+            issuetitle = issueinfo['IssueName']
+            issue_rls = issueinfo['IssueDate']
+            if issue_rls is None:
+                issue_rls = issueinfo['StoreDate']
+            pagecount = None
+            issueday = issue_rls[8:10]
+            issuemonth = issue_rls[5:7]
+            issueyear = issue_rls[:4]
+            issuesummary = None
+        else:
+            seriestitle = issuedetails['series']
             if any([seriestitle == 'None', seriestitle is None]):
-                seriestitle = comicname
+                seriestitle = urllib.parse.unquote_plus(comicname)
 
-            issuenumber = issuedetails[0]['issue_number']
+            issuenumber = issuedetails['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
-                issuenumber = issue
+                issuenumber = urllib.parse.unquote_plus(issue)
 
-            issuetitle = issuedetails[0]['title']
+            issuetitle = issuedetails['title']
             if any([issuetitle == 'None', issuetitle is None]):
-                issuetitle = title
+                issuetitle = urllib.parse.unquote_plus(title)
+            if re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', issuetitle, re.I) != re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', title, re.I):
+                issuetitle = urllib.parse.unquote_plus(title)
+            pagecount = issuedetails['pagecount']
+            issueday = issuedetails['day']
+            issuemonth = issuedetails['month']
+            issueyear = issuedetails['year']
+            if issuedetails['writer'] is not None:
+                issuewriter.append(issuedetails['writer'])
+            if issuedetails['penciller'] is not None:
+                issuepenciller.append(issuedetails['penciller'])
+            if issuedetails['inker'] is not None:
+                issueinker.append(issuedetails['inker'])
+            if issuedetails['colorist'] is not None:
+                issuecolorist.append(issuedetails['colorist'])
+            if issuedetails['letterer'] is not None:
+                issueletterer.append(issuedetails['letterer'])
+            if issuedetails['editor'] is not None:
+                issueeditor.append(issuedetails['editor'])
+            issuesummary = issuedetails['summary']
+        if issuedetails is not None:
+            issueinfo = '<table width="500"><tr><td>'
+            issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails['IssueImage']
 
-            issueinfo += '<h1><center><b>' + seriestitle + '</br>[#' + issuenumber + ']</b></center></h1>'
+            issueinfo += '<h1><center><b>%s</br>[#%s]</b></center></h1>' % (seriestitle, issuenumber)
             issueinfo += '<center>"' + issuetitle + '"</center></br>'
-            issueinfo += '</br><p class="alignleft">' + str(issuedetails[0]['pagecount']) + ' pages</p>'
-            if all([issuedetails[0]['day'] is None, issuedetails[0]['month'] is None, issuedetails[0]['year'] is None]):
+            if all([pagecount is not None, pagecount != 'None']):
+                issueinfo += '</br><p class="alignleft">' + pagecount + ' pages</p>'
+            if all([issueday is None, issuemonth is None, issueyear is None]):
                 issueinfo += '<p class="alignright">(' + str(date) + ')</p></br>'
             else:
-                issueinfo += '<p class="alignright">(' + str(issuedetails[0]['year']) + '-' + str(issuedetails[0]['month']) + '-' + str(issuedetails[0]['day']) + ')</p></br>'
-            if not any([issuedetails[0]['writer'] == 'None', issuedetails[0]['writer'] is None]):
-                issueinfo += 'Writer: ' + issuedetails[0]['writer'] + '</br>'
-            if not any([issuedetails[0]['penciller'] == 'None', issuedetails[0]['penciller'] is None]):
-                issueinfo += 'Penciller: ' + issuedetails[0]['penciller'] + '</br>'
-            if not any([issuedetails[0]['inker'] == 'None', issuedetails[0]['inker'] is None]):
-                issueinfo += 'Inker: ' + issuedetails[0]['inker'] + '</br>'
-            if not any([issuedetails[0]['colorist'] == 'None', issuedetails[0]['colorist'] is None]):
-                issueinfo += 'Colorist: ' + issuedetails[0]['colorist'] + '</br>'
-            if not any([issuedetails[0]['letterer'] == 'None', issuedetails[0]['letterer'] is None]):
-                issueinfo += 'Letterer: ' + issuedetails[0]['letterer'] + '</br>'
-            if not any([issuedetails[0]['editor'] == 'None', issuedetails[0]['editor'] is None]):
-                issueinfo += 'Editor: ' + issuedetails[0]['editor'] + '</br>'
+                issueinfo += '<p class="alignright">(%s-%s-%s)</p></br>' % (issueyear, issuemonth, issueday)
+            if len(issuewriter) > 0:
+                issueinfo += 'Writer(s): ' + ', '.join(issuewriter) + '</br>'
+            if len(issuepenciller) > 0:
+                issueinfo += 'Penciller(s): ' + ', '.join(issuepenciller) + '</br>'
+            if len(issueinker) > 0:
+                issueinfo += 'Inker(s): ' + ', '.join(issueinker) + '</br>'
+            if len(issuecolorist) > 0:
+                issueinfo += 'Colorist(s): ' + ', '.join(issuecolorist) + '</br>'
+            if len(issueletterer) > 0:
+                issueinfo += 'Letterer(s): ' + ', '.join(issueletterer) + '</br>'
+            if len(issueeditor) > 0:
+                issueinfo += 'Editor(s): ' + ', '.join(issueeditor) + '</br>'
             issueinfo += '</td></tr>'
             #issueinfo += '<img src="interfaces/default/images/rename.png" height="25" width="25"></td></tr>'
             issuesumm = None
-            if all([issuedetails[0]['summary'] == 'None', issuedetails[0]['summary'] is None]):
+            if any([issuesummary == 'None', issuesummary is None]):
                 issuesumm = 'No summary available within metatagging.'
+                issueinfo += '<tr><td><center>Summary: ' + issuesumm + '</center></td></tr>'
             else:
-                if len(issuedetails[0]['summary']) > 1000:
-                    issuesumm = issuedetails[0]['summary'][:1000] + '...'
+                if len(issuesummary) > 1000:
+                    issuesumm = issuesummary[:1000] + '...'
                 else:
-                    issuesumm = issuedetails[0]['summary']
-            issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
-            issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation))[1] + '</center>'
+                    issuesumm = issuesummary
+                issueinfo += '<tr><td>Summary: ' + issuesumm + '</br></td></tr>'
+            if all([filelocation is not None, filelocation != 'None']):
+                issueinfo += '<tr><td><center>' +  os.path.split(urllib.parse.unquote_plus(filelocation))[1] + '</center>'
             issueinfo += '</td></tr></table>'
-
         else:
             ErrorPNG = 'interfaces/default/images/symbol_exclamation.png'
             issueinfo = '<table width="300"><tr><td>'
