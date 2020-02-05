@@ -52,35 +52,63 @@ class info32p(object):
 
         self.error = None
         self.method = None
+        self.status = False
+        self.status_msg = None
 
         if any([mylar.CONFIG.MODE_32P is True, self.test is True]):
             lses = self.LoginSession(self.username_32p, self.password_32p)
-            if not lses.login():
+            loginses = lses.login()
+            logger.fdebug('lses return: %s' % loginses)
+            if not loginses:
+                self.status = False #return "disable"
+                mylar.INKDROPS_32P = None
                 if not self.test:
                     logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
-                    return "disable"
+                    self.status_msg = "disable"
                 else:
                     if self.error:
-                        return self.error #rtnmsg
+                        self.status = False
+                        self.status_msg = self.error
                     else:
-                        return self.method
+                        self.status = False
+                        self.status_msg = self.method
             else:
-                logger.fdebug('%s [LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...' % self.module)
-                self.authkey = lses.authkey
-                self.passkey = lses.passkey
-                self.session = lses.ses
-                self.uid = lses.uid
-                try:
-                    mylar.INKDROPS_32P = int(math.floor(float(lses.inkdrops['results'][0]['inkdrops'])))
-                except:
-                    mylar.INKDROPS_32P = lses.inkdrops['results'][0]['inkdrops']
+                if loginses['status'] == True:
+                    logger.fdebug('%s [LOGIN SUCCESS] Now preparing for the use of 32P keyed authentication...' % self.module)
+                    self.authkey = lses.authkey
+                    self.passkey = lses.passkey
+                    self.session = lses.ses
+                    self.uid = lses.uid
+                    self.status = True
+                    try:
+                        mylar.INKDROPS_32P = int(math.floor(float(lses.inkdrops['results'][0]['inkdrops'])))
+                    except:
+                        mylar.INKDROPS_32P = lses.inkdrops['results'][0]['inkdrops']
+                else:
+                    logger.fdebug('self.error: %s / self.method: %s' % (self.error, self.method))
+                    self.status = False
+                    mylar.INKDROPS_32P = None
+                    if not self.test:
+                        logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
+                        self.status_msg = "disable"
+                    else:
+                        if self.error:
+                            self.status = False
+                            self.status_msg = self.error
+                        else:
+                            self.status = False
+                            self.status_msg = self.method
         else:
+            self.status = True
             self.session = requests.Session()
         self.reauthenticate = reauthenticate
         self.searchterm = searchterm
         self.publisher_list = {'Entertainment', 'Press', 'Comics', 'Publishing', 'Comix', 'Studios!'}
 
     def authenticate(self):
+
+        if self.status is False:
+            return {'status': self.status, 'status_msg': self.status_msg, 'inkdrops': mylar.INKDROPS_32P}
 
         if self.test:
             return {'status': True, 'inkdrops': mylar.INKDROPS_32P}
@@ -189,6 +217,9 @@ class info32p(object):
             return feedinfo
 
     def searchit(self):
+        if self.status is False:
+            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+
         chk_id = None
         #logger.info('searchterm: %s' % self.searchterm)
         #self.searchterm is a tuple containing series name, issue number, volume and publisher.
@@ -249,14 +280,14 @@ class info32p(object):
                         t = requests.get(url, params=params, verify=True, headers={'USER-AGENT': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
                     except requests.exceptions.RequestException as e:
                         logger.warn(e)
-                        return "no results"
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
 
                     if t.status_code == '619':
                         logger.warn('[%s] Unable to retrieve data from site.' % t.status_code)
-                        return "no results"
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
                     elif t.status_code == '999':
                         logger.warn('[%s] No series title was provided to the search query.' % t.status_code)
-                        return "no results"
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
 
                     try:
                         results = t.json()
@@ -265,7 +296,7 @@ class info32p(object):
 
                     if len(results) == 0:
                         logger.warn('No results found for search on 32P.')
-                        return "no results"
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
 
 #        with cfscrape.create_scraper(delay=15) as s:
 #            s.headers = self.headers
@@ -325,7 +356,7 @@ class info32p(object):
                 pubmatch = True
 
         if all([len(data) == 0, len(pdata) == 0]):
-            return "no results"
+            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
         else:
             dataset = []
             if len(data) > 0:
@@ -406,15 +437,18 @@ class info32p(object):
         else:
             resultlist = 'no results'
 
-        return resultlist
+        return {'status': self.status, 'status_msg': self.status_msg, 'results': resultlist}
 
     def downloadfile(self, payload, filepath):
+        if self.status is False:
+            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False}
+
         url = 'https://32pag.es/torrents.php'
         try:
             r = self.session.get(url, params=payload, verify=True, stream=True, allow_redirects=True)
         except Exception as e:
             logger.error('%s [%s] Could not POST URL %s' % ('[32P-DOWNLOADER]', e, url))
-            return False
+            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False}
 
         if str(r.status_code) != '200':
             logger.warn('Unable to download torrent from 32P [Status Code returned: %s]' % r.status_code)
@@ -423,7 +457,7 @@ class info32p(object):
                 self.delete_cache_entry(payload['id'])
             else:
                 logger.fdebug('content: %s' % r.content)
-            return False
+            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False}
 
 
         with open(filepath, 'wb') as f:
