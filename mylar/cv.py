@@ -86,7 +86,7 @@ def pulldetails(comicid, type, issueid=None, offset=1, arclist=None, comicidlist
     try:
         if type == 'single_issue':
             dom = r.json()
-            logger.info('cv_data returned: %s' % dom)
+            #logger.info('cv_data returned: %s' % dom)
         else:
             dom = parseString(r.content)
     except ExpatError:
