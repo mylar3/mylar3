@@ -875,13 +875,15 @@
                                                     <input type="text" name="status32p" style="text-align:center; font-size:11px;" id="status32p" size="50" DISABLED />
                                                 </div>
                                                 <div name="inkdrops32p" id="inkdrops32p" style="font-size:11px;" align="center">
-                                                <%
-                                                    if mylar.INKDROPS_32P is None:
-                                                        inkdrops = ''
-                                                    else:
-                                                        inkdrops = 'Inkdrops Available: ' + '{:06,}'.format(float(mylar.INKDROPS_32P))
-                                                %>
-                                                    <span>${inkdrops}</span>
+                                                    <%
+                                                          if mylar.INKDROPS_32P:
+                                                              inkdrops = 'Inkdrops Available: ' + '{:06,}'.format(float(mylar.INKDROPS_32P))
+                                                          else:
+                                                              inkdrops = ''
+                                                    %>
+                                                    %if inkdrops:
+                                                        <span>${inkdrops}</span>
+                                                    %endif
                                                 </div>
                                              </fieldset>
                                          </div>
@@ -2020,6 +2022,9 @@
                 function numberWithDecimals(x) {
                         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
                 };
+                function toNumber(num) {
+                        return isNaN(num) || num === '' || num === null ? '' : num;
+                };
                 $("#test32p").click(function(){
                     var imagechk = document.getElementById("test32p_statusicon");
                     var user32p = document.getElementById("username_32p").value;
@@ -2033,7 +2038,7 @@
                             }
                             var obj = JSON.parse(data);
                             var inkd = parseInt(obj['inkdrops']);
-                            inkd = numberWithCommas(inkd);
+                            inkd = toNumber(numberWithCommas(inkd));
                             $('#status32p').val(obj['status']);
                             $('#inkdrops32p span').text('Inkdrops Available: '+inkd);
                             $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");

@@ -1016,7 +1016,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication enabled. Keys have not been established yet, attempting to gather.')
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
-                if feedinfo == "disable":
+                if feedinfo['status'] is False or feedinfo['status_msg'] == "disable":
                     helpers.disable_provider('32P')
                     return "fail"
                 if mylar.CONFIG.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
@@ -1032,7 +1032,10 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
 
         dfile = auth32p.info32p()
         file_download = dfile.downloadfile(payload, filepath)
-        if file_download is False:
+        if file_download['status'] is False:
+            helpers.disable_provider('32P')
+
+        if file_download['bool_download'] is False:
             return "fail"
 
         logger.fdebug('[%s] Saved torrent file to : %s' % (site, filepath))

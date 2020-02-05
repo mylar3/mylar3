@@ -658,7 +658,15 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     #then we call the ajax against the id and issue# and volume (if exists)
                     a = auth32p.info32p(searchterm=searchterm)
                     bb = a.searchit()
-                    if bb is None:
+                    try:
+                        bb = bb['results']
+                        if bb['status'] is False:
+                            helpers.disable_provider(nzbprov)
+                        if any([bb['results'] is None, bb['results'] == 'no results']):
+                            bb = 'no results'
+                    except Exception as e:
+                        bb = 'no results'
+                    else:
                         bb = 'no results'
                 else:
                     bb = "no results"
