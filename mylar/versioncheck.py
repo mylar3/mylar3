@@ -75,11 +75,11 @@ def getVersion():
     elif os.path.isdir(os.path.join(mylar.PROG_DIR, '.git')):
 
         mylar.INSTALL_TYPE = 'git'
-        output, err = runGit('describe --exact-match --tags 2> /dev/null && git rev-parse HEAD --abbrev-ref HEAD')
+        output, err = runGit('describe --exact-match --tags 2> %s && git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
         #output, err = runGit('rev-parse HEAD --abbrev-ref HEAD')
 
         if not output:
-            output, err = runGit('describe --exact-match --tags 2> /dev/null || git rev-parse HEAD --abbrev-ref HEAD')
+            output, err = runGit('describe --exact-match --tags 2> %s || git rev-parse HEAD --abbrev-ref HEAD' % os.devnull)
             if not output:
                 logger.error('Couldn\'t find latest installed version.')
                 cur_commit_hash = None
