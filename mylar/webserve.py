@@ -5793,9 +5793,12 @@ class WebInterface(object):
         if issuedetails is not None:
             issueinfo = '<table width="500"><tr><td>'
             issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails['IssueImage']
-
-            issueinfo += '<h1><center><b>%s</br>[#%s]</b></center></h1>' % (seriestitle, issuenumber)
-            issueinfo += '<center>"' + issuetitle + '"</center></br>'
+            if all([issuenumber is not None, issuenumber != 'None']):
+                issueinfo += '<h1><center><b>%s</br>[#%s]</b></center></h1>' % (seriestitle, issuenumber)
+            else:
+                issueinfo += '<h1><center><b>%s</b></center></h1>' % (seriestitle)
+            if all([issuetitle is not None, issuetitle != 'None']):
+                issueinfo += '<center>"' + issuetitle + '"</center></br>'
             if all([pagecount is not None, pagecount != 'None']):
                 issueinfo += '</br><p class="alignleft">' + pagecount + ' pages</p>'
             if all([issueday is None, issuemonth is None, issueyear is None]):
