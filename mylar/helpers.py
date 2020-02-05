@@ -1491,10 +1491,14 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
 
     issuedetails = []
     issuetag = None
-    filelocation = urllib.parse.unquote_plus(filelocation)
+    if filelocation == 'None':
+        issue_data = mylar.cv.getComic(None, 'single_issue', IssueID)
+        IssueImage = getimage.retrieve_image(issue_data['image'])
+        return {'metadata': issue_data, 'datamode': 'single_issue', 'IssueImage': IssueImage }
+    else:
+        filelocation = urllib.parse.unquote_plus(filelocation)
     if justinfo is False:
         file_info = getimage.extract_image(filelocation, single=True, imquality='issue')
-        #logger.info('file_info: %s' % file_info)
         IssueImage = file_info['ComicImage']
         data = file_info['metadata']
         if data:
@@ -1521,17 +1525,15 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
             data = dz.comment
         except:
             logger.warn('Unable to extract comment field from zipfile.')
-            return
+            return {'IssueImage': IssueImage, 'datamode': 'file'}
         else:
             if data:
                 issuetag = 'comment'
             else:
                 logger.warn('No metadata available in zipfile comment field.')
-                return   
+                return {'IssueImage': IssueImage, 'datamode': 'file'}
 
     logger.info('Tag returned as being: ' + str(issuetag))
-
-    #logger.info('data:' + str(data))
 
     if issuetag == 'xml':
         #import easy to use xml parser called minidom:
@@ -1646,9 +1648,9 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
     elif issuetag == 'comment':
         logger.info('CBL Tagging.')
         stripline = 'Archive:  ' + filelocation
-        data = re.sub(stripline, '', data.encode("utf-8")).strip()
+        data = re.sub(stripline, '', data.decode('utf-8')) #.strip() #.encode("utf-8")).strip()
         if data is None or data == '':
-            return
+            return {'IssueImage': IssueImage}
         import ast
         ast_data = ast.literal_eval(str(data))
         lastmodified = ast_data['lastModified']
@@ -1690,7 +1692,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         editor = "None"
         colorist = "None"
         artist = "None"
-        writer = "None"
+        writer = None
         letterer = "None"
         cover_artist = "None"
         penciller = "None"
@@ -1712,7 +1714,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
             cover_artist = None
             penciller = None
             inker = None
-            
+
         else:
             for cl in dt['credits']:
                 if cl['role'] == 'Editor':
@@ -1757,28 +1759,27 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         logger.warn('Unable to locate any metadata within cbz file. Tag this file and try again if necessary.')
         return
 
-    issuedetails.append({"title":        issue_title,
-                         "series":       series_title,
-                         "volume":       series_volume,
-                         "issue_number": issue_number,
-                         "summary":      summary,
-                         "notes":        notes,
-                         "year":         year,
-                         "month":        month,
-                         "day":          day,
-                         "writer":       writer,
-                         "penciller":    penciller,
-                         "inker":        inker,
-                         "colorist":     colorist,
-                         "letterer":     letterer,
-                         "cover_artist": cover_artist,
-                         "editor":       editor,
-                         "publisher":    publisher,
-                         "webpage":      webpage,
-                         "pagecount":    pagecount,
-                         "IssueImage":   IssueImage})
-
-    return issuedetails
+    return  {"title":        issue_title,
+             "series":       series_title,
+             "volume":       series_volume,
+             "issue_number": issue_number,
+             "summary":      summary,
+             "notes":        notes,
+             "year":         year,
+             "month":        month,
+             "day":          day,
+             "writer":       writer,
+             "penciller":    penciller,
+             "inker":        inker,
+             "colorist":     colorist,
+             "letterer":     letterer,
+             "cover_artist": cover_artist,
+             "editor":       editor,
+             "publisher":    publisher,
+             "webpage":      webpage,
+             "pagecount":    pagecount,
+             "IssueImage":   IssueImage,
+             "datamode":     'file'}
 
 def get_issue_title(IssueID=None, ComicID=None, IssueNumber=None, IssueArcID=None):
     #import db

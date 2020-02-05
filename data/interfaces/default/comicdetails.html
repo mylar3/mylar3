@@ -421,7 +421,7 @@
                                        %if mylar.CONFIG.FAILED_DOWNLOAD_HANDLING:
                                                <a href="#" title="Mark issue as Failed" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}&mode=failed',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as Failed"><img src="interfaces/default/images/failed.png" height="25" width="25" class="highqual" /></a>
                                        %endif
-                               %elif (issue['Status'] == 'Downloaded'):
+                                %elif (issue['Status'] == 'Downloaded'):
                                        <%
                                               if issue['Location'] is not None:
                                                   linky = os.path.join(comic['ComicLocation'],issue['Location'])
@@ -434,24 +434,27 @@
                                               else:
                                                   linky = None
                                         %>
-                                            %if linky:
+                                        %if linky:
                                             <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the Issue" class="highqual" /></a>
                                             <a href="read_comic?ish_id=${issue['IssueID']}&page_num=0&size=high"><img src="interfaces/default/images/readabook.png" height="25" width="25" title="Read the Issue in your Browser" class="highqual" /></a>
-                                                %if linky.endswith('.cbz'):
-                                                <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
-                                                    <div id="issue-box" class="issue-popup">
-                                                    <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
-                                                     <fieldset>
-                                                      <div id="responsethis">
-                                                        <label><strong>[ NODATA ]</strong></label></br>
-                                                      </div>
-                                                     </fieldset>
-                                                   </div>
-                                                %endif
-
-                                                %if mylar.CONFIG.ENABLE_META:
-                                                    <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this));refreshLoadSeries();" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
-                                                %endif
+                                            <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}', '${issue['IssueID']}');" class="issue-window">
+                                            %if linky.endswith('.cbz'):
+                                                    <img src="interfaces/default/images/issueinfo_blue.png" height="25" width="25" title="View CBZ Issue Details" class="highqual" />
+                                            %else:
+                                                    <img src="interfaces/default/images/issueinfo_orange.png" height="25" width="25" title="View CBR Issue Details" class="highqual" />
+                                            %endif
+                                            </a>
+                                            <div id="issue-box" class="issue-popup">
+                                                 <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                                                 <fieldset>
+                                                  <div id="responsethis">
+                                                      <label><strong>[ NODATA ]</strong></label></br>
+                                                  </div>
+                                                  </fieldset>
+                                            </div>
+                                            %if mylar.CONFIG.ENABLE_META:
+                                                <a href="#" title="Manually meta-tag issue" onclick="doAjaxCall('manual_metatag?dirName=${comic['ComicLocation'] |u}&issueid=${issue['IssueID']}&filename=${linky |u}&comicid=${issue['ComicID']}&comversion=${comic['ComicVersion']}&seriesyear=${comic['ComicYear']}',$(this));refreshLoadSeries();" data-success="${comic['ComicName']} #${issue['Issue_Number']} successfully tagged."><img src="interfaces/default/images/comictagger.png" height="25" width="25" class="highqual" /></a>
+                                            %endif
                                         %endif
                                         <a href="#" title="Add to Reading List" onclick="doAjaxCall('addtoreadlist?IssueID=${issue['IssueID']}',$(this),'table')" data-success="${comic['ComicName']} #${issue['Issue_Number']} added to Reading List"><img src="interfaces/default/images/glasses-icon.png" height="25" width="25" class="highqual" /></a>
                                         <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
@@ -459,6 +462,19 @@
                                 <a href="#" title="Retry the same download again" onclick="doAjaxCall('queueit?ComicID=${issue['ComicID']}&IssueID=${issue['IssueID']}&ComicIssue=${issue['Issue_Number']}&mode=want', $(this),'table')" data-success="Retrying the same version of '${issue['ComicName']}' '${issue['Issue_Number']}'"><img src="interfaces/default/images/retry_icon.png" height="25" width="25" class="highqual" /></a>
                                 <a href="#" title="Mark issue as Skipped" onclick="doAjaxCall('unqueueissue?IssueID=${issue['IssueID']}&ComicID=${issue['ComicID']}',$(this),'table')" data-success="'${issue['Issue_Number']}' has been marked as skipped"><img src="interfaces/default/images/skipped_icon.png" height="25" width="25" class="highqual" /></a>
                                 %endif
+                                %if issue['Status'] != 'Downloaded':
+                                        <a href="#issue-box" onclick="return runMetaIssue('None', '${comic['ComicName']| u}', '${issue['Issue_Number']}', '${issue['IssueDate']}', '${issue['IssueName'] |u}', '${issue['IssueID']}');" class="issue-window">
+                                        <img src="interfaces/default/images/issueinfo_grey.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
+                                        <div id="issue-box" class="issue-popup">
+                                            <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
+                                            <fieldset>
+                                            <div id="responsethis">
+                                                <label><strong>[ NODATA ]</strong></label></br>
+                                            </div>
+                                            </fieldset>
+                                        </div>
+                                %endif
+
 <!--
                                 <a href="#" onclick="doAjaxCall('archiveissue?IssueID=${issue['IssueID']}&comicid=${comic['ComicID']}',$(this),'table')"><img src="interfaces/default/images/archive_icon.png" height="25" width="25" title="Mark issue as Archived" class="highqual" /></a>
 -->
@@ -615,7 +631,7 @@
                                             %if linky:
                                               <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the annual" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']| u}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']| u}', '${annual['IssueID']}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
                                                     <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
@@ -734,12 +750,12 @@
         </script>
 
         <script>
-        function runMetaIssue(filelink, comicname, issue, date, title) {
+        function runMetaIssue(filelink, comicname, issue, date, title, issueid) {
               //alert(filelink);
               $.ajax({
                  type: "GET",
                  url: "IssueInfo",
-                 data: { filelocation: filelink, comicname: comicname, issue: issue, date: date, title: title },
+                 data: { filelocation: filelink, comicname: comicname, issue: issue, date: date, title: title, issueid: issueid },
                  success: function(response) {
                    $('#responsethis').html(response);
                  },
