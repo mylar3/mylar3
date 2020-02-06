@@ -19,6 +19,7 @@ import re
 import time
 import threading
 import platform
+import decimal, math
 import urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse
 from xml.dom.minidom import parseString, Element
 from xml.parsers.expat import ExpatError
@@ -276,8 +277,12 @@ def findComic(name, mode, issue, limityear=None, type=None):
 
                     #logger.info('There are : ' + str(xmlcnt) + ' issues in this series.')
                     #logger.info('The first issue started at # ' + str(xmlfirst))
+                    d = decimal.Decimal(xmlfirst)
+                    if d < 1:
+                        cnt_numerical = int(xmlcnt) + 1
+                    else:
+                        cnt_numerical = int(xmlcnt) + int(math.ceil(d)) # (of issues + start of first issue = numerical range)
 
-                    cnt_numerical = int(xmlcnt) + int(xmlfirst) # (of issues + start of first issue = numerical range)
                     #logger.info('The maximum issue number should be roughly # ' + str(cnt_numerical))
                     #logger.info('The limiter (issue max that we know of) is # ' + str(limiter))
                     if cnt_numerical >= limiter:
