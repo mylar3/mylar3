@@ -1524,8 +1524,8 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
             dz = zipfile.ZipFile(filelocation, 'r')
             data = dz.comment
         except:
-            logger.warn('Unable to extract comment field from zipfile.')
-            return {'IssueImage': IssueImage, 'datamode': 'file'}
+            logger.warn('Unable to extract any metadata from within file.')
+            return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
         else:
             if data:
                 issuetag = 'comment'

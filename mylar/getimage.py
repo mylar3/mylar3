@@ -87,13 +87,14 @@ def extract_image(location, single=False, imquality=None):
                         break
 
                 tmp_infile = re.sub("[^0-9]","", infile.filename).strip()
-                if tmp_infile == '':
+                if tmp_infile == '' or not getattr(infile, dir_opt):
                     continue
                 extension = infile.filename[-4:]
                 #logger.fdebug('[%s]issue_ends: %s' % (tmp_infile, tmp_infile.endswith(issue_ends)))
                 #logger.fdebug('ext_ends: %s' % infile.filename.lower().endswith(pic_extensions))
                 #logger.fdebug('(%s) < (%s) == %s' % (int(tmp_infile), int(low_infile), int(tmp_infile)<int(low_infile)))
-                if all([infile.filename.lower().endswith(pic_extensions), int(tmp_infile) < int(low_infile), not getattr(infile, dir_opt)]):
+                #logger.fdebug('is_dir == %s' % (not getattr(infile, dir_opt)))
+                if all([infile.filename.lower().endswith(pic_extensions), int(tmp_infile) < int(low_infile)]):
                     low_infile = tmp_infile
                     low_infile_name = infile.filename
                 elif any(['00a' in infile.filename, '00b' in infile.filename, '00c' in infile.filename, '00d' in infile.filename, '00e' in infile.filename, '00fc' in infile.filename.lower()]) and infile.filename.endswith(pic_extensions) and cover == "notfound":
@@ -107,9 +108,9 @@ def extract_image(location, single=False, imquality=None):
                 elif all([tmp_infile.endswith(issue_ends), infile.filename.lower().endswith(pic_extensions), int(tmp_infile) < int(low_infile), cover == 'notfound']):
                     cb_filenames.append(infile.filename)
                     #logger.fdebug('filename set to: %s' % infile.filename)
-                    low_infile_name = infile.filename
-                    low_infile = tmp_infile
-            if cover != "found" and len(cb_filenames) > 0:
+                    #low_infile_name = infile.filename
+                    #low_infile = tmp_infile
+            if cover != "found" and any([len(cb_filenames) > 0, low_infile != 9999999999999]):
                 logger.fdebug('Invalid naming sequence for jpgs discovered. Attempting to find the lowest sequence and will use as cover (it might not work). Currently : %s' % (low_infile_name))
                 cb_filename = low_infile_name
                 cover = "found"
@@ -130,7 +131,10 @@ def extract_image(location, single=False, imquality=None):
                 img = img.resize((600, hsize), Image.ANTIALIAS)
                 output = BytesIO()
                 img.save(output, format="JPEG")
-                ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
+                try:
+                    ComicImage = str(base64.b64encode(output.getvalue()), 'utf-8')
+                except Exception as e:
+                    ComicImage = str(base64.b64encode(output.getvalue() + "==="), 'utf-8')
                 output.close()
 
             except Exception as e:
