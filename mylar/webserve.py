@@ -5750,7 +5750,10 @@ class WebInterface(object):
             issueinfo = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
             seriestitle = issueinfo['ComicName']
             issuenumber = issueinfo['Issue_Number']
-            issuetitle = issueinfo['IssueName']
+            try:
+                issuetitle = issueinfo['IssueName'].decode('utf-8')
+            except:
+                issuetitle = issueinfo['IssueName']
             issue_rls = issueinfo['IssueDate']
             if issue_rls is None:
                 issue_rls = issueinfo['StoreDate']
@@ -5798,7 +5801,7 @@ class WebInterface(object):
             else:
                 issueinfo += '<h1><center><b>%s</b></center></h1>' % (seriestitle)
             if all([issuetitle is not None, issuetitle != 'None']):
-                issueinfo += '<center>"' + issuetitle + '"</center></br>'
+                issueinfo += '<center>"%s"</center></br>' % (issuetitle)
             if all([pagecount is not None, pagecount != 'None']):
                 issueinfo += '</br><p class="alignleft">' + pagecount + ' pages</p>'
             if all([issueday is None, issuemonth is None, issueyear is None]):
