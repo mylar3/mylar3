@@ -124,26 +124,29 @@ class GC(object):
 
             option_find = f.find("p", {"style": "text-align: center;"})
             i = 0
-            while i <= 2:
-                option_find = option_find.findNext(text=True)
-                if 'Year' in option_find:
-                    year = option_find.findNext(text=True)
-                    year = re.sub('\|', '', year).strip()
-                    if pack is True and '-' in year:
-                        title = re.sub('\('+year+'\)', '', title).strip()
-                else:
-                    size = option_find.findNext(text=True)
-                    if all([re.sub(':', '', size).strip() != 'Size', len(re.sub('[^0-9]', '', size).strip()) > 0]):
-                        if 'MB' in size:
-                            size = re.sub('MB', 'M', size).strip()
-                        elif 'GB' in size:
-                            size = re.sub('GB', 'G', size).strip()
-                        if '//' in size:
-                            nwsize = size.find('//')
-                            size = re.sub('\[', '', size[:nwsize]).strip()
+            if option_find is None:
+                continue
+            else:
+                while (i <= 2 and option_find is not None):
+                    option_find = option_find.findNext(text=True)
+                    if 'Year' in option_find:
+                        year = option_find.findNext(text=True)
+                        year = re.sub('\|', '', year).strip()
+                        if pack is True and '-' in year:
+                            title = re.sub('\('+year+'\)', '', title).strip()
                     else:
-                        size = '0M'
-                i+=1
+                        size = option_find.findNext(text=True)
+                        if all([re.sub(':', '', size).strip() != 'Size', len(re.sub('[^0-9]', '', size).strip()) > 0]):
+                            if 'MB' in size:
+                                size = re.sub('MB', 'M', size).strip()
+                            elif 'GB' in size:
+                                size = re.sub('GB', 'G', size).strip()
+                            if '//' in size:
+                                nwsize = size.find('//')
+                                size = re.sub('\[', '', size[:nwsize]).strip()
+                        else:
+                            size = '0M'
+                    i+=1
             dateline = f.find('time')
             datefull = dateline['datetime']
             datestamp = time.mktime(time.strptime(datefull, "%Y-%m-%d"))
