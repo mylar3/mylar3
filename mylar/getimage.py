@@ -80,16 +80,16 @@ def extract_image(location, single=False, imquality=None):
                 return
         try:
             for infile in location_in.infolist():
+                basename = os.path.basename(infile.filename)
                 if infile.filename == 'ComicInfo.xml':
                     logger.fdebug('Extracting ComicInfo.xml to display.')
                     metadata = location_in.read(infile.filename)
                     if cover == 'found':
                         break
-
-                tmp_infile = re.sub("[^0-9]","", infile.filename).strip()
+                filename, extension = os.path.splitext(basename)
+                tmp_infile = re.sub("[^0-9]","", filename).strip()
                 if tmp_infile == '' or not getattr(infile, dir_opt):
                     continue
-                extension = infile.filename[-4:]
                 #logger.fdebug('[%s]issue_ends: %s' % (tmp_infile, tmp_infile.endswith(issue_ends)))
                 #logger.fdebug('ext_ends: %s' % infile.filename.lower().endswith(pic_extensions))
                 #logger.fdebug('(%s) < (%s) == %s' % (int(tmp_infile), int(low_infile), int(tmp_infile)<int(low_infile)))
