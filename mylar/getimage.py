@@ -88,7 +88,7 @@ def extract_image(location, single=False, imquality=None):
                         break
                 filename, extension = os.path.splitext(basename)
                 tmp_infile = re.sub("[^0-9]","", filename).strip()
-                if tmp_infile == '' or not getattr(infile, dir_opt):
+                if any([tmp_infile == '', not getattr(infile, dir_opt), 'zzz' in filename]):
                     continue
                 #logger.fdebug('[%s]issue_ends: %s' % (tmp_infile, tmp_infile.endswith(issue_ends)))
                 #logger.fdebug('ext_ends: %s' % infile.filename.lower().endswith(pic_extensions))
