@@ -47,13 +47,13 @@ def runGit(args):
             logger.error('Command %s didn\'t work [%s]' % (cmd, e))
             continue
         else:
-            if all([output.stderr is not None, output.stderr != '']):
+            if all([output.stderr is not None, output.stderr != '', output.returncode > 0]):
                 logger.error('Encountered error: %s' % output.stderr)
 
         if "not found" in output.stdout or "not recognized as an internal or external command" in output.stdout:
             logger.error('[%s] Unable to find git with command: %s' % (output.stdout, cmd))
             output = None
-        elif 'fatal:' in output.stdout or output.stderr:
+        elif ('fatal:' in output.stdout) or ('fatal:' in output.stderr):
             logger.error('Error: %s' % output.stderr)
             logger.error('Git returned bad info. Are you sure this is a git installation? [%s]' % output.stdout)
             output = None
