@@ -26,14 +26,14 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 - Close your issue when it's solved!
 
 ## Requirements
-- At least Python version 3.8.1 (2.x is not supported)
+- At least Python version 3.7.2 - most heavily tested with 3.8.1 (2.x is not supported)
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
 
 ## Installation
-- run `pip install -r requirements.txt` to install all required dependencies not included. 
+- run `pip3 install -r requirements.txt` to install all required dependencies not included. 
 
 ## Usage
-To start the program, type `python Mylar.py` inside the root of the Mylar directory. Typing `python Mylar.py --help` will give a list of available options.
+To start the program, type `python3 Mylar.py` inside the root of the Mylar directory. Typing `python3 Mylar.py --help` will give a list of available options.
 
 Once it's started, navigate to http://localhost:8090 in your web browser (or whatever IP the machine that has Mylar is on).
 
