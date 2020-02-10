@@ -2309,7 +2309,7 @@ class WebInterface(object):
         return serve_template(templatename="queue_management.html", title="Queue Management", resultlist=resultlist) #activelist=activelist, resultlist=resultlist)
     queueManage.exposed = True
 
-    def queueManageIt(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=0, sSortDir_0="desc", sSearch="", **kwargs):
+    def queueManageIt(self, iDisplayStart=0, iDisplayLength=100, iSortCol_0=5, sSortDir_0="desc", sSearch="", **kwargs):
         iDisplayStart = int(iDisplayStart)
         iDisplayLength = int(iDisplayLength)
         filtered = []
@@ -2409,8 +2409,7 @@ class WebInterface(object):
             sortcolumn = 'status'
         elif iSortCol_0 == '5':
             sortcolumn = 'updated_date'
-        filtered.sort(key=lambda x: x[sortcolumn], reverse=sSortDir_0 == "desc")
-
+        filtered.sort(key=lambda x: (x[sortcolumn] is None, x[sortcolumn] == '', x[sortcolumn]), reverse=sSortDir_0 == "desc")
         rows = filtered[iDisplayStart:(iDisplayStart + iDisplayLength)]
         rows = [[row['comicid'], row['series'], row['size'], row['progress'], row['status'], row['updated_date'], row['queueid']] for row in rows]
         #rows = [{'comicid': row['comicid'], 'series': row['series'], 'size': row['size'], 'progress': row['progress'], 'status': row['status'], 'updated_date': row['updated_date']} for row in rows]
