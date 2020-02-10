@@ -27,6 +27,7 @@ The Mylar Forums are also online @ https://forum.mylarcomics.com
 
 ## Requirements
 - At least Python version 3.7.2 - most heavily tested with 3.8.1 (2.x is not supported)
+- Python version 3.8+ of Mylar will not work on Windows due to some dependency issues
 - ComicVine API key (found [here](https://comicvine.gamespot.com/api/) - program will have limited to no functionality without it
 
 ## Installation
