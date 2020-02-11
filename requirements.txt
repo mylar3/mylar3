@@ -12,7 +12,7 @@ CherryPy>=18.5.0
 configparser>=4.0.2
 feedparser>=5.2.1
 Mako>=1.1.0
-natsort>=3.5.2
+natsort>=3.5.2,<=5.3.0
 Pillow>=7.0.0
 portend>=2.6
 pyinstaller>=3.5
