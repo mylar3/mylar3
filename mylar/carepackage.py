@@ -210,9 +210,9 @@ class carePackage(object):
             zip.write(self.filename, os.path.basename(self.filename))
             zip.write(dbpath, os.path.basename(dbpath))
             zip.write(self.cleanpath, os.path.basename(self.cleanpath))
-	    if path.exists(self.lastrelpath):
-	        zip.write(self.lastrelpath, os.path.basename(self.lastrelpath))
-		
+            if path.exists(self.lastrelpath):
+                zip.write(self.lastrelpath, os.path.basename(self.lastrelpath))
+
             files = []
             for file in ('mylar.log', 'mylar.log.?'):
                 files.extend(glob(os.path.join(mylar.CONFIG.LOG_DIR, file)))
