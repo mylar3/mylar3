@@ -903,17 +903,18 @@ class FileChecker(object):
                         if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                         break
                     elif pis['mod_position'] > finddash and finddash != -1:
-                        if finddash < yearposition and finddash > (yearmodposition + len(split_file[yearposition])):
-                            logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
-                            dash_numbers.append({'mod_position': pis['mod_position'],
-                                                 'number':       pis['number'],
-                                                 'position':     pis['position']})
-                            continue
-                        #2019-10-05 fix - if decimal-spaced filename has a series title with a hyphen will include issue # as part of series title
-                        elif yearposition == pis['position']:
-                            logger.fdebug('Already validated year, ignoring as possible issue number: %s' % pis['number'])
-                            continue
-                        #end 2019-10-05
+                        if yearmodpositon is not None:
+                            if finddash < yearmodposition and finddash > (yearmodposition + len(split_file[yearposition])):
+                                logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
+                                dash_numbers.append({'mod_position': pis['mod_position'],
+                                                     'number':       pis['number'],
+                                                     'position':     pis['position']})
+                                continue
+                            #2019-10-05 fix - if decimal-spaced filename has a series title with a hyphen will include issue # as part of series title
+                            elif yearposition == pis['position']:
+                                logger.fdebug('Already validated year, ignoring as possible issue number: %s' % pis['number'])
+                                continue
+                            #end 2019-10-05
                     elif yearposition == pis['position']:
                         logger.fdebug('Already validated year, ignoring as possible issue number: %s' % pis['number'])
                         continue
