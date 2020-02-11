@@ -903,7 +903,7 @@ class FileChecker(object):
                         if highest_series_pos > pis['position']: highest_series_pos = pis['position']
                         break
                     elif pis['mod_position'] > finddash and finddash != -1:
-                        if yearmodpositon is not None:
+                        if yearmodposition is not None:
                             if finddash < yearmodposition and finddash > (yearmodposition + len(split_file[yearposition])):
                                 logger.fdebug('issue number is positioned after a dash - probably not an issue number, but part of an issue title')
                                 dash_numbers.append({'mod_position': pis['mod_position'],
