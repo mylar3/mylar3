@@ -4820,13 +4820,13 @@ class WebInterface(object):
             desc = br[author_end+1:].strip()
             if len(desc) > 103:
                 desc = '<span title="%s">%s...</span>' % (desc, desc[:103])
-            if author != 'evilhero':
+            if author != 'mylar3':
                 pr_tag = True
                 dspline = '[%s][PR] %s {<span style="font-size:11px">%s/%s</span>}'
             else:
                 pr_tag = False
                 dspline = '[%s] %s {<span style="font-size:11px">%s/%s</span>}'
-            commit.append(dspline % ("<a href='https://github.com/evilhero/mylar/commit/" + commitno + "'>"+commitno+"</a>", desc, time, author))
+            commit.append(dspline % ("<a href='https://github.com/mylar3/mylar/commit/" + commitno + "'>"+commitno+"</a>", desc, time, author))
 
         return '<br />\n'.join(commit)
 
