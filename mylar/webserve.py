@@ -4826,7 +4826,7 @@ class WebInterface(object):
             else:
                 pr_tag = False
                 dspline = '[%s] %s {<span style="font-size:11px">%s/%s</span>}'
-            commit.append(dspline % ("<a href='https://github.com/mylar3/mylar/commit/" + commitno + "'>"+commitno+"</a>", desc, time, author))
+            commit.append(dspline % ("<a href='https://github.com/mylar3/mylar3/commit/" + commitno + "'>"+commitno+"</a>", desc, time, author))
 
         return '<br />\n'.join(commit)
 
@@ -5129,6 +5129,7 @@ class WebInterface(object):
                     "br_type": mylar.INSTALL_TYPE,
                     "br_version": mylar.CURRENT_VERSION,
                     "br_version_name": mylar.CURRENT_VERSION_NAME,
+                    "br_release_name": mylar.CURRENT_RELEASE_NAME,
                     "py_version": platform.python_version(),
                     "data_dir": mylar.DATA_DIR,
                     "prog_dir": mylar.PROG_DIR,
