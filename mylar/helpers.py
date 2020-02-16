@@ -2361,7 +2361,7 @@ def issue_status(IssueID):
 
     IssueID = str(IssueID)
 
-    logger.fdebug('[ISSUE-STATUS] Issue Status Check for %s' % IssueID)
+#    logger.fdebug('[ISSUE-STATUS] Issue Status Check for %s' % IssueID)
 
     isschk = myDB.selectone("SELECT * FROM issues WHERE IssueID=?", [IssueID]).fetchone()
     if isschk is None:
@@ -3315,25 +3315,43 @@ def get_the_hash(filepath):
     logger.info('Hash of file : ' + thehash)
     return {'hash':     thehash}
 
-def disable_provider(site, newznab=False):
-    logger.info('Temporarily disabling %s due to not responding' % site)
-    if newznab is True:
-        tmplist = []
-        for ti in mylar.CONFIG.EXTRA_NEWZNABS:
-            tmpnewz = list(ti)
-            if tmpnewz[0] == site:
-                tmpnewz[5] = '0'
-            tmplist.append(tuple(tmpnewz))
-        mylar.CONFIG.EXTRA_NEWZNABS = tmplist
+def block_provider_check(site, simple=True, force=False):
+    timenow = int(time.time())
+    for prov in mylar.PROVIDER_BLOCKLIST:
+        if prov['site'] == site:
+            if force is True:
+                mylar.PROVIDER_BLOCKLIST.remove(prov)
+                if simple is True:
+                    return False
+                else:
+                    return {'blocked': False, 'remain': (int(prov['resume'])-timenow)/60}
+            else:
+                if timenow < int(prov['resume']):
+                    if simple is True:
+                        return True
+                    else:
+                        return {'blocked': True, 'remain': (int(prov['resume'])-timenow)/60}
+                else:
+                    mylar.PROVIDER_BLOCKLIST.remove(prov)
+    if simple is True:
+        return False
     else:
-        if site == 'nzbsu':
-            mylar.CONFIG.NZBSU = False
-        elif site == 'dognzb':
-            mylar.CONFIG.DOGNZB = False
-        elif site == 'experimental':
-            mylar.CONFIG.EXPERIMENTAL = False
-        elif site == '32P':
-            mylar.CONFIG.ENABLE_32P = False
+        return {'blocked': False, 'remain': 0}
+
+def disable_provider(site, reason=None, delay=0):
+    if not delay:
+        if mylar.CONFIG.BLOCKLIST_TIMER > 0:
+            delay = int(mylar.CONFIG.BLOCKLIST_TIMER)
+        else:
+            delay = 3600
+    mins = int(delay / 60) + (delay % 60 > 0)
+    logger.info('Temporarily blocking provider %s for %s minutes...'% (site, mins))
+    for entry in mylar.PROVIDER_BLOCKLIST:
+        if entry['site'] == site:
+            mylar.PROVIDER_BLOCKLIST.remove(entry)
+    newentry = {'site': site, 'resume': int(time.time()) + delay, 'reason': reason}
+    mylar.PROVIDER_BLOCKLIST.append(newentry)
+    logger.info('provider_blocklist: %s' % mylar.PROVIDER_BLOCKLIST)
 
 def date_conversion(originaldate):
     c_obj_date = datetime.datetime.strptime(originaldate, "%Y-%m-%d %H:%M:%S")

@@ -564,7 +564,7 @@ def nzbs(provider=None, forcerss=False):
                               'num':       '100'}
                     check = _parse_feed(site, url, bool(newznab_host[2]), params)
                 if check == 'disable':
-                    helpers.disable_provider(site, newznab=True)
+                    helpers.disable_provider(site)
 
         feeddata = []
 
@@ -1035,7 +1035,7 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
         if file_download['status'] is False:
             helpers.disable_provider('32P')
 
-        if file_download['bool_download'] is False:
+        if file_download['download_bool'] is False:
             return "fail"
 
         logger.fdebug('[%s] Saved torrent file to : %s' % (site, filepath))

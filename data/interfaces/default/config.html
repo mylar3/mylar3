@@ -10,6 +10,20 @@
 			<a id="menu_link_carepackage" href="carepackage">Care Package</a>
 			<a id="menu_link_shutdown" href="shutdown">Shut Down</a>
 			<a id="menu_link_shutdown" href="restart">Restart</a>
+                        <a id="menu_link_edit" title="Manage blocked Providers" href="javascript:void(0)" onclick="manageBlockedProviders()">Provider Blocklist</a>
+                        <div id="manage_blocked_providers_dialog" title="Choose a specific provider to Unblock" style="display:none">
+                            <table id="blocked_table" width="100%">
+                                <thead>
+                                <tr>
+                                    <th id="provider">Provider</th>
+                                    <th id="resume">Blocked Until</th>
+                                    <th id="reason">Reason</th>
+                                </tr>
+                                </thead>
+                                <tbody id="blocked_table_body" value="There is nothing on the blocked providers list currently">
+                                </tbody>
+                            </table>
+                        </div>
 		</div>
 	</div>
 </%def>
@@ -1014,8 +1028,7 @@
                            porder = ', '.join(porder)
                        %>
                        <legend><center>Search Order: ${porder}</center></legend>
-             </tr>
-
+             </tr></br>
         </table>
 	</div>
 	<div id="tabs-5">
@@ -1551,6 +1564,7 @@
 </%def>
 
 <%def name="javascriptIncludes()">
+        <script src="js/libs/jquery.dataTables.min.js"></script>
         <script>
         function changeTest()
         {
@@ -1587,6 +1601,61 @@
                 x.style.display = "none";
             }
         }
+        </script>
+        <script>
+        function manageBlockedProviders() {
+                $.getJSON("blockProviders", function(data) {
+                        if (data.error != undefined) {
+                                $('#blocked_table_body').text("No data available...");
+                        }
+                        if (data.length != 0) {
+                                blocklist = data;
+                                for( var i = 0, len = data.length; i < len; i++ ) {
+                                        $('#blocked_table_body').append('<tr><td id="provider"><a href="javascript:void(0)" onclick="unblocktheProvider('+i+')">'+data[i].provider+'</a></td><td id="resume">'+data[i].resume+'</td><td id="reason">'+data[i].reason+'</td></tr>');
+                                };
+                                $('#blocked_table').dataTable({
+                                        "aoColumns": [
+                                                null,
+                                                null,
+                                                null
+                                        ],
+                                        "aaSorting": [[ 1, 'desc']],
+                                        "bFilter": false,
+                                        "bInfo": false,
+                                        "bPaginate": false,
+                                        "bDestroy": true
+                                });
+                        } else {
+                                document.getElementById("blocked_table_body").innerHTML = '</br><td colspan="3"><center>There are no providers currently in the block list...</center></td>';
+                        }
+                $("#manage_blocked_providers_dialog").dialog({
+                        modal: true,
+                        width: "50%",
+                        maxHeight: 500
+                });
+                return false;
+                });
+        }
+
+        function unblocktheProvider(i){
+                site = blocklist[i].provider;
+                $.get("unblock_provider",
+                       { site: site },
+                       function(data) {
+                           if (data.error != undefined) {
+                               alert(data.error);
+                               return;
+                           }
+                           unblock_status = data['status']
+                           if ( unblock_status.indexOf("Successfully") > -1){
+                               $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>Successfully Unblocked "+site+"</div>");
+                               document.getElementById("manage_blocked_providers_dialog").close();
+                           }
+                       $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                       return false;
+               });
+        }
+
         </script>
 	<script>
 	function initThisPage() 
@@ -2027,6 +2096,25 @@
                 function toNumber(num) {
                         return isNaN(num) || num === '' || num === null ? '' : num;
                 };
+                $("#unblock32p").click(function(){
+                    var imagechk = document.getElementById("unblock32p");
+                    $.get("unblock_provider",
+                         { site: "32P", simple: false },
+                         function(data){
+                            if (data.error != undefined) {
+                                alert(data.error);
+                                return;
+                            }
+                            var obj = JSON.parse(data);
+                            $('#ajaxMsg').html("<div class='msg'><span class='ui-icon ui-icon-check'></span>"+obj['status']+"</div>");
+                            if ( obj['status'].indexOf("Successfully") > -1){
+                                imagechk.style.visibility = "hidden";
+                            } else {
+                               $('#unblock32p').val(obj['resume']);
+                            }
+                    });
+                    $('#ajaxMsg').addClass('success').fadeIn().delay(3000).fadeOut();
+                });
                 $("#test32p").click(function(){
                     var imagechk = document.getElementById("test32p_statusicon");
                     var user32p = document.getElementById("username_32p").value;
