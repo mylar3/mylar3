@@ -657,11 +657,14 @@ def queue_schedule(queuetype, mode):
                    os._exit(0)
 
 
-def dbcheck():
+def sql_db():
     conn = sqlite3.connect(DB_FILE)
-    c_error = 'sqlite3.OperationalError'
-    c=conn.cursor()
+    return conn
 
+def dbcheck():
+    conn = sql_db()
+    c_error = 'sqlite3.OperationalError'
+    c = conn.cursor()
     try:
         c.execute('SELECT ReleaseDate from storyarcs')
     except sqlite3.OperationalError:

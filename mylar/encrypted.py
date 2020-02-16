@@ -28,11 +28,9 @@ class Encryptor(object):
 
     def encrypt_it(self):
        #self.password = self.password.encode('utf-8')
-       logger.info('sp[%s]: %s' % (self.password,type(self.password)))
        try:
            salt = os.urandom(8)
            saltedhash = [salt[i] for i in range (0, len(salt))]
-           logger.info('salted_hash: %s' % saltedhash)
            salted_pass = base64.b64encode(b"%s%s" % (self.password.encode('utf-8'),salt))
        except Exception as e:
            logger.warn('Error when encrypting: %s' % e)
