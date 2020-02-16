@@ -663,7 +663,7 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         if bb['status'] is False:
                             helpers.disable_provider(nzbprov, bb['error'])
                         bb = bb['results']
-                        if any([bb['results'] is None, bb == 'no results']):
+                        if any([bb is None, bb == 'no results']):
                             bb = 'no results'
                     except Exception as e:
                         bb = 'no results'
