@@ -4225,7 +4225,7 @@ class WebInterface(object):
         return mylar.IMPORT_STATUS
     Check_ImportStatus.exposed = True
 
-    def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_paths=0, imp_rename=0, imp_metadata=0, forcescan=0):
+    def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_paths=0, imp_rename=0, imp_metadata=0, imp_seriesfolders=1, forcescan=0):
         import queue
         queue = queue.Queue()
 
@@ -4240,6 +4240,7 @@ class WebInterface(object):
         mylar.CONFIG.IMP_RENAME = bool(imp_rename)
         mylar.CONFIG.IMP_METADATA = bool(imp_metadata)
         mylar.CONFIG.IMP_PATHS = bool(imp_paths)
+        mylar.CONFIG.IMP_SERIESFOLDERS = bool(imp_seriesfolders)
 
         mylar.CONFIG.configure(update=True)
         # Write the config
@@ -6193,14 +6194,43 @@ class WebInterface(object):
 
     download_0day.exposed = True
 
+    def blockProviders(self):
+        provider_list = []
+        for x in mylar.PROVIDER_BLOCKLIST:
+            provider_list.append({'provider': x['site'],
+                                  'resume': str(datetime.datetime.utcfromtimestamp(x['resume']).replace(tzinfo=datetime.timezone.utc).strftime('%Y-%m-%d %-I:%M:%S %p')),
+                                  'reason': x['reason']})
+        return json.dumps(provider_list)
+    blockProviders.exposed = True
+
+    def unblock_provider(self, site, simple=True):
+        logger.info('unblocking..')
+        if simple == 'false':
+            simple = False
+        chk = helpers.block_provider_check(site, simple, force=True)
+        logger.info('chk: %s' % chk)
+        if chk is False:
+            if simple is True:
+                return json.dumps({"status": "Successfully removed %s from provider blocklist" % site})
+            else:
+                return json.dumps({"status": "Successfully removed %s from provider blocklist" % site, 'remain': chk['remain']})
+        else:
+            if simple is True:
+                return json.dumps({"status": "Could not remove %s from provider blocklist" % site})
+            else:
+                return json.dumps({"status": "Could not remove %s from provider blocklist" % site, 'remain': chk['remain']})
+
+    unblock_provider.exposed = True
+
     def test_32p(self, username, password):
+        block_32p = helpers.block_provider_check('32P')
         from . import auth32p
         tmp = auth32p.info32p(test={'username': username, 'password': password})
         rtnvalues = tmp.authenticate()
         if rtnvalues['status'] is True:
-            return json.dumps({"status": "Successfully Authenticated.", "inkdrops": mylar.INKDROPS_32P})
+            return json.dumps({"status": "Successfully Authenticated.", "inkdrops": mylar.INKDROPS_32P, 'blocked': block_32p})
         else:
-            return json.dumps({"status": "Could not Authenticate.", "inkdrops": mylar.INKDROPS_32P})
+            return json.dumps({"status": "Could not Authenticate.", "inkdrops": mylar.INKDROPS_32P, 'blocked': block_32p})
 
     test_32p.exposed = True
 

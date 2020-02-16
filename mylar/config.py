@@ -85,6 +85,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'SEARCH_INTERVAL': (int, 'Scheduler', 360),
     'DOWNLOAD_SCAN_INTERVAL': (int, 'Scheduler', 5),
     'CHECK_GITHUB_INTERVAL' : (int, 'Scheduler', 360),
+    'BLOCKLIST_TIMER': (int, 'Scheduler', 3600),
 
     'ALT_PULL' : (int, 'Weekly', 2),
     'PULL_REFRESH': (str, 'Weekly', None),
@@ -145,6 +146,7 @@ _CONFIG_DEFINITIONS = OrderedDict({
     'IMP_PATHS': (bool, 'Import', False),
     'IMP_RENAME': (bool, 'Import', False),
     'IMP_METADATA': (bool, 'Import', False),  # should default to False - this is enabled for testing only.
+    'IMP_SERIESFOLDERS': (bool, 'Import', True),
 
     'DUPECONSTRAINT': (str, 'Duplicates', None),
     'DDUMP': (bool, 'Duplicates', False),

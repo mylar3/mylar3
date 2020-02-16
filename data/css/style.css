@@ -269,6 +269,14 @@ table#downloads_table td#provider { vertical-align: middle; text-align: left; mi
 table#downloads_table td#size { vertical-align: middle; text-align: left; min-width: 20px; }
 table#downloads_table td#kind { vertical-align: middle; text-align: left; min-width: 20px; }
 
+table#blocked_table th#reason { text-align: center; max-width: 150px; }
+table#blocked_table th#provider { text-align: center; max-width: 20px; }
+table#blocked_table th#resume { text-align: center; max-width: 20px; }
+
+table#blocked_table td#reason { vertical-align: middle; text-align: left; max-width: 150px; }
+table#blocked_table td#provider { vertical-align: middle; text-align: left; max-width: 20px; }
+table#blocked_table td#resume { vertical-align: middle; text-align: left; max-width: 20px; }
+
 .havetracks { font-size: 13px; margin-left: 36px; padding-bottom: 3px; vertical-align: middle; }
 
 footer { margin: 20px auto 20px auto; }

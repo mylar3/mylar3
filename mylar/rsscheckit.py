@@ -64,30 +64,37 @@ class tehMain():
                         else:
                             rsscheck.torrents(pickfeed='1', feedinfo=mylar.KEYS_32P)
                     else:
+                        continue_search = True
                         logger.fdebug('[RSS-FEEDS] 32P mode set to Auth mode. Monitoring all personal notification feeds & New Releases feed')
                         if any([mylar.CONFIG.USERNAME_32P is None, mylar.CONFIG.USERNAME_32P == '', mylar.CONFIG.PASSWORD_32P is None]):
                             logger.error('[RSS-FEEDS] Unable to sign-on to 32P to validate settings. Please enter/check your username password in the configuration.')
+                            continue_search = False
                         else:
                             if mylar.KEYS_32P is None:
-                                feed32p = auth32p.info32p()
+                                feed32p = auth32p.info32p(smode='RSS')
                                 feedinfo = feed32p.authenticate()
-                                if feedinfo != "disable":
-                                    pass
-                                else:
+                                if feedinfo['status'] is False and feedinfo['status_msg'] == "disable":
                                     helpers.disable_provider('32P')
+                                    continue_search = False
+                                elif feedinfo['status'] is False:
+                                    logger.error('[RSS-FEEDS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
+                                    continue_search = False
+                                else:
+                                    feeds = feedinfo['feedinfo']
                             else:
-                                feedinfo = mylar.FEEDINFO_32P
-
-                            if feedinfo is None or len(feedinfo) == 0 or feedinfo == "disable":
-                                logger.error('[RSS-FEEDS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
-                            else:
-                                rsscheck.torrents(pickfeed='1', feedinfo=feedinfo[0])
-                                x = 0
-                                #assign personal feeds for 32p > +8
-                                for fi in feedinfo:
-                                    x+=1
-                                    pfeed_32p = str(7 + x)
-                                    rsscheck.torrents(pickfeed=pfeed_32p, feedinfo=fi)
+                                feeds = mylar.FEEDINFO_32P
+                            if continue_search is True:
+                                logger.info('feedinfo: %s' % feedinfo)
+                                if feedinfo is None or all([len(feedinfo) == 0 , feedinfo['status'] is False]):
+                                    logger.error('[RSS-FEEDS] Unable to retrieve any information from 32P for RSS Feeds. Skipping for now.')
+                                else:
+                                    rsscheck.torrents(pickfeed='1', feedinfo=mylar.KEYS_32P)
+                                    x = 0
+                                    #assign personal feeds for 32p > +8
+                                    for fi in feeds:
+                                        x+=1
+                                        pfeed_32p = str(7 + x)
+                                        rsscheck.torrents(pickfeed=pfeed_32p, feedinfo=fi)
 
             logger.info('[RSS-FEEDS] Initiating RSS Feed Check for NZB Providers.')
             rsscheck.nzbs(forcerss=forcerss)
@@ -96,7 +103,9 @@ class tehMain():
                 rsscheck.ddl(forcerss=forcerss)
             logger.info('[RSS-FEEDS] RSS Feed Check/Update Complete')
             logger.info('[RSS-FEEDS] Watchlist Check for new Releases')
+            rss_start = datetime.datetime.now()
             mylar.search.searchforissue(rsscheck='yes')
+            logger.fdebug('[RSS-FEEDS] RSS dbsearch/matching took: %s' % (datetime.datetime.now() - rss_start))
             logger.info('[RSS-FEEDS] Watchlist Check complete.')
             if forcerss:
                 logger.info('[RSS-FEEDS] Successfully ran a forced RSS Check.')

@@ -28,18 +28,19 @@ import cfscrape
 from operator import itemgetter
 
 import mylar
-from mylar import db, logger, filechecker, helpers
+from mylar import db, logger, filechecker, helpers, cv
 
 
 class info32p(object):
 
-    def __init__(self, reauthenticate=False, searchterm=None, test=False):
+    def __init__(self, reauthenticate=False, searchterm=None, test=False, smode=None):
 
         self.module = '[32P-AUTHENTICATION]'
         self.url = 'https://32pag.es/user.php?action=notify'
         self.headers = {'Content-type': 'application/x-www-form-urlencoded',
                         'Accept-Charset': 'utf-8',
                         'User-Agent': 'Mozilla/5.0'}
+        self.mode = smode
 
         if test:
             self.username_32p = test['username']
@@ -54,6 +55,7 @@ class info32p(object):
         self.method = None
         self.status = False
         self.status_msg = None
+        self.auth = None
 
         if any([mylar.CONFIG.MODE_32P is True, self.test is True]):
             lses = self.LoginSession(self.username_32p, self.password_32p)
@@ -85,12 +87,17 @@ class info32p(object):
                     except:
                         mylar.INKDROPS_32P = lses.inkdrops['results'][0]['inkdrops']
                 else:
-                    logger.fdebug('self.error: %s / self.method: %s' % (self.error, self.method))
+                    logger.fdebug('self.error: %s / self.method: %s' % (loginses['error'], loginses['method']))
                     self.status = False
                     mylar.INKDROPS_32P = None
                     if not self.test:
                         logger.error('%s [LOGIN FAILED] Disabling 32P provider until login error(s) can be fixed in order to avoid temporary bans.' % self.module)
                         self.status_msg = "disable"
+                        if loginses['error']['message'][0] == 405 or 'Not Allowed' in loginses['error']['message'][1]:
+                            self.error = 'site is down'
+                        else:
+                            self.error = cv.drophtml(loginses['error']['message'])
+                        #self.error = loginses.error
                     else:
                         if self.error:
                             self.status = False
@@ -108,71 +115,54 @@ class info32p(object):
     def authenticate(self):
 
         if self.status is False:
-            return {'status': self.status, 'status_msg': self.status_msg, 'inkdrops': mylar.INKDROPS_32P}
+            return {'status': self.status, 'status_msg': self.status_msg, 'inkdrops': mylar.INKDROPS_32P, 'error': self.error}
 
         if self.test:
             return {'status': True, 'inkdrops': mylar.INKDROPS_32P}
 
+        logger.info('uid:%s / authkey:%s / passkey:%s' % (self.uid, self.authkey, self.passkey))
+        if mylar.KEYS_32P is None:
+            mylar.KEYS_32P = {'user': str(self.uid),
+                              'auth': self.auth,
+                              'passkey': str(self.passkey),
+                              'authkey': str(self.authkey)}
+        if self.mode == 'RSS':
+            return self.rssfeed()
+
+    def callthesearch(self):
+        if self.searchterm:
+            logger.info('[32P] Successfully authenticated. Initiating search for : %s' % self.searchterm)
+            return self.search32p(s)
+
+    def rssfeed(self):
         feedinfo = []
 
+        #if we've authenticated already via lses, we have the uid,authkey, passkeys.
+        #if using legacy mode, we've already parsed the info into Mylar.KEYS32P
         try:
-#            with cfscrape.create_scraper(delay=15) as s:
-#                s.headers = self.headers
-#                cj = LWPCookieJar(os.path.join(mylar.CONFIG.SECURE_DIR, ".32p_cookies.dat"))
-#                cj.load()
-#                s.cookies = cj
-
-                if mylar.CONFIG.VERIFY_32P == 1 or mylar.CONFIG.VERIFY_32P == True:
-                    verify = True
-                else:
-                    verify = False
-
-#                logger.fdebug('[32P] Verify SSL set to : %s' % verify)
-
-                if not verify:
-#                #32P throws back an insecure warning because it can't validate against the CA. The below suppresses the message just for 32P instead of being displa$
-                    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
+            if mylar.CONFIG.MODE_32P is True:
+                #if authmode is enabled, attempt to signon and retrieve any custom notification feeds.
                 # post to the login form
-                r = self.session.post(self.url, verify=verify, allow_redirects=True)
-
-                #logger.debug(self.module + " Content session reply" + r.text)
-
-                #need a way to find response code (200=OK), but returns 200 for everything even failed signons (returns a blank page)
-                #logger.info('[32P] response: ' + str(r.content))
-                soup = BeautifulSoup(r.content, "html.parser")
+                r = self.session.post(self.url, verify=mylar.CONFIG.VERIFY_32P, allow_redirects=True)
+                soup = BeautifulSoup(r.content, 'html.parser')
                 soup.prettify()
 
-                if self.searchterm:
-                    logger.info('[32P] Successfully authenticated. Initiating search for : %s' % self.searchterm)
-                    return self.search32p(s)
-
-                logger.info('[32P] Successfully authenticated.')
-                all_script = soup.find_all("script", {"src": False})
+                #logger.info('[32P] Successfully authenticated.')
                 all_script2 = soup.find_all("link", {"rel": "alternate"})
 
                 authfound = False
                 logger.info('%s Attempting to integrate with all of your 32P Notification feeds.' % self.module)
 
-                #get inkdrop count ...
-                #user_info = soup.find_all(attrs={"class": "stat"})
-                #inkdrops = user_info[0]['title']
-                #logger.info('INKDROPS: ' + str(inkdrops))
-
                 for al in all_script2:
                     alurl = al['href']
-                    if 'auth=' in alurl and 'torrents_notify' in alurl and not authfound:
+                    if all(['auth=' in alurl, 'torrents_notify' in alurl]) and not authfound:
+                        #first we make sure we get the correct auth and store it.
                         f1 = alurl.find('auth=')
                         f2 = alurl.find('&', f1 + 1)
-                        auth = alurl[f1 +5:f2]
+                        self.auth = alurl[f1 +5:f2]
+                        if mylar.KEYS_32P['auth'] is None:
+                            mylar.KEYS_32P['auth'] = self.auth
                         authfound = True
-                        #logger.fdebug(self.module + ' Auth:' + str(auth))
-                        #p1 = alurl.find('passkey=')
-                        #p2 = alurl.find('&', p1 + 1)
-                        #passkey = alurl[p1 +8:p2]
-                        #logger.fdebug(self.module + ' Passkey:' + str(passkey))
-                        if self.reauthenticate: break
 
                     if 'torrents_notify' in alurl and ('torrents_notify_' + str(self.passkey)) not in alurl:
                         notifyname_st = alurl.find('name=')
@@ -188,37 +178,38 @@ class info32p(object):
                         feedinfo.append({'feed':     notifynumber + '_' + str(self.passkey),
                                          'feedname': notifyname,
                                          'user':     str(self.uid),
-                                         'auth':     auth,
+                                         'auth':     self.auth,
                                          'passkey':  str(self.passkey),
                                          'authkey':  str(self.authkey)})
 
-        except (requests.exceptions.Timeout, EnvironmentError):
+        except (requests.exceptions.Timeout, EnvironmentError) as e:
             logger.warn('Unable to retrieve information from 32Pages - either it is not responding/is down or something else is happening that is stopping me.')
-            return
+            return {'status': False, 'status_msg': e}
 
         #set the keys here that will be used to download.
-        try:
-            mylar.CONFIG.PASSKEY_32P = str(self.passkey)
-            mylar.AUTHKEY_32P = str(self.authkey)  # probably not needed here.
-            mylar.KEYS_32P = {}
-            mylar.KEYS_32P = {"user": str(self.uid),
-                              "auth": auth,
-                              "passkey": str(self.passkey),
-                              "authkey": str(self.authkey)}
+        #try:
+        #    mylar.CONFIG.PASSKEY_32P = str(self.passkey)
+        #    mylar.AUTHKEY_32P = str(self.authkey)  # probably not needed here.
+        #    mylar.KEYS_32P = {}
+        #    mylar.KEYS_32P = {"user": str(self.uid),
+        #                      "auth": auth,
+        #                      "passkey": str(self.passkey),
+        #                      "authkey": str(self.authkey)}
 
-        except NameError:
+        except NameError as e:
             logger.warn('Unable to retrieve information from 32Pages - either it is not responding/is down or something else is happening that is stopping me.')
-            return
+            return {'status': False, 'status_msg': e}
+
 
         if self.reauthenticate:
             return
         else:
             mylar.FEEDINFO_32P = feedinfo
-            return feedinfo
+            return {'status': True, 'status_msg': None, 'feedinfo': feedinfo}
 
     def searchit(self):
         if self.status is False:
-            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
 
         chk_id = None
         #logger.info('searchterm: %s' % self.searchterm)
@@ -280,14 +271,14 @@ class info32p(object):
                         t = requests.get(url, params=params, verify=True, headers={'USER-AGENT': mylar.USER_AGENT[:mylar.USER_AGENT.find('/')+7] + mylar.USER_AGENT[mylar.USER_AGENT.find('(')+1]})
                     except requests.exceptions.RequestException as e:
                         logger.warn(e)
-                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
 
                     if t.status_code == '619':
                         logger.warn('[%s] Unable to retrieve data from site.' % t.status_code)
-                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
                     elif t.status_code == '999':
                         logger.warn('[%s] No series title was provided to the search query.' % t.status_code)
-                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
 
                     try:
                         results = t.json()
@@ -296,7 +287,7 @@ class info32p(object):
 
                     if len(results) == 0:
                         logger.warn('No results found for search on 32P.')
-                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+                        return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
 
 #        with cfscrape.create_scraper(delay=15) as s:
 #            s.headers = self.headers
@@ -356,7 +347,7 @@ class info32p(object):
                 pubmatch = True
 
         if all([len(data) == 0, len(pdata) == 0]):
-            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results"}
+            return {'status': self.status, 'status_msg': self.status_msg, 'results': "no results", 'error': self.error}
         else:
             dataset = []
             if len(data) > 0:
@@ -437,11 +428,11 @@ class info32p(object):
         else:
             resultlist = 'no results'
 
-        return {'status': self.status, 'status_msg': self.status_msg, 'results': resultlist}
+        return {'status': self.status, 'status_msg': self.status_msg, 'results': resultlist, 'error': self.error}
 
     def downloadfile(self, payload, filepath):
         if self.status is False:
-            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False}
+            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False, 'error': self.error}
 
         url = 'https://32pag.es/torrents.php'
         try:
@@ -457,7 +448,7 @@ class info32p(object):
                 self.delete_cache_entry(payload['id'])
             else:
                 logger.fdebug('content: %s' % r.content)
-            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False}
+            return {'status': self.status, 'status_msg': self.status_msg, 'download_bool': False, 'error': self.error}
 
 
         with open(filepath, 'wb') as f:
@@ -466,7 +457,7 @@ class info32p(object):
                     f.write(chunk)
                     f.flush()
 
-        return True
+        return {'status': True, 'status_msg': self.status_msg, 'download_bool': True }
 
     def delete_cache_entry(self, id):
         myDB = db.DBConnection()
@@ -502,6 +493,8 @@ class info32p(object):
             self.passkey = None
             self.uid = None
             self.inkdrops = None
+            self.error = None
+            self.method = None
 
         def cookie_exists(self, name):
             '''
@@ -700,18 +693,34 @@ class info32p(object):
                 logger.fdebug('%s Session key-based login was good.' % self.module)
                 self.method = 'Session Cookie retrieved OK.'
                 return {'ses': self.ses,
-                        'status': True}
+                        'status': True,
+                        'error': self.error,
+                        'method': self.method,
+                        'uid': self.uid,
+                        'authkey': self.authkey,
+                        'passkey': self.passkey}
 
             if (self.test_login()):
                 logger.fdebug('%s Credential-based login was good.' % self.module)
                 self.method = 'Credential-based login OK.'
                 return {'ses': self.ses,
-                        'status': True}
+                        'status': True,
+                        'error': self.error,
+                        'method': self.method,
+                        'uid': self.uid,
+                        'authkey': self.authkey,
+                        'passkey': self.passkey}
 
             logger.warn('%s Both session key and credential-based logins failed.' % self.module)
             self.method = 'Both session key & credential login failed.'
             return {'ses': self.ses,
-                    'status': False}
+                    'status': False,
+                    'error': self.error,
+                    'method': self.method,
+                    'uid': self.uid,
+                    'authkey': self.authkey,
+                    'passkey': self.passkey}
+
 
 
 #if __name__ == '__main__':

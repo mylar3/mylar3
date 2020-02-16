@@ -102,15 +102,15 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     logger.fdebug("Checking for torrent enabled.")
     checked_once = False
     if mylar.CONFIG.ENABLE_TORRENT_SEARCH: #and mylar.CONFIG.ENABLE_TORRENTS:
-        if mylar.CONFIG.ENABLE_32P:
+        if mylar.CONFIG.ENABLE_32P and not helpers.block_provider_check('32P'):
             torprovider.append('32p')
             torp+=1
-        if mylar.CONFIG.ENABLE_PUBLIC:
+        if mylar.CONFIG.ENABLE_PUBLIC and not helpers.block_provider_check('public torrents'):
             torprovider.append('public torrents')
             torp+=1
         if mylar.CONFIG.ENABLE_TORZNAB is True:
             for torznab_host in mylar.CONFIG.EXTRA_TORZNABS:
-                if torznab_host[4] == '1' or torznab_host[4] == 1:
+                if any([torznab_host[4] == '1', torznab_host[4] == 1]) and not helpers.block_provider_check(torznab_host[0]):
                     torznab_hosts.append(torznab_host)
                     torprovider.append('torznab: %s' % torznab_host[0])
                     torznabs+=1
@@ -119,16 +119,16 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     ##'dognzb' or 'nzb.su' or 'experimental'
     nzbprovider = []
     nzbp = 0
-    if mylar.CONFIG.NZBSU == True:
+    if mylar.CONFIG.NZBSU == True and not helpers.block_provider_check('nzb.su'):
         nzbprovider.append('nzb.su')
         nzbp+=1
-    if mylar.CONFIG.DOGNZB == True:
+    if mylar.CONFIG.DOGNZB == True and not helpers.block_provider_check('dognzb'):
         nzbprovider.append('dognzb')
         nzbp+=1
 
     # --------
     #  Xperimental
-    if mylar.CONFIG.EXPERIMENTAL == True:
+    if mylar.CONFIG.EXPERIMENTAL == True and not helpers.block_provider_check('experimental'):
         nzbprovider.append('experimental')
         nzbp+=1
 
@@ -138,7 +138,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
 
     if mylar.CONFIG.NEWZNAB is True:
         for newznab_host in mylar.CONFIG.EXTRA_NEWZNABS:
-            if newznab_host[5] == '1' or newznab_host[5] == 1:
+            if any([newznab_host[5] == '1', newznab_host[5] == 1]) and not helpers.block_provider_check(newznab_host[0]):
                 newznab_hosts.append(newznab_host)
                 nzbprovider.append('newznab: %s' % newznab_host[0])
                 newznabs+=1
@@ -146,7 +146,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
     ddls = 0
     ddlprovider = []
 
-    if mylar.CONFIG.ENABLE_DDL is True:
+    if mylar.CONFIG.ENABLE_DDL is True and not helpers.block_provider_check('DDL'):
         ddlprovider.append('DDL')
         ddls+=1
 
@@ -295,19 +295,20 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             searchprov = None
 
             while (tmp_prov_count > prov_count):
+                provider_blocked = helpers.block_provider_check(prov_order[prov_count])
                 send_prov_count = tmp_prov_count - prov_count
                 newznab_host = None
                 torznab_host = None
-                if prov_order[prov_count] == 'DDL':
+                if prov_order[prov_count] == 'DDL' and not provider_blocked:
                     searchprov = 'DDL'
-                if prov_order[prov_count] == '32p':
+                if prov_order[prov_count] == '32p' and not provider_blocked:
                     searchprov = '32P'
-                elif prov_order[prov_count] == 'public torrents':
+                elif prov_order[prov_count] == 'public torrents' and not provider_blocked:
                     searchprov = 'Public Torrents'
                 elif 'torznab' in prov_order[prov_count]:
                     searchprov = 'torznab'
                     for nninfo in torznab_info:
-                        if nninfo['provider'] == prov_order[prov_count]:
+                        if nninfo['provider'] == prov_order[prov_count] and not provider_blocked:
                             torznab_host = nninfo['info']
                     if torznab_host is None:
                         logger.fdebug('there was an error - torznab information was blank and it should not be.')
@@ -315,7 +316,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                 #this is for newznab
                     searchprov = 'newznab'
                     for nninfo in newznab_info:
-                        if nninfo['provider'] == prov_order[prov_count]:
+                        if nninfo['provider'] == prov_order[prov_count] and not provider_blocked:
                             newznab_host = nninfo['info']
                     if newznab_host is None:
                         logger.fdebug('there was an error - newznab information was blank and it should not be.')
@@ -324,12 +325,12 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
                     torznab_host = None
                     searchprov = prov_order[prov_count].lower()
 
-                if searchprov == 'dognzb' and mylar.CONFIG.DOGNZB == 0:
+                if all([searchprov == 'dognzb', mylar.CONFIG.DOGNZB == 0]) or all([searchprov == 'dognzb', not provider_blocked]):
                     #since dognzb could hit the 50 daily api limit during the middle of a search run, check here on each pass to make
                     #sure it's not disabled (it gets auto-disabled on maxing out the API hits)
                     prov_count+=1
                     continue
-                elif all([searchprov == '32P', checked_once is True]) or all([searchprov == 'DDL', checked_once is True]) or all ([searchprov == 'Public Torrents', checked_once is True]) or all([searchprov == 'experimental', checked_once is True]) or all([searchprov == 'DDL', checked_once is True]):
+                elif all([searchprov == '32P', checked_once is True, not provider_blocked]) or all([searchprov == 'DDL', checked_once is True, not provider_blocked]) or all ([searchprov == 'Public Torrents', checked_once is True, not provider_blocked]) or all([searchprov == 'experimental', checked_once is True, not provider_blocked]) or all([searchprov == 'DDL', checked_once is True, not provider_blocked]):
                     prov_count+=1
                     continue
                 if searchmode == 'rss':
@@ -659,10 +660,10 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     a = auth32p.info32p(searchterm=searchterm)
                     bb = a.searchit()
                     try:
-                        bb = bb['results']
                         if bb['status'] is False:
-                            helpers.disable_provider(nzbprov)
-                        if any([bb['results'] is None, bb['results'] == 'no results']):
+                            helpers.disable_provider(nzbprov, bb['error'])
+                        bb = bb['results']
+                        if any([bb['results'] is None, bb == 'no results']):
                             bb = 'no results'
                     except Exception as e:
                         bb = 'no results'
@@ -760,18 +761,22 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
 
                     try:
                         r = requests.get(findurl, params=payload, verify=verify, headers=headers)
+                        r.raise_for_status()
                     except requests.exceptions.Timeout as e:
                         logger.warn('Timeout occured fetching data from %s: %s' % (nzbprov, e))
                         foundc['status'] = False
                         break
                     except requests.exceptions.ConnectionError as e:
                         logger.warn('Connection error trying to retrieve data from %s: %s' % (nzbprov, e))
+                        logger.warn('[%s]Connection error trying to retrieve data from %s: %s' % (errno,nzbprov,e))
+                        if any([errno.ETIMEDOUT, errno.ECONNREFUSED, errno.EHOSTDOWN, errno.EHOSTUNREACH]):
+                            helpers.disable_provider(tmpprov, 'Connection Refused.')
                         foundc['status'] = False
                         break
                     except requests.exceptions.RequestException as e:
-                        logger.warn('General Error fetching data from %s: %s' % (nzbprov, e))
-                        if e.r.status_code == 503: 
-                            #HTTP Error 503
+                        logger.warn('[%s]General Error fetching data from %s: %s' % (errno.errorcode, nzbprov, e))
+                        if any([errno.ETIMEDOUT, errno.ECONNREFUSED, errno.EHOSTDOWN, errno.EHOSTUNREACH]):
+                            helpers.disable_provider(tmpprov, 'Connection Refused.')
                             logger.warn('Aborting search due to Provider unavailability')
                             foundc['status'] = False
                         break
@@ -779,9 +784,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                     try:
                         if str(r.status_code) != '200':
                             logger.warn('Unable to retrieve search results from %s [Status Code returned: %s]' % (tmpprov, r.status_code))
-                            if str(r.status_code) == '503':
+                            if any([str(r.status_code) == '503', str(r.status_code) == '404']):
                                 logger.warn('Unavailable indexer detected. Disabling for a short duration and will try again.')
-                                helpers.disable_provider(tmpprov)
+                                helpers.disable_provider(tmpprov, 'Unavailable Indexer')
                             data = False
                         else:
                             data = r.content
@@ -800,8 +805,8 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                         elif bb['feed']['error']:
                             logger.error('[ERROR CODE: %s] %s' % (bb['feed']['error']['code'], bb['feed']['error']['description']))
                             if bb['feed']['error']['code'] == '910':
-                                logger.warn('DAILY API limit reached. Disabling provider usage until 12:01am')
-                                mylar.CONFIG.DOGNZB = 0
+                                logger.warn('DAILY API limit reached. Disabling %s' % tmpprov)
+                                helpers.disable_provider(tmpprov, 'API Limit reached')
                                 foundc['status'] = False
                                 done = True
                             else:
