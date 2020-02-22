@@ -2404,7 +2404,7 @@
                         var name = document.getElementById("newznab_name"+newznab).value;
                         var host = document.getElementById("newznab_host"+newznab).value;;
                         var ssl = document.getElementById("newznab_verify"+newznab).checked;
-                        var apikey = document.getElementById("newznab_api"+newznab).value;
+                        var apikey = document.getElementById("newznab_apikey"+newznab).value;
                     }
                     $.get("testnewznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
@@ -2432,7 +2432,7 @@
                     var imagechk = document.getElementById("tornabstatus"+torznab);
                     var name = document.getElementById("torznab_name"+torznab).value;
                     var host = document.getElementById("torznab_host"+torznab).value;
-                    var apikey = document.getElementById("torznab_api"+torznab).value;
+                    var apikey = document.getElementById("torznab_apikey"+torznab).value;
                     $.get("testtorznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
                         function(data){
