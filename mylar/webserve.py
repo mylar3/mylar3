@@ -5715,15 +5715,16 @@ class WebInterface(object):
         issueeditor = []
         issueinker = []
         issuecolorist = []
+        seriestitle = None
+        meta_data = issuedetails['metadata']
         if issuedetails['datamode'] == 'single_issue':
-            single_data = issuedetails['metadata']
-            seriestitle = single_data['series']
-            issuenumber = single_data['issue_number']
-            issuetitle = single_data['title']
-            issuesummary = single_data['description']
-            issue_rls = single_data['storedate']
+            seriestitle = meta_data['series']
+            issuenumber = meta_data['issue_number']
+            issuetitle = meta_data['title']
+            issuesummary = meta_data['description']
+            issue_rls = meta_data['storedate']
             if issue_rls is None:
-                issue_rls = single_data['coverdate']
+                issue_rls = meta_data['coverdate']
             if issue_rls is None:
                 issueday = '00'
                 issuemonth = '00'
@@ -5732,7 +5733,7 @@ class WebInterface(object):
                 issueday = issue_rls[8:10]
                 issuemonth = issue_rls[5:7]
                 issueyear = issue_rls[:4]
-            for xi in single_data['credits']:
+            for xi in meta_data['credits']:
                 if xi['role'] == 'writer':
                     issuewriter.append(xi['name'])
                 if xi['role'] == 'penciller':
@@ -5746,55 +5747,58 @@ class WebInterface(object):
                 if xi['role'] == 'editor':
                     issueeditor.append(xi['name'])
             pagecount = None
-        elif 'series' not in issuedetails:
+        elif all([seriestitle is None, meta_data is None]): # and 'series' not in meta_data:
             myDB = db.DBConnection()
-            issueinfo = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
-            seriestitle = issueinfo['ComicName']
-            issuenumber = issueinfo['Issue_Number']
+            meta_data = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            seriestitle = meta_data['ComicName']
+            issuenumber = meta_data['Issue_Number']
             try:
-                issuetitle = issueinfo['IssueName'].decode('utf-8')
+                issuetitle = meta_data['IssueName'].decode('utf-8')
             except:
-                issuetitle = issueinfo['IssueName']
-            issue_rls = issueinfo['IssueDate']
+                issuetitle = meta_data['IssueName']
+            issue_rls = meta_data['IssueDate']
             if issue_rls is None:
-                issue_rls = issueinfo['StoreDate']
+                issue_rls = meta_data['StoreDate']
             pagecount = None
             issueday = issue_rls[8:10]
             issuemonth = issue_rls[5:7]
             issueyear = issue_rls[:4]
             issuesummary = None
         else:
-            seriestitle = issuedetails['series']
+            seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = urllib.parse.unquote_plus(comicname)
 
-            issuenumber = issuedetails['issue_number']
+            issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
                 issuenumber = urllib.parse.unquote_plus(issue)
 
-            issuetitle = issuedetails['title']
+            issuetitle = meta_data['title']
             if any([issuetitle == 'None', issuetitle is None]):
                 issuetitle = urllib.parse.unquote_plus(title)
             if re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', issuetitle, re.I) != re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', title, re.I):
                 issuetitle = urllib.parse.unquote_plus(title)
-            pagecount = issuedetails['pagecount']
-            issueday = issuedetails['day']
-            issuemonth = issuedetails['month']
-            issueyear = issuedetails['year']
-            if issuedetails['writer'] is not None:
-                issuewriter.append(issuedetails['writer'])
-            if issuedetails['penciller'] is not None:
-                issuepenciller.append(issuedetails['penciller'])
-            if issuedetails['inker'] is not None:
-                issueinker.append(issuedetails['inker'])
-            if issuedetails['colorist'] is not None:
-                issuecolorist.append(issuedetails['colorist'])
-            if issuedetails['letterer'] is not None:
-                issueletterer.append(issuedetails['letterer'])
-            if issuedetails['editor'] is not None:
-                issueeditor.append(issuedetails['editor'])
-            issuesummary = issuedetails['summary']
-        if issuedetails is not None:
+            try:
+                pagecount = meta_data['pagecount']
+            except:
+                pagecount = None
+            issueday = meta_data['day']
+            issuemonth = meta_data['month']
+            issueyear = meta_data['year']
+            if meta_data['writer'] is not None:
+                issuewriter.append(meta_data['writer'])
+            if meta_data['penciller'] is not None:
+                issuepenciller.append(meta_data['penciller'])
+            if meta_data['inker'] is not None:
+                issueinker.append(meta_data['inker'])
+            if meta_data['colorist'] is not None:
+                issuecolorist.append(meta_data['colorist'])
+            if meta_data['letterer'] is not None:
+                issueletterer.append(meta_data['letterer'])
+            if meta_data['editor'] is not None:
+                issueeditor.append(meta_data['editor'])
+            issuesummary = meta_data['summary']
+        if meta_data is not None:
             issueinfo = '<table width="500"><tr><td>'
             issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails['IssueImage']
             if all([issuenumber is not None, issuenumber != 'None']):

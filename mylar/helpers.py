@@ -1531,7 +1531,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                 issuetag = 'comment'
             else:
                 logger.warn('No metadata available in zipfile comment field.')
-                return {'IssueImage': IssueImage, 'datamode': 'file'}
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
 
     logger.info('Tag returned as being: ' + str(issuetag))
 
@@ -1759,7 +1759,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         logger.warn('Unable to locate any metadata within cbz file. Tag this file and try again if necessary.')
         return
 
-    return  {"title":        issue_title,
+    return  {'metadata': {"title":        issue_title,
              "series":       series_title,
              "volume":       series_volume,
              "issue_number": issue_number,
@@ -1777,7 +1777,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
              "editor":       editor,
              "publisher":    publisher,
              "webpage":      webpage,
-             "pagecount":    pagecount,
+             "pagecount":    pagecount},
              "IssueImage":   IssueImage,
              "datamode":     'file'}
 
