@@ -12,6 +12,7 @@ import re
 import configparser
 import mylar
 from mylar import logger, helpers, encrypted
+import errno
 
 config = configparser.ConfigParser()
 
