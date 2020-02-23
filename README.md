@@ -1,8 +1,6 @@
 ## ![Mylar Logo](https://github.com/evilhero/mylar/blob/master/data/images/mylarlogo.png) Mylar3
 
-## This fork is a Work-In-Progress. 
-## Some things will be completely broken, while other parts may work fine or partially.
-## Do not use this branch unless you're willing and able to fix things.
+## This fork is a Work-In-Progress, but should still be stable enough for daily use. 
 
 Mylar is an automated Comic Book (cbr/cbz) downloader program for use with NZB and torrents written in python. It supports SABnzbd, NZBGET, and many torrent clients in addition to DDL.
 
