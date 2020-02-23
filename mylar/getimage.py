@@ -49,7 +49,7 @@ def extract_image(location, single=False, imquality=None):
     pic_extensions = ('.jpg','.png','.webp')
     issue_ends = ('1','0')
     modtime = os.path.getmtime(location)
-    low_infile = 9999999999999
+    low_infile = 999999999999999999
     low_num = 1000
     local_filename = os.path.join(mylar.CONFIG.CACHE_DIR, 'temp_notif')
     cb_filename= None
