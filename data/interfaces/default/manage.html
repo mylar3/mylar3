@@ -32,17 +32,23 @@
                                          %if mylar.IMPORT_STATUS == 'Import completed.':
                                              <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
                                              <script>
-                                             turnitoff();
+                                             $(function() {
+                                               turnitoff();
+                                             });
                                              </script>
                                          %else:
                                              <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" DISABLED /></br>
                                              <script>
-                                             turniton();
+                                             $(function() {
+                                               turniton();
+                                             });
                                              </script>
                                          %endif
                                      %else:
                                          <script>
-                                         turnitoff();
+                                         $(function() {
+                                           turnitoff();
+                                         });
                                          </script>
                                          <input type="text" name="importstatus" id="importstatus" style="text-align:center; font-size:11px;" size="60" value="Import is currently not running" DISABLED /></br>
                                      %endif
@@ -277,7 +283,9 @@
         };
         function turnitoff() {
             CheckEnabled = false;
-            clearInterval(ImportTimer);
+            if (typeof ImportTimer !== 'undefined') {
+                clearInterval(ImportTimer);
+            }
         };
         function turniton() {
             if (CheckEnabled == false) {
