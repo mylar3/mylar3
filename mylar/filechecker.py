@@ -337,7 +337,7 @@ class FileChecker(object):
                 issueid = modfilename[x+3:y]
                 logger.fdebug('issueid: %s' % issueid)
                 modfilename = '%s %s'.strip() % (modfilename[:x], modfilename[y+3:])
-                logger.fdebug('issueid %s removed successsfully: %s' % (issueid, modfilename))
+                logger.fdebug('issueid %s removed successfully: %s' % (issueid, modfilename))
 
         #here we take a snapshot of the current modfilename, the intent is that we will remove characters that match
         #as we discover them - namely volume, issue #, years, etc
