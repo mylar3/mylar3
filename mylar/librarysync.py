@@ -21,6 +21,7 @@ import glob
 import re
 import shutil
 import random
+import traceback
 
 import mylar
 from mylar import db, logger, helpers, importer, updater, filechecker
@@ -282,13 +283,13 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                 else:
                     logger.info('issueinfo: ' + str(issueinfo))
 
-                    if issueinfo is None:
+                    if issueinfo is None or issueinfo['metadata'] is None:
                         logger.fdebug('[IMPORT-CBZ] No valid metadata contained within filename. Dropping down to parsing the filename itself.')
                         pass
                     else:
                         issuenotes_id = None
                         logger.info('[IMPORT-CBZ] Successfully retrieved some tags. Lets see what I can figure out.')
-                        comicname = issueinfo[0]['series']
+                        comicname = issueinfo['metadata']['series']
                         if comicname is not None:
                             logger.fdebug('[IMPORT-CBZ] Series Name: ' + comicname)
                             as_d = filechecker.FileChecker()
@@ -301,12 +302,12 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
 
                         if issueinfo is not None:
                             try:
-                                issueyear = issueinfo[0]['year']
+                                issueyear = issueinfo['metadata']['year']
                             except:
                                 issueyear = None
 
                             #if the issue number is a non-numeric unicode string, this will screw up along with impID
-                            issue_number = issueinfo[0]['issue_number']
+                            issue_number = issueinfo['metadata']['issue_number']
                             if issue_number is not None:
                                 logger.fdebug('[IMPORT-CBZ] Issue Number: ' + issue_number)
                             else:
@@ -330,15 +331,15 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                             logger.fdebug('issue number SHOULD Be: ' + issue_number)
 
                             try:
-                                issuetitle = issueinfo[0]['title']
+                                issuetitle = issueinfo['metadata']['title']
                             except:
                                 issuetitle = None
                             try:
-                                issueyear = issueinfo[0]['year']
+                                issueyear = issueinfo['metadata']['year']
                             except:
                                 issueyear = None
                             try:
-                                issuevolume = str(issueinfo[0]['volume'])
+                                issuevolume = str(issueinfo['metadata']['volume'])
                                 if all([issuevolume is not None, issuevolume != 'None', not issuevolume.lower().startswith('v')]):
                                     issuevolume = 'v' + str(issuevolume)
                                 if any([issuevolume is None, issuevolume == 'None']):
@@ -356,7 +357,7 @@ def libraryScan(dir=None, append=False, ComicID=None, ComicName=None, cron=None,
                                 pass
                             else:
                                 # if used by ComicTagger, Notes field will have the IssueID.
-                                issuenotes = issueinfo[0]['notes']
+                                issuenotes = issueinfo['metadata']['notes']
                                 logger.fdebug('[IMPORT-CBZ] Notes: ' + issuenotes)
                                 if issuenotes is not None and issuenotes != 'None':
                                     if 'Issue ID' in issuenotes:
@@ -622,6 +623,7 @@ def scanLibrary(scan=None, queue=None):
             soma = libraryScan(queue=queue)
         except Exception as e:
             logger.error('[IMPORT] Unable to complete the scan: %s' % e)
+            logger.error(traceback.format_exc())
             mylar.IMPORT_STATUS = None
             valreturn.append({"somevalue":  'self.ie',
                               "result":     'error'})
