@@ -6069,7 +6069,7 @@ class WebInterface(object):
     testrtorrent.exposed = True
 
     def testqbit(self, host, username, password):
-        from torrent.clients import qbittorrent as QbitClient
+        from mylar.torrent.clients import qbittorrent as QbitClient
         qc = QbitClient.TorrentClient()
         qclient = qc.connect(host, username, password, True)
         if not qclient:
@@ -6085,7 +6085,7 @@ class WebInterface(object):
     testqbit.exposed = True
 
     def testdeluge(self, host, username, password):
-        from torrent.clients import deluge as DelugeClient
+        from mylar.torrent.clients import deluge as DelugeClient
         client = DelugeClient.TorrentClient()
         dclient = client.connect(host, username, password, True)
         if not dclient:
