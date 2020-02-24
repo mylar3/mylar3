@@ -4539,7 +4539,7 @@ class WebInterface(object):
                             if str(maxyear) not in yearRANGE:
                                 #logger.info('maxyear:' + str(maxyear))
                                 #logger.info('yeartop:' + str(yearTOP))
-                                for i in range(maxyear, int(yearTOP),1):
+                                for i in range(int(maxyear), int(yearTOP),1):
                                     if not any(int(x) == int(i) for x in yearRANGE):
                                         yearRANGE.append(str(i))
                         else:
