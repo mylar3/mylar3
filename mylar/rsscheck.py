@@ -33,6 +33,8 @@ from mylar.torrent.clients import transmission
 from mylar.torrent.clients import  deluge as deluge
 from mylar.torrent.clients import qbittorrent as qbittorrent
 
+REDIRECT_STATUS_CODES = (301, 302, 303, 307, 308)
+
 def _start_newznab_attr(self, attrsD):
     context = self._getContext()
 
@@ -1118,7 +1120,18 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 r = scraper.get(url, params=payload, cookies=mylar.WWT_CF_COOKIEVALUE, verify=verify, stream=True, headers=headers)
             else:
                 r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers)
-            #r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+                if url.startswith('magnet'):
+                    logger.info("Magnet url do not scrape.")
+                    linkit = filepath = url
+                 else:
+                     r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers, allow_redirects=False)
+                     if r.status_code in REDIRECT_STATUS_CODES:
+                         redir_url = r.headers['Location']
+                         if redir_url.startswith('magnet'):
+                             logger.info("Got a magnet url from redirect.")
+                             linkit = filepath = redir_url
+                         else:
+                             r = scraper.get(redir_url, stream=True)
         except Exception as e:
             logger.warn('Error fetching data from %s (%s): %s' % (site, url, e))
         #    if site == '32P':
@@ -1147,41 +1160,42 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
         #    else:
         #        return "fail"
 
-        if any([site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
-            if str(r.status_code) != '503':
-                logger.warn('Unable to download from ' + site + ' [' + str(r.status_code) + ']')
-                #retry with the alternate torrent link.
-                url = helpers.torrent_create(site, linkit, True)
-                logger.fdebug('Trying alternate url: ' + str(url))
-                try:
-                    r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
+        if not filepath.startswith('magnet:'):
+            if any([site == 'DEM', site == 'WWT']) and any([str(r.status_code) == '403', str(r.status_code) == '404', str(r.status_code) == '503']):
+                if str(r.status_code) != '503':
+                    logger.warn('Unable to download from ' + site + ' [' + str(r.status_code) + ']')
+                    #retry with the alternate torrent link.
+                    url = helpers.torrent_create(site, linkit, True)
+                    logger.fdebug('Trying alternate url: ' + str(url))
+                    try:
+                        r = requests.get(url, params=payload, verify=verify, stream=True, headers=headers)
 
-                except Exception as e:
-                    return "fail"
-            else:
-                logger.warn('Cloudflare protection online for ' + site + '. Attempting to bypass...')
-                try:
-                    scraper = cfscrape.create_scraper()
-                    cf_cookievalue, cf_user_agent = cfscrape.get_cookie_string(url)
-                    headers = {'Accept-encoding': 'gzip',
-                               'User-Agent':       cf_user_agent}
+                    except Exception as e:
+                        return "fail"
+                else:
+                    logger.warn('Cloudflare protection online for ' + site + '. Attempting to bypass...')
+                    try:
+                        scraper = cfscrape.create_scraper()
+                        cf_cookievalue, cf_user_agent = cfscrape.get_cookie_string(url)
+                        headers = {'Accept-encoding': 'gzip',
+                                'User-Agent':       cf_user_agent}
 
-                    r = scraper.get(url, verify=verify, cookies=cf_cookievalue, stream=True, headers=headers)
-                except Exception as e:
-                    return "fail"
+                        r = scraper.get(url, verify=verify, cookies=cf_cookievalue, stream=True, headers=headers)
+                    except Exception as e:
+                        return "fail"
 
-        if any([site == 'DEM', site == 'WWT']):
-            if r.headers.get('Content-Encoding') == 'gzip':
-                buf = StringIO(r.content)
-                f = gzip.GzipFile(fileobj=buf)
+            if any([site == 'DEM', site == 'WWT']):
+                if r.headers.get('Content-Encoding') == 'gzip':
+                    buf = StringIO(r.content)
+                    f = gzip.GzipFile(fileobj=buf)
 
-        with open(filepath, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk: # filter out keep-alive new chunks
-                    f.write(chunk)
-                    f.flush()
+            with open(filepath, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+                        f.flush()
 
-        logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
+            logger.fdebug('[' + site + '] Saved torrent file to : ' + filepath)
     else:
        if site != '32P':
            #tpse is magnet links only...
