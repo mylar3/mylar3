@@ -1012,22 +1012,30 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
             if any([mylar.CONFIG.USERNAME_32P is None, mylar.CONFIG.USERNAME_32P == '', mylar.CONFIG.PASSWORD_32P is None, mylar.CONFIG.PASSWORD_32P == '']):
                 logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
                 return "fail"
-            elif mylar.CONFIG.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
+            elif mylar.KEYS_32P is None:
                 logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication enabled. Keys have not been established yet, attempting to gather.')
                 feed32p = auth32p.info32p(reauthenticate=True)
                 feedinfo = feed32p.authenticate()
                 if feedinfo['status'] is False or feedinfo['status_msg'] == "disable":
                     helpers.disable_provider('32P')
                     return "fail"
-                if mylar.CONFIG.PASSKEY_32P is None or mylar.AUTHKEY_32P is None or mylar.KEYS_32P is None:
+                if mylar.KEYS_32P is None:
                     logger.error('[RSS] Unable to sign-on to 32P to validate settings and initiate download sequence. Please enter/check your username password in the configuration.')
                     return "fail"
             else:
                 logger.fdebug('[32P-AUTHENTICATION] 32P (Auth Mode) Authentication already done. Attempting to use existing keys.')
 
+        if mylar.KEYS_32P:
+            #keys_32p will be set for auth mode
+            auth_key = mylar.KEYS_32P['auth']
+            pass_key = mylar.KEYS_32P['passkey']
+        else:
+            #authkey_32p & passkey_32p are set for legacy mode 
+            auth_key = mylar.AUTHKEY_32P
+            pass_key = mylar.CONFIG.PASSKEY_32P
         payload = {'action':       'download',
-                   'torrent_pass': mylar.CONFIG.PASSKEY_32P,
-                   'authkey':      mylar.AUTHKEY_32P,
+                   'torrent_pass': pass_key,
+                   'authkey':      auth_key,
                    'id':           linkit}
 
         dfile = auth32p.info32p()

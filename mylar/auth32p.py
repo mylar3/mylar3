@@ -128,6 +128,8 @@ class info32p(object):
                               'authkey': str(self.authkey)}
         if self.mode == 'RSS':
             return self.rssfeed()
+        else:
+            return {'status': self.status, 'status_msg': self.status_msg, 'inkdrops': mylar.INKDROPS_32P, 'error': self.error}
 
     def callthesearch(self):
         if self.searchterm:
@@ -202,7 +204,7 @@ class info32p(object):
 
 
         if self.reauthenticate:
-            return
+            return {'status': True, 'status_msg': None, 'feedinfo': feedinfo}
         else:
             mylar.FEEDINFO_32P = feedinfo
             return {'status': True, 'status_msg': None, 'feedinfo': feedinfo}
