@@ -126,22 +126,21 @@ class TorrentClient(object):
 
 
                 #Check if torrent already added
-                if self.find_torrent(str.lower(hash)):
+                torrent_id = self.get_torrent(str.lower(hash))
+                if torrent_id:
                     logger.info('load_torrent: Torrent already exists!')
-                    #should set something here to denote that it's already loaded, and then the failed download checker not run so it doesn't download
-                    #multiple copies of the same issues that's already downloaded
                 else:
                     logger.info('Torrent not added yet, trying to add it now!')
                     try:
                         torrent_id = self.client.call('core.add_torrent_file', str(os.path.basename(filepath)), base64.encodestring(torrentcontent), options)
                     except Exception as e:
-                        logger.debug('Torrent not added')
+                        logger.debug('Torrent not added: %s', str(e))
                         return False
             else:
                 try:
                     torrent_id = self.client.call('core.add_torrent_magnet', str(filepath), options)
                 except Exception as e:
-                    logger.debug('Torrent not added')
+                    logger.debug('Torrent not added: %s', str(e))
                     return False
 
             # If label enabled put label on torrent in Deluge
@@ -160,10 +159,11 @@ class TorrentClient(object):
                         logger.info('Succesfully set label to ' + mylar.CONFIG.DELUGE_LABEL)
 
         try:
-            torrent_info = self.get_torrent(torrent_id)
             logger.info('Double checking that the torrent was added.')
+            torrent_info = self.get_torrent(torrent_id)
         except Exception as e:
             logger.warn('Torrent was not added! Please check logs')
+            logger.debug("torrent_id:", torrent_id)
             return False
         else:
             logger.info('Torrent successfully added!')
