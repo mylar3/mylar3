@@ -912,16 +912,16 @@
                                             %>
                                             %for torznab in config['extra_torznabs']:
                                                 <%
-                                                    if torznab[4] == '1' or torznab[4] == 1:
-                                                        torznab_enabled = "checked"
-                                                    else:
-                                                        torznab_enabled = ""
-
                                                     if torznab[2] == '1' or torznab[2] == 1:
                                                         torznab_verify = "checked"
                                                     else:
                                                         torznab_verify = ""
-                                                %>
+ 
+                                                    if torznab[5] == '1' or torznab[5] == 1:
+                                                        torznab_enabled = "checked"
+                                                    else:
+                                                        torznab_enabled = ""
+                                               %>
 
                                                 <div class="config" id="torznab${torznab_number}">
                                                     <div class="row">
