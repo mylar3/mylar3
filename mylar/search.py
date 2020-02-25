@@ -2140,7 +2140,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         logger.info('nzbid: %s' % nzbid)
         logger.info('IssueID: %s' % IssueID)
         logger.info('oneoff: %s' % oneoff)
-        if all([nzbid is not None, IssueID is not None, oneoff is False]):
+        if all([nzbid is not None and nzbid != '', IssueID is not None, oneoff is False]):
             # --- this causes any possible snatch to get marked as a Failed download when doing a one-off search...
             #try:
             #    # only nzb providers will have a filen, try it and pass exception
