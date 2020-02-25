@@ -102,7 +102,7 @@ class TorrentClient(object):
                     try:
                         tid = self.client.download_from_link(filepath, **addargs)
                     except Exception as e:
-                        logger.error('Torrent not added')
+                        logger.error('Torrent not added - %s' % e)
                         return {'status': False, 'error': e}
                     else:
                         logger.debug('Successfully submitted for add as a magnet. Verifying item is now on client.')
@@ -111,7 +111,7 @@ class TorrentClient(object):
                         torrent_content = open(filepath, 'rb')
                         tid = self.client.download_from_file(torrent_content, **addargs)
                     except Exception as e:
-                        logger.error('Torrent not added')
+                        logger.error('Torrent not added - %s' % e)
                         return {'status': False, 'error': e}
                     else:
                         logger.debug('Successfully submitted for add via file. Verifying item is now on client.')

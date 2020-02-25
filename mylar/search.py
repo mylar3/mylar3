@@ -667,8 +667,6 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
                             bb = 'no results'
                     except Exception as e:
                         bb = 'no results'
-                    else:
-                        bb = 'no results'
                 else:
                     bb = "no results"
             elif nzbprov == 'Public Torrents':
