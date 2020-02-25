@@ -1123,15 +1123,15 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                 if url.startswith('magnet'):
                     logger.info("Magnet url do not scrape.")
                     linkit = filepath = url
-                 else:
-                     r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers, allow_redirects=False)
-                     if r.status_code in REDIRECT_STATUS_CODES:
-                         redir_url = r.headers['Location']
-                         if redir_url.startswith('magnet'):
-                             logger.info("Got a magnet url from redirect.")
-                             linkit = filepath = redir_url
-                         else:
-                             r = scraper.get(redir_url, stream=True)
+                else:
+                    r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers, allow_redirects=False)
+                    if r.status_code in REDIRECT_STATUS_CODES:
+                        redir_url = r.headers['Location']
+                        if redir_url.startswith('magnet'):
+                            logger.info("Got a magnet url from redirect.")
+                            linkit = filepath = redir_url
+                        else:
+                            r = scraper.get(redir_url, stream=True)
         except Exception as e:
             logger.warn('Error fetching data from %s (%s): %s' % (site, url, e))
         #    if site == '32P':
