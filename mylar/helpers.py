@@ -3625,6 +3625,42 @@ def newznab_test(name, host, ssl, apikey):
         logger.info('[ERROR:%s] - %s' % (code, description))
         return False
 
+def torznab_test(name, host, ssl, apikey):
+    from xml.dom.minidom import parseString, Element
+    params = {'t':       'search',
+              'apikey':  apikey,
+              'o':       'xml'}
+
+    if host[-1:] == '/':
+        host = host[:-1]
+    headers = {'User-Agent': str(mylar.USER_AGENT)}
+    logger.info('host: %s' % host)
+    try:
+        r = requests.get(host, params=params, headers=headers, verify=bool(ssl))
+    except Exception as e:
+        logger.warn('Unable to connect: %s' % e)
+        return
+    else:
+        try:
+            data = parseString(r.content)
+        except Exception as e:
+            logger.warn('[WARNING] Error attempting to test: %s' % e)
+
+        try:
+            error_code = data.getElementsByTagName('error')[0].attributes['code'].value
+        except Exception as e:
+            logger.info('Connected - Status code returned: %s' % r.status_code)
+            if r.status_code == 200:
+                return True
+            else:
+                logger.warn('Received response - Status code returned: %s' % r.status_code)
+                return False
+
+        code = error_code
+        description = data.getElementsByTagName('error')[0].attributes['description'].value
+        logger.info('[ERROR:%s] - %s' % (code, description))
+        return False
+
 def get_free_space(folder):
     min_threshold = 100000000 #threshold for minimum amount of freespace available (#100mb)
     if platform.system() == "Windows":

@@ -110,7 +110,7 @@ def search_init(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueD
             torp+=1
         if mylar.CONFIG.ENABLE_TORZNAB is True:
             for torznab_host in mylar.CONFIG.EXTRA_TORZNABS:
-                if any([torznab_host[4] == '1', torznab_host[4] == 1]) and not helpers.block_provider_check(torznab_host[0]):
+                if any([torznab_host[5] == '1', torznab_host[5] == 1]) and not helpers.block_provider_check(torznab_host[0]):
                     torznab_hosts.append(torznab_host)
                     torprovider.append('torznab: %s' % torznab_host[0])
                     torznabs+=1
@@ -460,9 +460,9 @@ def NZB_SEARCH(ComicName, IssueNumber, ComicYear, SeriesYear, Publisher, IssueDa
     elif nzbprov == 'torznab':
         name_torznab = torznab_host[0].rstrip()
         host_torznab = torznab_host[1].rstrip()
-        apikey = torznab_host[2].rstrip()
-        verify = False
-        category_torznab = torznab_host[3]
+        verify = bool(torznab_host[2])
+        apikey = torznab_host[3].rstrip()
+        category_torznab = torznab_host[4]
         if any([category_torznab is None, category_torznab == 'None']):
             category_torznab = '8020'
         logger.fdebug('Using Torznab host of : %s' % name_torznab)
@@ -1603,7 +1603,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
     myDB = db.DBConnection()
 
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
-    ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[4] == '1']
+    ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[5] == '1']
     if (any([mylar.CONFIG.ENABLE_DDL is True, mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.ENABLE_TORZNAB is True, len(ets) > 0]))):
         if not issueid or rsscheck:
 
@@ -1891,7 +1891,7 @@ def searchforissue(issueid=None, new=False, rsscheck=None, manual=False):
 def searchIssueIDList(issuelist):
     myDB = db.DBConnection()
     ens = [x for x in mylar.CONFIG.EXTRA_NEWZNABS if x[5] == '1']
-    ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[4] == '1']
+    ets = [x for x in mylar.CONFIG.EXTRA_TORZNABS if x[5] == '1']
     if (any([mylar.CONFIG.NZBSU is True, mylar.CONFIG.DOGNZB is True, mylar.CONFIG.EXPERIMENTAL is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ens) > 0]) and any([mylar.USE_SABNZBD is True, mylar.USE_NZBGET is True, mylar.USE_BLACKHOLE is True])) or (all([mylar.CONFIG.ENABLE_TORRENT_SEARCH is True, mylar.CONFIG.ENABLE_TORRENTS is True]) and (any([mylar.CONFIG.ENABLE_PUBLIC is True, mylar.CONFIG.ENABLE_32P is True]) or all([mylar.CONFIG.NEWZNAB is True, len(ets) > 0]))):
         for issueid in issuelist:
             logger.info('searching for issueid: %s' % issueid)
@@ -2140,7 +2140,7 @@ def searcher(nzbprov, nzbname, comicinfo, link, IssueID, ComicID, tmpprov, direc
         logger.info('nzbid: %s' % nzbid)
         logger.info('IssueID: %s' % IssueID)
         logger.info('oneoff: %s' % oneoff)
-        if all([nzbid is not None, IssueID is not None, oneoff is False]):
+        if all([nzbid is not None and nzbid != '', IssueID is not None, oneoff is False]):
             # --- this causes any possible snatch to get marked as a Failed download when doing a one-off search...
             #try:
             #    # only nzb providers will have a filen, try it and pass exception
