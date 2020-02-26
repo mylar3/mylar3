@@ -1119,7 +1119,6 @@ def torsend2client(seriesname, issue, seriesyear, linkit, site, pubhash=None):
                     mylar.WWT_CF_COOKIEVALUE = cf_cookievalue
                 r = scraper.get(url, params=payload, cookies=mylar.WWT_CF_COOKIEVALUE, verify=verify, stream=True, headers=headers)
             else:
-                r = scraper.get(url, params=payload, verify=verify, stream=True, headers=headers)
                 if url.startswith('magnet'):
                     logger.info("Magnet url do not scrape.")
                     linkit = filepath = url
