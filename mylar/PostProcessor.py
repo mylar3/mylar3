@@ -2537,7 +2537,7 @@ class PostProcessor(object):
                         rem_issueid = nfilename[xyb+3:yyb]
                         logger.fdebug('issueid: %s' % rem_issueid)
                         nfilename = '%s %s'.strip() % (nfilename[:xyb], nfilename[yyb+3:])
-                        logger.fdebug('issueid information [%s] removed successsfully: %s' % (rem_issueid, nfilename))
+                        logger.fdebug('issueid information [%s] removed successfully: %s' % (rem_issueid, nfilename))
 
             self._log("New Filename: %s" % nfilename)
             logger.fdebug('%s New Filename: %s' % (module, nfilename))

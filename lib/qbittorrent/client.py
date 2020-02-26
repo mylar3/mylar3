@@ -290,7 +290,7 @@ class Client(object):
             links = link
         torrent_data = {}
         torrent_data['urls'] = (None, links)
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             torrent_data[k] = (None, v)
         return self._post('api/v2/torrents/add', data=None, files=torrent_data)
 
@@ -317,7 +317,7 @@ class Client(object):
         else:
             fname = file_buffer.name
             torrent_data = [('torrents', (fname, file_buffer))]
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             torrent_data.append((k, (None, v)))
 
         return self._post('api/v2/torrents/add', data=None, files=torrent_data)
