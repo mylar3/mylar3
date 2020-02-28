@@ -10,7 +10,6 @@ Pillow~=7.0.0
 beautifulsoup4~=4.8.2
 cfscrape~=2.0.8
 feedparser~=5.2.1
-html5lib~=1.0.1
 portend~=2.6
 simplejson~=3.17.0
 unrar~=0.3
