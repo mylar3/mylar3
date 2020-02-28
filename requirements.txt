@@ -11,11 +11,12 @@ beautifulsoup4~=4.8.2
 cfscrape~=2.0.8
 feedparser~=5.2.1
 html5lib~=1.0.1
+portend~=2.6
 simplejson~=3.17.0
 unrar~=0.3
 
 ## Unique to comictagger
-configparser
+configparser~=4.0.2
 natsort==3.5.2
 PyPDF2==1.24
 PyQt5>=5.12.2
