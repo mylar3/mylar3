@@ -335,98 +335,98 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
                         #if it doesn't have a '#' in the line, then we know it's either
                         #a special edition of some kind, or a non-comic
                         issname = i.split()
-                        #print (issname)
                         issnamec = len(issname)
-                        n = 1
-                        issue = ''
-                        while (n < issnamec):
-                            #find the type of non-issue (TP,HC,GN,SC,OS,PI etc)
-                            for cm in cmty:
-                                if "ONE" in issue and "SHOT" in issname[n +1]: issue = "OS"
-                                if cm == (issname[n]):
-                                    if issname[n] == 'PI':
-                                        issue = 'NA'
+                        if issnamec:
+                            n = 1
+                            issue = ''
+                            while (n < issnamec):
+                                #find the type of non-issue (TP,HC,GN,SC,OS,PI etc)
+                                for cm in cmty:
+                                    if "ONE" in issue and "SHOT" in issname[n +1]: issue = "OS"
+                                    if cm == (issname[n]):
+                                        if issname[n] == 'PI':
+                                            issue = 'NA'
+                                            break
+                                        issue = issname[n]
+                                        #print ("non-issue found : " + issue)
+                                        comicend = n - 1
                                         break
-                                    issue = issname[n]
-                                    #print ("non-issue found : " + issue)
-                                    comicend = n - 1
+                                n+=1
+                            #if the comic doesn't have an issue # or a keyword, adjust.
+                            #set it to 'NA' and it'll be filtered out anyways.
+                            if issue == "" or issue is None:
+                                issue = 'NA'
+                                comicend = n - 1  #comicend = comicend - 1  (adjustment for nil)
+                            #find comicname
+                            comicnm = issname[1]
+                            n = 2
+                            while (n < comicend + 1):
+                                #stupid - this errors out if the array mistakingly goes to far.
+                                try:
+                                    comicnm = comicnm + " " + issname[n]
+                                except IndexError:
+                                    #print ("went too far looking at this comic...adjusting.")
+                                    comicnm = comicnm
                                     break
-                            n+=1
-                        #if the comic doesn't have an issue # or a keyword, adjust.
-                        #set it to 'NA' and it'll be filtered out anyways.
-                        if issue == "" or issue is None:
-                            issue = 'NA'
-                            comicend = n - 1  #comicend = comicend - 1  (adjustment for nil)
-                        #find comicname
-                        comicnm = issname[1]
-                        n = 2
-                        while (n < comicend + 1):
-                            #stupid - this errors out if the array mistakingly goes to far.
-                            try:
-                                comicnm = comicnm + " " + issname[n]
-                            except IndexError:
-                                #print ("went too far looking at this comic...adjusting.")
-                                comicnm = comicnm
-                                break
-                            n+=1
-                        #print ("Comicname: " + str(comicnm) )
-                        #get remainder
-                        if len(issname) <= (comicend + 2):
-                            comicrm = "None"
-                        else:
-                            #print ("length:" + str(len(issname)))
-                            #print ("end:" + str(comicend + 2))
-                            comicrm = issname[comicend +2]
-                        if '$' in comicrm:
-                            comicrm="None"
-                        n = (comicend + 3)
-                        while (n < issnamec):
-                            if '$' in (issname[n]) or 'PI' in (issname[n]):
-                                break
-                            comicrm = str(comicrm) + " " + str(issname[n])
-                            n+=1
-                        #print ("Comic Extra info: " + str(comicrm) )
-                        if "NA" not in issue and issue != "":
-                            #print ("shipdate:" + str(shipdate))
-                            #print ("pub: " + str(pub))
-                            #print ("issue: " + str(issue))
-                            dupefound = "no"
+                                n+=1
+                            #print ("Comicname: " + str(comicnm) )
+                            #get remainder
+                            if len(issname) <= (comicend + 2):
+                                comicrm = "None"
+                            else:
+                                #print ("length:" + str(len(issname)))
+                                #print ("end:" + str(comicend + 2))
+                                comicrm = issname[comicend +2]
+                            if '$' in comicrm:
+                                comicrm="None"
+                            n = (comicend + 3)
+                            while (n < issnamec):
+                                if '$' in (issname[n]) or 'PI' in (issname[n]):
+                                    break
+                                comicrm = str(comicrm) + " " + str(issname[n])
+                                n+=1
+                            #print ("Comic Extra info: " + str(comicrm) )
+                            if "NA" not in issue and issue != "":
+                                #print ("shipdate:" + str(shipdate))
+                                #print ("pub: " + str(pub))
+                                #print ("issue: " + str(issue))
+                                dupefound = "no"
 
-                    #-- remove html tags when alt_pull is enabled
-                    if mylar.CONFIG.ALT_PULL == 1:
-                        if '&amp;' in comicnm:
-                            comicnm = re.sub('&amp;', '&', comicnm).strip()
-                        if '&amp;' in pub:
-                            pub = re.sub('&amp;', '&', pub).strip()
-                        if '&amp;' in comicrm:
-                            comicrm = re.sub('&amp;', '&', comicrm).strip()
+                        #-- remove html tags when alt_pull is enabled
+                        if mylar.CONFIG.ALT_PULL == 1:
+                            if '&amp;' in comicnm:
+                                comicnm = re.sub('&amp;', '&', comicnm).strip()
+                            if '&amp;' in pub:
+                                pub = re.sub('&amp;', '&', pub).strip()
+                            if '&amp;' in comicrm:
+                                comicrm = re.sub('&amp;', '&', comicrm).strip()
 
-                    #--start duplicate comic / issue chk
-                    # pullist has shortforms of a series' title sometimes and causes problems
-                    if 'O/T' in comicnm:
-                        comicnm = re.sub('O/T', 'OF THE', comicnm)
+                        #--start duplicate comic / issue chk
+                        # pullist has shortforms of a series' title sometimes and causes problems
+                        if 'O/T' in comicnm:
+                            comicnm = re.sub('O/T', 'OF THE', comicnm)
 
-                    if substitute_check == True:
-                        #Step through the list - storing an index
-                        for repindex, repcheck in enumerate(shortrep):
-                            if len(comicnm) >= len(repcheck):
-                                #if the leftmost chars match the short text then replace them with the long text
-                                if comicnm[:len(repcheck)]==repcheck:
-                                    logger.fdebug("Switch worked on " +comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
-                                    comicnm = re.sub(repcheck, longrep[repindex], comicnm)
+                        if substitute_check == True:
+                            #Step through the list - storing an index
+                            for repindex, repcheck in enumerate(shortrep):
+                                if len(comicnm) >= len(repcheck):
+                                    #if the leftmost chars match the short text then replace them with the long text
+                                    if comicnm[:len(repcheck)]==repcheck:
+                                        logger.fdebug("Switch worked on " +comicnm + " replacing " + str(repcheck) + " with " + str(longrep[repindex]))
+                                        comicnm = re.sub(repcheck, longrep[repindex], comicnm)
 
-                    for excl in excludes:
-                        if excl in str(comicrm):
-                            #duplicate comic / issue detected - don't add...
+                        for excl in excludes:
+                            if excl in str(comicrm):
+                                #duplicate comic / issue detected - don't add...
+                                dupefound = "yes"
+                        if prevcomic == str(comicnm) and previssue == str(issue):
+                            #duplicate comic/issue detected - don't add...
                             dupefound = "yes"
-                    if prevcomic == str(comicnm) and previssue == str(issue):
-                        #duplicate comic/issue detected - don't add...
-                        dupefound = "yes"
-                    #--end duplicate chk
-                    if (dupefound != "yes") and ('NA' not in str(issue)):
-                        newtxtfile.write(str(shipdate) + '\t' + str(pub) + '\t' + str(issue) + '\t' + str(comicnm) + '\t' + str(comicrm) + '\tSkipped' + '\n')
-                    prevcomic = str(comicnm)
-                    previssue = str(issue)
+                        #--end duplicate chk
+                        if (dupefound != "yes") and ('NA' not in str(issue)):
+                            newtxtfile.write(str(shipdate) + '\t' + str(pub) + '\t' + str(issue) + '\t' + str(comicnm) + '\t' + str(comicrm) + '\tSkipped' + '\n')
+                        prevcomic = str(comicnm)
+                        previssue = str(issue)
 
         newtxtfile.close()
 
