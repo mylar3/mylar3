@@ -2,7 +2,7 @@
 # `pip install -r requirements.txt` before you can run this.
 # this might not be exhaustive, as this is still a WIP.
 #### ESSENTIAL LIBRARIES FOR MAIN FUNCTIONALITY ####
-## for mylar
+## mylar requirements
 APScheduler~=3.6.3
 CherryPy~=18.5.0
 Mako~=1.1.1
