@@ -126,7 +126,7 @@ def display_match_set_for_choice(label, match_set, opts, settings):
             ca = ComicArchive(
                 match_set.filename,
                 settings.rar_exe_path,
-                ComicTaggerSettings.getGraphic('nocover.png'))
+                None)
             md = create_local_metadata(
                 opts, ca, ca.hasMetadata(opts.data_style))
             cv_md = actual_issue_data_fetch(
@@ -222,7 +222,7 @@ def process_file_cli(filename, opts, settings, match_results):
     ca = ComicArchive(
         filename,
         settings.rar_exe_path,
-        ComicTaggerSettings.getGraphic('nocover.png'))
+        None)
 
     if not os.path.lexists(filename):
         print("Cannot find " + filename, file=sys.stderr)
