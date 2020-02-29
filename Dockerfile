@@ -5,6 +5,7 @@ FROM python:3.8
 # set version label
 ARG MYLAR_COMMIT
 
+# https://pypi.org/project/cfscrape/ requires nodejs >= 10
 RUN \
 echo "**** install system packages ****" && \
  apt-get update && \
@@ -19,7 +20,7 @@ echo "**** install system packages ****" && \
 
 # It might be better to check out release tags than python3-dev HEAD.
 # For development work I reccomend mounting a full git repo from the
-# docker host.
+# docker host over /app/mylar.
 RUN echo "**** install app ****" && \
  git clone https://github.com/mylar3/mylar3.git --depth 1 --branch ${MYLAR_COMMIT:-python3-dev} --single-branch /app/mylar
 
