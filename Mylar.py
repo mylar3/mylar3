@@ -40,7 +40,12 @@ def handler_sigterm(signum, frame):
 def check_stale_pidfile(pidfile):
     ''' Return True if pidfile doesn't hold a numeric value, or it
         does, but it doesn't correspond with a valid currently used PID.
-        Only works on linux with /proc filesystem.  All others turns False
+        Only supports linux /proc fs way of getting cmdlinee by PID.
+        Returns:  Unsupported, assume it's not stale (False)
+                  pidfile contents aren't numeric, return True
+                  On linux, if the /proc/{pid}/cmdline file doesn't
+                  exist: True (this is definitive)
+                  Otherwise return True if python isn't in the cmdline
     '''
 
     if sys.platform != 'linux' or not os.path.exists('/proc'):
@@ -50,12 +55,12 @@ def check_stale_pidfile(pidfile):
         sval = fd.read()
 
     if not sval.isdigit():
-        return False
+        return True
 
     checkpid = int(sval, 10)
     cmdlinepath = f'/proc/{checkpid}/cmdline'
     if not os.path.exists(cmdlinepath):
-        return False
+        return True
 
 # We'll simplify the check here and only verify that the word python is part
 # of the commandline
@@ -63,7 +68,8 @@ def check_stale_pidfile(pidfile):
     with open(cmdlinepath, 'rt', encoding='utf-8') as fd:
         cmdline = fd.read().replace('\0')
 
-    return ('python' in cmdline)
+# If pytohn is in the cmdline, then we assume it's not stale.
+    return ('python' not in cmdline)
 
 def main():
 
