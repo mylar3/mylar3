@@ -18,6 +18,6 @@ unrar~=0.3
 configparser~=4.0.2
 natsort==3.5.2
 PyPDF2==1.24
-PyQt5>=5.12.2
+PyQt5==5.12.2
 pyinstaller>=3.5
 unrar-cffi==0.1.0a5
