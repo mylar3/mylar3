@@ -352,6 +352,7 @@ class FileChecker(object):
         if len(wrds) > 1:
             for i in list(wrds):
                 if i != '':
+                    logger.warn('regex i: %s', i)
                     tmpfilename = re.sub(i, 'XCV', tmpfilename)
 
         tmpfilename = ''.join(tmpfilename)
