@@ -912,12 +912,16 @@
                                             %>
                                             %for torznab in config['extra_torznabs']:
                                                 <%
-                                                    if torznab[4] == '1' or torznab[4] == 1:
+                                                    if torznab[2] == '1' or torznab[2] == 1:
+                                                        torznab_verify = "checked"
+                                                    else:
+                                                        torznab_verify = ""
+ 
+                                                    if torznab[5] == '1' or torznab[5] == 1:
                                                         torznab_enabled = "checked"
                                                     else:
                                                         torznab_enabled = ""
-
-                                                %>
+                                               %>
 
                                                 <div class="config" id="torznab${torznab_number}">
                                                     <div class="row">
@@ -929,12 +933,16 @@
                                                         <input type="text" name="torznab_host${torznab_number}" id="torznab_host${torznab_number}" value="${torznab[1]}" size="30">
                                                     </div>
                                                     <div class="row">
+                                                        <label>Verify SSL</label>
+                                                        <input type="checkbox" name="torznab_verify${torznab_number}" id="torznab_verify${torznab_number}" value="${torznab[2]}">
+                                                    </div>
+                                                    <div class="row">
                                                         <label>Torznab API</label>
-                                                        <input type="text" name="torznab_apikey${torznab_number}" id="torznab_apikey${torznab_number}" value="${torznab[2]}" size="36">
+                                                        <input type="text" name="torznab_apikey${torznab_number}" id="torznab_apikey${torznab_number}" value="${torznab[3]}" size="36">
                                                     </div>
                                                     <div class="row">
                                                         <label>Torznab Category</label>
-                                                        <input type="text" name="torznab_category${torznab_number}" id="torznab_category${torznab_number}" value="${torznab[3]}" size="12">
+                                                        <input type="text" name="torznab_category${torznab_number}" id="torznab_category${torznab_number}" value="${torznab[4]}" size="12">
                                                     </div>
                                                     <div class="row checkbox">
                                                         <input id="torznab_enabled${torznab_number}" type="checkbox" name="torznab_enabled${torznab_number}" value="1" ${torznab_enabled} /><label>Enabled</label>
@@ -982,6 +990,8 @@
                                             <div class="row">
                                                 <label>Newznab Name</label>
                                                 <input type="text" name="newznab_name${newznab_number}" id="newznab_name${newznab_number}" value="${newznab[0]}" size="30">
+                                                <small>( If you are running nzbhydra, this name MUST contain [nzbhydra] including brackets )</small>
+                                                <small>( If you are running an indexer local to this box, this name could include [localhost] including brackets to reduce delays between searches )</small>
                                             </div>
                                             <div class="row">
                                                 <label>Newznab Host</label>
@@ -2286,7 +2296,7 @@
 
                 $("#add_torznab").click(function() {
                     var intId = $("#torznab_providers > div").size() + deletedTorznabs + 1;
-                    var torformfields = $("<div class=\"config\" id=\"torznab" + intId + "\"><div class=\"row\"><label>Torznab Name</label><input type=\"text\" id=\"torznab_name" + intId + "\" name=\"torznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Host</label><input type=\"text\" id=\"torznab_host" + intId + "\" name=\"torznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row\"><label>Torznab API</label><input type=\"text\" id=\"torznab_apikey" + intId + "\" name=\"torznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Category</label><input type=\"text\" id=\"torznab_category" + intId + "\" name=\"torznab_category" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"torznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
+                    var torformfields = $("<div class=\"config\" id=\"torznab" + intId + "\"><div class=\"row\"><label>Torznab Name</label><input type=\"text\" id=\"torznab_name" + intId + "\" name=\"torznab_name" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Host</label><input type=\"text\" id=\"torznab_host" + intId + "\" name=\"torznab_host" + intId + "\" + value=\"http://\" + size=\"30\"></div><div class=\"row checkbox\"><input id=\"torznab_verify" + intId + "\" type=\"checkbox\" name=\"torznab_verify" + intId + "\" value=\"1\"/><label>Verify SSL</label></div><div class=\"row\"><label>Torznab API</label><input type=\"text\" id=\"torznab_apikey" + intId + "\" name=\"torznab_apikey" + intId + "\" size=\"36\"></div><div class=\"row\"><label>Torznab Category</label><input type=\"text\" id=\"torznab_category" + intId + "\" name=\"torznab_category" + intId + "\" size=\"36\"></div><div class=\"row checkbox\"><input type=\"checkbox\" name=\"torznab_enabled" + intId + "\" value=\"1\" checked /><label>Enabled</label></div>");
                     var tortestButton = $("<div class=\"row\"><img name=\"torznabstatus" + intId + "\" id=\"torznabstatus" + intId + "\" src=\"interfaces/default/images/success.png\" style=\"float:right;visibility:hidden;\" height=\"20\" width=\"20\" /><input type=\"button\" class=\"torznabtest\" value=\"Test\" id=\"torznab_test" + intId + "\"  name=\"torznab_test" + intId + "\" style=\"float:right;margin-right:10px;\" /></div>");
                     var torremoveButton = $("<div class=\"row\"><input type=\"button\" class=\"remove\" value=\"Remove\" /></div>");
                     torremoveButton.click(function() {
@@ -2404,7 +2414,7 @@
                         var name = document.getElementById("newznab_name"+newznab).value;
                         var host = document.getElementById("newznab_host"+newznab).value;;
                         var ssl = document.getElementById("newznab_verify"+newznab).checked;
-                        var apikey = document.getElementById("newznab_api"+newznab).value;
+                        var apikey = document.getElementById("newznab_apikey"+newznab).value;
                     }
                     $.get("testnewznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
@@ -2429,10 +2439,11 @@
 
                 $(".torznabtest").click(function () {
                     var torznab = this.attributes["name"].value.replace('torznab_test', '');
-                    var imagechk = document.getElementById("tornabstatus"+torznab);
+                    var imagechk = document.getElementById("torznabstatus"+torznab);
                     var name = document.getElementById("torznab_name"+torznab).value;
                     var host = document.getElementById("torznab_host"+torznab).value;
-                    var apikey = document.getElementById("torznab_api"+torznab).value;
+                    var ssl = document.getElementById("torznab_verify"+torznab).checked;
+                    var apikey = document.getElementById("torznab_apikey"+torznab).value;
                     $.get("testtorznab",
                         { name: name, host: host, ssl: ssl, apikey: apikey },
                         function(data){

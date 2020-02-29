@@ -100,7 +100,7 @@ def pullit(forcecheck=None, weeknumber=None, year=None):
     if mylar.CONFIG.ALT_PULL != 2 or mylar.PULLBYFILE is True:
         newfl = os.path.join(mylar.CONFIG.CACHE_DIR, 'Clean-newreleases.txt')
 
-        newtxtfile = open(newfl, 'wb')
+        newtxtfile = open(newfl, 'w')
 
         if check(newrl, 'Service Unavailable'):
             logger.info('Retrieval site is offline at the moment.Aborting pull-list update amd will try again later.')

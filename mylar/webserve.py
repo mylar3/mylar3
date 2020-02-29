@@ -4539,7 +4539,7 @@ class WebInterface(object):
                             if str(maxyear) not in yearRANGE:
                                 #logger.info('maxyear:' + str(maxyear))
                                 #logger.info('yeartop:' + str(yearTOP))
-                                for i in range(maxyear, int(yearTOP),1):
+                                for i in range(int(maxyear), int(yearTOP),1):
                                     if not any(int(x) == int(i) for x in yearRANGE):
                                         yearRANGE.append(str(i))
                         else:
@@ -5008,7 +5008,7 @@ class WebInterface(object):
                     "dognzb_verify": helpers.checked(mylar.CONFIG.DOGNZB_VERIFY),
                     "experimental": helpers.checked(mylar.CONFIG.EXPERIMENTAL),
                     "enable_torznab": helpers.checked(mylar.CONFIG.ENABLE_TORZNAB),
-                    "extra_torznabs": sorted(mylar.CONFIG.EXTRA_TORZNABS, key=itemgetter(4), reverse=True),
+                    "extra_torznabs": sorted(mylar.CONFIG.EXTRA_TORZNABS, key=itemgetter(5), reverse=True),
                     "newznab": helpers.checked(mylar.CONFIG.NEWZNAB),
                     "extra_newznabs": sorted(mylar.CONFIG.EXTRA_NEWZNABS, key=itemgetter(5), reverse=True),
                     "enable_ddl": helpers.checked(mylar.CONFIG.ENABLE_DDL),
@@ -5444,6 +5444,10 @@ class WebInterface(object):
                     if torznab_name == "":
                         continue
                 torznab_host = helpers.clean_url(kwargs['torznab_host' + torznab_number])
+                try:
+                    torznab_verify = kwargs['torznab_verify' + torznab_number]
+                except:
+                    torznab_verify = 0
                 torznab_api = kwargs['torznab_apikey' + torznab_number]
                 torznab_category = kwargs['torznab_category' + torznab_number]
                 try:
@@ -5453,7 +5457,7 @@ class WebInterface(object):
 
                 del kwargs[kwarg]
 
-                mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_api, torznab_category, torznab_enabled))
+                mylar.CONFIG.EXTRA_TORZNABS.append((torznab_name, torznab_host, torznab_verify, torznab_api, torznab_category, torznab_enabled))
 
         mylar.CONFIG.process_kwargs(kwargs)
 
@@ -5715,15 +5719,16 @@ class WebInterface(object):
         issueeditor = []
         issueinker = []
         issuecolorist = []
+        seriestitle = None
+        meta_data = issuedetails['metadata']
         if issuedetails['datamode'] == 'single_issue':
-            single_data = issuedetails['metadata']
-            seriestitle = single_data['series']
-            issuenumber = single_data['issue_number']
-            issuetitle = single_data['title']
-            issuesummary = single_data['description']
-            issue_rls = single_data['storedate']
+            seriestitle = meta_data['series']
+            issuenumber = meta_data['issue_number']
+            issuetitle = meta_data['title']
+            issuesummary = meta_data['description']
+            issue_rls = meta_data['storedate']
             if issue_rls is None:
-                issue_rls = single_data['coverdate']
+                issue_rls = meta_data['coverdate']
             if issue_rls is None:
                 issueday = '00'
                 issuemonth = '00'
@@ -5732,7 +5737,7 @@ class WebInterface(object):
                 issueday = issue_rls[8:10]
                 issuemonth = issue_rls[5:7]
                 issueyear = issue_rls[:4]
-            for xi in single_data['credits']:
+            for xi in meta_data['credits']:
                 if xi['role'] == 'writer':
                     issuewriter.append(xi['name'])
                 if xi['role'] == 'penciller':
@@ -5746,55 +5751,58 @@ class WebInterface(object):
                 if xi['role'] == 'editor':
                     issueeditor.append(xi['name'])
             pagecount = None
-        elif 'series' not in issuedetails:
+        elif all([seriestitle is None, meta_data is None]): # and 'series' not in meta_data:
             myDB = db.DBConnection()
-            issueinfo = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
-            seriestitle = issueinfo['ComicName']
-            issuenumber = issueinfo['Issue_Number']
+            meta_data = myDB.selectone('SELECT * FROM issues where IssueID=?', [issueid]).fetchone()
+            seriestitle = meta_data['ComicName']
+            issuenumber = meta_data['Issue_Number']
             try:
-                issuetitle = issueinfo['IssueName'].decode('utf-8')
+                issuetitle = meta_data['IssueName'].decode('utf-8')
             except:
-                issuetitle = issueinfo['IssueName']
-            issue_rls = issueinfo['IssueDate']
+                issuetitle = meta_data['IssueName']
+            issue_rls = meta_data['IssueDate']
             if issue_rls is None:
-                issue_rls = issueinfo['StoreDate']
+                issue_rls = meta_data['StoreDate']
             pagecount = None
             issueday = issue_rls[8:10]
             issuemonth = issue_rls[5:7]
             issueyear = issue_rls[:4]
             issuesummary = None
         else:
-            seriestitle = issuedetails['series']
+            seriestitle = meta_data['series']
             if any([seriestitle == 'None', seriestitle is None]):
                 seriestitle = urllib.parse.unquote_plus(comicname)
 
-            issuenumber = issuedetails['issue_number']
+            issuenumber = meta_data['issue_number']
             if any([issuenumber == 'None', issuenumber is None]):
                 issuenumber = urllib.parse.unquote_plus(issue)
 
-            issuetitle = issuedetails['title']
+            issuetitle = meta_data['title']
             if any([issuetitle == 'None', issuetitle is None]):
                 issuetitle = urllib.parse.unquote_plus(title)
             if re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', issuetitle, re.I) != re.sub('[\s\.\!\-\?\'\&\and\%\$\#\@\(\)\*\+\=\;\:\,]', '', title, re.I):
                 issuetitle = urllib.parse.unquote_plus(title)
-            pagecount = issuedetails['pagecount']
-            issueday = issuedetails['day']
-            issuemonth = issuedetails['month']
-            issueyear = issuedetails['year']
-            if issuedetails['writer'] is not None:
-                issuewriter.append(issuedetails['writer'])
-            if issuedetails['penciller'] is not None:
-                issuepenciller.append(issuedetails['penciller'])
-            if issuedetails['inker'] is not None:
-                issueinker.append(issuedetails['inker'])
-            if issuedetails['colorist'] is not None:
-                issuecolorist.append(issuedetails['colorist'])
-            if issuedetails['letterer'] is not None:
-                issueletterer.append(issuedetails['letterer'])
-            if issuedetails['editor'] is not None:
-                issueeditor.append(issuedetails['editor'])
-            issuesummary = issuedetails['summary']
-        if issuedetails is not None:
+            try:
+                pagecount = meta_data['pagecount']
+            except:
+                pagecount = None
+            issueday = meta_data['day']
+            issuemonth = meta_data['month']
+            issueyear = meta_data['year']
+            if meta_data['writer'] is not None:
+                issuewriter.append(meta_data['writer'])
+            if meta_data['penciller'] is not None:
+                issuepenciller.append(meta_data['penciller'])
+            if meta_data['inker'] is not None:
+                issueinker.append(meta_data['inker'])
+            if meta_data['colorist'] is not None:
+                issuecolorist.append(meta_data['colorist'])
+            if meta_data['letterer'] is not None:
+                issueletterer.append(meta_data['letterer'])
+            if meta_data['editor'] is not None:
+                issueeditor.append(meta_data['editor'])
+            issuesummary = meta_data['summary']
+        if meta_data is not None:
             issueinfo = '<table width="500"><tr><td>'
             issueinfo += '<img style="float: left; padding-right: 10px" src="data:image/jpeg;base64,%s" height="400" width="263">' % issuedetails['IssueImage']
             if all([issuenumber is not None, issuenumber != 'None']):
@@ -6061,7 +6069,7 @@ class WebInterface(object):
     testrtorrent.exposed = True
 
     def testqbit(self, host, username, password):
-        from torrent.clients import qbittorrent as QbitClient
+        from mylar.torrent.clients import qbittorrent as QbitClient
         qc = QbitClient.TorrentClient()
         qclient = qc.connect(host, username, password, True)
         if not qclient:
@@ -6077,7 +6085,7 @@ class WebInterface(object):
     testqbit.exposed = True
 
     def testdeluge(self, host, username, password):
-        from torrent.clients import deluge as DelugeClient
+        from mylar.torrent.clients import deluge as DelugeClient
         client = DelugeClient.TorrentClient()
         dclient = client.connect(host, username, password, True)
         if not dclient:
@@ -6110,6 +6118,23 @@ class WebInterface(object):
             return 'Error - failed running test for %s' % name
     testnewznab.exposed = True
 
+    def testtorznab(self, name, host, ssl, apikey):
+        logger.fdebug('ssl/verify: %s' % ssl)
+        if 'ssl' == '0' or ssl == '1':
+            ssl = bool(int(ssl))
+        else:
+            if ssl == 'false':
+                ssl = False
+            else:
+                ssl = True
+        result = helpers.torznab_test(name, host, ssl, apikey)
+        if result is True:
+            logger.info('Successfully tested %s [%s] - valid api response received' % (name, host))
+            return 'Successfully tested %s!' % name
+        else:
+            logger.warn('Testing failed to %s [HOST:%s][SSL:%s]' % (name, host, bool(ssl)))
+            return 'Error - failed running test for %s' % name
+    testtorznab.exposed = True
 
     def orderThis(self, **kwargs):
         return

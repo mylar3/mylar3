@@ -113,7 +113,7 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     ctend = str(ct_check).find(':')
     ct_version = re.sub("[^0-9]", "", str(ct_check)[:ctend])
     from pkg_resources import parse_version
-    if parse_version(ct_version) >= parse_version('1.1.15'):
+    if parse_version(ct_version) >= parse_version('1.3.1'):
         if any([mylar.CONFIG.COMICVINE_API == 'None', mylar.CONFIG.COMICVINE_API is None]):
             logger.fdebug('%s ComicTagger v.%s being used - no personal ComicVine API Key supplied. Take your chances.' % (module, ct_version))
             use_cvapi = "False"

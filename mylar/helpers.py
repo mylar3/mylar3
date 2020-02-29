@@ -1531,7 +1531,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
                 issuetag = 'comment'
             else:
                 logger.warn('No metadata available in zipfile comment field.')
-                return {'IssueImage': IssueImage, 'datamode': 'file'}
+                return {'IssueImage': IssueImage, 'datamode': 'file', 'metadata': None}
 
     logger.info('Tag returned as being: ' + str(issuetag))
 
@@ -1759,7 +1759,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
         logger.warn('Unable to locate any metadata within cbz file. Tag this file and try again if necessary.')
         return
 
-    return  {"title":        issue_title,
+    return  {'metadata': {"title":        issue_title,
              "series":       series_title,
              "volume":       series_volume,
              "issue_number": issue_number,
@@ -1777,7 +1777,7 @@ def IssueDetails(filelocation, IssueID=None, justinfo=False):
              "editor":       editor,
              "publisher":    publisher,
              "webpage":      webpage,
-             "pagecount":    pagecount,
+             "pagecount":    pagecount},
              "IssueImage":   IssueImage,
              "datamode":     'file'}
 
@@ -3597,6 +3597,42 @@ def newznab_test(name, host, ssl, apikey):
         host = host + 'api'
     else:
         host = host + '/api'
+    headers = {'User-Agent': str(mylar.USER_AGENT)}
+    logger.info('host: %s' % host)
+    try:
+        r = requests.get(host, params=params, headers=headers, verify=bool(ssl))
+    except Exception as e:
+        logger.warn('Unable to connect: %s' % e)
+        return
+    else:
+        try:
+            data = parseString(r.content)
+        except Exception as e:
+            logger.warn('[WARNING] Error attempting to test: %s' % e)
+
+        try:
+            error_code = data.getElementsByTagName('error')[0].attributes['code'].value
+        except Exception as e:
+            logger.info('Connected - Status code returned: %s' % r.status_code)
+            if r.status_code == 200:
+                return True
+            else:
+                logger.warn('Received response - Status code returned: %s' % r.status_code)
+                return False
+
+        code = error_code
+        description = data.getElementsByTagName('error')[0].attributes['description'].value
+        logger.info('[ERROR:%s] - %s' % (code, description))
+        return False
+
+def torznab_test(name, host, ssl, apikey):
+    from xml.dom.minidom import parseString, Element
+    params = {'t':       'search',
+              'apikey':  apikey,
+              'o':       'xml'}
+
+    if host[-1:] == '/':
+        host = host[:-1]
     headers = {'User-Agent': str(mylar.USER_AGENT)}
     logger.info('host: %s' % host)
     try:
