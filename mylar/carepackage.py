@@ -19,7 +19,7 @@ class carePackage(object):
     def __init__(self):
         self.filename = os.path.join(mylar.CONFIG.LOG_DIR, 'MylarRunningEnvironment.txt')
         self.panicfile = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
-        self.configpath = os.path.join(mylar.PROG_DIR, 'config.ini')
+        self.configpath = os.path.join(mylar.DATA_DIR, 'config.ini')
         self.cleanpath = os.path.join(mylar.CONFIG.LOG_DIR, 'clean_config.ini')
         self.lastrelpath = os.path.join(mylar.PROG_DIR, '.LASTRELEASE')
         self.environment()
