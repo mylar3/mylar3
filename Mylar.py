@@ -37,6 +37,33 @@ if ( sys.platform == 'win32' and sys.executable.split( '\\' )[-1] == 'pythonw.ex
 def handler_sigterm(signum, frame):
     mylar.SIGNAL = 'shutdown'
 
+def check_stale_pidfile(pidfile):
+    ''' Return True if pidfile doesn't hold a numeric value, or it
+        does, but it doesn't correspond with a valid currently used PID.
+        Only works on linux with /proc filesystem.  All others turns False
+    '''
+
+    if sys.platform != 'linux' or not os.path.exists('/proc'):
+        return False
+
+    with open(pidfile, 'rt', encoding='utf-8') as fd:
+        sval = fd.read()
+
+    if not sval.isdigit():
+        return False
+
+    checkpid = int(sval, 10)
+    cmdlinepath = f'/proc/{checkpid}/cmdline'
+    if not os.path.exists(cmdlinepath):
+        return False
+
+# We'll simplify the check here and only verify that the word python is part
+# of the commandline
+
+    with open(cmdlinepath, 'rt', encoding='utf-8') as fd:
+        cmdline = fd.read().replace('\0')
+
+    return ('python' in cmdline)
 
 def main():
 
@@ -123,13 +150,17 @@ def main():
 
         # If the pidfile already exists, mylar may still be running, so exit
         if os.path.exists(mylar.PIDFILE):
-            sys.exit("PID file '" + mylar.PIDFILE + "' already exists. Exiting.")
+            if check_stale_pidfile(mylar.PIDFILE):
+                os.unlink(mylar.PIDFILE)
+            else:
+                sys.exit("PID file '" + mylar.PIDFILE + "' already exists. Exiting.")
 
         # The pidfile is only useful in daemon mode, make sure we can write the file properly
         if mylar.DAEMON:
             mylar.CREATEPID = True
+            curpid = os.getpid()
             try:
-                open(mylar.PIDFILE, 'w').write("pid\n")
+                open(mylar.PIDFILE, 'w').write(f"{curpid}\n")
             except IOError as e:
                 raise SystemExit("Unable to write PID file: %s [%d]" % (e.strerror, e.errno))
         else:
