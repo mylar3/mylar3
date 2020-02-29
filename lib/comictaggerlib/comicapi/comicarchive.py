@@ -23,9 +23,13 @@ import subprocess
 import platform
 import time
 import io
-
 from natsort import natsorted
-from PyPDF2 import PdfFileReader
+try:
+    from natsort import realsorted, ns
+    nsort = True
+except ImportError:
+    nsort = False
+
 from unrar.cffi import rarfile
 try:
     import Image
@@ -524,34 +528,6 @@ class UnknownArchiver:
     def getArchiveFilenameList(self):
         return []
 
-class PdfArchiver:
-
-    def __init__(self, path):
-        self.path = path
-
-    def getArchiveComment(self):
-        return ""
-
-    def setArchiveComment(self, comment):
-        return False
-
-    def readArchiveFile(self, page_num):
-        return subprocess.check_output(
-            ['mudraw', '-o', '-', self.path, str(int(os.path.basename(page_num)[:-4]))])
-
-    def writeArchiveFile(self, archive_file, data):
-        return False
-
-    def removeArchiveFile(self, archive_file):
-        return False
-
-    def getArchiveFilenameList(self):
-        out = []
-        pdf = PdfFileReader(open(self.path, 'rb'))
-        for page in range(1, pdf.getNumPages() + 1):
-            out.append("/%04d.jpg" % (page))
-        return out
-
 class ComicArchive:
     logo_data = None
     class ArchiveType:
@@ -592,15 +568,12 @@ class ComicArchive:
                 self.archiver = RarArchiver(
                     self.path,
                     rar_exe_path=self.rar_exe_path)
-            elif os.path.basename(self.path)[-3:] == 'pdf':
-                self.archive_type = self.ArchiveType.Pdf
-                self.archiver = PdfArchiver(self.path)
 
-        if ComicArchive.logo_data is None:
+        #if ComicArchive.logo_data is None:
             #fname = ComicTaggerSettings.getGraphic('nocover.png')
-            fname = self.default_image_path
-            with open(fname, 'rb') as fd:
-                ComicArchive.logo_data = fd.read()
+            #fname = self.default_image_path
+            #with open(fname, 'rb') as fd:
+            #    ComicArchive.logo_data = fd.read()
 
     def resetCache(self):
         """Clears the cached data"""
@@ -635,9 +608,6 @@ class ComicArchive:
     def isRar(self):
         return self.archive_type == self.ArchiveType.Rar
 
-    def isPdf(self):
-        return self.archive_type == self.ArchiveType.Pdf
-
     def isFolder(self):
         return self.archive_type == self.ArchiveType.Folder
 
@@ -670,11 +640,9 @@ class ComicArchive:
 
         if (
             # or self.isFolder() )
-            (self.isZip() or self.isRar() or self.isPdf())
+            (self.isZip() or self.isRar())
             and
-            (self.getNumberOfPages() > 0)
-
-        ):
+            (self.getNumberOfPages() > 0)):
             return True
         else:
             return False
@@ -814,8 +782,10 @@ class ComicArchive:
                     # if basename < '0':
                     #	k = os.path.join(os.path.split(k)[0], "z" + basename)
                     return k.lower()
-
-                files = natsorted(files, key=keyfunc, signed=False)
+                if nsort is True:
+                    files = natsorted(files, key=keyfunc, alg=ns.REAL)
+                else:
+                    files = natsorted(files, key=keyfunc, signed=False)
 
             # make a sub-list of image files
             self.page_list = []
