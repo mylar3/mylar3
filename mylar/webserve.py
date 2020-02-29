@@ -2226,20 +2226,18 @@ class WebInterface(object):
                                      'id':       item['id'],
                                      'resume':   resume})
 
-            linemessage = '%s successful for %s' % (mode, item['series'])
-            if mode == 'restart_queue':
-                logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
-                linemessage = 'Successfully restarted Queue'
-            elif mode == 'restart':
-                logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (item['series'], item['size']))
-            elif mode == 'requeue':
-                logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (item['series'], item['size']))
-            elif mode == 'abort':
-                logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (item['series'], item['size']))
-            elif mode == 'remove':
-                logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (item['series'], item['size']))
-        else:
-            linemessage = "No items to requeue"
+        linemessage = '%s successful for %s' % (mode, oneitem['series'])
+        if mode == 'restart_queue':
+            logger.info('[DDL-RESTART-QUEUE] DDL Queue successfully restarted. Put %s items back into the queue for downloading..' % len(itemlist))
+            linemessage = 'Successfully restarted Queue'
+        elif mode == 'restart':
+            logger.info('[DDL-RESTART] Successfully restarted %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
+        elif mode == 'requeue':
+            logger.info('[DDL-REQUEUE] Successfully requeued %s [%s] for downloading..' % (oneitem['series'], oneitem['size']))
+        elif mode == 'abort':
+            logger.info('[DDL-ABORT] Successfully aborted downloading of %s [%s]..' % (oneitem['series'], oneitem['size']))
+        elif mode == 'remove':
+            logger.info('[DDL-REMOVE] Successfully removed %s [%s]..' % (oneitem['series'], oneitem['size']))
         return json.dumps({'status': True, 'message': linemessage})
     ddl_requeue.exposed = True
 
