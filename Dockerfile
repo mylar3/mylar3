@@ -9,7 +9,7 @@ RUN \
 echo "**** install system packages ****" && \
  apt-get update && \
  apt-get install -y --no-install-recommends \
-    nodejs && \
+    nodejs=10.15.2~dfsg-2 && \
  echo "**** cleanup ****" && \
  apt-get -y clean && \
  rm -rf \
