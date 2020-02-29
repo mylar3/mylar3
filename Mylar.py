@@ -129,7 +129,7 @@ def main():
         if mylar.DAEMON:
             mylar.CREATEPID = True
             try:
-                file(mylar.PIDFILE, 'w').write("pid\n")
+                open(mylar.PIDFILE, 'w').write("pid\n")
             except IOError as e:
                 raise SystemExit("Unable to write PID file: %s [%d]" % (e.strerror, e.errno))
         else:
