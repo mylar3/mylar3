@@ -31,7 +31,7 @@ RUN echo "**** install requirements ****" && \
  rm -rf ~/.cache/pip/*
 
 # TODO image could be further slimmed by moving python wheel building into a
-# build image and copying the results to the final container.
+# build image and copying the results to the final image.
 
 # ports and volumes
 VOLUME /config /comics /downloads
