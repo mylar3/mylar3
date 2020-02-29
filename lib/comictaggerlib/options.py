@@ -341,8 +341,10 @@ For more help visit the wiki at: https://github.com/comictagger/comictagger/wiki
             if o == "--only-set-cv-key":
                 self.only_set_key = True
             if o == "--version":
+                print(
+                    "ComicTagger {0} [{1} / {2}]".format(ctversion.version, ctversion.fork, ctversion.fork_tag))
                 print((
-                    "ComicTagger {}:  Copyright (c) 2012-{:%Y} ComicTagger Team".format(ctversion.version, datetime.today())))
+                    "Copyright (c) 2012-{:%Y} ComicTagger Team".format(datetime.today())))
                 print(
                     "Distributed under Apache License 2.0 (http://www.apache.org/licenses/LICENSE-2.0)")
                 sys.exit(0)
