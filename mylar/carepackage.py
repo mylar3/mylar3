@@ -205,7 +205,7 @@ class carePackage(object):
 
 
     def panicbutton(self):
-        dbpath = os.path.join(mylar.PROG_DIR, 'mylar.db')
+        dbpath = os.path.join(mylar.DATA_DIR, 'mylar.db')
         with zipfile.ZipFile(self.panicfile, 'w') as zip:
             zip.write(self.filename, os.path.basename(self.filename))
             zip.write(dbpath, os.path.basename(dbpath))
