@@ -171,7 +171,7 @@ def getVersion():
                     current_version = None
                 else:
                     cnt = 0
-                    with open('.LAST_RELEASE', 'r') as f:
+                    with open(version_file, 'r') as f:
                         for i in f.readlines():
                             tmp = i.split()
                             if cnt == 0:
