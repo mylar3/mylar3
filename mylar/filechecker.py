@@ -352,7 +352,7 @@ class FileChecker(object):
         if len(wrds) > 1:
             for i in list(wrds):
                 if i != '':
-                    tmpfilename = re.sub(i, 'XCV', tmpfilename)
+                    tmpfilename = tmpfilename.replace(i, 'XCV')
 
         tmpfilename = ''.join(tmpfilename)
         modfilename = tmpfilename
