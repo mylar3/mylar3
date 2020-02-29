@@ -19,7 +19,7 @@ class carePackage(object):
     def __init__(self):
         self.filename = os.path.join(mylar.CONFIG.LOG_DIR, 'MylarRunningEnvironment.txt')
         self.panicfile = os.path.join(mylar.CONFIG.LOG_DIR, "carepackage.zip")
-        self.configpath = os.path.join(mylar.PROG_DIR, 'config.ini')
+        self.configpath = os.path.join(mylar.DATA_DIR, 'config.ini')
         self.cleanpath = os.path.join(mylar.CONFIG.LOG_DIR, 'clean_config.ini')
         self.lastrelpath = os.path.join(mylar.PROG_DIR, '.LASTRELEASE')
         self.environment()
@@ -205,7 +205,7 @@ class carePackage(object):
 
 
     def panicbutton(self):
-        dbpath = os.path.join(mylar.PROG_DIR, 'mylar.db')
+        dbpath = os.path.join(mylar.DATA_DIR, 'mylar.db')
         with zipfile.ZipFile(self.panicfile, 'w') as zip:
             zip.write(self.filename, os.path.basename(self.filename))
             zip.write(dbpath, os.path.basename(dbpath))
