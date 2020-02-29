@@ -22,7 +22,6 @@ echo "**** install system packages ****" && \
 # docker host.
 RUN echo "**** install app ****" && \
  git clone https://github.com/mylar3/mylar3.git --depth 1 --branch ${MYLAR_COMMIT:-python3-dev} --single-branch /app/mylar
-COPY root/ /
 
 RUN echo "**** install requirements ****" && \
  pip3 install --no-cache-dir -U -r /app/mylar/requirements.txt && \
