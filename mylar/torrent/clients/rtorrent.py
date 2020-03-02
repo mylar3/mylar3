@@ -72,7 +72,7 @@ class TorrentClient(object):
                 self.conn = RTorrent(
                     url, authinfo,
                     verify_server=True,
-                    verify_ssl=False #self.getVerifySsl(verify, ca_bundle)
+                    verify_ssl=self.getVerifySsl(verify, ca_bundle)
             )
             except Exception as err:
                 logger.error('Make sure you have the right protocol specified for the rtorrent host. Failed to connect to rTorrent - error: %s.' % err)
