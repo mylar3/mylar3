@@ -811,6 +811,7 @@ class Config(object):
                             'API_KEY':               ('API', 'api_key', self.API_KEY),
                             'OPDS_PASSWORD':         ('OPDS', 'opds_password', self.OPDS_PASSWORD),
                             'PP_SSHPASSWD':          ('AutoSnatch', 'pp_sshpasswd', self.PP_SSHPASSWD),
+                            'EMAIL_PASSWORD':        ('Email','email_password', self.EMAIL_PASSWORD),
                             })
 
         new_encrypted = 0
