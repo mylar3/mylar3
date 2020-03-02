@@ -82,9 +82,9 @@ def run(dirName, nzbName=None, issueid=None, comversion=None, manual=None, filen
     #used for cbr - to - cbz conversion
     #depending on copy/move - eitehr we retain the rar or we don't.
     if mylar.CONFIG.FILE_OPTS == 'move':
-        cbr2cbzoptions = ["-e", "--delete-rar"]
+        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e", "--delete-rar"]
     else:
-        cbr2cbzoptions = ["-e"]
+        cbr2cbzoptions = ["--configfolder", mylar.CONFIG.CT_SETTINGSPATH, "-e"]
 
     tagoptions = ["-s"]
     if mylar.CONFIG.CMTAG_VOLUME:
