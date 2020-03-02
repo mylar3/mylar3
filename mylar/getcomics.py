@@ -83,7 +83,7 @@ class GC(object):
     def search_results(self):
         results = {}
         resultlist = []
-        soup = BeautifulSoup(open(self.local_filename), 'html.parser')
+        soup = BeautifulSoup(open(self.local_filename, encoding='utf-8'), 'html.parser')
 
         resultline = soup.find("span", {"class": "cover-article-count"}).get_text(strip=True)
         logger.info('There are %s results' % re.sub('Articles', '', resultline).strip())
@@ -172,7 +172,7 @@ class GC(object):
         year = None
         size = None
         title = os.path.join(mylar.CONFIG.CACHE_DIR, 'getcomics-' + id)
-        soup = BeautifulSoup(open(title+'.html'), 'html.parser')
+        soup = BeautifulSoup(open(title+'.html', encoding='utf-8'), 'html.parser')
         orig_find = soup.find("p", {"style": "text-align: center;"})
         i = 0
         option_find = orig_find
