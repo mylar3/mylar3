@@ -21,14 +21,16 @@ import datetime
 #from pprint import pprint
 
 from . import ctversion
-from .settings import ComicTaggerSettings
+#from .settings import ComicTaggerSettings
 from . import utils
 
+from . import main
 
 class ComicVineCacher:
 
     def __init__(self):
-        self.settings_folder = ComicTaggerSettings.getSettingsFolder()
+        #print('SETTINGS.folder = %s' % main.SETTINGS.folder)
+        self.settings_folder = main.SETTINGS.folder
         self.db_file = os.path.join(self.settings_folder, "cv_cache.db")
         self.version_file = os.path.join(
             self.settings_folder, "cache_version.txt")

@@ -29,7 +29,10 @@ from . import cli
 from .options import Options
 from .comicvinetalker import ComicVineTalker
 
+SETTINGS = None
+
 def ctmain():
+    global SETTINGS
     opts = Options()
     opts.parseCmdLineArgs()
     if not opts.configfolder:
