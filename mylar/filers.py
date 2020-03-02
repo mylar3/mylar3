@@ -108,12 +108,15 @@ class FileHandlers(object):
                 chunk_folder_format = re.sub('[()|[]]', '', chunk_folder_format).strip()
                 comlocation = os.path.join(mylar.CONFIG.DESTINATION_DIR, helpers.replace_all(chunk_folder_format, values))
 
+        except TypeError as e:
+            if mylar.CONFIG.DESTINATION_DIR is None:
+                logger.error('[ERROR] %s' % e)
+                logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
+                return
+            else:
+                logger.error('[ERROR] %s' % e)
+                return
         except Exception as e:
-            if 'TypeError' in e:
-                if mylar.CONFIG.DESTINATION_DIR is None:
-                    logger.error('[ERROR] %s' % e)
-                    logger.error('No Comic Location specified. This NEEDS to be set before anything can be added successfully.')
-                    return
             logger.error('[ERROR] %s' % e)
             logger.error('Cannot determine Comic Location path properly. Check your Comic Location and Folder Format for any errors.')
             return
