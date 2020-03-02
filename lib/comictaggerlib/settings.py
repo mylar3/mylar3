@@ -121,7 +121,7 @@ class ComicTaggerSettings:
         self.remove_archive_after_successful_match = False
         self.wait_and_retry_on_rate_limit = False
 
-    def __init__(self):
+    def __init__(self, configfolder=None):
 
         self.settings_file = ""
         self.folder = ""
@@ -129,6 +129,9 @@ class ComicTaggerSettings:
 
         self.config = configparser.RawConfigParser()
         self.folder = ComicTaggerSettings.getSettingsFolder()
+
+        if configfolder != self.folder and configfolder is not None:
+            self.folder = configfolder
 
         if not os.path.exists(self.folder):
             os.makedirs(self.folder)

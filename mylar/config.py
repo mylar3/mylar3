@@ -1021,12 +1021,18 @@ class Config(object):
                     chkpass = True
                 except OSError as e:
                     if e.errno != errno.EEXIST:
-                        logger.error('Unable to create .ComicTagger directory in %s. This WILL cause problems when tagging.' % ct_path)
-                    elif e.errno == 17:
+                        logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ctpath, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
+                        ct_path = mylar.DATA_DIR
                         chkpass = True
+                    elif e.errno == 17: #file_already_exists
+                        chkpass = True
+                except exception as e:
+                    logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
+                    ct_path = mylar.DATA_DIR
+
                 if chkpass is True:
-                    setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger', 'settings'))
-                    config.set('General', 'ct_settingspath', self.CT_SETTINGSPATH)
+                    setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger'))
+                    config.set('Metatagging', 'ct_settingspath', self.CT_SETTINGSPATH)
 
             if not update:
                 logger.fdebug('[COMICTAGGER] Setting ComicTagger settings default path to : %s' % self.CT_SETTINGSPATH)
