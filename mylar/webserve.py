@@ -6052,6 +6052,10 @@ class WebInterface(object):
     testemail.exposed = True
 
     def testrtorrent(self, host, username, password, auth, verify, rpc_url):
+        if verify == 'true':
+            verify = True
+        elif verify == 'false':
+            verify = False
         from mylar.torrent.clients import rtorrent as TorClient
         client = TorClient.TorrentClient()
         ca_bundle = None
