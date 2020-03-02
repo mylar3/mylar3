@@ -1021,7 +1021,7 @@ class Config(object):
                     chkpass = True
                 except OSError as e:
                     if e.errno != errno.EEXIST:
-                        logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ctpath, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
+                        logger.error('Unable to create .ComicTagger directory in %s. Setting up to default location of %s' % (ct_path, os.path.join(mylar.DATA_DIR, '.ComicTagger')))
                         ct_path = mylar.DATA_DIR
                         chkpass = True
                     elif e.errno == 17: #file_already_exists
@@ -1029,6 +1029,7 @@ class Config(object):
                 except exception as e:
                     logger.error('Unable to create setting directory for ComicTagger. This WILL cause problems when tagging.')
                     ct_path = mylar.DATA_DIR
+                    chkpass = True
 
                 if chkpass is True:
                     setattr(self, 'CT_SETTINGSPATH', os.path.join(ct_path, '.ComicTagger'))
