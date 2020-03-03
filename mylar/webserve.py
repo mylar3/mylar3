@@ -2535,6 +2535,14 @@ class WebInterface(object):
     searchScan.exposed = True
 
     def manage(self):
+        scan_info = {'autoadd': helpers.checked(mylar.CONFIG.ADD_COMICS),
+                     'path': mylar.CONFIG.COMIC_DIR,
+                     'imp_move': helpers.checked(mylar.CONFIG.IMP_MOVE),
+                     'imp_rename': helpers.checked(mylar.CONFIG.IMP_RENAME),
+                     'imp_metadata': helpers.checked(mylar.CONFIG.IMP_METADATA),
+                     'imp_paths': helpers.checked(mylar.CONFIG.IMP_PATHS),
+                     'imp_seriesfolders': helpers.checked(mylar.CONFIG.IMP_SERIESFOLDERS)}
+
         mylarRoot = mylar.CONFIG.DESTINATION_DIR
         from . import db
         myDB = db.DBConnection()
@@ -2591,7 +2599,7 @@ class WebInterface(object):
                             'jobname': jb['JobName'],
                             'status': status})
             jobresults = tmp
-        return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults)
+        return serve_template(templatename="manage.html", title="Manage", mylarRoot=mylarRoot, jobs=jobresults, scan_info=scan_info)
     manage.exposed = True
 
     def jobmanage(self, job, mode):
@@ -4227,35 +4235,29 @@ class WebInterface(object):
         return mylar.IMPORT_STATUS
     Check_ImportStatus.exposed = True
 
-    def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_paths=0, imp_rename=0, imp_metadata=0, imp_seriesfolders=1, forcescan=0):
+    def comicScan(self, path, scan=0, libraryscan=0, redirect=None, autoadd=0, imp_move=0, imp_paths=0, imp_rename=0, imp_metadata=0, imp_seriesfolders=0, forcescan=0):
         import queue
         queue = queue.Queue()
 
-        #save the values so they stick.
-        mylar.CONFIG.ADD_COMICS = autoadd
-        #too many problems for windows users, have to rethink this....
-        #if 'windows' in mylar.OS_DETECT.lower() and '\\\\?\\' not in path:
-        #    #to handle long paths, let's append the '\\?\' to the path to allow for unicode windows api access
-        #    path = "\\\\?\\" + path
-        mylar.CONFIG.COMIC_DIR = path
-        mylar.CONFIG.IMP_MOVE = bool(imp_move)
-        mylar.CONFIG.IMP_RENAME = bool(imp_rename)
-        mylar.CONFIG.IMP_METADATA = bool(imp_metadata)
-        mylar.CONFIG.IMP_PATHS = bool(imp_paths)
-        mylar.CONFIG.IMP_SERIESFOLDERS = bool(imp_seriesfolders)
+        importoptions = {'comic_dir':              path,
+                         'imp_move':               bool(imp_move),
+                         'imp_rename':             bool(imp_rename),
+                         'imp_metadata':           bool(imp_metadata),
+                         'imp_paths':              bool(imp_paths),
+                         'imp_seriesfolders':      bool(imp_seriesfolders),
+                         'add_comics':             bool(autoadd)}
 
         mylar.CONFIG.configure(update=True)
         # Write the config
         logger.info('Now updating config...')
-        mylar.CONFIG.writeconfig()
+        mylar.CONFIG.writeconfig(values=importoptions)
 
-        logger.info('forcescan is: ' +  str(forcescan))
-        if mylar.IMPORTLOCK and forcescan == 1:
+        if mylar.IMPORTLOCK and bool(forcescan) is True:
             logger.info('Removing Current lock on import - if you do this AND another process is legitimately running, your causing your own problems.')
             mylar.IMPORTLOCK = False
 
         #thread the scan.
-        if scan == '1':
+        if bool(scan) is True:
             scan = True
             mylar.IMPORT_STATUS = 'Now starting the import'
             return self.ThreadcomicScan(scan, queue)
@@ -6108,7 +6110,7 @@ class WebInterface(object):
 
     def testnewznab(self, name, host, ssl, apikey):
         logger.fdebug('ssl/verify: %s' % ssl)
-        if 'ssl' == '0' or ssl == '1':
+        if ssl == '0' or ssl == '1':
             ssl = bool(int(ssl))
         else:
             if ssl == 'false':
@@ -6126,7 +6128,7 @@ class WebInterface(object):
 
     def testtorznab(self, name, host, ssl, apikey):
         logger.fdebug('ssl/verify: %s' % ssl)
-        if 'ssl' == '0' or ssl == '1':
+        if ssl == '0' or ssl == '1':
             ssl = bool(int(ssl))
         else:
             if ssl == 'false':
