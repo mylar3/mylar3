@@ -90,23 +90,28 @@
                                            %endif
                                         </div>
                                         <div class="row checkbox">
-                                           <input type="checkbox" name="autoadd" id="autoadd" value="1" ${checked(mylar.CONFIG.ADD_COMICS)} /><label>Auto-add new series</label>
+                                           <input type="checkbox" name="autoadd" id="autoadd" value="1" ${scan_info['autoadd']} /><label>Auto-add new series</label>
                                         </div>
                                         <div class="row checkbox">
-                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${checked(mylar.CONFIG.IMP_METADATA)} /><label>Use existing Metadata</label>
+                                             <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_metadata" id="imp_metadata" value="1" ${scan_info['imp_metadata']} /><label>Use existing Metadata</label>
                                              <small>Use existing Metadata to better locate series for import</small>
                                         </div>
                                         <div class="row checkbox">
-                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imps" value="1" ${checked(mylar.CONFIG.IMP_MOVE)} /><label>Move files</label>
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_seriesfolders" id="imp_seriesfolders" value="1" ${scan_info['imp_seriesfolders']} /><label>Folder for each Series</label>
+                                           <small>Do the comics reside in their own directories, or is there no organizaiton to the directories?</small>
+                                           </br>
+                                        </div>
+                                        <div class="row checkbox">
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_move" id="imps" value="1" ${scan_info['imp_move']} /><label>Move files</label>
                                            <small>Unchecked will not move anything, but will mark the issues as Archived</small>
                                            </br>
                                         </div>
                                         <div id="move_options" class="row checkbox">
-                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${checked(mylar.CONFIG.IMP_RENAME)} /><label>Rename Files</label>
+                                           <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_rename" id="imp_rename" value="1" ${scan_info['imp_rename']} /><label>Rename Files</label>
                                            <small>Rename files to configuration settings</small>
                                         </div>
                                         <div id="path_options" class="row checkbox">
-                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_paths" id="imp_paths" value="1" ${checked(mylar.CONFIG.IMP_PATHS)} /><label>Set import paths to series location paths</label>
+                                               <input type="checkbox" style="vertical-align: middle; margin: 3px; margin-top: -1px;" name="imp_paths" id="imp_paths" value="1" ${scan_info['imp_paths']} /><label>Set import paths to series location paths</label>
                                                <small>Use the folder paths during import as the series location path</small>
                                         </div>
                                         <br/>
@@ -258,7 +263,7 @@
                 return i;
         };
         function addScanAction() {
-                $('#autoadd').append('<input type="hidden" name="scan" value=1 />');
+                $('#autoadd').append('<input type="hidden" name="scan" id="scan" value=1 />');
                 CheckEnabled = true;
                 statuscheck();
         };
