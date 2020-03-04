@@ -49,9 +49,7 @@ class Connection(object):
 
         # Construct RPC Client
         self.sp = self._get_sp(self.scheme, sp)
-        print('self.sp: %s' % self.sp)
         self.sp_kwargs = sp_kwargs or {}
-        print('self.kwargs: %s' % self.sp_kwargs)
         self._client = None
         self._client_version_tuple = ()
         self._rpc_methods = []
@@ -66,7 +64,7 @@ class Connection(object):
         return self._client
 
     def connect(self):
-        # log.debug('Connecting to server: %r', self.uri)
+        #print('Connecting to server: %s' % self.uri)
 
         if self.auth:
             #print('self.uri: %s' % self.uri)
@@ -104,8 +102,9 @@ class Connection(object):
 
         # Construct transport with authentication details
         method = self.auth[0]
-        secure = 'https'
-        self.scheme = secure
+        secure = self.scheme == 'https'
+
+        log.debug('Constructing transport for scheme: %r, authentication method: %r', self.scheme, method)
 
         # Use requests transport (if available)
         if RQT is True and method in ['basic', 'digest']:
