@@ -55,12 +55,15 @@ class carePackage(object):
         f.write("%s" % pi.stdout)
         f.write("%s\n" % pyloc)
 
-        pf = subprocess.run(['pip3', 'freeze'],
-            capture_output=True,
-            text=True)
-        f.write("\nPIP (freeze) list:\n")
-        for pfout in pf.stdout.split('\n'):
-            f.write("%s\n" % pfout)
+        try:
+            pf = subprocess.run(['pip3', 'freeze'],
+                capture_output=True,
+                text=True)
+            f.write("\nPIP (freeze) list:\n")
+            for pfout in pf.stdout.split('\n'):
+                f.write("%s\n" % pfout)
+        except Exception as e:
+            logger.warn('Unable to retrieve current pip listing. Usually this is due to pip being referenced as something other than pip3')
 
         f.write("\n\nMylar running environment:\n")
         for param in list(os.environ.keys()):
