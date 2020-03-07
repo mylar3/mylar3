@@ -109,7 +109,7 @@ class carePackage(object):
                             ('PUSHOVER', 'pushover_userkey'),
                             ('BOXCAR', 'boxcar_token'),
                             ('PUSHBULLET', 'pushbullet_apikey'),
-                            ('NMA', 'nma_apikey')
+                            ('NMA', 'nma_apikey'),
                             ('TELEGRAM', 'telegram_token'),
                             ('CV', 'comicvine_api'),
                             ('32P', 'password_32p'),
