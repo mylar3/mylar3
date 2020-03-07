@@ -132,8 +132,11 @@ class carePackage(object):
                        }
 
         for v in cleaned_list:
-            if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
-                tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
+            try:
+                if all([tmpconfig.get(v[0], v[1]) is not None, tmpconfig.get(v[0], v[1]) != 'None']):
+                    tmpconfig.set(v[0], v[1], 'xXX[REMOVED]XXx')
+            except configparser.NoSectionError as e:
+                pass
 
         hostname_list = {
                             ('SABnzbd', 'sab_host'),
