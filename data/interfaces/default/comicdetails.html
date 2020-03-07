@@ -631,8 +631,11 @@
                                             %if linky:
                                               <a href="downloadthis?pathfile=${linky |u}"><img src="interfaces/default/images/download_icon.png" height="25" width="25" title="Download the annual" class="highqual" /></a>
                                                 %if linky.endswith('.cbz'):
-                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']| u}', '${annual['IssueID']}');" class="issue-window"><img src="interfaces/default/images/issueinfo.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
-                                                    <div id="issue-box" class="issue-popup">
+                                                   <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']| u}', '${annual['IssueID']}');" class="issue-window"><img src="interfaces/default/images/issueinfo_blue.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
+                                                %else:
+					           <a href="#issue-box" onclick="return runMetaIssue('${linky |u}', '${comic['ComicName']| u}', '${annual['Issue_Number']}', '${annual['IssueDate']}', '${annual['IssueName']| u}', '${annual['IssueID']}');" class="issue-window"><img src="interfaces/default/images/issueinfo_orange.png" height="25" width="25" title="View Issue Details" class="highqual" /></a>
+                                                %endif
+					           <div id="issue-box" class="issue-popup">
                                                     <a href="#" class="close"><img src="interfaces/default/images/close_pop.png" class="btn_close" title="Close Window" alt="Close" class="highqual" /></a>
                                                      <fieldset>
                                                       <div id="responsethis">
