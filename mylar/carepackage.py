@@ -109,11 +109,13 @@ class carePackage(object):
                             ('PUSHOVER', 'pushover_userkey'),
                             ('BOXCAR', 'boxcar_token'),
                             ('PUSHBULLET', 'pushbullet_apikey'),
+                            ('NMA', 'nma_apikey')
                             ('TELEGRAM', 'telegram_token'),
                             ('CV', 'comicvine_api'),
                             ('32P', 'password_32p'),
                             ('32P', 'passkey_32p'),
                             ('32P', 'username_32p'),
+                            ('32P', 'rssfeed_32p'),
                             ('Seedbox', 'seedbox_user'),
                             ('Seedbox', 'seedbox_pass'),
                             ('Seedbox', 'seedbox_port'),
