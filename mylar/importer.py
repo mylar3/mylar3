@@ -57,8 +57,11 @@ def addComictoDB(comicid, mismatch=None, pullupd=None, imported=None, ogcname=No
     if dbcomic is None:
         newValueDict = {"ComicName":   "Comic ID: %s" % (comicid),
                 "Status":   "Loading"}
-        if all([imported is not None, mylar.CONFIG.IMP_PATHS is True]):
-            comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
+        if all([imported is not None, imported != 'None', mylar.CONFIG.IMP_PATHS is True]):
+            try:
+                comlocation = os.path.dirname(imported['filelisting'][0]['comiclocation'])
+            except Exception as e:
+                comlocation = None
         else:
             comlocation = None
         oldcomversion = None
