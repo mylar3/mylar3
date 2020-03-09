@@ -233,4 +233,4 @@ class carePackage(object):
                         #if zlib isn't available, will throw RuntimeError, then just use default compression
                         zip.write(fname, os.path.basename(fname))
         os.unlink(self.filename)
-	os.unlink(self.cleanpath)
+        os.unlink(self.cleanpath)
