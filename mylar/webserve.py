@@ -6601,4 +6601,5 @@ class WebInterface(object):
         return data
     read_comic.exposed = True
 
+
     
