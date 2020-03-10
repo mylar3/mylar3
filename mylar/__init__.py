@@ -161,7 +161,7 @@ SCHED = BackgroundScheduler({
                              'apscheduler.timezone': 'UTC'})
 BACKENDSTATUS_WS = 'up'
 BACKENDSTATUS_CV = 'up'
-PROVIDER_STATUS = []
+PROVIDER_STATUS = {}
 
 
 def initialize(config_file):
